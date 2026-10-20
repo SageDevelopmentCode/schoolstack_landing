@@ -82,6 +82,7 @@ export const PARENT_NOTIFICATION_ACTIONS = [
   ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED,
   ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED,
   ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_PUBLISHED,
+  ACTIVITY_ACTIONS.SCHOOL_GALLERY_PHOTOS_UPLOADED,
 ] as const;
 
 export type ParentActivityNotificationCategory =
@@ -306,6 +307,7 @@ const NOTIFICATION_TITLE_BY_ACTION: Partial<Record<string, string>> = {
   [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED]: "Classroom signup open",
   [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED]: "Classroom signup closed",
   [ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_PUBLISHED]: "Form to sign",
+  [ACTIVITY_ACTIONS.SCHOOL_GALLERY_PHOTOS_UPLOADED]: "New school photos",
   [SYNTHETIC_BULLETIN_ACTION]: "New announcement",
   [SYNTHETIC_EVENT_ACTION]: "New calendar event",
   [COOP_SUPPLY_ITEM_ADDED_ACTION]: "New supply list item",
@@ -401,6 +403,7 @@ export function getParentActivityNotificationCategory(
   if (action.startsWith("coop.")) return "coop";
   if (action === SYNTHETIC_BULLETIN_ACTION) return "announcements";
   if (action === SYNTHETIC_EVENT_ACTION) return "events";
+  if (action.startsWith("school_gallery.")) return "announcements";
   if (action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED) return "messages";
   if (
     action.startsWith("application.") ||
@@ -458,6 +461,8 @@ function formatParentNotificationDetail(
     bulletinTitle?: string | null;
     eventTitle?: string | null;
     amountLabel?: string | null;
+    uploaderName?: string | null;
+    photoCount?: number | null;
   },
 ): string {
   const student = context?.studentLabel;
@@ -554,6 +559,16 @@ function formatParentNotificationDetail(
         ? `"${formTitle}" needs your signature`
         : "A form needs your signature";
     }
+    case ACTIVITY_ACTIONS.SCHOOL_GALLERY_PHOTOS_UPLOADED: {
+      const uploaderName = context?.uploaderName;
+      const photoCount = context?.photoCount;
+      if (uploaderName && photoCount != null && photoCount > 0) {
+        const countLabel =
+          photoCount === 1 ? "1 photo" : `${photoCount} photos`;
+        return `${uploaderName} uploaded ${countLabel}`;
+      }
+      return summary;
+    }
     case SYNTHETIC_BULLETIN_ACTION:
       return context?.bulletinTitle
         ? `New announcement: ${context.bulletinTitle}`
@@ -589,6 +604,7 @@ function isOrgWideParentNotificationAction(action: string): boolean {
   return (
     action === ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED ||
     action === ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED ||
+    action === ACTIVITY_ACTIONS.SCHOOL_GALLERY_PHOTOS_UPLOADED ||
     action === SYNTHETIC_BULLETIN_ACTION ||
     action === SYNTHETIC_EVENT_ACTION
   );
@@ -1118,6 +1134,13 @@ function resolveParentNotificationLink(
     return resolveTeacherParentFormPublishedLink(parentBase, formId, formCategory);
   }
 
+  if (action === ACTIVITY_ACTIONS.SCHOOL_GALLERY_PHOTOS_UPLOADED) {
+    return {
+      href: `${parentBase}/photos`,
+      ctaLabel: "View photos",
+    };
+  }
+
   if (action === SYNTHETIC_BULLETIN_ACTION) {
     return {
       href: parentBase,
@@ -1307,6 +1330,8 @@ function mapActivityEventToParentNotification(
   const amountCents = metadataNumber(event.metadata, "amountCents");
   const amountLabel =
     amountCents != null && amountCents > 0 ? formatCents(amountCents) : null;
+  const uploaderName = metadataString(event.metadata, "uploaderName");
+  const photoCount = metadataNumber(event.metadata, "photoCount");
   const chargeId =
     event.entity_type === "tuition_charge" ? event.entity_id : null;
 
@@ -1331,6 +1356,8 @@ function mapActivityEventToParentNotification(
       teacherName,
       dueDate,
       amountLabel,
+      uploaderName,
+      photoCount,
     }),
     createdAt: event.created_at,
     href: link.href,

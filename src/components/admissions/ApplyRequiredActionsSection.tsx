@@ -1,5 +1,6 @@
 "use client";
 
+import { CircleAlert } from "lucide-react";
 import { useMemo, useState } from "react";
 import PostSubmitBookingModal from "@/components/admissions/PostSubmitBookingModal";
 import PostSubmitStepCard from "@/components/admissions/PostSubmitStepCard";
@@ -106,8 +107,22 @@ export default function ApplyRequiredActionsSection({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 flex-1">
             <ParentSectionKicker theme={theme}>After you apply</ParentSectionKicker>
-            <ParentDisplayHeading theme={theme} as="h2" size="section" className="!text-xl">
-              Required actions
+            <ParentDisplayHeading
+              theme={theme}
+              as="h2"
+              size="section"
+              className="!text-xl"
+            >
+              <span className="inline-flex items-center gap-2">
+                {pendingRequiredCount > 0 ? (
+                  <CircleAlert
+                    className="h-5 w-5 shrink-0"
+                    style={{ color: theme.warning }}
+                    aria-hidden
+                  />
+                ) : null}
+                Required actions
+              </span>
             </ParentDisplayHeading>
             <p className="mt-1 text-[13px]" style={{ color: theme.muted }}>
               Complete these steps after submitting your application.
@@ -138,7 +153,19 @@ export default function ApplyRequiredActionsSection({
           </div>
         ) : null}
 
-        <ol className="mt-4 list-none space-y-3 p-0">
+        <ol
+          className="mt-4 list-none space-y-3 p-0"
+          style={
+            pendingRequiredCount > 0
+              ? {
+                  borderRadius: 12,
+                  border: `1px solid ${theme.warning}33`,
+                  backgroundColor: `${theme.warning}0D`,
+                  padding: 12,
+                }
+              : undefined
+          }
+        >
           {tasks.map((task) => (
             <PostSubmitStepCard
               key={task.actionId}

@@ -40,7 +40,8 @@ describe("splitParentNavForHeader", () => {
       primary.some((item) => item.key === "forms_documents"),
       false,
     );
-    assert.equal(primary.some((item) => item.key === "children"), true);
+    assert.equal(primary.some((item) => item.key === "children"), false);
+    assert.equal(more.some((item) => item.key === "children"), true);
   });
 
   it("routes friday_branch to More instead of primary nav", () => {

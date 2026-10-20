@@ -19,6 +19,8 @@ import {
   type DemoRequestStatus,
 } from "@/lib/admin-ui/admin-status-styles";
 import { demoRequestRoleLabel } from "@/lib/demo-request-roles";
+import { formatOrganizationTimezoneLabel } from "@/lib/admissions/admissions-availability";
+import { formatSelectedDate } from "@/lib/demo-scheduler";
 
 type DemoRequest = {
   id: string;
@@ -42,8 +44,13 @@ type DemoRequest = {
   updated_at: string;
 };
 
-function formatDate(date: string, time: string, timezone: string) {
-  return `${date} at ${time} (${timezone})`;
+function formatScheduledDemo(request: DemoRequest) {
+  const canonical = `${formatSelectedDate(request.scheduled_date)} at ${request.scheduled_time} CT`;
+  const visitorLabel = formatOrganizationTimezoneLabel(request.timezone);
+  if (request.timezone === "America/Chicago") {
+    return canonical;
+  }
+  return `${canonical} · Visitor viewed times in ${visitorLabel}`;
 }
 
 export default function DemoRequestsPage() {
@@ -210,11 +217,7 @@ export default function DemoRequestsPage() {
 
             <AdminDetailSection title="Scheduled">
               <p className="text-sm text-admin-text">
-                {formatDate(
-                  selected.scheduled_date,
-                  selected.scheduled_time,
-                  selected.timezone
-                )}
+                {formatScheduledDemo(selected)}
               </p>
             </AdminDetailSection>
 

@@ -143,3 +143,68 @@ describe("logActivityEvent server writes", () => {
     assert.equal(failingWriteClient.inserts.length, 1);
   });
 });
+
+describe("logActivityEvent browser failure reporting", () => {
+  const originalWindow = globalThis.window;
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    setActivityWriteClientForTests(null);
+    globalThis.fetch = originalFetch;
+    if (originalWindow === undefined) {
+      Reflect.deleteProperty(globalThis, "window");
+    } else {
+      globalThis.window = originalWindow;
+    }
+  });
+
+  it("does not throw when insert fails and service role env is unavailable", async () => {
+    globalThis.window = originalWindow ?? ({} as Window & typeof globalThis);
+    Reflect.deleteProperty(process.env, "SUPABASE_SERVICE_ROLE_KEY");
+
+    const fetchCalls: Array<{ url: string; body: string }> = [];
+    globalThis.fetch = async (input, init) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.href
+            : input.url;
+      fetchCalls.push({
+        url,
+        body: typeof init?.body === "string" ? init.body : "",
+      });
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    };
+
+    const session = createActivityEventsMockSupabase("session", {
+      insertError: {
+        message: 'new row violates row-level security policy for table "activity_events"',
+        code: "42501",
+      },
+    });
+
+    const eventId = await logActivityEvent(session.supabase, {
+      organizationId: "org-1",
+      actorType: "school_admin",
+      actorUserId: "user-1",
+      surface: "school_admin",
+      action: ACTIVITY_ACTIONS.FORM_SAVED,
+      summary: "Saved application form",
+    });
+
+    assert.equal(eventId, null);
+    assert.equal(session.inserts.length, 1);
+    assert.equal(fetchCalls.length, 1);
+    assert.equal(fetchCalls[0]?.url, "/api/school-admin/operational-errors");
+    const payload = JSON.parse(fetchCalls[0]?.body ?? "{}") as {
+      operation?: string;
+      error?: string;
+    };
+    assert.equal(payload.operation, "activity_log_insert");
+    assert.match(
+      payload.error ?? "",
+      /row-level security policy for table "activity_events"/,
+    );
+  });
+});

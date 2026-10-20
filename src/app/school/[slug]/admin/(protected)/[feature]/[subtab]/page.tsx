@@ -68,6 +68,10 @@ const AttendancePage = nextDynamic(
   () => import("@/components/school-admin/attendance/AttendancePage"),
   { loading: () => <AdminPageSkeleton label="Loading attendance" /> },
 );
+const SchoolProfilePage = nextDynamic(
+  () => import("@/components/school-admin/school-profile/SchoolProfilePage"),
+  { loading: () => <AdminPageSkeleton label="Loading school profile" /> },
+);
 
 export const dynamic = "force-dynamic";
 
@@ -230,6 +234,26 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
           <TuitionDashboardLoader organizationId={org.id} />
         </Suspense>
       </TuitionPageShell>
+    );
+  }
+
+  if (feature === "my_school" && subtab === "school_profile") {
+    const { data: orgRow } = await supabase
+      .from("organizations")
+      .select("name, timezone")
+      .eq("id", org.id)
+      .maybeSingle();
+
+    return (
+      <Suspense>
+        <SchoolProfilePage
+          organizationId={org.id}
+          branding={org.branding}
+          slug={slug}
+          schoolName={orgRow?.name ?? org.name}
+          timezone={orgRow?.timezone ?? "America/Chicago"}
+        />
+      </Suspense>
     );
   }
 

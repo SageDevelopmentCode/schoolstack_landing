@@ -24,6 +24,10 @@ export const SLIDE = {
   forestDeep: "#233B2F",
   line: "#E4D8C8",
   clay: "#A05C45",
+  wheat: "#E8D4A8",
+  blushRail: "#E7C2C2",
+  coverSlate: "#384956",
+  coverDusk: "#4A3F52",
 } as const;
 
 export const DEFAULT_CAROUSEL_AUDIENCE_BANNER = "Built for microschools";

@@ -45,6 +45,10 @@ const TeacherSupportSection = dynamic(
   () => import("@/components/sections/TeacherSupportSection"),
   { loading: () => <SectionFallback minHeight="24rem" /> },
 );
+const HomeFreeToolsSection = dynamic(
+  () => import("@/components/sections/HomeFreeToolsSection"),
+  { loading: () => <SectionFallback minHeight="28rem" /> },
+);
 const WorkflowSection = dynamic(
   () => import("@/components/sections/WorkflowSection"),
   { loading: () => <SectionFallback minHeight="32rem" /> },
@@ -102,6 +106,9 @@ export default function Home() {
         </InViewSectionGate>
         <InViewSectionGate minHeight="24rem">
           <TeacherSupportSection />
+        </InViewSectionGate>
+        <InViewSectionGate minHeight="28rem">
+          <HomeFreeToolsSection />
         </InViewSectionGate>
         <InViewSectionGate minHeight="32rem">
           <WorkflowSection />

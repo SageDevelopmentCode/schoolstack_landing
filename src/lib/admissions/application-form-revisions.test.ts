@@ -106,4 +106,41 @@ describe("summarizeApplicationFormChanges", () => {
     assert.ok(summary.changes.some((change) => change.includes("Added section")));
     assert.ok(summary.changes.some((change) => change.includes("Parent email")));
   });
+
+  it("reports step instruction description changes", () => {
+    const before = baseForm({
+      schema: {
+        sections: [
+          {
+            id: "section-1",
+            title: "Academic History",
+            description: "Short instructions.",
+            fields: [],
+          },
+        ],
+        acknowledgments: [],
+      },
+    });
+    const after = baseForm({
+      schema: {
+        sections: [
+          {
+            id: "section-1",
+            title: "Academic History",
+            description: "Longer homeschool transcript instructions.",
+            fields: [],
+          },
+        ],
+        acknowledgments: [],
+      },
+    });
+
+    const summary = summarizeApplicationFormChanges(before, after);
+    assert.deepEqual(summary.changedFields, ["schema"]);
+    assert.ok(
+      summary.changes.some((change) =>
+        change.includes('Updated step instructions for “Academic History”'),
+      ),
+    );
+  });
 });

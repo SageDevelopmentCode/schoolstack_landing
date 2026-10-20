@@ -79,6 +79,7 @@ function ParentHomeSlide() {
   return (
     <CarouselProductSlide
       kicker="Parent home"
+      tone="dusk"
       title="Parents at your Microschool shouldn’t have to ask, “Where was that update?”"
       body="Give each message a clear home and a clear next step."
       contentHeight={DEMO_CONTENT_HEIGHT}

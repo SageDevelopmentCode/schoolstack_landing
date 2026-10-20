@@ -40,6 +40,10 @@ const BulletinPage = nextDynamic(
   () => import("@/components/school-admin/bulletin/BulletinPage"),
   { loading: () => <AdminPageSkeleton label="Loading bulletin" /> },
 );
+const PhotosPage = nextDynamic(
+  () => import("@/components/school-admin/gallery/PhotosPage"),
+  { loading: () => <AdminPageSkeleton label="Loading photos" /> },
+);
 
 export const dynamic = "force-dynamic";
 
@@ -186,6 +190,19 @@ export default async function SchoolAdminFeaturePage({ params }: PageProps) {
     return (
       <Suspense>
         <BulletinPage
+          organizationId={org.id}
+          branding={org.branding}
+          slug={slug}
+          schoolName={org.name}
+        />
+      </Suspense>
+    );
+  }
+
+  if (feature === "photos") {
+    return (
+      <Suspense>
+        <PhotosPage
           organizationId={org.id}
           branding={org.branding}
           slug={slug}

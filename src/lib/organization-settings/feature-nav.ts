@@ -24,6 +24,7 @@ const ADMIN_NAV_CATALOG_ENTRIES: PortalNavCatalogEntry[] = [
   { key: "schedule", label: "Schedule", group: "Main", icon: "calendar-days" },
   { key: "messages", label: "Messages", group: "Main", icon: "message-square" },
   { key: "bulletin", label: "Bulletin", group: "Main", icon: "megaphone" },
+  { key: "photos", label: "Photos", group: "Main", icon: "image" },
   { key: "notifications", label: "Alerts", group: "Main", icon: "bell" },
   { key: "finances", label: "Finances", group: "Tools", icon: "dollar-sign" },
   { key: "marketing", label: "Marketing", group: "Tools", icon: "megaphone" },
@@ -31,6 +32,7 @@ const ADMIN_NAV_CATALOG_ENTRIES: PortalNavCatalogEntry[] = [
 
 const DEFAULT_FEATURE_CHILDREN: Record<string, FeatureNavChildConfig[]> = {
   my_school: [
+    { key: "school_profile", label: "School profile", icon: "map-pin" },
     { key: "students", label: "My Students", icon: "users" },
     { key: "attendance", label: "Attendance", icon: "clipboard-list" },
     { key: "programs", label: "Programs", icon: "book-open" },

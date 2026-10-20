@@ -27,8 +27,8 @@ export const MARKETING_FREE_TOOLS: MarketingFreeTool[] = [
     icon: Scale,
   },
   {
-    href: "/microschool-monday-check",
-    title: "Microschool Monday Check",
+    href: "/microschool-ops-check",
+    title: "Microschool Ops Check",
     description:
       "Admissions, paperwork, tuition tracking, and parent communication — get a personalized report in about three minutes.",
     icon: ClipboardCheck,

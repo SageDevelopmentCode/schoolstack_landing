@@ -24,6 +24,9 @@ import { requireTeacherPortalUser } from "@/lib/staff/teacher-portal-access-serv
 import type { StaffPortalRole } from "@/lib/staff/staff-members";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
+import SchoolGalleryPage from "@/components/school-gallery/SchoolGalleryPage";
+import { isSchoolGalleryEnabled } from "@/lib/school-gallery/gallery-enabled";
+import { isSchoolGalleryFeatureKey } from "@/lib/school-gallery/gallery-nav";
 
 const TeacherCalendarPage = nextDynamic(
   () => import("@/components/school-teacher/TeacherCalendarPage"),
@@ -66,7 +69,20 @@ export async function generateMetadata({
   const supabase = createClient(cookieStore);
   const org = await fetchOrganizationWithSettings(supabase, slug);
 
-  if (!org || !isTeacherFeatureEnabled(org.features, feature)) {
+  if (!org) {
+    return { title: "School Not Found" };
+  }
+
+  if (isSchoolGalleryFeatureKey(feature)) {
+    if (!isSchoolGalleryEnabled(org.features)) {
+      return { title: "School Not Found" };
+    }
+    return {
+      title: `Photos · ${org.name} Staff`,
+    };
+  }
+
+  if (!isTeacherFeatureEnabled(org.features, feature)) {
     return { title: "School Not Found" };
   }
 
@@ -90,7 +106,31 @@ export default async function SchoolTeacherFeaturePage({
   const supabase = createClient(cookieStore);
   const org = await fetchOrganizationWithSettings(supabase, slug);
 
-  if (!org || !isTeacherFeatureEnabled(org.features, feature)) {
+  if (!org) {
+    notFound();
+  }
+
+  if (isSchoolGalleryFeatureKey(feature)) {
+    if (!isSchoolGalleryEnabled(org.features)) {
+      notFound();
+    }
+    const user = await requireTeacherPortalUser(supabase, org.id);
+    return (
+      <div className="mx-auto max-w-[1200px] px-[clamp(20px,4vw,48px)] py-8">
+        <h1 className="mb-6 text-2xl font-semibold text-[#1F2A2E]">Photos</h1>
+        <SchoolGalleryPage
+          organizationId={org.id}
+          slug={slug}
+          portal="teacher"
+          readOnly={false}
+          currentUserId={user.id}
+          branding={org.branding}
+        />
+      </div>
+    );
+  }
+
+  if (!isTeacherFeatureEnabled(org.features, feature)) {
     notFound();
   }
 

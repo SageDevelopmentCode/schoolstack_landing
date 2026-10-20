@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { apiError } from "@/lib/api/route-errors";
-import { sortDemoTimeSlots, todayKey } from "@/lib/demo-scheduler";
+import { SCHEDULER_TIMEZONE, sortDemoTimeSlots, todayKey } from "@/lib/demo-scheduler";
 import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/availability";
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
   }
 
   if (!openSlots?.length) {
-    return NextResponse.json({ slots: {} });
+    return NextResponse.json({ slots: {}, schedulerTimezone: SCHEDULER_TIMEZONE });
   }
 
   const dates = [...new Set(openSlots.map((s) => s.date as string))];
@@ -66,5 +66,5 @@ export async function GET(request: Request) {
     slots[date] = sortDemoTimeSlots(slots[date]);
   }
 
-  return NextResponse.json({ slots });
+  return NextResponse.json({ slots, schedulerTimezone: SCHEDULER_TIMEZONE });
 }

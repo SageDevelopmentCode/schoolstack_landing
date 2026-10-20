@@ -8,15 +8,18 @@ import {
   emptyApplicationFormSchema,
   type ApplicationFormVersion,
 } from "./application-form-schema";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  ApplicationFormConflictError,
   applicationFormSummaryFromRow,
-  canPersistApplySystemSchemaUpgrade,
+  assertApplicationFormNotStale,
   canonicalApplyFormPublicPath,
   isApplicationFormSummaryStub,
   isApplyFormVersion,
   isCanonicalApplyEntrySlug,
   listProgramsWithoutApplyForm,
   suggestApplyFormPublicSlug,
+  updateApplicationForm,
 } from "./application-forms";
 import {
   applySystemSchemaChanged,
@@ -156,8 +159,8 @@ describe("applicationFormSummaryFromRow", () => {
   });
 });
 
-describe("canPersistApplySystemSchemaUpgrade", () => {
-  it("blocks summary stubs even when ensureApplySystemSchema would change them", () => {
+describe("summary stubs", () => {
+  it("are detected even though ensureApplySystemSchema would change them", () => {
     const summary = applicationFormSummaryFromRow({
       id: "form-1",
       organization_id: "org-1",
@@ -175,17 +178,10 @@ describe("canPersistApplySystemSchemaUpgrade", () => {
     const ensured = ensureApplySystemSchema(summary.schema);
 
     assert.equal(applySystemSchemaChanged(summary.schema, ensured), true);
-    assert.equal(
-      canPersistApplySystemSchemaUpgrade(summary, { hasLoadedFullForm: true }),
-      false,
-    );
-    assert.equal(
-      canPersistApplySystemSchemaUpgrade(summary, { hasLoadedFullForm: false }),
-      false,
-    );
+    assert.equal(isApplicationFormSummaryStub(summary), true);
   });
 
-  it("allows upgrades after the full form has loaded", () => {
+  it("does not treat a full apply form as a stub", () => {
     const full = applyForm({
       schema: {
         sections: [buildApplySystemSection()],
@@ -194,13 +190,196 @@ describe("canPersistApplySystemSchemaUpgrade", () => {
     });
 
     assert.equal(isApplicationFormSummaryStub(full), false);
-    assert.equal(
-      canPersistApplySystemSchemaUpgrade(full, { hasLoadedFullForm: true }),
-      true,
+  });
+});
+
+const LOADED_AT = "2026-10-20T13:30:50.152632+00:00";
+const SAVED_AT = "2026-10-20T13:31:00.000001+00:00";
+
+type FakeCall = { table: string; ops: Array<[string, unknown[]]> };
+
+function formRow(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    id: "form-1",
+    organization_id: "org-1",
+    program_id: "program-1",
+    form_kind: "custom",
+    version: 1,
+    status: "draft",
+    title: "Original title",
+    intro: null,
+    public_slug: "application",
+    schema: { sections: [], acknowledgments: [] },
+    fee_config: defaultApplicationFormFeeConfig(),
+    post_submit_config: defaultApplicationFormPostSubmitConfig(),
+    notification_config: defaultApplicationFormNotificationConfig(),
+    published_at: null,
+    created_at: "2026-09-01T00:00:00.000Z",
+    updated_at: LOADED_AT,
+    ...overrides,
+  };
+}
+
+function createFormsFakeSupabase(options: {
+  row: Record<string, unknown>;
+  updateMatches: boolean;
+}): { supabase: SupabaseClient; calls: FakeCall[] } {
+  const calls: FakeCall[] = [];
+
+  const supabase = {
+    auth: {
+      getUser: async () => ({
+        data: { user: { id: "admin-1", email: "admin@test.com" } },
+        error: null,
+      }),
+    },
+    from(table: string) {
+      const call: FakeCall = { table, ops: [] };
+      calls.push(call);
+      const opArgs = (name: string) => call.ops.find(([op]) => op === name)?.[1];
+
+      const resolve = () => {
+        if (table === "application_form_versions") {
+          const patch = opArgs("update")?.[0] as Record<string, unknown> | undefined;
+          if (patch) {
+            return {
+              data: options.updateMatches
+                ? { ...options.row, ...patch, updated_at: SAVED_AT }
+                : null,
+              error: null,
+            };
+          }
+          return { data: options.row, error: null };
+        }
+        if (table === "application_form_version_revisions") {
+          if (opArgs("insert")) return { data: { id: "revision-1" }, error: null };
+          if (opArgs("update")) return { data: null, error: null };
+          return { data: [], error: null };
+        }
+        if (table === "activity_events") {
+          return { data: { id: "event-1" }, error: null };
+        }
+        return { data: null, error: null };
+      };
+
+      const builder: Record<string, unknown> = {};
+      for (const op of ["select", "eq", "neq", "in", "is", "order", "limit", "update", "insert"]) {
+        builder[op] = (...args: unknown[]) => {
+          call.ops.push([op, args]);
+          return builder;
+        };
+      }
+      builder.maybeSingle = async () => resolve();
+      builder.single = async () => resolve();
+      builder.then = (
+        onFulfilled: (value: unknown) => unknown,
+        onRejected?: (reason: unknown) => unknown,
+      ) => Promise.resolve(resolve()).then(onFulfilled, onRejected);
+      return builder;
+    },
+  } as unknown as SupabaseClient;
+
+  return { supabase, calls };
+}
+
+function formUpdates(calls: FakeCall[]): FakeCall[] {
+  return calls.filter(
+    (call) =>
+      call.table === "application_form_versions" &&
+      call.ops.some(([op]) => op === "update"),
+  );
+}
+
+describe("assertApplicationFormNotStale", () => {
+  it("allows matching or omitted timestamps", () => {
+    assert.doesNotThrow(() => assertApplicationFormNotStale(LOADED_AT, LOADED_AT));
+    assert.doesNotThrow(() => assertApplicationFormNotStale(LOADED_AT, undefined));
+  });
+
+  it("rejects a timestamp that has moved on", () => {
+    assert.throws(
+      () => assertApplicationFormNotStale(SAVED_AT, LOADED_AT),
+      ApplicationFormConflictError,
     );
+  });
+});
+
+describe("updateApplicationForm stale-save guard", () => {
+  it("rejects a stale tab before writing", async () => {
+    const { supabase, calls } = createFormsFakeSupabase({
+      row: formRow({ updated_at: SAVED_AT }),
+      updateMatches: true,
+    });
+
+    await assert.rejects(
+      updateApplicationForm(
+        supabase,
+        "form-1",
+        { title: "Stale title" },
+        { expectedUpdatedAt: LOADED_AT },
+      ),
+      ApplicationFormConflictError,
+    );
+    assert.equal(formUpdates(calls).length, 0);
+  });
+
+  it("rejects when another save lands between the read and the write", async () => {
+    const { supabase, calls } = createFormsFakeSupabase({
+      row: formRow(),
+      updateMatches: false,
+    });
+
+    await assert.rejects(
+      updateApplicationForm(
+        supabase,
+        "form-1",
+        { title: "Racing title" },
+        { expectedUpdatedAt: LOADED_AT },
+      ),
+      ApplicationFormConflictError,
+    );
+    assert.equal(formUpdates(calls).length, 1);
     assert.equal(
-      canPersistApplySystemSchemaUpgrade(full, { hasLoadedFullForm: false }),
+      calls.some((call) => call.table === "application_form_version_revisions"),
       false,
+    );
+  });
+
+  it("filters the write on updated_at and always records a revision", async () => {
+    const { supabase, calls } = createFormsFakeSupabase({
+      row: formRow(),
+      updateMatches: true,
+    });
+
+    const saved = await updateApplicationForm(
+      supabase,
+      "form-1",
+      { title: "New title" },
+      { expectedUpdatedAt: LOADED_AT },
+    );
+
+    assert.equal(saved.title, "New title");
+    assert.equal(saved.updated_at, SAVED_AT);
+
+    const [update] = formUpdates(calls);
+    assert.ok(
+      update?.ops.some(
+        ([op, args]) => op === "eq" && args[0] === "updated_at" && args[1] === LOADED_AT,
+      ),
+    );
+    assert.ok(
+      calls.some(
+        (call) =>
+          call.table === "application_form_version_revisions" &&
+          call.ops.some(([op]) => op === "insert"),
+      ),
+    );
+    assert.ok(
+      calls.some(
+        (call) =>
+          call.table === "activity_events" &&
+          call.ops.some(([op]) => op === "insert"),
+      ),
     );
   });
 });

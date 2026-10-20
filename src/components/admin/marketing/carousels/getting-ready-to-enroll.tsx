@@ -74,6 +74,7 @@ function ReadySlide() {
   return (
     <CarouselProductSlide
       kicker="Enrollment"
+      tone="slate"
       title="Getting ready to enroll families for your Microschool?"
       body="Make sure these five things are ready first."
       contentHeight={DEMO_CONTENT_HEIGHT}

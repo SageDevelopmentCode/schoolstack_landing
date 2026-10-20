@@ -7,7 +7,8 @@ export type PublicFormId =
   | "demo_request"
   | "homepage_question"
   | "demo_feedback"
-  | "public_tour_booking";
+  | "public_tour_booking"
+  | "mobile_app_download";
 
 export type EnforcePublicFormSubmissionResult =
   | { ok: true }

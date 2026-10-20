@@ -49,7 +49,7 @@ function createMockSupabase(options: {
             };
           }
 
-          if (table === "organization_settings") {
+          if (table === "organization_settings_public") {
             if (!hasSettings) {
               return { data: null, error: null };
             }

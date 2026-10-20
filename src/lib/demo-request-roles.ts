@@ -3,21 +3,35 @@ export type DemoRequestRoleId = "starting" | "running" | "program" | "other";
 /** Public get-started options (stored as `demo_requests.role`). */
 export const DEMO_REQUEST_ROLE_OPTIONS: {
   id: DemoRequestRoleId;
+  /** Full label for admin / legacy display */
   label: string;
+  title: string;
+  subtitle: string;
 }[] = [
   {
     id: "starting",
     label: "Exploring or starting a microschool",
+    title: "Exploring or starting",
+    subtitle: "A microschool in the making",
   },
   {
     id: "running",
     label: "Running a microschool or small private school",
+    title: "Running a school",
+    subtitle: "Microschool or small private school",
   },
   {
     id: "program",
     label: "Running an enrichment, homeschool, or hybrid program",
+    title: "Running a program",
+    subtitle: "Enrichment, homeschool, or hybrid",
   },
-  { id: "other", label: "Something else" },
+  {
+    id: "other",
+    label: "Something else",
+    title: "Something else",
+    subtitle: "Tell us a little more, if you'd like",
+  },
 ];
 
 export const DEMO_REQUEST_ROLE_LABELS: Record<string, string> = {

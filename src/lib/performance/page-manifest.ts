@@ -13,8 +13,8 @@ const MARKETING_PAGES: Omit<PageTarget, "id">[] = [
   { category: "marketing", label: "Get started", path: "/get-started", requiresAuth: "none" },
   {
     category: "marketing",
-    label: "Microschool Monday Check",
-    path: "/microschool-monday-check",
+    label: "Microschool Ops Check",
+    path: "/microschool-ops-check",
     requiresAuth: "none",
   },
   { category: "marketing", label: "Free tools", path: "/tools", requiresAuth: "none" },

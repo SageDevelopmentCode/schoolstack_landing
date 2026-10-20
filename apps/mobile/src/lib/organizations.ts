@@ -100,27 +100,56 @@ function mapOrganizationRow(row: {
   };
 }
 
+async function loadPublicBrandingByOrganizationId(
+  organizationIds: string[],
+): Promise<Map<string, unknown>> {
+  const brandingByOrgId = new Map<string, unknown>();
+  if (organizationIds.length === 0) return brandingByOrgId;
+
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('organization_settings_public')
+    .select('organization_id, branding')
+    .in('organization_id', organizationIds);
+
+  if (error) throw error;
+
+  for (const row of data ?? []) {
+    brandingByOrgId.set(String(row.organization_id), row.branding);
+  }
+
+  return brandingByOrgId;
+}
+
+function mapLiveOrganization(
+  row: { id: string; slug: string; name: string },
+  brandingByOrgId: Map<string, unknown>,
+): LiveOrganization {
+  return {
+    id: String(row.id),
+    slug: String(row.slug),
+    name: String(row.name),
+    branding: parseOrganizationBranding(brandingByOrgId.get(String(row.id))),
+  };
+}
+
 async function fetchLiveOrganizations(): Promise<LiveOrganization[]> {
   const supabase = getSupabaseClient();
 
   const { data, error } = await supabase
     .from('organizations')
-    .select(
-      `
-      id,
-      slug,
-      name,
-      organization_settings (
-        branding
-      )
-    `,
-    )
+    .select('id, slug, name')
     .eq('status', 'live')
     .order('name', { ascending: true });
 
   if (error) throw error;
 
-  return (data ?? []).map((row) => mapOrganizationRow(row));
+  const rows = data ?? [];
+  const brandingByOrgId = await loadPublicBrandingByOrganizationId(
+    rows.map((row) => String(row.id)),
+  );
+
+  return rows.map((row) => mapLiveOrganization(row, brandingByOrgId));
 }
 
 export async function listLiveOrganizations(): Promise<LiveOrganization[]> {
@@ -142,24 +171,20 @@ export async function fetchLiveOrganizationsBySlugs(
 
   const { data, error } = await supabase
     .from('organizations')
-    .select(
-      `
-      id,
-      slug,
-      name,
-      organization_settings (
-        branding
-      )
-    `,
-    )
+    .select('id, slug, name')
     .eq('status', 'live')
     .in('slug', slugs)
     .order('name', { ascending: true });
 
   if (error) throw error;
 
+  const rows = data ?? [];
+  const brandingByOrgId = await loadPublicBrandingByOrganizationId(
+    rows.map((row) => String(row.id)),
+  );
+
   const bySlug = new Map(
-    (data ?? []).map((row) => [String(row.slug), mapOrganizationRow(row)]),
+    rows.map((row) => [String(row.slug), mapLiveOrganization(row, brandingByOrgId)]),
   );
 
   return slugs

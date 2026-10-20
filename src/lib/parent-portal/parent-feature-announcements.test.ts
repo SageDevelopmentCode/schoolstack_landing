@@ -20,6 +20,7 @@ const ALL_PARENT_FEATURES_ENABLED: OrganizationFeatures = {
     schedule: true,
     messages: true,
     bulletin: true,
+    photos: true,
     finances: true,
     marketing: true,
     notifications: true,

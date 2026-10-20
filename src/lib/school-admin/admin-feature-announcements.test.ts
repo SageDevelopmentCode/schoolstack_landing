@@ -18,6 +18,7 @@ const ALL_FEATURES_ENABLED: AdminFeatures = {
   schedule: true,
   messages: true,
   bulletin: true,
+  photos: true,
   finances: true,
   marketing: true,
   notifications: true,

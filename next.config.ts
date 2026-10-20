@@ -34,6 +34,15 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion"],
   },
+  async redirects() {
+    return [
+      {
+        source: "/microschool-monday-check",
+        destination: "/microschool-ops-check",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 const withBundleAnalyzer = bundleAnalyzer({

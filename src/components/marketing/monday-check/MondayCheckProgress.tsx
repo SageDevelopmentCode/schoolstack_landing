@@ -13,12 +13,9 @@ export default function MondayCheckProgress({
   total,
 }: MondayCheckProgressProps) {
   return (
-    <div className="flex flex-col items-center mb-6 md:mb-10 gap-3">
-      <ParentSectionKicker theme={theme} className="mb-0">
-        Question {currentIndex + 1} of {total}
-      </ParentSectionKicker>
+    <div className="mb-6 md:mb-8">
       <div
-        className="flex items-center gap-1.5 flex-wrap justify-center max-w-full"
+        className="flex gap-1"
         role="progressbar"
         aria-valuenow={currentIndex + 1}
         aria-valuemin={1}
@@ -26,24 +23,19 @@ export default function MondayCheckProgress({
         aria-label={`Question ${currentIndex + 1} of ${total}`}
       >
         {Array.from({ length: total }, (_, i) => (
-          <div
+          <span
             key={i}
-            aria-current={i === currentIndex ? "step" : undefined}
+            className="h-[5px] flex-1 rounded-[4px] transition-colors duration-300"
             style={{
-              transition: "all 0.35s cubic-bezier(0.16,1,0.3,1)",
-              backgroundColor:
-                i === currentIndex
-                  ? theme.primary
-                  : i < currentIndex
-                    ? theme.sage
-                    : theme.line,
-              width: i === currentIndex ? 20 : 8,
-              height: 8,
-              borderRadius: 9999,
+              backgroundColor: i <= currentIndex ? theme.primary : "#E4E8E1",
             }}
+            aria-current={i === currentIndex ? "step" : undefined}
           />
         ))}
       </div>
+      <ParentSectionKicker theme={theme} className="mt-5 mb-0 text-center sm:text-left">
+        Question {currentIndex + 1} of {total}
+      </ParentSectionKicker>
     </div>
   );
 }

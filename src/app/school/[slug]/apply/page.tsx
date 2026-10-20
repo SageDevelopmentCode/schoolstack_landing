@@ -201,7 +201,7 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
     org.features.feature_nav?.parent,
   );
 
-  const admissionsSettings = await getAdmissionsOrgSettings(supabase, org.id);
+  const admissionsSettings = await getAdmissionsOrgSettings(admin, org.id);
   const shadowDaySchedulingMode = resolveShadowDaySchedulingMode(admissionsSettings);
 
   return (

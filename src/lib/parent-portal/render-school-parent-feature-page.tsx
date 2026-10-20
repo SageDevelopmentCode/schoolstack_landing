@@ -75,6 +75,9 @@ import { listProgramCoopTeachingSchedule } from "@/lib/admissions/program-coop-t
 import { getGuardianIdForUser } from "@/lib/messages/messages";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts-home";
+import SchoolGalleryPage from "@/components/school-gallery/SchoolGalleryPage";
+import { isSchoolGalleryEnabled } from "@/lib/school-gallery/gallery-enabled";
+import { isSchoolGalleryFeatureKey } from "@/lib/school-gallery/gallery-nav";
 
 export type SchoolParentFeaturePageContext = {
   slug: string;
@@ -125,6 +128,15 @@ export async function generateSchoolParentFeatureMetadata(
       return { title: "School Not Found" };
     }
     features = programContext.effectiveFeatures;
+  }
+
+  if (isSchoolGalleryFeatureKey(context.feature)) {
+    if (!isSchoolGalleryEnabled(org.features)) {
+      return { title: "School Not Found" };
+    }
+    return {
+      title: `Photos · ${org.name} Parent Portal`,
+    };
   }
 
   if (!isParentFeatureEnabled(features, context.feature)) {
@@ -179,6 +191,25 @@ export async function renderSchoolParentFeaturePage(
     programId = programContext.programId;
     programPortalLabel = programContext.displayLabel;
     coopModeEnabled = programContext.coopMode;
+  }
+
+  if (isSchoolGalleryFeatureKey(context.feature)) {
+    if (!isSchoolGalleryEnabled(org.features)) {
+      notFound();
+    }
+
+    return (
+      <SchoolParentPageShell title="Photos">
+        <div className="px-[clamp(20px,4vw,48px)] py-8">
+          <SchoolGalleryPage
+            organizationId={org.id}
+            slug={context.slug}
+            programId={programId}
+            portal="parent"
+          />
+        </div>
+      </SchoolParentPageShell>
+    );
   }
 
   if (!isParentFeatureEnabled(features, context.feature)) {

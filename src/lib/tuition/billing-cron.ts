@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendIncompleteAdmissionsReminders } from "@/lib/admissions/incomplete-admissions-reminders";
+import { sendPostSubmitRequiredReminders } from "@/lib/admissions/post-submit-required-reminders";
 import type { ScheduledVisitRemindersResult } from "@/lib/admissions/scheduled-visit-reminders";
 import { sendScheduledVisitRemindersForOrganization } from "@/lib/admissions/scheduled-visit-reminders";
 import { messageFromCause } from "@/lib/api/error-serialization";
@@ -46,6 +47,9 @@ export type TuitionBillingCronSummary = {
   remindersSent: number;
   autopayRemindersSent: number;
   incompleteAdmissionsRemindersSent: number;
+  incompleteAdmissionsReminderFailures: number;
+  postSubmitRequiredRemindersSent: number;
+  postSubmitRequiredReminderFailures: number;
   rulesEvaluated: number;
   lateFeesApplied: number;
   lateFeesNotified: number;
@@ -62,8 +66,10 @@ export type TuitionBillingCronSummary = {
   committeeUnreadWorkspaceDigestsSent: number;
   committeeUnreadWorkspaceDigestFailures: number;
   scheduledVisitParentRemindersSent: number;
+  scheduledVisitParentDayOfRemindersSent: number;
   scheduledVisitAdminWeeklyDigestsSent: number;
   scheduledVisitAdminDayBeforeDigestsSent: number;
+  scheduledVisitAdminDayOfDigestsSent: number;
   scheduledVisitReminderFailures: number;
   bulletinEmailsSent: number;
   bulletinEmailFailures: number;
@@ -83,6 +89,7 @@ export type TuitionBillingCronDeps = {
   sendTuitionDueReminders?: typeof sendTuitionDueReminders;
   sendAutopayUpcomingReminders?: typeof sendAutopayUpcomingReminders;
   sendIncompleteAdmissionsReminders?: typeof sendIncompleteAdmissionsReminders;
+  sendPostSubmitRequiredReminders?: typeof sendPostSubmitRequiredReminders;
   applyLateFeesForOrganization?: typeof applyLateFeesForOrganization;
   evaluateRulesForOrganization?: typeof evaluateRulesForOrganization;
   processAutopayForOrganization?: typeof processAutopayForOrganization;
@@ -139,6 +146,8 @@ export async function runTuitionBillingCron(
     deps.sendAutopayUpcomingReminders ?? sendAutopayUpcomingReminders;
   const sendIncompleteAdmissionsRemindersFn =
     deps.sendIncompleteAdmissionsReminders ?? sendIncompleteAdmissionsReminders;
+  const sendPostSubmitRequiredRemindersFn =
+    deps.sendPostSubmitRequiredReminders ?? sendPostSubmitRequiredReminders;
   const applyLateFees =
     deps.applyLateFeesForOrganization ?? applyLateFeesForOrganization;
   const evaluateRules = deps.evaluateRulesForOrganization ?? evaluateRulesForOrganization;
@@ -179,6 +188,9 @@ export async function runTuitionBillingCron(
   let remindersSent = 0;
   let autopayRemindersSent = 0;
   let incompleteAdmissionsRemindersSent = 0;
+  let incompleteAdmissionsReminderFailures = 0;
+  let postSubmitRequiredRemindersSent = 0;
+  let postSubmitRequiredReminderFailures = 0;
   let rulesEvaluated = 0;
   let lateFeesApplied = 0;
   let lateFeesNotified = 0;
@@ -196,8 +208,10 @@ export async function runTuitionBillingCron(
   let committeeUnreadWorkspaceDigestsSent = 0;
   let committeeUnreadWorkspaceDigestFailures = 0;
   let scheduledVisitParentRemindersSent = 0;
+  let scheduledVisitParentDayOfRemindersSent = 0;
   let scheduledVisitAdminWeeklyDigestsSent = 0;
   let scheduledVisitAdminDayBeforeDigestsSent = 0;
+  let scheduledVisitAdminDayOfDigestsSent = 0;
   let scheduledVisitReminderFailures = 0;
   let bulletinEmailsSent = 0;
   let bulletinEmailFailures = 0;
@@ -222,9 +236,47 @@ export async function runTuitionBillingCron(
       const orgAutopayReminders = await sendAutopayReminders(admin, organizationId);
       autopayRemindersSent += orgAutopayReminders;
 
-      const orgIncompleteAdmissionsReminders =
-        await sendIncompleteAdmissionsRemindersFn(admin, organizationId);
-      incompleteAdmissionsRemindersSent += orgIncompleteAdmissionsReminders;
+      try {
+        const orgIncompleteAdmissionsReminders =
+          await sendIncompleteAdmissionsRemindersFn(admin, organizationId);
+        incompleteAdmissionsRemindersSent += orgIncompleteAdmissionsReminders;
+      } catch (error) {
+        incompleteAdmissionsReminderFailures += 1;
+        void reportOperationalError({
+          supabase: admin,
+          surface: "system",
+          organizationId,
+          operation: "incomplete_admissions_reminders_cron.organization",
+          error:
+            messageFromCause(error) ??
+            "Incomplete admissions reminders cron failed for organization",
+          entityType: "organization",
+          entityId: organizationId,
+          actor: { type: "system" },
+          cause: error,
+        });
+      }
+
+      try {
+        const orgPostSubmitRequiredReminders =
+          await sendPostSubmitRequiredRemindersFn(admin, organizationId);
+        postSubmitRequiredRemindersSent += orgPostSubmitRequiredReminders;
+      } catch (error) {
+        postSubmitRequiredReminderFailures += 1;
+        void reportOperationalError({
+          supabase: admin,
+          surface: "system",
+          organizationId,
+          operation: "post_submit_required_reminders_cron.organization",
+          error:
+            messageFromCause(error) ??
+            "Post-submit required reminders cron failed for organization",
+          entityType: "organization",
+          entityId: organizationId,
+          actor: { type: "system" },
+          cause: error,
+        });
+      }
 
       const orgRules = await evaluateRules(admin, organizationId);
       rulesEvaluated += orgRules;
@@ -362,10 +414,14 @@ export async function runTuitionBillingCron(
         );
         scheduledVisitParentRemindersSent +=
           visitReminderResult.parentRemindersSent;
+        scheduledVisitParentDayOfRemindersSent +=
+          visitReminderResult.parentDayOfRemindersSent;
         scheduledVisitAdminWeeklyDigestsSent +=
           visitReminderResult.adminWeeklyDigestsSent;
         scheduledVisitAdminDayBeforeDigestsSent +=
           visitReminderResult.adminDayBeforeDigestsSent;
+        scheduledVisitAdminDayOfDigestsSent +=
+          visitReminderResult.adminDayOfDigestsSent;
         scheduledVisitReminderFailures += visitReminderResult.failures;
       } catch (error) {
         scheduledVisitReminderFailures += 1;
@@ -434,6 +490,9 @@ export async function runTuitionBillingCron(
     remindersSent,
     autopayRemindersSent,
     incompleteAdmissionsRemindersSent,
+    incompleteAdmissionsReminderFailures,
+    postSubmitRequiredRemindersSent,
+    postSubmitRequiredReminderFailures,
     rulesEvaluated,
     lateFeesApplied,
     lateFeesNotified,
@@ -450,8 +509,10 @@ export async function runTuitionBillingCron(
     committeeUnreadWorkspaceDigestsSent,
     committeeUnreadWorkspaceDigestFailures,
     scheduledVisitParentRemindersSent,
+    scheduledVisitParentDayOfRemindersSent,
     scheduledVisitAdminWeeklyDigestsSent,
     scheduledVisitAdminDayBeforeDigestsSent,
+    scheduledVisitAdminDayOfDigestsSent,
     scheduledVisitReminderFailures,
     bulletinEmailsSent,
     bulletinEmailFailures,

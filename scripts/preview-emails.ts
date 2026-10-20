@@ -25,10 +25,13 @@ import {
   buildUnreadMessagesDigestEmailHtml,
   buildPaymentReceiptConfirmationHtml,
   buildPaymentReceivedAdminNotificationHtml,
+  buildPostSubmitRequiredReminderHtml,
+  buildPostSubmitVisitConfirmationHtml,
   buildPostSubmitVisitOwnerNotificationHtml,
   buildPublicCampusTourConfirmationHtml,
   buildScheduledVisitAdminDigestHtml,
   buildScheduledVisitDayBeforeReminderHtml,
+  buildScheduledVisitDayOfReminderHtml,
   buildTeacherParentFormPublishedEmailHtml,
   buildTeacherParentFormResponseSignedEmailHtml,
   buildTuitionAutopayUpcomingHtml,
@@ -49,6 +52,12 @@ import { appendUnsubscribeFooter } from "../src/lib/outbound-email-unsubscribe";
 import { PRODUCTION_SITE_URL } from "../src/lib/site";
 
 const PREVIEW_RECIPIENT_EMAIL = "preview@example.com";
+
+const sampleVisitLocationDetails = [
+  { label: "Location", value: "742 Evergreen Terrace, Springfield, IL 62701" },
+  { label: "Phone", value: "Admissions: (555) 123-4567" },
+  { label: "Email", value: "hello@rootedmeadows.org" },
+];
 
 const outDir = join(process.cwd(), ".email-previews");
 const supabaseTemplatesDir = join(process.cwd(), "supabase/email-templates");
@@ -162,6 +171,73 @@ const previews = [
       "Thank you",
       "View apply dashboard",
       "Rooted Meadows",
+    ],
+  },
+  {
+    filename: "application-submitted-required-post-submit.html",
+    html: buildApplicationSubmittedConfirmationHtml({
+      name: "Amanda Landeen",
+      schoolName: "Rooted Meadows Waldorf School",
+      formTitle: "Rooted Meadows 2026 Application",
+      applyDashboardUrl: "https://trymudkitchen.com/school/rooted-meadows/apply",
+      requiredPostSubmitSteps: [{ title: "Observation day" }],
+    }),
+    checks: [
+      "Action needed",
+      "Required next step",
+      "Observation day",
+      "View apply dashboard",
+    ],
+  },
+  {
+    filename: "post-submit-required-reminder-1.html",
+    html: buildPostSubmitRequiredReminderHtml({
+      name: "Amanda Landeen",
+      schoolName: "Rooted Meadows Waldorf School",
+      applyDashboardUrl: "https://trymudkitchen.com/school/rooted-meadows/apply",
+      reminderNumber: 1,
+      applications: [
+        {
+          label: "Levi Landeen",
+          formTitle: "Rooted Meadows 2026 Application",
+          stepTitles: ["Observation day"],
+        },
+      ],
+    }),
+    checks: [
+      "Reminder",
+      "required step on your apply dashboard",
+      "Levi Landeen",
+      "Observation day",
+      "View apply dashboard",
+      "Rooted Meadows Waldorf School",
+    ],
+  },
+  {
+    filename: "post-submit-required-reminder-2.html",
+    html: buildPostSubmitRequiredReminderHtml({
+      name: "Amanda Landeen",
+      schoolName: "Rooted Meadows Waldorf School",
+      applyDashboardUrl: "https://trymudkitchen.com/school/rooted-meadows/apply",
+      reminderNumber: 2,
+      applications: [
+        {
+          label: "Levi Landeen",
+          formTitle: "Rooted Meadows 2026 Application",
+          stepTitles: ["Observation day"],
+        },
+        {
+          label: "Maggie Landeen",
+          formTitle: "Rooted Meadows 2026 Application",
+          stepTitles: ["Observation day"],
+        },
+      ],
+    }),
+    checks: [
+      "Reminder",
+      "We still need you",
+      "Maggie Landeen",
+      "View apply dashboard",
     ],
   },
   {
@@ -710,6 +786,28 @@ const previews = [
     ],
   },
   {
+    filename: "post-submit-visit-confirmation.html",
+    html: buildPostSubmitVisitConfirmationHtml({
+      name: "Holly Evensen",
+      schoolName: "Rooted Meadows Waldorf School",
+      stepTitle: "Schedule shadow / observation days",
+      scheduledDate: "2026-08-26",
+      startTimeSlot: "09:00",
+      timezoneLabel: "Central Time",
+      whenLabel: "Wed, August 26 (1 school day)",
+      durationLabel: "1 school day",
+      applyDashboardUrl:
+        "https://trymudkitchen.com/school/rooted-meadows/apply/app-1",
+      locationDetails: sampleVisitLocationDetails,
+    }),
+    checks: [
+      "Visit Confirmed",
+      "shadow / observation days",
+      "742 Evergreen Terrace",
+      "View apply dashboard",
+    ],
+  },
+  {
     filename: "public-campus-tour-confirmation.html",
     html: buildPublicCampusTourConfirmationHtml({
       name: "Jordan Lee",
@@ -717,13 +815,15 @@ const previews = [
       whenLabel: "Wed, August 26 at 10:00 AM",
       timezoneLabel: "Central Time",
       durationLabel: "45 minutes",
+      locationDetails: sampleVisitLocationDetails,
     }),
     checks: [
       "Visit Confirmed",
       "campus tour is confirmed",
       "Wed, August 26 at 10:00 AM",
       "45 minutes",
-      "contact Rooted Meadows Waldorf School directly",
+      "contact details above",
+      "742 Evergreen Terrace",
     ],
   },
   {
@@ -735,6 +835,7 @@ const previews = [
       whenLabel: "Tue, September 29 at 10:00 AM",
       timezoneLabel: "Central Time",
       durationLabel: "45 minutes",
+      locationDetails: sampleVisitLocationDetails,
       optionalLink: {
         label: "View apply dashboard",
         href: "https://trymudkitchen.com/school/rooted-meadows/apply/app-1",
@@ -745,6 +846,29 @@ const previews = [
       "See you tomorrow",
       "Campus tour",
       "View apply dashboard",
+      "742 Evergreen Terrace",
+    ],
+  },
+  {
+    filename: "scheduled-visit-day-of-reminder.html",
+    html: buildScheduledVisitDayOfReminderHtml({
+      name: "Holly Evensen",
+      schoolName: "Rooted Meadows Waldorf School",
+      stepTitle: "Campus tour",
+      whenLabel: "Tue, September 29 at 10:00 AM",
+      timezoneLabel: "Central Time",
+      durationLabel: "45 minutes",
+      locationDetails: sampleVisitLocationDetails,
+      optionalLink: {
+        label: "View apply dashboard",
+        href: "https://trymudkitchen.com/school/rooted-meadows/apply/app-1",
+      },
+    }),
+    checks: [
+      "Visit Today",
+      "See you today",
+      "Campus tour",
+      "742 Evergreen Terrace",
     ],
   },
   {
@@ -788,6 +912,35 @@ const previews = [
     checks: [
       "Visits scheduled for tomorrow",
       "Family interview",
+      "Open schedule",
+    ],
+  },
+  {
+    filename: "scheduled-visit-admin-day-of-digest.html",
+    html: buildScheduledVisitAdminDigestHtml({
+      schoolName: "Rooted Meadows Waldorf School",
+      digestKind: "day_of",
+      scheduleAdminUrl:
+        "https://trymudkitchen.com/school/rooted-meadows/admin/schedule?tab=visits",
+      rows: [
+        {
+          whenLabel: "Tue, September 29 at 10:00 AM",
+          stepTitle: "Schedule shadow / observation days",
+          contactLabel: "Holly Evensen",
+          bookingSourceLabel: "Application",
+        },
+        {
+          whenLabel: "Tue, September 29 at 2:00 PM",
+          stepTitle: "Campus tour",
+          contactLabel: "Jordan Lee",
+          bookingSourceLabel: "Public",
+        },
+      ],
+    }),
+    checks: [
+      "Visits scheduled for today",
+      "shadow / observation",
+      "Campus tour",
       "Open schedule",
     ],
   },

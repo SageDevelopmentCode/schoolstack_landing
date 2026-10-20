@@ -45,6 +45,7 @@ export type AdminFeatures = {
   schedule: boolean;
   messages: boolean;
   bulletin: boolean;
+  photos: boolean;
   finances: boolean;
   marketing: boolean;
   notifications: boolean;

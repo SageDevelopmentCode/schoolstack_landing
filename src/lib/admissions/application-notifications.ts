@@ -12,6 +12,7 @@ import type { ScheduledVisitRecord } from "@/lib/admissions/admissions-booking";
 import {
   parseApplicationFormPostSubmitConfig,
 } from "@/lib/admissions/application-form-schema";
+import { listConfiguredRequiredPostSubmitActions } from "@/lib/admissions/post-submit-required-work";
 import { extractStudentLabel } from "@/lib/admissions/application-submissions";
 import {
   POST_SUBMIT_ACTION_TEMPLATES,
@@ -41,6 +42,8 @@ import {
   sendPostSubmitVisitOwnerNotification,
   sendPublicCampusTourConfirmation,
 } from "@/lib/emails";
+import { loadSchoolProfileBundle } from "@/lib/school-admin/school-profile/load-school-profile";
+import { buildSchoolVisitEmailDetailRows } from "@/lib/school-admin/school-profile/school-visit-email-details";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
 import {
@@ -139,7 +142,7 @@ export async function sendApplicationSubmittedNotifications(
         family_id,
         created_by_user_id,
         primary_guardian_id,
-        application_form_versions (title, notification_config),
+        application_form_versions (title, notification_config, post_submit_config),
         programs (name)
       `,
       )
@@ -169,11 +172,14 @@ export async function sendApplicationSubmittedNotifications(
     const contact = await resolveApplicantContact(admin, application);
 
     const formVersion = application.application_form_versions as
-      | { title?: string; notification_config?: unknown }
-      | { title?: string; notification_config?: unknown }[]
+      | { title?: string; notification_config?: unknown; post_submit_config?: unknown }
+      | { title?: string; notification_config?: unknown; post_submit_config?: unknown }[]
       | null;
     const form = Array.isArray(formVersion) ? formVersion[0] : formVersion;
     const formTitle = form?.title ?? "Application";
+    const requiredPostSubmitSteps = listConfiguredRequiredPostSubmitActions(
+      form?.post_submit_config,
+    ).map((step) => ({ title: step.title }));
 
     const program = application.programs as { name?: string } | { name?: string }[] | null;
     const programRow = Array.isArray(program) ? program[0] : program;
@@ -254,6 +260,10 @@ export async function sendApplicationSubmittedNotifications(
             schoolName,
             formTitle,
             applyDashboardUrl,
+            requiredPostSubmitSteps:
+              requiredPostSubmitSteps.length > 0
+                ? requiredPostSubmitSteps
+                : undefined,
             notificationContext: emailNotificationContext,
           }),
         );
@@ -496,6 +506,7 @@ export function buildPostSubmitVisitNotificationTasks(input: {
   studentName?: string;
   familyName?: string;
   tourFormatLabel?: string | null;
+  locationDetails?: ReturnType<typeof buildSchoolVisitEmailDetailRows>;
 }): Array<() => Promise<unknown>> {
   const {
     booking,
@@ -510,6 +521,7 @@ export function buildPostSubmitVisitNotificationTasks(input: {
     studentName,
     familyName,
     tourFormatLabel,
+    locationDetails,
   } = input;
 
   const whenLabel = formatScheduledVisitWhenLabel(booking);
@@ -598,6 +610,7 @@ export function buildPostSubmitVisitNotificationTasks(input: {
           whenLabel,
           durationLabel,
           applyDashboardUrl,
+          locationDetails,
           notificationContext: visitEmailContext,
         }),
       );
@@ -704,6 +717,9 @@ export async function sendPostSubmitVisitScheduledNotifications(
         )
       : null;
 
+    const schoolProfileBundle = await loadSchoolProfileBundle(admin, organizationId);
+    const locationDetails = buildSchoolVisitEmailDetailRows(schoolProfileBundle);
+
     const notificationTasks = buildPostSubmitVisitNotificationTasks({
       booking,
       contact,
@@ -717,6 +733,7 @@ export async function sendPostSubmitVisitScheduledNotifications(
       studentName,
       familyName,
       tourFormatLabel,
+      locationDetails,
     });
 
     if (notificationTasks.length === 0) {
@@ -937,6 +954,12 @@ export async function sendPublicTourBookingAdminNotifications(
       entityId: visitId,
     });
 
+    const schoolProfileBundle = await loadSchoolProfileBundle(
+      admin,
+      input.organizationId,
+    );
+    const locationDetails = buildSchoolVisitEmailDetailRows(schoolProfileBundle);
+
     const tasks: Array<() => Promise<unknown>> = [
       () =>
         notifyCampusTourBooked({
@@ -962,6 +985,7 @@ export async function sendPublicTourBookingAdminNotifications(
           whenLabel,
           timezoneLabel,
           durationLabel,
+          locationDetails,
           notificationContext: visitEmailContext,
         }),
       );

@@ -327,6 +327,7 @@ export async function dispatchMessageNotifications(
         recipientPortal: recipient.portal,
         recipientEmail: recipient.email,
         data: {
+          kind: "message",
           portal: recipient.portal,
           organizationSlug: context.organizationSlug,
           threadId: context.threadId,

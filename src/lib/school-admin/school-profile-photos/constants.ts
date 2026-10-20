@@ -1,0 +1,1 @@
+export const MAX_SCHOOL_PROFILE_PHOTOS = 5;

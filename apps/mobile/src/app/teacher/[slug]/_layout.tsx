@@ -1,5 +1,4 @@
-import { useIsFocused } from '@react-navigation/native';
-import { Slot, useLocalSearchParams, usePathname, useRouter } from 'expo-router';
+import { Slot, useIsFocused, useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';

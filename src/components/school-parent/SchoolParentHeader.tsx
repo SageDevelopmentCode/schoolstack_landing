@@ -22,6 +22,8 @@ import {
   type ParentNavItem,
 } from "@/lib/organization-settings/parent-nav";
 import { isParentNavFridayBranchEnabled } from "@/lib/organization-settings/parent-home-features";
+import { isSchoolGalleryEnabled } from "@/lib/school-gallery/gallery-enabled";
+import { injectSchoolGalleryParentNavItem } from "@/lib/school-gallery/gallery-nav";
 import { getParentFeatureIconColor } from "@/lib/organization-settings/parent-feature-icon-styles";
 import {
   CLIENT_AUTH_ACTIVITY_ACTIONS,
@@ -219,10 +221,16 @@ export default function SchoolParentHeader({
         features.feature_nav?.parent,
         resolvedNavBasePath,
       );
-      return items.filter(
+      const filtered = items.filter(
         (item) =>
           item.key !== "friday_branch" ||
           isParentNavFridayBranchEnabled(features, fridayBranchSettings),
+      );
+      return injectSchoolGalleryParentNavItem(
+        slug,
+        filtered,
+        isSchoolGalleryEnabled(features),
+        resolvedNavBasePath,
       );
     },
     [

@@ -25,6 +25,7 @@ export type NotificationChannelSettings = {
 export type ScheduledVisitReminderState = {
   last_weekly_admin_digest_week_start?: string;
   last_day_before_admin_digest_for_date?: string;
+  last_day_of_admin_digest_for_date?: string;
 };
 
 export type ParentReminderSettings = {
@@ -41,6 +42,9 @@ export type ParentReminderSettings = {
     enabled: boolean;
   };
   scheduled_visit_day_before: {
+    enabled: boolean;
+  };
+  scheduled_visit_day_of: {
     enabled: boolean;
   };
 };
@@ -125,6 +129,9 @@ export function getDefaultNotificationSettings(): OrganizationNotificationSettin
       scheduled_visit_day_before: {
         enabled: true,
       },
+      scheduled_visit_day_of: {
+        enabled: true,
+      },
     },
     scheduled_visit_reminders: {},
   };
@@ -148,12 +155,17 @@ function parseScheduledVisitReminderState(
     typeof state?.last_day_before_admin_digest_for_date === "string"
       ? state.last_day_before_admin_digest_for_date.trim()
       : undefined;
+  const lastDayOf =
+    typeof state?.last_day_of_admin_digest_for_date === "string"
+      ? state.last_day_of_admin_digest_for_date.trim()
+      : undefined;
 
   return {
     ...(lastWeekly ? { last_weekly_admin_digest_week_start: lastWeekly } : {}),
     ...(lastDayBefore
       ? { last_day_before_admin_digest_for_date: lastDayBefore }
       : {}),
+    ...(lastDayOf ? { last_day_of_admin_digest_for_date: lastDayOf } : {}),
   };
 }
 
@@ -196,6 +208,13 @@ function parseParentReminderSettings(
       ? (raw.scheduled_visit_day_before as Record<string, unknown>)
       : undefined;
 
+  const scheduledVisitDayOfRaw =
+    raw?.scheduled_visit_day_of &&
+    typeof raw.scheduled_visit_day_of === "object" &&
+    !Array.isArray(raw.scheduled_visit_day_of)
+      ? (raw.scheduled_visit_day_of as Record<string, unknown>)
+      : undefined;
+
   return {
     incomplete_admissions: {
       enabled:
@@ -226,6 +245,12 @@ function parseParentReminderSettings(
         typeof scheduledVisitDayBeforeRaw?.enabled === "boolean"
           ? scheduledVisitDayBeforeRaw.enabled
           : defaults.scheduled_visit_day_before.enabled,
+    },
+    scheduled_visit_day_of: {
+      enabled:
+        typeof scheduledVisitDayOfRaw?.enabled === "boolean"
+          ? scheduledVisitDayOfRaw.enabled
+          : defaults.scheduled_visit_day_of.enabled,
     },
   };
 }
@@ -647,6 +672,14 @@ export async function isScheduledVisitDayBeforeReminderEnabled(
 ): Promise<boolean> {
   const settings = await loadOrganizationNotificationSettings(admin, organizationId);
   return settings.parent_reminders.scheduled_visit_day_before.enabled;
+}
+
+export async function isScheduledVisitDayOfReminderEnabled(
+  admin: SupabaseClient,
+  organizationId: string,
+): Promise<boolean> {
+  const settings = await loadOrganizationNotificationSettings(admin, organizationId);
+  return settings.parent_reminders.scheduled_visit_day_of.enabled;
 }
 
 export async function resolveApplicationNotificationEmails(

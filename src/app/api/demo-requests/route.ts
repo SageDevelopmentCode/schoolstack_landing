@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { schoolDemoRegistry } from "@/data/school-demos";
-import { isPastDate } from "@/lib/demo-scheduler";
+import { isPastDate, SCHEDULER_TIMEZONE } from "@/lib/demo-scheduler";
+import { isValidIanaTimezone } from "@/lib/marketing/demo-timezone-options";
 import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { apiError } from "@/lib/api/route-errors";
 import { notifyDemoBooking } from "@/lib/discord";
@@ -58,6 +59,7 @@ interface DemoRequestBody {
   conceptDemoSlug?: string;
   scheduledDate?: string;
   scheduledTime?: string;
+  timezone?: string;
   companyWebsite?: string;
 }
 
@@ -77,6 +79,7 @@ export async function POST(request: Request) {
   const priorities = Array.isArray(body.priorities) ? body.priorities : [];
   const scheduledDate = body.scheduledDate?.trim() ?? "";
   const scheduledTime = body.scheduledTime?.trim() ?? "";
+  const timezone = body.timezone?.trim() || SCHEDULER_TIMEZONE;
 
   if (!name || !email || !schoolName || !role || !scheduledDate || !scheduledTime) {
     return apiError(ROUTE, { request, status: 400, error: "Missing required fields." });
@@ -112,6 +115,10 @@ export async function POST(request: Request) {
 
   if (!VALID_ROLES.has(role)) {
     return apiError(ROUTE, { request, status: 400, error: "Invalid role." });
+  }
+
+  if (!isValidIanaTimezone(timezone)) {
+    return apiError(ROUTE, { request, status: 400, error: "Invalid timezone." });
   }
 
   if (priorities.length > 0 && !priorities.every((p) => VALID_PRIORITIES.has(p))) {
@@ -251,6 +258,7 @@ export async function POST(request: Request) {
     prep_notes: prepNotes,
     scheduled_date: scheduledDate,
     scheduled_time: scheduledTime,
+    timezone,
   });
 
   if (error) {
@@ -293,6 +301,7 @@ export async function POST(request: Request) {
       conceptDemoSlug,
       scheduledDate,
       scheduledTime,
+      visitorTimezone: timezone,
     });
   } catch (err) {
     void logNotificationFailure(admin, {
@@ -311,6 +320,7 @@ export async function POST(request: Request) {
       roleLabel: demoRequestRoleLabel(role),
       scheduledDate,
       scheduledTime,
+      visitorTimezone: timezone,
     });
   } catch (err) {
     void logNotificationFailure(admin, {

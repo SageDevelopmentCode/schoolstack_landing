@@ -7,24 +7,24 @@ import { MONDAY_CHECK_INTRO_FAQS } from "@/lib/marketing/microschool-monday-chec
 import { pageMetadata } from "@/lib/metadata";
 import { buildBreadcrumbs, faqPageJsonLd, serializeJsonLd } from "@/lib/seo";
 
-const PATH = "/microschool-monday-check";
+const PATH = "/microschool-ops-check";
 
 const DESCRIPTION =
   "Free microschool operations assessment for founders: admissions, enrollment paperwork, tuition tracking, and parent communication. Get a personalized report in about three minutes.";
 
 export const metadata: Metadata = pageMetadata({
-  title: "The Microschool Monday Check",
+  title: "Microschool Ops Check",
   description: DESCRIPTION,
   path: PATH,
-  ogImageAlt: "The Microschool Monday Check — MudKitchen",
+  ogImageAlt: "Microschool Ops Check — MudKitchen",
 });
 
 const BREADCRUMBS = buildBreadcrumbs({
-  name: "Microschool Monday Check",
+  name: "Microschool Ops Check",
   path: PATH,
 });
 
-export default function MicroschoolMondayCheckPage() {
+export default function MicroschoolOpsCheckPage() {
   return (
     <>
       <BreadcrumbJsonLd items={BREADCRUMBS} />

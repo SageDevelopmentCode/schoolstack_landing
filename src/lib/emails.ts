@@ -20,6 +20,9 @@ import {
 } from "@/lib/admissions/admissions-availability";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import { getRuntimeSiteUrl, SITE_NAME } from "@/lib/site";
+import { SCHEDULER_TIMEZONE } from "@/lib/demo-scheduler";
+import { formatDemoWhenInTimezone } from "@/lib/demo-scheduler-timezone";
+import type { SchoolVisitEmailDetailRow } from "@/lib/school-admin/school-profile/school-visit-email-details";
 import type {
   OutboundEmailAudience,
   OutboundEmailDiscordMeta,
@@ -87,14 +90,35 @@ function firstName(name: string): string {
   return escapeHtml(name.split(" ")[0] || name);
 }
 
+function formatDemoBookingWhenHtml(payload: {
+  scheduledDate: string;
+  scheduledTime: string;
+  visitorTimezone?: string;
+}): string {
+  const canonicalWhen = `${escapeHtml(formatSelectedDate(payload.scheduledDate))} at ${escapeHtml(payload.scheduledTime)} CT`;
+  const visitorTz = payload.visitorTimezone?.trim() || SCHEDULER_TIMEZONE;
+  const visitorWhen = formatDemoWhenInTimezone(
+    payload.scheduledDate,
+    payload.scheduledTime,
+    visitorTz,
+  );
+
+  if (!visitorWhen || visitorTz === SCHEDULER_TIMEZONE) {
+    return canonicalWhen;
+  }
+
+  return `${escapeHtml(visitorWhen)}<br/>${canonicalWhen} <span style="color:#6b7280;">(our scheduling time)</span>`;
+}
+
 export function buildDemoBookingConfirmationHtml(payload: {
   name: string;
   schoolName: string;
   roleLabel?: string;
   scheduledDate: string;
   scheduledTime: string;
+  visitorTimezone?: string;
 }): string {
-  const when = `${formatSelectedDate(payload.scheduledDate)} at ${payload.scheduledTime} CT`;
+  const when = formatDemoBookingWhenHtml(payload);
   const detailRows = [
     { label: "When", value: when },
     { label: "School / program", value: payload.schoolName },
@@ -168,6 +192,7 @@ export async function sendDemoBookingConfirmation(payload: {
   roleLabel?: string;
   scheduledDate: string;
   scheduledTime: string;
+  visitorTimezone?: string;
 }): Promise<void> {
   if (!(await isZohoConfigured())) return;
 
@@ -336,16 +361,45 @@ export async function sendAdminSupportRequestConfirmation(payload: {
   }
 }
 
+export function buildApplicationSubmittedConfirmationSubject(payload: {
+  schoolName: string;
+  hasRequiredPostSubmitSteps: boolean;
+}): string {
+  if (payload.hasRequiredPostSubmitSteps) {
+    return `Action needed — application received — ${payload.schoolName}`;
+  }
+  return `Application received — ${payload.schoolName}`;
+}
+
 export function buildApplicationSubmittedConfirmationHtml(payload: {
   name: string;
   schoolName: string;
   formTitle: string;
   applyDashboardUrl: string;
+  requiredPostSubmitSteps?: Array<{ title: string }>;
 }): string {
+  const requiredSteps = payload.requiredPostSubmitSteps ?? [];
+  const hasRequiredSteps = requiredSteps.length > 0;
+
+  const requiredStepsSection = hasRequiredSteps
+    ? `
+      ${emailHeading("Required next step")}
+      ${emailParagraph(
+        `Your application was received, but ${escapeHtml(payload.schoolName)} still needs you to complete a required step on your apply dashboard:`,
+      )}
+      ${emailBulletList(requiredSteps.map((step) => step.title))}
+    `
+    : "";
+
+  const preheader = hasRequiredSteps
+    ? `Complete a required step on your apply dashboard for ${payload.schoolName}.`
+    : `Your application to ${payload.schoolName} was received.`;
+
   return composeEmail({
-    preheader: `Your application to ${payload.schoolName} was received.`,
+    preheader,
     contentHtml: `
-      ${emailBadge("Application Received")}
+      ${emailBadge(hasRequiredSteps ? "Action needed" : "Application Received")}
+      ${requiredStepsSection}
       ${emailHeading(`Thank you, ${firstName(payload.name)}.`)}
       ${emailParagraph(
         `We received your application for ${escapeHtml(payload.formTitle)} at ${escapeHtml(payload.schoolName)}. The admissions team will review your submission and follow up with next steps.`,
@@ -369,13 +423,21 @@ export async function sendApplicationSubmittedConfirmation(payload: {
   schoolName: string;
   formTitle: string;
   applyDashboardUrl: string;
+  requiredPostSubmitSteps?: Array<{ title: string }>;
   notificationContext?: OutboundEmailNotificationContext;
 }): Promise<void> {
-  const content = buildApplicationSubmittedConfirmationHtml(payload);
+  const requiredPostSubmitSteps = payload.requiredPostSubmitSteps ?? [];
+  const content = buildApplicationSubmittedConfirmationHtml({
+    ...payload,
+    requiredPostSubmitSteps,
+  });
   await deliverZohoEmail({
     channel: "Application submitted confirmation",
     toAddress: payload.email,
-    subject: `Application received — ${payload.schoolName}`,
+    subject: buildApplicationSubmittedConfirmationSubject({
+      schoolName: payload.schoolName,
+      hasRequiredPostSubmitSteps: requiredPostSubmitSteps.length > 0,
+    }),
     content,
     discord: schoolOutboundDiscord(
       "application_submitted_confirmation",
@@ -643,6 +705,88 @@ export async function sendIncompleteAdmissionsReminderEmail(payload: {
   return { ok: true };
 }
 
+export function buildPostSubmitRequiredReminderSubject(payload: {
+  schoolName: string;
+  reminderNumber: number;
+}): string {
+  if (payload.reminderNumber === 1) {
+    return `Reminder: complete your required admissions step — ${payload.schoolName}`;
+  }
+  return `Second reminder: required admissions step — ${payload.schoolName}`;
+}
+
+export function buildPostSubmitRequiredReminderHtml(payload: {
+  name: string;
+  schoolName: string;
+  applyDashboardUrl: string;
+  reminderNumber: number;
+  applications: Array<{
+    label: string;
+    formTitle: string;
+    stepTitles: string[];
+  }>;
+}): string {
+  const applicationLines = payload.applications.flatMap((application) => {
+    const steps = application.stepTitles.join(", ");
+    return [`${application.label} — ${application.formTitle}: ${steps}`];
+  });
+
+  const preheader =
+    payload.reminderNumber === 1
+      ? `${payload.schoolName} — please complete your required apply dashboard step.`
+      : `${payload.schoolName} — friendly second reminder about your required step.`;
+
+  return composeEmail({
+    preheader,
+    contentHtml: `
+      ${emailBadge("Reminder")}
+      ${emailHeading(`Hi ${firstName(payload.name)},`)}
+      ${emailParagraph(
+        payload.reminderNumber === 1
+          ? `This is a reminder from ${escapeHtml(payload.schoolName)} to complete a required step on your apply dashboard after submitting your application.`
+          : `We still need you to complete a required step on your apply dashboard for ${escapeHtml(payload.schoolName)}.`,
+      )}
+      ${emailBulletList(applicationLines)}
+      ${emailCta({
+        label: "View apply dashboard",
+        href: payload.applyDashboardUrl,
+      })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendPostSubmitRequiredReminderEmail(payload: {
+  to: string;
+  schoolName: string;
+  subject: string;
+  html: string;
+  notificationContext?: OutboundEmailNotificationContext;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
+
+  const result = await sendZohoEmail({
+    toAddress: payload.to,
+    subject: payload.subject,
+    content: payload.html,
+    discord: schoolOutboundDiscord(
+      "post_submit_required_reminder",
+      "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
+  });
+
+  if (!result.success) {
+    console.error("Post-submit required reminder email failed:", result.error);
+    return { ok: false };
+  }
+
+  return { ok: true };
+}
+
 export function buildEnrollmentCompletedConfirmationHtml(payload: {
   name: string;
   schoolName: string;
@@ -786,6 +930,13 @@ export async function sendApplicationSubmittedOwnerNotification(payload: {
   });
 }
 
+function visitEmailDetailRows(
+  core: { label: string; value: string }[],
+  locationDetails?: SchoolVisitEmailDetailRow[],
+): { label: string; value: string }[] {
+  return [...core, ...(locationDetails ?? [])];
+}
+
 export function buildPostSubmitVisitConfirmationHtml(payload: {
   name: string;
   schoolName: string;
@@ -799,6 +950,7 @@ export function buildPostSubmitVisitConfirmationHtml(payload: {
   whenLabel: string;
   durationLabel: string;
   applyDashboardUrl: string;
+  locationDetails?: SchoolVisitEmailDetailRow[];
 }): string {
   const when = `${payload.whenLabel} (${payload.timezoneLabel})`;
 
@@ -810,11 +962,16 @@ export function buildPostSubmitVisitConfirmationHtml(payload: {
       ${emailParagraph(
         `Thank you for scheduling with ${escapeHtml(payload.schoolName)}. We look forward to seeing your family.`,
       )}
-      ${emailDetailCard([
-        { label: "When", value: when },
-        { label: "School", value: payload.schoolName },
-        { label: "Duration", value: payload.durationLabel },
-      ])}
+      ${emailDetailCard(
+        visitEmailDetailRows(
+          [
+            { label: "When", value: when },
+            { label: "School", value: payload.schoolName },
+            { label: "Duration", value: payload.durationLabel },
+          ],
+          payload.locationDetails,
+        ),
+      )}
       ${emailParagraph(
         "You can review your application and any remaining steps from your apply dashboard.",
       )}
@@ -911,6 +1068,7 @@ export async function sendPostSubmitVisitConfirmation(payload: {
   whenLabel: string;
   durationLabel: string;
   applyDashboardUrl: string;
+  locationDetails?: SchoolVisitEmailDetailRow[];
   notificationContext?: OutboundEmailNotificationContext;
 }): Promise<void> {
   const content = buildPostSubmitVisitConfirmationHtml(payload);
@@ -934,8 +1092,13 @@ export function buildPublicCampusTourConfirmationHtml(payload: {
   whenLabel: string;
   timezoneLabel: string;
   durationLabel: string;
+  locationDetails?: SchoolVisitEmailDetailRow[];
 }): string {
   const when = `${payload.whenLabel} (${payload.timezoneLabel})`;
+  const contactFooter =
+    (payload.locationDetails?.length ?? 0) > 0
+      ? "If you need to change your visit, use the contact details above."
+      : `If you need to change your visit, contact ${escapeHtml(payload.schoolName)} directly.`;
 
   return composeEmail({
     preheader: `Your campus tour at ${payload.schoolName} is confirmed.`,
@@ -945,14 +1108,17 @@ export function buildPublicCampusTourConfirmationHtml(payload: {
       ${emailParagraph(
         `Thank you for scheduling with ${escapeHtml(payload.schoolName)}. We look forward to seeing your family.`,
       )}
-      ${emailDetailCard([
-        { label: "When", value: when },
-        { label: "School", value: payload.schoolName },
-        { label: "Duration", value: payload.durationLabel },
-      ])}
-      ${emailParagraph(
-        `If you need to change your visit, contact ${escapeHtml(payload.schoolName)} directly.`,
+      ${emailDetailCard(
+        visitEmailDetailRows(
+          [
+            { label: "When", value: when },
+            { label: "School", value: payload.schoolName },
+            { label: "Duration", value: payload.durationLabel },
+          ],
+          payload.locationDetails,
+        ),
       )}
+      ${emailParagraph(contactFooter)}
       ${emailSignOff()}
     `,
   });
@@ -965,6 +1131,7 @@ export async function sendPublicCampusTourConfirmation(payload: {
   whenLabel: string;
   timezoneLabel: string;
   durationLabel: string;
+  locationDetails?: SchoolVisitEmailDetailRow[];
   notificationContext?: OutboundEmailNotificationContext;
 }): Promise<void> {
   const content = buildPublicCampusTourConfirmationHtml(payload);
@@ -990,12 +1157,15 @@ export function buildScheduledVisitDayBeforeReminderHtml(payload: {
   timezoneLabel: string;
   durationLabel: string;
   optionalLink?: { label: string; href: string };
+  locationDetails?: SchoolVisitEmailDetailRow[];
 }): string {
   const when = `${payload.whenLabel} (${payload.timezoneLabel})`;
   const linkBlock = payload.optionalLink
     ? emailCta({ label: payload.optionalLink.label, href: payload.optionalLink.href })
     : emailParagraph(
-        `If you need to change your visit, contact ${escapeHtml(payload.schoolName)} directly.`,
+        (payload.locationDetails?.length ?? 0) > 0
+          ? "If you need to change your visit, use the contact details above."
+          : `If you need to change your visit, contact ${escapeHtml(payload.schoolName)} directly.`,
       );
 
   return composeEmail({
@@ -1006,11 +1176,16 @@ export function buildScheduledVisitDayBeforeReminderHtml(payload: {
       ${emailParagraph(
         `This is a friendly reminder about your upcoming ${escapeHtml(payload.stepTitle)} at ${escapeHtml(payload.schoolName)}.`,
       )}
-      ${emailDetailCard([
-        { label: "When", value: when },
-        { label: "School", value: payload.schoolName },
-        { label: "Duration", value: payload.durationLabel },
-      ])}
+      ${emailDetailCard(
+        visitEmailDetailRows(
+          [
+            { label: "When", value: when },
+            { label: "School", value: payload.schoolName },
+            { label: "Duration", value: payload.durationLabel },
+          ],
+          payload.locationDetails,
+        ),
+      )}
       ${linkBlock}
       ${emailSignOff()}
     `,
@@ -1026,6 +1201,7 @@ export async function sendScheduledVisitDayBeforeReminderEmail(payload: {
   timezoneLabel: string;
   durationLabel: string;
   optionalLink?: { label: string; href: string };
+  locationDetails?: SchoolVisitEmailDetailRow[];
   notificationContext?: OutboundEmailNotificationContext;
 }): Promise<{ ok: boolean }> {
   const content = buildScheduledVisitDayBeforeReminderHtml(payload);
@@ -1048,6 +1224,81 @@ export async function sendScheduledVisitDayBeforeReminderEmail(payload: {
   }
 }
 
+export function buildScheduledVisitDayOfReminderHtml(payload: {
+  name: string;
+  schoolName: string;
+  stepTitle: string;
+  whenLabel: string;
+  timezoneLabel: string;
+  durationLabel: string;
+  optionalLink?: { label: string; href: string };
+  locationDetails?: SchoolVisitEmailDetailRow[];
+}): string {
+  const when = `${payload.whenLabel} (${payload.timezoneLabel})`;
+  const linkBlock = payload.optionalLink
+    ? emailCta({ label: payload.optionalLink.label, href: payload.optionalLink.href })
+    : emailParagraph(
+        (payload.locationDetails?.length ?? 0) > 0
+          ? "If you need to change your visit, use the contact details above."
+          : `If you need to change your visit, contact ${escapeHtml(payload.schoolName)} directly.`,
+      );
+
+  return composeEmail({
+    preheader: `Reminder: your ${payload.stepTitle} at ${payload.schoolName} is today.`,
+    contentHtml: `
+      ${emailBadge("Visit Today")}
+      ${emailHeading(`See you today, ${firstName(payload.name)}.`)}
+      ${emailParagraph(
+        `This is a friendly reminder about your ${escapeHtml(payload.stepTitle)} at ${escapeHtml(payload.schoolName)} today.`,
+      )}
+      ${emailDetailCard(
+        visitEmailDetailRows(
+          [
+            { label: "When", value: when },
+            { label: "School", value: payload.schoolName },
+            { label: "Duration", value: payload.durationLabel },
+          ],
+          payload.locationDetails,
+        ),
+      )}
+      ${linkBlock}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendScheduledVisitDayOfReminderEmail(payload: {
+  email: string;
+  schoolName: string;
+  stepTitle: string;
+  name: string;
+  whenLabel: string;
+  timezoneLabel: string;
+  durationLabel: string;
+  optionalLink?: { label: string; href: string };
+  locationDetails?: SchoolVisitEmailDetailRow[];
+  notificationContext?: OutboundEmailNotificationContext;
+}): Promise<{ ok: boolean }> {
+  const content = buildScheduledVisitDayOfReminderHtml(payload);
+  try {
+    await deliverZohoEmail({
+      channel: "Scheduled visit day-of reminder",
+      toAddress: payload.email,
+      subject: `Reminder: ${payload.stepTitle} today — ${payload.schoolName}`,
+      content,
+      discord: schoolOutboundDiscord(
+        "scheduled_visit_day_of_reminder",
+        "parent",
+        payload.schoolName,
+        payload.notificationContext,
+      ),
+    });
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
 export type ScheduledVisitAdminDigestRow = {
   whenLabel: string;
   stepTitle: string;
@@ -1055,20 +1306,43 @@ export type ScheduledVisitAdminDigestRow = {
   bookingSourceLabel: string;
 };
 
+export type ScheduledVisitAdminDigestKind = "weekly" | "day_before" | "day_of";
+
+function scheduledVisitAdminDigestCopy(digestKind: ScheduledVisitAdminDigestKind): {
+  heading: string;
+  preheader: string;
+  body: string;
+} {
+  switch (digestKind) {
+    case "weekly":
+      return {
+        heading: "Upcoming visits this week",
+        preheader: `Scheduled visits coming up at your school.`,
+        body: "Here are scheduled admissions visits in the next seven days.",
+      };
+    case "day_of":
+      return {
+        heading: "Visits scheduled for today",
+        preheader: `Admissions visits today at your school.`,
+        body: "Here are admissions visits scheduled for today.",
+      };
+    default:
+      return {
+        heading: "Visits scheduled for tomorrow",
+        preheader: `Visits tomorrow at your school.`,
+        body: "Here are admissions visits scheduled for tomorrow.",
+      };
+  }
+}
+
 export function buildScheduledVisitAdminDigestHtml(payload: {
   schoolName: string;
-  digestKind: "weekly" | "day_before";
+  digestKind: ScheduledVisitAdminDigestKind;
   scheduleAdminUrl: string;
   rows: ScheduledVisitAdminDigestRow[];
 }): string {
-  const heading =
-    payload.digestKind === "weekly"
-      ? "Upcoming visits this week"
-      : "Visits scheduled for tomorrow";
-  const preheader =
-    payload.digestKind === "weekly"
-      ? `Scheduled visits coming up at ${payload.schoolName}.`
-      : `Visits tomorrow at ${payload.schoolName}.`;
+  const copy = scheduledVisitAdminDigestCopy(payload.digestKind);
+  const preheader = copy.preheader.replace("your school", payload.schoolName);
 
   const listItems = payload.rows.map((row) => {
     const parts = [
@@ -1084,12 +1358,8 @@ export function buildScheduledVisitAdminDigestHtml(payload: {
     preheader,
     contentHtml: `
       ${emailBadge("Visit Reminder")}
-      ${emailHeading(`${heading} — ${escapeHtml(payload.schoolName)}`)}
-      ${emailParagraph(
-        payload.digestKind === "weekly"
-          ? "Here are scheduled admissions visits in the next seven days."
-          : "Here are admissions visits scheduled for tomorrow.",
-      )}
+      ${emailHeading(`${copy.heading} — ${escapeHtml(payload.schoolName)}`)}
+      ${emailParagraph(copy.body)}
       ${emailBulletList(listItems)}
       ${emailCta({ label: "Open schedule", href: payload.scheduleAdminUrl })}
       ${emailSignOff()}
@@ -1099,17 +1369,22 @@ export function buildScheduledVisitAdminDigestHtml(payload: {
 
 export function buildScheduledVisitAdminDigestSubject(payload: {
   schoolName: string;
-  digestKind: "weekly" | "day_before";
+  digestKind: ScheduledVisitAdminDigestKind;
 }): string {
-  return payload.digestKind === "weekly"
-    ? `Upcoming visits this week — ${payload.schoolName}`
-    : `Visits tomorrow — ${payload.schoolName}`;
+  switch (payload.digestKind) {
+    case "weekly":
+      return `Upcoming visits this week — ${payload.schoolName}`;
+    case "day_of":
+      return `Visits today — ${payload.schoolName}`;
+    default:
+      return `Visits tomorrow — ${payload.schoolName}`;
+  }
 }
 
 export async function sendScheduledVisitAdminDigestEmail(payload: {
   email: string;
   schoolName: string;
-  digestKind: "weekly" | "day_before";
+  digestKind: ScheduledVisitAdminDigestKind;
   scheduleAdminUrl: string;
   rows: ScheduledVisitAdminDigestRow[];
   notificationContext?: OutboundEmailNotificationContext;

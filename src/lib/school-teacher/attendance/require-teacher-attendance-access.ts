@@ -13,7 +13,7 @@ async function loadTeacherAttendanceFeatures(
   organizationId: string,
 ) {
   const { data, error } = await supabase
-    .from("organization_settings")
+    .from("organization_settings_public")
     .select("features")
     .eq("organization_id", organizationId)
     .maybeSingle();

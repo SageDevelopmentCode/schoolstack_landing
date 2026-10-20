@@ -21,6 +21,7 @@ export default function GetStartedPage() {
         {step === 0 && <GetStartedShowcaseCarousel />}
         <GetStartedStoryShell
           id={GET_STARTED_DEMO_SECTION_ID}
+          medium={step === 0}
           wide={step === 1}
           variant="nested"
         >

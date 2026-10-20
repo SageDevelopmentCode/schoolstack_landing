@@ -1,7 +1,10 @@
 import type { ReactNode } from "react";
 
 type GetStartedStoryShellProps = {
+  /** Step 1 scheduler width */
   wide?: boolean;
+  /** Step 0 introduction form width */
+  medium?: boolean;
   variant?: "page" | "nested";
   id?: string;
   children: ReactNode;
@@ -9,11 +12,17 @@ type GetStartedStoryShellProps = {
 
 export default function GetStartedStoryShell({
   wide = false,
+  medium = false,
   variant = "page",
   id,
   children,
 }: GetStartedStoryShellProps) {
   const isPage = variant === "page";
+  const maxWidthClass = wide
+    ? "max-w-[1020px]"
+    : medium
+      ? "max-w-[760px]"
+      : "max-w-[600px]";
 
   return (
     <div
@@ -25,7 +34,7 @@ export default function GetStartedStoryShell({
       }
     >
       <div
-        className={`${wide ? "max-w-[760px]" : "max-w-[600px]"} mx-auto transition-[max-width] duration-300`}
+        className={`${maxWidthClass} mx-auto transition-[max-width] duration-300`}
       >
         {children}
       </div>

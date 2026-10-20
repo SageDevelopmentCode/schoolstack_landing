@@ -29,7 +29,7 @@ export default function MondayCheckStoryShell({
       }}
     >
       <div
-        className={`${wide ? "max-w-[760px]" : "max-w-[720px]"} mx-auto transition-[max-width] duration-300`}
+        className={`${wide ? "max-w-[1180px]" : "max-w-[720px]"} mx-auto transition-[max-width] duration-300`}
       >
         {children}
       </div>

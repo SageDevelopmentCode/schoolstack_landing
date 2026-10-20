@@ -10,7 +10,8 @@ export default function HomeBookDemoSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const [step, setStep] = useState<GetStartedDemoStep>(0);
 
-  const wide = step === 1;
+  const maxWidthClass =
+    step === 1 ? "max-w-[1020px]" : step === 0 ? "max-w-[760px]" : "max-w-[600px]";
 
   return (
     <section
@@ -19,7 +20,7 @@ export default function HomeBookDemoSection() {
       className="scroll-mt-28 border-t border-border bg-bg py-20 sm:py-28 px-4 sm:px-6 font-secondary text-text"
     >
       <div
-        className={`${wide ? "max-w-[760px]" : "max-w-[600px]"} mx-auto transition-[max-width] duration-300`}
+        className={`${maxWidthClass} mx-auto transition-[max-width] duration-300`}
       >
         <GetStartedDemoFlow
           scrollOnStepChange="section"

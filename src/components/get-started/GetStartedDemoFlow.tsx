@@ -9,29 +9,36 @@ import {
 } from "react";
 import confetti from "canvas-confetti";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ChevronRight } from "lucide-react";
-import { DemoScheduler } from "@/components/scheduler/DemoScheduler";
+import { ArrowLeft } from "lucide-react";
+import {
+  DemoScheduler,
+  type DemoSchedulerBooking,
+} from "@/components/scheduler/DemoScheduler";
+import { detectBrowserTimezone } from "@/lib/marketing/demo-timezone-options";
+import { SCHEDULER_TIMEZONE } from "@/lib/demo-scheduler";
 import { DemoSchedulerSkeleton } from "@/components/scheduler/DemoSchedulerSkeleton";
-import PublicFormHoneypotField from "@/components/public-forms/PublicFormHoneypotField";
 import { PUBLIC_FORM_HONEYPOT_FIELD } from "@/lib/public-forms/honeypot";
 import GetStartedConfirmation from "@/components/get-started/GetStartedConfirmation";
-import GetStartedRoleChoices from "@/components/get-started/GetStartedRoleChoices";
+import GetStartedIntroductionForm, {
+  type GetStartedIntroductionFormData,
+} from "@/components/get-started/GetStartedIntroductionForm";
 import GetStartedStepProgress from "@/components/get-started/GetStartedStepProgress";
 import GetStartedStoryHeader from "@/components/get-started/GetStartedStoryHeader";
-import GetStartedStoryTextField from "@/components/get-started/GetStartedStoryTextField";
-import ParentButton from "@/components/school-parent/ui/ParentButton";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
-import {
-  type DemoRequestRoleId,
-  demoRequestRoleLabel,
-} from "@/lib/demo-request-roles";
+import { demoRequestRoleLabel } from "@/lib/demo-request-roles";
 import { MUDKITCHEN_MARKETING_STORY_THEME } from "@/lib/marketing/mudkitchen-story-theme";
 
-interface FormData {
-  name: string;
-  email: string;
-  schoolName: string;
-  role: DemoRequestRoleId | "";
+type FormData = GetStartedIntroductionFormData;
+
+function buildPrepNotes(form: FormData): string {
+  const parts: string[] = [];
+  if (form.role === "other" && form.otherDescription.trim()) {
+    parts.push(`About their work: ${form.otherDescription.trim()}`);
+  }
+  if (form.prepNotes.trim()) {
+    parts.push(form.prepNotes.trim());
+  }
+  return parts.join("\n\n");
 }
 
 const ease = [0.16, 1, 0.3, 1] as const;
@@ -86,9 +93,10 @@ export default function GetStartedDemoFlow({
   const [errors, setErrors] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [booking, setBooking] = useState<{ date: string; time: string } | null>(
-    null,
+  const [displayTimezone, setDisplayTimezone] = useState(() =>
+    detectBrowserTimezone(SCHEDULER_TIMEZONE),
   );
+  const [booking, setBooking] = useState<DemoSchedulerBooking | null>(null);
   const [availabilitySlots, setAvailabilitySlots] = useState<
     Record<string, string[]>
   >({});
@@ -101,10 +109,20 @@ export default function GetStartedDemoFlow({
     email: "",
     schoolName: "",
     role: "",
+    otherDescription: "",
+    prepNotes: "",
   });
 
   const set = <K extends keyof FormData>(key: K, value: FormData[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  const clearError = useCallback((key: string) => {
+    setErrors((e) => {
+      const n = new Set(e);
+      n.delete(key);
+      return n;
+    });
+  }, []);
 
   const scrollAfterStepChange = useCallback(() => {
     if (scrollOnStepChange === "section" && sectionRef?.current) {
@@ -186,7 +204,6 @@ export default function GetStartedDemoFlow({
     if (!form.name.trim()) errs.add("name");
     if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
       errs.add("email");
-    if (!form.schoolName.trim()) errs.add("schoolName");
     if (!form.role) errs.add("role");
     setErrors(errs);
     return errs.size === 0;
@@ -200,11 +217,13 @@ export default function GetStartedDemoFlow({
     }
   }
 
-  async function handleScheduled(selected: { date: string; time: string }) {
+  async function handleScheduled(selected: DemoSchedulerBooking) {
     if (isSubmitting || !form.role) return;
 
     setIsSubmitting(true);
     setSubmitError(null);
+
+    const prepNotes = buildPrepNotes(form);
 
     try {
       const res = await fetch("/api/demo-requests", {
@@ -213,10 +232,12 @@ export default function GetStartedDemoFlow({
         body: JSON.stringify({
           name: form.name.trim(),
           email: form.email.trim(),
-          schoolName: form.schoolName.trim(),
+          schoolName: form.schoolName.trim() || "Not provided",
           role: form.role,
           scheduledDate: selected.date,
           scheduledTime: selected.time,
+          timezone: selected.displayTimezone,
+          prepNotes,
           [PUBLIC_FORM_HONEYPOT_FIELD]: companyWebsite,
         }),
       });
@@ -250,19 +271,18 @@ export default function GetStartedDemoFlow({
   }
 
   const roleLabel = form.role ? demoRequestRoleLabel(form.role) : "";
-  const hasErrors = errors.size > 0;
 
   return (
     <>
       <AnimatePresence>
-        {showStepProgress && step < 2 && (
+        {showStepProgress && step === 1 && (
           <motion.div
             key="progress"
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0, transition: { duration: 0.4, ease } }}
             exit={{ opacity: 0, transition: { duration: 0.2 } }}
           >
-            <GetStartedStepProgress theme={theme} step={step as 0 | 1} />
+            <GetStartedStepProgress theme={theme} step={1} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -270,124 +290,16 @@ export default function GetStartedDemoFlow({
       <AnimatePresence mode="wait">
         {step === 0 && (
           <motion.div key="step-form" {...slideIn}>
-            <GetStartedStoryHeader
+            <GetStartedIntroductionForm
               theme={theme}
-              title={
-                <>
-                  See how MudKitchen can simplify{" "}
-                  <em style={{ color: theme.coral, fontStyle: "italic" }}>
-                    your school.
-                  </em>
-                </>
-              }
-              subtitle="Share a few details, then choose a time that works for you."
+              form={form}
+              onFieldChange={set}
+              errors={errors}
+              onClearError={clearError}
+              onSubmit={handleContinue}
+              companyWebsite={companyWebsite}
+              onCompanyWebsiteChange={setCompanyWebsite}
             />
-
-            <ParentCard
-              theme={theme}
-              className="relative flex flex-col gap-7 md:gap-8 border-border bg-surface"
-            >
-              <PublicFormHoneypotField
-                value={companyWebsite}
-                onChange={setCompanyWebsite}
-              />
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                <GetStartedStoryTextField
-                  theme={theme}
-                  label="First name"
-                  value={form.name}
-                  onChange={(v) => {
-                    set("name", v);
-                    setErrors((e) => {
-                      const n = new Set(e);
-                      n.delete("name");
-                      return n;
-                    });
-                  }}
-                  placeholder="Jane"
-                  hasError={errors.has("name")}
-                />
-                <GetStartedStoryTextField
-                  theme={theme}
-                  label="Work email"
-                  type="email"
-                  value={form.email}
-                  onChange={(v) => {
-                    set("email", v);
-                    setErrors((e) => {
-                      const n = new Set(e);
-                      n.delete("email");
-                      return n;
-                    });
-                  }}
-                  placeholder="jane@yourschool.com"
-                  hasError={errors.has("email")}
-                />
-              </div>
-
-              <GetStartedStoryTextField
-                theme={theme}
-                label="School / program name"
-                value={form.schoolName}
-                onChange={(v) => {
-                  set("schoolName", v);
-                  setErrors((e) => {
-                    const n = new Set(e);
-                    n.delete("schoolName");
-                    return n;
-                  });
-                }}
-                placeholder="Maple Ridge Microschool"
-                hasError={errors.has("schoolName")}
-              />
-
-              <GetStartedRoleChoices
-                theme={theme}
-                value={form.role}
-                onChange={(role) => {
-                  set("role", role);
-                  setErrors((e) => {
-                    const n = new Set(e);
-                    n.delete("role");
-                    return n;
-                  });
-                }}
-                hasError={errors.has("role")}
-              />
-
-              <AnimatePresence>
-                {hasErrors && (
-                  <motion.p
-                    key="error"
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="text-[13px] -mt-2"
-                    style={{ color: theme.alert, fontFamily: theme.fontBody }}
-                  >
-                    Please fill in the highlighted fields above.
-                  </motion.p>
-                )}
-              </AnimatePresence>
-
-              <div className="flex flex-col items-center gap-3 pt-1">
-                <ParentButton
-                  theme={theme}
-                  onClick={handleContinue}
-                  className="inline-flex h-12 items-center justify-center gap-2 whitespace-nowrap px-8 !text-sm"
-                  style={{ backgroundColor: theme.coral }}
-                >
-                  See Available Times
-                  <ChevronRight size={15} className="shrink-0" />
-                </ParentButton>
-                <p
-                  className="max-w-[28ch] text-center text-[12px] leading-snug"
-                  style={{ color: theme.muted, fontFamily: theme.fontBody }}
-                >
-                  No commitment. 20 minutes, tailored to your school.
-                </p>
-              </div>
-            </ParentCard>
           </motion.div>
         )}
 
@@ -422,7 +334,7 @@ export default function GetStartedDemoFlow({
 
             <ParentCard
               theme={theme}
-              className="!p-0 overflow-hidden border-border bg-surface"
+              className="!p-0 overflow-hidden !border-0 !shadow-none bg-transparent"
             >
               {availabilityLoading ? (
                 <DemoSchedulerSkeleton storyTheme={theme} />
@@ -446,6 +358,8 @@ export default function GetStartedDemoFlow({
                   onConfirm={handleScheduled}
                   isSubmitting={isSubmitting}
                   storyTheme={theme}
+                  displayTimezone={displayTimezone}
+                  onDisplayTimezoneChange={setDisplayTimezone}
                 />
               )}
             </ParentCard>

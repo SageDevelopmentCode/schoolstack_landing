@@ -54,6 +54,16 @@ export function teacherMessageThreadRoute(slug: string, threadId: string): Href 
   return `/teacher/${slug}/messages/${encodeURIComponent(threadId)}` as Href;
 }
 
+export function teacherCommitteeWorkspaceRoute(
+  slug: string,
+  committeeId: string,
+  section?: string,
+): Href {
+  const base = `/teacher/${slug}/more/committees/workspace/${encodeURIComponent(committeeId)}`;
+  if (!section) return base as Href;
+  return `${base}?section=${encodeURIComponent(section)}` as Href;
+}
+
 export function teacherNewMessageThreadRoute(slug: string, contactKey: string): Href {
   const query = new URLSearchParams({ contactKey }).toString();
   return `/teacher/${slug}/messages/new?${query}` as Href;

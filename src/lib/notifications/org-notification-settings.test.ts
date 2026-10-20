@@ -54,6 +54,9 @@ describe("parseOrganizationNotificationSettings", () => {
         scheduled_visit_day_before: {
           enabled: true,
         },
+        scheduled_visit_day_of: {
+          enabled: true,
+        },
       },
       scheduled_visit_reminders: {},
     });
@@ -126,6 +129,9 @@ describe("parseOrganizationNotificationSettings", () => {
           scheduled_visit_day_before: {
             enabled: true,
           },
+          scheduled_visit_day_of: {
+            enabled: true,
+          },
         },
         scheduled_visit_reminders: {},
       },
@@ -138,11 +144,13 @@ describe("parseOrganizationNotificationSettings", () => {
         scheduled_visit_reminders: {
           last_weekly_admin_digest_week_start: "2026-09-22",
           last_day_before_admin_digest_for_date: "2026-09-29",
+          last_day_of_admin_digest_for_date: "2026-09-30",
         },
       }).scheduled_visit_reminders,
       {
         last_weekly_admin_digest_week_start: "2026-09-22",
         last_day_before_admin_digest_for_date: "2026-09-29",
+        last_day_of_admin_digest_for_date: "2026-09-30",
       },
     );
   });
@@ -170,6 +178,9 @@ describe("parseOrganizationNotificationSettings", () => {
           enabled: true,
         },
         scheduled_visit_day_before: {
+          enabled: true,
+        },
+        scheduled_visit_day_of: {
           enabled: true,
         },
       },
