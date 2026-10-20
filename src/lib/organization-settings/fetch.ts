@@ -31,7 +31,7 @@ export async function fetchOrganizationWithSettingsUncached(
   if (orgError || !org) return null;
 
   const { data: settings } = await supabase
-    .from("organization_settings")
+    .from("organization_settings_public")
     .select("branding, features, friday_branch")
     .eq("organization_id", org.id)
     .maybeSingle();

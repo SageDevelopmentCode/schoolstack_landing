@@ -76,7 +76,7 @@ describe("school profile bundle dirty state", () => {
     const orgId = "org-1";
     const bundle = {
       profile: getDefaultOrganizationSchoolProfile(),
-      campus: getDefaultPrimaryCampus(orgId),
+      primaryCampus: getDefaultPrimaryCampus(orgId),
     };
     assert.equal(isSchoolProfileBundleDirty(bundle, bundle), false);
   });
@@ -85,15 +85,15 @@ describe("school profile bundle dirty state", () => {
     const orgId = "org-1";
     const saved = {
       profile: getDefaultOrganizationSchoolProfile(),
-      campus: {
+      primaryCampus: {
         ...getDefaultPrimaryCampus(orgId),
         phones: [{ label: "Office", number: "555-0100", is_primary: true }],
       },
     };
     const current = {
       ...saved,
-      campus: {
-        ...saved.campus,
+      primaryCampus: {
+        ...saved.primaryCampus,
         phones: [{ label: "Main office", number: "555-0100", is_primary: true }],
       },
     };

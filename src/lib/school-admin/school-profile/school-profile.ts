@@ -218,15 +218,10 @@ export function campusToDatabaseRow(campus: OrganizationCampus): Record<string, 
   };
 }
 
-export type SchoolProfileBundle = {
-  profile: OrganizationSchoolProfile;
-  campus: OrganizationCampus;
-};
-
 export function serializeSchoolProfileBundle(bundle: SchoolProfileBundle): string {
   return JSON.stringify({
     profile: bundle.profile,
-    campus: bundle.campus,
+    primaryCampus: bundle.primaryCampus,
   });
 }
 

@@ -173,11 +173,26 @@ export function ensureApplySystemSchema(
   };
 }
 
+function sortKeysDeep(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sortKeysDeep);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.keys(value as Record<string, unknown>)
+        .sort()
+        .map((key) => [key, sortKeysDeep((value as Record<string, unknown>)[key])]),
+    );
+  }
+  return value;
+}
+
+/** Postgres jsonb reorders object keys, so compare content, not key order. */
 export function applySystemSchemaChanged(
   before: ApplicationFormSchema,
   after: ApplicationFormSchema,
 ): boolean {
-  return JSON.stringify(before) !== JSON.stringify(after);
+  return (
+    JSON.stringify(sortKeysDeep(before)) !== JSON.stringify(sortKeysDeep(after))
+  );
 }
 
 export function validateApplySystemSchema(schema: ApplicationFormSchema): string[] {

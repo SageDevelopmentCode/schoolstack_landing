@@ -5,11 +5,12 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { EyeOff, Loader2, Save, Send } from "lucide-react";
 import {
-  canPersistApplySystemSchemaUpgrade,
+  ApplicationFormConflictError,
   canonicalApplyFormPublicPath,
   createApplyForm,
   duplicateForm,
   getApplicationForm,
+  isApplicationFormSummaryStub,
   isApplyFormVersion,
   isPublicSlugAvailable,
   listApplicationFormSummaries,
@@ -820,60 +821,33 @@ export default function ApplicationFormsPage({
 
     const form = selectedForm;
     const isApply = isApplyFormVersion(form);
-    if (isApply && !selectedApplyFormHydrated) {
+    if (
+      isApply &&
+      (!selectedApplyFormHydrated || isApplicationFormSummaryStub(form))
+    ) {
       return;
     }
 
     let cancelled = false;
 
-    async function syncEditable() {
+    // Never persist from here: this tab's copy may be stale, and a write would
+    // overwrite saves made elsewhere. Saves re-run ensureApplySystemSchema.
+    queueMicrotask(() => {
+      if (cancelled) return;
       let next = toEditableState(form);
 
       if (isApply) {
         const ensured = ensureApplySystemSchema(next.schema);
         if (applySystemSchemaChanged(next.schema, ensured)) {
           next = { ...next, schema: ensured };
-          if (
-            !previewMode &&
-            canPersistApplySystemSchemaUpgrade(form, {
-              hasLoadedFullForm: loadedFullFormIdsRef.current.has(form.id),
-            })
-          ) {
-            try {
-              const updated = await updateApplicationForm(supabase, form.id, {
-                schema: ensured,
-              });
-              if (cancelled) return;
-              setForms((prev) =>
-                prev.map((row) => (row.id === updated.id ? updated : row)),
-              );
-              next = toEditableState(updated);
-            } catch (err) {
-              void reportPortalOperationalError("school_admin", {
-                organizationId,
-                operation: "forms.upgrade_schema",
-                error: "",
-              }, err);
-              if (!cancelled) {
-                setError(
-                  err instanceof Error
-                    ? err.message
-                    : "Failed to upgrade apply form schema.",
-                );
-              }
-            }
-          }
         }
       }
 
-      if (cancelled) return;
       if (!isApplyDirtyRef.current) {
         setEditable(next);
         setApplySavedSnapshot(serializeEditableFormState(next));
       }
-    }
-
-    void syncEditable();
+    });
 
     return () => {
       cancelled = true;
@@ -883,8 +857,6 @@ export default function ApplicationFormsPage({
     selectedForm?.updated_at,
     selectedForm?.status,
     selectedApplyFormHydrated,
-    previewMode,
-    supabase,
   ]);
 
   const focusSlugSetup = (errorMessage: string) => {
@@ -1123,7 +1095,7 @@ export default function ApplicationFormsPage({
         supabase,
         selectedForm.id,
         saveInput,
-        { logActivity: true },
+        { expectedUpdatedAt: selectedForm.updated_at },
       );
       setForms((prev) =>
         prev.map((f) => (f.id === updated.id ? updated : f)),
@@ -1133,6 +1105,11 @@ export default function ApplicationFormsPage({
       setApplySavedSnapshot(serializeEditableFormState(nextEditable));
       adminToast.success(isPublished ? "Form saved" : "Draft saved");
     } catch (err) {
+      if (err instanceof ApplicationFormConflictError) {
+        setError(err.message);
+        adminToast.error(err.message);
+        return;
+      }
       void reportPortalOperationalError("school_admin", {
         organizationId,
         operation: "forms.save",
@@ -1200,9 +1177,13 @@ export default function ApplicationFormsPage({
     try {
       const saveInput = buildSaveInput();
       if (saveInput) {
-        await updateApplicationForm(supabase, selectedForm.id, saveInput, {
-          logActivity: true,
-        });
+        const saved = await updateApplicationForm(
+          supabase,
+          selectedForm.id,
+          saveInput,
+          { expectedUpdatedAt: selectedForm.updated_at },
+        );
+        setForms((prev) => prev.map((f) => (f.id === saved.id ? saved : f)));
       }
       const published = await publishForm(supabase, selectedForm.id);
       const nextEditable = toEditableState(published);
@@ -1213,6 +1194,11 @@ export default function ApplicationFormsPage({
       setSetupHighlight(null);
       adminToast.success("Form published");
     } catch (err) {
+      if (err instanceof ApplicationFormConflictError) {
+        setError(err.message);
+        adminToast.error(err.message);
+        return;
+      }
       void reportPortalOperationalError("school_admin", {
         organizationId,
         operation: "forms.publish",

@@ -20,6 +20,7 @@ import {
   type ApplicationSection,
 } from "./application-form-schema";
 import {
+  applySystemSchemaChanged,
   ensureApplySystemSchema,
   extractStudentFromResponses,
   validateApplySystemSchema,
@@ -234,6 +235,63 @@ describe("ensureApplySystemSchema", () => {
     assert.equal(schema.sections[0]?.system, true);
     assert.equal(schema.sections[0]?.title, "Student information");
     assert.equal(schema.sections[1]?.title, "Custom step");
+  });
+
+  it("reports no change for a saved schema whose keys jsonb reordered", () => {
+    const jsonbKeyOrder = (value: unknown): unknown => {
+      if (Array.isArray(value)) return value.map(jsonbKeyOrder);
+      if (value && typeof value === "object") {
+        return Object.fromEntries(
+          Object.keys(value)
+            .sort((a, b) => a.length - b.length || (a < b ? -1 : a > b ? 1 : 0))
+            .map((key) => [
+              key,
+              jsonbKeyOrder((value as Record<string, unknown>)[key]),
+            ]),
+        );
+      }
+      return value;
+    };
+    const saved = jsonbKeyOrder(
+      ensureApplySystemSchema({
+        sections: [emptyApplicationSection("Academic History")],
+        acknowledgments: [],
+      }),
+    ) as ApplicationFormSchema;
+
+    assert.notEqual(
+      JSON.stringify(saved),
+      JSON.stringify(ensureApplySystemSchema(saved)),
+    );
+    assert.equal(
+      applySystemSchemaChanged(saved, ensureApplySystemSchema(saved)),
+      false,
+    );
+  });
+
+  it("still reports a real system field change", () => {
+    const schema = ensureApplySystemSchema({
+      sections: [emptyApplicationSection("Custom step")],
+      acknowledgments: [],
+    });
+    const loosened: ApplicationFormSchema = {
+      ...schema,
+      sections: [
+        {
+          ...schema.sections[0]!,
+          fields: schema.sections[0]!.fields.map((field) => ({
+            ...field,
+            required: false,
+          })),
+        },
+        ...schema.sections.slice(1),
+      ],
+    };
+
+    assert.equal(
+      applySystemSchemaChanged(loosened, ensureApplySystemSchema(loosened)),
+      true,
+    );
   });
 });
 

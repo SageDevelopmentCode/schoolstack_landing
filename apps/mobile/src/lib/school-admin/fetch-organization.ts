@@ -30,7 +30,7 @@ export async function fetchOrganizationWithSettings(
   if (orgError || !org) return null;
 
   const { data: settings } = await supabase
-    .from('organization_settings')
+    .from('organization_settings_public')
     .select('branding, features')
     .eq('organization_id', org.id)
     .maybeSingle();

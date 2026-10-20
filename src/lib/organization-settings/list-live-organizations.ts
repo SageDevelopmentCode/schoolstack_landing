@@ -9,38 +9,51 @@ export type LiveOrganizationOption = {
   branding: OrganizationBranding;
 };
 
+async function loadPublicBrandingByOrganizationId(
+  supabase: SupabaseClient,
+  organizationIds: string[],
+): Promise<Map<string, Record<string, unknown> | null>> {
+  const brandingByOrgId = new Map<string, Record<string, unknown> | null>();
+  if (organizationIds.length === 0) return brandingByOrgId;
+
+  const { data, error } = await supabase
+    .from("organization_settings_public")
+    .select("organization_id, branding")
+    .in("organization_id", organizationIds);
+
+  if (error) throw error;
+
+  for (const row of data ?? []) {
+    brandingByOrgId.set(
+      String(row.organization_id),
+      (row.branding as Record<string, unknown> | null | undefined) ?? null,
+    );
+  }
+
+  return brandingByOrgId;
+}
+
 export async function listLiveOrganizations(
   supabase: SupabaseClient,
 ): Promise<LiveOrganizationOption[]> {
   const { data, error } = await supabase
     .from("organizations")
-    .select(
-      `
-      id,
-      slug,
-      name,
-      organization_settings (
-        branding
-      )
-    `,
-    )
+    .select("id, slug, name")
     .eq("status", "live")
     .order("name", { ascending: true });
 
   if (error) throw error;
 
-  return (data ?? []).map((row) => {
-    const settings = row.organization_settings as
-      | { branding?: Record<string, unknown> }
-      | { branding?: Record<string, unknown> }[]
-      | null;
-    const settingsRow = Array.isArray(settings) ? settings[0] : settings;
+  const rows = data ?? [];
+  const brandingByOrgId = await loadPublicBrandingByOrganizationId(
+    supabase,
+    rows.map((row) => String(row.id)),
+  );
 
-    return {
-      id: String(row.id),
-      slug: String(row.slug),
-      name: String(row.name),
-      branding: mergeBranding(settingsRow?.branding),
-    };
-  });
+  return rows.map((row) => ({
+    id: String(row.id),
+    slug: String(row.slug),
+    name: String(row.name),
+    branding: mergeBranding(brandingByOrgId.get(String(row.id))),
+  }));
 }

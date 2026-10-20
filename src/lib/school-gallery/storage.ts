@@ -30,6 +30,24 @@ export function buildGalleryPhotoStoragePath(
   return `${organizationId}/gallery/${photoId}/${safeName}`;
 }
 
+export function galleryPhotoStoragePathPrefix(
+  organizationId: string,
+  photoId: string,
+): string {
+  return `${organizationId}/gallery/${photoId}/`;
+}
+
+export function assertGalleryPhotoStoragePath(
+  organizationId: string,
+  photoId: string,
+  storagePath: string,
+): void {
+  const prefix = galleryPhotoStoragePathPrefix(organizationId, photoId);
+  if (!storagePath.startsWith(prefix)) {
+    throw new Error("Gallery photo storage path does not match this school.");
+  }
+}
+
 export function validateGalleryPhotoFile(file: File): void {
   if (file.size > MAX_GALLERY_PHOTO_BYTES) {
     throw new Error(`"${file.name}" exceeds the 10 MB limit.`);
@@ -93,9 +111,13 @@ export async function removeGalleryPhotoFiles(
 
 export async function getGalleryPhotoSignedUrl(
   supabase: SupabaseClient,
+  organizationId: string,
+  photoId: string,
   storagePath: string,
   expiresIn = GALLERY_SIGNED_URL_TTL_SECONDS,
 ): Promise<string> {
+  assertGalleryPhotoStoragePath(organizationId, photoId, storagePath);
+
   const { data, error } = await supabase.storage
     .from(SCHOOL_GALLERY_FILES_BUCKET)
     .createSignedUrl(storagePath, expiresIn);
@@ -114,9 +136,12 @@ export async function attachSignedUrlsToGalleryPhotos(
   return Promise.all(
     photos.map(async (photo) => ({
       ...photo,
-      imageUrl: await getGalleryPhotoSignedUrl(supabase, photo.storagePath).catch(
-        () => undefined,
-      ),
+      imageUrl: await getGalleryPhotoSignedUrl(
+        supabase,
+        photo.organizationId,
+        photo.id,
+        photo.storagePath,
+      ).catch(() => undefined),
     })),
   );
 }

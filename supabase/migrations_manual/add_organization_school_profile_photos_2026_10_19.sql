@@ -1,4 +1,4 @@
--- Promoted to supabase/migrations/20261125_add_organization_school_profile_photos.sql for local/CI.
+-- Promoted to supabase/migrations/20261126_add_organization_school_profile_photos.sql for local/CI.
 -- Run this file in Supabase SQL Editor on remote if that migration has not been applied.
 -- 2026-10-19: My School profile photos (up to 5 per org).
 

@@ -281,16 +281,6 @@ export function isApplicationFormSummaryStub(
   );
 }
 
-export function canPersistApplySystemSchemaUpgrade(
-  form: ApplicationFormVersion,
-  options: { hasLoadedFullForm: boolean },
-): boolean {
-  if (form.status === "archived") return false;
-  if (isApplicationFormSummaryStub(form)) return false;
-  if (!options.hasLoadedFullForm) return false;
-  return true;
-}
-
 export async function listApplicationFormSummaries(
   supabase: SupabaseClient,
   organizationId: string,
@@ -579,8 +569,27 @@ export type UpdateApplicationFormInput = {
 export type UpdateDraftFormInput = UpdateApplicationFormInput;
 
 export type UpdateApplicationFormOptions = {
-  logActivity?: boolean;
+  /** `updated_at` the caller loaded; the save is rejected if the row has moved on. */
+  expectedUpdatedAt?: string;
 };
+
+export class ApplicationFormConflictError extends Error {
+  constructor() {
+    super(
+      "This form was changed in another tab or by another admin since you opened it. Reload the page to get the latest version, then make your change again.",
+    );
+    this.name = "ApplicationFormConflictError";
+  }
+}
+
+export function assertApplicationFormNotStale(
+  currentUpdatedAt: string,
+  expectedUpdatedAt: string | undefined,
+): void {
+  if (expectedUpdatedAt !== undefined && currentUpdatedAt !== expectedUpdatedAt) {
+    throw new ApplicationFormConflictError();
+  }
+}
 
 async function assertPublicSlugAvailable(
   supabase: SupabaseClient,
@@ -610,6 +619,8 @@ export async function updateApplicationForm(
   if (existing.status === "archived") {
     throw new Error("Archived forms cannot be edited.");
   }
+  const expectedUpdatedAt = options?.expectedUpdatedAt;
+  assertApplicationFormNotStale(existing.updated_at, expectedUpdatedAt);
 
   const patch: Record<string, unknown> = {};
   if (input.title !== undefined) patch.title = input.title.trim();
@@ -675,103 +686,115 @@ export async function updateApplicationForm(
     patch.notification_config = input.notification_config;
   }
 
-  const { data, error } = await supabase
+  let updateQuery = supabase
     .from("application_form_versions")
     .update(patch)
-    .eq("id", id)
-    .select("*")
-    .single();
+    .eq("id", id);
+  if (expectedUpdatedAt !== undefined) {
+    updateQuery = updateQuery.eq("updated_at", expectedUpdatedAt);
+  }
+  const { data, error } = await updateQuery.select("*").maybeSingle();
 
   if (error) throw error;
+  if (!data) {
+    if (expectedUpdatedAt !== undefined) throw new ApplicationFormConflictError();
+    throw new Error("Application form not found.");
+  }
   const form = applicationFormFromRow(data as Record<string, unknown>);
-  if (options?.logActivity) {
-    const changeSummary = summarizeApplicationFormChanges(existing, form);
-    const summary =
-      changeSummary.changes.length > 0
-        ? `Saved application form “${form.title}” (${changeSummary.changes.length} change${changeSummary.changes.length === 1 ? "" : "s"})`
-        : `Saved application form “${form.title}”`;
+  await recordApplicationFormSave(supabase, existing, form);
+  return form;
+}
 
-    let revisionId: string | null = null;
-    try {
-      revisionId = await insertApplicationFormRevision(supabase, {
-        form,
-        changeSummary,
-        activityEventId: null,
-      });
-    } catch (revisionError) {
+async function recordApplicationFormSave(
+  supabase: SupabaseClient,
+  existing: ApplicationFormVersion,
+  form: ApplicationFormVersion,
+): Promise<void> {
+  const changeSummary = summarizeApplicationFormChanges(existing, form);
+  const summary =
+    changeSummary.changes.length > 0
+      ? `Saved application form “${form.title}” (${changeSummary.changes.length} change${changeSummary.changes.length === 1 ? "" : "s"})`
+      : `Saved application form “${form.title}”`;
+
+  let revisionId: string | null = null;
+  try {
+    revisionId = await insertApplicationFormRevision(supabase, {
+      form,
+      changeSummary,
+      activityEventId: null,
+    });
+  } catch (revisionError) {
+    void reportOperationalError({
+      supabase,
+      surface: "school_admin",
+      organizationId: form.organization_id,
+      operation: "application_forms.revision_insert",
+      error:
+        revisionError instanceof Error
+          ? revisionError.message
+          : "Failed to insert application form revision.",
+      entityType: "application_form_version",
+      entityId: form.id,
+      actor: { type: "school_admin" },
+      cause: revisionError,
+    });
+  }
+
+  let activityEventId: string | null = null;
+  try {
+    activityEventId = await logActivityEvent(supabase, {
+      organizationId: form.organization_id,
+      actorType: "school_admin",
+      surface: "school_admin",
+      action: ACTIVITY_ACTIONS.FORM_SAVED,
+      entityType: "application_form_version",
+      entityId: form.id,
+      summary,
+      metadata: {
+        publicSlug: form.public_slug,
+        version: form.version,
+        status: form.status,
+        changedFields: changeSummary.changedFields,
+        changes: changeSummary.changes,
+        ...(revisionId ? { revisionId } : {}),
+      },
+    });
+  } catch (activityLogError) {
+    void reportOperationalError({
+      supabase,
+      surface: "school_admin",
+      organizationId: form.organization_id,
+      operation: "application_forms.activity_log",
+      error:
+        activityLogError instanceof Error
+          ? activityLogError.message
+          : "Failed to log application form save activity.",
+      entityType: "application_form_version",
+      entityId: form.id,
+      actor: { type: "school_admin" },
+      cause: activityLogError,
+    });
+  }
+
+  if (revisionId && activityEventId) {
+    const { error: linkError } = await supabase
+      .from("application_form_version_revisions")
+      .update({ activity_event_id: activityEventId })
+      .eq("id", revisionId);
+    if (linkError) {
       void reportOperationalError({
         supabase,
         surface: "school_admin",
         organizationId: form.organization_id,
-        operation: "application_forms.revision_insert",
-        error:
-          revisionError instanceof Error
-            ? revisionError.message
-            : "Failed to insert application form revision.",
+        operation: "application_forms.revision_link",
+        error: linkError.message,
         entityType: "application_form_version",
         entityId: form.id,
         actor: { type: "school_admin" },
-        cause: revisionError,
+        cause: linkError,
       });
-    }
-
-    let activityEventId: string | null = null;
-    try {
-      activityEventId = await logActivityEvent(supabase, {
-        organizationId: form.organization_id,
-        actorType: "school_admin",
-        surface: "school_admin",
-        action: ACTIVITY_ACTIONS.FORM_SAVED,
-        entityType: "application_form_version",
-        entityId: form.id,
-        summary,
-        metadata: {
-          publicSlug: form.public_slug,
-          version: form.version,
-          status: form.status,
-          changedFields: changeSummary.changedFields,
-          changes: changeSummary.changes,
-          ...(revisionId ? { revisionId } : {}),
-        },
-      });
-    } catch (activityLogError) {
-      void reportOperationalError({
-        supabase,
-        surface: "school_admin",
-        organizationId: form.organization_id,
-        operation: "application_forms.activity_log",
-        error:
-          activityLogError instanceof Error
-            ? activityLogError.message
-            : "Failed to log application form save activity.",
-        entityType: "application_form_version",
-        entityId: form.id,
-        actor: { type: "school_admin" },
-        cause: activityLogError,
-      });
-    }
-
-    if (revisionId && activityEventId) {
-      const { error: linkError } = await supabase
-        .from("application_form_version_revisions")
-        .update({ activity_event_id: activityEventId })
-        .eq("id", revisionId);
-      if (linkError) {
-        void reportOperationalError({
-          supabase,
-          surface: "school_admin",
-          organizationId: form.organization_id,
-          operation: "application_forms.revision_link",
-          error: linkError.message,
-          entityType: "application_form_version",
-          entityId: form.id,
-          actor: { type: "school_admin" },
-          cause: linkError,
-        });
-      }
     }
   }
-  return form;
 }
 
 export async function updateDraftForm(

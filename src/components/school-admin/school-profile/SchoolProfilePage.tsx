@@ -120,8 +120,8 @@ export default function SchoolProfilePage({
   const isDirty = useMemo(() => {
     if (!bundleLoaded) return false;
     return isSchoolProfileBundleDirty(
-      { profile, campus },
-      { profile: savedProfile, campus: savedCampus },
+      { profile, primaryCampus: campus },
+      { profile: savedProfile, primaryCampus: savedCampus },
     );
   }, [bundleLoaded, profile, campus, savedProfile, savedCampus]);
 

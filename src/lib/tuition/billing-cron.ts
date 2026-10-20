@@ -47,7 +47,9 @@ export type TuitionBillingCronSummary = {
   remindersSent: number;
   autopayRemindersSent: number;
   incompleteAdmissionsRemindersSent: number;
+  incompleteAdmissionsReminderFailures: number;
   postSubmitRequiredRemindersSent: number;
+  postSubmitRequiredReminderFailures: number;
   rulesEvaluated: number;
   lateFeesApplied: number;
   lateFeesNotified: number;
@@ -186,7 +188,9 @@ export async function runTuitionBillingCron(
   let remindersSent = 0;
   let autopayRemindersSent = 0;
   let incompleteAdmissionsRemindersSent = 0;
+  let incompleteAdmissionsReminderFailures = 0;
   let postSubmitRequiredRemindersSent = 0;
+  let postSubmitRequiredReminderFailures = 0;
   let rulesEvaluated = 0;
   let lateFeesApplied = 0;
   let lateFeesNotified = 0;
@@ -232,13 +236,47 @@ export async function runTuitionBillingCron(
       const orgAutopayReminders = await sendAutopayReminders(admin, organizationId);
       autopayRemindersSent += orgAutopayReminders;
 
-      const orgIncompleteAdmissionsReminders =
-        await sendIncompleteAdmissionsRemindersFn(admin, organizationId);
-      incompleteAdmissionsRemindersSent += orgIncompleteAdmissionsReminders;
+      try {
+        const orgIncompleteAdmissionsReminders =
+          await sendIncompleteAdmissionsRemindersFn(admin, organizationId);
+        incompleteAdmissionsRemindersSent += orgIncompleteAdmissionsReminders;
+      } catch (error) {
+        incompleteAdmissionsReminderFailures += 1;
+        void reportOperationalError({
+          supabase: admin,
+          surface: "system",
+          organizationId,
+          operation: "incomplete_admissions_reminders_cron.organization",
+          error:
+            messageFromCause(error) ??
+            "Incomplete admissions reminders cron failed for organization",
+          entityType: "organization",
+          entityId: organizationId,
+          actor: { type: "system" },
+          cause: error,
+        });
+      }
 
-      const orgPostSubmitRequiredReminders =
-        await sendPostSubmitRequiredRemindersFn(admin, organizationId);
-      postSubmitRequiredRemindersSent += orgPostSubmitRequiredReminders;
+      try {
+        const orgPostSubmitRequiredReminders =
+          await sendPostSubmitRequiredRemindersFn(admin, organizationId);
+        postSubmitRequiredRemindersSent += orgPostSubmitRequiredReminders;
+      } catch (error) {
+        postSubmitRequiredReminderFailures += 1;
+        void reportOperationalError({
+          supabase: admin,
+          surface: "system",
+          organizationId,
+          operation: "post_submit_required_reminders_cron.organization",
+          error:
+            messageFromCause(error) ??
+            "Post-submit required reminders cron failed for organization",
+          entityType: "organization",
+          entityId: organizationId,
+          actor: { type: "system" },
+          cause: error,
+        });
+      }
 
       const orgRules = await evaluateRules(admin, organizationId);
       rulesEvaluated += orgRules;
@@ -452,7 +490,9 @@ export async function runTuitionBillingCron(
     remindersSent,
     autopayRemindersSent,
     incompleteAdmissionsRemindersSent,
+    incompleteAdmissionsReminderFailures,
     postSubmitRequiredRemindersSent,
+    postSubmitRequiredReminderFailures,
     rulesEvaluated,
     lateFeesApplied,
     lateFeesNotified,

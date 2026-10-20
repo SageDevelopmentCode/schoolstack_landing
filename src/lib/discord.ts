@@ -418,7 +418,9 @@ export async function notifyTuitionBillingCronSummary(payload: {
   remindersSent: number;
   autopayRemindersSent?: number;
   incompleteAdmissionsRemindersSent?: number;
+  incompleteAdmissionsReminderFailures?: number;
   postSubmitRequiredRemindersSent?: number;
+  postSubmitRequiredReminderFailures?: number;
   rulesEvaluated: number;
   lateFeesApplied: number;
   lateFeesNotified: number;
@@ -495,8 +497,18 @@ export async function notifyTuitionBillingCronSummary(payload: {
       true,
     ),
     embedField(
+      "Incomplete admissions reminder failures",
+      String(payload.incompleteAdmissionsReminderFailures ?? 0),
+      true,
+    ),
+    embedField(
       "Post-submit required reminders",
       String(payload.postSubmitRequiredRemindersSent ?? 0),
+      true,
+    ),
+    embedField(
+      "Post-submit required reminder failures",
+      String(payload.postSubmitRequiredReminderFailures ?? 0),
       true,
     ),
     embedField(

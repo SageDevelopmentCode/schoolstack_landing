@@ -195,7 +195,7 @@ describe("runTuitionBillingCron", () => {
     assert.equal(payload?.unreadMessageDigestsSent, 1);
   });
 
-  it("continues processing remaining orgs when one org fails", async () => {
+  it("continues billing when incomplete admissions reminders fail for an org", async () => {
     const calls: string[] = [];
 
     const summary = await runTuitionBillingCron({} as never, {
@@ -292,6 +292,13 @@ describe("runTuitionBillingCron", () => {
       "reminders:org-1",
       "autopay-reminders:org-1",
       "incomplete-admissions-reminders:org-1",
+      "post-submit-required-reminders:org-1",
+      "rules:org-1",
+      "late-fees:org-1",
+      "autopay:org-1",
+      "unread-message-digest:org-1",
+      "visit-reminders:org-1",
+      "bulletin-emails:org-1",
       "overdue:org-2",
       "reminders:org-2",
       "autopay-reminders:org-2",
@@ -304,10 +311,120 @@ describe("runTuitionBillingCron", () => {
       "visit-reminders:org-2",
       "bulletin-emails:org-2",
     ]);
-    assert.equal(summary.organizationFailures, 1);
-    assert.deepEqual(summary.failedOrganizationIds, ["org-1"]);
+    assert.equal(summary.organizationFailures, 0);
+    assert.deepEqual(summary.failedOrganizationIds, []);
+    assert.equal(summary.incompleteAdmissionsReminderFailures, 1);
     assert.equal(summary.overdueCount, 2);
     assert.equal(summary.incompleteAdmissionsRemindersSent, 2);
+    assert.equal(summary.rulesEvaluated, 2);
+    assert.equal(summary.autopayProcessed, 2);
+  });
+
+  it("continues billing when post-submit required reminders fail for an org", async () => {
+    const calls: string[] = [];
+
+    const summary = await runTuitionBillingCron({} as never, {
+      listLiveOrganizationIds: async () => ["org-1"],
+      getTuitionOrgSettings: async () => ({}),
+      markOverdueCharges: async (_admin, organizationId) => {
+        calls.push(`overdue:${organizationId}`);
+        return 0;
+      },
+      sendTuitionDueReminders: async (_admin, organizationId) => {
+        calls.push(`reminders:${organizationId}`);
+        return 0;
+      },
+      sendAutopayUpcomingReminders: async (_admin, organizationId) => {
+        calls.push(`autopay-reminders:${organizationId}`);
+        return 0;
+      },
+      sendIncompleteAdmissionsReminders: async (_admin, organizationId) => {
+        calls.push(`incomplete-admissions-reminders:${organizationId}`);
+        return 0;
+      },
+      sendPostSubmitRequiredReminders: async (_admin, organizationId) => {
+        calls.push(`post-submit-required-reminders:${organizationId}`);
+        throw new Error("applications query failed");
+      },
+      applyLateFeesForOrganization: async (_admin, organizationId) => {
+        calls.push(`late-fees:${organizationId}`);
+        return { applied: 0, notified: 0 };
+      },
+      evaluateRulesForOrganization: async (_admin, organizationId) => {
+        calls.push(`rules:${organizationId}`);
+        return 1;
+      },
+      processAutopayForOrganization: async (_admin, organizationId) => {
+        calls.push(`autopay:${organizationId}`);
+        return {
+          processed: 1,
+          failed: 0,
+          skipped: 0,
+          attempted: 1,
+          dueCandidates: 1,
+          lines: [],
+          truncated: false,
+        };
+      },
+      sendCommitteeDailyDigestsForOrganization: async () => ({
+        activityCount: 0,
+        digestsSent: 0,
+        digestFailures: 0,
+        memberDigestsSent: 0,
+        adminDigestsSent: 0,
+      }),
+      sendUnreadMessageDigestsForOrganization: async (_admin, organizationId) => {
+        calls.push(`unread-message-digest:${organizationId}`);
+        return {
+          threadsConsidered: 0,
+          digestsSent: 0,
+          digestFailures: 0,
+          parentDigestsSent: 0,
+          teacherDigestsSent: 0,
+        };
+      },
+      sendScheduledVisitRemindersForOrganization: async (_admin, organizationId) => {
+        calls.push(`visit-reminders:${organizationId}`);
+        return {
+          parentRemindersSent: 0,
+          parentDayOfRemindersSent: 0,
+          adminWeeklyDigestsSent: 0,
+          adminDayBeforeDigestsSent: 0,
+          adminDayOfDigestsSent: 0,
+          failures: 0,
+        };
+      },
+      sendPendingScheduledBulletinEmailsForOrganization: async (
+        _admin,
+        organizationId,
+      ) => {
+        calls.push(`bulletin-emails:${organizationId}`);
+        return {
+          postsProcessed: 0,
+          emailsAttempted: 0,
+          emailsSucceeded: 0,
+          failures: 0,
+        };
+      },
+      notifySummary: async () => {},
+    });
+
+    assert.deepEqual(calls, [
+      "overdue:org-1",
+      "reminders:org-1",
+      "autopay-reminders:org-1",
+      "incomplete-admissions-reminders:org-1",
+      "post-submit-required-reminders:org-1",
+      "rules:org-1",
+      "late-fees:org-1",
+      "autopay:org-1",
+      "unread-message-digest:org-1",
+      "visit-reminders:org-1",
+      "bulletin-emails:org-1",
+    ]);
+    assert.equal(summary.organizationFailures, 0);
+    assert.equal(summary.postSubmitRequiredReminderFailures, 1);
+    assert.equal(summary.postSubmitRequiredRemindersSent, 0);
     assert.equal(summary.rulesEvaluated, 1);
     assert.equal(summary.autopayProcessed, 1);
   });
