@@ -52,6 +52,10 @@ function summarizeSchemaChanges(
       );
     }
 
+    if ((beforeSection.description ?? "") !== (afterSection.description ?? "")) {
+      changes.push(`Updated step instructions for “${afterSection.title}”`);
+    }
+
     const beforeFields = new Map(
       beforeSection.fields.map((field) => [field.id, field]),
     );
