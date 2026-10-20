@@ -5,6 +5,7 @@ import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
+import SchoolProfilePhotosSection from "@/components/school-admin/school-profile-photos/SchoolProfilePhotosSection";
 import SchoolProfileStoryHeader from "@/components/school-admin/school-profile/SchoolProfileStoryHeader";
 import type { SchoolProfileSectionId } from "@/components/school-admin/school-profile/school-profile-sections";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
@@ -194,6 +195,11 @@ export default function SchoolProfilePage({
         return next;
       });
       setActiveSection(section);
+      if (section === "photos") {
+        setPendingSection(null);
+        setLoadingSection(null);
+        return;
+      }
       if (bundleLoadedRef.current) {
         setPendingSection(null);
         setLoadingSection(null);
@@ -337,6 +343,7 @@ export default function SchoolProfilePage({
           saving={saving}
           saveDisabled={!bundleLoaded || !isDirty || saving}
           showUnsavedChanges={isDirty && !saving}
+          showSaveButton={activeSection !== "photos"}
           onSectionChange={handleSectionChange}
           onSave={() => void handleSave()}
         />
@@ -713,6 +720,16 @@ export default function SchoolProfilePage({
             </div>
           </AdminCard>
             )}
+          </div>
+        ) : null}
+
+        {visitedSections.has("photos") ? (
+          <div hidden={activeSection !== "photos"}>
+            <SchoolProfilePhotosSection
+              organizationId={organizationId}
+              theme={theme}
+              C={C}
+            />
           </div>
         ) : null}
       </div>

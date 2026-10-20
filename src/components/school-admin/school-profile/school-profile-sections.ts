@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Clock, Globe, Mail, MapPin, Phone } from "lucide-react";
+import { Clock, Globe, Image, Mail, MapPin, Phone } from "lucide-react";
 
 export const SCHOOL_PROFILE_SECTIONS = [
   { id: "about", label: "About & links", icon: Globe },
@@ -7,6 +7,7 @@ export const SCHOOL_PROFILE_SECTIONS = [
   { id: "phones", label: "Phones", icon: Phone },
   { id: "emails", label: "Emails", icon: Mail },
   { id: "hours", label: "Hours & directions", icon: Clock },
+  { id: "photos", label: "School photos", icon: Image },
 ] as const satisfies ReadonlyArray<{
   id: string;
   label: string;
@@ -32,6 +33,8 @@ export function subtitleForSchoolProfileSection(
       return "Inboxes families and staff should use to reach the school";
     case "hours":
       return "Office hours, directions, and parking notes";
+    case "photos":
+      return "Up to 5 campus photos (compressed before upload)";
   }
 }
 

@@ -3,33 +3,27 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ImagePlus, Loader2, Trash2 } from "lucide-react";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
-import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
-import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
-import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
-import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { MAX_SCHOOL_PROFILE_PHOTOS } from "@/lib/school-admin/school-profile-photos/constants";
 import { prepareSchoolProfilePhotoForUpload } from "@/lib/school-admin/school-profile-photos/storage";
 import type { SchoolProfilePhoto } from "@/lib/school-admin/school-profile-photos/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportClientOperationalError } from "@/lib/operational-errors-client";
 
-const PAGE_SHELL_CLASS =
-  "mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14";
-
-type SchoolPhotosPageProps = {
+type SchoolProfilePhotosSectionProps = {
   organizationId: string;
-  branding: OrganizationBranding;
-  slug: string;
-  schoolName: string;
+  theme: ParentThemeTokens;
+  C: AdminThemeTokens;
 };
 
-export default function SchoolPhotosPage({
+export default function SchoolProfilePhotosSection({
   organizationId,
-  schoolName,
-}: SchoolPhotosPageProps) {
-  const { theme, C } = useSchoolAdminStoryTheme();
+  theme,
+  C,
+}: SchoolProfilePhotosSectionProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<SchoolProfilePhoto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -171,58 +165,46 @@ export default function SchoolPhotosPage({
   };
 
   return (
-    <div className={PAGE_SHELL_CLASS}>
-      <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <AdminSectionKicker theme={theme}>My school</AdminSectionKicker>
-          <AdminDisplayHeading theme={theme} as="h1" size="section" className="mt-1.5">
-            School photos
-          </AdminDisplayHeading>
-          <p className="mt-2 text-[13px]" style={{ color: theme.muted }}>
-            {schoolName}
-          </p>
-          <p className="mt-1 text-[13px]" style={{ color: theme.muted }}>
-            Add up to {MAX_SCHOOL_PROFILE_PHOTOS} campus photos. Images are compressed
-            before upload.
-          </p>
+    <>
+      <AdminCard theme={theme} padding="canvas" className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-sm font-bold text-[#2F3D33]">School photos</h2>
+          <div className="flex flex-col items-stretch gap-2 sm:items-end">
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              className="hidden"
+              disabled={uploading || atMax}
+              onChange={(event) => void handleFilesSelected(event.target.files)}
+            />
+            <AdminButton
+              type="button"
+              theme={theme}
+              disabled={uploading || atMax || loading}
+              onClick={() => inputRef.current?.click()}
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                  {prepareLabel ?? "Uploading…"}
+                </>
+              ) : (
+                <>
+                  <ImagePlus className="h-3.5 w-3.5" aria-hidden />
+                  Add photos
+                </>
+              )}
+            </AdminButton>
+            {!atMax && photos.length > 0 ? (
+              <p className="text-xs" style={{ color: theme.muted }}>
+                {slotsRemaining} slot{slotsRemaining === 1 ? "" : "s"} left
+              </p>
+            ) : null}
+          </div>
         </div>
-        <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            multiple
-            className="hidden"
-            disabled={uploading || atMax}
-            onChange={(event) => void handleFilesSelected(event.target.files)}
-          />
-          <AdminButton
-            type="button"
-            theme={theme}
-            disabled={uploading || atMax || loading}
-            onClick={() => inputRef.current?.click()}
-          >
-            {uploading ? (
-              <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-                {prepareLabel ?? "Uploading…"}
-              </>
-            ) : (
-              <>
-                <ImagePlus className="h-3.5 w-3.5" aria-hidden />
-                Add photos
-              </>
-            )}
-          </AdminButton>
-          {!atMax && photos.length > 0 ? (
-            <p className="text-xs" style={{ color: theme.muted }}>
-              {slotsRemaining} slot{slotsRemaining === 1 ? "" : "s"} left
-            </p>
-          ) : null}
-        </div>
-      </div>
 
-      <AdminCard theme={theme} padding="canvas">
         {loading ? (
           <div className="flex min-h-[200px] items-center justify-center">
             <Loader2
@@ -236,12 +218,12 @@ export default function SchoolPhotosPage({
               No school photos yet
             </p>
             <p className="max-w-sm text-[13px]" style={{ color: theme.muted }}>
-              Showcase your campus with a few photos families can discover later in
-              MudKitchen.
+              Add up to {MAX_SCHOOL_PROFILE_PHOTOS} campus photos. Images are
+              compressed before upload.
             </p>
           </div>
         ) : (
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {photos.map((photo) => (
               <li key={photo.id} className="group relative">
                 <div className="aspect-[4/3] overflow-hidden rounded-xl border border-[#D8DEDF] bg-[#F4F6F5]">
@@ -288,6 +270,6 @@ export default function SchoolPhotosPage({
           if (!deleting) setDeleteTarget(null);
         }}
       />
-    </div>
+    </>
   );
 }

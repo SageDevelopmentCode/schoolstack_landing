@@ -24,6 +24,7 @@ type SchoolProfileStoryHeaderProps = {
   saving: boolean;
   saveDisabled: boolean;
   showUnsavedChanges?: boolean;
+  showSaveButton?: boolean;
   onSectionChange: (section: SchoolProfileSectionId) => void;
   onSave: () => void;
 };
@@ -38,6 +39,7 @@ export default function SchoolProfileStoryHeader({
   saving,
   saveDisabled,
   showUnsavedChanges = false,
+  showSaveButton = true,
   onSectionChange,
   onSave,
 }: SchoolProfileStoryHeaderProps) {
@@ -86,17 +88,19 @@ export default function SchoolProfileStoryHeader({
               Unsaved changes
             </span>
           ) : null}
-          <AdminButton
-            theme={theme}
-            variant="primary"
-            type="button"
-            className="w-full sm:w-auto"
-            disabled={saveDisabled}
-            onClick={onSave}
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Save profile
-          </AdminButton>
+          {showSaveButton ? (
+            <AdminButton
+              theme={theme}
+              variant="primary"
+              type="button"
+              className="w-full sm:w-auto"
+              disabled={saveDisabled}
+              onClick={onSave}
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Save profile
+            </AdminButton>
+          ) : null}
         </div>
       </div>
 

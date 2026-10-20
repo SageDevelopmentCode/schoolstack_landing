@@ -6,10 +6,7 @@ import {
   assertCanAddSchoolProfilePhotos,
   SchoolProfilePhotoError,
 } from "./photos";
-import {
-  getDefaultFeatureChildren,
-  mergePortalFeatureNav,
-} from "@/lib/organization-settings/feature-nav";
+import { SCHOOL_PROFILE_SECTIONS } from "@/components/school-admin/school-profile/school-profile-sections";
 
 describe("school profile photos storage", () => {
   it("builds school-profile storage paths", () => {
@@ -43,29 +40,10 @@ describe("school profile photos limits", () => {
   });
 });
 
-describe("school photos nav defaults", () => {
-  it("includes school_photos after school_profile", () => {
-    const children = getDefaultFeatureChildren("my_school");
-    const keys = children.map((child) => child.key);
-    assert.equal(keys[0], "school_profile");
-    assert.equal(keys[1], "school_photos");
-  });
-
-  it("merges school_photos into stored nav that predates the tab", () => {
-    const merged = mergePortalFeatureNav("admin", {
-      groups: ["Main"],
-      items: {
-        my_school: {
-          group: "Main",
-          icon: "school",
-          children: [{ key: "students", label: "My Students", icon: "users" }],
-        },
-      },
-      order: ["my_school"],
-    });
-    const keys =
-      merged.items.my_school?.children?.map((child) => child.key) ?? [];
-    assert.ok(keys.includes("school_photos"));
-    assert.ok(keys.includes("school_profile"));
+describe("school profile photos section", () => {
+  it("includes photos in school profile pill sections", () => {
+    const ids = SCHOOL_PROFILE_SECTIONS.map((section) => section.id);
+    assert.ok(ids.includes("photos"));
+    assert.equal(ids[ids.length - 1], "photos");
   });
 });
