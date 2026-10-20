@@ -26,15 +26,48 @@ import {
   validateApplySystemSchema,
 } from "./apply-system-fields";
 import { orgPaymentsReadyForFees } from "@/lib/stripe/organization-payment-account";
+import { recordApplicationFormSaveActivityViaApi } from "@/lib/admissions/application-form-save-activity-api";
 import {
   ACTIVITY_ACTIONS,
   logActivityEvent,
 } from "@/lib/activity-log";
 import { reportOperationalError } from "@/lib/operational-errors";
+import { reportClientOperationalError } from "@/lib/operational-errors-client";
 import {
   insertApplicationFormRevision,
   summarizeApplicationFormChanges,
 } from "./application-form-revisions";
+
+function reportApplicationFormSaveSideEffectError(
+  supabase: SupabaseClient,
+  form: ApplicationFormVersion,
+  operation: string,
+  error: string,
+  cause?: unknown,
+): void {
+  if (typeof window !== "undefined") {
+    void reportClientOperationalError({
+      organizationId: form.organization_id,
+      operation,
+      error,
+      entityType: "application_form_version",
+      entityId: form.id,
+    });
+    return;
+  }
+
+  void reportOperationalError({
+    supabase,
+    surface: "school_admin",
+    organizationId: form.organization_id,
+    operation,
+    error,
+    entityType: "application_form_version",
+    entityId: form.id,
+    actor: { type: "school_admin" },
+    cause,
+  });
+}
 export type { ProgramOption } from "./programs";
 export { listPrograms } from "./programs";
 
@@ -724,56 +757,57 @@ async function recordApplicationFormSave(
       activityEventId: null,
     });
   } catch (revisionError) {
-    void reportOperationalError({
+    reportApplicationFormSaveSideEffectError(
       supabase,
-      surface: "school_admin",
-      organizationId: form.organization_id,
-      operation: "application_forms.revision_insert",
-      error:
-        revisionError instanceof Error
-          ? revisionError.message
-          : "Failed to insert application form revision.",
-      entityType: "application_form_version",
-      entityId: form.id,
-      actor: { type: "school_admin" },
-      cause: revisionError,
-    });
+      form,
+      "application_forms.revision_insert",
+      revisionError instanceof Error
+        ? revisionError.message
+        : "Failed to insert application form revision.",
+      revisionError,
+    );
   }
+
+  const activityMetadata = {
+    publicSlug: form.public_slug,
+    version: form.version,
+    status: form.status,
+    changedFields: changeSummary.changedFields,
+    changes: changeSummary.changes,
+    ...(revisionId ? { revisionId } : {}),
+  };
 
   let activityEventId: string | null = null;
   try {
-    activityEventId = await logActivityEvent(supabase, {
-      organizationId: form.organization_id,
-      actorType: "school_admin",
-      surface: "school_admin",
-      action: ACTIVITY_ACTIONS.FORM_SAVED,
-      entityType: "application_form_version",
-      entityId: form.id,
-      summary,
-      metadata: {
-        publicSlug: form.public_slug,
-        version: form.version,
-        status: form.status,
-        changedFields: changeSummary.changedFields,
-        changes: changeSummary.changes,
-        ...(revisionId ? { revisionId } : {}),
-      },
-    });
+    if (typeof window !== "undefined") {
+      activityEventId = await recordApplicationFormSaveActivityViaApi({
+        organizationId: form.organization_id,
+        formVersionId: form.id,
+        summary,
+        metadata: activityMetadata,
+      });
+    } else {
+      activityEventId = await logActivityEvent(supabase, {
+        organizationId: form.organization_id,
+        actorType: "school_admin",
+        surface: "school_admin",
+        action: ACTIVITY_ACTIONS.FORM_SAVED,
+        entityType: "application_form_version",
+        entityId: form.id,
+        summary,
+        metadata: activityMetadata,
+      });
+    }
   } catch (activityLogError) {
-    void reportOperationalError({
+    reportApplicationFormSaveSideEffectError(
       supabase,
-      surface: "school_admin",
-      organizationId: form.organization_id,
-      operation: "application_forms.activity_log",
-      error:
-        activityLogError instanceof Error
-          ? activityLogError.message
-          : "Failed to log application form save activity.",
-      entityType: "application_form_version",
-      entityId: form.id,
-      actor: { type: "school_admin" },
-      cause: activityLogError,
-    });
+      form,
+      "application_forms.activity_log",
+      activityLogError instanceof Error
+        ? activityLogError.message
+        : "Failed to log application form save activity.",
+      activityLogError,
+    );
   }
 
   if (revisionId && activityEventId) {
@@ -782,17 +816,13 @@ async function recordApplicationFormSave(
       .update({ activity_event_id: activityEventId })
       .eq("id", revisionId);
     if (linkError) {
-      void reportOperationalError({
+      reportApplicationFormSaveSideEffectError(
         supabase,
-        surface: "school_admin",
-        organizationId: form.organization_id,
-        operation: "application_forms.revision_link",
-        error: linkError.message,
-        entityType: "application_form_version",
-        entityId: form.id,
-        actor: { type: "school_admin" },
-        cause: linkError,
-      });
+        form,
+        "application_forms.revision_link",
+        linkError.message,
+        linkError,
+      );
     }
   }
 }

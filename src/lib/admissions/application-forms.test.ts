@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { afterEach, describe, it } from "node:test";
+import { setActivityWriteClientForTests } from "@/lib/activity-log";
 import {
   applicationFormFromRow,
   defaultApplicationFormFeeConfig,
@@ -305,6 +306,10 @@ describe("assertApplicationFormNotStale", () => {
 });
 
 describe("updateApplicationForm stale-save guard", () => {
+  afterEach(() => {
+    setActivityWriteClientForTests(null);
+  });
+
   it("rejects a stale tab before writing", async () => {
     const { supabase, calls } = createFormsFakeSupabase({
       row: formRow({ updated_at: SAVED_AT }),
@@ -350,6 +355,7 @@ describe("updateApplicationForm stale-save guard", () => {
       row: formRow(),
       updateMatches: true,
     });
+    setActivityWriteClientForTests(supabase);
 
     const saved = await updateApplicationForm(
       supabase,
@@ -381,5 +387,71 @@ describe("updateApplicationForm stale-save guard", () => {
           call.ops.some(([op]) => op === "insert"),
       ),
     );
+  });
+
+  it("records form.saved via the school-admin API in the browser", async () => {
+    const originalWindow = globalThis.window;
+    const originalFetch = globalThis.fetch;
+
+    globalThis.window = originalWindow ?? ({} as Window & typeof globalThis);
+
+    const fetchCalls: Array<{ url: string; body: string }> = [];
+    globalThis.fetch = async (input, init) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.href
+            : input.url;
+      fetchCalls.push({
+        url,
+        body: typeof init?.body === "string" ? init.body : "",
+      });
+      return new Response(
+        JSON.stringify({ ok: true, activityEventId: "event-from-api" }),
+        { status: 200 },
+      );
+    };
+
+    const { supabase, calls } = createFormsFakeSupabase({
+      row: formRow(),
+      updateMatches: true,
+    });
+
+    try {
+      await updateApplicationForm(
+        supabase,
+        "form-1",
+        { title: "Browser title" },
+        { expectedUpdatedAt: LOADED_AT },
+      );
+
+      assert.equal(fetchCalls.length, 1);
+      assert.equal(
+        fetchCalls[0]?.url,
+        "/api/school-admin/application-forms/record-save-activity",
+      );
+      assert.ok(
+        !calls.some(
+          (call) =>
+            call.table === "activity_events" &&
+            call.ops.some(([op]) => op === "insert"),
+        ),
+      );
+      assert.ok(
+        calls.some(
+          (call) =>
+            call.table === "application_form_version_revisions" &&
+            call.ops.some(([op]) => op === "update"),
+        ),
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+      if (originalWindow === undefined) {
+        Reflect.deleteProperty(globalThis, "window");
+      } else {
+        globalThis.window = originalWindow;
+      }
+    }
   });
 });
