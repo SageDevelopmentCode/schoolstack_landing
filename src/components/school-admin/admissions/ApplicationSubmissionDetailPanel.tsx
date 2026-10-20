@@ -7,6 +7,7 @@ import {
   FileText,
   History,
   LayoutDashboard,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { SchoolAdminDetailPanelSkeleton } from "@/components/school-admin/skeletons";
@@ -272,6 +273,7 @@ export default function ApplicationSubmissionDetailPanel({
 
     const result: DetailTab[] = [
       { id: "overview", label: "Overview", icon: LayoutDashboard },
+      { id: "family-portal-access", label: "Family portal access", icon: Users },
     ];
     if (showEnrollmentStatus) {
       result.push({ id: "application", label: "Application form", icon: FileText });
@@ -380,7 +382,13 @@ export default function ApplicationSubmissionDetailPanel({
               void refreshAfterMutation();
             }}
           />
+        </DetailPanelSectionGroup>
+      );
+    }
 
+    if (tabId === "family-portal-access") {
+      return (
+        <DetailPanelSectionGroup C={C}>
           <FamilyGuardiansSection
             C={C}
             organizationId={organizationId}

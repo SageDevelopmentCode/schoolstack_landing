@@ -51,10 +51,18 @@ export function resolveProgramParentFeatures(
   const result = { ...orgParent } as Record<string, boolean>;
 
   for (const key of allParentFeatureKeys(orgFeatures)) {
+    if (key === "committees") {
+      continue;
+    }
     const orgEnabled = Boolean((orgParent as Record<string, boolean>)[key]);
     const programRequested = Boolean((programParent as Record<string, boolean>)[key]);
     result[key] = orgEnabled && programRequested;
   }
+
+  // School-wide volunteer committees: follow org flag unless program explicitly opts out.
+  result.committees =
+    Boolean((orgParent as Record<string, boolean>).committees) &&
+    programParent.committees !== false;
 
   result.portal = Boolean(orgParent.portal) && Boolean(programParent.portal ?? true);
   result.curriculum =

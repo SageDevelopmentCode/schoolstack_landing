@@ -103,6 +103,37 @@ describe("resolveProgramParentFeatures co-op behavior", () => {
     assert.equal(mainFeatures.parent?.teaching_schedule, false);
   });
 
+  it("enables committees for isolated co-op when org has committees (school-wide default)", () => {
+    const orgWithCommittees = {
+      ...orgFeatures,
+      parent: {
+        ...orgFeatures.parent,
+        committees: true,
+      },
+    };
+
+    const resolved = resolveProgramParentFeatures(orgWithCommittees, {
+      mode: "isolated",
+      coop_mode: true,
+      features: { portal: true },
+    });
+    assert.equal(resolved.committees, true);
+
+    const programOptOut = resolveProgramParentFeatures(orgWithCommittees, {
+      mode: "isolated",
+      coop_mode: true,
+      features: { portal: true, committees: false },
+    });
+    assert.equal(programOptOut.committees, false);
+
+    const orgOff = resolveProgramParentFeatures(orgFeatures, {
+      mode: "isolated",
+      coop_mode: true,
+      features: { portal: true },
+    });
+    assert.equal(orgOff.committees, false);
+  });
+
   it("requires org and program flags for friday_branch in co-op portals", () => {
     const orgWithFridayBranch = {
       ...orgFeatures,
