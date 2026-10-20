@@ -78,9 +78,9 @@ export default function SchoolProfilePage({
   );
   const [bundleLoaded, setBundleLoaded] = useState(false);
   const [pendingSection, setPendingSection] =
-    useState<SchoolProfileSectionId | null>(null);
+    useState<SchoolProfileSectionId | null>("about");
   const [loadingSection, setLoadingSection] =
-    useState<SchoolProfileSectionId | null>(null);
+    useState<SchoolProfileSectionId | null>("about");
   const bundleLoadedRef = useRef(false);
   const loadInFlightRef = useRef<Promise<void> | null>(null);
   const [saving, setSaving] = useState(false);
@@ -220,8 +220,6 @@ export default function SchoolProfilePage({
   );
 
   useEffect(() => {
-    setPendingSection("about");
-    setLoadingSection("about");
     queueMicrotask(() => {
       void ensureBundleLoaded("about");
     });

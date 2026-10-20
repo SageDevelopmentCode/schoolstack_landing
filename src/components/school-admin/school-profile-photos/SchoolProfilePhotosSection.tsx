@@ -64,7 +64,9 @@ export default function SchoolProfilePhotosSection({
   }, [organizationId]);
 
   useEffect(() => {
-    void loadPhotos();
+    queueMicrotask(() => {
+      void loadPhotos();
+    });
   }, [loadPhotos]);
 
   const handleFilesSelected = async (fileList: FileList | null) => {

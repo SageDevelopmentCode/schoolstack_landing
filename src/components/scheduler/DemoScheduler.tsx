@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Info } from "lucide-react";
 import {
@@ -447,61 +447,43 @@ function isCurrentMonthInTimezone(
   return year === y && month === m;
 }
 
-export function DemoScheduler({
-  availabilitySlots,
-  onConfirm,
-  isSubmitting,
-  preview = false,
-  confirmDisabled = false,
-  storyTheme,
-  displayTimezone: displayTimezoneProp,
-  onDisplayTimezoneChange,
-}: {
-  availabilitySlots: Record<string, string[]>;
+type DemoSchedulerCalendarProps = {
   onConfirm?: (booking: DemoSchedulerBooking) => void;
   isSubmitting?: boolean;
   preview?: boolean;
   confirmDisabled?: boolean;
   storyTheme?: ParentThemeTokens;
-  displayTimezone?: string;
-  onDisplayTimezoneChange?: (timezone: string) => void;
-}) {
-  const [internalTimezone, setInternalTimezone] = useState(SCHEDULER_TIMEZONE);
-  const timezoneOptions = useMemo(
-    () => resolveDemoDisplayTimezoneOptions(detectBrowserTimezone(SCHEDULER_TIMEZONE)),
-    [],
-  );
+  displayTimezone: string;
+  displaySlots: Record<string, DemoDisplaySlot[]>;
+  minDisplayDate: string | null;
+  timezoneOptions: ReturnType<typeof resolveDemoDisplayTimezoneOptions>;
+  onDisplayTimezoneChange: (timezone: string) => void;
+};
 
-  useEffect(() => {
-    if (displayTimezoneProp) return;
-    setInternalTimezone(detectBrowserTimezone(SCHEDULER_TIMEZONE));
-  }, [displayTimezoneProp]);
-
-  const displayTimezone = displayTimezoneProp ?? internalTimezone;
-
-  const { slots: displaySlots, minDisplayDate } = useMemo(
-    () => buildDisplayAvailabilitySlots(availabilitySlots, displayTimezone),
-    [availabilitySlots, displayTimezone],
+function DemoSchedulerCalendar({
+  onConfirm,
+  isSubmitting,
+  preview = false,
+  confirmDisabled = false,
+  storyTheme,
+  displayTimezone,
+  displaySlots,
+  minDisplayDate,
+  timezoneOptions,
+  onDisplayTimezoneChange,
+}: DemoSchedulerCalendarProps) {
+  const initialView = initialDemoSchedulerView(
+    displaySlots,
+    minDisplayDate,
+    displayTimezone,
   );
-
-  const [viewYear, setViewYear] = useState(() =>
-    todayMonthYearInTimezone(SCHEDULER_TIMEZONE).year,
+  const [viewYear, setViewYear] = useState(initialView.viewYear);
+  const [viewMonth, setViewMonth] = useState(initialView.viewMonth);
+  const [selectedDate, setSelectedDate] = useState<string | null>(
+    initialView.selectedDate,
   );
-  const [viewMonth, setViewMonth] = useState(() =>
-    todayMonthYearInTimezone(SCHEDULER_TIMEZONE).month,
-  );
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedSlotKey, setSelectedSlotKey] = useState<string | null>(null);
   const [slotPeriod, setSlotPeriod] = useState<SlotPeriodFilter>("all");
-
-  useEffect(() => {
-    const init = initialDemoSchedulerView(displaySlots, minDisplayDate, displayTimezone);
-    setViewYear(init.viewYear);
-    setViewMonth(init.viewMonth);
-    setSelectedDate(init.selectedDate);
-    setSelectedSlotKey(null);
-    setSlotPeriod("all");
-  }, [displaySlots, minDisplayDate, displayTimezone]);
 
   const today = todayKeyInTimezone(displayTimezone);
   const availableDates = new Set(Object.keys(displaySlots));
@@ -546,13 +528,7 @@ export function DemoScheduler({
   const borderColor = storyTheme?.line;
 
   function handleDisplayTimezoneChange(tz: string) {
-    onDisplayTimezoneChange?.(tz);
-    if (!displayTimezoneProp) {
-      setInternalTimezone(tz);
-    }
-    setSelectedDate(null);
-    setSelectedSlotKey(null);
-    setSlotPeriod("all");
+    onDisplayTimezoneChange(tz);
   }
 
   function handleDateSelect(date: string) {
@@ -797,5 +773,69 @@ export function DemoScheduler({
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+export function DemoScheduler({
+  availabilitySlots,
+  onConfirm,
+  isSubmitting,
+  preview = false,
+  confirmDisabled = false,
+  storyTheme,
+  displayTimezone: displayTimezoneProp,
+  onDisplayTimezoneChange,
+}: {
+  availabilitySlots: Record<string, string[]>;
+  onConfirm?: (booking: DemoSchedulerBooking) => void;
+  isSubmitting?: boolean;
+  preview?: boolean;
+  confirmDisabled?: boolean;
+  storyTheme?: ParentThemeTokens;
+  displayTimezone?: string;
+  onDisplayTimezoneChange?: (timezone: string) => void;
+}) {
+  const [internalTimezone, setInternalTimezone] = useState(() =>
+    detectBrowserTimezone(SCHEDULER_TIMEZONE),
+  );
+  const timezoneOptions = useMemo(
+    () => resolveDemoDisplayTimezoneOptions(detectBrowserTimezone(SCHEDULER_TIMEZONE)),
+    [],
+  );
+
+  const displayTimezone = displayTimezoneProp ?? internalTimezone;
+
+  const { slots: displaySlots, minDisplayDate } = useMemo(
+    () => buildDisplayAvailabilitySlots(availabilitySlots, displayTimezone),
+    [availabilitySlots, displayTimezone],
+  );
+
+  const viewResetKey = useMemo(
+    () =>
+      `${displayTimezone}|${minDisplayDate ?? ""}|${Object.keys(displaySlots).sort().join(",")}`,
+    [displayTimezone, minDisplayDate, displaySlots],
+  );
+
+  const handleDisplayTimezoneChange = (timezone: string) => {
+    onDisplayTimezoneChange?.(timezone);
+    if (!displayTimezoneProp) {
+      setInternalTimezone(timezone);
+    }
+  };
+
+  return (
+    <DemoSchedulerCalendar
+      key={viewResetKey}
+      onConfirm={onConfirm}
+      isSubmitting={isSubmitting}
+      preview={preview}
+      confirmDisabled={confirmDisabled}
+      storyTheme={storyTheme}
+      displayTimezone={displayTimezone}
+      displaySlots={displaySlots}
+      minDisplayDate={minDisplayDate}
+      timezoneOptions={timezoneOptions}
+      onDisplayTimezoneChange={handleDisplayTimezoneChange}
+    />
   );
 }

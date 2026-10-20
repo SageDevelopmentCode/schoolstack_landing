@@ -30,21 +30,20 @@ export default function GalleryPhotoViewer({
   showStaffDetails = false,
 }: GalleryPhotoViewerProps) {
   const [index, setIndex] = useState(initialIndex);
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const itemsRef = useRef(items);
-  itemsRef.current = items;
+  const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
+  const itemsLengthRef = useRef(items.length);
+
+  useEffect(() => {
+    itemsLengthRef.current = items.length;
+  }, [items.length]);
 
   const current = items[index];
+  const currentImageUrl = current?.imageUrl ?? null;
+  const imageLoaded = Boolean(
+    currentImageUrl && loadedUrl === currentImageUrl,
+  );
   const canGoPrev = index > 0;
   const canGoNext = index < items.length - 1 || hasMore;
-
-  useEffect(() => {
-    setIndex(initialIndex);
-  }, [initialIndex]);
-
-  useEffect(() => {
-    setImageLoaded(false);
-  }, [index, current?.imageUrl]);
 
   useEffect(() => {
     const preload = (offset: number) => {
@@ -62,16 +61,16 @@ export default function GalleryPhotoViewer({
   }, [index]);
 
   const goNext = useCallback(async () => {
-    const currentItems = itemsRef.current;
-    if (index < currentItems.length - 1) {
+    if (index < items.length - 1) {
       setIndex(index + 1);
       return;
     }
     if (hasMore && onRequestMore) {
       await onRequestMore();
       setIndex((currentIndex) => {
-        const len = itemsRef.current.length;
-        return currentIndex < len - 1 ? currentIndex + 1 : currentIndex;
+        const len = itemsLengthRef.current;
+        if (currentIndex < len - 1) return currentIndex + 1;
+        return currentIndex;
       });
     }
   }, [hasMore, index, onRequestMore]);
@@ -160,19 +159,19 @@ export default function GalleryPhotoViewer({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="relative flex max-h-[85vh] max-w-full items-center justify-center">
-          {!imageLoaded || !current.imageUrl ? (
+          {!imageLoaded || !currentImageUrl ? (
             <div
               className="h-[min(70vh,32rem)] w-[min(90vw,32rem)] max-w-full animate-pulse rounded-none bg-white/10"
               aria-hidden
             />
           ) : null}
-          {current.imageUrl ? (
+          {currentImageUrl ? (
             <img
-              src={current.imageUrl}
+              src={currentImageUrl}
               alt={current.fileName}
               loading="eager"
               className={`max-h-[85vh] max-w-full object-contain ${imageLoaded ? "opacity-100" : "absolute opacity-0"}`}
-              onLoad={() => setImageLoaded(true)}
+              onLoad={() => setLoadedUrl(currentImageUrl)}
             />
           ) : (
             <p className="text-sm text-white/80">Image unavailable</p>

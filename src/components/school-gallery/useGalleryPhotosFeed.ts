@@ -29,7 +29,10 @@ export function useGalleryPhotosFeed(options: {
   const [nextOffset, setNextOffset] = useState(initial?.nextOffset ?? 0);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const loadingMoreRef = useRef(false);
-  loadingMoreRef.current = loadingMore;
+
+  useEffect(() => {
+    loadingMoreRef.current = loadingMore;
+  }, [loadingMore]);
 
   const fetchPage = useCallback(
     async (offset: number, append: boolean) => {

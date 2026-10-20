@@ -21,11 +21,15 @@ type AndroidDownloadLeadSheetProps = {
   onClose: () => void;
 };
 
-export default function AndroidDownloadLeadSheet({
-  open,
+type AndroidDownloadLeadSheetPanelProps = {
+  titleId: string;
+  onClose: () => void;
+};
+
+function AndroidDownloadLeadSheetPanel({
+  titleId,
   onClose,
-}: AndroidDownloadLeadSheetProps) {
-  const titleId = useId();
+}: AndroidDownloadLeadSheetPanelProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [companyWebsite, setCompanyWebsite] = useState("");
@@ -35,36 +39,6 @@ export default function AndroidDownloadLeadSheet({
 
   const canSubmit =
     name.trim().length > 0 && email.trim().length > 0 && !isSubmitting;
-
-  useEffect(() => {
-    if (!open) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !isSubmitting) {
-        onClose();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [open, isSubmitting, onClose]);
-
-  useEffect(() => {
-    if (!open) {
-      setSubmitted(false);
-      setSubmitError(null);
-      setName("");
-      setEmail("");
-      setCompanyWebsite("");
-      setIsSubmitting(false);
-    }
-  }, [open]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -101,6 +75,188 @@ export default function AndroidDownloadLeadSheet({
   }
 
   return (
+    <>
+      <div
+        className="absolute inset-0 bg-black/45"
+        onClick={() => {
+          if (!isSubmitting) onClose();
+        }}
+        aria-hidden="true"
+      />
+      <motion.aside
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", damping: 32, stiffness: 340 }}
+        className="absolute inset-x-0 bottom-0 z-[15] mx-auto flex max-h-[min(92vh,640px)] w-full max-w-lg flex-col overflow-hidden rounded-t-[28px] border border-black/[0.08] bg-[#FFFAF4] shadow-[0_-12px_48px_rgba(43,36,29,0.18)]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex justify-center pt-3 pb-1" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-black/12" />
+        </div>
+
+        <div
+          className="flex items-start justify-between gap-3 border-b px-5 py-3"
+          style={{ borderColor: theme.line }}
+        >
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+              style={{ backgroundColor: theme.primarySoft }}
+            >
+              <Smartphone
+                className="h-4 w-4"
+                style={{ color: theme.primary }}
+                aria-hidden
+              />
+            </div>
+            <div className="min-w-0">
+              <h2
+                id={titleId}
+                className="font-display text-lg text-text leading-tight"
+              >
+                Get the Android app
+              </h2>
+              <p className="m-0 mt-0.5 text-xs leading-relaxed text-text-muted font-secondary">
+                Google Play isn&apos;t live yet — we&apos;ll email you the link.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+            aria-label="Close"
+            className="rounded-lg p-1 text-text-muted transition hover:bg-black/[0.05] disabled:opacity-50"
+          >
+            <X className="h-5 w-5" aria-hidden />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-5">
+          {submitted ? (
+            <div className="py-4 text-center">
+              <div
+                className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full"
+                style={{ backgroundColor: theme.successBg }}
+              >
+                <Check
+                  className="h-6 w-6"
+                  style={{ color: theme.success }}
+                  aria-hidden
+                />
+              </div>
+              <p className="font-display text-xl text-text">You&apos;re on the list</p>
+              <p className="mt-3 text-[15px] leading-relaxed text-text-muted font-secondary">
+                Thanks — we&apos;ll send the Google Play link to{" "}
+                <span className="font-medium text-text">{email}</span> as soon as
+                it&apos;s ready.
+              </p>
+              <button
+                type="button"
+                onClick={onClose}
+                className="mt-8 inline-flex h-11 items-center justify-center rounded-pill bg-clay px-6 text-sm font-semibold text-white transition hover:bg-clay/90"
+              >
+                Done
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={(event) => void handleSubmit(event)}>
+              <PublicFormHoneypotField
+                value={companyWebsite}
+                onChange={setCompanyWebsite}
+              />
+              <div className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="android-download-name"
+                    className="mb-1.5 block text-sm font-medium text-text font-secondary"
+                  >
+                    Name
+                  </label>
+                  <input
+                    id="android-download-name"
+                    type="text"
+                    autoComplete="name"
+                    required
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    className={inputClassName}
+                    placeholder="Your name"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="android-download-email"
+                    className="mb-1.5 block text-sm font-medium text-text font-secondary"
+                  >
+                    Email
+                  </label>
+                  <input
+                    id="android-download-email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    className={inputClassName}
+                    placeholder="you@email.com"
+                  />
+                </div>
+              </div>
+
+              {submitError ? (
+                <p className="mt-4 text-sm text-red-600" role="alert">
+                  {submitError}
+                </p>
+              ) : null}
+
+              <button
+                type="submit"
+                disabled={!canSubmit}
+                className={`mt-6 flex h-12 w-full items-center justify-center rounded-pill bg-clay text-sm font-semibold text-white transition hover:bg-clay/90 disabled:cursor-not-allowed disabled:opacity-50 ${BUTTON_LOADING_LAYOUT_CLASS}`}
+              >
+                <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Sending…">
+                  Send me the link
+                </ButtonLoadingLabel>
+              </button>
+            </form>
+          )}
+        </div>
+      </motion.aside>
+    </>
+  );
+}
+
+export default function AndroidDownloadLeadSheet({
+  open,
+  onClose,
+}: AndroidDownloadLeadSheetProps) {
+  const titleId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open, onClose]);
+
+  return (
     <AnimatePresence>
       {open ? (
         <motion.div
@@ -110,157 +266,7 @@ export default function AndroidDownloadLeadSheet({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
         >
-          <div
-            className="absolute inset-0 bg-black/45"
-            onClick={() => {
-              if (!isSubmitting) onClose();
-            }}
-            aria-hidden="true"
-          />
-          <motion.aside
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={titleId}
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 32, stiffness: 340 }}
-            className="absolute inset-x-0 bottom-0 z-[15] mx-auto flex max-h-[min(92vh,640px)] w-full max-w-lg flex-col overflow-hidden rounded-t-[28px] border border-black/[0.08] bg-[#FFFAF4] shadow-[0_-12px_48px_rgba(43,36,29,0.18)]"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex justify-center pt-3 pb-1" aria-hidden="true">
-              <div className="h-1 w-10 rounded-full bg-black/12" />
-            </div>
-
-            <div
-              className="flex items-start justify-between gap-3 border-b px-5 py-3"
-              style={{ borderColor: theme.line }}
-            >
-              <div className="flex min-w-0 items-center gap-2.5">
-                <div
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-                  style={{ backgroundColor: theme.primarySoft }}
-                >
-                  <Smartphone
-                    className="h-4 w-4"
-                    style={{ color: theme.primary }}
-                    aria-hidden
-                  />
-                </div>
-                <div className="min-w-0">
-                  <h2
-                    id={titleId}
-                    className="font-display text-lg text-text leading-tight"
-                  >
-                    Get the Android app
-                  </h2>
-                  <p className="m-0 mt-0.5 text-xs leading-relaxed text-text-muted font-secondary">
-                    Google Play isn&apos;t live yet — we&apos;ll email you the link.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={isSubmitting}
-                aria-label="Close"
-                className="rounded-lg p-1 text-text-muted transition hover:bg-black/[0.05] disabled:opacity-50"
-              >
-                <X className="h-5 w-5" aria-hidden />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-5 py-5">
-              {submitted ? (
-                <div className="py-4 text-center">
-                  <div
-                    className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full"
-                    style={{ backgroundColor: theme.successBg }}
-                  >
-                    <Check
-                      className="h-6 w-6"
-                      style={{ color: theme.success }}
-                      aria-hidden
-                    />
-                  </div>
-                  <p className="font-display text-xl text-text">You&apos;re on the list</p>
-                  <p className="mt-3 text-[15px] leading-relaxed text-text-muted font-secondary">
-                    Thanks — we&apos;ll send the Google Play link to{" "}
-                    <span className="font-medium text-text">{email}</span> as soon as
-                    it&apos;s ready.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="mt-8 inline-flex h-11 items-center justify-center rounded-pill bg-clay px-6 text-sm font-semibold text-white transition hover:bg-clay/90"
-                  >
-                    Done
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={(event) => void handleSubmit(event)}>
-                  <PublicFormHoneypotField
-                    value={companyWebsite}
-                    onChange={setCompanyWebsite}
-                  />
-                  <div className="space-y-4">
-                    <div>
-                      <label
-                        htmlFor="android-download-name"
-                        className="mb-1.5 block text-sm font-medium text-text font-secondary"
-                      >
-                        Name
-                      </label>
-                      <input
-                        id="android-download-name"
-                        type="text"
-                        autoComplete="name"
-                        required
-                        value={name}
-                        onChange={(event) => setName(event.target.value)}
-                        className={inputClassName}
-                        placeholder="Your name"
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor="android-download-email"
-                        className="mb-1.5 block text-sm font-medium text-text font-secondary"
-                      >
-                        Email
-                      </label>
-                      <input
-                        id="android-download-email"
-                        type="email"
-                        autoComplete="email"
-                        required
-                        value={email}
-                        onChange={(event) => setEmail(event.target.value)}
-                        className={inputClassName}
-                        placeholder="you@email.com"
-                      />
-                    </div>
-                  </div>
-
-                  {submitError ? (
-                    <p className="mt-4 text-sm text-red-600" role="alert">
-                      {submitError}
-                    </p>
-                  ) : null}
-
-                  <button
-                    type="submit"
-                    disabled={!canSubmit}
-                    className={`mt-6 flex h-12 w-full items-center justify-center rounded-pill bg-clay text-sm font-semibold text-white transition hover:bg-clay/90 disabled:cursor-not-allowed disabled:opacity-50 ${BUTTON_LOADING_LAYOUT_CLASS}`}
-                  >
-                    <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Sending…">
-                      Send me the link
-                    </ButtonLoadingLabel>
-                  </button>
-                </form>
-              )}
-            </div>
-          </motion.aside>
+          <AndroidDownloadLeadSheetPanel titleId={titleId} onClose={onClose} />
         </motion.div>
       ) : null}
     </AnimatePresence>

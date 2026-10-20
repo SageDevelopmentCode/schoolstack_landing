@@ -104,7 +104,7 @@ export async function listSchoolProfilePhotos(
 
   if (error) throw error;
 
-  let photos = ((data ?? []) as SchoolProfilePhotoRow[]).map(mapRow);
+  const photos = ((data ?? []) as SchoolProfilePhotoRow[]).map(mapRow);
   if (!withSignedUrls) return photos;
 
   return Promise.all(

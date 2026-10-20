@@ -67,7 +67,7 @@ describe("school profile parsers", () => {
     assert.ok(patch);
     assert.equal(patch?.profile.website_url, "https://x.test");
     assert.equal(patch?.primaryCampus.address_line1, "123 Oak St");
-    assert.equal(patch?.primaryCampus.is_primary, true);
+    assert.equal(patch?.primaryCampus.phones[0]?.is_primary, true);
   });
 });
 

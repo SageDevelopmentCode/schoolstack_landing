@@ -265,6 +265,7 @@ export default function SchoolGalleryPage({
 
       {viewerIndex != null ? (
         <GalleryPhotoViewer
+          key={viewerIndex}
           items={photos}
           initialIndex={viewerIndex}
           onClose={() => setViewerIndex(null)}

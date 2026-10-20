@@ -32,13 +32,18 @@ function loadPlan(fallbackTaskIds: string[], validQuestionIds: string[]): OpsChe
 }
 
 export function useOpsCheckLocalPlan(defaultTaskIds: string[], validQuestionIds: string[]) {
-  const [plan, setPlan] = useState<OpsCheckLocalPlan>(() => ({
-    taskIds: defaultTaskIds,
-    doneIds: [],
-  }));
+  const defaultKey = defaultTaskIds.join("\0");
+  const validKey = validQuestionIds.join("\0");
+
+  const [plan, setPlan] = useState<OpsCheckLocalPlan>(() =>
+    loadPlan(defaultTaskIds, validQuestionIds),
+  );
+
   useEffect(() => {
-    setPlan(loadPlan(defaultTaskIds, validQuestionIds));
-  }, [defaultTaskIds, validQuestionIds]);
+    queueMicrotask(() => {
+      setPlan(loadPlan(defaultTaskIds, validQuestionIds));
+    });
+  }, [defaultKey, defaultTaskIds, validKey, validQuestionIds]);
 
   const persist = useCallback((next: OpsCheckLocalPlan) => {
     setPlan(next);

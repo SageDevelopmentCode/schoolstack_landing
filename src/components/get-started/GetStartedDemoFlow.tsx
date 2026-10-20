@@ -93,7 +93,9 @@ export default function GetStartedDemoFlow({
   const [errors, setErrors] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [displayTimezone, setDisplayTimezone] = useState(SCHEDULER_TIMEZONE);
+  const [displayTimezone, setDisplayTimezone] = useState(() =>
+    detectBrowserTimezone(SCHEDULER_TIMEZONE),
+  );
   const [booking, setBooking] = useState<DemoSchedulerBooking | null>(null);
   const [availabilitySlots, setAvailabilitySlots] = useState<
     Record<string, string[]>
@@ -137,10 +139,6 @@ export default function GetStartedDemoFlow({
     },
     [onStepChange],
   );
-
-  useEffect(() => {
-    setDisplayTimezone(detectBrowserTimezone(SCHEDULER_TIMEZONE));
-  }, []);
 
   useEffect(() => {
     if (step !== 1) return;

@@ -164,7 +164,12 @@ describe("logActivityEvent browser failure reporting", () => {
 
     const fetchCalls: Array<{ url: string; body: string }> = [];
     globalThis.fetch = async (input, init) => {
-      const url = typeof input === "string" ? input : input.url;
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.href
+            : input.url;
       fetchCalls.push({
         url,
         body: typeof init?.body === "string" ? init.body : "",

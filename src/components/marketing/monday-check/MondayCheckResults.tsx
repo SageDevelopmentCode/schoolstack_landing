@@ -101,19 +101,23 @@ export default function MondayCheckResults({
     validQuestionIds,
   );
 
-  const [activePriorityId, setActivePriorityId] = useState<string>(
-    () => topThree[0]?.questionId ?? "",
+  const [userActivePriorityId, setUserActivePriorityId] = useState<string | null>(
+    null,
   );
+  const activePriorityId = useMemo(() => {
+    const fallback = topThree[0]?.questionId ?? "";
+    if (
+      userActivePriorityId &&
+      topThree.some((t) => t.questionId === userActivePriorityId)
+    ) {
+      return userActivePriorityId;
+    }
+    return fallback;
+  }, [topThree, userActivePriorityId]);
   const [filter, setFilter] = useState<FilterKey>("all");
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [activeTab, setActiveTab] = useState<ResultsTab>("priorities");
-
-  useEffect(() => {
-    if (topThree[0] && !topThree.some((t) => t.questionId === activePriorityId)) {
-      setActivePriorityId(topThree[0].questionId);
-    }
-  }, [topThree, activePriorityId]);
 
   const statusCounts = useMemo(
     () => countByStatus(personalizedInsights.map((i) => i.option.score)),
@@ -428,7 +432,7 @@ export default function MondayCheckResults({
                   type="button"
                   role="tab"
                   aria-selected={active}
-                  onClick={() => setActivePriorityId(item.questionId)}
+                  onClick={() => setUserActivePriorityId(item.questionId)}
                   className="relative flex w-full gap-3 rounded-[15px] border p-4 text-left shadow-sm transition-colors max-lg:block max-lg:min-h-[112px] max-lg:p-3"
                   style={{
                     borderColor: active ? "#B9D1C1" : cardBorder,

@@ -270,6 +270,7 @@ export default function PhotosPage({
 
       {viewerIndex != null ? (
         <GalleryPhotoViewer
+          key={viewerIndex}
           items={photos}
           initialIndex={viewerIndex}
           onClose={() => setViewerIndex(null)}
