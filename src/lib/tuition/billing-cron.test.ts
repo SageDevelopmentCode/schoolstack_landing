@@ -75,6 +75,10 @@ describe("runTuitionBillingCron", () => {
         calls.push(`incomplete-admissions-reminders:${organizationId}`);
         return organizationId === "org-1" ? 2 : 0;
       },
+      sendPostSubmitRequiredReminders: async (_admin, organizationId) => {
+        calls.push(`post-submit-required-reminders:${organizationId}`);
+        return organizationId === "org-2" ? 1 : 0;
+      },
       applyLateFeesForOrganization: async () => ({ applied: 0, notified: 0 }),
       evaluateRulesForOrganization: async (_admin, organizationId) => {
         calls.push(`rules:${organizationId}`);
@@ -113,8 +117,10 @@ describe("runTuitionBillingCron", () => {
         calls.push(`visit-reminders:${organizationId}`);
         return {
           parentRemindersSent: organizationId === "org-1" ? 1 : 0,
+          parentDayOfRemindersSent: 0,
           adminWeeklyDigestsSent: 0,
           adminDayBeforeDigestsSent: organizationId === "org-2" ? 1 : 0,
+          adminDayOfDigestsSent: 0,
           failures: 0,
         };
       },
@@ -140,6 +146,7 @@ describe("runTuitionBillingCron", () => {
       "reminders:org-1",
       "autopay-reminders:org-1",
       "incomplete-admissions-reminders:org-1",
+      "post-submit-required-reminders:org-1",
       "rules:org-1",
       "committee-digest:org-1",
       "unread-message-digest:org-1",
@@ -149,6 +156,7 @@ describe("runTuitionBillingCron", () => {
       "reminders:org-2",
       "autopay-reminders:org-2",
       "incomplete-admissions-reminders:org-2",
+      "post-submit-required-reminders:org-2",
       "rules:org-2",
       "committee-digest:org-2",
       "unread-message-digest:org-2",
@@ -162,6 +170,7 @@ describe("runTuitionBillingCron", () => {
     assert.equal(summary.remindersSent, 3);
     assert.equal(summary.autopayRemindersSent, 2);
     assert.equal(summary.incompleteAdmissionsRemindersSent, 2);
+    assert.equal(summary.postSubmitRequiredRemindersSent, 1);
     assert.equal(summary.rulesEvaluated, 2);
     assert.equal(summary.lateFeesApplied, 0);
     assert.equal(summary.lateFeesNotified, 0);
@@ -211,6 +220,10 @@ describe("runTuitionBillingCron", () => {
         }
         return 2;
       },
+      sendPostSubmitRequiredReminders: async (_admin, organizationId) => {
+        calls.push(`post-submit-required-reminders:${organizationId}`);
+        return organizationId === "org-2" ? 1 : 0;
+      },
       applyLateFeesForOrganization: async (_admin, organizationId) => {
         calls.push(`late-fees:${organizationId}`);
         return { applied: 0, notified: 0 };
@@ -252,8 +265,10 @@ describe("runTuitionBillingCron", () => {
         calls.push(`visit-reminders:${organizationId}`);
         return {
           parentRemindersSent: 0,
+          parentDayOfRemindersSent: 0,
           adminWeeklyDigestsSent: 0,
           adminDayBeforeDigestsSent: 0,
+          adminDayOfDigestsSent: 0,
           failures: 0,
         };
       },
@@ -281,6 +296,7 @@ describe("runTuitionBillingCron", () => {
       "reminders:org-2",
       "autopay-reminders:org-2",
       "incomplete-admissions-reminders:org-2",
+      "post-submit-required-reminders:org-2",
       "rules:org-2",
       "late-fees:org-2",
       "autopay:org-2",

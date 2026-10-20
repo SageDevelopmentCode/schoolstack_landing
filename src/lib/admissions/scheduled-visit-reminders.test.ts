@@ -37,4 +37,13 @@ describe("scheduled visit reminder date helpers", () => {
     assert.equal(dateKeyInTimezone("America/Chicago", lateUtc), "2026-09-28");
     assert.equal(tomorrowKey("America/Chicago", lateUtc), "2026-09-29");
   });
+
+  it("aligns today and tomorrow keys for day-of and day-before reminders", () => {
+    const now = new Date("2026-09-28T15:00:00.000Z");
+    const today = dateKeyInTimezone("America/Chicago", now);
+    const tomorrow = tomorrowKey("America/Chicago", now);
+    assert.equal(today, "2026-09-28");
+    assert.equal(tomorrow, "2026-09-29");
+    assert.equal(tomorrow, addCalendarDays(today, 1));
+  });
 });

@@ -158,7 +158,7 @@ export const DEFAULT_PARENT_ONBOARDING_ITEMS: ParentOnboardingItem[] = [
 export const FEATURE_CATALOG: FeatureDef[] = [
   { portal: "admin", key: "dashboard", label: "Dashboard", description: "Admin home overview" },
   { portal: "admin", key: "admissions", label: "Admissions", description: "Application pipeline and enrollment flows" },
-  { portal: "admin", key: "my_school", label: "My School", description: "Students, attendance, programs, staff, classrooms, tuition" },
+  { portal: "admin", key: "my_school", label: "My School", description: "School profile, students, attendance, programs, staff, classrooms, tuition" },
   { portal: "admin", key: "committees", label: "Committees", description: "Parent committee workspaces" },
   { portal: "admin", key: "schedule", label: "Schedule", description: "School calendar, events, and availability" },
   { portal: "admin", key: "messages", label: "Messages", description: "Family and staff messaging" },

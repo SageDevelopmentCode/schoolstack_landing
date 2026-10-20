@@ -418,6 +418,7 @@ export async function notifyTuitionBillingCronSummary(payload: {
   remindersSent: number;
   autopayRemindersSent?: number;
   incompleteAdmissionsRemindersSent?: number;
+  postSubmitRequiredRemindersSent?: number;
   rulesEvaluated: number;
   lateFeesApplied: number;
   lateFeesNotified: number;
@@ -434,8 +435,10 @@ export async function notifyTuitionBillingCronSummary(payload: {
   committeeUnreadWorkspaceDigestsSent?: number;
   committeeUnreadWorkspaceDigestFailures?: number;
   scheduledVisitParentRemindersSent?: number;
+  scheduledVisitParentDayOfRemindersSent?: number;
   scheduledVisitAdminWeeklyDigestsSent?: number;
   scheduledVisitAdminDayBeforeDigestsSent?: number;
+  scheduledVisitAdminDayOfDigestsSent?: number;
   scheduledVisitReminderFailures?: number;
   bulletinEmailsSent?: number;
   bulletinEmailFailures?: number;
@@ -492,8 +495,18 @@ export async function notifyTuitionBillingCronSummary(payload: {
       true,
     ),
     embedField(
-      "Visit parent reminders",
+      "Post-submit required reminders",
+      String(payload.postSubmitRequiredRemindersSent ?? 0),
+      true,
+    ),
+    embedField(
+      "Visit parent reminders (day before)",
       String(payload.scheduledVisitParentRemindersSent ?? 0),
+      true,
+    ),
+    embedField(
+      "Visit parent reminders (day of)",
+      String(payload.scheduledVisitParentDayOfRemindersSent ?? 0),
       true,
     ),
     embedField(
@@ -504,6 +517,11 @@ export async function notifyTuitionBillingCronSummary(payload: {
     embedField(
       "Visit admin day-before digests",
       String(payload.scheduledVisitAdminDayBeforeDigestsSent ?? 0),
+      true,
+    ),
+    embedField(
+      "Visit admin day-of digests",
+      String(payload.scheduledVisitAdminDayOfDigestsSent ?? 0),
       true,
     ),
     embedField(
@@ -891,6 +909,31 @@ export async function notifyMobileOperationalError(payload: {
   );
 }
 
+export async function notifyMobileAppDownloadLead(payload: {
+  leadId: string;
+  name: string;
+  email: string;
+  sourcePagePath?: string | null;
+}) {
+  const fields: DiscordEmbedField[] = [
+    embedField("Name", truncate(payload.name), true),
+    embedField("Email", truncate(payload.email), true),
+    embedField("Lead ID", formatId(payload.leadId), true),
+    embedField("Platform", "Android (Google Play)", true),
+  ];
+
+  if (payload.sourcePagePath?.trim()) {
+    fields.push(embedField("Page", truncate(payload.sourcePagePath.trim())));
+  }
+
+  await sendMobileActivityDiscordEmbed({
+    title: "📱 Android app download lead",
+    description: "Someone requested the Google Play link from /download.",
+    color: DISCORD_EMBED_COLORS.success,
+    fields,
+  });
+}
+
 const MOBILE_PUSH_PORTAL_LABELS: Record<"parent" | "teacher" | "admin", string> = {
   parent: "Parent",
   teacher: "Teacher",
@@ -1184,6 +1227,56 @@ export function formatIncompleteAdmissionsReminderDetails(
     ...incompleteEnrollmentItems.map((item) => `• ${item}`),
   ];
   return lines.length > 0 ? truncate(lines.join("\n")) : "—";
+}
+
+export async function notifyPostSubmitRequiredReminderSent(payload: {
+  schoolName: string;
+  schoolSlug?: string;
+  familyId: string;
+  reminderNumber: number;
+  contactName?: string;
+  recipientEmails: string[];
+  applicationSummaries: string[];
+  sentAt: string;
+}) {
+  const contactLabel = payload.contactName?.trim() || "Family";
+  const schoolLabel = payload.schoolSlug
+    ? `${payload.schoolName} (${payload.schoolSlug})`
+    : payload.schoolName;
+  const primaryEmail = payload.recipientEmails[0] ?? "";
+  const familyValue = payload.contactName?.trim()
+    ? truncate(`${payload.contactName.trim()} · ${primaryEmail}`)
+    : truncate(primaryEmail || "—");
+
+  const fields: DiscordEmbedField[] = [
+    embedField("School", truncate(schoolLabel), true),
+    embedField("Family", familyValue, true),
+    embedField(
+      "Reminder",
+      formatIncompleteAdmissionsReminderLabel(payload.reminderNumber),
+      true,
+    ),
+    embedField(
+      "Details",
+      payload.applicationSummaries.length > 0
+        ? truncate(payload.applicationSummaries.map((line) => `• ${line}`).join("\n"))
+        : "—",
+    ),
+    embedField(
+      "Recipients",
+      truncate(payload.recipientEmails.join(", ")),
+      true,
+    ),
+    embedField("Family ID", formatId(payload.familyId), true),
+    embedField("Reminder sent", formatDateTime(payload.sentAt), true),
+  ];
+
+  await sendAdmissionsDiscordEmbed({
+    title: "📨 Post-submit required step reminder sent",
+    description: `**${contactLabel}** · ${schoolLabel}`,
+    fields,
+    timestamp: payload.sentAt,
+  });
 }
 
 export async function notifyIncompleteAdmissionsReminderSent(payload: {
@@ -2162,6 +2255,7 @@ export async function notifyScheduledVisitRemindersSent(payload: {
   parentRemindersSent: number;
   adminWeeklyDigestsSent: number;
   adminDayBeforeDigestsSent: number;
+  adminDayOfDigestsSent?: number;
   failures: number;
   visits: Array<{
     whenLabel: string;
@@ -2182,6 +2276,11 @@ export async function notifyScheduledVisitRemindersSent(payload: {
     embedField(
       "Admin day-before digests",
       String(payload.adminDayBeforeDigestsSent),
+      true,
+    ),
+    embedField(
+      "Admin day-of digests",
+      String(payload.adminDayOfDigestsSent ?? 0),
       true,
     ),
     embedField("Failures", String(payload.failures), true),
