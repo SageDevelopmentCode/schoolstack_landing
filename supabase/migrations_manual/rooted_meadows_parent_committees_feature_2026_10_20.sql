@@ -1,7 +1,5 @@
--- Promoted to supabase/migrations/20261201_rooted_meadows_parent_committees_feature.sql for local/CI.
--- Run this file in Supabase SQL Editor on remote if that migration has not been applied.
---
--- Enable parent portal Committees for Rooted Meadows when school admin committees is on.
+-- One-off data: enable parent portal Committees for Rooted Meadows when school admin committees is on.
+-- Run in Supabase SQL Editor on remote after review (not applied by supabase db reset or CI).
 
 update public.organization_settings os
 set features = jsonb_set(

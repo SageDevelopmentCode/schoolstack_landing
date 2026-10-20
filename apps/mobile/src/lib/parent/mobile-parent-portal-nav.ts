@@ -64,7 +64,6 @@ export const MOBILE_MORE_MENU_FEATURE_KEYS = [
   'classroom_signups',
   'forms_documents',
   'friday_branch',
-  'photos',
   'notifications',
 ] as const;
 
