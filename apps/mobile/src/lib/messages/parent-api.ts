@@ -3,6 +3,7 @@ import {
   patchPortalMessage,
 } from '@/lib/messages/message-mutations';
 import { fetchParentApi, fetchParentApiFormData } from '@/lib/parent/parent-portal-api';
+import { mudKitchenSupportContact } from '@/lib/messages/platform-support';
 import type {
   MessageContact,
   MessageThreadDetail,
@@ -61,6 +62,10 @@ export async function createParentMessageThread(
     },
   });
   return payload.threadId;
+}
+
+export async function createMudKitchenSupportThread(organizationId: string): Promise<string> {
+  return createParentMessageThread(organizationId, mudKitchenSupportContact());
 }
 
 export async function sendParentMessage(

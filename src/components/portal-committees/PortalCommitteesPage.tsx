@@ -106,6 +106,10 @@ function PortalCommitteesPageContent({
   const exploreCommitteeId = searchParams.get("explore");
   const workspaceCommitteeId = searchParams.get("committee");
   const activeSection = searchParams.get("section") ?? "home";
+  const initialCommitteeEventId = searchParams.get("event");
+  const initialCommitteeEventDate = searchParams.get("date");
+  const initialCommitteeResourceId = searchParams.get("resource");
+  const initialCommitteeTaskId = searchParams.get("task");
 
   const [browseCommittees, setBrowseCommittees] = useState<ParentCommitteeBrowseItem[]>(
     initialData?.browseCommittees ?? [],
@@ -317,6 +321,10 @@ function PortalCommitteesPageContent({
           memberWorkspaceId,
         )}
         previewGuardianUserId={initialData?.previewGuardianUserId}
+        initialCommitteeEventId={initialCommitteeEventId}
+        initialCommitteeEventDate={initialCommitteeEventDate}
+        initialCommitteeResourceId={initialCommitteeResourceId}
+        initialCommitteeTaskId={initialCommitteeTaskId}
         onSectionChange={(section) =>
           setUrl({ committee: memberWorkspaceId, section, tab: "mine", explore: null })
         }

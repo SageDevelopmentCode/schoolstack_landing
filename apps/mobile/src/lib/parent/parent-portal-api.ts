@@ -281,6 +281,7 @@ export type ParentHomeData = {
   formAttentionItems?: ParentFormAttentionItem[];
   formSnapshot?: ParentFormHomeSnapshot | null;
   bulletinEnabled: boolean;
+  schoolGalleryEnabled?: boolean;
   bulletinPosts: BulletinPost[];
   fridayBranchHome?: ParentFridayBranchPageBundle | null;
   fridayBranchParentPortalPaused?: boolean;
@@ -349,6 +350,7 @@ export function normalizeParentHomeData(data: ParentHomeData): ParentHomeData {
   return {
     ...data,
     bulletinEnabled: data.bulletinEnabled ?? false,
+    schoolGalleryEnabled: data.schoolGalleryEnabled ?? false,
     bulletinPosts: data.bulletinPosts ?? [],
     fridayBranchHome: data.fridayBranchHome ?? null,
     featureAnnouncements: data.featureAnnouncements ?? [],

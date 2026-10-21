@@ -10,14 +10,39 @@ export type CommitteePortalMember = {
   staff_member_id?: string | null;
 };
 
+export type CommitteeWorkspaceLinkFocus = {
+  eventId?: string | null;
+  eventDate?: string | null;
+  resourceId?: string | null;
+  taskId?: string | null;
+};
+
 function committeeSectionQuery(
   committeeId: string,
   section: CommitteeWorkspaceSection,
+  focus?: CommitteeWorkspaceLinkFocus,
 ): string {
-  return new URLSearchParams({
+  const params = new URLSearchParams({
     committee: committeeId,
     section,
-  }).toString();
+  });
+  const eventId = focus?.eventId?.trim();
+  if (eventId) {
+    params.set("event", eventId);
+  }
+  const eventDate = focus?.eventDate?.trim();
+  if (eventDate) {
+    params.set("date", eventDate);
+  }
+  const resourceId = focus?.resourceId?.trim();
+  if (resourceId) {
+    params.set("resource", resourceId);
+  }
+  const taskId = focus?.taskId?.trim();
+  if (taskId) {
+    params.set("task", taskId);
+  }
+  return params.toString();
 }
 
 function committeeTaskQuery(committeeId: string): string {
@@ -29,8 +54,9 @@ export function committeeMemberWorkspacePath(
   committeeId: string,
   section: CommitteeWorkspaceSection,
   member: CommitteePortalMember,
+  focus?: CommitteeWorkspaceLinkFocus,
 ): string {
-  const query = committeeSectionQuery(committeeId, section);
+  const query = committeeSectionQuery(committeeId, section, focus);
   if (member.staff_member_id) {
     return `${schoolTeacherPath(schoolSlug, "committees")}?${query}`;
   }
@@ -45,8 +71,15 @@ export function committeeMemberWorkspaceUrl(
   committeeId: string,
   section: CommitteeWorkspaceSection,
   member: CommitteePortalMember,
+  focus?: CommitteeWorkspaceLinkFocus,
 ): string {
-  return `${getRuntimeSiteUrl()}${committeeMemberWorkspacePath(schoolSlug, committeeId, section, member)}`;
+  return `${getRuntimeSiteUrl()}${committeeMemberWorkspacePath(
+    schoolSlug,
+    committeeId,
+    section,
+    member,
+    focus,
+  )}`;
 }
 
 export function committeeTaskAssigneeTasksPath(

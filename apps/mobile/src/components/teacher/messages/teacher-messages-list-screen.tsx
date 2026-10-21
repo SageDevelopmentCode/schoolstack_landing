@@ -20,9 +20,13 @@ import {
   prefetchRecentTeacherMessageThreads,
   prefetchTeacherMessageThread,
 } from '@/lib/messages/message-thread-cache';
+import {
+  isMudKitchenSupportPlaceholder,
+  prepareMobileInboxThreads,
+} from '@/lib/messages/platform-support';
 import { contactKeyForThread } from '@/lib/messages/participants-from-contact';
 import { teacherMessageThreadRoute, teacherNewMessageThreadRoute } from '@/lib/teacher/teacher-nav';
-import type { MessageContact, MessageThreadSummary } from '@/lib/messages/types';
+import type { MessageContact } from '@/lib/messages/types';
 import { isTeacherFeatureEnabled } from '@/lib/teacher/teacher-features';
 
 type TeacherMessagesListScreenProps = {
@@ -30,25 +34,6 @@ type TeacherMessagesListScreenProps = {
   organizationSlug: string;
   schoolName: string;
 };
-
-function sortThreadsByRecency<T extends { lastMessageAt: string | null }>(threads: T[]): T[] {
-  return [...threads].sort((a, b) => {
-    const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
-    const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
-    return bTime - aTime;
-  });
-}
-
-function filterThreadsBySearch(threads: MessageThreadSummary[], query: string): MessageThreadSummary[] {
-  const normalized = query.trim().toLowerCase();
-  if (!normalized) return threads;
-  return threads.filter(
-    (thread) =>
-      thread.title.toLowerCase().includes(normalized) ||
-      thread.subtitle?.toLowerCase().includes(normalized) ||
-      thread.lastMessagePreview?.toLowerCase().includes(normalized),
-  );
-}
 
 export function TeacherMessagesListScreen({
   organizationId,
@@ -73,10 +58,13 @@ export function TeacherMessagesListScreen({
   const [newConversationOpen, setNewConversationOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const sortedThreads = useMemo(() => sortThreadsByRecency(threads), [threads]);
+  const pinScope = useMemo(
+    () => (staffMemberId ? { mode: 'teacher' as const, staffMemberId } : null),
+    [staffMemberId],
+  );
   const filteredThreads = useMemo(
-    () => filterThreadsBySearch(sortedThreads, searchQuery),
-    [searchQuery, sortedThreads],
+    () => prepareMobileInboxThreads(threads, pinScope, searchQuery),
+    [pinScope, searchQuery, threads],
   );
   const displayError = actionError ?? error;
   const hasSearchQuery = searchQuery.trim().length > 0;
@@ -106,6 +94,7 @@ export function TeacherMessagesListScreen({
 
   const prefetchThread = useCallback(
     (threadId: string) => {
+      if (isMudKitchenSupportPlaceholder(threadId)) return;
       void prefetchTeacherMessageThread(organizationId, schoolName, threadId);
     },
     [organizationId, schoolName],
@@ -117,16 +106,19 @@ export function TeacherMessagesListScreen({
 
   useFocusEffect(
     useCallback(() => {
-      if (!messagesEnabled || sortedThreads.length === 0) return;
-      const threadIds = sortedThreads.map((thread) => thread.id).join(',');
+      if (!messagesEnabled || filteredThreads.length === 0) return;
+      const prefetchable = filteredThreads.filter(
+        (thread) => !isMudKitchenSupportPlaceholder(thread.id),
+      );
+      const threadIds = prefetchable.map((thread) => thread.id).join(',');
       if (prefetchedThreadIdsRef.current === threadIds) return;
       prefetchedThreadIdsRef.current = threadIds;
       prefetchRecentTeacherMessageThreads(
         organizationId,
         schoolName,
-        sortedThreads.map((thread) => thread.id),
+        prefetchable.map((thread) => thread.id),
       );
-    }, [messagesEnabled, organizationId, schoolName, sortedThreads]),
+    }, [filteredThreads, messagesEnabled, organizationId, schoolName]),
   );
 
   const handleNewConversationSelect = (contact: MessageContact) => {
@@ -176,7 +168,7 @@ export function TeacherMessagesListScreen({
           </View>
         ) : null}
 
-        {isLoading && threads.length === 0 ? (
+        {isLoading && filteredThreads.length === 0 && threads.length === 0 ? (
           <ParentMessagesListSkeleton />
         ) : (
           <FlatList

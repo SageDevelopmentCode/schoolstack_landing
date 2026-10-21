@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ParentCommitteeTaskCard } from '@/components/parent/committees/parent-committee-task-card';
@@ -33,9 +33,11 @@ export function ParentCommitteeTasksSection({
   isAdmin = false,
   portalApiNamespace = 'parent-portal',
   onRefresh,
+  initialTaskId,
 }: ParentCommitteeSectionProps) {
   const theme = useParentTheme();
   const { reportError } = useMobileErrorReporter(organizationId);
+  const deepLinkHandledRef = useRef(false);
 
   const [panelMode, setPanelMode] = useState<'create' | 'edit' | null>(null);
   const [selectedTask, setSelectedTask] = useState<CommitteeTask | null>(null);
@@ -68,6 +70,16 @@ export function ParentCommitteeTasksSection({
     setDefaultStatus(task.status);
     setPanelMode('edit');
   }, []);
+
+  useEffect(() => {
+    if (!initialTaskId || deepLinkHandledRef.current) return;
+    const match = committee.tasks.find((task) => task.id === initialTaskId);
+    if (!match) return;
+    deepLinkHandledRef.current = true;
+    queueMicrotask(() => {
+      openEdit(match);
+    });
+  }, [committee.tasks, initialTaskId, openEdit]);
 
   const closePanel = useCallback(() => {
     setPanelMode(null);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ExternalLink, FileText, Plus } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -55,6 +55,7 @@ export default function CommitteeResourcesSection({
   currentMemberId,
   isAdmin = true,
   portalApiNamespace = "parent-portal",
+  initialResourceId,
 }: {
   committee: Committee;
   theme: ParentThemeTokens;
@@ -65,6 +66,7 @@ export default function CommitteeResourcesSection({
   currentMemberId?: string;
   isAdmin?: boolean;
   portalApiNamespace?: CommitteesApiNamespace;
+  initialResourceId?: string | null;
 }) {
   const [panelState, setPanelState] = useState<CommitteeResourcePanelState | null>(null);
   const [pendingPanelState, setPendingPanelState] =
@@ -72,6 +74,7 @@ export default function CommitteeResourcesSection({
   const [panelDirty, setPanelDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const reducedMotion = useReducedMotion() ?? false;
+  const deepLinkHandledRef = useRef(false);
 
   const visibleResources = useMemo(() => {
     if (isAdmin) return committee.resources;
@@ -107,6 +110,16 @@ export default function CommitteeResourcesSection({
     if (panelState?.mode === "view" && panelState.resourceId === resourceId) return;
     tryOpenPanel({ mode: "view", resourceId });
   };
+
+  useEffect(() => {
+    if (!initialResourceId || deepLinkHandledRef.current) return;
+    const match = visibleResources.find((resource) => resource.id === initialResourceId);
+    if (!match) return;
+    deepLinkHandledRef.current = true;
+    queueMicrotask(() => {
+      tryOpenPanel({ mode: "view", resourceId: initialResourceId });
+    });
+  }, [initialResourceId, visibleResources]);
 
   const closePanel = () => {
     setPanelState(null);

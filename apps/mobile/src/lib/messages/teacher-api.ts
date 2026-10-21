@@ -2,6 +2,7 @@ import {
   deletePortalMessageRequest,
   patchPortalMessage,
 } from '@/lib/messages/message-mutations';
+import { mudKitchenSupportContact } from '@/lib/messages/platform-support';
 import { fetchTeacherApi, fetchTeacherApiFormData } from '@/lib/teacher/teacher-portal-api';
 import type {
   MessageContact,
@@ -61,6 +62,10 @@ export async function createTeacherMessageThread(
     },
   });
   return payload.threadId;
+}
+
+export async function createMudKitchenSupportThread(organizationId: string): Promise<string> {
+  return createTeacherMessageThread(organizationId, mudKitchenSupportContact());
 }
 
 export async function sendTeacherMessage(

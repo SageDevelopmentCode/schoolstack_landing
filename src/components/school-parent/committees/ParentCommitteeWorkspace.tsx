@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { CommitteeActivityItem } from "@/lib/committees/activity-feed";
 import type { CommitteeSectionUnreadCounts } from "@/lib/committees/committee-unread-types";
@@ -28,6 +28,10 @@ type ParentCommitteeWorkspaceProps = {
   previewMode?: boolean;
   apiNamespace?: CommitteesApiNamespace;
   operationalSurface?: PortalOperationalSurface;
+  initialCommitteeEventId?: string | null;
+  initialCommitteeEventDate?: string | null;
+  initialCommitteeResourceId?: string | null;
+  initialCommitteeTaskId?: string | null;
   onSectionChange: (section: string) => void;
   onBack: () => void;
 };
@@ -45,6 +49,10 @@ export default function ParentCommitteeWorkspace({
   previewMode = false,
   apiNamespace = "parent-portal",
   operationalSurface = "parent_portal",
+  initialCommitteeEventId,
+  initialCommitteeEventDate,
+  initialCommitteeResourceId,
+  initialCommitteeTaskId,
   onSectionChange,
   onBack,
 }: ParentCommitteeWorkspaceProps) {
@@ -53,6 +61,8 @@ export default function ParentCommitteeWorkspace({
   const [currentMemberId, setCurrentMemberId] = useState<string | undefined>();
   const [loading, setLoading] = useState(!initialCommittee && !previewMode);
   const [error, setError] = useState<string | null>(null);
+  const [initialRefreshDone, setInitialRefreshDone] = useState(false);
+  const emptySectionRetryRef = useRef(false);
 
   const fetchWorkspace = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -89,6 +99,9 @@ export default function ParentCommitteeWorkspace({
         if (!silent) {
           setLoading(false);
         }
+        queueMicrotask(() => {
+          setInitialRefreshDone(true);
+        });
       }
     },
     [apiNamespace, committeeId, operationalSurface, organizationId],
@@ -152,6 +165,11 @@ export default function ParentCommitteeWorkspace({
   useEffect(() => {
     if (previewMode) return;
 
+    emptySectionRetryRef.current = false;
+    queueMicrotask(() => {
+      setInitialRefreshDone(false);
+    });
+
     let cancelled = false;
     queueMicrotask(() => {
       if (!cancelled) {
@@ -178,6 +196,25 @@ export default function ParentCommitteeWorkspace({
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [fetchWorkspace, previewMode]);
+
+  useEffect(() => {
+    if (previewMode || !initialRefreshDone || !committee) return;
+    const section = parseCommitteeSection(activeSection);
+    if (section !== "resources" && section !== "tasks") return;
+    const isEmpty =
+      section === "resources"
+        ? committee.resources.length === 0
+        : committee.tasks.length === 0;
+    if (!isEmpty || emptySectionRetryRef.current) return;
+    emptySectionRetryRef.current = true;
+    void fetchWorkspace({ silent: true });
+  }, [
+    activeSection,
+    committee,
+    fetchWorkspace,
+    initialRefreshDone,
+    previewMode,
+  ]);
 
   if (loading) {
     return <ParentCommitteeWorkspaceSkeleton theme={theme} variant="workspace" />;
@@ -209,9 +246,13 @@ export default function ParentCommitteeWorkspace({
         previewMode={previewMode}
         initialActivityItems={initialActivityItems}
         initialSectionUnread={initialSectionUnread}
-        portalApiNamespace={apiNamespace}
-        backLabel="My committees"
-      />
+      portalApiNamespace={apiNamespace}
+      backLabel="My committees"
+      initialCommitteeEventId={initialCommitteeEventId}
+      initialCommitteeEventDate={initialCommitteeEventDate}
+      initialCommitteeResourceId={initialCommitteeResourceId}
+      initialCommitteeTaskId={initialCommitteeTaskId}
+    />
     </div>
   );
 }

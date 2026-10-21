@@ -204,7 +204,8 @@ function SchoolAdminLayoutContent() {
       | 'bulletin'
       | 'attendance'
       | 'committees'
-      | 'friday-branch',
+      | 'friday-branch'
+      | 'photos',
   ) => {
     setMoreSheetOpen(false);
     if (!slug) return;
@@ -218,6 +219,7 @@ function SchoolAdminLayoutContent() {
       attendance: `/school-admin/${slug}/more/attendance`,
       committees: `/school-admin/${slug}/more/committees`,
       'friday-branch': `/school-admin/${slug}/more/friday-branch`,
+      photos: `/school-admin/${slug}/more/photos`,
     } as const;
 
     const target = routes[itemId];

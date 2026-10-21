@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { ParentCommitteeResourceDetailSheet } from '@/components/parent/committees/parent-committee-resource-detail-sheet';
@@ -16,9 +16,11 @@ export function ParentCommitteeResourcesSection({
   supabase,
   currentMemberId,
   isAdmin = false,
+  initialResourceId,
 }: ParentCommitteeSectionProps) {
   const theme = useParentTheme();
   const [selectedResource, setSelectedResource] = useState<CommitteeResource | null>(null);
+  const deepLinkHandledRef = useRef(false);
 
   const visibleResources = useMemo(() => {
     if (isAdmin) return committee.resources;
@@ -26,6 +28,16 @@ export function ParentCommitteeResourcesSection({
       canAccessCommitteeResource(resource, currentMemberId, committee, false),
     );
   }, [committee, currentMemberId, isAdmin]);
+
+  useEffect(() => {
+    if (!initialResourceId || deepLinkHandledRef.current) return;
+    const match = visibleResources.find((resource) => resource.id === initialResourceId);
+    if (!match) return;
+    deepLinkHandledRef.current = true;
+    queueMicrotask(() => {
+      setSelectedResource(match);
+    });
+  }, [initialResourceId, visibleResources]);
 
   if (visibleResources.length === 0) {
     const roleLimited = !isAdmin && committee.resources.length > 0;

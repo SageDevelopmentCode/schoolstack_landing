@@ -27,6 +27,7 @@ const CATALOG_PAGE_LABELS: Record<string, string> = {
   supply_list: 'Supply list',
   teaching_schedule: 'Teaching schedule',
   notifications: 'Notification settings',
+  photos: 'Photos',
 };
 
 const DEFAULT_PARENT_FEATURE_ORDER = [

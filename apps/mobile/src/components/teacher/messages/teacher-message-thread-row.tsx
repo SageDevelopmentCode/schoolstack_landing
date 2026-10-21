@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { ScalePressable } from '@/components/scale-pressable';
@@ -11,6 +12,10 @@ import { MessagesDualAvatar } from '@/components/school-admin/messages/messages-
 import { StoryFonts } from '@/constants/story-theme';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { teacherStudentDetailRoute } from '@/lib/teacher/teacher-nav';
+import {
+  isMudKitchenSupportListThread,
+  MUDKITCHEN_SUPPORT_TERRACOTTA,
+} from '@/lib/messages/platform-support';
 import type { MessageThreadSummary } from '@/lib/messages/types';
 import { useRouter } from 'expo-router';
 
@@ -22,6 +27,7 @@ type TeacherMessageThreadRowProps = {
 };
 
 function shouldShowPlainSubtitle(thread: MessageThreadSummary): boolean {
+  if (isMudKitchenSupportListThread(thread)) return false;
   if (thread.listAvatars?.length) return false;
   if (thread.subtitleStudents?.length) return false;
   return Boolean(thread.subtitle);
@@ -37,6 +43,7 @@ export function TeacherMessageThreadRow({
   const router = useRouter();
   const hasUnread = thread.unreadCount > 0;
   const showPlainSubtitle = shouldShowPlainSubtitle(thread);
+  const supportBrandRow = isMudKitchenSupportListThread(thread);
 
   const handleStudentPress = (studentId: string) => {
     router.push(teacherStudentDetailRoute(organizationSlug, studentId, { scope: 'assigned' }));
@@ -50,8 +57,10 @@ export function TeacherMessageThreadRow({
       style={[
         styles.rowPressable,
         {
-          backgroundColor: theme.white,
+          backgroundColor: supportBrandRow ? 'rgba(194, 105, 79, 0.06)' : theme.white,
           borderBottomColor: theme.line,
+          borderLeftWidth: supportBrandRow ? 3 : 0,
+          borderLeftColor: supportBrandRow ? MUDKITCHEN_SUPPORT_TERRACOTTA : 'transparent',
         },
       ]}>
       <View style={styles.row}>
@@ -63,6 +72,8 @@ export function TeacherMessageThreadRow({
             color={thread.color}
             photoUrl={thread.photoUrl}
             size="sm"
+            photoBackgroundColor={supportBrandRow && thread.photoUrl ? '#FFFFFF' : undefined}
+            photoContentFit={supportBrandRow && thread.photoUrl ? 'contain' : 'cover'}
           />
         )}
         <View style={styles.content}>
@@ -78,14 +89,24 @@ export function TeacherMessageThreadRow({
               ]}>
               {thread.title}
             </Text>
-            {thread.lastMessageTimeLabel ? (
+            {thread.lastMessageTimeLabel || supportBrandRow ? (
               <View style={styles.timeWrap}>
+                {supportBrandRow ? (
+                  <Ionicons
+                    name="pin-outline"
+                    size={12}
+                    color={MUDKITCHEN_SUPPORT_TERRACOTTA}
+                    style={{ opacity: 0.65 }}
+                  />
+                ) : null}
                 {hasUnread ? (
                   <View style={[styles.unreadDot, { backgroundColor: theme.primary }]} />
                 ) : null}
-                <Text style={[styles.timeLabel, { color: theme.muted }]}>
-                  {thread.lastMessageTimeLabel}
-                </Text>
+                {thread.lastMessageTimeLabel ? (
+                  <Text style={[styles.timeLabel, { color: theme.muted }]}>
+                    {thread.lastMessageTimeLabel}
+                  </Text>
+                ) : null}
               </View>
             ) : null}
           </View>

@@ -1,50 +1,26 @@
 import {
-  isAdminNavPathEnabled,
-  isSchoolAdminFridayBranchEnabled,
+  isSchoolAdminPhotosEnabled,
   parseSchoolAdminFeatures,
 } from '@/lib/school-admin/school-admin-features';
 
-describe('school-admin-features', () => {
-  it('parses admin features and feature_nav children', () => {
+describe('parseSchoolAdminFeatures', () => {
+  it('defaults admin.photos to true when omitted in stored settings', () => {
     const features = parseSchoolAdminFeatures({
-      admin: { my_school: true },
-      feature_nav: {
-        admin: {
-          items: {
-            my_school: {
-              children: [{ key: 'friday_branch', enabled: true }],
-            },
-          },
-        },
+      admin: {
+        bulletin: true,
+        finances: true,
       },
     });
 
-    expect(features.admin?.my_school).toBe(true);
-    expect(isSchoolAdminFridayBranchEnabled(features)).toBe(true);
+    expect(features.admin?.photos).toBe(true);
+    expect(isSchoolAdminPhotosEnabled(features)).toBe(true);
   });
 
-  it('defaults friday_branch to disabled without explicit enablement', () => {
+  it('respects explicit admin.photos false', () => {
     const features = parseSchoolAdminFeatures({
-      admin: { my_school: true },
+      admin: { photos: false },
     });
 
-    expect(isSchoolAdminFridayBranchEnabled(features)).toBe(false);
-  });
-
-  it('requires my_school admin feature', () => {
-    const features = parseSchoolAdminFeatures({
-      admin: { my_school: false },
-      feature_nav: {
-        admin: {
-          items: {
-            my_school: {
-              children: [{ key: 'friday_branch', enabled: true }],
-            },
-          },
-        },
-      },
-    });
-
-    expect(isAdminNavPathEnabled(features, 'my_school', 'friday_branch')).toBe(false);
+    expect(isSchoolAdminPhotosEnabled(features)).toBe(false);
   });
 });

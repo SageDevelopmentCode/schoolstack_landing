@@ -7,6 +7,8 @@ import { validateParticipantSet } from "./participant-signature";
 import {
   baseThreadsForInboxList,
   filterStoryInboxThreads,
+  isMudKitchenSupportListThread,
+  MUDKITCHEN_SUPPORT_LEGACY_TEAM_NAME,
   MUDKITCHEN_SUPPORT_PLACEHOLDER_ID,
   MUDKITCHEN_SUPPORT_TEAM_NAME,
   mudKitchenSupportPlaceholderThread,
@@ -188,6 +190,13 @@ test("web parent list pins a real support thread and otherwise shows a local pla
   assert.equal(placeholder[0]?.title, MUDKITCHEN_SUPPORT_TEAM_NAME);
   assert.equal(placeholder[0]?.photoUrl, "/images/Logo.png");
   assert.equal(mudKitchenSupportPlaceholderThread().participants.length, 0);
+});
+
+test("legacy support thread title still matches support list thread", () => {
+  const legacy = thread("legacy-support", supportParticipants, {
+    title: MUDKITCHEN_SUPPORT_LEGACY_TEAM_NAME,
+  });
+  assert.equal(isMudKitchenSupportListThread(legacy), true);
 });
 
 test("teacher pin prefers the matching staff support thread over a parent support thread", () => {

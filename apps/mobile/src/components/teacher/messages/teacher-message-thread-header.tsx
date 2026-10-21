@@ -10,6 +10,7 @@ import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { Spacing } from '@/constants/theme';
 import { teacherStudentDetailRoute } from '@/lib/teacher/teacher-nav';
+import { isMudKitchenSupportListThread } from '@/lib/messages/platform-support';
 import type { MessageThreadSummary } from '@/lib/messages/types';
 
 type TeacherMessageThreadHeaderProps = {
@@ -28,6 +29,7 @@ export function TeacherMessageThreadHeader({
 }: TeacherMessageThreadHeaderProps) {
   const theme = useParentTheme();
   const router = useRouter();
+  const supportBrandRow = isMudKitchenSupportListThread(thread);
 
   const handleStudentPress = (studentId: string) => {
     router.push(teacherStudentDetailRoute(organizationSlug, studentId, { scope: 'assigned' }));
@@ -56,6 +58,8 @@ export function TeacherMessageThreadHeader({
             color={thread.color}
             photoUrl={thread.photoUrl}
             size="sm"
+            photoBackgroundColor={supportBrandRow && thread.photoUrl ? '#FFFFFF' : undefined}
+            photoContentFit={supportBrandRow && thread.photoUrl ? 'contain' : 'cover'}
           />
         )}
         <View style={styles.titleBlock}>

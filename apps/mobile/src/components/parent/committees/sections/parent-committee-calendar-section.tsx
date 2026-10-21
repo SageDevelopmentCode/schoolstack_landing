@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
@@ -54,9 +54,11 @@ export function ParentCommitteeCalendarSection({
   isAdmin = false,
   portalApiNamespace = 'parent-portal',
   onRefresh,
+  initialEventId,
 }: ParentCommitteeSectionProps) {
   const theme = useParentTheme();
   const { reportError } = useMobileErrorReporter(organizationId);
+  const deepLinkHandledRef = useRef(false);
 
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -69,6 +71,7 @@ export function ParentCommitteeCalendarSection({
     supabase,
     theme,
   });
+  const { goToDate } = calendar;
 
   const calendarEvents = useMemo(
     () => committeeEventsToOrganizationEvents(committee.events, organizationId),
@@ -76,6 +79,15 @@ export function ParentCommitteeCalendarSection({
   );
   const eventsByDate = useMemo(() => groupOrganizationEventsByDate(calendarEvents), [calendarEvents]);
   const eventDates = useMemo(() => new Set(eventsByDate.keys()), [eventsByDate]);
+
+  useEffect(() => {
+    if (!initialEventId || deepLinkHandledRef.current) return;
+    const match = findCommitteeEventById(committee.events, initialEventId);
+    if (!match) return;
+    goToDate(match.date);
+    setSelectedEventId(initialEventId);
+    deepLinkHandledRef.current = true;
+  }, [committee.events, goToDate, initialEventId]);
 
   const selectedCommitteeEvent = findCommitteeEventById(committee.events, selectedEventId);
   const canManageSelected =

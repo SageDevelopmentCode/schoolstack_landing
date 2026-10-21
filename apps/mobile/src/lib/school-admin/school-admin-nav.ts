@@ -74,6 +74,11 @@ export function resolveSchoolAdminNativeRoute(slug: string, href: string): strin
     return `/school-admin/${slug}/more/bulletin`;
   }
 
+  const photosBase = `/school/${slug}/admin/photos`;
+  if (pathname === photosBase || pathname.startsWith(`${photosBase}/`)) {
+    return `/school-admin/${slug}/more/photos`;
+  }
+
   const studentsPaths = [
     `/school/${slug}/admin/students`,
     `/school/${slug}/admin/my_school/students`,

@@ -33,14 +33,10 @@ import { useCommitteeUnreadRefresh } from "@/lib/committees/committee-unread-ref
 import { useCommitteeUnreadSummary } from "@/lib/committees/use-committee-unread-summary";
 import { markCommitteeSectionReadViaApi } from "@/lib/committees/mark-committee-section-read-client";
 
-function CommitteeResourcesSectionLoading() {
+function CommitteeSectionLoading({ section }: { section: CommitteeWorkspaceSection }) {
   const { theme } = useParentTheme();
   return (
-    <ParentCommitteeWorkspaceSkeleton
-      theme={theme}
-      variant="section"
-      section="resources"
-    />
+    <ParentCommitteeWorkspaceSkeleton theme={theme} variant="section" section={section} />
   );
 }
 
@@ -51,16 +47,16 @@ const CommitteeHomeSection = dynamic(
 const CommitteeResourcesSection = dynamic(
   () =>
     import("@/components/school-admin/committees/sections/CommitteeResourcesSection"),
-  { loading: () => <CommitteeResourcesSectionLoading /> },
+  { loading: () => <CommitteeSectionLoading section="resources" /> },
 );
 const CommitteeCalendarSection = dynamic(
   () =>
     import("@/components/school-admin/committees/sections/CommitteeCalendarSection"),
-  { loading: () => null },
+  { loading: () => <CommitteeSectionLoading section="calendar" /> },
 );
 const CommitteeTasksSection = dynamic(
   () => import("@/components/school-admin/committees/sections/CommitteeTasksSection"),
-  { loading: () => null },
+  { loading: () => <CommitteeSectionLoading section="tasks" /> },
 );
 const CommitteeMessagesSection = dynamic(
   () =>
@@ -112,6 +108,10 @@ function renderSectionContent(
     onNavigate: (section: CommitteeWorkspaceSection) => void;
     composeTokens: AdminThemeTokens;
     initialActivityItems?: CommitteeActivityItem[];
+    initialCommitteeEventId?: string | null;
+    initialCommitteeEventDate?: string | null;
+    initialCommitteeResourceId?: string | null;
+    initialCommitteeTaskId?: string | null;
   },
 ) {
   const { committee, theme, canWrite, onNavigate, activitySurface, ...rest } = sectionProps;
@@ -130,11 +130,36 @@ function renderSectionContent(
         />
       );
     case "resources":
-      return <CommitteeResourcesSection {...rest} committee={committee} theme={theme} readOnly={!canWrite} />;
+      return (
+        <CommitteeResourcesSection
+          {...rest}
+          committee={committee}
+          theme={theme}
+          readOnly={!canWrite}
+          initialResourceId={sectionProps.initialCommitteeResourceId}
+        />
+      );
     case "calendar":
-      return <CommitteeCalendarSection {...rest} committee={committee} theme={theme} readOnly={!canWrite} />;
+      return (
+        <CommitteeCalendarSection
+          {...rest}
+          committee={committee}
+          theme={theme}
+          readOnly={!canWrite}
+          initialEventId={sectionProps.initialCommitteeEventId}
+          initialEventDate={sectionProps.initialCommitteeEventDate}
+        />
+      );
     case "tasks":
-      return <CommitteeTasksSection {...rest} committee={committee} theme={theme} readOnly={!canWrite} />;
+      return (
+        <CommitteeTasksSection
+          {...rest}
+          committee={committee}
+          theme={theme}
+          readOnly={!canWrite}
+          initialTaskId={sectionProps.initialCommitteeTaskId}
+        />
+      );
     case "messages":
       return <CommitteeMessagesSection {...rest} committee={committee} theme={theme} readOnly={!canWrite} />;
     case "members":
@@ -164,6 +189,10 @@ export default function ParentCommitteeWorkspaceShell({
   initialSectionUnread,
   backLabel = "My committees",
   portalApiNamespace = "parent-portal",
+  initialCommitteeEventId,
+  initialCommitteeEventDate,
+  initialCommitteeResourceId,
+  initialCommitteeTaskId,
 }: {
   committee: Committee;
   theme: ParentThemeTokens;
@@ -180,6 +209,10 @@ export default function ParentCommitteeWorkspaceShell({
   initialSectionUnread?: CommitteeSectionUnreadCounts;
   backLabel?: string;
   portalApiNamespace?: CommitteesApiNamespace;
+  initialCommitteeEventId?: string | null;
+  initialCommitteeEventDate?: string | null;
+  initialCommitteeResourceId?: string | null;
+  initialCommitteeTaskId?: string | null;
 }) {
   const { adminCompat: composeTokens } = useParentTheme();
   const activitySurface: "parent" | "teacher" =
@@ -319,6 +352,10 @@ export default function ParentCommitteeWorkspaceShell({
     onNavigate: handleSectionChange,
     composeTokens,
     initialActivityItems,
+    initialCommitteeEventId,
+    initialCommitteeEventDate,
+    initialCommitteeResourceId,
+    initialCommitteeTaskId,
   };
 
   const visibleMountedSections = PARENT_VISIBLE_SECTIONS.filter(

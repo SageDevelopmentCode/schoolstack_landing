@@ -1,6 +1,7 @@
 import type { User } from '@supabase/supabase-js';
 import { useEffect, useMemo, useState } from 'react';
 import { useTeacherHome } from '@/contexts/teacher-home-context';
+import { isSchoolGalleryEnabled } from '@/lib/school-gallery/gallery-enabled';
 import { isTeacherFeatureEnabled } from '@/lib/teacher/teacher-features';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -79,6 +80,14 @@ const MENU_ITEMS: {
     iconBg: '#FEF3C7',
     iconColor: '#D97706',
   },
+  {
+    id: 'photos',
+    label: 'Photos',
+    subtitle: 'School gallery for families and staff',
+    icon: 'images-outline',
+    iconBg: '#FCE7F3',
+    iconColor: '#EC4899',
+  },
 ];
 
 function getDisplayName(user: User): string {
@@ -106,14 +115,16 @@ export function TeacherMoreMenuSheet({
   const displayName = useMemo(() => (user ? getDisplayName(user) : ''), [user]);
   const attendanceEnabled = isTeacherFeatureEnabled(data?.features, 'attendance');
   const committeesEnabled = isTeacherFeatureEnabled(data?.features, 'committees');
+  const photosEnabled = isSchoolGalleryEnabled(data?.features);
   const visibleMenuItems = useMemo(
     () =>
       MENU_ITEMS.filter((item) => {
         if (item.id === 'attendance') return attendanceEnabled;
         if (item.id === 'committees') return committeesEnabled;
+        if (item.id === 'photos') return photosEnabled;
         return true;
       }),
-    [attendanceEnabled, committeesEnabled],
+    [attendanceEnabled, committeesEnabled, photosEnabled],
   );
 
   const [activeTab, setActiveTab] = useState<MoreMenuTabId>('menu');

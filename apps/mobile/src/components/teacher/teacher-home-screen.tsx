@@ -10,6 +10,7 @@ import { TeacherHomeBulletinSheet } from '@/components/teacher/home/teacher-home
 import { TeacherHomeClassroomCard } from '@/components/teacher/home/teacher-home-classroom-card';
 import { TeacherHomeClassroomRosterSheet } from '@/components/teacher/home/teacher-home-classroom-roster-sheet';
 import { PortalAccountSheet } from '@/components/portal-account-sheet';
+import { TeacherPortalMudKitchenSupportMessagesCard } from '@/components/teacher/home/teacher-portal-mudkitchen-support-messages-card';
 import { PortalNeedHelpCard } from '@/components/portal/portal-need-help-card';
 import { useAuth } from '@/contexts/auth-context';
 import { PortalSupportRequestSheet } from '@/components/portal/portal-support-request-sheet';
@@ -266,13 +267,14 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
 
   const helpBody = (
     <>
-      <PortalNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
+      <TeacherPortalMudKitchenSupportMessagesCard slug={slug} messagesEnabled={messagesEnabled} />
       {documentationGuides.length > 0 ? (
         <TeacherHomeHowToGuidesCard
           guides={documentationGuides}
           onStepAction={handleDocumentationStep}
         />
       ) : null}
+      <PortalNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
     </>
   );
 

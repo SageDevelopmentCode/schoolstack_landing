@@ -10,6 +10,8 @@ type MessagesAvatarProps = {
   color: string;
   photoUrl?: string | null;
   size?: 'sm' | 'md' | 'lg' | 'toolbar';
+  photoBackgroundColor?: string;
+  photoContentFit?: 'cover' | 'contain';
 };
 
 const SIZES = {
@@ -19,7 +21,14 @@ const SIZES = {
   lg: { dimension: 44, fontSize: 14 },
 } as const;
 
-export function MessagesAvatar({ name, color, photoUrl, size = 'md' }: MessagesAvatarProps) {
+export function MessagesAvatar({
+  name,
+  color,
+  photoUrl,
+  size = 'md',
+  photoBackgroundColor,
+  photoContentFit = 'cover',
+}: MessagesAvatarProps) {
   const dimensions = SIZES[size];
   const resolvedUrl = photoUrl ? resolveOrganizationAssetUrl(photoUrl) : '';
 
@@ -31,7 +40,7 @@ export function MessagesAvatar({ name, color, photoUrl, size = 'md' }: MessagesA
           width: dimensions.dimension,
           height: dimensions.dimension,
           borderRadius: dimensions.dimension / 2,
-          backgroundColor: color,
+          backgroundColor: photoBackgroundColor ?? color,
         },
       ]}>
       {resolvedUrl ? (
@@ -45,7 +54,7 @@ export function MessagesAvatar({ name, color, photoUrl, size = 'md' }: MessagesA
               borderRadius: dimensions.dimension / 2,
             },
           ]}
-          contentFit="cover"
+          contentFit={photoContentFit}
           accessibilityLabel={`Photo of ${name}`}
         />
       ) : (

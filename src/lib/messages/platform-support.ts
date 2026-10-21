@@ -1,6 +1,13 @@
 import type { MessageThreadSummary } from "./types";
 
-export const MUDKITCHEN_SUPPORT_TEAM_NAME = "MudKitchen Support Team";
+export const MUDKITCHEN_SUPPORT_TEAM_NAME = "MudKitchen Support";
+export const MUDKITCHEN_SUPPORT_LEGACY_TEAM_NAME = "MudKitchen Support Team";
+
+function isMudKitchenSupportThreadTitle(title: string): boolean {
+  return (
+    title === MUDKITCHEN_SUPPORT_TEAM_NAME || title === MUDKITCHEN_SUPPORT_LEGACY_TEAM_NAME
+  );
+}
 export const MUDKITCHEN_SUPPORT_LOGO_URL = "/images/Logo.png";
 export const MUDKITCHEN_SUPPORT_PLACEHOLDER_ID = "pending-platform_support";
 export const MUDKITCHEN_SUPPORT_CONTACT_KEY = "platform_support";
@@ -58,7 +65,7 @@ export function isMudKitchenSupportListThread(
   return (
     isMudKitchenSupportPlaceholder(thread.id) ||
     threadHasPlatformSupport(thread.participants) ||
-    thread.title === MUDKITCHEN_SUPPORT_TEAM_NAME
+    isMudKitchenSupportThreadTitle(thread.title)
   );
 }
 
@@ -104,7 +111,7 @@ function isPinnedSupportSummary(
   return (
     threadHasPlatformSupport(thread.participants) ||
     (!isMudKitchenSupportPlaceholder(thread.id) &&
-      thread.title === MUDKITCHEN_SUPPORT_TEAM_NAME)
+      isMudKitchenSupportThreadTitle(thread.title))
   );
 }
 

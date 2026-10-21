@@ -1,6 +1,23 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { committeeTaskAssigneeTasksPath } from "./committee-portal-urls";
+import {
+  committeeMemberWorkspacePath,
+  committeeTaskAssigneeTasksPath,
+} from "./committee-portal-urls";
+
+describe("committeeMemberWorkspacePath", () => {
+  it("includes resource and task focus query params", () => {
+    const path = committeeMemberWorkspacePath(
+      "rooted-meadows",
+      "committee-1",
+      "resources",
+      { user_id: "user-1" },
+      { resourceId: "res-1", taskId: "task-1" },
+    );
+    assert.match(path, /resource=res-1/);
+    assert.match(path, /task=task-1/);
+  });
+});
 
 describe("committeeTaskAssigneeTasksPath", () => {
   it("uses teacher portal when assignee has staff_member_id even with user_id", () => {

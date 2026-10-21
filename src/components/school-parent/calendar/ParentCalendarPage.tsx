@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { MapPin, X } from "lucide-react";
 import OrganizationEventsCalendar from "@/components/school-events-calendar/OrganizationEventsCalendar";
@@ -245,12 +246,25 @@ export default function ParentCalendarPage({
   previewAgendaAsOf,
 }: ParentCalendarPageProps) {
   const { theme, adminCompat: C } = useParentTheme();
+  const searchParams = useSearchParams();
+  const deepLinkEventId = searchParams.get("eventId")?.trim() ?? "";
+  const deepLinkDate = searchParams.get("date")?.trim() ?? "";
+  const deepLinkHandledRef = useRef(false);
+  const deepLinkFetchStartedRef = useRef(false);
   const [fetchedEvents, setFetchedEvents] = useState<OrganizationEvent[]>([]);
   const loadedWindowsRef = useRef<Set<string>>(new Set());
   const [view, setView] = useState<CalendarViewMode>(initialView ?? "week");
   const calendarInitialDate = useMemo(
     () => (previewAnchorDate ? parseEventDate(previewAnchorDate) : undefined),
     [previewAnchorDate],
+  );
+  const [calendarAnchorDate, setCalendarAnchorDate] = useState<Date | undefined>(
+    () => {
+      if (deepLinkDate) {
+        return parseEventDate(deepLinkDate);
+      }
+      return previewAnchorDate ? parseEventDate(previewAnchorDate) : undefined;
+    },
   );
   const agendaAsOfDate = useMemo(
     () => (previewAgendaAsOf ? parseEventDate(previewAgendaAsOf) : undefined),
@@ -331,6 +345,33 @@ export default function ParentCalendarPage({
     [view],
   );
 
+  useEffect(() => {
+    if (previewMode || !deepLinkEventId || deepLinkFetchStartedRef.current) return;
+    deepLinkFetchStartedRef.current = true;
+    queueMicrotask(() => {
+      const now = new Date();
+      void fetchEventsForMonth(now.getFullYear(), now.getMonth());
+      if (deepLinkDate) {
+        const anchor = parseEventDate(deepLinkDate);
+        void fetchEventsForMonth(anchor.getFullYear(), anchor.getMonth());
+      }
+    });
+  }, [deepLinkDate, deepLinkEventId, fetchEventsForMonth, previewMode]);
+
+  useEffect(() => {
+    if (previewMode || !deepLinkEventId || deepLinkHandledRef.current) return;
+
+    const match = calendarEvents.find((entry) => entry.id === deepLinkEventId);
+    if (!match) return;
+
+    deepLinkHandledRef.current = true;
+    queueMicrotask(() => {
+      setSelectedEmptyDay(null);
+      setSelectedEvent(match);
+      setCalendarAnchorDate(parseEventDate(match.date));
+    });
+  }, [calendarEvents, deepLinkEventId, previewMode]);
+
   const handleDayClick = (date: string) => {
     const dayEvents = calendarEvents.filter((e) => e.date === date);
     setSelectedEvent(null);
@@ -361,11 +402,12 @@ export default function ParentCalendarPage({
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.25fr_0.75fr] lg:gap-4">
             <ParentCard theme={theme} className="!p-3 sm:!p-4">
               <OrganizationEventsCalendar
+                key={calendarAnchorDate?.toISOString() ?? "parent-calendar-default"}
                 C={C}
                 events={calendarEvents}
                 view={view}
                 onViewChange={setView}
-                initialDate={calendarInitialDate}
+                initialDate={calendarAnchorDate ?? calendarInitialDate}
                 readOnly
                 variant="parent-story"
                 parentTheme={theme}

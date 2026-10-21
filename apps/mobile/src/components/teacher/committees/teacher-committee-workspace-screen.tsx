@@ -6,12 +6,18 @@ type TeacherCommitteeWorkspaceScreenProps = {
   organizationId: string;
   committeeId: string;
   initialSection?: CommitteeWorkspaceSection;
+  initialEventId?: string | null;
+  initialResourceId?: string | null;
+  initialTaskId?: string | null;
 };
 
 export function TeacherCommitteeWorkspaceScreen({
   organizationId,
   committeeId,
   initialSection,
+  initialEventId,
+  initialResourceId,
+  initialTaskId,
 }: TeacherCommitteeWorkspaceScreenProps) {
   return (
     <CommitteeWorkspaceScreen
@@ -20,6 +26,9 @@ export function TeacherCommitteeWorkspaceScreen({
       portalApiNamespace="teacher-portal"
       fetchWorkspace={fetchTeacherCommitteeWorkspace}
       initialSection={initialSection}
+      initialEventId={initialEventId}
+      initialResourceId={initialResourceId}
+      initialTaskId={initialTaskId}
     />
   );
 }

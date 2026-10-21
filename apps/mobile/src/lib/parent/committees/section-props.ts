@@ -16,4 +16,7 @@ export type ParentCommitteeSectionProps = {
   onRefresh: (options?: { silent?: boolean }) => Promise<void>;
   onNavigate?: (section: CommitteeWorkspaceSection) => void;
   onJoinRequestsChanged?: () => void;
+  initialEventId?: string | null;
+  initialResourceId?: string | null;
+  initialTaskId?: string | null;
 };

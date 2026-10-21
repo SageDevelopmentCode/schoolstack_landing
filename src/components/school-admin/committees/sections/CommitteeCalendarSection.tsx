@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, Plus } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import OrganizationEventsCalendar from "@/components/school-events-calendar/OrganizationEventsCalendar";
@@ -19,6 +19,7 @@ import {
   committeeEventsToOrganizationEvents,
   findCommitteeEventById,
 } from "@/lib/committees/committee-events-calendar";
+import { parseEventDate } from "@/lib/committees/calendar-utils";
 import { createEvent, deleteEvent, updateEvent } from "@/lib/committees/events";
 import { getCommittee } from "@/lib/committees/committees";
 import type { Committee } from "@/lib/committees/types";
@@ -47,6 +48,8 @@ export default function CommitteeCalendarSection({
   currentMemberId,
   isAdmin = true,
   portalApiNamespace = "parent-portal",
+  initialEventId,
+  initialEventDate,
 }: {
   committee: Committee;
   theme: ParentThemeTokens;
@@ -57,10 +60,16 @@ export default function CommitteeCalendarSection({
   currentMemberId?: string;
   isAdmin?: boolean;
   portalApiNamespace?: CommitteesApiNamespace;
+  initialEventId?: string | null;
+  initialEventDate?: string | null;
 }) {
   const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
+  const deepLinkHandledRef = useRef(false);
   const [view, setView] = useState<CalendarViewMode>("week");
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [calendarAnchorDate, setCalendarAnchorDate] = useState<Date | undefined>(() =>
+    initialEventDate ? parseEventDate(initialEventDate) : undefined,
+  );
   const [periodKey, setPeriodKey] = useState("initial");
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -190,15 +199,28 @@ export default function CommitteeCalendarSection({
     [view],
   );
 
+  useEffect(() => {
+    if (!initialEventId || deepLinkHandledRef.current) return;
+    const match = findCommitteeEventById(committee.events, initialEventId);
+    if (!match) return;
+    deepLinkHandledRef.current = true;
+    queueMicrotask(() => {
+      setSelectedEventId(initialEventId);
+      setCalendarAnchorDate(parseEventDate(match.date));
+    });
+  }, [committee.events, initialEventId]);
+
   return (
     <CommitteeWorkspaceSectionFrame width="full">
     <div className="space-y-4">
       <ParentCard theme={theme} className="!p-3 sm:!p-4">
         <OrganizationEventsCalendar
+          key={calendarAnchorDate?.toISOString() ?? "committee-calendar-default"}
           C={C}
           events={calendarEvents}
           view={view}
           onViewChange={setView}
+          initialDate={calendarAnchorDate}
           readOnly={readOnly}
           variant="parent-story"
           parentTheme={theme}

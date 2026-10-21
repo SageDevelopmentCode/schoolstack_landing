@@ -48,6 +48,9 @@ type CommitteeWorkspaceScreenProps = {
     committeeId: string,
   ) => Promise<CommitteeWorkspaceLoad>;
   initialSection?: CommitteeWorkspaceSection;
+  initialEventId?: string | null;
+  initialResourceId?: string | null;
+  initialTaskId?: string | null;
 };
 
 function resolveVisibleSection(
@@ -71,6 +74,9 @@ function CommitteeWorkspaceScreen({
   portalApiNamespace = 'parent-portal',
   fetchWorkspace,
   initialSection = 'home',
+  initialEventId,
+  initialResourceId,
+  initialTaskId,
 }: CommitteeWorkspaceScreenProps) {
   const theme = useParentTheme();
   const { isPreview } = usePortalPreview();
@@ -203,6 +209,9 @@ function CommitteeWorkspaceScreen({
         onCommitteeChange: setCommittee,
         onRefresh,
         onNavigate: setActiveSection,
+        initialEventId,
+        initialResourceId,
+        initialTaskId,
       }
     : null;
 
@@ -275,12 +284,18 @@ type ParentCommitteeWorkspaceScreenProps = {
   organizationId: string;
   committeeId: string;
   initialSection?: CommitteeWorkspaceSection;
+  initialEventId?: string | null;
+  initialResourceId?: string | null;
+  initialTaskId?: string | null;
 };
 
 export function ParentCommitteeWorkspaceScreen({
   organizationId,
   committeeId,
   initialSection,
+  initialEventId,
+  initialResourceId,
+  initialTaskId,
 }: ParentCommitteeWorkspaceScreenProps) {
   return (
     <CommitteeWorkspaceScreen
@@ -288,6 +303,9 @@ export function ParentCommitteeWorkspaceScreen({
       committeeId={committeeId}
       fetchWorkspace={fetchParentCommitteeWorkspace}
       initialSection={initialSection}
+      initialEventId={initialEventId}
+      initialResourceId={initialResourceId}
+      initialTaskId={initialTaskId}
     />
   );
 }

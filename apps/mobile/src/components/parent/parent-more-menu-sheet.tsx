@@ -143,13 +143,17 @@ export function ParentMoreMenuSheet({
     ? { parent_portal_paused: true as const }
     : { parent_portal_paused: false as const };
 
+  const schoolGalleryEnabled = homeData?.schoolGalleryEnabled ?? false;
+
   const visibleMenuItemIds = useMemo(() => {
     if (programPortalFeaturesPending) {
       return [] as ParentMoreMenuItemId[];
     }
 
     if (!portalFeatureRecord) {
-      return Object.keys(PARENT_MORE_MENU_META) as ParentMoreMenuItemId[];
+      return (Object.keys(PARENT_MORE_MENU_META) as ParentMoreMenuItemId[]).filter(
+        (id) => id !== 'photos' || schoolGalleryEnabled,
+      );
     }
 
     const featureKeys = resolveMobileMoreMenuFeatureKeys({
@@ -179,12 +183,19 @@ export function ParentMoreMenuSheet({
       ids.push('friday-branch');
     }
 
+    if (schoolGalleryEnabled && !ids.includes('photos')) {
+      ids.push('photos');
+    }
+
     return ids.filter((id) => {
       if (id === 'friday-branch') {
         return isParentNavFridayBranchEnabled(
           { parent: portalFeatureRecord },
           fridayBranchSettings,
         );
+      }
+      if (id === 'photos') {
+        return schoolGalleryEnabled;
       }
       return true;
     });
@@ -195,6 +206,7 @@ export function ParentMoreMenuSheet({
     homeData?.features?.parent_home,
     portalFeatureRecord,
     programPortalFeaturesPending,
+    schoolGalleryEnabled,
   ]);
 
   const visibleMenuItems = useMemo(

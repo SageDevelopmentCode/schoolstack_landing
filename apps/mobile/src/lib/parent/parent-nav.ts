@@ -62,7 +62,8 @@ export type ParentMoreMenuItemId =
   | 'classroom-signups'
   | 'forms-documents'
   | 'friday-branch'
-  | 'notifications';
+  | 'notifications'
+  | 'photos';
 
 export function parentTabRoute(slug: string, tab: Exclude<ParentTab, 'more'>): Href {
   return `/parent/${slug}/${tab}` as Href;
@@ -226,6 +227,7 @@ const FEATURE_ROUTE_MAP: Record<string, (slug: string) => Href> = {
   forms_documents: (slug) => parentFormsDocumentsRoute(slug),
   friday_branch: (slug) => parentMoreRoute(slug, 'friday-branch'),
   notifications: (slug) => parentMoreRoute(slug, 'notifications'),
+  photos: (slug) => parentMoreRoute(slug, 'photos'),
 };
 
 const PARENT_MORE_FEATURE_TO_MENU_ITEM: Record<string, ParentMoreMenuItemId> = {
@@ -236,6 +238,7 @@ const PARENT_MORE_FEATURE_TO_MENU_ITEM: Record<string, ParentMoreMenuItemId> = {
   forms_documents: 'forms-documents',
   friday_branch: 'friday-branch',
   notifications: 'notifications',
+  photos: 'photos',
 };
 
 function normalizeParentFeatureSegment(segment: string): string {

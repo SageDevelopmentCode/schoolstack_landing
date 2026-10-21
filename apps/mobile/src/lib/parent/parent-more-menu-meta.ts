@@ -77,4 +77,11 @@ export const PARENT_MORE_MENU_META: Record<
     iconBg: '#E0F2FE',
     iconColor: '#0284C7',
   },
+  photos: {
+    label: 'Photos',
+    subtitle: 'School photo gallery',
+    icon: 'images-outline',
+    iconBg: '#F3E8FF',
+    iconColor: '#7C3AED',
+  },
 };

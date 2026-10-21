@@ -9,6 +9,7 @@ import {
   type BulletinPostRow,
 } from "@/lib/school-bulletin/mappers";
 import type { BulletinPost } from "@/lib/school-bulletin/types";
+import { buildPortalCalendarNotificationHref } from "@/lib/school-events/calendar-notification-links";
 import {
   mapOrganizationEventRow,
   type OrganizationEventRow,
@@ -320,6 +321,8 @@ function resolveTeacherNotificationLink(
   options?: {
     teacherBasePath?: string;
     signupId?: string | null;
+    eventId?: string | null;
+    eventDate?: string | null;
   },
 ): { href: string; ctaLabel: string } {
   const teacherBase = resolveTeacherBasePath(slug, options?.teacherBasePath);
@@ -376,8 +379,15 @@ function resolveTeacherNotificationLink(
   }
 
   if (action === SYNTHETIC_EVENT_ACTION) {
+    const organizationEventId =
+      options?.eventId ??
+      (event.entity_type === "organization_event" ? event.entity_id : null) ??
+      metadataString(event.metadata, "eventId");
     return {
-      href: `${teacherBase}/calendar`,
+      href: buildPortalCalendarNotificationHref(teacherBase, {
+        eventId: organizationEventId,
+        eventDate: options?.eventDate ?? metadataString(event.metadata, "eventDate"),
+      }),
       ctaLabel: "View calendar",
     };
   }
@@ -681,7 +691,7 @@ async function fetchCalendarNotifications(
       slug,
       SYNTHETIC_EVENT_ACTION,
       syntheticEvent,
-      { teacherBasePath },
+      { teacherBasePath, eventId: event.id, eventDate: event.date },
     );
 
     return {
