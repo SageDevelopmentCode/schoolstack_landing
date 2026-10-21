@@ -19,6 +19,7 @@ import { StoryTextField } from '@/components/story/story-text-field';
 import type { LiveOrganization } from '@/lib/organizations';
 import { Story, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
+import { organizationSelectorEmptyMessage } from '@/components/organization-selector-empty-message';
 import { isMobileE2e } from '@/lib/e2e';
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -125,13 +126,11 @@ export function OrganizationSelector({
   const showSearch = visibleOrganizations.length > 4;
 
   if (visibleOrganizations.length === 0) {
+    const emptyMessage = organizationSelectorEmptyMessage(accessibleSlugs);
+
     return (
       <StoryCard compact style={styles.emptyState}>
-        <Text style={styles.emptyText}>
-          {accessibleSlugs
-            ? 'You do not have access to any schools for this account. Try signing in with a different account.'
-            : 'No schools are available for sign-in right now. Please check back later.'}
-        </Text>
+        <Text style={styles.emptyText}>{emptyMessage}</Text>
       </StoryCard>
     );
   }

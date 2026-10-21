@@ -1,9 +1,8 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { OrganizationSelector } from '@/components/organization-selector';
-import { OrganizationSelectorSkeleton } from '@/components/organization-selector-skeleton';
 import { PreAuthLinkRow } from '@/components/pre-auth-link-row';
 import { PreAuthScreenShell } from '@/components/pre-auth-screen-shell';
 import { StoryButton } from '@/components/story/story-button';
@@ -14,21 +13,20 @@ import {
   completeSchoolSignIn,
   useAuth,
 } from '@/contexts/auth-context';
-import { resolveMobileSchoolAfterAuth } from '@/lib/auth/list-accessible-organizations';
-import { PortalAccessError } from '@/lib/auth/resolve-portal';
+import { normalizeAuthErrorMessage } from '@/lib/auth/auth-error-message';
 import {
-  fetchLiveOrganizationsBySlugs,
-  type LiveOrganization,
-} from '@/lib/organizations';
+  completeAccessibleSchoolSignIn,
+  NO_SCHOOL_ACCESS_MESSAGE,
+} from '@/lib/auth/complete-accessible-school-sign-in';
+import { PortalAccessError } from '@/lib/auth/resolve-portal';
 import { markExplicitMobileSignOut } from '@/lib/auth/mobile-explicit-sign-out';
+import type { LiveOrganization } from '@/lib/organizations';
 import { logMobileAuthSignedIn } from '@/lib/mobile-activity';
+import { goBackOrReplace } from '@/lib/navigation';
 import { getSupabaseClient } from '@/lib/supabase';
 import { Spacing } from '@/constants/theme';
 
 const RESEND_COOLDOWN_SECONDS = 30;
-
-const NO_SCHOOL_ACCESS_MESSAGE =
-  'You do not have access to any schools for this account. Try signing in with a different account.';
 
 type LoginPhase = 'select_org' | 'email' | 'verify' | 'password';
 
@@ -39,7 +37,6 @@ export function SchoolLoginExperience() {
 
   const [phase, setPhase] = useState<LoginPhase>('email');
   const [organizations, setOrganizations] = useState<LiveOrganization[]>([]);
-  const [orgsLoading, setOrgsLoading] = useState(false);
   const [accessibleSlugs, setAccessibleSlugs] = useState<string[] | null>(null);
   const [selectedOrganization, setSelectedOrganization] = useState<LiveOrganization | null>(null);
   const [email, setEmail] = useState('');
@@ -48,7 +45,6 @@ export function SchoolLoginExperience() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
-  const sessionResumeAttemptedRef = useRef(false);
 
   const normalizedCode = code.replace(/\D/g, '').slice(0, 6);
 
@@ -81,34 +77,18 @@ export function SchoolLoginExperience() {
       }
 
       const portal = await completeSchoolSignIn(userId, organization);
-      await setResolvedPortal(portal);
+      await setResolvedPortal(portal, userId);
       void logMobileAuthSignedIn(portal);
       router.replace('/portal');
     },
-    [router, setResolvedPortal, user],
+    [router, setResolvedPortal, user?.id],
   );
-
-  const loadOrganizationsForSlugs = useCallback(async (slugs: string[]) => {
-    setOrgsLoading(true);
-    try {
-      const orgs = await fetchLiveOrganizationsBySlugs(slugs);
-      setOrganizations(orgs);
-    } catch (loadError) {
-      setError(
-        loadError instanceof Error
-          ? loadError.message
-          : 'Unable to load schools right now.',
-      );
-    } finally {
-      setOrgsLoading(false);
-    }
-  }, []);
 
   const continueAfterAuthentication = useCallback(
     async (signedInUserId: string, authMethod?: 'otp' | 'password') => {
-      const result = await resolveMobileSchoolAfterAuth(supabase, signedInUserId);
+      const result = await completeAccessibleSchoolSignIn(supabase, signedInUserId);
 
-      if (result.kind === 'none') {
+      if (result.kind === 'no_access') {
         markExplicitMobileSignOut();
         await supabase.auth.signOut();
         setError(NO_SCHOOL_ACCESS_MESSAGE);
@@ -116,47 +96,30 @@ export function SchoolLoginExperience() {
         return;
       }
 
-      if (result.kind === 'single') {
-        const orgs = await fetchLiveOrganizationsBySlugs([result.slug]);
-        const organization = orgs[0];
-        if (!organization) {
-          throw new Error('School not found. Please try again.');
+      if (result.kind === 'error') {
+        if (result.portalAccessDenied) {
+          markExplicitMobileSignOut();
+          await supabase.auth.signOut();
         }
-        setSelectedOrganization(organization);
-        const portal = await completeSchoolSignIn(signedInUserId, organization);
-        await setResolvedPortal(portal);
-        void logMobileAuthSignedIn(portal, authMethod ? { method: authMethod } : undefined);
-        router.replace('/portal');
+        throw new Error(result.message);
+      }
+
+      if (result.kind === 'needs_school_picker') {
+        setAccessibleSlugs(result.slugs);
+        setOrganizations(result.organizations);
+        goToPhase('select_org');
         return;
       }
 
-      setAccessibleSlugs(result.slugs);
-      await loadOrganizationsForSlugs(result.slugs);
-      goToPhase('select_org');
+      await setResolvedPortal(result.portal, signedInUserId);
+      void logMobileAuthSignedIn(
+        result.portal,
+        authMethod ? { method: authMethod } : undefined,
+      );
+      router.replace('/portal');
     },
-    [goToPhase, loadOrganizationsForSlugs, router, setResolvedPortal, supabase],
+    [goToPhase, router, setResolvedPortal, supabase],
   );
-
-  useEffect(() => {
-    if (authLoading || !user || portalType || sessionResumeAttemptedRef.current) {
-      return;
-    }
-
-    sessionResumeAttemptedRef.current = true;
-    setIsSubmitting(true);
-
-    void continueAfterAuthentication(user.id)
-      .catch((resumeError) => {
-        setError(
-          resumeError instanceof Error
-            ? resumeError.message
-            : 'Unable to continue with your existing session.',
-        );
-      })
-      .finally(() => {
-        setIsSubmitting(false);
-      });
-  }, [authLoading, continueAfterAuthentication, portalType, user]);
 
   const handleOrganizationSelect = useCallback(
     async (organization: LiveOrganization) => {
@@ -172,9 +135,7 @@ export function SchoolLoginExperience() {
           await supabase.auth.signOut();
         }
         setError(
-          selectError instanceof Error
-            ? selectError.message
-            : 'Unable to continue with this school.',
+          normalizeAuthErrorMessage(selectError, 'Unable to continue with this school.'),
         );
       } finally {
         setIsSubmitting(false);
@@ -209,9 +170,7 @@ export function SchoolLoginExperience() {
       setCode('');
     } catch (submitError) {
       setError(
-        submitError instanceof Error
-          ? submitError.message
-          : 'Failed to send verification code.',
+        normalizeAuthErrorMessage(submitError, 'Failed to send verification code.'),
       );
     } finally {
       setIsSubmitting(false);
@@ -247,11 +206,7 @@ export function SchoolLoginExperience() {
         markExplicitMobileSignOut();
         await supabase.auth.signOut();
       }
-      setError(
-        submitError instanceof Error
-          ? submitError.message
-          : 'Verification failed. Please try again.',
-      );
+      setError(normalizeAuthErrorMessage(submitError, 'Verification failed. Please try again.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -285,11 +240,7 @@ export function SchoolLoginExperience() {
         markExplicitMobileSignOut();
         await supabase.auth.signOut();
       }
-      setError(
-        submitError instanceof Error
-          ? submitError.message
-          : 'Sign in failed. Please try again.',
-      );
+      setError(normalizeAuthErrorMessage(submitError, 'Sign in failed. Please try again.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -305,9 +256,7 @@ export function SchoolLoginExperience() {
       await sendOtp();
     } catch (submitError) {
       setError(
-        submitError instanceof Error
-          ? submitError.message
-          : 'Failed to resend verification code.',
+        normalizeAuthErrorMessage(submitError, 'Failed to resend verification code.'),
       );
     } finally {
       setIsSubmitting(false);
@@ -350,7 +299,7 @@ export function SchoolLoginExperience() {
 
   const handleBack =
     phase === 'email' || phase === 'password'
-      ? () => router.back()
+      ? () => goBackOrReplace(router, '/')
       : phase === 'select_org'
         ? handleBackFromSchoolPicker
         : handleBackToEmail;
@@ -413,9 +362,7 @@ export function SchoolLoginExperience() {
           : undefined
       }
       footer={loginFooter}>
-      {phase === 'select_org' && orgsLoading ? (
-        <OrganizationSelectorSkeleton rowCount={3} />
-      ) : phase === 'select_org' ? (
+      {phase === 'select_org' ? (
         <OrganizationSelector
           organizations={organizations}
           accessibleSlugs={isPostAuthSchoolPicker ? accessibleSlugs : null}

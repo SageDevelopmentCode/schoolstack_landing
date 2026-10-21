@@ -269,6 +269,7 @@ export function mapDemoLeadToSubmission(
 
   const base: AdminApplicationSubmission = {
     id: lead.id,
+    familyId: null,
     status,
     feeStatus: "none",
     feeEnabled: false,

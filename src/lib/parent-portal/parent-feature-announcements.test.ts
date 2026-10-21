@@ -16,6 +16,7 @@ const ALL_PARENT_FEATURES_ENABLED: OrganizationFeatures = {
     dashboard: true,
     admissions: true,
     my_school: true,
+    communication: true,
     committees: true,
     schedule: true,
     messages: true,

@@ -407,6 +407,66 @@ export async function familyHasEnrolledAccess(
   return (data ?? []).length > 0;
 }
 
+/** Families that have at least one enrolled student (batched). */
+export async function familyIdsWithEnrolledAccess(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyIds: string[],
+): Promise<Set<string>> {
+  const uniqueFamilyIds = [
+    ...new Set(familyIds.map((id) => id.trim()).filter(Boolean)),
+  ];
+  if (uniqueFamilyIds.length === 0) {
+    return new Set();
+  }
+
+  const { data: students, error: studentsError } = await supabase
+    .from("students")
+    .select("id, family_id")
+    .eq("organization_id", organizationId)
+    .in("family_id", uniqueFamilyIds);
+
+  if (studentsError) throw studentsError;
+
+  const studentRows = students ?? [];
+  if (studentRows.length === 0) {
+    return new Set();
+  }
+
+  const familyIdByStudentId = new Map<string, string>();
+  const studentIds: string[] = [];
+  for (const row of studentRows) {
+    const studentId = String(row.id);
+    const familyId = row.family_id != null ? String(row.family_id) : null;
+    if (!familyId) continue;
+    studentIds.push(studentId);
+    familyIdByStudentId.set(studentId, familyId);
+  }
+
+  if (studentIds.length === 0) {
+    return new Set();
+  }
+
+  const { data: enrollments, error: enrollmentsError } = await supabase
+    .from("enrollments")
+    .select("student_id")
+    .eq("organization_id", organizationId)
+    .eq("status", "enrolled")
+    .in("student_id", studentIds);
+
+  if (enrollmentsError) throw enrollmentsError;
+
+  const enrolledFamilies = new Set<string>();
+  for (const row of enrollments ?? []) {
+    const familyId = familyIdByStudentId.get(String(row.student_id));
+    if (familyId) {
+      enrolledFamilies.add(familyId);
+    }
+  }
+
+  return enrolledFamilies;
+}
+
 export async function listFamilyChildrenForHomeByFamilyId(
   supabase: SupabaseClient,
   organizationId: string,

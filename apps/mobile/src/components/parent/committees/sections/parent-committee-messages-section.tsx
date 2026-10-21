@@ -13,7 +13,7 @@ import { MessageComposeBar } from '@/components/school-admin/messages/message-co
 import { StoryErrorBanner } from '@/components/story/story-error-banner';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { mapCommitteeMessagesToPortalMessages } from '@/lib/parent/committees/committee-message-mapper';
-import { postCommitteeMessageViaParentApi } from '@/lib/parent/committees/mutations';
+import { postCommitteeMessageViaPortalApi } from '@/lib/committees/post-committee-message-via-portal';
 import type { ParentCommitteeSectionProps } from '@/lib/parent/committees/section-props';
 import { buildMessageRenderItems, type RenderMessageItem } from '@/lib/messages/format-chat';
 import {
@@ -36,6 +36,7 @@ export function ParentCommitteeMessagesSection({
   currentMemberId,
   readOnly = false,
   isAdmin = false,
+  portalApiNamespace = 'parent-portal',
   onRefresh,
 }: ParentCommitteeSectionProps) {
   const theme = useParentTheme();
@@ -111,10 +112,12 @@ export function ParentCommitteeMessagesSection({
     });
 
     try {
-      const { messageId } = await postCommitteeMessageViaParentApi(committee.id, {
+      const { messageId } = await postCommitteeMessageViaPortalApi(committee.id, {
         organizationId,
         body: trimmed,
         files: filesToSend,
+        portalApiNamespace,
+        isAdmin,
       });
 
       optimisticSendRef.current.confirm(optimisticId, messageId);
@@ -136,10 +139,12 @@ export function ParentCommitteeMessagesSection({
     committee.id,
     currentMemberId,
     input,
+    isAdmin,
     localMessages,
     onRefresh,
     organizationId,
     ownSenderFallback,
+    portalApiNamespace,
     readOnly,
     reportError,
     sending,

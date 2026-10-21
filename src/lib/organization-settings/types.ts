@@ -41,6 +41,7 @@ export type AdminFeatures = {
   dashboard: boolean;
   admissions: boolean;
   my_school: boolean;
+  communication: boolean;
   committees: boolean;
   schedule: boolean;
   messages: boolean;
@@ -117,12 +118,18 @@ export type FeatureNavChildConfig = {
   label?: string;
   icon?: string;
   enabled?: boolean;
+  /** Link to a top-level admin feature route instead of parent/subtab. */
+  routeFeature?: string;
+  /** Subtab when `routeFeature` is set (e.g. newsletters under my_school). */
+  routeSubtab?: string;
+  children?: FeatureNavChildConfig[];
 };
 
 export type FeatureNavItemConfig = {
   group: string;
   label?: string;
   icon?: string;
+  hiddenFromRootNav?: boolean;
   children?: FeatureNavChildConfig[];
 };
 

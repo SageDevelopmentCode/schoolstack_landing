@@ -6,7 +6,7 @@ import { AttendanceProvider } from '@/contexts/attendance-context';
 
 export default function SchoolAdminDashboardPage() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
-  const { selectedSchool, user } = useAuth();
+  const { selectedSchool } = useAuth();
 
   if (!selectedSchool || selectedSchool.slug !== slug) {
     return null;
@@ -18,7 +18,6 @@ export default function SchoolAdminDashboardPage() {
         organizationId={selectedSchool.id}
         slug={selectedSchool.slug}
         schoolName={selectedSchool.name}
-        user={user}
       />
     </AttendanceProvider>
   );

@@ -12,6 +12,7 @@ import {
   Loader2,
   type LucideIcon,
 } from "lucide-react";
+import { AdminListItemsSkeleton } from "@/components/admin/ui/AdminSkeleton";
 import {
   formatRelativeTime,
   type ActivityNotificationCategory,
@@ -218,10 +219,11 @@ export default function OrganizationNotificationsPanel({
       </div>
 
       {loading && notifications.length === 0 ? (
-        <div className="flex items-center gap-2 py-6 text-sm text-admin-faint font-secondary">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Loading notifications…
-        </div>
+        <AdminListItemsSkeleton
+          count={6}
+          ariaLabel="Loading notifications"
+          className="py-2"
+        />
       ) : error ? (
         <div className="rounded-admin-md border border-admin-border bg-admin-bg px-4 py-6 text-center">
           <p className="text-sm text-admin-error font-secondary">{error}</p>

@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 
 import { agentLog } from '@/lib/debug-agent-log';
 import { markExplicitMobileSignOut } from '@/lib/auth/mobile-explicit-sign-out';
-import { getSupabaseClient } from '@/lib/supabase';
+import { ensureSupabaseAuthStorageReady, getSupabaseClient } from '@/lib/supabase';
 
 export const AUTH_REQUIRED_MESSAGE = 'You must be signed in to continue.';
 
@@ -144,6 +144,40 @@ export async function resolveAccessToken(
     signOutStaleSession();
   }
   return null;
+}
+
+/**
+ * Waits until the Supabase client has a session JWT (PostgREST uses client session, not memory cache).
+ */
+export async function waitForSupabaseSessionAccessToken(): Promise<string | null> {
+  await ensureSupabaseAuthStorageReady();
+
+  for (let attempt = 0; attempt < TOKEN_RESOLVE_MAX_ATTEMPTS; attempt += 1) {
+    const sessionToken = await readSessionAccessToken();
+    if (sessionToken) {
+      return sessionToken;
+    }
+
+    if (attempt < TOKEN_RESOLVE_MAX_ATTEMPTS - 1) {
+      await delay(TOKEN_RESOLVE_RETRY_MS * (attempt + 1));
+    }
+  }
+
+  const refreshedToken = await refreshAccessToken();
+  if (refreshedToken) {
+    return refreshedToken;
+  }
+
+  return null;
+}
+
+/** Ensures a JWT is available before Supabase RLS-backed reads (avoids empty anon results). */
+export async function requireSupabaseAccessToken(): Promise<string> {
+  const token = await waitForSupabaseSessionAccessToken();
+  if (!token) {
+    throwUnauthorized();
+  }
+  return token;
 }
 
 function mobileClientHeaders(): Record<string, string> {

@@ -1,5 +1,6 @@
 import { mergeBrandingFromRaw } from '@/lib/organization-settings/merge-branding';
 import type { OrganizationBranding } from '@/lib/organization-settings/types';
+import { requireSupabaseAccessToken } from '@/lib/auth/auth-session';
 import { getSupabaseClient } from '@/lib/supabase';
 
 const LIST_LIVE_ORGANIZATIONS_TIMEOUT_MS = 15_000;
@@ -100,7 +101,7 @@ function mapOrganizationRow(row: {
   };
 }
 
-async function loadPublicBrandingByOrganizationId(
+export async function loadPublicBrandingByOrganizationId(
   organizationIds: string[],
 ): Promise<Map<string, unknown>> {
   const brandingByOrgId = new Map<string, unknown>();
@@ -167,6 +168,7 @@ export async function fetchLiveOrganizationsBySlugs(
     return [];
   }
 
+  await requireSupabaseAccessToken();
   const supabase = getSupabaseClient();
 
   const { data, error } = await supabase
@@ -190,6 +192,27 @@ export async function fetchLiveOrganizationsBySlugs(
   return slugs
     .map((slug) => bySlug.get(slug))
     .filter((org): org is LiveOrganization => Boolean(org));
+}
+
+export async function hydrateLiveOrganizationsBranding(
+  organizations: LiveOrganization[],
+): Promise<LiveOrganization[]> {
+  if (organizations.length === 0) {
+    return [];
+  }
+
+  try {
+    const brandingByOrgId = await loadPublicBrandingByOrganizationId(
+      organizations.map((organization) => organization.id),
+    );
+
+    return organizations.map((organization) => ({
+      ...organization,
+      branding: parseOrganizationBranding(brandingByOrgId.get(organization.id)),
+    }));
+  } catch {
+    return organizations;
+  }
 }
 
 export async function listAllOrganizations(): Promise<AdminOrganization[]> {

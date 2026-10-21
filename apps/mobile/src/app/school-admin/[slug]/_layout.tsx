@@ -31,6 +31,7 @@ import {
   useReleaseAccountPortalSwitchOnBlur,
 } from '@/contexts/portal-transition-context';
 import { prefetchSchoolPortalOptions } from '@/lib/auth/use-school-portal-options';
+import { useEnsureSchoolAdminPortalAccess } from '@/lib/auth/use-ensure-school-admin-portal';
 import { useRecoverableAuthRedirect } from '@/lib/auth/use-recoverable-auth-redirect';
 import { fetchMessagesUnreadCount } from '@/lib/messages/api';
 import { usePortalOrganization } from '@/hooks/use-portal-organization';
@@ -91,6 +92,7 @@ function SchoolAdminLayoutContent() {
 
   useCompletePortalTransitionOnMount('school_admin');
   useReleaseAccountPortalSwitchOnBlur();
+  useEnsureSchoolAdminPortalAccess(slug);
 
   useEffect(() => {
     if (selectedSchool?.id && slug) {

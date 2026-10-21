@@ -4,6 +4,7 @@ import {
   ADMIN_NAV_CATALOG_ENTRIES,
   getEnabledFeatureNavChildren,
   getFeatureNavChildLabel,
+  isAdminFeatureHiddenFromRootNav,
   mergePortalFeatureNav,
   resolveFeatureNavChildren,
   resolveFeatureNavItem,
@@ -11,7 +12,8 @@ import {
 } from "./feature-nav";
 import { humanizeFeatureKey } from "./features";
 import type { AdminNavPath } from "./admin-routes";
-import type { AdminFeatures, PortalFeatureNav } from "./types";
+import { resolveAdminNavChildHref } from "./admin-routes";
+import type { AdminFeatures, FeatureNavChildConfig, PortalFeatureNav } from "./types";
 
 export type AdminNavPage = keyof AdminFeatures | string;
 
@@ -19,6 +21,9 @@ export type AdminNavChildItem = {
   key: string;
   name: string;
   icon: LucideIcon;
+  routeFeature?: string;
+  routeSubtab?: string;
+  children?: AdminNavChildItem[];
 };
 
 export type AdminNavItem = {
@@ -38,6 +43,86 @@ const CATALOG_KEYS = new Set<string>(
 
 function toAdminFeatureRecord(adminFeatures: AdminFeatures): Record<string, boolean> {
   return adminFeatures as unknown as Record<string, boolean>;
+}
+
+function mapAdminNavChild(
+  parentKey: string,
+  child: FeatureNavChildConfig,
+  adminFeatureRecord: Record<string, boolean>,
+): AdminNavChildItem | null {
+  if (child.enabled === false) return null;
+
+  if (child.children?.length) {
+    const nestedChildren = child.children
+      .map((nested) => mapAdminNavChild(parentKey, nested, adminFeatureRecord))
+      .filter((item): item is AdminNavChildItem => Boolean(item));
+    if (nestedChildren.length === 0) return null;
+    return {
+      key: child.key,
+      name: getFeatureNavChildLabel(parentKey, child.key, child),
+      icon: getFeatureIcon(child.icon),
+      children: nestedChildren,
+    };
+  }
+
+  const routeFeature = child.routeFeature;
+  if (routeFeature && !adminFeatureRecord[routeFeature]) {
+    return null;
+  }
+
+  return {
+    key: child.key,
+    name: getFeatureNavChildLabel(parentKey, child.key, child),
+    icon: getFeatureIcon(child.icon),
+    ...(routeFeature
+      ? {
+          routeFeature,
+          ...(child.routeSubtab ? { routeSubtab: child.routeSubtab } : {}),
+        }
+      : {}),
+  };
+}
+
+function buildAdminNavChildren(
+  parentKey: string,
+  portalNav: PortalFeatureNav,
+  adminFeatureRecord: Record<string, boolean>,
+): AdminNavChildItem[] {
+  const children = getEnabledFeatureNavChildren("admin", parentKey, portalNav);
+  return children
+    .map((child) => mapAdminNavChild(parentKey, child, adminFeatureRecord))
+    .filter((item): item is AdminNavChildItem => Boolean(item));
+}
+
+export function adminNavItemMatchesPath(
+  slug: string,
+  pathname: string,
+  item: AdminNavItem,
+): boolean {
+  const prefix = `/school/${slug}/admin/${item.key}`;
+  if (pathname === prefix || pathname.startsWith(`${prefix}/`)) {
+    return true;
+  }
+
+  const visit = (parentFeature: string, children: AdminNavChildItem[]): boolean => {
+    for (const child of children) {
+      if (child.children?.length) {
+        if (visit(parentFeature, child.children)) return true;
+        continue;
+      }
+      const href = resolveAdminNavChildHref(slug, parentFeature, child);
+      if (pathname === href || pathname.startsWith(`${href}/`)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  if (item.children?.length) {
+    return visit(item.key, item.children);
+  }
+
+  return false;
 }
 
 export function getAdminPageLabel(
@@ -60,6 +145,34 @@ export function getAdminSubtabLabel(
   return getFeatureNavChildLabel(parentKey, childKey, child);
 }
 
+function getFirstAdminNavPathForItem(item: AdminNavItem): AdminNavPath {
+  if (!item.children?.length) {
+    return { feature: item.key };
+  }
+
+  const visit = (
+    parentFeature: string,
+    children: AdminNavChildItem[],
+  ): AdminNavPath | null => {
+    for (const child of children) {
+      if (child.children?.length) {
+        const nested = visit(parentFeature, child.children);
+        if (nested) return nested;
+        continue;
+      }
+      if (child.routeFeature) {
+        return { feature: child.routeFeature };
+      }
+      return { feature: parentFeature, subtab: child.key };
+    }
+    return null;
+  };
+
+  const nested = visit(item.key, item.children);
+  if (nested) return nested;
+  return { feature: item.key, subtab: item.children[0].key };
+}
+
 export function getFirstAdminNavPath(
   adminFeatures: AdminFeatures,
   portalNav?: PortalFeatureNav,
@@ -67,11 +180,7 @@ export function getFirstAdminNavPath(
   const groups = buildAdminNavGroups(adminFeatures, portalNav);
   for (const group of groups) {
     if (group.items.length > 0) {
-      const item = group.items[0];
-      if (item.children?.length) {
-        return { feature: item.key, subtab: item.children[0].key };
-      }
-      return { feature: item.key };
+      return getFirstAdminNavPathForItem(group.items[0]);
     }
   }
   return null;
@@ -99,23 +208,18 @@ export function buildAdminNavGroups(
 
   for (const key of orderedKeys) {
     if (!record[key]) continue;
+    if (isAdminFeatureHiddenFromRootNav("admin", key, mergedNav)) {
+      continue;
+    }
     const resolved = resolveFeatureNavItem("admin", key, mergedNav);
     const group = resolved.group || mergedNav.groups[0] || "Main";
-    const children = getEnabledFeatureNavChildren("admin", key, mergedNav);
+    const navChildren = buildAdminNavChildren(key, mergedNav, record);
     const items = buckets.get(group) ?? [];
     items.push({
       key,
       name: resolved.label ?? getAdminPageLabel(key, mergedNav),
       icon: getFeatureIcon(resolved.icon),
-      ...(children.length > 0
-        ? {
-            children: children.map((child) => ({
-              key: child.key,
-              name: getFeatureNavChildLabel(key, child.key, child),
-              icon: getFeatureIcon(child.icon),
-            })),
-          }
-        : {}),
+      ...(navChildren.length > 0 ? { children: navChildren } : {}),
     });
     buckets.set(group, items);
   }

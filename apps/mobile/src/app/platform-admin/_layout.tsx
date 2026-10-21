@@ -31,8 +31,13 @@ function PlatformAdminLayoutContent() {
   const showTabBar = activeTab !== null;
 
   useEffect(() => {
-    if (!authLoading && (!user || portalType !== 'platform_admin')) {
+    if (authLoading) return;
+    if (!user) {
       router.replace('/');
+      return;
+    }
+    if (portalType && portalType !== 'platform_admin') {
+      router.replace('/portal');
     }
   }, [authLoading, user, portalType, router]);
 

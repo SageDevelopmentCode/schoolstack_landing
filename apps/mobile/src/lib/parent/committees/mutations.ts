@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { ACTIVITY_ACTIONS } from '@/lib/activity-log';
 import { logCommitteeActivityEvent } from '@/lib/committees/committee-activity-log';
 import type { CommitteePortalApiNamespace } from '@/lib/committees/notify-committee-task-assignment';
+import { postCommitteeMessageViaPortalApi } from '@/lib/committees/post-committee-message-via-portal';
 import { recordCommitteeWorkspaceCreate } from '@/lib/committees/record-committee-workspace-create';
 import {
   COMMITTEE_MESSAGE_FILES_BUCKET,
@@ -465,42 +466,8 @@ export async function postCommitteeMessageViaParentApi(
     files?: StagedMessageFile[];
   },
 ): Promise<{ messageId: string }> {
-  const { fetchParentApiFormData, fetchParentApi } = await import(
-    '@/lib/parent/parent-portal-api'
-  );
-
-  const trimmedBody = input.body.trim();
-  const files = input.files ?? [];
-
-  if (!trimmedBody && files.length === 0) {
-    throw new Error('Message cannot be empty.');
-  }
-
-  if (files.length > 0) {
-    const formData = new FormData();
-    formData.append('organizationId', input.organizationId);
-    formData.append('body', trimmedBody);
-    for (const file of files) {
-      formData.append('files', {
-        uri: file.uri,
-        name: file.name,
-        type: file.mimeType ?? 'application/octet-stream',
-      } as unknown as Blob);
-    }
-
-    const payload = await fetchParentApiFormData<{ message: { id: string } }>(
-      `/api/parent-portal/committees/${committeeId}/messages`,
-      formData,
-    );
-    return { messageId: payload.message.id };
-  }
-
-  const formData = new FormData();
-  formData.append('organizationId', input.organizationId);
-  formData.append('body', trimmedBody);
-  const payload = await fetchParentApiFormData<{ message: { id: string } }>(
-    `/api/parent-portal/committees/${committeeId}/messages`,
-    formData,
-  );
-  return { messageId: payload.message.id };
+  return postCommitteeMessageViaPortalApi(committeeId, {
+    ...input,
+    portalApiNamespace: 'parent-portal',
+  });
 }

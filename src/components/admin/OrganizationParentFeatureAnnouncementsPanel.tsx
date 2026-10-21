@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { AdminTableSkeleton } from "@/components/admin/ui/AdminSkeleton";
 import type { ParentFeatureAnnouncementRecord } from "@/lib/admin/parent-feature-announcements-storage";
 import {
   PARENT_FEATURE_ANNOUNCEMENT_CTA_LABELS,
@@ -594,10 +595,11 @@ export default function OrganizationParentFeatureAnnouncementsPanel({
       ) : null}
 
       {loading ? (
-        <div className="flex items-center gap-2 text-sm text-admin-faint font-secondary">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Loading parent portal cards…
-        </div>
+        <AdminTableSkeleton
+          columns={4}
+          rows={5}
+          ariaLabel="Loading parent portal cards"
+        />
       ) : (
         <>
           <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">

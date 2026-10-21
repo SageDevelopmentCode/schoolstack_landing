@@ -18,6 +18,40 @@ export function schoolAdminPath(
   return subtab ? `${base}/${subtab}` : base;
 }
 
+export type AdminNavChildHrefInput = {
+  key: string;
+  routeFeature?: string;
+  routeSubtab?: string;
+  children?: AdminNavChildHrefInput[];
+};
+
+export function resolveAdminNavChildHref(
+  slug: string,
+  parentFeature: string,
+  child: AdminNavChildHrefInput,
+): string {
+  if (child.routeFeature) {
+    return schoolAdminPath(slug, child.routeFeature, child.routeSubtab);
+  }
+  return schoolAdminPath(slug, parentFeature, child.key);
+}
+
+export function getFirstAdminNavChildPath(
+  slug: string,
+  parentFeature: string,
+  children: AdminNavChildHrefInput[],
+): string | null {
+  for (const child of children) {
+    if (child.children?.length) {
+      const nested = getFirstAdminNavChildPath(slug, parentFeature, child.children);
+      if (nested) return nested;
+      continue;
+    }
+    return resolveAdminNavChildHref(slug, parentFeature, child);
+  }
+  return null;
+}
+
 export function schoolMudKitchenPortalPath(
   slug: string,
   section?: string,

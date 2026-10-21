@@ -58,11 +58,13 @@ export default function AdminLoginScreen() {
       }
 
       const portal = await completePlatformAdminSignIn(user.id);
-      await setResolvedPortal(portal);
+      await setResolvedPortal(portal, user.id);
       router.replace('/platform-admin/organizations');
     } catch (submitError) {
-      markExplicitMobileSignOut();
-      await supabase.auth.signOut();
+      if (submitError instanceof PortalAccessError) {
+        markExplicitMobileSignOut();
+        await supabase.auth.signOut();
+      }
       setError(
         submitError instanceof PortalAccessError || submitError instanceof Error
           ? submitError.message

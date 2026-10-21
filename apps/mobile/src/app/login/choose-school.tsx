@@ -4,11 +4,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { ChooseSchoolExperience } from '@/components/choose-school-experience';
+import { parseChooseSchoolSlugsParam } from '@/lib/auth/parse-choose-school-slugs-param';
 import { Story } from '@/constants/story-theme';
 
 export default function ChooseSchoolScreen() {
   const router = useRouter();
-  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const { mode, slugs, source } = useLocalSearchParams<{
+    mode?: string;
+    slugs?: string;
+    source?: string;
+  }>();
   const switchingSchool = mode === 'switch';
 
   return (
@@ -18,6 +23,8 @@ export default function ChooseSchoolScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}>
         <ChooseSchoolExperience
+          initialSlugs={parseChooseSchoolSlugsParam(slugs)}
+          expectSlugsFromRoute={source === 'portal'}
           switchingSchool={switchingSchool}
           onBack={
             switchingSchool
