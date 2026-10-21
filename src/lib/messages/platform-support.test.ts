@@ -5,6 +5,8 @@ import { resolveThreadProgramIdForContact, threadVisibleInProgramPortalInbox } f
 import { contactKeyForThread, participantsFromContact } from "./participants-from-contact";
 import { validateParticipantSet } from "./participant-signature";
 import {
+  baseThreadsForInboxList,
+  filterStoryInboxThreads,
   MUDKITCHEN_SUPPORT_PLACEHOLDER_ID,
   MUDKITCHEN_SUPPORT_TEAM_NAME,
   mudKitchenSupportPlaceholderThread,
@@ -248,4 +250,36 @@ test("school inbox helpers drop MudKitchen Support threads", () => {
     items.map((item) => (item.type === "thread" ? item.thread.id : item.label)),
     ["office"],
   );
+});
+
+test("baseThreadsForInboxList uses pinned listed threads for parent and teacher", () => {
+  const listed = [mudKitchenSupportPlaceholderThread(), thread("other", [])];
+  const apiThreads = [thread("api-only", [])];
+
+  assert.deepEqual(
+    baseThreadsForInboxList("teacher", listed, apiThreads).map((item) => item.id),
+    [MUDKITCHEN_SUPPORT_PLACEHOLDER_ID, "other"],
+  );
+  assert.deepEqual(
+    baseThreadsForInboxList("parent", listed, apiThreads).map((item) => item.id),
+    [MUDKITCHEN_SUPPORT_PLACEHOLDER_ID, "other"],
+  );
+  assert.deepEqual(
+    baseThreadsForInboxList("admin", listed, apiThreads).map((item) => item.id),
+    ["api-only"],
+  );
+});
+
+test("filterStoryInboxThreads keeps MudKitchen Support pinned when search does not match", () => {
+  const support = mudKitchenSupportPlaceholderThread();
+  const other = thread("family-chat", [], {
+    title: "Cecilia Family",
+    lastMessagePreview: "Hello",
+  });
+  const base = [support, other];
+
+  const filtered = filterStoryInboxThreads(base, "cecilia", true);
+  assert.equal(filtered.length, 2);
+  assert.equal(filtered[0]?.id, MUDKITCHEN_SUPPORT_PLACEHOLDER_ID);
+  assert.equal(filtered[1]?.id, "family-chat");
 });

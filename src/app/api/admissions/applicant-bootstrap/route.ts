@@ -13,6 +13,7 @@ import {
 import { apiError } from "@/lib/api/route-errors";
 import {
   notifyRootedMeadowsParentApplicationStarted,
+  notifyRootedMeadowsPortalSignedIn,
   type ApplyAuthMode,
 } from "@/lib/discord";
 import { logNotificationFailure } from "@/lib/admissions/notification-logging";
@@ -163,6 +164,8 @@ export async function POST(request: Request) {
       });
     }
 
+    let parentApplicationStartedDiscordSent = false;
+
     if (
       result.action === "resume" &&
       result.createdNewApplication &&
@@ -181,12 +184,35 @@ export async function POST(request: Request) {
           firstName: firstName ?? body.firstName,
           lastName: lastName ?? body.lastName,
         });
+        parentApplicationStartedDiscordSent = true;
       } catch (discordError) {
         await logNotificationFailure(admin, {
           organizationId,
           operation: "parent_application_started_discord",
           entityType: "application",
           entityId: result.applicationId,
+          error: discordError,
+        });
+      }
+    }
+
+    if (!parentApplicationStartedDiscordSent && body.schoolName?.trim()) {
+      try {
+        await notifyRootedMeadowsPortalSignedIn({
+          email,
+          client: "web",
+          surface: "public_apply",
+          actorType: "parent",
+          schoolName: body.schoolName.trim(),
+          method: "otp",
+          page: "/forms/apply",
+        });
+      } catch (discordError) {
+        await logNotificationFailure(admin, {
+          organizationId,
+          operation: "apply_sign_in_discord",
+          entityType: "application",
+          entityId: result.applicationId ?? undefined,
           error: discordError,
         });
       }

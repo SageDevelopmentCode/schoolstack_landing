@@ -2,6 +2,10 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  CLIENT_AUTH_ACTIVITY_ACTIONS,
+  reportAuthActivity,
+} from "@/lib/activity-auth-client";
 import { createClient } from "@/utils/supabase/client";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { AdminButton } from "@/components/admin/ui/AdminButton";
@@ -35,6 +39,16 @@ function LoginForm() {
       setLoading(false);
       return;
     }
+
+    reportAuthActivity({
+      action: CLIENT_AUTH_ACTIVITY_ACTIONS.SIGNED_IN,
+      surface: "platform_admin",
+      metadata: {
+        freshSignIn: true,
+        method: "password",
+        client: "web",
+      },
+    });
 
     router.push(next);
     router.refresh();

@@ -10,6 +10,7 @@ import ButtonLoadingLabel, {
 import VerificationCodeInput from "@/components/ui/VerificationCodeInput";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import { attemptPostSignInRedirect } from "@/lib/auth/resolve-post-sign-in-redirect";
 import { createClient } from "@/utils/supabase/client";
 
 const RESEND_COOLDOWN_SECONDS = 60;
@@ -151,6 +152,10 @@ export default function SchoolAdminLoginForm({
         throw new Error(signInError.message);
       }
 
+      if (await attemptPostSignInRedirect(router, slug, "password")) {
+        return;
+      }
+
       router.replace(nextPath);
       router.refresh();
     } catch (submitError) {
@@ -180,6 +185,10 @@ export default function SchoolAdminLoginForm({
 
       if (verifyError) {
         throw new Error(verifyError.message);
+      }
+
+      if (await attemptPostSignInRedirect(router, slug, "otp")) {
+        return;
       }
 
       router.replace(nextPath);

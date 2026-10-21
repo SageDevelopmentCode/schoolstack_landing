@@ -15,6 +15,8 @@ import {
 } from "@/lib/messages/thread-placeholders";
 import { useMessagesRefresh } from "@/lib/messages/messages-refresh-context";
 import { useVisibilityPolling } from "@/lib/hooks/use-visibility-polling";
+import { useMessageComposerDraft } from "@/hooks/useMessageComposerDraft";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import { PORTAL_MESSAGE_DELETED_PREVIEW } from "@/lib/messages/constants";
 import { registerWebPushSubscription } from "@/lib/messages/web-push-client";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
@@ -67,6 +69,8 @@ import {
   isMudKitchenSupportPlaceholder,
   MUDKITCHEN_SUPPORT_CONTACT_KEY,
   MUDKITCHEN_SUPPORT_TEAM_NAME,
+  baseThreadsForInboxList,
+  filterStoryInboxThreads,
   pinMudKitchenSupportThread,
 } from "@/lib/messages/platform-support";
 
@@ -271,6 +275,30 @@ export default function MessagesInboxLayout({
   const [inboxSearch, setInboxSearch] = useState("");
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [deletingMessage, setDeletingMessage] = useState(false);
+  const {
+    discardDialogOpen: attachmentDiscardDialogOpen,
+    requestComposerNavigation,
+    confirmDiscardAttachments,
+    cancelDiscardAttachments,
+    clearDraftForThread,
+  } = useMessageComposerDraft({
+    organizationId: api.organizationId,
+    viewer: api.viewer,
+    threadId: activeThreadId,
+    input,
+    setInput,
+    stagedFiles,
+    setStagedFiles,
+    readOnly,
+  });
+  const {
+    dialogOpen: attachmentRouteLeaveDialogOpen,
+    confirmLeave: confirmAttachmentRouteLeave,
+    cancelLeave: cancelAttachmentRouteLeave,
+  } = useUnsavedChangesGuard({
+    isDirty: stagedFiles.length > 0,
+    enabled: !readOnly,
+  });
   const handledThreadParam = useRef<string | null>(null);
   const optimisticSendRef = useRef(createOptimisticSendTracker());
   const loadGenerationRef = useRef(createLoadGenerationGuard());
@@ -556,27 +584,33 @@ export default function MessagesInboxLayout({
   ]);
 
   const handleSelect = useCallback(
-    async (key: string) => {
-      const thread = listedThreads.find((item) => item.id === key);
-      if (thread) {
-        await selectThread(thread);
-        return;
-      }
+    (key: string) => {
+      requestComposerNavigation(() => {
+        void (async () => {
+          const thread = listedThreads.find((item) => item.id === key);
+          if (thread) {
+            await selectThread(thread);
+            return;
+          }
 
-      const contact = contacts.find((item) => item.key === key);
-      if (contact) {
-        await openContact(contact);
-      }
+          const contact = contacts.find((item) => item.key === key);
+          if (contact) {
+            await openContact(contact);
+          }
+        })();
+      });
     },
-    [contacts, listedThreads, openContact, selectThread],
+    [contacts, listedThreads, openContact, requestComposerNavigation, selectThread],
   );
 
   const handleNewConversationSelect = useCallback(
-    async (contact: MessageContact) => {
+    (contact: MessageContact) => {
       setNewConversationOpen(false);
-      await openContact(contact);
+      requestComposerNavigation(() => {
+        void openContact(contact);
+      });
     },
-    [openContact],
+    [openContact, requestComposerNavigation],
   );
 
   const handleSend = useCallback(async () => {
@@ -712,6 +746,7 @@ export default function MessagesInboxLayout({
         };
       });
       await loadThread(threadIdForSend, { silent: true });
+      clearDraftForThread(threadIdForSend);
     } catch (err) {
       let recovered = false;
       if (isBenignClientNetworkError(err)) {
@@ -760,6 +795,7 @@ export default function MessagesInboxLayout({
             void loadInbox({ silent: true });
             recovered = true;
             setError(null);
+            clearDraftForThread(threadIdForSend);
           }
         } catch {
           // keep failure path below
@@ -797,6 +833,7 @@ export default function MessagesInboxLayout({
     query,
     readOnly,
     reportMessagesError,
+    clearDraftForThread,
     stagedFiles,
   ]);
 
@@ -1022,7 +1059,7 @@ export default function MessagesInboxLayout({
   const splitPane = isSplitPaneMessagesVariant(variant);
 
   const threadsForList = useMemo(() => {
-    let base = api.viewer === "parent" ? listedThreads : threads;
+    let base = baseThreadsForInboxList(api.viewer, listedThreads, threads);
     if (
       activeThread &&
       !activeThread.id.startsWith("pending-") &&
@@ -1031,14 +1068,7 @@ export default function MessagesInboxLayout({
       base = [threadSummaryFromDetail(activeThread), ...base];
     }
 
-    const query = inboxSearch.trim().toLowerCase();
-    if (!storyVariant || !query) return base;
-    return base.filter(
-      (thread) =>
-        thread.title.toLowerCase().includes(query) ||
-        thread.subtitle?.toLowerCase().includes(query) ||
-        thread.lastMessagePreview?.toLowerCase().includes(query),
-    );
+    return filterStoryInboxThreads(base, inboxSearch, storyVariant);
   }, [activeThread, api.viewer, inboxSearch, listedThreads, storyVariant, threads]);
 
   useEffect(() => {
@@ -1360,7 +1390,11 @@ export default function MessagesInboxLayout({
             <div className="md:hidden border-b px-3 py-2" style={{ borderColor: C.border }}>
               <button
                 type="button"
-                onClick={() => setMobileView("list")}
+                onClick={() =>
+                  requestComposerNavigation(() => {
+                    setMobileView("list");
+                  })
+                }
                 className="inline-flex items-center gap-1 text-sm cursor-pointer"
                 style={{ color: C.textSecondary }}
               >
@@ -1384,7 +1418,14 @@ export default function MessagesInboxLayout({
             theme={theme}
             variant={variant}
             schoolName={api.schoolName}
-            onBack={splitPane ? () => setMobileView("list") : undefined}
+            onBack={
+              splitPane
+                ? () =>
+                    requestComposerNavigation(() => {
+                      setMobileView("list");
+                    })
+                : undefined
+            }
             loadingMessages={loadingMessages}
             onStudentClick={
               api.viewer === "teacher" && teacherStaffMemberId
@@ -1410,6 +1451,33 @@ export default function MessagesInboxLayout({
         onClose={() => {
           if (!deletingMessage) setDeleteTargetId(null);
         }}
+      />
+
+      <ConfirmDialog
+        C={C}
+        open={attachmentDiscardDialogOpen}
+        title="Discard unsent attachments?"
+        description="Your message text is saved for this conversation. Unsent file attachments will be lost if you continue."
+        confirmLabel="Continue"
+        cancelLabel="Stay"
+        variant="destructive"
+        onConfirm={confirmDiscardAttachments}
+        onClose={cancelDiscardAttachments}
+      />
+
+      <ConfirmDialog
+        C={C}
+        open={attachmentRouteLeaveDialogOpen}
+        title="Discard unsent attachments?"
+        description="Unsent file attachments will be lost if you leave this page."
+        confirmLabel="Leave"
+        cancelLabel="Stay"
+        variant="destructive"
+        onConfirm={() => {
+          setStagedFiles([]);
+          confirmAttachmentRouteLeave();
+        }}
+        onClose={cancelAttachmentRouteLeave}
       />
 
       {splitPane ? (

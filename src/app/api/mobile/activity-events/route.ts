@@ -10,7 +10,7 @@ import {
   type AuthActivityMetadata,
 } from "@/lib/activity-log";
 import { apiError } from "@/lib/api/route-errors";
-import { notifyRootedMeadowsMobileSignedIn } from "@/lib/discord";
+import { notifyRootedMeadowsPortalSignedIn } from "@/lib/discord";
 import { reportOperationalError } from "@/lib/operational-errors";
 import { createAdminClient } from "@/utils/supabase/admin";
 import {
@@ -143,8 +143,9 @@ export async function POST(request: Request) {
     }
 
     try {
-      await notifyRootedMeadowsMobileSignedIn({
+      await notifyRootedMeadowsPortalSignedIn({
         email: user.email,
+        client: "mobile",
         surface,
         actorType: authResult.actorType,
         schoolName,

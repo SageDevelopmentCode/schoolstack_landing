@@ -1077,21 +1077,31 @@ export async function notifyRootedMeadowsVerificationCodeSent(payload: {
   });
 }
 
-export type MobileSignInDiscordSurface =
+export type PortalSignInDiscordSurface =
   | "parent_portal"
   | "school_admin"
   | "teacher_portal"
-  | "platform_admin";
+  | "platform_admin"
+  | "public_apply";
 
-export type MobileSignInDiscordActorType =
+export type PortalSignInDiscordActorType =
   | "parent"
   | "school_admin"
   | "platform_admin"
   | "teacher";
 
-export function formatMobileSignInDiscordRoleLabel(
-  surface: MobileSignInDiscordSurface,
-  actorType: MobileSignInDiscordActorType,
+/** @deprecated Use PortalSignInDiscordSurface */
+export type MobileSignInDiscordSurface = Exclude<
+  PortalSignInDiscordSurface,
+  "public_apply"
+>;
+
+/** @deprecated Use PortalSignInDiscordActorType */
+export type MobileSignInDiscordActorType = PortalSignInDiscordActorType;
+
+export function formatPortalSignInDiscordRoleLabel(
+  surface: PortalSignInDiscordSurface,
+  actorType: PortalSignInDiscordActorType,
 ): string {
   if (surface === "platform_admin" || actorType === "platform_admin") {
     return "Platform admin";
@@ -1105,19 +1115,54 @@ export function formatMobileSignInDiscordRoleLabel(
   return "Parent";
 }
 
-export async function notifyRootedMeadowsMobileSignedIn(payload: {
+/** @deprecated Use formatPortalSignInDiscordRoleLabel */
+export const formatMobileSignInDiscordRoleLabel = formatPortalSignInDiscordRoleLabel;
+
+export type PortalSignInDiscordPage =
+  | "/login"
+  | "/parent"
+  | "/apply"
+  | "/forms/apply";
+
+export type PortalSignInDiscordPayload = {
   email: string;
-  surface: MobileSignInDiscordSurface;
-  actorType: MobileSignInDiscordActorType;
+  client: "web" | "mobile";
+  surface: PortalSignInDiscordSurface;
+  actorType: PortalSignInDiscordActorType;
   schoolName?: string;
   method?: "otp" | "password";
+  page?: PortalSignInDiscordPage;
   platform?: "ios" | "android";
   appVersion?: string;
-}) {
+};
+
+function formatPortalSignInDiscordPageLabel(
+  page: PortalSignInDiscordPage | undefined,
+): string | null {
+  if (!page) return null;
+  switch (page) {
+    case "/login":
+      return "Login";
+    case "/parent":
+      return "Parent portal";
+    case "/apply":
+      return "Apply";
+    case "/forms/apply":
+      return "Application form";
+    default:
+      return page;
+  }
+}
+
+export async function notifyRootedMeadowsPortalSignedIn(
+  payload: PortalSignInDiscordPayload,
+) {
   const fields: DiscordEmbedField[] = [
     embedField(
       "Role",
-      truncate(formatMobileSignInDiscordRoleLabel(payload.surface, payload.actorType)),
+      truncate(
+        formatPortalSignInDiscordRoleLabel(payload.surface, payload.actorType),
+      ),
       true,
     ),
     embedField("Email", truncate(payload.email), true),
@@ -1138,6 +1183,11 @@ export async function notifyRootedMeadowsMobileSignedIn(payload: {
     );
   }
 
+  const pageLabel = formatPortalSignInDiscordPageLabel(payload.page);
+  if (pageLabel) {
+    fields.push(embedField("Page", pageLabel, true));
+  }
+
   const platform = payload.platform;
   if (platform === "ios" || platform === "android") {
     fields.push(embedField("Platform", platform === "ios" ? "iOS" : "Android", true));
@@ -1148,10 +1198,28 @@ export async function notifyRootedMeadowsMobileSignedIn(payload: {
     fields.push(embedField("App version", truncate(appVersion), true));
   }
 
+  const title =
+    payload.client === "mobile" ? "📱 Mobile sign-in" : "🌐 Web sign-in";
+
   await sendRootedMeadowsDiscordEmbed({
-    title: "📱 Mobile sign-in",
+    title,
     color: DISCORD_EMBED_COLORS.admissions,
     fields,
+  });
+}
+
+export async function notifyRootedMeadowsMobileSignedIn(payload: {
+  email: string;
+  surface: MobileSignInDiscordSurface;
+  actorType: MobileSignInDiscordActorType;
+  schoolName?: string;
+  method?: "otp" | "password";
+  platform?: "ios" | "android";
+  appVersion?: string;
+}) {
+  await notifyRootedMeadowsPortalSignedIn({
+    ...payload,
+    client: "mobile",
   });
 }
 

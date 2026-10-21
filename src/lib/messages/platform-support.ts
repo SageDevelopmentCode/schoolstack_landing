@@ -133,6 +133,36 @@ export function pinMudKitchenSupportThread(
   return [pinned, ...rest];
 }
 
+export function baseThreadsForInboxList(
+  viewer: "parent" | "teacher" | "admin",
+  listedThreads: MessageThreadSummary[],
+  threads: MessageThreadSummary[],
+): MessageThreadSummary[] {
+  return viewer === "parent" || viewer === "teacher" ? listedThreads : threads;
+}
+
+export function filterStoryInboxThreads(
+  threads: MessageThreadSummary[],
+  query: string,
+  storyVariant: boolean,
+): MessageThreadSummary[] {
+  const needle = query.trim().toLowerCase();
+  if (!storyVariant || !needle) return threads;
+
+  const pinnedSupport = threads.find((thread) => isMudKitchenSupportListThread(thread));
+  const filtered = threads.filter(
+    (thread) =>
+      thread.title.toLowerCase().includes(needle) ||
+      thread.subtitle?.toLowerCase().includes(needle) ||
+      (thread.lastMessagePreview?.toLowerCase().includes(needle) ?? false),
+  );
+
+  if (pinnedSupport && !filtered.some((thread) => thread.id === pinnedSupport.id)) {
+    return [pinnedSupport, ...filtered];
+  }
+  return filtered;
+}
+
 export function omitPlatformSupportThreads<
   T extends { participants: ReadonlyArray<{ kind: string }> },
 >(threads: T[]): T[] {

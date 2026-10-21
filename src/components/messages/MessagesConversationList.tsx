@@ -1,6 +1,7 @@
 "use client";
 
 import type { CSSProperties, KeyboardEvent } from "react";
+import { Pin } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { MessageContact, MessageThreadSummary } from "@/lib/messages/types";
 import MessagesAvatar, { type MessagesLayoutVariant } from "./MessagesAvatar";
@@ -249,8 +250,15 @@ export default function MessagesConversationList({
                     >
                       {title}
                     </p>
-                    {timeLabel ? (
+                    {timeLabel || (storyVariant && supportBrandRow) ? (
                       <div className="flex shrink-0 items-center gap-1.5">
+                        {storyVariant && supportBrandRow ? (
+                          <Pin
+                            className="h-3 w-3 shrink-0"
+                            style={{ color: MUDKITCHEN_LOGO_BRAND.terracotta, opacity: 0.65 }}
+                            aria-label="Pinned"
+                          />
+                        ) : null}
                         {storyVariant && hasUnread ? (
                           <span
                             className="h-2 w-2 rounded-full"
@@ -258,18 +266,20 @@ export default function MessagesConversationList({
                             aria-hidden
                           />
                         ) : null}
-                        <p
-                          className={`shrink-0 ${splitPane ? "text-[11px]" : "text-[10px]"}`}
-                          style={{
-                            color:
-                              storyVariant || (hasUnread && splitPane)
-                                ? theme?.muted ?? C.textTertiary
-                                : C.textTertiary,
-                            fontWeight: !storyVariant && hasUnread && splitPane ? 600 : 400,
-                          }}
-                        >
-                          {timeLabel}
-                        </p>
+                        {timeLabel ? (
+                          <p
+                            className={`shrink-0 ${splitPane ? "text-[11px]" : "text-[10px]"}`}
+                            style={{
+                              color:
+                                storyVariant || (hasUnread && splitPane)
+                                  ? theme?.muted ?? C.textTertiary
+                                  : C.textTertiary,
+                              fontWeight: !storyVariant && hasUnread && splitPane ? 600 : 400,
+                            }}
+                          >
+                            {timeLabel}
+                          </p>
+                        ) : null}
                       </div>
                     ) : null}
                   </div>
