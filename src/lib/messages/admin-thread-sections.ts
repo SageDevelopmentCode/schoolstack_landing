@@ -1,4 +1,5 @@
 import type { MessageThreadSummary } from "./types";
+import { threadHasPlatformSupport } from "./platform-support";
 
 export type AdminThreadSection = "guardian_staff" | "guardian_office";
 
@@ -57,14 +58,17 @@ export function getAdminThreadSection(
 export function buildAdminSectionedListItems(
   threads: MessageThreadSummary[],
 ): AdminConversationListItem[] {
+  const visibleThreads = threads.filter(
+    (thread) => !threadHasPlatformSupport(thread.participants),
+  );
   const guardianStaffThreads = sortThreadsByRecency(
-    threads.filter((thread) => getAdminThreadSection(thread) === "guardian_staff"),
+    visibleThreads.filter((thread) => getAdminThreadSection(thread) === "guardian_staff"),
   );
   const guardianOfficeThreads = sortThreadsByRecency(
-    threads.filter((thread) => getAdminThreadSection(thread) === "guardian_office"),
+    visibleThreads.filter((thread) => getAdminThreadSection(thread) === "guardian_office"),
   );
   const otherThreads = sortThreadsByRecency(
-    threads.filter((thread) => getAdminThreadSection(thread) === null),
+    visibleThreads.filter((thread) => getAdminThreadSection(thread) === null),
   );
 
   const items: AdminConversationListItem[] = [];

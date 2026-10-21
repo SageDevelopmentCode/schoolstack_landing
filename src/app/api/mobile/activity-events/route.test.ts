@@ -220,6 +220,67 @@ describe("authorizeMobileActivityEvent", () => {
     assert.deepEqual(result, { ok: true, actorType: "teacher" });
   });
 
+  it("allows platform admin on platform_admin surface without organizationId", async () => {
+    const supabase = createMockSupabase({
+      user: { id: USER_ID },
+      tables: {
+        profiles: [{ id: USER_ID, role: "admin" }],
+      },
+    });
+
+    const result = await authorizeMobileActivityEvent(
+      supabase,
+      USER_ID,
+      undefined,
+      "platform_admin",
+    );
+
+    assert.deepEqual(result, { ok: true, actorType: "platform_admin" });
+  });
+
+  it("rejects non-platform admin on platform_admin surface", async () => {
+    const supabase = createMockSupabase({
+      user: { id: USER_ID },
+      tables: {
+        profiles: [{ id: USER_ID, role: "user" }],
+      },
+    });
+
+    const result = await authorizeMobileActivityEvent(
+      supabase,
+      USER_ID,
+      undefined,
+      "platform_admin",
+    );
+
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      assert.equal(result.status, 403);
+    }
+  });
+
+  it("requires organizationId for school-scoped surfaces", async () => {
+    const supabase = createMockSupabase({
+      user: { id: USER_ID },
+      tables: {
+        profiles: [{ id: USER_ID, role: "user" }],
+      },
+    });
+
+    const result = await authorizeMobileActivityEvent(
+      supabase,
+      USER_ID,
+      undefined,
+      "parent_portal",
+    );
+
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      assert.equal(result.status, 400);
+      assert.equal(result.code, "invalid_organization");
+    }
+  });
+
   it("allows enrolled parent on parent_portal surface", async () => {
     const supabase = createMockSupabase({
       user: { id: USER_ID },

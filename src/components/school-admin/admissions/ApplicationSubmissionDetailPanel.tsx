@@ -42,6 +42,10 @@ import {
   type FamilyAdmissionTimelineEvent,
 } from "@/lib/admissions/application-submissions";
 import { getChecklistForApplication } from "@/lib/admissions/enrollment-checklist-materialization";
+import {
+  getIncompletePostSubmitNotice,
+  SUBMISSION_POST_APPLICATION_STEPS_ANCHOR_ID,
+} from "@/lib/admissions/admin-post-submit-steps";
 import { loadApplicationDetail } from "@/lib/admissions/parent-portal-access";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import {
@@ -259,6 +263,17 @@ export default function ApplicationSubmissionDetailPanel({
     [historyEvents],
   );
 
+  const incompletePostSubmitNotice = useMemo(
+    () => getIncompletePostSubmitNotice(detail?.postSubmitSteps ?? []),
+    [detail?.postSubmitSteps],
+  );
+
+  const scrollToPostApplicationSteps = useCallback(() => {
+    document
+      .getElementById(SUBMISSION_POST_APPLICATION_STEPS_ANCHOR_ID)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
   const canStartEnrollment =
     currentStatus === "accepted" &&
     !hasChecklist &&
@@ -352,6 +367,14 @@ export default function ApplicationSubmissionDetailPanel({
               onAccept={
                 hasPublishedEnrollmentChecklist && !hasChecklist
                   ? () => setStartEnrollmentOpen(true)
+                  : undefined
+              }
+              postSubmitNotice={
+                incompletePostSubmitNotice
+                  ? {
+                      ...incompletePostSubmitNotice,
+                      onClick: scrollToPostApplicationSteps,
+                    }
                   : undefined
               }
               onStatusChanged={(status) => {

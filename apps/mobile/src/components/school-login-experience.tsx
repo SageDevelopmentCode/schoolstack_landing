@@ -78,7 +78,7 @@ export function SchoolLoginExperience() {
 
       const portal = await completeSchoolSignIn(userId, organization);
       await setResolvedPortal(portal, userId);
-      void logMobileAuthSignedIn(portal);
+      void logMobileAuthSignedIn(portal, { freshSignIn: true });
       router.replace('/portal');
     },
     [router, setResolvedPortal, user?.id],
@@ -112,10 +112,10 @@ export function SchoolLoginExperience() {
       }
 
       await setResolvedPortal(result.portal, signedInUserId);
-      void logMobileAuthSignedIn(
-        result.portal,
-        authMethod ? { method: authMethod } : undefined,
-      );
+      void logMobileAuthSignedIn(result.portal, {
+        freshSignIn: true,
+        ...(authMethod ? { method: authMethod } : {}),
+      });
       router.replace('/portal');
     },
     [goToPhase, router, setResolvedPortal, supabase],

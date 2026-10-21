@@ -28,7 +28,10 @@ import {
   schoolAdminPath,
   schoolMudKitchenPortalPath,
 } from "@/lib/organization-settings/admin-routes";
-import { MUDKITCHEN_LOGO_BRAND as MK } from "@/lib/mudkitchen-portal/theme";
+import {
+  MUDKITCHEN_BRAND_GRADIENT,
+  MUDKITCHEN_LOGO_BRAND as MK,
+} from "@/lib/mudkitchen-portal/theme";
 import {
   detectPortalFromPathname,
   type SchoolPortalOption,
@@ -551,7 +554,7 @@ export default function SchoolAdminStorySidebar({
             alignItems: isExpanded ? "flex-start" : "center",
             padding: isExpanded ? "8px" : "8px 6px",
             borderRadius: C.r.sm,
-            background: `linear-gradient(135deg, ${MK.terracottaDark} 0%, ${MK.terracotta} 45%, ${MK.terracottaBright} 75%, ${MK.wood} 100%)`,
+            background: MUDKITCHEN_BRAND_GRADIENT,
             color: MK.cream,
             textDecoration: "none",
           }}

@@ -136,6 +136,11 @@ export async function resolveParticipantsForContact(
 
   if (context.viewer === "teacher") {
     if (!context.staffMemberId) throw new Error("Staff profile not found.");
+    if (contact.kind === "platform_support") {
+      return participantsFromContact(contact, {
+        staffMemberId: context.staffMemberId,
+      });
+    }
     if (contact.kind === "guardian" && contact.guardianId) {
       const { data: guardian, error: guardianError } = await admin
         .from("guardians")

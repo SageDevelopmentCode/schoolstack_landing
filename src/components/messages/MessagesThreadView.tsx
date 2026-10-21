@@ -16,6 +16,12 @@ import {
   isSplitPaneMessagesVariant,
   isStoryMessagesVariant,
 } from "@/lib/messages/messages-layout-variant";
+import {
+  isMudKitchenSupportPlaceholder,
+  MUDKITCHEN_SUPPORT_EMPTY_COPY,
+  MUDKITCHEN_SUPPORT_LOGO_URL,
+  threadHasPlatformSupport,
+} from "@/lib/messages/platform-support";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 export type MessagesComposeBanner =
@@ -108,6 +114,13 @@ export default function MessagesThreadView({
   }
 
   const renderItems = buildMessageRenderItems(thread.messages);
+  const supportEmpty =
+    isMudKitchenSupportPlaceholder(thread.id) ||
+    threadHasPlatformSupport(thread.participants);
+  const supportLogoAvatarProps =
+    supportEmpty && thread.photoUrl
+      ? { photoBackground: "#FFFFFF", photoObjectFit: "contain" as const }
+      : {};
 
   return (
     <div className="flex flex-col flex-1 min-h-0 h-full">
@@ -143,6 +156,7 @@ export default function MessagesThreadView({
                 color={thread.color}
                 photoUrl={thread.photoUrl}
                 size="lg"
+                {...supportLogoAvatarProps}
               />
             )
           ) : null}
@@ -187,19 +201,22 @@ export default function MessagesThreadView({
                 color={thread.color}
                 photoUrl={thread.photoUrl}
                 size="lg"
+                {...supportLogoAvatarProps}
               />
               <div>
                 <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
                   Say hello to {thread.title}
                 </p>
                 <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
-                  Send a message to start the conversation.
+                  {supportEmpty
+                    ? MUDKITCHEN_SUPPORT_EMPTY_COPY
+                    : "Send a message to start the conversation."}
                 </p>
               </div>
             </div>
           ) : (
             <p className="text-sm text-center py-8" style={{ color: C.textTertiary }}>
-              No messages yet. Say hello.
+              {supportEmpty ? MUDKITCHEN_SUPPORT_EMPTY_COPY : "No messages yet. Say hello."}
             </p>
           )
         ) : (
@@ -262,6 +279,16 @@ export default function MessagesThreadView({
                               name={message.senderName}
                               color={colorForKey(message.senderUserId)}
                               photoUrl={message.profilePhotoUrl}
+                              photoBackground={
+                                message.profilePhotoUrl === MUDKITCHEN_SUPPORT_LOGO_URL
+                                  ? "#FFFFFF"
+                                  : undefined
+                              }
+                              photoObjectFit={
+                                message.profilePhotoUrl === MUDKITCHEN_SUPPORT_LOGO_URL
+                                  ? "contain"
+                                  : "cover"
+                              }
                               size="sm"
                             />
                           )

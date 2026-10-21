@@ -10,6 +10,8 @@ function participantToken(participant: MessageParticipantInput): string {
       return `staff:${participant.staffMemberId}`;
     case "school_office":
       return "school_office";
+    case "platform_support":
+      return "platform_support";
   }
 }
 
@@ -32,9 +34,30 @@ export function validateParticipantSet(participants: MessageParticipantInput[]):
   const guardianCount = kinds.filter((k) => k === "guardian").length;
   const staffCount = kinds.filter((k) => k === "staff_member").length;
   const officeCount = kinds.filter((k) => k === "school_office").length;
+  const supportCount = kinds.filter((k) => k === "platform_support").length;
   const parentSideCount = familyCount + guardianCount;
 
-  if (parentSideCount > 2 || staffCount > 2 || officeCount > 1) {
+  if (parentSideCount > 2 || staffCount > 2 || officeCount > 1 || supportCount > 1) {
+    throw new Error("Invalid participant combination.");
+  }
+
+  if (supportCount === 1) {
+    if (
+      guardianCount === 1 &&
+      familyCount === 0 &&
+      staffCount === 0 &&
+      officeCount === 0
+    ) {
+      return;
+    }
+    if (
+      staffCount === 1 &&
+      guardianCount === 0 &&
+      familyCount === 0 &&
+      officeCount === 0
+    ) {
+      return;
+    }
     throw new Error("Invalid participant combination.");
   }
 

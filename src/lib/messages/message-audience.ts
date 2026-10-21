@@ -38,14 +38,17 @@ export function threadVisibleInProgramPortalInbox(input: {
   if (!programId) return false;
   if (threadProgramId === programId) return true;
   if (threadProgramId !== null) return false;
-  return input.participants.some((participant) => participant.kind === "school_office");
+  return input.participants.some(
+    (participant) =>
+      participant.kind === "school_office" || participant.kind === "platform_support",
+  );
 }
 
 export function resolveThreadProgramIdForContact(input: {
-  contactKind: "guardian" | "staff_member" | "school_office";
+  contactKind: "guardian" | "staff_member" | "school_office" | "platform_support";
   portalProgramId?: string | null;
 }): string | null {
-  if (input.contactKind === "school_office") {
+  if (input.contactKind === "school_office" || input.contactKind === "platform_support") {
     return null;
   }
   return input.portalProgramId?.trim() || null;
@@ -53,7 +56,7 @@ export function resolveThreadProgramIdForContact(input: {
 
 export function threadMatchesPortalContext(input: {
   threadProgramId?: string | null;
-  contactKind: "guardian" | "staff_member" | "school_office";
+  contactKind: "guardian" | "staff_member" | "school_office" | "platform_support";
   portalProgramId?: string | null;
 }): boolean {
   const threadProgramId = input.threadProgramId ?? null;
@@ -62,7 +65,7 @@ export function threadMatchesPortalContext(input: {
   if (!portalProgramId) {
     return threadProgramId === null;
   }
-  if (input.contactKind === "school_office") {
+  if (input.contactKind === "school_office" || input.contactKind === "platform_support") {
     return threadProgramId === null;
   }
   return threadProgramId === portalProgramId;

@@ -1,5 +1,11 @@
 import { PORTAL_MESSAGE_DELETED_PREVIEW } from "./constants";
 import { colorForKey, formatMessageTime } from "./format";
+import { MUDKITCHEN_LOGO_BRAND } from "@/lib/mudkitchen-portal/theme";
+import {
+  MUDKITCHEN_SUPPORT_COLOR,
+  MUDKITCHEN_SUPPORT_LOGO_URL,
+  MUDKITCHEN_SUPPORT_TEAM_NAME,
+} from "./platform-support";
 import {
   formatEnrolledStudentName,
   formatEnrolledStudentSubtitle,
@@ -286,6 +292,54 @@ export function resolveThreadTitle(
   const legacyFamilyParticipant = participants.find((p) => p.kind === "family");
   const staffParticipants = participants.filter((p) => p.kind === "staff_member");
   const hasOffice = participants.some((p) => p.kind === "school_office");
+  const hasPlatformSupport = participants.some((p) => p.kind === "platform_support");
+
+  if (
+    hasPlatformSupport &&
+    staffParticipants.length === 1 &&
+    !guardianParticipant &&
+    !legacyFamilyParticipant
+  ) {
+    const staffMemberId = staffParticipants[0]?.staffMemberId;
+    if (staffMemberId) {
+      if (viewer === "teacher") {
+        return {
+          title: MUDKITCHEN_SUPPORT_TEAM_NAME,
+          subtitle: "Help with MudKitchen",
+          photoUrl: MUDKITCHEN_SUPPORT_LOGO_URL,
+          color: MUDKITCHEN_LOGO_BRAND.cream,
+        };
+      }
+      const staff = context.staffMembers.get(staffMemberId);
+      const staffName = staff
+        ? [staff.firstName, staff.lastName].filter(Boolean).join(" ")
+        : "Staff";
+      return {
+        title: staffName,
+        subtitle: MUDKITCHEN_SUPPORT_TEAM_NAME,
+        photoUrl: staff?.profilePhotoUrl ?? null,
+        color: MUDKITCHEN_SUPPORT_COLOR,
+      };
+    }
+  }
+
+  if (hasPlatformSupport && guardianParticipant?.guardianId) {
+    const guardianId = guardianParticipant.guardianId;
+    if (viewer === "parent") {
+      return {
+        title: MUDKITCHEN_SUPPORT_TEAM_NAME,
+        subtitle: "Help with MudKitchen",
+        photoUrl: MUDKITCHEN_SUPPORT_LOGO_URL,
+        color: MUDKITCHEN_LOGO_BRAND.cream,
+      };
+    }
+    return {
+      title: resolveGuardianThreadTitle(guardianId, context),
+      subtitle: MUDKITCHEN_SUPPORT_TEAM_NAME,
+      photoUrl: guardianDisplayPhotoUrl(guardianId, context),
+      color: MUDKITCHEN_SUPPORT_COLOR,
+    };
+  }
 
   if (
     guardianParticipants.length === 2 &&
@@ -557,7 +611,10 @@ export function mapMessageRow(
   let senderName = "Unknown";
   let profilePhotoUrl: string | null = null;
 
-  if (row.sender_kind === "org_admin") {
+  if (row.sender_kind === "platform_support") {
+    senderName = MUDKITCHEN_SUPPORT_TEAM_NAME;
+    profilePhotoUrl = MUDKITCHEN_SUPPORT_LOGO_URL;
+  } else if (row.sender_kind === "org_admin") {
     senderName = context.schoolOfficeLabel;
   } else if (row.sender_kind === "guardian" && row.sender_guardian_id) {
     const guardian = context.guardians.get(row.sender_guardian_id);

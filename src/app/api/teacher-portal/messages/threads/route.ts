@@ -79,7 +79,7 @@ export async function POST(request: Request) {
       organizationId?: string;
       contact?: {
         key: string;
-        kind: "guardian" | "staff_member" | "school_office";
+        kind: "guardian" | "staff_member" | "school_office" | "platform_support";
         guardianId?: string;
         familyId?: string;
         staffMemberId?: string;

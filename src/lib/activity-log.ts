@@ -153,6 +153,7 @@ export type ActivitySurface =
   | "parent_portal"
   | "teacher_portal"
   | "school_admin"
+  | "platform_admin"
   | "public_apply"
   | "login"
   | "api"
@@ -360,6 +361,7 @@ export type AuthActivityMetadata = {
   client?: "web" | "mobile";
   platform?: "ios" | "android";
   appVersion?: string;
+  freshSignIn?: boolean;
 };
 
 export type LogAuthActivityInput = {

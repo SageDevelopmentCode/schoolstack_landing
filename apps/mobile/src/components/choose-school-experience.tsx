@@ -62,10 +62,12 @@ export function ChooseSchoolExperience({
       const portal = await completeSchoolSignIn(user.id, organization);
       await clearAllPersistedPortalCaches();
       await setResolvedPortal(portal, user.id);
-      void logMobileAuthSignedIn(portal);
+      void logMobileAuthSignedIn(portal, {
+        freshSignIn: !switchingSchool,
+      });
       router.replace('/portal');
     },
-    [router, setResolvedPortal, user?.id],
+    [router, setResolvedPortal, switchingSchool, user?.id],
   );
 
   const handleNoSchoolAccess = useCallback(async () => {

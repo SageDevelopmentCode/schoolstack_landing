@@ -15,6 +15,10 @@ import type {
   GalleryUploadSurface,
 } from "./gallery-activity";
 import { logGalleryPhotosUploaded } from "./gallery-activity";
+import {
+  fireGalleryPhotosUploadedEmailNotifications,
+  sendGalleryPhotosUploadedParentEmails,
+} from "./gallery-notifications";
 import { attachUploaderNamesToGalleryPhotos } from "./resolve-uploader";
 import {
   buildGalleryPageMeta,
@@ -315,7 +319,7 @@ export async function createGalleryPhotoBatch(
   }
 
   if (input.logActivity !== false && created.length > 0) {
-    await logGalleryPhotosUploaded(supabase, {
+    const activityEventId = await logGalleryPhotosUploaded(supabase, {
       organizationId: input.organizationId,
       uploadBatchId,
       photoCount: created.length,
@@ -325,6 +329,24 @@ export async function createGalleryPhotoBatch(
       actorName: input.actorName,
       surface: input.surface,
     });
+
+    fireGalleryPhotosUploadedEmailNotifications(
+      supabase,
+      sendGalleryPhotosUploadedParentEmails(supabase, {
+        organizationId: input.organizationId,
+        uploadBatchId,
+        photoCount: created.length,
+        photoDate,
+        uploaderName: input.actorName,
+        activityEventId,
+      }),
+      {
+        organizationId: input.organizationId,
+        uploadBatchId,
+        surface: input.surface,
+        actorUserId: input.uploadedBy,
+      },
+    );
   }
 
   const withNames = await attachUploaderNamesToGalleryPhotos(

@@ -42,7 +42,7 @@ describe('portalTypeToMobileSurface', () => {
   it('maps supported portal types', () => {
     expect(portalTypeToMobileSurface('parent')).toBe('parent_portal');
     expect(portalTypeToMobileSurface('school_admin')).toBe('school_admin');
-    expect(portalTypeToMobileSurface('platform_admin')).toBeNull();
+    expect(portalTypeToMobileSurface('platform_admin')).toBe('platform_admin');
   });
 });
 

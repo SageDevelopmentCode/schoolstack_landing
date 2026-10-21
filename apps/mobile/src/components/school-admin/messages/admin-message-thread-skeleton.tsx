@@ -44,7 +44,6 @@ export function AdminMessageThreadSkeleton() {
               styles.bubbleRow,
               bubble.align === 'right' ? styles.bubbleRowRight : styles.bubbleRowLeft,
             ]}>
-            <SkeletonPulse style={styles.storyAvatar} backgroundColor={blockColor} />
             <SkeletonPulse
               style={{
                 height: 44,
@@ -119,21 +118,13 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   bubbleRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.two,
+    alignSelf: 'stretch',
   },
   bubbleRowLeft: {
-    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
   },
   bubbleRowRight: {
-    flexDirection: 'row-reverse',
-    justifyContent: 'flex-start',
-  },
-  storyAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    alignItems: 'flex-end',
   },
   composeBar: {
     flexDirection: 'row',

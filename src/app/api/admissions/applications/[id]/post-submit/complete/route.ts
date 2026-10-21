@@ -1,10 +1,19 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
   AdmissionsBookingError,
   markPostSubmitStepCompleteManually,
   undoManualPostSubmitStepCompletion,
 } from "@/lib/admissions/admissions-booking";
+import {
+  PostSubmitCompleteRequestError,
+  parsePostSubmitCompleteRequest,
+  validatePostSubmitCompleteAttachments,
+} from "@/lib/admissions/post-submit-complete-request";
+import {
+  deleteAllPostSubmitStepCompletionFiles,
+  listPostSubmitStepCompletionFilesForApplication,
+  uploadPostSubmitStepCompletionFile,
+} from "@/lib/admissions/post-submit-step-documentation";
 import { postSubmitActionLabel } from "@/lib/admissions/post-submit-templates";
 import { parseApplicationFormPostSubmitConfig } from "@/lib/admissions/application-form-schema";
 import {
@@ -80,10 +89,19 @@ export async function POST(request: Request, context: RouteContext) {
   const supabase = await createClientFromRequest(request);
   const { id: applicationId } = await context.params;
 
-  let body: CompleteBody;
+  let parsed;
   try {
-    body = (await request.json()) as CompleteBody;
-  } catch {
+    parsed = await parsePostSubmitCompleteRequest(request);
+    validatePostSubmitCompleteAttachments(parsed.attachmentFiles);
+  } catch (error) {
+    if (error instanceof PostSubmitCompleteRequestError) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: error.message,
+        code: error.code,
+      });
+    }
     return apiError(ROUTE, {
       request,
       status: 400,
@@ -92,7 +110,7 @@ export async function POST(request: Request, context: RouteContext) {
     });
   }
 
-  const actionId = body.actionId?.trim();
+  const { actionId, notes, attachmentFiles } = parsed;
   if (!actionId) {
     return apiError(ROUTE, {
       request,
@@ -123,7 +141,34 @@ export async function POST(request: Request, context: RouteContext) {
       applicationId,
       actionId,
       actorUserId: user.id,
+      adminCompletionNotes: notes,
     });
+
+    const uploadCtx = { organizationId, applicationId, actionId };
+    try {
+      for (const file of attachmentFiles) {
+        await uploadPostSubmitStepCompletionFile(admin, uploadCtx, file, user.id);
+      }
+    } catch (uploadError) {
+      await deleteAllPostSubmitStepCompletionFiles(
+        admin,
+        organizationId,
+        applicationId,
+        actionId,
+      ).catch(() => undefined);
+      await undoManualPostSubmitStepCompletion(admin, {
+        organizationId,
+        applicationId,
+        actionId,
+      }).catch(() => undefined);
+      throw uploadError;
+    }
+
+    const filesByActionId = await listPostSubmitStepCompletionFilesForApplication(
+      admin,
+      applicationId,
+      [actionId],
+    );
 
     const stepTitle = await resolveStepTitle(admin, applicationId, actionId);
 
@@ -149,7 +194,9 @@ export async function POST(request: Request, context: RouteContext) {
         schedulingMode: booking.schedulingMode,
         scheduledDate: booking.scheduledDate,
         completedManuallyAt: booking.completedManuallyAt,
+        adminCompletionNotes: booking.adminCompletionNotes,
       },
+      files: filesByActionId.get(actionId) ?? [],
     });
   } catch (error) {
     if (error instanceof AuthError || error instanceof SchoolAdminAuthError) {
@@ -228,6 +275,13 @@ export async function DELETE(request: Request, context: RouteContext) {
     await requireSchoolAdminUser(supabase, organizationId, request);
 
     const stepTitle = await resolveStepTitle(admin, applicationId, actionId);
+
+    await deleteAllPostSubmitStepCompletionFiles(
+      admin,
+      organizationId,
+      applicationId,
+      actionId,
+    );
 
     await undoManualPostSubmitStepCompletion(admin, {
       organizationId,

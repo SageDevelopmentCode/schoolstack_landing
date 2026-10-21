@@ -63,6 +63,12 @@ import {
 } from "@/lib/portal-operational-errors";
 import { isBenignClientNetworkError } from "@/lib/client-network-errors";
 import { buildParentFamilyPreviewMessagesQuery } from "@/lib/admin/mobile-preview/parent-portal-preview-api";
+import {
+  isMudKitchenSupportPlaceholder,
+  MUDKITCHEN_SUPPORT_CONTACT_KEY,
+  MUDKITCHEN_SUPPORT_TEAM_NAME,
+  pinMudKitchenSupportThread,
+} from "@/lib/messages/platform-support";
 
 export type MessagesApiConfig = {
   basePath: string;
@@ -415,6 +421,13 @@ export default function MessagesInboxLayout({
 
   const selectThread = useCallback(
     async (thread: MessageThreadSummary) => {
+      if (isMudKitchenSupportPlaceholder(thread.id)) {
+        setMobileView("chat");
+        setActiveThreadId(thread.id);
+        setActiveThread(threadDetailFromSummary(thread, []));
+        return;
+      }
+
       setMobileView("chat");
       setActiveThreadId(thread.id);
       const useStaticPreviewMessages = readOnly && !readOnlyFetchThreads;
@@ -515,9 +528,36 @@ export default function MessagesInboxLayout({
     ],
   );
 
+  const teacherStaffMemberId =
+    teacherPortal?.staffMemberId ?? viewerContext?.staffMemberId ?? null;
+
+  const listedThreads = useMemo(() => {
+    if (api.viewer === "parent" && api.guardianId) {
+      return pinMudKitchenSupportThread(
+        threads,
+        activeThread ? threadSummaryFromDetail(activeThread) : null,
+        { mode: "parent", guardianId: api.guardianId },
+      );
+    }
+    if (api.viewer === "teacher" && teacherStaffMemberId) {
+      return pinMudKitchenSupportThread(
+        threads,
+        activeThread ? threadSummaryFromDetail(activeThread) : null,
+        { mode: "teacher", staffMemberId: teacherStaffMemberId },
+      );
+    }
+    return threads;
+  }, [
+    activeThread,
+    api.guardianId,
+    api.viewer,
+    teacherStaffMemberId,
+    threads,
+  ]);
+
   const handleSelect = useCallback(
     async (key: string) => {
-      const thread = threads.find((item) => item.id === key);
+      const thread = listedThreads.find((item) => item.id === key);
       if (thread) {
         await selectThread(thread);
         return;
@@ -528,7 +568,7 @@ export default function MessagesInboxLayout({
         await openContact(contact);
       }
     },
-    [contacts, openContact, selectThread, threads],
+    [contacts, listedThreads, openContact, selectThread],
   );
 
   const handleNewConversationSelect = useCallback(
@@ -584,8 +624,50 @@ export default function MessagesInboxLayout({
     setStagedFiles([]);
     setSending(true);
 
+    let threadIdForSend = activeThreadId;
     let responseStatus: number | undefined;
     try {
+      if (isMudKitchenSupportPlaceholder(threadIdForSend)) {
+        if (api.viewer === "parent") {
+          const created = await fetchJson<{ threadId: string }>(`${api.basePath}/threads`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              organizationId: api.organizationId,
+              programId: api.programId ?? null,
+              contact: {
+                key: MUDKITCHEN_SUPPORT_CONTACT_KEY,
+                kind: "platform_support",
+                name: MUDKITCHEN_SUPPORT_TEAM_NAME,
+              },
+            }),
+          });
+          threadIdForSend = created.threadId;
+          setActiveThreadId(threadIdForSend);
+          setActiveThread((prev) =>
+            prev ? { ...prev, id: threadIdForSend } : prev,
+          );
+        } else if (api.viewer === "teacher") {
+          const created = await fetchJson<{ threadId: string }>(`${api.basePath}/threads`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              organizationId: api.organizationId,
+              contact: {
+                key: MUDKITCHEN_SUPPORT_CONTACT_KEY,
+                kind: "platform_support",
+                name: MUDKITCHEN_SUPPORT_TEAM_NAME,
+              },
+            }),
+          });
+          threadIdForSend = created.threadId;
+          setActiveThreadId(threadIdForSend);
+          setActiveThread((prev) =>
+            prev ? { ...prev, id: threadIdForSend } : prev,
+          );
+        }
+      }
+
       let response: Response;
       if (filesToSend.length > 0) {
         const formData = new FormData();
@@ -596,12 +678,12 @@ export default function MessagesInboxLayout({
         for (const file of filesToSend) {
           formData.append("files", file);
         }
-        response = await fetch(`${api.basePath}/threads/${activeThreadId}/messages`, {
+        response = await fetch(`${api.basePath}/threads/${threadIdForSend}/messages`, {
           method: "POST",
           body: formData,
         });
       } else {
-        response = await fetch(`${api.basePath}/threads/${activeThreadId}/messages`, {
+        response = await fetch(`${api.basePath}/threads/${threadIdForSend}/messages`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -629,13 +711,13 @@ export default function MessagesInboxLayout({
           messages: mergeMessages(withoutPending, [serverMessage]),
         };
       });
-      await loadThread(activeThreadId, { silent: true });
+      await loadThread(threadIdForSend, { silent: true });
     } catch (err) {
       let recovered = false;
       if (isBenignClientNetworkError(err)) {
         try {
           const data = await fetchJson<{ thread: MessageThreadDetail }>(
-            `${api.basePath}/threads/${activeThreadId}?${query}`,
+            `${api.basePath}/threads/${threadIdForSend}?${query}`,
           );
           const newOwnMessages = data.thread.messages.filter(
             (message) =>
@@ -650,7 +732,7 @@ export default function MessagesInboxLayout({
           if (matched) {
             optimisticSendRef.current.confirm(optimisticId, matched.id);
             setActiveThread((prev) => {
-              if (!prev || prev.id !== activeThreadId) {
+              if (!prev || prev.id !== threadIdForSend) {
                 return {
                   ...data.thread,
                   messages: reconcileThreadMessages(
@@ -706,6 +788,7 @@ export default function MessagesInboxLayout({
     api.basePath,
     api.organizationId,
     api.organizationSlug,
+    api.programId,
     api.schoolName,
     api.viewer,
     input,
@@ -842,7 +925,9 @@ export default function MessagesInboxLayout({
 
   const pollInbox = useCallback(() => {
     void loadInbox();
-    if (activeThreadId) void loadThread(activeThreadId, { silent: true });
+    if (activeThreadId && !isMudKitchenSupportPlaceholder(activeThreadId)) {
+      void loadThread(activeThreadId, { silent: true });
+    }
   }, [activeThreadId, loadInbox, loadThread]);
 
   useVisibilityPolling(pollInbox, 300_000, !readOnly && !realtimeConnected);
@@ -937,7 +1022,7 @@ export default function MessagesInboxLayout({
   const splitPane = isSplitPaneMessagesVariant(variant);
 
   const threadsForList = useMemo(() => {
-    let base = threads;
+    let base = api.viewer === "parent" ? listedThreads : threads;
     if (
       activeThread &&
       !activeThread.id.startsWith("pending-") &&
@@ -954,7 +1039,7 @@ export default function MessagesInboxLayout({
         thread.subtitle?.toLowerCase().includes(query) ||
         thread.lastMessagePreview?.toLowerCase().includes(query),
     );
-  }, [activeThread, inboxSearch, storyVariant, threads]);
+  }, [activeThread, api.viewer, inboxSearch, listedThreads, storyVariant, threads]);
 
   useEffect(() => {
     onRegisterActions?.({
@@ -975,9 +1060,6 @@ export default function MessagesInboxLayout({
       ),
     [activeThread, api.viewer, readOnly, viewerContext?.staffDisplayName],
   );
-
-  const teacherStaffMemberId =
-    teacherPortal?.staffMemberId ?? viewerContext?.staffMemberId ?? null;
 
   const handleStudentClick = useCallback(
     (studentId: string) => {
@@ -1111,10 +1193,14 @@ export default function MessagesInboxLayout({
       ? "No conversations yet. Message a co-op family from the home page, or start a new conversation with the school office."
       : api.viewer === "parent"
         ? "No conversations yet. Start a new conversation with the school office or your child's teachers."
-        : "No conversations yet. Start a new conversation to reach families and colleagues.";
+        : api.viewer === "teacher"
+          ? "No conversations yet. Message MudKitchen Support or start a conversation with families and colleagues."
+          : "No conversations yet. Start a new conversation to reach families and colleagues.";
 
   if (
     !loadingInbox &&
+    api.viewer !== "parent" &&
+    api.viewer !== "teacher" &&
     threads.length === 0 &&
     contacts.length === 0 &&
     !initialInbox?.threadsDeferred &&

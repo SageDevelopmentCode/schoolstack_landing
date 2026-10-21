@@ -74,6 +74,7 @@ export type ScheduledVisitRecord = {
   status: "scheduled" | "cancelled";
   completedManuallyAt?: string;
   completedManuallyByUserId?: string;
+  adminCompletionNotes?: string | null;
 };
 
 export type ScheduledVisitRow = {
@@ -91,10 +92,11 @@ export type ScheduledVisitRow = {
   status: string;
   completed_manually_at?: string | null;
   completed_manually_by_user_id?: string | null;
+  admin_completion_notes?: string | null;
 };
 
 const VISIT_SELECT_COLUMNS =
-  "id, organization_id, application_id, post_submit_action_id, action_type, scheduling_mode, scheduled_date, start_time_slot, duration_minutes, visit_day_count, end_date, status, completed_manually_at, completed_manually_by_user_id";
+  "id, organization_id, application_id, post_submit_action_id, action_type, scheduling_mode, scheduled_date, start_time_slot, duration_minutes, visit_day_count, end_date, status, completed_manually_at, completed_manually_by_user_id, admin_completion_notes";
 
 export type TimeSlotAvailabilityResult = {
   mode: "time_slot";
@@ -178,6 +180,9 @@ function scheduledVisitFromRow(
     completedManuallyByUserId: row.completed_manually_by_user_id
       ? String(row.completed_manually_by_user_id)
       : undefined,
+    adminCompletionNotes: row.admin_completion_notes
+      ? String(row.admin_completion_notes)
+      : null,
   };
 }
 
@@ -1092,6 +1097,7 @@ export async function markPostSubmitStepCompleteManually(
     applicationId: string;
     actionId: string;
     actorUserId: string;
+    adminCompletionNotes?: string | null;
   },
 ): Promise<ScheduledVisitRecord> {
   const context = await loadPostSubmitActionForApplication(
@@ -1154,6 +1160,7 @@ export async function markPostSubmitStepCompleteManually(
       status: "scheduled",
       completed_manually_at: completedAt,
       completed_manually_by_user_id: params.actorUserId,
+      admin_completion_notes: params.adminCompletionNotes ?? null,
     })
     .select(VISIT_SELECT_COLUMNS)
     .single();
@@ -1167,6 +1174,48 @@ export async function markPostSubmitStepCompleteManually(
     }
     throw error;
   }
+
+  return scheduledVisitFromRow(data as ScheduledVisitRow);
+}
+
+export async function updatePostSubmitStepAdminCompletionNotes(
+  supabase: SupabaseClient,
+  params: {
+    organizationId: string;
+    applicationId: string;
+    actionId: string;
+    adminCompletionNotes: string | null;
+  },
+): Promise<ScheduledVisitRecord> {
+  const { data: existing, error: loadError } = await supabase
+    .from("admissions_scheduled_visits")
+    .select(VISIT_SELECT_COLUMNS)
+    .eq("application_id", params.applicationId)
+    .eq("post_submit_action_id", params.actionId)
+    .eq("status", "scheduled")
+    .maybeSingle();
+
+  if (loadError) throw loadError;
+
+  if (!existing) {
+    throw new AdmissionsBookingError(
+      "This post-application step is not complete.",
+      "not_found",
+    );
+  }
+
+  if (String(existing.organization_id) !== params.organizationId) {
+    throw new AdmissionsBookingError("Application not found.", "not_found");
+  }
+
+  const { data, error } = await supabase
+    .from("admissions_scheduled_visits")
+    .update({ admin_completion_notes: params.adminCompletionNotes })
+    .eq("id", existing.id)
+    .select(VISIT_SELECT_COLUMNS)
+    .single();
+
+  if (error) throw error;
 
   return scheduledVisitFromRow(data as ScheduledVisitRow);
 }

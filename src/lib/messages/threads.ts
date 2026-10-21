@@ -24,6 +24,7 @@ import {
   threadVisibleInProgramPortalInbox,
   type MessageThreadAudienceScope,
 } from "./message-audience";
+import { shouldOmitPlatformSupportThreadForViewer } from "./platform-support";
 import type {
   MessageParticipantInput,
   MessageThreadDetail,
@@ -429,7 +430,22 @@ export async function countAdminUnreadMessages(
 
   if (threadsError) throw new Error(threadsError.message);
 
-  const threadIds = (threads ?? []).map((row) => String(row.id));
+  const supportIds = new Set<string>();
+  const { data: supportRows, error: supportError } = await admin
+    .from("message_thread_participants")
+    .select("thread_id")
+    .eq("organization_id", organizationId)
+    .eq("participant_kind", "platform_support");
+
+  if (!supportError) {
+    for (const row of supportRows ?? []) {
+      supportIds.add(String(row.thread_id));
+    }
+  }
+
+  const threadIds = (threads ?? [])
+    .map((row) => String(row.id))
+    .filter((threadId) => !supportIds.has(threadId));
   if (threadIds.length === 0) return 0;
 
   const unreadCounts = await getUnreadCounts(admin, threadIds, userId);
@@ -561,6 +577,25 @@ export async function findOrCreateThread(
   if (participantsError) throw new Error(participantsError.message);
 
   return threadId;
+}
+
+function omitPlatformSupportThreadRows(
+  threads: MessageThreadRow[],
+  participantsByThread: Map<string, MessageThreadParticipantRow[]>,
+  viewer: "parent" | "teacher" | "admin",
+  staffMemberId?: string | null,
+): MessageThreadRow[] {
+  if (viewer === "parent") return threads;
+  return threads.filter((thread) => {
+    const participants = (participantsByThread.get(String(thread.id)) ?? []).map(
+      mapParticipantRow,
+    );
+    return !shouldOmitPlatformSupportThreadForViewer(
+      participants,
+      viewer,
+      staffMemberId,
+    );
+  });
 }
 
 function filterThreadsForAudienceScope(
@@ -704,10 +739,10 @@ export async function listThreadsForOrganization(
       getLatestMessagesForThreads(admin, threadIds),
     ]);
 
-    const visibleThreads = filterThreadsForAudienceScope(
-      threads,
+    const visibleThreads = omitPlatformSupportThreadRows(
+      filterThreadsForAudienceScope(threads, participantsByThread, audienceScope),
       participantsByThread,
-      audienceScope,
+      viewer,
     );
 
     return visibleThreads.map((thread) => {
@@ -777,10 +812,15 @@ export async function listThreadsForOrganization(
 
   const lastMessageByThread = await getLatestMessagesForThreads(admin, threadIds);
 
-  const visibleThreads = filterThreadsForAudienceScope(
-    (threads ?? []) as MessageThreadRow[],
+  const visibleThreads = omitPlatformSupportThreadRows(
+    filterThreadsForAudienceScope(
+      (threads ?? []) as MessageThreadRow[],
+      participantsByThread,
+      audienceScope,
+    ),
     participantsByThread,
-    audienceScope,
+    viewer,
+    filter.type === "staff" ? filter.staffMemberId : null,
   );
 
   return visibleThreads.map((thread) => {

@@ -67,4 +67,7 @@ export const MUDKITCHEN_LOGO_BRAND = {
   wood: "#A65D3E",
 } as const;
 
+/** Terracotta gradient used on MudKitchen Account and parent Support inbox row. */
+export const MUDKITCHEN_BRAND_GRADIENT = `linear-gradient(135deg, ${MUDKITCHEN_LOGO_BRAND.terracottaDark} 0%, ${MUDKITCHEN_LOGO_BRAND.terracotta} 45%, ${MUDKITCHEN_LOGO_BRAND.terracottaBright} 75%, ${MUDKITCHEN_LOGO_BRAND.wood} 100%)`;
+
 export { phaseAccentByNumber };
