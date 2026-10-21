@@ -86,6 +86,13 @@ export function getTeacherFeatureRoute(slug: string, featureKey: string): Href |
   return resolver ? resolver(slug) : null;
 }
 
+export function resolveTeacherDocumentationMobileRoute(
+  slug: string,
+  webHref: string,
+): Href | null {
+  return resolveTeacherFocusHref(slug, webHref);
+}
+
 export function resolveTeacherFocusHref(slug: string, webHref: string): Href | null {
   const trimmed = webHref.trim();
   if (!trimmed) return null;

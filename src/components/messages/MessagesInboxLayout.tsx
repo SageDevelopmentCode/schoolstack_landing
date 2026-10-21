@@ -62,6 +62,7 @@ import {
   type PortalOperationalSurface,
 } from "@/lib/portal-operational-errors";
 import { isBenignClientNetworkError } from "@/lib/client-network-errors";
+import { buildParentFamilyPreviewMessagesQuery } from "@/lib/admin/mobile-preview/parent-portal-preview-api";
 
 export type MessagesApiConfig = {
   basePath: string;
@@ -71,6 +72,7 @@ export type MessagesApiConfig = {
   familyId?: string;
   guardianId?: string;
   programId?: string;
+  familyPreview?: { slug: string; familyId: string };
   viewer: "parent" | "teacher" | "admin";
 };
 
@@ -184,6 +186,7 @@ export default function MessagesInboxLayout({
   api,
   initialInbox,
   readOnly = false,
+  readOnlyFetchThreads = false,
   previewThreadMessages,
   deferContactsLoad = false,
   C,
@@ -197,6 +200,7 @@ export default function MessagesInboxLayout({
   api: MessagesApiConfig;
   initialInbox?: MessagesInboxData;
   readOnly?: boolean;
+  readOnlyFetchThreads?: boolean;
   previewThreadMessages?: Record<string, PortalMessage[]>;
   deferContactsLoad?: boolean;
   C: AdminThemeTokens;
@@ -281,6 +285,15 @@ export default function MessagesInboxLayout({
   }
 
   const query = useMemo(() => {
+    if (api.familyPreview) {
+      return buildParentFamilyPreviewMessagesQuery({
+        organizationId: api.organizationId,
+        slug: api.familyPreview.slug,
+        familyId: api.familyPreview.familyId,
+        schoolName: api.schoolName,
+        programId: api.programId,
+      });
+    }
     const params = new URLSearchParams({
       organizationId: api.organizationId,
       schoolName: api.schoolName,
@@ -289,7 +302,7 @@ export default function MessagesInboxLayout({
       params.set("programId", api.programId);
     }
     return params.toString();
-  }, [api.organizationId, api.programId, api.schoolName]);
+  }, [api.familyPreview, api.organizationId, api.programId, api.schoolName]);
 
   const loadInbox = useCallback(async (options?: { silent?: boolean }) => {
     if (hasLoadedThreadsRef.current) {
@@ -404,10 +417,11 @@ export default function MessagesInboxLayout({
     async (thread: MessageThreadSummary) => {
       setMobileView("chat");
       setActiveThreadId(thread.id);
+      const useStaticPreviewMessages = readOnly && !readOnlyFetchThreads;
       setActiveThread((prev) =>
         threadDetailFromSummary(
           thread,
-          readOnly
+          useStaticPreviewMessages
             ? (previewThreadMessages?.[thread.id] ?? [])
             : prev?.id === thread.id
               ? prev.messages
@@ -415,7 +429,7 @@ export default function MessagesInboxLayout({
         ),
       );
       clearThreadUnread(thread.id);
-      if (readOnly) return;
+      if (readOnly && !readOnlyFetchThreads) return;
       setLoadingMessages(true);
       try {
         await loadThread(thread.id, { silent: true });
@@ -423,7 +437,13 @@ export default function MessagesInboxLayout({
         setLoadingMessages(false);
       }
     },
-    [clearThreadUnread, loadThread, previewThreadMessages, readOnly],
+    [
+      clearThreadUnread,
+      loadThread,
+      previewThreadMessages,
+      readOnly,
+      readOnlyFetchThreads,
+    ],
   );
 
   const openContact = useCallback(
@@ -856,17 +876,30 @@ export default function MessagesInboxLayout({
     handledThreadParam.current = threadParam;
     queueMicrotask(() => {
       setMobileView("chat");
-      if (readOnly) {
+      if (readOnly && !readOnlyFetchThreads) {
         const thread = threads.find((item) => item.id === threadParam);
         if (thread) {
           void selectThread(thread);
         }
         return;
       }
+      const thread = threads.find((item) => item.id === threadParam);
+      if (thread) {
+        void selectThread(thread);
+        return;
+      }
       setLoadingMessages(true);
       void loadThread(threadParam).finally(() => setLoadingMessages(false));
     });
-  }, [loadThread, loadingInbox, readOnly, searchParams, selectThread, threads]);
+  }, [
+    loadThread,
+    loadingInbox,
+    readOnly,
+    readOnlyFetchThreads,
+    searchParams,
+    selectThread,
+    threads,
+  ]);
 
   useEffect(() => {
     if (readOnly || pushPromptDismissed) return;

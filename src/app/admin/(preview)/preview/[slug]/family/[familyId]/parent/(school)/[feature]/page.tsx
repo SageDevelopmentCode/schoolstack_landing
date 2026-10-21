@@ -38,6 +38,7 @@ import {
   loadParentFormsDocumentsPageBundle,
 } from "@/lib/school-parent/forms-documents/load-parent-forms";
 import { mintParentFormUploadPreviewUrls } from "@/lib/school-parent/forms-documents/mint-parent-form-upload-preview-urls";
+import { PREVIEW_NO_USER_ID } from "@/lib/admin/mobile-preview/access";
 import { loadParentMessagesPreviewInbox } from "@/lib/messages/parent-messages";
 import { buildParentQuickActions } from "@/lib/organization-settings/parent-home";
 import { getParentPageLabel } from "@/lib/organization-settings/parent-nav";
@@ -344,7 +345,7 @@ export default async function FamilyPreviewParentFeaturePage({
       .maybeSingle();
 
     const previewUserId =
-      guardian?.user_id != null ? String(guardian.user_id) : "preview-user";
+      guardian?.user_id != null ? String(guardian.user_id) : PREVIEW_NO_USER_ID;
 
     const initialInbox = await loadParentMessagesPreviewInbox(
       admin,

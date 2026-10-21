@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { CommitteeActivityItem } from "@/lib/committees/activity-feed";
 import type { CommitteeSectionUnreadCounts } from "@/lib/committees/committee-unread-types";
@@ -54,6 +54,46 @@ export default function ParentCommitteeWorkspace({
   const [loading, setLoading] = useState(!initialCommittee && !previewMode);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchWorkspace = useCallback(
+    async (options?: { silent?: boolean }) => {
+      const silent = options?.silent ?? false;
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
+      let res: Response | undefined;
+      try {
+        const params = new URLSearchParams({ organizationId });
+        res = await fetch(`/api/${apiNamespace}/committees/${committeeId}?${params}`);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error ?? "Failed to load committee.");
+        }
+        setCommittee(data.committee);
+      } catch (err) {
+        if (!silent) {
+          setError(err instanceof Error ? err.message : "Failed to load committee.");
+          setCommittee(null);
+        }
+        void reportPortalOperationalError(
+          operationalSurface,
+          {
+            organizationId,
+            operation: "committees.load_workspace",
+            error: "",
+          },
+          err,
+          res?.status,
+        );
+      } finally {
+        if (!silent) {
+          setLoading(false);
+        }
+      }
+    },
+    [apiNamespace, committeeId, operationalSurface, organizationId],
+  );
+
   useEffect(() => {
     if (previewMode && initialCommittee && previewGuardianUserId) {
       const member = initialCommittee.members.find(
@@ -86,57 +126,58 @@ export default function ParentCommitteeWorkspace({
   }, [committee, initialCommittee, previewGuardianUserId, previewMode, supabase]);
 
   useEffect(() => {
+    if (previewMode) {
+      if (initialCommittee) {
+        queueMicrotask(() => {
+          setCommittee(initialCommittee);
+          setLoading(false);
+        });
+      } else {
+        queueMicrotask(() => {
+          setError("Committee workspace preview is unavailable for this selection.");
+          setLoading(false);
+        });
+      }
+      return;
+    }
+
     if (initialCommittee) {
       queueMicrotask(() => {
         setCommittee(initialCommittee);
         setLoading(false);
       });
-      return;
     }
-    if (previewMode) {
-      queueMicrotask(() => {
-        setError("Committee workspace preview is unavailable for this selection.");
-        setLoading(false);
-      });
-      return;
-    }
+  }, [initialCommittee, previewMode]);
+
+  useEffect(() => {
+    if (previewMode) return;
 
     let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      let res: Response | undefined;
-      try {
-        const params = new URLSearchParams({ organizationId });
-        res = await fetch(`/api/${apiNamespace}/committees/${committeeId}?${params}`);
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          throw new Error(data.error ?? "Failed to load committee.");
-        }
-        if (!cancelled) setCommittee(data.committee);
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load committee.");
-          setCommittee(null);
-          void reportPortalOperationalError(
-            operationalSurface,
-            {
-              organizationId,
-              operation: "committees.load_workspace",
-              error: "",
-            },
-            err,
-            res?.status,
-          );
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
+    queueMicrotask(() => {
+      if (!cancelled) {
+        void fetchWorkspace({ silent: Boolean(initialCommittee) });
       }
-    })();
+    });
+
     return () => {
       cancelled = true;
     };
-  }, [apiNamespace, committeeId, initialCommittee, operationalSurface, organizationId, previewMode]);
+  }, [committeeId, fetchWorkspace, initialCommittee, previewMode]);
+
+  useEffect(() => {
+    if (previewMode) return undefined;
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void fetchWorkspace({ silent: true });
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [fetchWorkspace, previewMode]);
 
   if (loading) {
     return <ParentCommitteeWorkspaceSkeleton theme={theme} variant="workspace" />;
@@ -155,22 +196,22 @@ export default function ParentCommitteeWorkspace({
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
       <ParentCommitteeWorkspaceShell
-      committee={committee}
-      theme={theme}
-      supabase={supabase}
-      organizationId={organizationId}
-      schoolSlug={schoolSlug}
-      activeSection={parseCommitteeSection(activeSection)}
-      onSectionChange={onSectionChange}
-      onBack={onBack}
-      onCommitteeChange={setCommittee}
-      currentMemberId={currentMemberId}
-      previewMode={previewMode}
-      initialActivityItems={initialActivityItems}
-      initialSectionUnread={initialSectionUnread}
-      portalApiNamespace={apiNamespace}
-      backLabel="My committees"
-    />
+        committee={committee}
+        theme={theme}
+        supabase={supabase}
+        organizationId={organizationId}
+        schoolSlug={schoolSlug}
+        activeSection={parseCommitteeSection(activeSection)}
+        onSectionChange={onSectionChange}
+        onBack={onBack}
+        onCommitteeChange={setCommittee}
+        currentMemberId={currentMemberId}
+        previewMode={previewMode}
+        initialActivityItems={initialActivityItems}
+        initialSectionUnread={initialSectionUnread}
+        portalApiNamespace={apiNamespace}
+        backLabel="My committees"
+      />
     </div>
   );
 }

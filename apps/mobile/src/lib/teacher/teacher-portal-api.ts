@@ -25,6 +25,7 @@ import type {
 import { emptyStudentHealthProfile } from '@/lib/student-health/types';
 import type {
   Committee,
+  CommitteeWorkspaceLoad,
   ParentCommitteeBrowseItem,
   ParentCommitteeListItem,
 } from '@/lib/parent/parent-committees-types';
@@ -168,6 +169,24 @@ export type StaffClassroomOption = {
   role?: string;
 };
 
+export type TeacherDocGuideStep = {
+  title: string;
+  description: string;
+  action?: {
+    label: string;
+    href: string;
+  };
+};
+
+export type TeacherDocGuide = {
+  id: string;
+  title: string;
+  category: string;
+  summary: string;
+  keywords: string[];
+  steps: TeacherDocGuideStep[];
+};
+
 export type TeacherDashboardSummary = {
   focusItems: TeacherDashboardFocusItem[];
   assignedStudents: AdminEnrolledStudentSummary[];
@@ -197,14 +216,23 @@ export type TeacherHomeData = {
   roleTitle: string | null;
   portalRole: StaffPortalRole | null;
   summary: TeacherDashboardSummary;
+  documentationGuides?: TeacherDocGuide[];
 };
+
+export function normalizeTeacherHomeData(data: TeacherHomeData): TeacherHomeData {
+  return {
+    ...data,
+    documentationGuides: data.documentationGuides ?? [],
+  };
+}
 
 export async function fetchTeacherHomeData(
   organizationId: string,
   slug: string,
 ): Promise<TeacherHomeData> {
   const query = new URLSearchParams({ organizationId, slug }).toString();
-  return fetchTeacherApi<TeacherHomeData>(`/api/teacher-portal/home?${query}`);
+  const payload = await fetchTeacherApi<TeacherHomeData>(`/api/teacher-portal/home?${query}`);
+  return normalizeTeacherHomeData(payload);
 }
 
 export type TeacherCalendarData = {
@@ -308,15 +336,19 @@ export async function fetchTeacherCommitteesMine(
 export async function fetchTeacherCommitteeWorkspace(
   organizationId: string,
   committeeId: string,
-): Promise<Committee> {
+): Promise<CommitteeWorkspaceLoad> {
   const query = new URLSearchParams({ organizationId }).toString();
-  const payload = await fetchTeacherApi<{ committee: Committee }>(
-    `/api/teacher-portal/committees/${committeeId}?${query}`,
-  );
+  const payload = await fetchTeacherApi<{
+    committee: Committee;
+    viewerMemberId?: string | null;
+  }>(`/api/teacher-portal/committees/${committeeId}?${query}`);
   if (!payload.committee) {
     throw new Error('Committee not found.');
   }
-  return payload.committee;
+  return {
+    committee: payload.committee,
+    viewerMemberId: payload.viewerMemberId ?? null,
+  };
 }
 
 export async function fetchTeacherCommitteeActivity(

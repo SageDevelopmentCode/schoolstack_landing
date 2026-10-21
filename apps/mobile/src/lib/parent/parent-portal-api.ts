@@ -16,6 +16,7 @@ import { resolveChecklistProgress } from '@/lib/admissions/enrollment-checklist'
 import type { ChildProfileData } from '@/lib/parent/parent-children-utils';
 import type {
   Committee,
+  CommitteeWorkspaceLoad,
   CommitteeWorkspaceSection,
   ParentCommitteeBrowseItem,
   ParentCommitteeListItem,
@@ -42,6 +43,7 @@ import type {
 import type { OrganizationBranding } from '@/lib/organization-settings/types';
 import type { OrganizationEvent, ParentCalendarInitialData } from '@/lib/school-events/types';
 import type { BulletinPost } from '@/lib/school-bulletin/types';
+import { adaptParentDocumentationGuidesForMobile } from '@/lib/parent/parent-documentation-mobile';
 
 const siteUrl = process.env.EXPO_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https://trymudkitchen.com';
 
@@ -342,13 +344,17 @@ export type ParentProgramHomeData = ParentHomeData & {
 };
 
 export function normalizeParentHomeData(data: ParentHomeData): ParentHomeData {
+  const rawGuides = data.documentationGuides ?? [];
+  const slug = data.schoolSlug;
   return {
     ...data,
     bulletinEnabled: data.bulletinEnabled ?? false,
     bulletinPosts: data.bulletinPosts ?? [],
     fridayBranchHome: data.fridayBranchHome ?? null,
     featureAnnouncements: data.featureAnnouncements ?? [],
-    documentationGuides: data.documentationGuides ?? [],
+    documentationGuides: slug
+      ? adaptParentDocumentationGuidesForMobile(rawGuides, slug)
+      : rawGuides,
   };
 }
 
@@ -825,15 +831,19 @@ export async function fetchParentCommitteeActivity(
 export async function fetchParentCommitteeWorkspace(
   organizationId: string,
   committeeId: string,
-): Promise<Committee> {
+): Promise<CommitteeWorkspaceLoad> {
   const query = new URLSearchParams({ organizationId }).toString();
-  const payload = await fetchParentApi<{ committee: Committee }>(
-    `/api/parent-portal/committees/${committeeId}?${query}`,
-  );
+  const payload = await fetchParentApi<{
+    committee: Committee;
+    viewerMemberId?: string | null;
+  }>(`/api/parent-portal/committees/${committeeId}?${query}`);
   if (!payload.committee) {
     throw new Error('Committee not found.');
   }
-  return payload.committee;
+  return {
+    committee: payload.committee,
+    viewerMemberId: payload.viewerMemberId ?? null,
+  };
 }
 
 export async function markParentCommitteeSectionRead(

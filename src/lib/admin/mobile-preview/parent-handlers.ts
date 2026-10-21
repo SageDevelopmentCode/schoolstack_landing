@@ -487,8 +487,12 @@ export async function handleParentMobilePreviewGet(
         guardianUserId,
         committeeId,
       );
+      const viewerMemberId =
+        committee.members.find(
+          (member) => member.userId === guardianUserId && member.status === "active",
+        )?.id ?? null;
 
-      return NextResponse.json({ committee });
+      return NextResponse.json({ committee, viewerMemberId });
     }
 
     if (segment === "classroom-signups") {

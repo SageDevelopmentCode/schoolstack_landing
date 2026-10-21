@@ -163,10 +163,10 @@ export function ParentCommitteeTasksSection({
   return (
     <View style={styles.container}>
       <StoryDetailSection title="Tasks">
-        {!readOnly ? (
+        {currentMemberId ? (
           <StoryButton
             label="Add task"
-            previewSafe
+            disabled={readOnly}
             onPress={() => openCreate('open')}
             style={styles.addButton}
           />
@@ -191,10 +191,10 @@ export function ParentCommitteeTasksSection({
                     <ParentCommitteeTaskCard key={task.id} task={task} onPress={() => openEdit(task)} />
                   ))}
                 </View>
-                {!readOnly ? (
+                {currentMemberId ? (
                   <StoryButton
                     label="Add"
-                    previewSafe
+                    disabled={readOnly}
                     onPress={() => openCreate(status)}
                     style={styles.columnAdd}
                   />

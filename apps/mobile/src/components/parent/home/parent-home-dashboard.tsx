@@ -226,14 +226,14 @@ export function ParentHomeDashboard({
 
   const renderHelpSections = () => (
     <>
+      <PortalNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
+
       {documentationGuides.length > 0 ? (
         <ParentHomeHowToGuidesCard
           guides={documentationGuides}
           onStepAction={onDocumentationStep}
         />
       ) : null}
-
-      <PortalNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
     </>
   );
 

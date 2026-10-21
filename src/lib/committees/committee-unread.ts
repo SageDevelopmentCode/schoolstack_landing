@@ -1,7 +1,12 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { CommitteeWorkspaceSection } from "@/lib/committees/types";
+import {
+  latestAccessibleResourceCreatedAt,
+  type CommitteeResourceAccessRow,
+} from "@/lib/committees/committee-unread-resource-access";
+import { mapDutyRoleRow } from "@/lib/committees/mappers";
+import type { CommitteeDutyRole, CommitteeWorkspaceSection } from "@/lib/committees/types";
 import type {
   CommitteeSectionUnreadCounts,
   CommitteeUnreadSection,
@@ -116,23 +121,87 @@ async function loadLatestTaskAt(
   return map;
 }
 
-async function loadLatestResourceAt(
+type ResourceUnreadRow = {
+  committee_id: string;
+  created_at: string;
+  allowed_duty_role_ids: string[];
+};
+
+type DutyRoleUnreadRow = {
+  id: string;
+  committee_id: string;
+  title: string;
+  description: string | null;
+  assignee_member_id: string | null;
+  sort_order: number;
+};
+
+async function loadResourceUnreadContext(
   admin: SupabaseClient,
   committeeIds: string[],
-): Promise<Map<string, string>> {
-  const map = new Map<string, string>();
-  for (const committeeId of committeeIds) {
-    const { data, error } = await admin
-      .from("committee_resources")
-      .select("created_at")
-      .eq("committee_id", committeeId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (data?.created_at) map.set(committeeId, String(data.created_at));
+): Promise<{
+  resourcesByCommittee: Map<string, CommitteeResourceAccessRow[]>;
+  dutyRolesByCommittee: Map<string, CommitteeDutyRole[]>;
+}> {
+  const resourcesByCommittee = new Map<string, CommitteeResourceAccessRow[]>();
+  const dutyRolesByCommittee = new Map<string, CommitteeDutyRole[]>();
+
+  if (committeeIds.length === 0) {
+    return { resourcesByCommittee, dutyRolesByCommittee };
   }
-  return map;
+
+  const [resourcesRes, dutyRolesRes] = await Promise.all([
+    admin
+      .from("committee_resources")
+      .select("committee_id, created_at, allowed_duty_role_ids")
+      .in("committee_id", committeeIds)
+      .order("created_at", { ascending: false }),
+    admin
+      .from("committee_duty_roles")
+      .select("id, committee_id, title, description, assignee_member_id, sort_order")
+      .in("committee_id", committeeIds)
+      .order("sort_order"),
+  ]);
+
+  if (resourcesRes.error) throw new Error(resourcesRes.error.message);
+  if (dutyRolesRes.error) throw new Error(dutyRolesRes.error.message);
+
+  for (const row of (resourcesRes.data ?? []) as ResourceUnreadRow[]) {
+    const committeeId = String(row.committee_id);
+    const list = resourcesByCommittee.get(committeeId) ?? [];
+    list.push({
+      createdAt: String(row.created_at),
+      allowedDutyRoleIds: row.allowed_duty_role_ids ?? [],
+    });
+    resourcesByCommittee.set(committeeId, list);
+  }
+
+  for (const row of (dutyRolesRes.data ?? []) as DutyRoleUnreadRow[]) {
+    const committeeId = String(row.committee_id);
+    const list = dutyRolesByCommittee.get(committeeId) ?? [];
+    list.push(
+      mapDutyRoleRow({
+        ...row,
+        description: row.description ?? "",
+      }),
+    );
+    dutyRolesByCommittee.set(committeeId, list);
+  }
+
+  return { resourcesByCommittee, dutyRolesByCommittee };
+}
+
+function latestAccessibleResourceAtForMember(
+  committeeId: string,
+  memberId: string,
+  resourcesByCommittee: Map<string, CommitteeResourceAccessRow[]>,
+  dutyRolesByCommittee: Map<string, CommitteeDutyRole[]>,
+): string | null {
+  return latestAccessibleResourceCreatedAt(
+    resourcesByCommittee.get(committeeId) ?? [],
+    dutyRolesByCommittee.get(committeeId) ?? [],
+    memberId,
+  );
 }
 
 async function loadLatestEventAt(
@@ -168,20 +237,26 @@ export async function getCommitteeUnreadSummaryForUser(
   const memberIds = memberships.map((m) => m.id);
   const readMap = await loadSectionReadMap(admin, memberIds);
 
-  const [messagesAt, tasksAt, resourcesAt, eventsAt] = await Promise.all([
+  const [messagesAt, tasksAt, eventsAt, resourceUnreadContext] = await Promise.all([
     loadLatestMessageAt(admin, committeeIds),
     loadLatestTaskAt(admin, committeeIds),
-    loadLatestResourceAt(admin, committeeIds),
     loadLatestEventAt(admin, committeeIds),
+    loadResourceUnreadContext(admin, committeeIds),
   ]);
 
   const byCommittee: CommitteeUnreadSummaryItem[] = memberships.map((member) => {
     const reads = readMap.get(member.id) ?? {};
     const committeeId = member.committee_id;
+    const resourcesAt = latestAccessibleResourceAtForMember(
+      committeeId,
+      member.id,
+      resourceUnreadContext.resourcesByCommittee,
+      resourceUnreadContext.dutyRolesByCommittee,
+    );
     const sections: CommitteeSectionUnreadCounts = {
       messages: isUnread(messagesAt.get(committeeId) ?? null, reads.messages) ? 1 : 0,
       tasks: isUnread(tasksAt.get(committeeId) ?? null, reads.tasks) ? 1 : 0,
-      resources: isUnread(resourcesAt.get(committeeId) ?? null, reads.resources) ? 1 : 0,
+      resources: isUnread(resourcesAt, reads.resources) ? 1 : 0,
       calendar: isUnread(eventsAt.get(committeeId) ?? null, reads.calendar) ? 1 : 0,
     };
     const unread = Object.values(sections).reduce((sum, n) => sum + n, 0);

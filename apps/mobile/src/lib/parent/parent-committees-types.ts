@@ -222,6 +222,11 @@ export type Committee = {
   messages: CommitteeMessage[];
 };
 
+export type CommitteeWorkspaceLoad = {
+  committee: Committee;
+  viewerMemberId: string | null;
+};
+
 export type ParentCommitteeBrowseItem = {
   id: string;
   name: string;

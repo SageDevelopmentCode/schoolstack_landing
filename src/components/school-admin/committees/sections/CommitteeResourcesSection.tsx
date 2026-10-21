@@ -12,7 +12,10 @@ import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme
 import { createResource, deleteResource } from "@/lib/committees/resources";
 import { getCommittee } from "@/lib/committees/committees";
 import { canMemberEditItem } from "@/lib/committees/attribution";
-import { formatResourceAccessLabel } from "@/lib/committees/permissions";
+import {
+  canAccessCommitteeResource,
+  formatResourceAccessLabel,
+} from "@/lib/committees/permissions";
 import { uploadCommitteeResourceFile, openCommitteeResource } from "@/lib/committees/resource-file-storage";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
@@ -70,10 +73,17 @@ export default function CommitteeResourcesSection({
   const [saving, setSaving] = useState(false);
   const reducedMotion = useReducedMotion() ?? false;
 
+  const visibleResources = useMemo(() => {
+    if (isAdmin) return committee.resources;
+    return committee.resources.filter((resource) =>
+      canAccessCommitteeResource(resource, currentMemberId, committee, false),
+    );
+  }, [committee, currentMemberId, isAdmin]);
+
   const selectedResource = useMemo(() => {
     if (panelState?.mode !== "view") return null;
-    return committee.resources.find((resource) => resource.id === panelState.resourceId) ?? null;
-  }, [committee.resources, panelState]);
+    return visibleResources.find((resource) => resource.id === panelState.resourceId) ?? null;
+  }, [visibleResources, panelState]);
 
   const refresh = async () => {
     const updated = await getCommittee(supabase, organizationId, committee.id);
@@ -207,12 +217,20 @@ export default function CommitteeResourcesSection({
           ) : null}
         </div>
 
-        {committee.resources.length === 0 ? (
+        {visibleResources.length === 0 ? (
           <CommitteeSectionEmptyState
             theme={theme}
             icon={FileText}
-            title="No resources yet"
-            description="Share helpful links, documents, and guides with your committee members."
+            title={
+              !isAdmin && committee.resources.length > 0
+                ? "No resources for your role"
+                : "No resources yet"
+            }
+            description={
+              !isAdmin && committee.resources.length > 0
+                ? "Resources shared with this committee are limited to specific duty roles. Ask a committee lead if you need access."
+                : "Share helpful links, documents, and guides with your committee members."
+            }
             action={
               !readOnly ? (
                 <AdminButton
@@ -229,13 +247,13 @@ export default function CommitteeResourcesSection({
           />
         ) : (
           <motion.div
-            key={committee.resources.map((resource) => resource.id).join("-")}
+            key={visibleResources.map((resource) => resource.id).join("-")}
             className="space-y-2"
             variants={staggerContainer(reducedMotion)}
             initial="initial"
             animate="animate"
           >
-            {committee.resources.map((resource) => (
+            {visibleResources.map((resource) => (
               <motion.div key={resource.id} variants={staggerItem(reducedMotion)}>
                 <ResourceListRow
                   resource={resource}

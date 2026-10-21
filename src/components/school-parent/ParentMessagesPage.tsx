@@ -6,6 +6,7 @@ import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { MessagesInboxData } from "@/lib/messages/types";
 import MessagesInboxLayout from "@/components/messages/MessagesInboxLayout";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
+import { PARENT_FAMILY_PREVIEW_MESSAGES_BASE } from "@/lib/admin/mobile-preview/parent-portal-preview-api";
 
 type ParentMessagesPageProps = {
   organizationId: string;
@@ -42,22 +43,30 @@ function ParentMessagesPageContent({
   initialInbox,
 }: Omit<ParentMessagesPageProps, "branding">) {
   const { theme, adminCompat: C } = useParentTheme();
+  const useFamilyPreviewApi = previewMode && Boolean(familyId);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <MessagesInboxLayout
         api={{
-          basePath: "/api/parent-portal/messages",
+          basePath: useFamilyPreviewApi
+            ? PARENT_FAMILY_PREVIEW_MESSAGES_BASE
+            : "/api/parent-portal/messages",
           organizationId,
           organizationSlug,
           schoolName,
           familyId,
           guardianId: guardianId ?? initialInbox?.guardianId ?? undefined,
           programId,
+          familyPreview:
+            useFamilyPreviewApi && familyId
+              ? { slug: organizationSlug, familyId }
+              : undefined,
           viewer: "parent",
         }}
         initialInbox={initialInbox}
         readOnly={previewMode}
+        readOnlyFetchThreads={useFamilyPreviewApi}
         C={C}
         theme={theme}
         variant="parent-story"

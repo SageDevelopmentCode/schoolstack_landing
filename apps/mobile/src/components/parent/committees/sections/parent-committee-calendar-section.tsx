@@ -196,10 +196,10 @@ export function ParentCommitteeCalendarSection({
   return (
     <View style={styles.container}>
       <StoryDetailSection title="Calendar">
-        {!readOnly ? (
+        {currentMemberId ? (
           <StoryButton
             label="Add event"
-            previewSafe
+            disabled={readOnly}
             onPress={() => openAddForm()}
             style={styles.addButton}
           />

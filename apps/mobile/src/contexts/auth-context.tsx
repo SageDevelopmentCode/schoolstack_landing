@@ -27,6 +27,7 @@ import {
   type ResolvedPortal,
 } from '@/lib/auth/resolve-portal';
 import type { AccountPortalId } from '@/lib/auth/school-portal-options-types';
+import { clearSchoolPortalOptionsCache } from '@/lib/auth/school-portal-options-cache';
 import type { LiveOrganization } from '@/lib/organizations';
 import { normalizeStoredOrganization } from '@/lib/organizations';
 import { clearAllPersistedPortalCaches } from '@/lib/portal-cache';
@@ -294,6 +295,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               });
             }
 
+            clearSchoolPortalOptionsCache();
             setCachedAccessToken(null);
             setSession(null);
             setUser(null);
@@ -327,6 +329,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               return;
             }
 
+            clearSchoolPortalOptionsCache();
             portalResolvedForUserIdRef.current = null;
             setPortalType(null);
             setSelectedSchool(null);

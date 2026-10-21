@@ -22,6 +22,7 @@ import {
 } from "@/lib/admissions/family-preview-access";
 import { loadProgramParentPortalContext } from "@/lib/admissions/program-parent-portal-access";
 import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
+import { PREVIEW_NO_USER_ID } from "@/lib/admin/mobile-preview/access";
 import { loadParentMessagesPreviewInbox } from "@/lib/messages/parent-messages";
 import { buildParentQuickActions } from "@/lib/organization-settings/parent-home";
 import { getParentPageLabel } from "@/lib/organization-settings/parent-nav";
@@ -238,7 +239,7 @@ export default async function FamilyPreviewProgramParentFeaturePage({
       .maybeSingle();
 
     const previewUserId =
-      guardian?.user_id != null ? String(guardian.user_id) : "preview-user";
+      guardian?.user_id != null ? String(guardian.user_id) : PREVIEW_NO_USER_ID;
 
     const initialInbox = await loadParentMessagesPreviewInbox(
       admin,

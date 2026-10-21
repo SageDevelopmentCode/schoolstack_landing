@@ -205,7 +205,7 @@ export function ParentCommitteeMessagesSection({
         )}
       </View>
 
-      {!readOnly ? (
+      {currentMemberId ? (
         <MessageComposeBar
           value={input}
           onChange={setInput}

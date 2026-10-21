@@ -33,6 +33,17 @@ import { useCommitteeUnreadRefresh } from "@/lib/committees/committee-unread-ref
 import { useCommitteeUnreadSummary } from "@/lib/committees/use-committee-unread-summary";
 import { markCommitteeSectionReadViaApi } from "@/lib/committees/mark-committee-section-read-client";
 
+function CommitteeResourcesSectionLoading() {
+  const { theme } = useParentTheme();
+  return (
+    <ParentCommitteeWorkspaceSkeleton
+      theme={theme}
+      variant="section"
+      section="resources"
+    />
+  );
+}
+
 const CommitteeHomeSection = dynamic(
   () => import("@/components/school-admin/committees/sections/CommitteeHomeSection"),
   { loading: () => null },
@@ -40,7 +51,7 @@ const CommitteeHomeSection = dynamic(
 const CommitteeResourcesSection = dynamic(
   () =>
     import("@/components/school-admin/committees/sections/CommitteeResourcesSection"),
-  { loading: () => null },
+  { loading: () => <CommitteeResourcesSectionLoading /> },
 );
 const CommitteeCalendarSection = dynamic(
   () =>
