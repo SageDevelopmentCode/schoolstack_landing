@@ -2,6 +2,7 @@ import {
   fetchSchoolAdminApi,
   fetchSchoolAdminApiFormData,
 } from '@/lib/school-admin-api';
+import { appendLocalFileToFormData } from '@/lib/upload/append-local-file-to-form-data';
 import type {
   BulletinPost,
   ProgramOption,
@@ -71,11 +72,11 @@ export async function uploadBulletinAttachments(
 ): Promise<BulletinPost> {
   const formData = new FormData();
   for (const file of files) {
-    formData.append('files', {
+    await appendLocalFileToFormData(formData, 'files', {
       uri: file.uri,
       name: file.name,
       type: file.mimeType ?? 'application/octet-stream',
-    } as unknown as Blob);
+    });
   }
 
   const payload = await fetchSchoolAdminApiFormData<{ post?: BulletinPost }>(

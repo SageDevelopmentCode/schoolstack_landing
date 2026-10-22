@@ -1,0 +1,10 @@
+appId: com.mudkitchen.schoolstack.mobile
+---
+- runFlow: ../parent-logged-in.yaml
+- tapOn: 'More'
+- tapOn: 'Committees'
+- extendedWaitUntil:
+    visible: 'Your committees'
+    timeout: 30000
+- assertVisible: 'E2E Volunteer Committee'
+- takeScreenshot: visual-capture

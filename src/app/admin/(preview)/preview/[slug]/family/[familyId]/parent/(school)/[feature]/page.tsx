@@ -252,9 +252,13 @@ export default async function FamilyPreviewParentFeaturePage({
       selectedCommitteeId,
     });
     const guardianName = userProfile.displayName || userProfile.email || "Parent";
+    const committeeWorkspaceOpen = Boolean(selectedCommitteeId);
 
     return (
-      <SchoolParentPageShell title={pageName}>
+      <SchoolParentPageShell
+        title={pageName}
+        layout={committeeWorkspaceOpen ? "embedded" : "default"}
+      >
         <ParentCommitteesPageShell
           organizationId={org.id}
           schoolSlug={slug}

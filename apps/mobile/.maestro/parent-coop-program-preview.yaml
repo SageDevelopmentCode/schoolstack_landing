@@ -1,0 +1,22 @@
+appId: com.mudkitchen.schoolstack.mobile
+env:
+  E2E_PLATFORM_ADMIN_EMAIL: e2e-platform-admin@schoolstack.test
+  E2E_TEST_PASSWORD: E2eTestPassword123!
+---
+# Platform admin → Rooted Meadows → parent family preview (program co-op entry when demo data is present).
+- runFlow: platform-admin-login.yaml
+- tapOn: 'Impersonate'
+- tapOn: 'Rooted Meadows Waldorf School'
+- extendedWaitUntil:
+    visible: 'Back to schools'
+    timeout: 15000
+- tapOn: 'Parent'
+- tapOn: 'Preview'
+- extendedWaitUntil:
+    visible: 'Read-only'
+    timeout: 60000
+- assertVisible: 'Previewing as'
+- extendedWaitUntil:
+    visible:
+      id: 'parent-portal-ready'
+    timeout: 60000

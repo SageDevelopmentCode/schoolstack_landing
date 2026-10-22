@@ -282,6 +282,7 @@ export default function AdminSupportInbox() {
                     setDetail(null);
                     setDetailLoading(true);
                     setDraft("");
+                    setStagedFiles([]);
                     setSendError(null);
                     setSelectedId(conversation.threadId);
                     void loadDetail(conversation.threadId);

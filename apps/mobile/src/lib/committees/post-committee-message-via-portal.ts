@@ -3,6 +3,7 @@ import type { StagedMessageFile } from '@/lib/messages/types';
 import { fetchParentApiFormData } from '@/lib/parent/parent-portal-api';
 import { fetchSchoolAdminApiFormData } from '@/lib/school-admin-api';
 import { fetchTeacherApiFormData } from '@/lib/teacher/teacher-portal-api';
+import { appendLocalFileToFormData } from '@/lib/upload/append-local-file-to-form-data';
 
 export function resolveCommitteeMessagesPortalNamespace(
   portalApiNamespace: CommitteePortalApiNamespace,
@@ -21,20 +22,20 @@ export function buildCommitteeMessagesPath(
   return `/api/${portalApiNamespace}/committees/${committeeId}/messages`;
 }
 
-function buildCommitteeMessageFormData(
+async function buildCommitteeMessageFormData(
   organizationId: string,
   body: string,
   files: StagedMessageFile[],
-): FormData {
+): Promise<FormData> {
   const formData = new FormData();
   formData.append('organizationId', organizationId);
   formData.append('body', body);
   for (const file of files) {
-    formData.append('files', {
+    await appendLocalFileToFormData(formData, 'files', {
       uri: file.uri,
       name: file.name,
       type: file.mimeType ?? 'application/octet-stream',
-    } as unknown as Blob);
+    });
   }
   return formData;
 }
@@ -77,7 +78,7 @@ export async function postCommitteeMessageViaPortalApi(
     input.isAdmin,
   );
   const path = buildCommitteeMessagesPath(portalApiNamespace, committeeId);
-  const formData = buildCommitteeMessageFormData(input.organizationId, trimmedBody, files);
+  const formData = await buildCommitteeMessageFormData(input.organizationId, trimmedBody, files);
   const payload = await fetchCommitteeMessageFormData(portalApiNamespace, path, formData);
   return { messageId: payload.message.id };
 }

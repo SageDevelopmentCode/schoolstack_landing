@@ -18,6 +18,16 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import { createClient } from "@/utils/supabase/client";
 
+export type PostSubmitStepDocumentationSaveInput = {
+  notes: string;
+  pendingFiles: File[];
+  removedFileIds: string[];
+};
+
+export type PostSubmitStepDocumentationSaveHelpers = {
+  commitFileRemoval: (fileId: string) => void;
+};
+
 export type PostSubmitStepDocumentationDialogProps = {
   C: AdminThemeTokens;
   organizationId: string;
@@ -25,11 +35,10 @@ export type PostSubmitStepDocumentationDialogProps = {
   open: boolean;
   step: AdminPostSubmitStep | null;
   loading?: boolean;
-  onSave: (input: {
-    notes: string;
-    pendingFiles: File[];
-    removedFileIds: string[];
-  }) => void;
+  onSave: (
+    input: PostSubmitStepDocumentationSaveInput,
+    helpers: PostSubmitStepDocumentationSaveHelpers,
+  ) => void;
   onClose: () => void;
 };
 
@@ -99,6 +108,11 @@ export default function PostSubmitStepDocumentationDialog({
       next.push(file);
     }
     setPendingFiles(next);
+  }
+
+  function commitFileRemoval(fileId: string) {
+    setExistingFiles((current) => current.filter((file) => file.id !== fileId));
+    setRemovedFileIds((current) => current.filter((id) => id !== fileId));
   }
 
   const primaryStyle = getAdminButtonStyle(C, "primary");
@@ -251,11 +265,14 @@ export default function PostSubmitStepDocumentationDialog({
                 onClick={() => {
                   void (async () => {
                     const prepared = await preparePostSubmitStepAttachmentFiles(pendingFiles);
-                    onSave({
-                      notes: notes.trim(),
-                      pendingFiles: prepared,
-                      removedFileIds,
-                    });
+                    onSave(
+                      {
+                        notes: notes.trim(),
+                        pendingFiles: prepared,
+                        removedFileIds,
+                      },
+                      { commitFileRemoval },
+                    );
                   })();
                 }}
                 className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium"

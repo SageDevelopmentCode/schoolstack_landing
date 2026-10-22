@@ -19,6 +19,18 @@ jest.mock('@/lib/teacher/teacher-portal-api', () => ({
   fetchTeacherApiFormData: jest.fn(),
 }));
 
+jest.mock('@/lib/upload/append-local-file-to-form-data', () => ({
+  appendLocalFileToFormData: jest.fn(
+    async (
+      formData: FormData,
+      fieldName: string,
+      file: { uri: string; name: string; type: string },
+    ) => {
+      formData.append(fieldName, new Blob(['test']), file.name);
+    },
+  ),
+}));
+
 describe('resolveCommitteeMessagesPortalNamespace', () => {
   it('uses school-admin when isAdmin is true', () => {
     expect(resolveCommitteeMessagesPortalNamespace('parent-portal', true)).toBe('school-admin');
@@ -111,5 +123,26 @@ describe('postCommitteeMessageViaPortalApi', () => {
     );
     expect(teacherFormMock).not.toHaveBeenCalled();
     expect(parentFormMock).not.toHaveBeenCalled();
+  });
+
+  it('includes file blobs when attachments are provided', async () => {
+    await postCommitteeMessageViaPortalApi('committee-4', {
+      organizationId: 'org-1',
+      body: '',
+      files: [
+        {
+          uri: 'file:///tmp/note.jpg',
+          name: 'note.jpg',
+          mimeType: 'image/jpeg',
+          size: 100,
+        },
+      ],
+      portalApiNamespace: 'parent-portal',
+    });
+
+    const [, formData] = parentFormMock.mock.calls[0];
+    const fileParts = formData.getAll('files');
+    expect(fileParts).toHaveLength(1);
+    expect(fileParts[0]).toBeInstanceOf(Blob);
   });
 });

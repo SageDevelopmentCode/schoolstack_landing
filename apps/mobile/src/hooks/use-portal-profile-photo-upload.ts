@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 
 import { useAuth } from '@/contexts/auth-context';
 import type { PortalType } from '@/lib/auth/resolve-portal';
+import { MOBILE_PROFILE_PHOTO_UPLOAD_ENABLED } from '@/lib/profile-photo/mobile-profile-photo-upload-enabled';
 import {
   GuardianProfilePhotoUploadError,
   uploadGuardianProfilePhotoFromParent,
@@ -44,6 +45,7 @@ export function usePortalProfilePhotoUpload({
   }, [initialPhotoUrl]);
 
   const editable =
+    MOBILE_PROFILE_PHOTO_UPLOAD_ENABLED &&
     Boolean(organizationId) &&
     canUploadProfilePhoto(portalType) &&
     !isPlatformAdminSession &&

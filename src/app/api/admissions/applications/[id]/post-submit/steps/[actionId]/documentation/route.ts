@@ -10,6 +10,7 @@ import {
   validatePostSubmitCompleteAttachments,
 } from "@/lib/admissions/post-submit-complete-request";
 import {
+  isPostSubmitStepDocumentationClientError,
   listPostSubmitStepCompletionFilesForApplication,
   normalizePostSubmitStepCompletionNotes,
   uploadPostSubmitStepCompletionFile,
@@ -182,7 +183,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       });
     }
 
-    if (error instanceof Error) {
+    if (isPostSubmitStepDocumentationClientError(error)) {
       return apiError(ROUTE, {
         request,
         status: 400,

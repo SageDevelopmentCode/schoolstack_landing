@@ -123,6 +123,23 @@ export async function listPostSubmitStepCompletionFilesForApplication(
   return result;
 }
 
+export function isPostSubmitStepDocumentationClientError(
+  error: unknown,
+): error is Error {
+  if (!(error instanceof Error)) return false;
+  const { message } = error;
+  if (message === `You can attach up to ${MAX_POST_SUBMIT_STEP_FILES} files.`) {
+    return true;
+  }
+  if (message.includes(" exceeds the ") && message.includes(" MB limit.")) {
+    return true;
+  }
+  if (message.endsWith(" is not an allowed file type.")) {
+    return true;
+  }
+  return false;
+}
+
 export async function uploadPostSubmitStepCompletionFile(
   supabase: SupabaseClient,
   ctx: PostSubmitStepDocumentationContext,

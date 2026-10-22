@@ -1,0 +1,8 @@
+appId: com.mudkitchen.schoolstack.mobile
+---
+- runFlow: ../parent-logged-in.yaml
+- tapOn: 'Messages'
+- extendedWaitUntil:
+    visible: 'Messages'
+    timeout: 30000
+- takeScreenshot: visual-capture

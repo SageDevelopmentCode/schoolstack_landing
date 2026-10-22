@@ -1,9 +1,8 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { type AdminPostSubmitStep } from "./admin-post-submit-steps";
 import {
-  buildAdminPostSubmitStepsWithDocumentation,
-  listPostSubmitStepCompletionFilesForApplication,
-} from "./post-submit-step-documentation";
+  buildAdminPostSubmitSteps,
+  type AdminPostSubmitStep,
+} from "./admin-post-submit-steps";
 import { listScheduledVisitsForApplications } from "./admissions-booking";
 import {
   parseApplicationFormPostSubmitConfig,
@@ -841,19 +840,10 @@ export async function loadApplicationDetail(
   const stepIndex = parseApplicationFormStepIndex(data.responses);
   const postSubmitConfig = parseApplicationFormPostSubmitConfig(form?.post_submit_config);
   const visits = await listScheduledVisitsForApplications(supabase, [applicationId]);
-  const actionIds = postSubmitConfig.actions
-    .filter((action) => action.enabled)
-    .map((action) => action.id);
-  const filesByActionId = await listPostSubmitStepCompletionFilesForApplication(
-    supabase,
-    applicationId,
-    actionIds,
-  );
-  const postSubmitSteps = buildAdminPostSubmitStepsWithDocumentation(
+  const postSubmitSteps = buildAdminPostSubmitSteps(
     postSubmitConfig,
     visits,
     applicationStatus,
-    filesByActionId,
   );
   const rawSchema = (form?.schema as ApplicationFormSchema) ?? {
     sections: [],

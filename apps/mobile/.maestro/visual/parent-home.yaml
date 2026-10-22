@@ -1,0 +1,4 @@
+appId: com.mudkitchen.schoolstack.mobile
+---
+- runFlow: ../parent-logged-in.yaml
+- takeScreenshot: visual-capture

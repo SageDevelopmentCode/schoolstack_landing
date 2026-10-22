@@ -7,6 +7,7 @@ import {
   assertPreviewWriteAllowed,
   isPreviewSessionActive,
 } from '@/lib/platform-admin/preview-session-store';
+import { appendLocalFileToFormData } from '@/lib/upload/append-local-file-to-form-data';
 import {
   fetchMobilePreviewApi,
   resolveTeacherPreviewPath,
@@ -134,11 +135,11 @@ export async function submitTeacherSupportRequest(
   }
 
   for (const file of input.attachments ?? []) {
-    formData.append('attachments', {
+    await appendLocalFileToFormData(formData, 'attachments', {
       uri: file.uri,
       name: file.name,
       type: file.mimeType ?? 'application/octet-stream',
-    } as unknown as Blob);
+    });
   }
 
   await fetchTeacherApiFormData('/api/teacher-portal/support-requests', formData);

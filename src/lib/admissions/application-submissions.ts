@@ -639,6 +639,83 @@ export async function listOrgApplicationSubmissions(
   );
 }
 
+export type OrgFamilyImpersonateLearnerSummary = {
+  applicationId: string;
+  studentName: string;
+  programName: string | null;
+  formTitle: string;
+};
+
+/** Learner/program labels per family for platform-admin parent impersonate lists. */
+export async function listOrgFamilyImpersonateLearnerSummariesByFamilyId(
+  supabase: SupabaseClient,
+  organizationId: string,
+): Promise<Map<string, OrgFamilyImpersonateLearnerSummary[]>> {
+  const limit = 500;
+  const { data, error } = await supabase
+    .from("applications")
+    .select(APPLICATION_SUBMISSION_LIST_SUMMARY_SELECT)
+    .eq("organization_id", organizationId)
+    .order("updated_at", { ascending: false })
+    .range(0, limit - 1);
+
+  if (error) throw error;
+
+  const rows = (data ?? []) as Record<string, unknown>[];
+  if (rows.length === 0) {
+    return new Map();
+  }
+
+  const submissions = await mapApplicationRowsToAdminSubmissionsSummary(
+    supabase,
+    organizationId,
+    rows,
+    "minimal",
+  );
+
+  const familyIdByApplicationId = await resolveApplicationFamilyIds(
+    supabase,
+    organizationId,
+    submissions.map((submission) => ({
+      applicationId: submission.id,
+      familyId: submission.familyId,
+      primaryGuardianId: submission.primaryGuardianId,
+    })),
+  );
+
+  const byFamily = new Map<string, OrgFamilyImpersonateLearnerSummary[]>();
+  const seenApplicationIdsByFamily = new Map<string, Set<string>>();
+
+  for (const submission of submissions) {
+    const familyId = familyIdByApplicationId[submission.id];
+    if (!familyId) continue;
+
+    let seenApplicationIds = seenApplicationIdsByFamily.get(familyId);
+    if (!seenApplicationIds) {
+      seenApplicationIds = new Set();
+      seenApplicationIdsByFamily.set(familyId, seenApplicationIds);
+    }
+    if (seenApplicationIds.has(submission.id)) continue;
+    seenApplicationIds.add(submission.id);
+
+    const list = byFamily.get(familyId) ?? [];
+    list.push({
+      applicationId: submission.id,
+      studentName: submission.studentLabel?.trim() || "Student",
+      programName: submission.programName,
+      formTitle: submission.formTitle,
+    });
+    byFamily.set(familyId, list);
+  }
+
+  for (const [familyId, summaries] of byFamily) {
+    summaries.sort((left, right) => left.studentName.localeCompare(right.studentName));
+    byFamily.set(familyId, summaries);
+  }
+
+  return byFamily;
+}
+
 export async function listOrgApplicationSubmissionsPage(
   supabase: SupabaseClient,
   organizationId: string,

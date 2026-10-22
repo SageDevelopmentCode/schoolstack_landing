@@ -1,71 +1,45 @@
-import {
-  getParentFeatureRoute,
-  parentBillingAgreementsRoute,
-  parentFormDetailRoute,
-  parentFridayBranchRoute,
-  resolveParentAttentionNavigation,
-} from '@/lib/parent/parent-nav';
+import type { MobileParentTabDefinition } from '@/lib/parent/mobile-parent-portal-nav';
+import { getParentActiveTabFromPathname } from '@/lib/parent/parent-nav';
 
-const slug = 'rooted-meadows';
+const COOP_TAB_BAR: Pick<MobileParentTabDefinition, 'tabId' | 'pathSegment'>[] = [
+  { tabId: 'home', pathSegment: 'home' },
+  { tabId: 'messages', pathSegment: 'messages' },
+  { tabId: 'calendar', pathSegment: 'calendar' },
+  { tabId: 'teaching-schedule', pathSegment: 'teaching-schedule' },
+  { tabId: 'more', pathSegment: 'more' },
+];
 
-describe('parentBillingAgreementsRoute', () => {
-  it('builds billing agreements tab route without form id', () => {
-    expect(parentBillingAgreementsRoute(slug)).toBe('/parent/rooted-meadows/billing?tab=agreements');
-  });
-
-  it('builds billing agreements tab route with form id', () => {
-    expect(parentBillingAgreementsRoute(slug, 'form-123')).toBe(
-      '/parent/rooted-meadows/billing?tab=agreements&form=form-123',
-    );
-  });
-});
-
-describe('parentFridayBranchRoute', () => {
-  it('builds the Friday Branch more menu route', () => {
-    expect(parentFridayBranchRoute(slug)).toBe('/parent/rooted-meadows/more/friday-branch');
-  });
-});
-
-describe('getParentFeatureRoute', () => {
-  it('maps friday_branch feature key to the mobile route', () => {
-    expect(getParentFeatureRoute(slug, 'friday_branch')).toBe(
-      '/parent/rooted-meadows/more/friday-branch',
-    );
-  });
-});
-
-describe('resolveParentAttentionNavigation', () => {
-  it('routes tuition agreement attention with formId to billing agreements', () => {
+describe('getParentActiveTabFromPathname', () => {
+  it('maps program supply-list and curriculum to More tab', () => {
     expect(
-      resolveParentAttentionNavigation(slug, {
-        formId: 'agreement-1',
-        href: '/school/rooted-meadows/parent/billing?tab=agreements&form=agreement-1',
-      }),
-    ).toBe(parentBillingAgreementsRoute(slug, 'agreement-1'));
+      getParentActiveTabFromPathname(
+        '/parent/rooted-meadows/p/kindergarten-co-op/supply-list',
+        COOP_TAB_BAR,
+      ),
+    ).toBe('more');
+    expect(
+      getParentActiveTabFromPathname(
+        '/parent/rooted-meadows/p/kindergarten-co-op/curriculum',
+        COOP_TAB_BAR,
+      ),
+    ).toBe('more');
   });
 
-  it('routes general form attention with formId to form detail', () => {
+  it('maps primary program tabs normally', () => {
     expect(
-      resolveParentAttentionNavigation(slug, {
-        formId: 'form-1',
-        href: '/school/rooted-meadows/parent/forms_documents?form=form-1',
-      }),
-    ).toBe(parentFormDetailRoute(slug, 'form-1'));
+      getParentActiveTabFromPathname(
+        '/parent/rooted-meadows/p/kindergarten-co-op/teaching-schedule',
+        COOP_TAB_BAR,
+      ),
+    ).toBe('teaching-schedule');
   });
 
-  it('routes tuition agreement href with embedded form param', () => {
+  it('maps program more routes to More tab', () => {
     expect(
-      resolveParentAttentionNavigation(slug, {
-        href: '/school/rooted-meadows/parent/billing?tab=agreements&form=agreement-2',
-      }),
-    ).toBe(parentBillingAgreementsRoute(slug, 'agreement-2'));
-  });
-
-  it('routes tuition agreement href without form param to agreements tab', () => {
-    expect(
-      resolveParentAttentionNavigation(slug, {
-        href: '/school/rooted-meadows/parent/billing?tab=agreements',
-      }),
-    ).toBe(parentBillingAgreementsRoute(slug));
+      getParentActiveTabFromPathname(
+        '/parent/rooted-meadows/p/kindergarten-co-op/more/attendance',
+        COOP_TAB_BAR,
+      ),
+    ).toBe('more');
   });
 });

@@ -3,7 +3,10 @@
 import { useMemo, useState } from "react";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import PostSubmitStepCompleteDialog from "@/components/school-admin/admissions/PostSubmitStepCompleteDialog";
-import PostSubmitStepDocumentationDialog from "@/components/school-admin/admissions/PostSubmitStepDocumentationDialog";
+import PostSubmitStepDocumentationDialog, {
+  type PostSubmitStepDocumentationSaveHelpers,
+  type PostSubmitStepDocumentationSaveInput,
+} from "@/components/school-admin/admissions/PostSubmitStepDocumentationDialog";
 import DetailPanelSection from "@/components/school-admin/admissions/DetailPanelSection";
 import DetailPanelStepTimeline, {
   type DetailPanelStepTimelineItem,
@@ -153,11 +156,21 @@ export default function ApplicationSubmissionPostSubmitSection({
     }
   }
 
-  async function handleSaveDocumentation(input: {
-    notes: string;
-    pendingFiles: File[];
-    removedFileIds: string[];
-  }) {
+  function isPostSubmitStepFileAlreadyRemoved(
+    status: number,
+    body: { code?: string; error?: string },
+  ): boolean {
+    return (
+      status === 404 &&
+      body.code === "not_found" &&
+      body.error === "File not found."
+    );
+  }
+
+  async function handleSaveDocumentation(
+    input: PostSubmitStepDocumentationSaveInput,
+    helpers: PostSubmitStepDocumentationSaveHelpers,
+  ) {
     if (!documentationStep) return;
 
     setSubmitting(true);
@@ -171,10 +184,16 @@ export default function ApplicationSubmissionPostSubmitSection({
           { method: "DELETE" },
         );
         responseStatus = deleteResponse.status;
-        const deleteBody = await deleteResponse.json().catch(() => ({}));
+        const deleteBody = (await deleteResponse.json().catch(() => ({}))) as {
+          code?: string;
+          error?: string;
+        };
         if (!deleteResponse.ok) {
-          throw new Error(deleteBody.error ?? "Failed to remove file.");
+          if (!isPostSubmitStepFileAlreadyRemoved(deleteResponse.status, deleteBody)) {
+            throw new Error(deleteBody.error ?? "Failed to remove file.");
+          }
         }
+        helpers.commitFileRemoval(fileId);
       }
 
       const formData = new FormData();
@@ -327,7 +346,7 @@ export default function ApplicationSubmissionPostSubmitSection({
         open={documentationStep !== null}
         step={documentationStep}
         loading={submitting}
-        onSave={(input) => void handleSaveDocumentation(input)}
+        onSave={(input, helpers) => void handleSaveDocumentation(input, helpers)}
         onClose={() => {
           if (!submitting) setDocumentationStep(null);
         }}

@@ -16,10 +16,10 @@ Run Playwright E2E tests against **local Supabase only**. Never use production S
 1. **Local Supabase only** — `NEXT_PUBLIC_SUPABASE_URL` must be `http://127.0.0.1:54321`
 2. Use `.env.e2e.local` (copy from `.env.e2e.example`). Do not point E2E at `.env.local` / prod credentials
 3. Prod host `rxrmlfyoqzdpjxztluyd` is blocked in `e2e/global-setup.ts`
-4. **No Stripe** — Playwright runs `dev:next` (not `npm run dev`). `STRIPE_*` keys are cleared in `playwright.config.ts`
+4. **No Stripe** — Playwright’s web server uses E2E env (not your `.env.local` Stripe keys). `STRIPE_*` keys are cleared in `e2e/web-server-env.ts`
 5. **No outbound email** — `DISABLE_OUTBOUND_EMAIL=1` is set for the Playwright web server; Zoho/SMTP keys are cleared so application-submit tests do not send mail
 6. **Admissions Discord** — set `DISCORD_E2E_ALERTS_WEBHOOK_URL` in `.env.e2e.local`; prod `ROOTED_MEADOWS_WEBSITE_NOTIFICATION_DISCORD_WEBHOOK_URL` is cleared in `playwright.config.ts` so submit/payment/visit alerts do not hit the school channel
-7. E2E uses **port 3100** by default — your dev server on 3000/3001 can stay running
+7. E2E uses **port 3100** by default — your `next dev` on **3000** can stay running: locally Playwright uses **`next start` on 3100** (after `npm run test:e2e:build`). CI uses `next dev` on 3100 only
 
 ## Prerequisites
 
@@ -50,11 +50,27 @@ npm run test:e2e:install
 
 ```bash
 npm run test:e2e:setup   # optional: supabase db reset
-npm run test:e2e         # 41 tests; starts dev:next automatically
+npm run test:e2e:build   # local: production build with E2E env (re-run after app changes)
+npm run test:e2e         # 47 tests; starts next start on 3100 locally (next dev on CI)
 npm run test:e2e:ui      # interactive mode
 ```
 
-**Expected:** 41 passed (1 setup + 5 smoke + 9 school-admin + 1 non-admin + 11 parent + 14 API).
+Optional: keep **3100** warm while iterating — `npm run test:e2e:server` in another terminal (still use 3000 for daily dev).
+
+Power user: `PLAYWRIGHT_SKIP_WEBSERVER=1 npm run test:e2e` when you already serve E2E on 3100.
+
+**Expected:** 47 passed (1 setup + 5 smoke + 9 school-admin + 1 non-admin + 17 parent + 14 API).
+
+**Responsive portal screenshots:** After web UI changes in `src/`, agents follow [portal-responsive-verify](../portal-responsive-verify/SKILL.md) (browser MCP at three viewports by default; optional layout spec below when Supabase is up).
+
+```bash
+npm run test:e2e -- e2e/parent/parent-messages-layout.spec.ts
+npm run test:e2e -- e2e/parent/committee-messages-layout.spec.ts
+```
+
+Those specs write PNGs under `e2e/.artifacts/responsive/` when layout-critical portal files were touched.
+
+After layout specs (or browser MCP capture), agents **must** complete **visual review**: `npm run verify:responsive-artifacts -- committee-messages` (file check), then Read each PNG and apply checklists in [portal-responsive-verify](../portal-responsive-verify/SKILL.md) §3.
 
 ## Integration tests (no Playwright)
 
@@ -68,7 +84,7 @@ Uses `.env.e2e.local` when present. Does not call Stripe's API — fixtures and 
 ## What runs
 
 1. **globalSetup** (`e2e/global-setup.ts`) — env guards + seed users/data via `e2e/fixtures/seed.ts` (writes `e2e/.seed-manifest.json` with application IDs)
-2. **webServer** — `dev:next` with E2E Supabase env from `playwright.config.ts`
+2. **webServer** — local: `next start` on 3100 (`scripts/playwright-e2e-web-server.mjs`); CI: `dev:next` on 3100. Env from `e2e/web-server-env.ts`
 3. **setup project** (`e2e/auth.setup.ts`) — password login UI → `e2e/.auth/*.json`
 4. **Tests** — smoke, school-admin, non-admin, parent, and API projects
 
@@ -93,6 +109,8 @@ Password: `E2eTestPassword123!` (override via `E2E_TEST_PASSWORD` in `.env.e2e.l
 | Empty `e2e/.auth/*.json` | `rm -rf e2e/.auth` and re-run |
 | Playwright browser missing | `npm run test:e2e:install` |
 | Port 3100 in use | `lsof -ti:3100 \| xargs kill -9` then re-run |
+| Another `next dev` already running | Run `npm run test:e2e:build` then re-run tests (local uses `next start`, not a second dev server) |
+| E2E production server requires a build | `npm run test:e2e:build` |
 | Prod block error in globalSetup | Fix `NEXT_PUBLIC_SUPABASE_URL` in `.env.e2e.local` |
 | Zoho bounce emails after E2E | Ensure Playwright starts its own server on 3100 with `DISABLE_OUTBOUND_EMAIL=1` |
 | Admissions Discord in school channel | Add `DISCORD_E2E_ALERTS_WEBHOOK_URL` to `.env.e2e.local` |

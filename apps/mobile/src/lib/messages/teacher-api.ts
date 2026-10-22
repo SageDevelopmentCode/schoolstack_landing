@@ -4,6 +4,7 @@ import {
 } from '@/lib/messages/message-mutations';
 import { mudKitchenSupportContact } from '@/lib/messages/platform-support';
 import { fetchTeacherApi, fetchTeacherApiFormData } from '@/lib/teacher/teacher-portal-api';
+import { appendLocalFileToFormData } from '@/lib/upload/append-local-file-to-form-data';
 import type {
   MessageContact,
   MessageThreadDetail,
@@ -87,11 +88,11 @@ export async function sendTeacherMessage(
     formData.append('schoolName', schoolName);
     formData.append('body', body);
     for (const file of files) {
-      formData.append('files', {
+      await appendLocalFileToFormData(formData, 'files', {
         uri: file.uri,
         name: file.name,
         type: file.mimeType ?? 'application/octet-stream',
-      } as unknown as Blob);
+      });
     }
 
     const payload = await fetchTeacherApiFormData<{ message: PortalMessage }>(

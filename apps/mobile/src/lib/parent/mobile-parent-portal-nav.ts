@@ -58,6 +58,8 @@ const PARENT_FEATURE_TO_MOBILE_SEGMENT: Record<string, string> = {
   teaching_schedule: 'teaching-schedule',
 };
 
+export const MOBILE_COOP_MORE_MENU_FEATURE_KEYS = ['curriculum', 'supply_list'] as const;
+
 export const MOBILE_MORE_MENU_FEATURE_KEYS = [
   'attendance',
   'children',
@@ -68,7 +70,11 @@ export const MOBILE_MORE_MENU_FEATURE_KEYS = [
   'notifications',
 ] as const;
 
-export type MobileMoreMenuFeatureKey = (typeof MOBILE_MORE_MENU_FEATURE_KEYS)[number];
+export type MobileCoopMoreMenuFeatureKey = (typeof MOBILE_COOP_MORE_MENU_FEATURE_KEYS)[number];
+
+export type MobileMoreMenuFeatureKey =
+  | (typeof MOBILE_MORE_MENU_FEATURE_KEYS)[number]
+  | MobileCoopMoreMenuFeatureKey;
 
 export type MobileParentTabId =
   | 'home'
@@ -283,10 +289,19 @@ export function resolveMobileParentTabBar(input: {
     const teachingSchedule = tabItems.find((tab) => tab.featureKey === 'teaching_schedule');
     const withoutTeaching = tabItems.filter((tab) => tab.featureKey !== 'teaching_schedule');
     if (teachingSchedule) {
-      tabItems = [...withoutTeaching.slice(0, MOBILE_PRIMARY_TAB_SLOTS - 1), teachingSchedule];
+      tabItems = [
+        ...withoutTeaching.slice(0, MOBILE_PRIMARY_TAB_SLOTS - 1),
+        { ...teachingSchedule, label: 'Schedule' },
+      ];
     } else {
       tabItems = tabItems.slice(0, MOBILE_PRIMARY_TAB_SLOTS);
     }
+    tabItems = tabItems.map((tab) => {
+      if (tab.featureKey === 'calendar') {
+        return { ...tab, label: 'Calendar' };
+      }
+      return tab;
+    });
   } else {
     tabItems = tabItems.slice(0, MOBILE_PRIMARY_TAB_SLOTS);
   }
@@ -300,10 +315,21 @@ export function resolveMobileMoreMenuFeatureKeys(input: {
   portalNav?: MobilePortalFeatureNav;
   coopMode?: boolean;
 }): MobileMoreMenuFeatureKey[] {
-  return MOBILE_MORE_MENU_FEATURE_KEYS.filter((key) => {
+  const coopKeys: MobileCoopMoreMenuFeatureKey[] = [];
+  if (input.mode === 'program' && input.coopMode) {
+    for (const key of MOBILE_COOP_MORE_MENU_FEATURE_KEYS) {
+      if (input.parentFeatures[key]) {
+        coopKeys.push(key);
+      }
+    }
+  }
+
+  const baseKeys = MOBILE_MORE_MENU_FEATURE_KEYS.filter((key) => {
     if (key === 'notifications') return true;
     return Boolean(input.parentFeatures[key]);
   });
+
+  return [...coopKeys, ...baseKeys];
 }
 
 export function detectMobilePortalContextFromPathname(

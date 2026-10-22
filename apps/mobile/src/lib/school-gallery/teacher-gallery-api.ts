@@ -1,4 +1,5 @@
 import { fetchTeacherApi, fetchTeacherApiFormData } from '@/lib/teacher/teacher-portal-api';
+import { appendLocalFileToFormData } from '@/lib/upload/append-local-file-to-form-data';
 import type { PreparedGalleryUploadFile } from '@/lib/school-gallery/gallery-api';
 import type { GalleryPhoto, GalleryPhotosPage } from '@/lib/school-gallery/types';
 
@@ -39,14 +40,11 @@ export async function uploadTeacherGalleryBatch(
   const formData = new FormData();
   formData.append('photoDate', photoDate);
   for (const file of files) {
-    formData.append(
-      'files',
-      {
-        uri: file.uri,
-        name: file.name,
-        type: file.type,
-      } as unknown as Blob,
-    );
+    await appendLocalFileToFormData(formData, 'files', {
+      uri: file.uri,
+      name: file.name,
+      type: file.type,
+    });
   }
 
   const query = buildTeacherGalleryQuery(organizationId, slug);

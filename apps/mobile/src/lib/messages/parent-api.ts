@@ -3,6 +3,8 @@ import {
   patchPortalMessage,
 } from '@/lib/messages/message-mutations';
 import { fetchParentApi, fetchParentApiFormData } from '@/lib/parent/parent-portal-api';
+import { appendLocalFileToFormData } from '@/lib/upload/append-local-file-to-form-data';
+import { buildParentMessagesInboxQuery } from '@/lib/messages/parent-messages-inbox-query';
 import { mudKitchenSupportContact } from '@/lib/messages/platform-support';
 import type {
   MessageContact,
@@ -14,18 +16,12 @@ import type {
 
 const BASE_PATH = '/api/parent-portal/messages';
 
-function buildQuery(organizationId: string, schoolName: string): string {
-  return new URLSearchParams({
-    organizationId,
-    schoolName,
-  }).toString();
-}
-
 export async function loadParentMessagesInbox(
   organizationId: string,
   schoolName: string,
+  programId?: string,
 ): Promise<MessagesInboxData> {
-  const query = buildQuery(organizationId, schoolName);
+  const query = buildParentMessagesInboxQuery(organizationId, schoolName, programId);
   return fetchParentApi<MessagesInboxData>(`${BASE_PATH}/threads?${query}`);
 }
 
@@ -34,7 +30,7 @@ export async function loadParentMessageThread(
   organizationId: string,
   schoolName: string,
 ): Promise<MessageThreadDetail> {
-  const query = buildQuery(organizationId, schoolName);
+  const query = buildParentMessagesInboxQuery(organizationId, schoolName);
   const payload = await fetchParentApi<{ thread: MessageThreadDetail }>(
     `${BASE_PATH}/threads/${threadId}?${query}`,
   );
@@ -87,11 +83,11 @@ export async function sendParentMessage(
     formData.append('schoolName', schoolName);
     formData.append('body', body);
     for (const file of files) {
-      formData.append('files', {
+      await appendLocalFileToFormData(formData, 'files', {
         uri: file.uri,
         name: file.name,
         type: file.mimeType ?? 'application/octet-stream',
-      } as unknown as Blob);
+      });
     }
 
     const payload = await fetchParentApiFormData<{ message: PortalMessage }>(

@@ -1141,6 +1141,9 @@ export default function MessagesInboxLayout({
       return (
         <div
           className="flex h-full min-h-0 flex-1 flex-col overflow-hidden"
+          data-testid={
+            variant === "parent-story" ? "parent-messages-inbox-layout" : undefined
+          }
           style={{
             backgroundColor: storyVariant ? theme?.white ?? C.bg : C.bg,
           }}
@@ -1254,6 +1257,9 @@ export default function MessagesInboxLayout({
           ? "h-full min-h-0 flex-1"
           : "flex-1 min-h-[480px] h-[calc(100vh-220px)] max-h-[720px] border rounded-xl"
       }`}
+      data-testid={
+        variant === "parent-story" ? "parent-messages-inbox-layout" : undefined
+      }
       style={
         storyVariant && theme
           ? {

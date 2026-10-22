@@ -1,5 +1,5 @@
-import { ParentProgramRoutePlaceholder } from '@/components/parent/parent-program-route-placeholder';
+import { ParentAccountScreen } from '@/components/parent/parent-account-screen';
 
 export default function ProgramParentAccountRoute() {
-  return <ParentProgramRoutePlaceholder title="Account settings" />;
+  return <ParentAccountScreen />;
 }

@@ -1,0 +1,7 @@
+appId: com.mudkitchen.schoolstack.mobile
+---
+- runFlow: ../teacher-logged-in.yaml
+- extendedWaitUntil:
+    visible: 'Your students'
+    timeout: 30000
+- takeScreenshot: visual-capture

@@ -10,6 +10,7 @@ import {
   getThreadDetail,
   markThreadRead,
 } from "@/lib/messages/threads";
+import { assertSchoolAdminCanAccessThread } from "@/lib/messages/thread-access";
 import type { MessageContactInput, MessageParticipantInput } from "@/lib/messages/types";
 import {
   getStaffMemberIdForUser,
@@ -99,6 +100,8 @@ export async function assertTeacherCanAccessThread(
     throw new PortalRouteError("You do not have access to this thread.", 403, "forbidden");
   }
 }
+
+export { assertSchoolAdminCanAccessThread };
 
 export async function resolveParticipantsForContact(
   admin: SupabaseClient,

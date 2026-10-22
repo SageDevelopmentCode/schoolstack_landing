@@ -206,6 +206,7 @@ export const CI_LHCI_PAGE_PATHS = [
   `/school/${CANONICAL_SCHOOL_SLUG}/parent/portal`,
   `/school/${CANONICAL_SCHOOL_SLUG}/parent/billing`,
   `/school/${CANONICAL_SCHOOL_SLUG}/parent/children`,
+  `/school/${CANONICAL_SCHOOL_SLUG}/parent/committees`,
 ] as const;
 
 function parsePerformanceCiPagePathsEnv(value: string | undefined): string[] | null {

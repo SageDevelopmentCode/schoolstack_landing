@@ -42,6 +42,30 @@ describe('resolveParentPreviewPath', () => {
     );
   });
 
+  it('maps parent portal-contexts to mobile preview route with familyId', () => {
+    setActivePreviewSession(parentSession);
+
+    const path = resolveParentPreviewPath(
+      '/api/parent-portal/portal-contexts?organizationId=org-123&slug=rooted-meadows',
+    );
+
+    expect(path).toBe(
+      '/api/admin/mobile-preview/parent/portal-contexts?organizationId=org-123&slug=rooted-meadows&familyId=family-456',
+    );
+  });
+
+  it('preserves programSlug on parent home preview mapping', () => {
+    setActivePreviewSession(parentSession);
+
+    const path = resolveParentPreviewPath(
+      '/api/parent-portal/home?organizationId=org-123&slug=rooted-meadows&programSlug=kindergarten-coop',
+    );
+
+    expect(path).toBe(
+      '/api/admin/mobile-preview/parent/home?organizationId=org-123&slug=rooted-meadows&programSlug=kindergarten-coop&familyId=family-456',
+    );
+  });
+
   it('returns null when preview session is inactive', () => {
     expect(
       resolveParentPreviewPath('/api/parent-portal/home?organizationId=org-123&slug=rooted-meadows'),
@@ -99,6 +123,16 @@ describe('mapParentPortalPathToPreview', () => {
     expect(mapped).toBe(
       '/api/admin/mobile-preview/parent/calendar?organizationId=org-123&slug=rooted-meadows&month=2026-09&familyId=family-456',
     );
+  });
+
+  it('preserves programId on calendar preview mapping', () => {
+    const mapped = mapParentPortalPathToPreview(
+      '/api/parent-portal/calendar?organizationId=org-123&slug=rooted-meadows&programId=prog-coop',
+      parentSession,
+    );
+
+    expect(mapped).toContain('programId=prog-coop');
+    expect(mapped).toContain('familyId=family-456');
   });
 });
 

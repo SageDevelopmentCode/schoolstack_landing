@@ -1,0 +1,18 @@
+appId: com.mudkitchen.schoolstack.mobile
+env:
+  E2E_PARENT_EMAIL: e2e-parent@schoolstack.test
+  E2E_TEST_PASSWORD: E2eTestPassword123!
+---
+- runFlow: intro-to-login.yaml
+- tapOn: 'Use password'
+- tapOn:
+    text: 'Email'
+- inputText: ${E2E_PARENT_EMAIL}
+- tapOn:
+    text: 'Password'
+- inputText: ${E2E_TEST_PASSWORD}
+- tapOn: 'Sign in'
+- extendedWaitUntil:
+    visible:
+      id: 'parent-portal-ready'
+    timeout: 60000

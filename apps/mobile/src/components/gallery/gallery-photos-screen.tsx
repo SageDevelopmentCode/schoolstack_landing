@@ -95,12 +95,26 @@ export function GalleryPhotosScreen(props: GalleryPhotosScreenProps) {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
-  const [viewerState, setViewerState] = useState<GalleryPhotoViewerState | null>(null);
+  const [viewerSession, setViewerSession] = useState<{ photoId: string } | null>(null);
   const [editPhoto, setEditPhoto] = useState<GalleryPhoto | null>(null);
   const [editDateValue, setEditDateValue] = useState('');
   const [savingDate, setSavingDate] = useState(false);
 
   const groups = useMemo(() => groupGalleryPhotosByDate(photos), [photos]);
+
+  const viewerPayload = useMemo((): GalleryPhotoViewerState | null => {
+    if (!viewerSession) return null;
+    const index = photos.findIndex((entry) => entry.id === viewerSession.photoId);
+    if (index < 0) return null;
+    return { photos, index };
+  }, [viewerSession, photos]);
+
+  useEffect(() => {
+    if (!viewerSession) return;
+    if (!photos.some((entry) => entry.id === viewerSession.photoId)) {
+      setViewerSession(null);
+    }
+  }, [photos, viewerSession]);
   const loadingMoreRef = useRef(loadingMore);
   const hasMoreRef = useRef(hasMore);
   const loadMoreErrorRef = useRef(loadMoreError);
@@ -142,9 +156,8 @@ export function GalleryPhotosScreen(props: GalleryPhotosScreenProps) {
       return;
     }
 
-    const index = photos.findIndex((entry) => entry.id === photo.id);
-    if (index >= 0) {
-      setViewerState({ photos, index });
+    if (photos.some((entry) => entry.id === photo.id)) {
+      setViewerSession({ photoId: photo.id });
     }
   };
 
@@ -196,12 +209,13 @@ export function GalleryPhotosScreen(props: GalleryPhotosScreenProps) {
               if (props.readOnly === true) return;
               await props.deletePhotoById(photo.id);
               removePhoto(photo.id);
-              setViewerState((current) => {
+              setViewerSession((current) => {
                 if (!current) return null;
-                const nextPhotos = current.photos.filter((entry) => entry.id !== photo.id);
-                if (nextPhotos.length === 0) return null;
-                const nextIndex = Math.min(current.index, nextPhotos.length - 1);
-                return { photos: nextPhotos, index: nextIndex };
+                if (current.photoId !== photo.id) return current;
+                const deletedIndex = photos.findIndex((entry) => entry.id === photo.id);
+                if (deletedIndex < 0) return null;
+                const adjacent = photos[deletedIndex + 1] ?? photos[deletedIndex - 1];
+                return adjacent ? { photoId: adjacent.id } : null;
               });
             } catch (error) {
               reportError(`${errorOperationPrefix}_delete`, error);
@@ -234,7 +248,7 @@ export function GalleryPhotosScreen(props: GalleryPhotosScreenProps) {
               }
               setSelectedIds(new Set());
               setSelectionMode(false);
-              setViewerState(null);
+              setViewerSession(null);
             } catch (error) {
               reportError(`${errorOperationPrefix}_bulk_delete`, error);
               Alert.alert(
@@ -395,12 +409,13 @@ export function GalleryPhotosScreen(props: GalleryPhotosScreenProps) {
       ) : null}
 
       <GalleryPhotoViewerModal
-        visible={viewerState != null}
-        viewerState={viewerState}
+        visible={viewerPayload != null}
+        viewerState={viewerPayload}
         hasMore={hasMore}
-        onClose={() => setViewerState(null)}
+        onClose={() => setViewerSession(null)}
         onChangeIndex={(index) => {
-          setViewerState((current) => (current ? { ...current, index } : current));
+          const active = photos[index];
+          if (active) setViewerSession({ photoId: active.id });
         }}
         onRequestMore={loadMore}
       />

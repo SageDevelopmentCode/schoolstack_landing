@@ -20,8 +20,11 @@
     "test:integration:setup": "supabase db reset",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:e2e:build": "tsx scripts/e2e-production-build.ts",
+    "test:e2e:server": "tsx scripts/e2e-production-server.ts",
     "test:e2e:setup": "supabase db reset",
     "test:e2e:install": "playwright install chromium",
+    "verify:responsive-artifacts": "node scripts/verify-responsive-artifacts.mjs",
     "import-schools": "tsx scripts/import-schools-csv.ts",
     "preview:emails": "tsx scripts/preview-emails.ts",
     "resend:payment-admin": "tsx --require ./src/test/integration/mock-server-only.cjs scripts/resend-payment-admin-notification.ts",
@@ -48,6 +51,10 @@
     "mobile:test:e2e:ios": "npm run test:e2e:ios:run --workspace @schoolstack/mobile",
     "mobile:test:e2e:android": "npm run test:e2e:android:run --workspace @schoolstack/mobile",
     "mobile:e2e:env": "bash apps/mobile/scripts/print-e2e-env.sh",
+    "mobile:visual:capture": "bash apps/mobile/scripts/run-visual-capture.sh",
+    "mobile:visual:capture:coop-program": "bash apps/mobile/scripts/run-parent-coop-visual-capture.sh",
+    "verify:mobile-artifacts": "node scripts/verify-mobile-artifacts.mjs",
+    "verify:parent-coop-visual": "node scripts/verify-parent-coop-visual-checklist.mjs",
     "seed:e2e": "tsx e2e/seed-only.ts"
   },
   "dependencies": {

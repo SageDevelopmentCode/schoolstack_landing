@@ -11,6 +11,7 @@ import {
   getGuardianIdForUser,
   postPortalMessage,
 } from "@/lib/messages/messages";
+import { assertSchoolAdminCanAccessThread } from "@/lib/messages/thread-access";
 import type { ParticipantDisplayContext } from "@/lib/messages/mappers";
 import { getThreadDetail, markThreadRead } from "@/lib/messages/threads";
 import { getStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access";
@@ -121,6 +122,10 @@ export async function sendMessageForViewer(
     activityMetadata?: Record<string, unknown>;
   },
 ) {
+  if (input.viewer === "admin") {
+    await assertSchoolAdminCanAccessThread(admin, input.organizationId, input.threadId);
+  }
+
   const thread = await getThreadDetail(
     admin,
     input.organizationId,
@@ -224,6 +229,10 @@ export async function editMessageForViewer(
     currentStaffMemberId?: string | null;
   },
 ) {
+  if (input.viewer === "admin") {
+    await assertSchoolAdminCanAccessThread(admin, input.organizationId, input.threadId);
+  }
+
   const thread = await getThreadDetail(
     admin,
     input.organizationId,
@@ -279,6 +288,10 @@ export async function deleteMessageForViewer(
     currentStaffMemberId?: string | null;
   },
 ) {
+  if (input.viewer === "admin") {
+    await assertSchoolAdminCanAccessThread(admin, input.organizationId, input.threadId);
+  }
+
   const thread = await getThreadDetail(
     admin,
     input.organizationId,

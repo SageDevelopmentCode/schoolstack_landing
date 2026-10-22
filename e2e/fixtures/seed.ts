@@ -4,7 +4,20 @@ import os from "node:os";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import ws from "ws";
-import { DEFAULT_BRANDING, DEFAULT_FEATURES } from "@/lib/organization-settings/catalog";
+import {
+  DEFAULT_BRANDING,
+  DEFAULT_FEATURES,
+  type OrganizationFeatures,
+} from "@/lib/organization-settings/catalog";
+
+/** Parent committees E2E (layout spec) — off in DEFAULT_FEATURES. */
+const E2E_ORGANIZATION_FEATURES: OrganizationFeatures = {
+  ...DEFAULT_FEATURES,
+  parent: {
+    ...DEFAULT_FEATURES.parent,
+    committees: true,
+  },
+};
 import { buildApplySystemSection, emptyApplyCustomSection } from "@/lib/admissions/apply-system-fields";
 import { createProgram } from "@/lib/admissions/programs";
 import { materializeApplicationStudent } from "@/lib/admissions/application-entity-materialization";
@@ -824,7 +837,166 @@ export type E2eSeedManifest = {
     noFeeDraft: string;
     noFeeSubmitDraft: string;
   };
+  committees: {
+    parentWorkspace: string;
+  };
 };
+
+const E2E_COMMITTEE_NAME = "E2E Volunteer Committee";
+
+const E2E_COMMITTEE_CONFIG = {
+  sections: [
+    "home",
+    "about",
+    "resources",
+    "calendar",
+    "tasks",
+    "messages",
+    "members",
+  ],
+  type: "annual_volunteer",
+  taskGroups: [{ id: "general", label: "General" }],
+};
+
+async function ensureE2eParentEnrolledAccess(
+  admin: ReturnType<typeof createAdminClient>,
+  organizationId: string,
+  programId: string,
+): Promise<void> {
+  const { data: family, error: familyError } = await admin
+    .from("families")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("primary_email", E2E_PARENT_EMAIL)
+    .maybeSingle();
+
+  if (familyError) throw familyError;
+  if (!family?.id) return;
+
+  const { data: students, error: studentsError } = await admin
+    .from("students")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("family_id", family.id);
+
+  if (studentsError) throw studentsError;
+
+  let studentId = students?.[0]?.id as string | undefined;
+  if (!studentId) {
+    const { data: student, error: insertStudentError } = await admin
+      .from("students")
+      .insert({
+        organization_id: organizationId,
+        family_id: family.id,
+        first_name: "Committee",
+        last_name: "Portal",
+        status: "active",
+      })
+      .select("id")
+      .single();
+    if (insertStudentError) throw insertStudentError;
+    studentId = student.id as string;
+  }
+
+  const { data: existingEnrollment, error: enrollmentLookupError } = await admin
+    .from("enrollments")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("student_id", studentId)
+    .eq("status", "enrolled")
+    .maybeSingle();
+
+  if (enrollmentLookupError) throw enrollmentLookupError;
+  if (existingEnrollment?.id) return;
+
+  const { error: enrollmentInsertError } = await admin.from("enrollments").insert({
+    organization_id: organizationId,
+    student_id: studentId,
+    program_id: programId,
+    status: "enrolled",
+  });
+
+  if (enrollmentInsertError) throw enrollmentInsertError;
+}
+
+async function ensureE2eParentCommittee(
+  admin: ReturnType<typeof createAdminClient>,
+  organizationId: string,
+  parentUserId: string,
+): Promise<string> {
+  const { data: existingCommittee, error: committeeLookupError } = await admin
+    .from("committees")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("name", E2E_COMMITTEE_NAME)
+    .maybeSingle();
+
+  if (committeeLookupError) throw committeeLookupError;
+
+  let committeeId = existingCommittee?.id as string | undefined;
+  if (!committeeId) {
+    const { data: committee, error: committeeInsertError } = await admin
+      .from("committees")
+      .insert({
+        organization_id: organizationId,
+        name: E2E_COMMITTEE_NAME,
+        description: "Committee messages layout E2E",
+        status: "active",
+        term_label: "E2E",
+        config: E2E_COMMITTEE_CONFIG,
+      })
+      .select("id")
+      .single();
+    if (committeeInsertError) throw committeeInsertError;
+    committeeId = committee.id as string;
+  }
+
+  const { data: existingMember, error: memberLookupError } = await admin
+    .from("committee_members")
+    .select("id")
+    .eq("committee_id", committeeId)
+    .eq("user_id", parentUserId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (memberLookupError) throw memberLookupError;
+
+  let memberId = existingMember?.id as string | undefined;
+  if (!memberId) {
+    const { data: member, error: memberInsertError } = await admin
+      .from("committee_members")
+      .insert({
+        committee_id: committeeId,
+        organization_id: organizationId,
+        user_id: parentUserId,
+        display_name: "E2E Parent",
+        email: E2E_PARENT_EMAIL,
+        role: "member",
+        status: "active",
+      })
+      .select("id")
+      .single();
+    if (memberInsertError) throw memberInsertError;
+    memberId = member.id as string;
+  }
+
+  const { count, error: messageCountError } = await admin
+    .from("committee_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("committee_id", committeeId);
+
+  if (messageCountError) throw messageCountError;
+  if ((count ?? 0) === 0) {
+    const { error: messageInsertError } = await admin.from("committee_messages").insert({
+      committee_id: committeeId,
+      sender_member_id: memberId,
+      body: "Welcome to the E2E committee channel.",
+    });
+    if (messageInsertError) throw messageInsertError;
+  }
+
+  return committeeId;
+}
 
 function writeSeedManifest(manifest: E2eSeedManifest): void {
   fs.mkdirSync(path.dirname(SEED_MANIFEST_PATH), { recursive: true });
@@ -879,7 +1051,7 @@ export async function seedE2eDatabase(): Promise<void> {
     values (
       '${organizationId}',
       ${sqlJson(DEFAULT_BRANDING)},
-      ${sqlJson(DEFAULT_FEATURES)}
+      ${sqlJson(E2E_ORGANIZATION_FEATURES)}
     )
     on conflict (organization_id) do update
     set branding = excluded.branding,
@@ -1072,6 +1244,13 @@ export async function seedE2eDatabase(): Promise<void> {
     formContext,
   });
 
+  await ensureE2eParentEnrolledAccess(admin, organizationId, formContext.programId);
+  const parentCommitteeId = await ensureE2eParentCommittee(
+    admin,
+    organizationId,
+    parentUserId,
+  );
+
   writeSeedManifest({
     organizationId,
     forms: {
@@ -1085,6 +1264,9 @@ export async function seedE2eDatabase(): Promise<void> {
       feePendingDraft: feePendingDraftApplicationId,
       noFeeDraft: noFeeDraftApplicationId,
       noFeeSubmitDraft: noFeeSubmitDraftApplicationId,
+    },
+    committees: {
+      parentWorkspace: parentCommitteeId,
     },
   });
 }

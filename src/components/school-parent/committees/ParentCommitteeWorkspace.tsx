@@ -166,16 +166,22 @@ export default function ParentCommitteeWorkspace({
     if (previewMode) return;
 
     emptySectionRetryRef.current = false;
-    queueMicrotask(() => {
-      setInitialRefreshDone(false);
-    });
 
     let cancelled = false;
-    queueMicrotask(() => {
-      if (!cancelled) {
-        void fetchWorkspace({ silent: Boolean(initialCommittee) });
-      }
-    });
+    if (initialCommittee) {
+      queueMicrotask(() => {
+        if (!cancelled) {
+          setInitialRefreshDone(true);
+        }
+      });
+    } else {
+      queueMicrotask(() => {
+        if (!cancelled) {
+          setInitialRefreshDone(false);
+          void fetchWorkspace();
+        }
+      });
+    }
 
     return () => {
       cancelled = true;
@@ -200,11 +206,15 @@ export default function ParentCommitteeWorkspace({
   useEffect(() => {
     if (previewMode || !initialRefreshDone || !committee) return;
     const section = parseCommitteeSection(activeSection);
-    if (section !== "resources" && section !== "tasks") return;
+    if (section !== "resources" && section !== "tasks" && section !== "messages") {
+      return;
+    }
     const isEmpty =
       section === "resources"
         ? committee.resources.length === 0
-        : committee.tasks.length === 0;
+        : section === "tasks"
+          ? committee.tasks.length === 0
+          : committee.messages.length === 0;
     if (!isEmpty || emptySectionRetryRef.current) return;
     emptySectionRetryRef.current = true;
     void fetchWorkspace({ silent: true });
@@ -252,6 +262,7 @@ export default function ParentCommitteeWorkspace({
       initialCommitteeEventDate={initialCommitteeEventDate}
       initialCommitteeResourceId={initialCommitteeResourceId}
       initialCommitteeTaskId={initialCommitteeTaskId}
+      workspaceDataReady={initialRefreshDone}
     />
     </div>
   );

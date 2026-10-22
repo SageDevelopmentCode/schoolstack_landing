@@ -4,6 +4,7 @@ import { normalizeAuthErrorMessage } from '@/lib/auth/auth-error-message';
 import { listAccessibleLiveOrganizations } from '@/lib/auth/list-accessible-organizations';
 import {
   PortalAccessError,
+  resolvePlatformAdmin,
   resolvePortalForSchool,
   type ResolvedPortal,
 } from '@/lib/auth/resolve-portal';
@@ -33,6 +34,15 @@ export async function completeAccessibleSchoolSignIn(
   userId: string,
 ): Promise<CompleteAccessibleSchoolSignInResult> {
   try {
+    try {
+      const platformAdminPortal = await resolvePlatformAdmin(supabase, userId);
+      return { kind: 'completed', portal: platformAdminPortal };
+    } catch (platformAdminError) {
+      if (!(platformAdminError instanceof PortalAccessError)) {
+        throw platformAdminError;
+      }
+    }
+
     const organizations = await listAccessibleLiveOrganizations(supabase, userId);
 
     if (organizations.length === 0) {

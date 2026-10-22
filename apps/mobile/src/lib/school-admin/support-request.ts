@@ -1,4 +1,5 @@
 import { fetchSchoolAdminApiFormData } from '@/lib/school-admin-api';
+import { appendLocalFileToFormData } from '@/lib/upload/append-local-file-to-form-data';
 
 export const MAX_SUPPORT_REQUEST_FILES = 5;
 export const MAX_SUPPORT_REQUEST_FILE_BYTES = 10 * 1024 * 1024;
@@ -48,11 +49,11 @@ export async function submitAdminSupportRequest(
   }
 
   for (const file of input.attachments ?? []) {
-    formData.append('attachments', {
+    await appendLocalFileToFormData(formData, 'attachments', {
       uri: file.uri,
       name: file.name,
       type: file.mimeType ?? 'application/octet-stream',
-    } as unknown as Blob);
+    });
   }
 
   await fetchSchoolAdminApiFormData('/api/school-admin/support-requests', formData);

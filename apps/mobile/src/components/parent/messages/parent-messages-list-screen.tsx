@@ -9,6 +9,7 @@ import { ParentMessagesStoryHeader } from '@/components/parent/messages/parent-m
 import { ParentMessageThreadRow } from '@/components/parent/messages/parent-message-thread-row';
 import { NewConversationSheet } from '@/components/school-admin/messages/new-conversation-sheet';
 import { StoryErrorBanner } from '@/components/story/story-error-banner';
+import { useParentPortalContext } from '@/contexts/parent-portal-context';
 import { useParentMessagesInbox } from '@/contexts/parent-messages-inbox-context';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { useMessagesRealtime } from '@/contexts/messages-realtime-context';
@@ -26,6 +27,8 @@ import {
 } from '@/lib/messages/platform-support';
 import { contactKeyForThread } from '@/lib/messages/participants-from-contact';
 import type { MessageContact } from '@/lib/messages/types';
+import { parentProgramMessageThreadRoute } from '@/lib/parent/parent-nav';
+import { useParentPortalProgramId } from '@/lib/parent/use-parent-portal-program-id';
 
 type ParentMessagesListScreenProps = {
   organizationId: string;
@@ -40,6 +43,8 @@ export function ParentMessagesListScreen({
 }: ParentMessagesListScreenProps) {
   const theme = useParentTheme();
   const router = useRouter();
+  const { activeProgramSlug } = useParentPortalContext();
+  const programId = useParentPortalProgramId();
   const { reportError } = useMobileErrorReporter(organizationId);
   const {
     threads,
@@ -98,6 +103,10 @@ export function ParentMessagesListScreen({
   );
 
   const openThread = (threadId: string) => {
+    if (activeProgramSlug) {
+      router.push(parentProgramMessageThreadRoute(organizationSlug, activeProgramSlug, threadId));
+      return;
+    }
     router.push(`/parent/${organizationSlug}/messages/${threadId}`);
   };
 
@@ -137,7 +146,9 @@ export function ParentMessagesListScreen({
         return;
       }
 
-      const threadId = await createParentMessageThread(organizationId, contact);
+      const threadId = await createParentMessageThread(organizationId, contact, {
+        programId,
+      });
       await refresh({ silent: true });
       openThread(threadId);
     } catch (selectError) {

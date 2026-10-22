@@ -3,6 +3,8 @@ import type { MobileMoreMenuFeatureKey } from '@/lib/parent/mobile-parent-portal
 import type { ParentMoreMenuItemId } from '@/lib/parent/parent-nav';
 
 const MORE_MENU_FEATURE_TO_ITEM_ID: Record<MobileMoreMenuFeatureKey, ParentMoreMenuItemId> = {
+  curriculum: 'curriculum',
+  supply_list: 'supply-list',
   attendance: 'attendance',
   children: 'children',
   committees: 'committees',
@@ -83,5 +85,19 @@ export const PARENT_MORE_MENU_META: Record<
     icon: 'images-outline',
     iconBg: '#F3E8FF',
     iconColor: '#7C3AED',
+  },
+  curriculum: {
+    label: 'Curriculum',
+    subtitle: 'Program guides and discussion',
+    icon: 'book-outline',
+    iconBg: '#E9F2EA',
+    iconColor: '#3D6B4F',
+  },
+  'supply-list': {
+    label: 'Supply list',
+    subtitle: 'Shared supplies and sign-ups',
+    icon: 'list-outline',
+    iconBg: '#FEF3C7',
+    iconColor: '#D97706',
   },
 };

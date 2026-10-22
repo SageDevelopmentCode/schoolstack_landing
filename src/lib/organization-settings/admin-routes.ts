@@ -2,7 +2,20 @@ import {
   getEnabledFeatureNavChildren,
   mergePortalFeatureNav,
 } from "./feature-nav";
-import type { OrganizationFeatures } from "./types";
+import type { FeatureNavChildConfig, OrganizationFeatures } from "./types";
+
+function adminNavChildMatchesPath(
+  parentKey: string,
+  child: FeatureNavChildConfig,
+  featureKey: string,
+  subtab: string,
+): boolean {
+  if (child.routeFeature) {
+    const targetSubtab = child.routeSubtab ?? child.key;
+    return child.routeFeature === featureKey && targetSubtab === subtab;
+  }
+  return parentKey === featureKey && child.key === subtab;
+}
 
 export type AdminNavPath = {
   feature: string;
@@ -106,6 +119,20 @@ export function isAdminNavPathEnabled(
   }
 
   const portalNav = mergePortalFeatureNav("admin", features.feature_nav?.admin);
-  const children = getEnabledFeatureNavChildren("admin", featureKey, portalNav);
-  return children.some((child) => child.key === subtab);
+
+  for (const parentKey of Object.keys(portalNav.items)) {
+    if (!isAdminFeatureEnabled(features, parentKey)) {
+      continue;
+    }
+    const children = getEnabledFeatureNavChildren("admin", parentKey, portalNav);
+    if (
+      children.some((child) =>
+        adminNavChildMatchesPath(parentKey, child, featureKey, subtab),
+      )
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 }

@@ -6,6 +6,7 @@
     "e2e",
     "playwright.config.ts",
     "apps",
+    "video",
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/*.integration.test.ts"

@@ -92,6 +92,15 @@ export function useMessageComposerDraft({
   ]);
 
   useEffect(() => {
+    return () => {
+      if (readOnly) return;
+      if (draftFlushPendingRef.current && threadIdRef.current) {
+        flushDraftForThread(threadIdRef.current, inputRef.current);
+      }
+    };
+  }, [flushDraftForThread, readOnly]);
+
+  useEffect(() => {
     if (readOnly || !threadIdRef.current) return;
 
     draftFlushPendingRef.current = true;

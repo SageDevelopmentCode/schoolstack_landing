@@ -2,6 +2,7 @@ import {
   fetchSchoolAdminApi,
   fetchSchoolAdminApiFormData,
 } from '@/lib/school-admin-api';
+import { appendLocalFileToFormData } from '@/lib/upload/append-local-file-to-form-data';
 import type { GalleryPhoto, GalleryPhotosPage } from '@/lib/school-gallery/types';
 
 export type PreparedGalleryUploadFile = {
@@ -41,14 +42,11 @@ export async function uploadGalleryBatch(
   const formData = new FormData();
   formData.append('photoDate', photoDate);
   for (const file of files) {
-    formData.append(
-      'files',
-      {
-        uri: file.uri,
-        name: file.name,
-        type: file.type,
-      } as unknown as Blob,
-    );
+    await appendLocalFileToFormData(formData, 'files', {
+      uri: file.uri,
+      name: file.name,
+      type: file.type,
+    });
   }
 
   const payload = await fetchSchoolAdminApiFormData<{ photos?: GalleryPhoto[] }>(

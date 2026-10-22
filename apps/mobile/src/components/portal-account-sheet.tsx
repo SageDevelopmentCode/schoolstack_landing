@@ -46,7 +46,7 @@ export function PortalAccountSheet({
 }: PortalAccountSheetProps) {
   const theme = useParentTheme();
   const insets = useSafeAreaInsets();
-  const { signOut, portalType } = useAuth();
+  const { signOut, portalType, user } = useAuth();
 
   const { photoUrl: livePhotoUrl, uploading, editable, handlePhotoSelected } =
     usePortalProfilePhotoUpload({
@@ -85,8 +85,8 @@ export function PortalAccountSheet({
         return active.label;
       }
     }
-    return 'Account and portal settings';
-  }, [programSwitcher]);
+    return user?.email?.trim() ?? '';
+  }, [programSwitcher, user?.email]);
 
   return (
     <BottomSheetShell

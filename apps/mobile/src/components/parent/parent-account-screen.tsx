@@ -22,6 +22,7 @@ import {
   GuardianProfilePhotoUploadError,
   uploadGuardianProfilePhotoFromParent,
 } from '@/lib/parent/upload-guardian-profile-photo';
+import { MOBILE_PROFILE_PHOTO_UPLOAD_ENABLED } from '@/lib/profile-photo/mobile-profile-photo-upload-enabled';
 
 function getDisplayName(user: User): string {
   const fullName = user.user_metadata?.full_name;
@@ -133,9 +134,9 @@ export function ParentAccountScreen() {
             photoUrl={profilePhotoUrl}
             size={96}
             shape="circle"
-            editable
+            editable={MOBILE_PROFILE_PHOTO_UPLOAD_ENABLED}
             uploading={photoUploading}
-            showEditHint
+            showEditHint={MOBILE_PROFILE_PHOTO_UPLOAD_ENABLED}
             onPhotoSelected={(uri, mimeType) => void handlePhotoSelected(uri, mimeType)}
           />
           <ThemedText type="title" style={{ color: theme.textPrimary, textAlign: 'center' }}>

@@ -45,16 +45,27 @@ import { loadParentMessagesPreviewInbox } from "@/lib/messages/parent-messages";
 import { getTotalUnreadCount } from "@/lib/messages/threads";
 import { getFamilyNotificationEmailSettings } from "@/lib/notifications/family-notification-emails";
 import { fetchOrganizationWithSettingsUncached } from "@/lib/organization-settings/fetch";
-import { buildParentQuickActions } from "@/lib/organization-settings/parent-home";
-import { resolveMainParentOrganizationFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
-import { loadParentHomePreviewContentData } from "@/lib/parent-portal/load-parent-home-content-data";
+import { loadParentPortalHomePreviewApiPayload } from "@/lib/parent-portal/load-parent-portal-home-preview-api-payload";
+import {
+  getProgramCoopCurriculumById,
+  PROGRAM_COOP_CURRICULUM_BUCKET,
+} from "@/lib/admissions/program-coop-curriculum-storage";
+import { familyHasEnrolledAccessInProgram } from "@/lib/admissions/program-parent-portal-access";
+import {
+  loadParentCoopCurriculumPageDataForFamily,
+  loadParentCoopSupplyListPageDataForFamily,
+  loadParentCoopTeachingSchedulePageDataForFamily,
+} from "@/lib/parent-portal/load-parent-coop-portal-page-data";
+import { loadMobileParentPortalContextsForFamily } from "@/lib/parent-portal/resolve-coop-program-context";
 import {
   fetchParentActivityNotifications,
   fetchUnreadParentActivityNotificationCount,
 } from "@/lib/parent-portal/parent-activity-notifications";
 import { resolveParentNotificationContextForApi } from "@/lib/parent-portal/parent-notification-context";
-import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts-home";
-import { mainPortalAudienceScope } from "@/lib/school-events/event-audience";
+import {
+  mainPortalAudienceScope,
+  programPortalAudienceScope,
+} from "@/lib/school-events/event-audience";
 import { listEventsForOrg, listUpcomingEventsForOrg } from "@/lib/school-events/events";
 import {
   assertParentFormAccess,
@@ -329,56 +340,55 @@ export async function handleParentMobilePreviewGet(
       org,
       previewParentBasePath,
     } = context;
-    const features = resolveMainParentOrganizationFeatures(org.features);
     const url = new URL(request.url);
     const segment = pathSegments[0] ?? "";
 
-    if (segment === "home") {
-      const userProfile = await getFamilyPreviewProfile(admin, organizationId, familyId);
-      const homeContent = await loadParentHomePreviewContentData({
+    if (segment === "portal-contexts") {
+      const payload = await loadMobileParentPortalContextsForFamily({
+        supabase: admin,
         organizationId,
         familyId,
         slug,
-        features,
-        previewBasePath: previewParentBasePath,
-        fridayBranchSettings: org.fridayBranchSettings,
-        supabase: admin,
-      });
-      const bulletinEnabled = Boolean(org.features.admin?.bulletin);
-      const [upcomingEvents, bulletinPosts] = await Promise.all([
-        listUpcomingEventsForOrg(admin, organizationId, 3),
-        loadHomeBulletinPosts({
-          supabase: admin,
-          signedUrlClient: admin,
-          organizationId,
-          bulletinEnabled,
-          viewer: "parent",
-          limit: 25,
-        }),
-      ]);
-      const quickActions = buildParentQuickActions(
-        slug,
-        features,
-        previewParentBasePath,
-      );
-
-      return NextResponse.json({
-        branding: org.branding,
-        schoolSlug: slug,
         schoolName: org.name,
-        organizationId,
-        userProfile,
-        familyChildren: homeContent.familyChildren,
-        quickActions,
-        onboardingItems: homeContent.onboardingItems,
-        upcomingEvents,
-        enrollmentAmendmentBannerItems: homeContent.enrollmentAmendmentBannerItems,
-        enrollmentIncompleteBannerItems: homeContent.enrollmentIncompleteBannerItems,
-        formAttentionItems: homeContent.formAttentionItems,
-        formSnapshot: homeContent.formSnapshot,
-        bulletinEnabled,
-        bulletinPosts,
+        orgFeatures: org.features,
       });
+      return NextResponse.json(payload);
+    }
+
+    if (segment === "home") {
+      const programSlug = url.searchParams.get("programSlug")?.trim() || undefined;
+      try {
+        const payload = await loadParentPortalHomePreviewApiPayload({
+          supabase: admin,
+          org,
+          slug,
+          organizationId,
+          familyId,
+          previewParentBasePath,
+          programSlug,
+        });
+        return NextResponse.json(payload);
+      } catch (err) {
+        if (err instanceof Error) {
+          if (err.message === "forbidden_program") {
+            return apiError(route, {
+              request,
+              status: 403,
+              error: "You do not have access to this program portal.",
+              code: "forbidden",
+            });
+          }
+          if (err.message === "program_not_found") {
+            return apiError(route, {
+              request,
+              status: 404,
+              error: "Program not found.",
+              code: "program_not_found",
+            });
+          }
+        }
+        throw err;
+      }
     }
 
     if (segment === "calendar") {
@@ -386,11 +396,15 @@ export async function handleParentMobilePreviewGet(
       const endDate = url.searchParams.get("end")?.trim() ?? "";
       const eventWindow =
         startDate && endDate ? { startDate, endDate } : undefined;
+      const programId = url.searchParams.get("programId")?.trim() ?? "";
+      const audienceScope = programId
+        ? programPortalAudienceScope(programId)
+        : mainPortalAudienceScope();
 
       const [events, timezone] = await Promise.all([
         listEventsForOrg(admin, organizationId, {
           ...eventWindow,
-          audienceScope: mainPortalAudienceScope(),
+          audienceScope,
         }),
         getOrganizationTimezone(admin, organizationId),
       ]);
@@ -413,6 +427,134 @@ export async function handleParentMobilePreviewGet(
         familyId,
         ...billingData,
       });
+    }
+
+    if (segment === "curriculum" && pathSegments[1] === "pdf") {
+      const programId = url.searchParams.get("programId")?.trim() ?? "";
+      const curriculumId = url.searchParams.get("curriculumId")?.trim() ?? "";
+      if (!programId || !curriculumId) {
+        return apiError(route, {
+          request,
+          status: 400,
+          error: "programId and curriculumId are required.",
+          code: "missing_fields",
+        });
+      }
+
+      const hasAccess = await familyHasEnrolledAccessInProgram(
+        admin,
+        organizationId,
+        familyId,
+        programId,
+      );
+      if (!hasAccess) {
+        return apiError(route, {
+          request,
+          status: 403,
+          error: "You do not have access to this curriculum.",
+          code: "forbidden",
+        });
+      }
+
+      const curriculum = await getProgramCoopCurriculumById(admin, curriculumId);
+      if (
+        !curriculum ||
+        curriculum.organizationId !== organizationId ||
+        curriculum.programId !== programId
+      ) {
+        return apiError(route, {
+          request,
+          status: 404,
+          error: "Curriculum not found.",
+          code: "not_found",
+        });
+      }
+
+      const { data: fileBlob, error: downloadError } = await admin.storage
+        .from(PROGRAM_COOP_CURRICULUM_BUCKET)
+        .download(curriculum.storagePath);
+
+      if (downloadError || !fileBlob) {
+        return apiError(route, {
+          request,
+          status: 403,
+          error: "You do not have access to this curriculum.",
+          code: "forbidden",
+          cause: downloadError,
+        });
+      }
+
+      const bytes = await fileBlob.arrayBuffer();
+      const safe = curriculum.fileName.replace(/["\r\n]/g, "_");
+      return new NextResponse(bytes, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `inline; filename="${safe}"`,
+          "Cache-Control": "private, no-store",
+        },
+      });
+    }
+
+    if (segment === "coop") {
+      const coopSegment = pathSegments[1] ?? "";
+      const programId = url.searchParams.get("programId")?.trim() ?? "";
+      if (!programId) {
+        return apiError(route, {
+          request,
+          status: 400,
+          error: "programId is required.",
+          code: "missing_fields",
+        });
+      }
+
+      try {
+        if (coopSegment === "curriculum") {
+          const payload = await loadParentCoopCurriculumPageDataForFamily({
+            supabase: admin,
+            organizationId,
+            familyId,
+            programId,
+          });
+          return NextResponse.json(payload);
+        }
+        if (coopSegment === "supply-list") {
+          const payload = await loadParentCoopSupplyListPageDataForFamily({
+            supabase: admin,
+            organizationId,
+            familyId,
+            programId,
+          });
+          return NextResponse.json(payload);
+        }
+        if (coopSegment === "teaching-schedule") {
+          const payload = await loadParentCoopTeachingSchedulePageDataForFamily({
+            supabase: admin,
+            organizationId,
+            familyId,
+            programId,
+          });
+          return NextResponse.json(payload);
+        }
+      } catch (err) {
+        if (err instanceof Error && err.message === "forbidden") {
+          return apiError(route, {
+            request,
+            status: 403,
+            error: "You do not have access to this program.",
+            code: "forbidden",
+          });
+        }
+        if (err instanceof Error && err.message === "coop_not_enabled") {
+          return apiError(route, {
+            request,
+            status: 404,
+            error: "Co-op content is not available for this program.",
+            code: "not_found",
+          });
+        }
+        throw err;
+      }
     }
 
     if (segment === "notification-settings") {
@@ -598,6 +740,7 @@ export async function handleParentMobilePreviewGet(
 
       if (subsegment === "threads") {
         const threadId = pathSegments[2];
+        const programId = url.searchParams.get("programId")?.trim() || undefined;
         if (!threadId) {
           const previewUserId =
             (await getFamilyPreviewGuardianUserId(admin, organizationId, familyId)) ??
@@ -608,6 +751,7 @@ export async function handleParentMobilePreviewGet(
             familyId,
             schoolName,
             previewUserId,
+            { programId },
           );
           return NextResponse.json(inbox);
         }

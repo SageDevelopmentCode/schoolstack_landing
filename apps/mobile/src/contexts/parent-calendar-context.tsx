@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 
+import { useParentPortalContext } from '@/contexts/parent-portal-context';
 import {
   fetchParentCalendarData,
   type ParentCalendarData,
@@ -33,19 +34,23 @@ const ParentCalendarContext = createContext<ParentCalendarContextValue | null>(n
 
 const calendarCache = createParentPortalCache<ParentCalendarData>('parent_calendar:');
 
-function cacheKey(organizationId: string, slug: string): string {
+function cacheKey(organizationId: string, slug: string, programId?: string): string {
+  if (programId) {
+    return `${organizationId}:${slug}:p:${programId}`;
+  }
   return `${organizationId}:${slug}`;
 }
 
 function fetchAndCacheParentCalendar(
   organizationId: string,
   slug: string,
+  programId?: string,
   options?: { refresh?: boolean },
 ): Promise<ParentCalendarData> {
-  const key = cacheKey(organizationId, slug);
+  const key = cacheKey(organizationId, slug, programId);
   return calendarCache.fetchAndCache(
     key,
-    () => fetchParentCalendarData(organizationId, slug),
+    () => fetchParentCalendarData(organizationId, slug, programId),
     options,
   );
 }
@@ -58,8 +63,9 @@ export function prefetchParentCalendar(organizationId: string, slug: string): Pr
 export async function hydrateParentCalendarFromDisk(
   organizationId: string,
   slug: string,
+  programId?: string,
 ): Promise<ParentCalendarData | null> {
-  return calendarCache.hydrateFromDisk(cacheKey(organizationId, slug));
+  return calendarCache.hydrateFromDisk(cacheKey(organizationId, slug, programId));
 }
 
 type ParentCalendarProviderProps = {
@@ -75,7 +81,11 @@ export function ParentCalendarProvider({
   slug,
   authReady = true,
 }: ParentCalendarProviderProps) {
-  const key = cacheKey(organizationId, slug);
+  const { activeProgramSlug, programsByPortalSlug } = useParentPortalContext();
+  const programId = activeProgramSlug
+    ? programsByPortalSlug[activeProgramSlug]?.programId
+    : undefined;
+  const key = cacheKey(organizationId, slug, programId);
   const cached = calendarCache.get(key);
 
   const [data, setData] = useState<ParentCalendarData | null>(cached);
@@ -108,7 +118,7 @@ export function ParentCalendarProvider({
         setError(null);
 
         try {
-          const nextData = await fetchAndCacheParentCalendar(organizationId, slug, {
+          const nextData = await fetchAndCacheParentCalendar(organizationId, slug, programId, {
             refresh: isRefresh,
           });
           setData(nextData);
@@ -129,7 +139,7 @@ export function ParentCalendarProvider({
       }
       await promise;
     },
-    [data, key, organizationId, reportError, slug],
+    [data, key, organizationId, programId, reportError, slug],
   );
 
   const ensureLoaded = useCallback(() => {
@@ -150,7 +160,7 @@ export function ParentCalendarProvider({
 
     async function init() {
       const resolved = await resolveParentPortalProviderInit(key, calendarCache, () =>
-        hydrateParentCalendarFromDisk(organizationId, slug),
+        hydrateParentCalendarFromDisk(organizationId, slug, programId),
       );
       if (cancelled) return;
 
@@ -168,7 +178,7 @@ export function ParentCalendarProvider({
       }
 
       try {
-        await fetchAndCacheParentCalendar(organizationId, slug);
+        await fetchAndCacheParentCalendar(organizationId, slug, programId);
         if (cancelled) return;
 
         setData(calendarCache.get(key));
@@ -192,7 +202,7 @@ export function ParentCalendarProvider({
     return () => {
       cancelled = true;
     };
-  }, [authReady, key, organizationId, reportError, slug]);
+  }, [authReady, key, organizationId, programId, reportError, slug]);
 
   const value = useMemo(
     () => ({

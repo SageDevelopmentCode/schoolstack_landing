@@ -382,9 +382,13 @@ export async function renderSchoolParentFeaturePage(
       userId: user.id,
       selectedCommitteeId,
     });
+    const committeeWorkspaceOpen = Boolean(selectedCommitteeId);
 
     return (
-      <SchoolParentPageShell title={pageName}>
+      <SchoolParentPageShell
+        title={pageName}
+        layout={committeeWorkspaceOpen ? "embedded" : "default"}
+      >
         <ParentCommitteesPageShell
           organizationId={org.id}
           schoolSlug={context.slug}

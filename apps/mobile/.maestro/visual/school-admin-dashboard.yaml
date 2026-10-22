@@ -1,0 +1,5 @@
+appId: com.mudkitchen.schoolstack.mobile
+---
+- runFlow: ../school-admin-logged-in.yaml
+- assertVisible: 'Dashboard'
+- takeScreenshot: visual-capture

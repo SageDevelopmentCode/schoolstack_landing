@@ -1,0 +1,9 @@
+appId: com.mudkitchen.schoolstack.mobile
+---
+- runFlow: ../school-admin-logged-in.yaml
+- tapOn: 'Students'
+- extendedWaitUntil:
+    visible: 'Students'
+    timeout: 30000
+- assertVisible: 'Search students'
+- takeScreenshot: visual-capture

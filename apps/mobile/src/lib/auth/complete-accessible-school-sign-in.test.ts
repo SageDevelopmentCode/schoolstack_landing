@@ -13,17 +13,21 @@ jest.mock('@/lib/auth/resolve-portal', () => {
   const actual = jest.requireActual('@/lib/auth/resolve-portal');
   return {
     ...actual,
+    resolvePlatformAdmin: jest.fn(),
     resolvePortalForSchool: jest.fn(),
   };
 });
 
 import { listAccessibleLiveOrganizations } from '@/lib/auth/list-accessible-organizations';
-import { resolvePortalForSchool } from '@/lib/auth/resolve-portal';
+import { PortalAccessError, resolvePlatformAdmin, resolvePortalForSchool } from '@/lib/auth/resolve-portal';
 
 const mockListAccessibleLiveOrganizations =
   listAccessibleLiveOrganizations as jest.MockedFunction<
     typeof listAccessibleLiveOrganizations
   >;
+const mockResolvePlatformAdmin = resolvePlatformAdmin as jest.MockedFunction<
+  typeof resolvePlatformAdmin
+>;
 const mockResolvePortalForSchool = resolvePortalForSchool as jest.MockedFunction<
   typeof resolvePortalForSchool
 >;
@@ -50,6 +54,26 @@ describe('completeAccessibleSchoolSignIn', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockResolvePlatformAdmin.mockRejectedValue(
+      new PortalAccessError('You do not have platform admin access.'),
+    );
+  });
+
+  it('returns completed with platform_admin when the user is a platform admin', async () => {
+    const secondOrg = { ...demoOrg, id: 'org-2', slug: 'school-b', name: 'School B' };
+    mockResolvePlatformAdmin.mockResolvedValue({
+      portalType: 'platform_admin',
+      school: null,
+    });
+    mockListAccessibleLiveOrganizations.mockResolvedValue([demoOrg, secondOrg]);
+
+    const result = await completeAccessibleSchoolSignIn(supabase, USER_ID);
+
+    expect(result).toEqual({
+      kind: 'completed',
+      portal: { portalType: 'platform_admin', school: null },
+    });
+    expect(mockListAccessibleLiveOrganizations).not.toHaveBeenCalled();
   });
 
   it('returns no_access when the user has no schools', async () => {

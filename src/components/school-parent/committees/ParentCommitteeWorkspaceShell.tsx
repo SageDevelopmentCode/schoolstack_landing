@@ -193,6 +193,7 @@ export default function ParentCommitteeWorkspaceShell({
   initialCommitteeEventDate,
   initialCommitteeResourceId,
   initialCommitteeTaskId,
+  workspaceDataReady = true,
 }: {
   committee: Committee;
   theme: ParentThemeTokens;
@@ -213,6 +214,7 @@ export default function ParentCommitteeWorkspaceShell({
   initialCommitteeEventDate?: string | null;
   initialCommitteeResourceId?: string | null;
   initialCommitteeTaskId?: string | null;
+  workspaceDataReady?: boolean;
 }) {
   const { adminCompat: composeTokens } = useParentTheme();
   const activitySurface: "parent" | "teacher" =
@@ -277,6 +279,9 @@ export default function ParentCommitteeWorkspaceShell({
     ) {
       return;
     }
+    if (section === "messages" && !workspaceDataReady) {
+      return;
+    }
     void markCommitteeSectionReadViaApi(committeesApiBase, committee.id, {
       organizationId,
       section: section as CommitteeWorkspaceSection,
@@ -293,6 +298,7 @@ export default function ParentCommitteeWorkspaceShell({
     organizationId,
     previewMode,
     resolvedSection,
+    workspaceDataReady,
   ]);
 
   const handleSectionChange = useCallback(

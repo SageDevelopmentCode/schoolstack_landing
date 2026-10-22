@@ -1,5 +1,13 @@
-import { ParentProgramRoutePlaceholder } from '@/components/parent/parent-program-route-placeholder';
+import { useLocalSearchParams } from 'expo-router';
+
+import { ParentCalendarScreen } from '@/components/parent/calendar/parent-calendar-screen';
+import { useAuth } from '@/contexts/auth-context';
 
 export default function ProgramParentCalendarRoute() {
-  return <ParentProgramRoutePlaceholder title="Calendar" />;
+  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { selectedSchool } = useAuth();
+
+  if (!slug || !selectedSchool) return null;
+
+  return <ParentCalendarScreen organizationId={selectedSchool.id} />;
 }

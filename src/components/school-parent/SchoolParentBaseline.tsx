@@ -127,10 +127,15 @@ function SchoolParentBaselineInner({
   const skipInitialUnreadFetch =
     !previewMode && initialActivityUnreadCount != null;
   const isMessagesPage = isParentMessagesPath(pathname);
+  const isCommitteeWorkspaceOpen = isParentCommitteeWorkspaceOpen(
+    pathname,
+    searchParams,
+  );
   const isFixedLayoutPage =
     isMessagesPage ||
     isParentBillingPath(pathname) ||
-    isParentCurriculumPath(pathname);
+    isParentCurriculumPath(pathname) ||
+    isCommitteeWorkspaceOpen;
   const messagesEnabled = Boolean(features.parent?.messages);
   const showHelpButton =
     isParentHelpPage(pathname, slug) &&

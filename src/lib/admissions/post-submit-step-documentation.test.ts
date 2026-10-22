@@ -3,11 +3,44 @@ import { describe, it } from "node:test";
 import type { AdminPostSubmitStep } from "./admin-post-submit-steps";
 import type { ApplicationFileUploadMeta } from "./application-file-storage";
 import {
+  isPostSubmitStepDocumentationClientError,
+  MAX_POST_SUBMIT_STEP_FILES,
   mergePostSubmitStepDocumentation,
   postSubmitActionIdFromDocumentationFieldId,
   postSubmitStepDocumentationFieldId,
   postSubmitStepDocumentationSummary,
 } from "./post-submit-step-documentation";
+
+describe("isPostSubmitStepDocumentationClientError", () => {
+  it("recognizes upload validation errors", () => {
+    assert.equal(
+      isPostSubmitStepDocumentationClientError(
+        new Error(`You can attach up to ${MAX_POST_SUBMIT_STEP_FILES} files.`),
+      ),
+      true,
+    );
+    assert.equal(
+      isPostSubmitStepDocumentationClientError(
+        new Error("report.pdf exceeds the 10 MB limit."),
+      ),
+      true,
+    );
+    assert.equal(
+      isPostSubmitStepDocumentationClientError(
+        new Error("virus.exe is not an allowed file type."),
+      ),
+      true,
+    );
+  });
+
+  it("rejects unexpected server errors", () => {
+    assert.equal(
+      isPostSubmitStepDocumentationClientError(new Error("connection failed")),
+      false,
+    );
+    assert.equal(isPostSubmitStepDocumentationClientError("oops"), false);
+  });
+});
 
 describe("postSubmitStepDocumentationFieldId", () => {
   it("builds stable field ids", () => {

@@ -18,7 +18,7 @@ import {
   filterAccessibleOrganizationsBySlugs,
   listAccessibleLiveOrganizations,
 } from '@/lib/auth/list-accessible-organizations';
-import { PortalAccessError } from '@/lib/auth/resolve-portal';
+import { PortalAccessError, resolvePlatformAdmin } from '@/lib/auth/resolve-portal';
 import { markExplicitMobileSignOut } from '@/lib/auth/mobile-explicit-sign-out';
 import { logMobileAuthSignedIn } from '@/lib/mobile-activity';
 import type { LiveOrganization } from '@/lib/organizations';
@@ -75,6 +75,24 @@ export function ChooseSchoolExperience({
     await signOut();
     router.replace('/login');
   }, [router, signOut]);
+
+  const goToPlatformAdminHome = useCallback(async (): Promise<boolean> => {
+    if (!user?.id) {
+      return false;
+    }
+
+    try {
+      const portal = await resolvePlatformAdmin(supabase, user.id);
+      await setResolvedPortal(portal, user.id);
+      router.replace('/platform-admin/organizations');
+      return true;
+    } catch (redirectError) {
+      if (redirectError instanceof PortalAccessError) {
+        return false;
+      }
+      throw redirectError;
+    }
+  }, [router, setResolvedPortal, supabase, user?.id]);
 
   const applyOrganizations = useCallback(
     async (allAccessible: LiveOrganization[], slugFilter: string[] | null) => {
@@ -166,13 +184,23 @@ export function ChooseSchoolExperience({
   ]);
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (authLoading) {
+      return;
+    }
+    if (!user) {
       router.replace('/login');
       return;
     }
-    if (!user) return;
+    if (!switchingSchool) {
+      void goToPlatformAdminHome().then((redirected) => {
+        if (!redirected) {
+          void loadSchools();
+        }
+      });
+      return;
+    }
     void loadSchools();
-  }, [authLoading, loadSchools, router, user]);
+  }, [authLoading, goToPlatformAdminHome, loadSchools, router, switchingSchool, user]);
 
   const handleOrganizationSelect = useCallback(
     async (organization: LiveOrganization) => {
@@ -213,9 +241,13 @@ export function ChooseSchoolExperience({
       return;
     }
 
+    if (await goToPlatformAdminHome()) {
+      return;
+    }
+
     await signOut();
     router.replace('/login');
-  }, [onBack, router, signOut, switchingSchool]);
+  }, [goToPlatformAdminHome, onBack, router, signOut, switchingSchool]);
 
   const heading = switchingSchool ? 'Switch school' : 'Choose your school';
   const subtext = switchingSchool

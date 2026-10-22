@@ -1,0 +1,14 @@
+appId: com.mudkitchen.schoolstack.mobile
+---
+- runFlow: ../parent-coop-program-preview.yaml
+- tapOn: 'More'
+- extendedWaitUntil:
+    visible: 'Curriculum'
+    timeout: 30000
+- assertVisible: 'Supply list'
+- tapOn: 'Supply list'
+- extendedWaitUntil:
+    visible:
+      id: 'parent-coop-supply-list-ready'
+    timeout: 30000
+- takeScreenshot: visual-capture
