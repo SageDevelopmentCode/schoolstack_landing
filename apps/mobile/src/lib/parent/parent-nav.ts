@@ -52,7 +52,20 @@ export function getParentActiveTabFromPathname(
   }
 
   const tab = tabs.find((entry) => entry.pathSegment === segment);
-  return tab?.tabId ?? null;
+  if (tab) {
+    return tab.tabId;
+  }
+
+  if (
+    programSegmentMatch &&
+    PROGRAM_COOP_MORE_TAB_SEGMENTS.includes(
+      segment as (typeof PROGRAM_COOP_MORE_TAB_SEGMENTS)[number],
+    )
+  ) {
+    return 'more';
+  }
+
+  return null;
 }
 
 export type ParentMoreMenuItemId =
@@ -62,7 +75,41 @@ export type ParentMoreMenuItemId =
   | 'classroom-signups'
   | 'forms-documents'
   | 'friday-branch'
-  | 'notifications';
+  | 'notifications'
+  | 'photos'
+  | 'curriculum'
+  | 'supply-list';
+
+/** Program tab routes opened from More (not primary tab bar slots). */
+export const PROGRAM_COOP_MORE_TAB_SEGMENTS = ['curriculum', 'supply-list'] as const;
+
+const PARENT_MORE_TAB_ROUTE_ITEMS: Record<string, string> = {
+  curriculum: 'curriculum',
+  'supply-list': 'supply-list',
+};
+
+export function resolveParentMoreMenuNavigationTarget(
+  slug: string,
+  itemId: ParentMoreMenuItemId,
+  programSlug?: string | null,
+): Href {
+  const tabSegment = PARENT_MORE_TAB_ROUTE_ITEMS[itemId];
+  if (programSlug && tabSegment) {
+    return parentProgramTabRoute(slug, programSlug, tabSegment);
+  }
+  if (programSlug) {
+    return parentProgramMoreRoute(slug, programSlug, itemId);
+  }
+  return parentMoreRoute(slug, itemId);
+}
+
+export function isParentMoreMenuItemActive(pathname: string, itemId: ParentMoreMenuItemId): boolean {
+  const tabSegment = PARENT_MORE_TAB_ROUTE_ITEMS[itemId];
+  if (tabSegment) {
+    return pathname.includes(`/${tabSegment}`);
+  }
+  return pathname.includes(`/more/${itemId}`);
+}
 
 export function parentTabRoute(slug: string, tab: Exclude<ParentTab, 'more'>): Href {
   return `/parent/${slug}/${tab}` as Href;
@@ -226,6 +273,7 @@ const FEATURE_ROUTE_MAP: Record<string, (slug: string) => Href> = {
   forms_documents: (slug) => parentFormsDocumentsRoute(slug),
   friday_branch: (slug) => parentMoreRoute(slug, 'friday-branch'),
   notifications: (slug) => parentMoreRoute(slug, 'notifications'),
+  photos: (slug) => parentMoreRoute(slug, 'photos'),
 };
 
 const PARENT_MORE_FEATURE_TO_MENU_ITEM: Record<string, ParentMoreMenuItemId> = {
@@ -236,6 +284,9 @@ const PARENT_MORE_FEATURE_TO_MENU_ITEM: Record<string, ParentMoreMenuItemId> = {
   forms_documents: 'forms-documents',
   friday_branch: 'friday-branch',
   notifications: 'notifications',
+  photos: 'photos',
+  curriculum: 'curriculum',
+  supply_list: 'supply-list',
 };
 
 function normalizeParentFeatureSegment(segment: string): string {

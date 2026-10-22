@@ -2,9 +2,18 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { recordAuthActivity } from "@/lib/activity-auth-server";
 import { resolveAuthenticatedLogin } from "@/lib/auth/login-destination";
+import {
+  inferPortalSignInDiscordFromLoginHref,
+  loadOrganizationName,
+  resolvePortalSignInDiscordActorType,
+} from "@/lib/auth/portal-sign-in-discord";
 import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
+import { notifyRootedMeadowsPortalSignedIn } from "@/lib/discord";
+import { reportOperationalError } from "@/lib/operational-errors";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
+
+const ROUTE = "/api/auth/login-destination";
 
 type LoginAuthMethod = "otp" | "password" | "session_restored";
 
@@ -48,20 +57,20 @@ export async function GET(request: Request) {
     );
   }
 
+  const admin = createAdminClient();
+  let organizationId: string | null = null;
+
+  if (slug) {
+    const { data: organization } = await admin
+      .from("organizations")
+      .select("id")
+      .eq("slug", slug)
+      .maybeSingle();
+
+    organizationId = organization?.id ? String(organization.id) : null;
+  }
+
   if (method) {
-    const admin = createAdminClient();
-    let organizationId: string | null = null;
-
-    if (slug) {
-      const { data: organization } = await admin
-        .from("organizations")
-        .select("id")
-        .eq("slug", slug)
-        .maybeSingle();
-
-      organizationId = organization?.id ? String(organization.id) : null;
-    }
-
     const metadata = {
       method: method === "session_restored" ? undefined : method,
       page: "/login" as const,
@@ -113,5 +122,55 @@ export async function GET(request: Request) {
     });
   }
 
-  return NextResponse.json({ href: result.href });
+  const href = result.href;
+
+  if (
+    method &&
+    method !== "session_restored" &&
+    href &&
+    slug &&
+    user.email
+  ) {
+    try {
+      const inferred = inferPortalSignInDiscordFromLoginHref(href, slug);
+      const actorType = await resolvePortalSignInDiscordActorType(
+        supabase,
+        user.id,
+        inferred.surface,
+        inferred.actorType,
+      );
+      const schoolName =
+        organizationId
+          ? await loadOrganizationName(admin, organizationId)
+          : undefined;
+
+      await notifyRootedMeadowsPortalSignedIn({
+        email: user.email,
+        client: "web",
+        surface: inferred.surface,
+        actorType,
+        schoolName,
+        method,
+        page: "/login",
+      });
+    } catch (error) {
+      void reportOperationalError({
+        supabase: admin,
+        surface: "api",
+        operation: "web_fresh_sign_in_discord",
+        error: "Failed to send web sign-in Discord notification.",
+        notify: true,
+        cause: error,
+        actor: {
+          type: "parent",
+          userId: user.id,
+          email: user.email,
+        },
+        organizationId: organizationId ?? undefined,
+        api: { route: ROUTE, method: "GET", status: 500 },
+      });
+    }
+  }
+
+  return NextResponse.json({ href });
 }

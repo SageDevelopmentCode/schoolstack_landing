@@ -54,16 +54,16 @@ export async function loadParentCommitteesInitialData(input: {
     ),
   ]);
 
+  const admin = createAdminClient();
   const workspacesByCommitteeId: Record<string, Committee> = {};
   const workspaceIds = new Set<string>();
   if (input.selectedCommitteeId) workspaceIds.add(input.selectedCommitteeId);
-  for (const committee of myCommittees) workspaceIds.add(committee.id);
 
   await Promise.all(
     [...workspaceIds].map(async (committeeId) => {
       try {
         workspacesByCommitteeId[committeeId] = await getParentCommitteeWorkspace(
-          supabase,
+          admin,
           input.organizationId,
           input.userId,
           committeeId,
@@ -112,7 +112,6 @@ export async function loadParentCommitteesPreviewData(input: {
   if (guardianUserId) {
     const workspaceIds = new Set<string>();
     if (input.selectedCommitteeId) workspaceIds.add(input.selectedCommitteeId);
-    for (const committee of myCommittees) workspaceIds.add(committee.id);
 
     committeeUnreadSummary = await getCommitteeUnreadSummaryForUser(
       admin,

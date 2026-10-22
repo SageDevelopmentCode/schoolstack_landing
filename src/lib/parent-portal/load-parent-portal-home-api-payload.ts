@@ -39,6 +39,7 @@ import type { FamilyChildOverview } from "@/lib/admissions/parent-portal-access"
 import { createAdminClient } from "@/utils/supabase/admin";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { loadResolvedParentOnboardingItems } from "@/lib/admissions/parent-onboarding-status";
+import { isSchoolGalleryEnabled } from "@/lib/school-gallery/gallery-enabled";
 
 type OrganizationWithSettings = NonNullable<Awaited<ReturnType<typeof fetchOrganizationWithSettings>>>;
 type ResolvedParentOnboardingItem = Awaited<
@@ -69,6 +70,7 @@ export type ParentPortalHomeApiPayload = {
   formAttentionItems: ParentFormAttentionItem[];
   formSnapshot: ParentFormHomeSnapshot | null;
   bulletinEnabled: boolean;
+  schoolGalleryEnabled: boolean;
   bulletinPosts: BulletinPost[];
   fridayBranchHome: ParentFridayBranchPageBundle | null;
   fridayBranchParentPortalPaused: boolean;
@@ -100,6 +102,7 @@ export async function loadParentPortalHomeApiPayload(input: {
   const userId = user.id;
   const organizationId = org.id;
   const bulletinEnabled = Boolean(org.features.admin?.bulletin);
+  const schoolGalleryEnabled = isSchoolGalleryEnabled(org.features);
   const admin = createAdminClient();
 
   const hasAccess = await userHasEnrolledAccess(supabase, userId, organizationId);
@@ -181,6 +184,7 @@ export async function loadParentPortalHomeApiPayload(input: {
       formAttentionItems: contentData?.formAttentionItems ?? [],
       formSnapshot: contentData?.formSnapshot ?? null,
       bulletinEnabled,
+      schoolGalleryEnabled,
       bulletinPosts,
       fridayBranchHome: contentData?.fridayBranchHome ?? null,
       fridayBranchParentPortalPaused: org.fridayBranchSettings.parent_portal_paused,
@@ -284,6 +288,7 @@ export async function loadParentPortalHomeApiPayload(input: {
     formAttentionItems: contentData?.formAttentionItems ?? [],
     formSnapshot: contentData?.formSnapshot ?? null,
     bulletinEnabled,
+    schoolGalleryEnabled,
     bulletinPosts,
     fridayBranchHome: contentData?.fridayBranchHome ?? null,
     fridayBranchParentPortalPaused: org.fridayBranchSettings.parent_portal_paused,

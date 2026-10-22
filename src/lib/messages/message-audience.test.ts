@@ -103,6 +103,14 @@ describe("message audience helpers", () => {
     assert.equal(
       threadVisibleInProgramPortalInbox({
         threadProgramId: null,
+        participants: [{ kind: "platform_support" }],
+        programId: "program-1",
+      }),
+      true,
+    );
+    assert.equal(
+      threadVisibleInProgramPortalInbox({
+        threadProgramId: null,
         participants: [{ kind: "staff_member" }],
         programId: "program-1",
       }),

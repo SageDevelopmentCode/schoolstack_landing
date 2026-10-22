@@ -137,6 +137,24 @@ describe("mobile bearer auth route wiring", () => {
     });
   }
 
+  it("application form save activity route uses createClientFromRequest", () => {
+    const source = readRoute(
+      "app/api/school-admin/application-forms/record-save-activity/route.ts",
+    );
+
+    assert.match(
+      source,
+      /import \{ createClientFromRequest \} from "@\/lib\/supabase\/request-client"/,
+    );
+    assert.match(source, /const supabase = await createClientFromRequest\(request\)/);
+    assert.match(
+      source,
+      /requireSchoolAdminUser\(supabase, organizationId, request\)/,
+    );
+    assert.doesNotMatch(source, /createClient\(cookieStore\)/);
+    assert.doesNotMatch(source, /from "@\/utils\/supabase\/server"/);
+  });
+
   const fridayBranchRoutes = [
     "app/api/school-admin/friday-branch/schedule/route.ts",
     "app/api/school-admin/friday-branch/enrollment-counts/route.ts",

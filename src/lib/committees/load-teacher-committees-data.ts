@@ -45,7 +45,6 @@ export async function loadTeacherCommitteesInitialData(input: {
   const workspacesByCommitteeId: Record<string, Committee> = {};
   const workspaceIds = new Set<string>();
   if (input.selectedCommitteeId) workspaceIds.add(input.selectedCommitteeId);
-  for (const committee of myCommittees) workspaceIds.add(committee.id);
 
   await Promise.all(
     [...workspaceIds].map(async (committeeId) => {
@@ -102,7 +101,6 @@ export async function loadTeacherCommitteesPreviewData(input: {
   if (previewContext.userId) {
     const workspaceIds = new Set<string>();
     if (input.selectedCommitteeId) workspaceIds.add(input.selectedCommitteeId);
-    for (const committee of myCommittees) workspaceIds.add(committee.id);
 
     committeeUnreadSummary = await getCommitteeUnreadSummaryForUser(
       admin,

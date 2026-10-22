@@ -43,6 +43,8 @@ export type ApplicationProgressSummary = {
 
 export type AdminApplicationSubmission = {
   id: string;
+  /** From applications.family_id when present on the list row */
+  familyId: string | null;
   status: string;
   feeStatus: string;
   feeEnabled: boolean;
@@ -243,6 +245,7 @@ const APPLICATION_SUBMISSION_SELECT = `
 
 const APPLICATION_SUBMISSION_LIST_SUMMARY_SELECT = `
   id,
+  family_id,
   status,
   fee_status,
   primary_guardian_id,
@@ -286,6 +289,7 @@ const APPLICATION_SUBMISSION_DRAFT_PROGRESS_SELECT = `
 
 const APPLICATION_SUBMISSION_LIST_SELECT = `
   id,
+  family_id,
   status,
   fee_status,
   responses,
@@ -434,8 +438,15 @@ function mapApplicationRowToAdminSubmission(
           )
         : null;
 
+    const rowFamilyId = row.family_id;
+    const familyId =
+      rowFamilyId != null && String(rowFamilyId).trim() !== ""
+        ? String(rowFamilyId)
+        : null;
+
     return {
       id: applicationId,
+      familyId,
       status: applicationStatus,
       feeStatus: String(row.fee_status),
       feeEnabled: feeConfig.enabled,
@@ -628,6 +639,83 @@ export async function listOrgApplicationSubmissions(
   );
 }
 
+export type OrgFamilyImpersonateLearnerSummary = {
+  applicationId: string;
+  studentName: string;
+  programName: string | null;
+  formTitle: string;
+};
+
+/** Learner/program labels per family for platform-admin parent impersonate lists. */
+export async function listOrgFamilyImpersonateLearnerSummariesByFamilyId(
+  supabase: SupabaseClient,
+  organizationId: string,
+): Promise<Map<string, OrgFamilyImpersonateLearnerSummary[]>> {
+  const limit = 500;
+  const { data, error } = await supabase
+    .from("applications")
+    .select(APPLICATION_SUBMISSION_LIST_SUMMARY_SELECT)
+    .eq("organization_id", organizationId)
+    .order("updated_at", { ascending: false })
+    .range(0, limit - 1);
+
+  if (error) throw error;
+
+  const rows = (data ?? []) as Record<string, unknown>[];
+  if (rows.length === 0) {
+    return new Map();
+  }
+
+  const submissions = await mapApplicationRowsToAdminSubmissionsSummary(
+    supabase,
+    organizationId,
+    rows,
+    "minimal",
+  );
+
+  const familyIdByApplicationId = await resolveApplicationFamilyIds(
+    supabase,
+    organizationId,
+    submissions.map((submission) => ({
+      applicationId: submission.id,
+      familyId: submission.familyId,
+      primaryGuardianId: submission.primaryGuardianId,
+    })),
+  );
+
+  const byFamily = new Map<string, OrgFamilyImpersonateLearnerSummary[]>();
+  const seenApplicationIdsByFamily = new Map<string, Set<string>>();
+
+  for (const submission of submissions) {
+    const familyId = familyIdByApplicationId[submission.id];
+    if (!familyId) continue;
+
+    let seenApplicationIds = seenApplicationIdsByFamily.get(familyId);
+    if (!seenApplicationIds) {
+      seenApplicationIds = new Set();
+      seenApplicationIdsByFamily.set(familyId, seenApplicationIds);
+    }
+    if (seenApplicationIds.has(submission.id)) continue;
+    seenApplicationIds.add(submission.id);
+
+    const list = byFamily.get(familyId) ?? [];
+    list.push({
+      applicationId: submission.id,
+      studentName: submission.studentLabel?.trim() || "Student",
+      programName: submission.programName,
+      formTitle: submission.formTitle,
+    });
+    byFamily.set(familyId, list);
+  }
+
+  for (const [familyId, summaries] of byFamily) {
+    summaries.sort((left, right) => left.studentName.localeCompare(right.studentName));
+    byFamily.set(familyId, summaries);
+  }
+
+  return byFamily;
+}
+
 export async function listOrgApplicationSubmissionsPage(
   supabase: SupabaseClient,
   organizationId: string,
@@ -745,6 +833,70 @@ export async function resolveApplicationFamilyId(
 
   if (guardianError) throw guardianError;
   return guardian?.family_id ? String(guardian.family_id) : null;
+}
+
+export type ApplicationFamilyIdHint = {
+  applicationId: string;
+  familyId: string | null;
+  primaryGuardianId: string | null;
+};
+
+/** Resolve family IDs for many applications (batched guardian lookup). */
+export async function resolveApplicationFamilyIds(
+  supabase: SupabaseClient,
+  organizationId: string,
+  hints: ApplicationFamilyIdHint[],
+): Promise<Record<string, string | null>> {
+  const result: Record<string, string | null> = {};
+  const guardianIdsNeeded = new Set<string>();
+  const applicationIdsByGuardianId = new Map<string, string[]>();
+
+  for (const hint of hints) {
+    if (hint.familyId) {
+      result[hint.applicationId] = hint.familyId;
+      continue;
+    }
+    if (hint.primaryGuardianId) {
+      guardianIdsNeeded.add(hint.primaryGuardianId);
+      const existing = applicationIdsByGuardianId.get(hint.primaryGuardianId) ?? [];
+      existing.push(hint.applicationId);
+      applicationIdsByGuardianId.set(hint.primaryGuardianId, existing);
+      continue;
+    }
+    result[hint.applicationId] = null;
+  }
+
+  if (guardianIdsNeeded.size === 0) {
+    return result;
+  }
+
+  const { data: guardians, error: guardianError } = await supabase
+    .from("guardians")
+    .select("id, family_id")
+    .eq("organization_id", organizationId)
+    .in("id", [...guardianIdsNeeded]);
+
+  if (guardianError) throw guardianError;
+
+  for (const guardian of guardians ?? []) {
+    const guardianId = String(guardian.id);
+    const familyId = guardian.family_id ? String(guardian.family_id) : null;
+    const applicationIds = applicationIdsByGuardianId.get(guardianId) ?? [];
+    for (const applicationId of applicationIds) {
+      result[applicationId] = familyId;
+    }
+  }
+
+  for (const guardianId of guardianIdsNeeded) {
+    const applicationIds = applicationIdsByGuardianId.get(guardianId) ?? [];
+    for (const applicationId of applicationIds) {
+      if (!(applicationId in result)) {
+        result[applicationId] = null;
+      }
+    }
+  }
+
+  return result;
 }
 
 async function mapApplicationRowsToAdminSubmissions(

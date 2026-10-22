@@ -9,6 +9,20 @@ export function hasFullDutyRoleAccess(
   return allIds.every((id) => allowedDutyRoleIds.includes(id));
 }
 
+export function canMemberAccessResourceByDutyRoles(
+  allowedDutyRoleIds: string[] | undefined,
+  dutyRoles: CommitteeDutyRole[],
+  memberId: string,
+): boolean {
+  if (hasFullDutyRoleAccess(allowedDutyRoleIds, dutyRoles)) {
+    return true;
+  }
+  const allowedIds = allowedDutyRoleIds ?? [];
+  return dutyRoles.some(
+    (duty) => allowedIds.includes(duty.id) && duty.assigneeId === memberId,
+  );
+}
+
 export function canAccessCommitteeResource(
   resource: CommitteeResource,
   memberId: string | undefined,
@@ -16,14 +30,11 @@ export function canAccessCommitteeResource(
   isAdminView: boolean,
 ): boolean {
   if (isAdminView) return true;
-  if (hasFullDutyRoleAccess(resource.allowedDutyRoleIds, committee.dutyRoles)) {
-    return true;
-  }
   if (!memberId) return true;
-  const allowedIds = resource.allowedDutyRoleIds ?? [];
-  return committee.dutyRoles.some(
-    (duty) =>
-      allowedIds.includes(duty.id) && duty.assigneeId === memberId,
+  return canMemberAccessResourceByDutyRoles(
+    resource.allowedDutyRoleIds,
+    committee.dutyRoles,
+    memberId,
   );
 }
 

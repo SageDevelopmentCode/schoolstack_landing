@@ -659,11 +659,20 @@ export async function sendCommitteeWorkspaceUpdateNotifications(
       const email = await resolveCommitteeMemberEmail(supabase, member);
       if (!email) return;
 
+      const workspaceFocus =
+        input.action === ACTIVITY_ACTIONS.COMMITTEE_EVENT_CREATED
+          ? { eventId: input.entityId }
+          : input.action === ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_CREATED
+            ? { resourceId: input.entityId }
+            : input.action === ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED
+              ? { taskId: input.entityId }
+              : undefined;
       const workspaceUrl = committeeMemberWorkspaceUrl(
         schoolSlug,
         input.committeeId,
         config.section,
         member as CommitteePortalMember,
+        workspaceFocus,
       );
 
       await sendCommitteeWorkspaceUpdateNotification({

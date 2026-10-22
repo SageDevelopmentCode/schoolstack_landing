@@ -13,6 +13,7 @@ import {
 } from '@/contexts/auth-context';
 import { markExplicitMobileSignOut } from '@/lib/auth/mobile-explicit-sign-out';
 import { PortalAccessError } from '@/lib/auth/resolve-portal';
+import { logMobileAuthSignedIn } from '@/lib/mobile-activity';
 import { getSupabaseClient } from '@/lib/supabase';
 import { Story } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
@@ -58,11 +59,17 @@ export default function AdminLoginScreen() {
       }
 
       const portal = await completePlatformAdminSignIn(user.id);
-      await setResolvedPortal(portal);
+      await setResolvedPortal(portal, user.id);
+      void logMobileAuthSignedIn(portal, {
+        freshSignIn: true,
+        method: 'password',
+      });
       router.replace('/platform-admin/organizations');
     } catch (submitError) {
-      markExplicitMobileSignOut();
-      await supabase.auth.signOut();
+      if (submitError instanceof PortalAccessError) {
+        markExplicitMobileSignOut();
+        await supabase.auth.signOut();
+      }
       setError(
         submitError instanceof PortalAccessError || submitError instanceof Error
           ? submitError.message

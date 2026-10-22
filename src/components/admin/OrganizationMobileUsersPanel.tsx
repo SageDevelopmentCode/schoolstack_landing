@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Bell, Loader2 } from "lucide-react";
+import { AdminTableSkeleton } from "@/components/admin/ui/AdminSkeleton";
 import { AdminDrawer } from "@/components/admin/ui/AdminDrawer";
 import OrganizationPushNotificationsPanel from "@/components/admin/OrganizationPushNotificationsPanel";
 import type {
@@ -135,10 +136,11 @@ export default function OrganizationMobileUsersPanel({
         </div>
 
         {loading ? (
-          <div className="flex items-center gap-2 py-6 text-sm text-admin-faint font-secondary">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading mobile users…
-          </div>
+          <AdminTableSkeleton
+            columns={4}
+            rows={5}
+            ariaLabel="Loading mobile users"
+          />
         ) : error ? (
           <div className="rounded-admin-md border border-admin-border bg-admin-bg px-4 py-6 text-center">
             <p className="text-sm text-admin-error font-secondary">{error}</p>
@@ -266,6 +268,7 @@ export default function OrganizationMobileUsersPanel({
               they have a device today.
             </p>
             <OrganizationPushNotificationsPanel
+              key={drawerUser.userId}
               organizationId={organizationId}
               recipientUserId={drawerUser.userId}
               compact

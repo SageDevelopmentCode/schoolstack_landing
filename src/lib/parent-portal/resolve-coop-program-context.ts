@@ -6,7 +6,10 @@ import {
   type ProgramParentPortalSettings,
 } from "@/lib/admissions/program-parent-portal";
 import {
+  familyHasEnrolledAccessInProgram,
+  listAccessibleIsolatedProgramsForFamily,
   listAccessibleIsolatedProgramsForUser,
+  loadParentPortalNavContextsForFamily,
   loadParentPortalNavContextsForUser,
   userHasEnrolledAccessInProgram,
 } from "@/lib/admissions/program-parent-portal-access";
@@ -116,6 +119,71 @@ export async function loadMobileParentPortalContextsForUser(input: {
       input.supabase,
       input.userId,
       input.organizationId,
+      program.id,
+    );
+    if (!hasAccess) continue;
+
+    programsByPortalSlug[program.portal_slug] = buildProgramMobileContext({
+      slug: input.slug,
+      orgFeatures: input.orgFeatures,
+      program,
+    });
+  }
+
+  const contextsWithMobilePaths = contexts.map((context) => ({
+    ...context,
+    mobileEntryPath: resolveMobilePortalEntryPath(input.slug, context),
+  }));
+
+  const hasMain = contexts.some((context) => context.id === "main");
+  const hasProgram = contexts.some((context) => context.id.startsWith("program:"));
+  const redirectAwayFromMainPortal = !hasMain && hasProgram;
+  const defaultMobileEntryPath =
+    contextsWithMobilePaths[0]?.mobileEntryPath ??
+    resolveMobilePortalEntryPath(input.slug, { id: "main" });
+
+  return {
+    contexts: contextsWithMobilePaths,
+    programsByPortalSlug,
+    redirectAwayFromMainPortal,
+    defaultMobileEntryPath,
+  };
+}
+
+export async function loadMobileParentPortalContextsForFamily(input: {
+  supabase: SupabaseClient;
+  organizationId: string;
+  familyId: string;
+  slug: string;
+  schoolName: string;
+  orgFeatures: OrganizationFeatures;
+}): Promise<MobileParentPortalContextsPayload> {
+  const contexts = await loadParentPortalNavContextsForFamily({
+    supabase: input.supabase,
+    organizationId: input.organizationId,
+    familyId: input.familyId,
+    schoolSlug: input.slug,
+    schoolName: input.schoolName,
+    orgFeatures: input.orgFeatures,
+  });
+
+  const isolatedPrograms = await listAccessibleIsolatedProgramsForFamily(
+    input.supabase,
+    input.organizationId,
+    input.familyId,
+  );
+
+  const programsByPortalSlug: Record<string, MobileParentPortalProgramContext> =
+    {};
+
+  for (const program of isolatedPrograms) {
+    if (!isProgramParentPortalIsolated(program.parent_portal_settings)) {
+      continue;
+    }
+    const hasAccess = await familyHasEnrolledAccessInProgram(
+      input.supabase,
+      input.organizationId,
+      input.familyId,
       program.id,
     );
     if (!hasAccess) continue;

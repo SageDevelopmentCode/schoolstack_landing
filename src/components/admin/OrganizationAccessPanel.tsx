@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, UserMinus, UserPlus } from "lucide-react";
+import { AdminListItemsSkeleton } from "@/components/admin/ui/AdminSkeleton";
 import type { OrganizationMembershipRecord } from "@/lib/admin/organization-memberships";
 import { AdminSelect } from "@/components/admin/ui/AdminSelect";
 
@@ -198,10 +199,10 @@ export default function OrganizationAccessPanel({
 
       <div className="space-y-2">
         {loading ? (
-          <div className="flex items-center gap-2 text-sm text-admin-faint font-secondary">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading access list…
-          </div>
+          <AdminListItemsSkeleton
+            count={4}
+            ariaLabel="Loading access list"
+          />
         ) : memberships.length === 0 ? (
           <p className="text-sm text-admin-faint font-secondary">
             No school admins assigned yet.

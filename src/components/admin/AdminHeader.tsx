@@ -19,6 +19,7 @@ import {
   LifeBuoy,
   Gauge,
   Megaphone,
+  Headphones,
   ChevronDown,
   type LucideIcon,
 } from "lucide-react";
@@ -74,6 +75,7 @@ const NAV_ENTRIES: NavEntry[] = [
   { type: "link", link: { href: "/admin/payments", label: "Payments", icon: CreditCard, color: "#2563eb" } },
   { type: "link", link: { href: "/admin/research", label: "CRM", icon: Building2, color: "#db2777" } },
   { type: "link", link: { href: "/admin/marketing", label: "Marketing", icon: Megaphone, color: "#2E4A3C" } },
+  { type: "link", link: { href: "/admin/support", label: "Support", icon: Headphones, color: "#c2410c" } },
 ];
 
 function isLinkActive(pathname: string, href: string) {

@@ -76,6 +76,13 @@ async function familyIdsForAllEnrolled(
   return [...familyIds];
 }
 
+export async function listAllEnrolledParentFamilyIds(
+  admin: SupabaseClient,
+  organizationId: string,
+): Promise<string[]> {
+  return familyIdsForAllEnrolled(admin, organizationId);
+}
+
 export async function resolveBulletinParentFamilyIds(
   admin: SupabaseClient,
   organizationId: string,

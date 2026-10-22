@@ -9,6 +9,11 @@ import { ThemedText } from '@/components/themed-text';
 import { useAuth } from '@/contexts/auth-context';
 import { resolveAuthRecoveryRoute } from '@/lib/auth/auth-recovery';
 import {
+  completeAccessibleSchoolSignIn,
+  shouldSignOutAfterAccessibleSchoolResult,
+} from '@/lib/auth/complete-accessible-school-sign-in';
+import { markExplicitMobileSignOut } from '@/lib/auth/mobile-explicit-sign-out';
+import {
   resolvePortalRecovery,
   shouldShowPortalLoadingSpinner,
 } from '@/lib/auth/portal-recovery';
@@ -16,26 +21,47 @@ import {
   getPortalHeading,
   getPortalLabel,
 } from '@/lib/auth/resolve-portal';
+import { logMobileAuthSignedIn } from '@/lib/mobile-activity';
+import { getSupabaseClient } from '@/lib/supabase';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Brand, Spacing } from '@/constants/theme';
 
 export default function PortalScreen() {
   const router = useRouter();
-  const { user, portalType, selectedSchool, isLoading, signOut, restorePortalState } = useAuth();
+  const {
+    user,
+    portalType,
+    selectedSchool,
+    isLoading,
+    signOut,
+    restorePortalState,
+    setResolvedPortal,
+  } = useAuth();
   const [restoringPortal, setRestoringPortal] = useState(false);
+  const [completingAccessibleSchool, setCompletingAccessibleSchool] = useState(false);
+  const [accessibleSchoolError, setAccessibleSchoolError] = useState<string | null>(null);
+  const [schoolResolveRetry, setSchoolResolveRetry] = useState(0);
   const restoreAttemptedRef = useRef(false);
+  const completeAccessibleSchoolAttemptedRef = useRef(false);
 
   const recoveryDecision = useMemo(
     () =>
       resolvePortalRecovery({
         isLoading,
-        restoringPortal,
+        restoringPortal: restoringPortal || completingAccessibleSchool,
         user,
         portalType,
         selectedSchool,
         restoreAttempted: restoreAttemptedRef.current,
       }),
-    [isLoading, portalType, restoringPortal, selectedSchool, user],
+    [
+      completingAccessibleSchool,
+      isLoading,
+      portalType,
+      restoringPortal,
+      selectedSchool,
+      user,
+    ],
   );
 
   useEffect(() => {
@@ -47,14 +73,57 @@ export default function PortalScreen() {
     }
 
     if (recoveryDecision.action === 'login') {
-      router.replace('/login');
+      if (!user) {
+        router.replace('/login');
+        return;
+      }
+
+      if (completeAccessibleSchoolAttemptedRef.current) {
+        return;
+      }
+
+      completeAccessibleSchoolAttemptedRef.current = true;
+      setCompletingAccessibleSchool(true);
+      setAccessibleSchoolError(null);
+
+      void (async () => {
+        const supabase = getSupabaseClient();
+        const result = await completeAccessibleSchoolSignIn(supabase, user.id);
+
+        if (result.kind === 'completed') {
+          await setResolvedPortal(result.portal, user.id);
+          void logMobileAuthSignedIn(result.portal);
+          return;
+        }
+
+        if (result.kind === 'needs_school_picker') {
+          router.replace({
+            pathname: '/login/choose-school',
+            params: { slugs: result.slugs.join(','), source: 'portal' },
+          });
+          return;
+        }
+
+        if (shouldSignOutAfterAccessibleSchoolResult(result.kind)) {
+          markExplicitMobileSignOut();
+          await signOut();
+          router.replace('/login');
+          return;
+        }
+
+        if (result.kind === 'error') {
+          setAccessibleSchoolError(result.message);
+        }
+      })().finally(() => {
+        setCompletingAccessibleSchool(false);
+      });
       return;
     }
 
     if (recoveryDecision.action === 'restore') {
       restoreAttemptedRef.current = true;
       setRestoringPortal(true);
-      void restorePortalState().finally(() => {
+      void restorePortalState(user?.id).finally(() => {
         setRestoringPortal(false);
       });
       return;
@@ -63,7 +132,40 @@ export default function PortalScreen() {
     if (recoveryDecision.action === 'navigate') {
       router.replace(recoveryDecision.route);
     }
-  }, [recoveryDecision, restorePortalState, router]);
+  }, [
+    recoveryDecision,
+    restorePortalState,
+    router,
+    setResolvedPortal,
+    signOut,
+    user,
+    schoolResolveRetry,
+  ]);
+
+  if (accessibleSchoolError) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="dark" />
+        <View style={styles.content}>
+          <ThemedText type="title" style={styles.heading}>
+            {"Couldn't open your school"}
+          </ThemedText>
+          <ThemedText type="small" color={Brand.textMuted} style={styles.subtext}>
+            {accessibleSchoolError}
+          </ThemedText>
+          <PrimaryButton
+            label="Try again"
+            onPress={() => {
+              completeAccessibleSchoolAttemptedRef.current = false;
+              setAccessibleSchoolError(null);
+              setSchoolResolveRetry((attempt) => attempt + 1);
+            }}
+            style={styles.signOutButton}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (shouldShowPortalLoadingSpinner(recoveryDecision)) {
     return (

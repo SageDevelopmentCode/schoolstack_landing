@@ -16,7 +16,7 @@ export function ParentMessagesEmptyState({ hasSearchQuery = false }: ParentMessa
   const title = hasSearchQuery ? 'No conversations match this filter' : 'No conversations yet';
   const description = hasSearchQuery
     ? 'Try a different search term.'
-    : 'Tap + New to message your school office or your child\u2019s teachers.';
+    : 'Message MudKitchen Support or tap + New to reach your school office and teachers.';
 
   return (
     <View style={styles.container}>

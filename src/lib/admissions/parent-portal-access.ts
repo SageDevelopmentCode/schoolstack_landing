@@ -1,5 +1,8 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { buildAdminPostSubmitSteps, type AdminPostSubmitStep } from "./admin-post-submit-steps";
+import {
+  buildAdminPostSubmitSteps,
+  type AdminPostSubmitStep,
+} from "./admin-post-submit-steps";
 import { listScheduledVisitsForApplications } from "./admissions-booking";
 import {
   parseApplicationFormPostSubmitConfig,

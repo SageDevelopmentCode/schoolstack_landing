@@ -38,12 +38,18 @@ import {
 } from '@/lib/messages/optimistic-message';
 import { MessageThreadMutationOverlays } from '@/components/messages/message-thread-mutation-overlays';
 import {
+  createMudKitchenSupportThread,
   createTeacherMessageThread,
   deleteTeacherMessage,
   editTeacherMessage,
   mergeMessages,
   sendTeacherMessage,
 } from '@/lib/messages/teacher-api';
+import {
+  isMudKitchenSupportPlaceholder,
+  mudKitchenSupportPlaceholderThread,
+  MUDKITCHEN_SUPPORT_EMPTY_COPY,
+} from '@/lib/messages/platform-support';
 import { portalMessageSupportsTextMutation } from '@/lib/messages/message-mutation-eligibility';
 import { useMessageThreadMutations } from '@/lib/messages/use-message-thread-mutations';
 import {
@@ -118,9 +124,15 @@ export function TeacherMessageThreadScreen({
     [homeData?.userProfile.displayName, homeData?.userProfile.profilePhotoUrl, user],
   );
   const isPendingNewThread = threadId === 'new';
+  const isSupportPlaceholder = isMudKitchenSupportPlaceholder(threadId);
 
-  const [thread, setThread] = useState<MessageThreadDetail | null>(null);
-  const [loading, setLoading] = useState(!isPendingNewThread);
+  const [thread, setThread] = useState<MessageThreadDetail | null>(() => {
+    if (isSupportPlaceholder) {
+      return { ...mudKitchenSupportPlaceholderThread(), messages: [] };
+    }
+    return null;
+  });
+  const [loading, setLoading] = useState(!isPendingNewThread && !isSupportPlaceholder);
   const [error, setError] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [stagedFiles, setStagedFiles] = useState<StagedMessageFile[]>([]);
@@ -152,7 +164,7 @@ export function TeacherMessageThreadScreen({
 
   const loadThread = useCallback(
     async (options?: { silent?: boolean; refresh?: boolean }) => {
-      if (isPendingNewThread) return;
+      if (isPendingNewThread || isSupportPlaceholder) return;
 
       const cached =
         getCachedTeacherMessageThread(organizationId, schoolName, threadId) ??
@@ -206,6 +218,7 @@ export function TeacherMessageThreadScreen({
     [
       applyThreadDetail,
       isPendingNewThread,
+      isSupportPlaceholder,
       organizationId,
       refreshUnreadCount,
       reportError,
@@ -349,8 +362,21 @@ export function TeacherMessageThreadScreen({
     const body = input.trim();
     if (!body && stagedFiles.length === 0) return;
 
+    let threadIdForSend = threadId;
+    if (isSupportPlaceholder) {
+      try {
+        threadIdForSend = await createMudKitchenSupportThread(organizationId);
+      } catch (createError) {
+        reportError('teacher_message_thread_create', createError);
+        setError(
+          createError instanceof Error ? createError.message : 'Failed to start support conversation.',
+        );
+        return;
+      }
+    }
+
     const optimisticMessage = buildOptimisticPortalMessage({
-      threadId,
+      threadId: threadIdForSend,
       body,
       files: stagedFiles,
       senderKind: 'staff_member',
@@ -369,13 +395,19 @@ export function TeacherMessageThreadScreen({
     setSending(true);
 
     try {
-      const serverMessage = await sendTeacherMessage(threadId, {
+      const serverMessage = await sendTeacherMessage(threadIdForSend, {
         organizationId,
         organizationSlug,
         schoolName,
         body,
         files: filesToSend,
       });
+
+      if (isSupportPlaceholder) {
+        void refreshInbox({ silent: true });
+        router.replace(teacherMessageThreadRoute(organizationSlug, threadIdForSend));
+        return;
+      }
 
       optimisticSendRef.current.confirm(optimisticId, serverMessage.id);
       setThread((prev) => {
@@ -540,7 +572,9 @@ export function TeacherMessageThreadScreen({
               Say hello to {thread.title}
             </Text>
             <Text style={[styles.emptyDescription, { color: theme.muted }]}>
-              Send a message to start the conversation.
+              {isSupportPlaceholder
+                ? MUDKITCHEN_SUPPORT_EMPTY_COPY
+                : 'Send a message to start the conversation.'}
             </Text>
           </View>
         )}

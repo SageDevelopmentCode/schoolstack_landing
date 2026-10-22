@@ -40,6 +40,7 @@ import {
   type MoreMenuTabId,
 } from '@/lib/more-menu-tab-ids';
 import { ParentPortalMoreMenuItemsSkeleton } from '@/components/parent/parent-portal-program-chrome-skeleton';
+import { StorySectionKicker } from '@/components/story/story-section-kicker';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 
@@ -143,13 +144,17 @@ export function ParentMoreMenuSheet({
     ? { parent_portal_paused: true as const }
     : { parent_portal_paused: false as const };
 
+  const schoolGalleryEnabled = homeData?.schoolGalleryEnabled ?? false;
+
   const visibleMenuItemIds = useMemo(() => {
     if (programPortalFeaturesPending) {
       return [] as ParentMoreMenuItemId[];
     }
 
     if (!portalFeatureRecord) {
-      return Object.keys(PARENT_MORE_MENU_META) as ParentMoreMenuItemId[];
+      return (Object.keys(PARENT_MORE_MENU_META) as ParentMoreMenuItemId[]).filter(
+        (id) => id !== 'photos' || schoolGalleryEnabled,
+      );
     }
 
     const featureKeys = resolveMobileMoreMenuFeatureKeys({
@@ -179,12 +184,19 @@ export function ParentMoreMenuSheet({
       ids.push('friday-branch');
     }
 
+    if (schoolGalleryEnabled && !ids.includes('photos')) {
+      ids.push('photos');
+    }
+
     return ids.filter((id) => {
       if (id === 'friday-branch') {
         return isParentNavFridayBranchEnabled(
           { parent: portalFeatureRecord },
           fridayBranchSettings,
         );
+      }
+      if (id === 'photos') {
+        return schoolGalleryEnabled;
       }
       return true;
     });
@@ -195,6 +207,7 @@ export function ParentMoreMenuSheet({
     homeData?.features?.parent_home,
     portalFeatureRecord,
     programPortalFeaturesPending,
+    schoolGalleryEnabled,
   ]);
 
   const visibleMenuItems = useMemo(
@@ -203,6 +216,10 @@ export function ParentMoreMenuSheet({
         .map((id) => ({ id, ...PARENT_MORE_MENU_META[id] }))
         .filter((item) => item.label),
     [visibleMenuItemIds],
+  );
+
+  const showCoopResourcesKicker = Boolean(
+    activePortalFeatures?.coopMode && visibleMenuItems.some((item) => item.id === 'curriculum'),
   );
 
   useEffect(() => {
@@ -263,20 +280,26 @@ export function ParentMoreMenuSheet({
           ) : (
             <StoryMoreMenuItemsCard>
               {visibleMenuItems.map((item, index) => (
-                <StoryMoreMenuItemRow
-                  key={item.id}
-                  isFirst={index === 0}
-                  label={item.label}
-                  subtitle={item.subtitle}
-                  onPress={() => onSelect(item.id)}
-                  icon={
-                    <StoryMoreMenuIcon
-                      name={item.icon}
-                      iconBg={item.iconBg}
-                      iconColor={item.iconColor}
-                    />
-                  }
-                />
+                <View key={item.id}>
+                  {showCoopResourcesKicker && item.id === 'curriculum' ? (
+                    <View style={styles.coopKickerWrap}>
+                      <StorySectionKicker>Co-op</StorySectionKicker>
+                    </View>
+                  ) : null}
+                  <StoryMoreMenuItemRow
+                    isFirst={index === 0 && !showCoopResourcesKicker}
+                    label={item.label}
+                    subtitle={item.subtitle}
+                    onPress={() => onSelect(item.id)}
+                    icon={
+                      <StoryMoreMenuIcon
+                        name={item.icon}
+                        iconBg={item.iconBg}
+                        iconColor={item.iconColor}
+                      />
+                    }
+                  />
+                </View>
               ))}
             </StoryMoreMenuItemsCard>
           )}
@@ -309,6 +332,11 @@ export function ParentMoreMenuSheet({
 }
 
 const styles = StyleSheet.create({
+  coopKickerWrap: {
+    paddingHorizontal: StoryCardPadding,
+    paddingTop: Spacing.two,
+    paddingBottom: Spacing.one,
+  },
   accountCard: {
     padding: StoryCardPadding,
   },

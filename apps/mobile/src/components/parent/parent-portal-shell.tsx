@@ -20,10 +20,10 @@ import {
   getParentActiveTabFromPathname,
   isParentProgramPortalPath,
   parentAccountRoute,
-  parentMoreRoute,
   parentProgramAccountRoute,
-  parentProgramMoreRoute,
   parentProgramTabRoute,
+  isParentMoreMenuItemActive,
+  resolveParentMoreMenuNavigationTarget,
   type ParentMoreMenuItemId,
   type ParentTab,
 } from '@/lib/parent/parent-nav';
@@ -122,11 +122,8 @@ export function ParentPortalShell() {
   const handleSelectMoreItem = (itemId: ParentMoreMenuItemId) => {
     setMoreSheetOpen(false);
     if (!slug) return;
-    const target =
-      activeProgramSlug != null
-        ? parentProgramMoreRoute(slug, activeProgramSlug, itemId)
-        : parentMoreRoute(slug, itemId);
-    if (!pathname.includes(`/more/${itemId}`)) {
+    const target = resolveParentMoreMenuNavigationTarget(slug, itemId, activeProgramSlug);
+    if (!isParentMoreMenuItemActive(pathname, itemId)) {
       const isMainTab = pathTab !== null && pathTab !== 'more';
       if (isMainTab) {
         router.replace(target);
@@ -164,6 +161,7 @@ export function ParentPortalShell() {
     <>
       {isPreview ? <PortalPreviewBanner onExit={() => void exitPreview()} /> : null}
       <View
+        testID={showTabBar && !portalContextsLoading ? 'parent-portal-ready' : undefined}
         style={[
           styles.content,
           showTabBar ? { paddingBottom: bottomChromeHeight } : null,

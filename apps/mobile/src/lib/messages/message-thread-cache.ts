@@ -2,6 +2,7 @@ import { loadMessageThread } from '@/lib/messages/api';
 import { loadParentMessageThread } from '@/lib/messages/parent-api';
 import { loadTeacherMessageThread } from '@/lib/messages/teacher-api';
 import { createPortalCache, type PortalCache } from '@/lib/portal-cache';
+import { isMudKitchenSupportPlaceholder } from '@/lib/messages/platform-support';
 import type { MessageThreadDetail } from '@/lib/messages/types';
 
 function threadCacheKey(
@@ -61,11 +62,17 @@ function createMessageThreadCache(
     },
 
     prefetch(organizationId, schoolName, threadId) {
+      if (isMudKitchenSupportPlaceholder(threadId)) {
+        return Promise.resolve();
+      }
       const key = threadCacheKey(organizationId, schoolName, threadId);
       return cache.prefetch(key, () => loadThread(threadId, organizationId, schoolName));
     },
 
     fetchAndCache(organizationId, schoolName, threadId, options) {
+      if (isMudKitchenSupportPlaceholder(threadId)) {
+        return Promise.reject(new Error('Support placeholder thread is not loaded from the API.'));
+      }
       const key = threadCacheKey(organizationId, schoolName, threadId);
       return cache.fetchAndCache(
         key,

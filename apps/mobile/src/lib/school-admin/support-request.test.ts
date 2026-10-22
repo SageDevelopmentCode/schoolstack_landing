@@ -5,6 +5,18 @@ jest.mock('@/lib/school-admin-api', () => ({
   fetchSchoolAdminApiFormData: jest.fn(),
 }));
 
+jest.mock('@/lib/upload/append-local-file-to-form-data', () => ({
+  appendLocalFileToFormData: jest.fn(
+    async (
+      formData: FormData,
+      fieldName: string,
+      file: { uri: string; name: string; type: string },
+    ) => {
+      formData.append(fieldName, new Blob(['test']), file.name);
+    },
+  ),
+}));
+
 describe('submitAdminSupportRequest', () => {
   const fetchMock = fetchSchoolAdminApiFormData as jest.MockedFunction<
     typeof fetchSchoolAdminApiFormData

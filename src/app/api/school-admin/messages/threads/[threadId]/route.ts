@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
+import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import { reportOperationalError } from "@/lib/operational-errors";
 import {
+  assertSchoolAdminCanAccessThread,
   getThreadDetail,
   markThreadRead,
   requireSchoolAdminUser,
@@ -33,6 +35,8 @@ export async function GET(request: Request, context: RouteContext) {
   try {
     const user = await requireSchoolAdminUser(supabase, organizationId, request);
     const admin = createAdminClient();
+
+    await assertSchoolAdminCanAccessThread(admin, organizationId, threadId);
 
     const thread = await getThreadDetail(
       admin,
@@ -78,12 +82,13 @@ export async function GET(request: Request, context: RouteContext) {
       });
     }
 
+    const resolved = portalRouteErrorStatus(err, "Failed to load thread.");
     return apiError(ROUTE, {
       request,
-      status: 500,
-      error: "Failed to load thread.",
+      status: resolved.status,
+      error: resolved.message,
+      code: resolved.code,
       cause: err,
-      code: "internal_error",
     });
   }
 }

@@ -192,6 +192,7 @@ export default function CommitteeMessagesSection({
       >
         <div
           className="flex-1 overflow-y-auto p-3 sm:p-4"
+          data-testid="committee-messages-panel"
           style={{ backgroundColor: theme.white }}
         >
           {committee.messages.length === 0 ? (

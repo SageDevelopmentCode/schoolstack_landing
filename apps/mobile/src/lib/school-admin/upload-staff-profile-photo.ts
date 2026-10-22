@@ -1,6 +1,7 @@
 import { reportMobileOperationalError } from '@/lib/mobile-activity';
 import { fetchSchoolAdminApiFormData } from '@/lib/school-admin-api';
 import { StaffProfilePhotoUploadError } from '@/lib/teacher/upload-staff-profile-photo';
+import { appendLocalFileToFormData } from '@/lib/upload/append-local-file-to-form-data';
 
 type UploadSchoolAdminProfilePhotoParams = {
   organizationId: string;
@@ -16,14 +17,11 @@ export async function uploadStaffProfilePhotoFromSchoolAdmin(
 
   const formData = new FormData();
   formData.append('organizationId', organizationId);
-  formData.append(
-    'file',
-    {
-      uri,
-      name: fileName,
-      type: mimeType,
-    } as unknown as Blob,
-  );
+  await appendLocalFileToFormData(formData, 'file', {
+    uri,
+    name: fileName,
+    type: mimeType,
+  });
 
   try {
     const payload = await fetchSchoolAdminApiFormData<{ profilePhotoUrl?: string; error?: string }>(

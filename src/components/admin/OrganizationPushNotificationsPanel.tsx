@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
+import type { PushNotificationPreviewMode } from "@/components/admin/MobilePushNotificationPreview";
 import PushNotificationDeliveryRow from "@/components/admin/PushNotificationDeliveryRow";
+import PushNotificationPreviewModeToggle from "@/components/admin/PushNotificationPreviewModeToggle";
 import type { AdminPushNotificationDelivery } from "@/lib/admin/push-notification-deliveries";
 
 type OrganizationPushNotificationsPanelProps = {
@@ -10,6 +12,7 @@ type OrganizationPushNotificationsPanelProps = {
   recipientUserId?: string | null;
   compact?: boolean;
   showRecipient?: boolean;
+  defaultPreviewMode?: PushNotificationPreviewMode;
 };
 
 const PAGE_SIZE = 20;
@@ -19,7 +22,10 @@ export default function OrganizationPushNotificationsPanel({
   recipientUserId = null,
   compact = false,
   showRecipient = true,
+  defaultPreviewMode = "both",
 }: OrganizationPushNotificationsPanelProps) {
+  const [previewMode, setPreviewMode] =
+    useState<PushNotificationPreviewMode>(defaultPreviewMode);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -166,20 +172,30 @@ export default function OrganizationPushNotificationsPanel({
           No mobile push notifications logged yet.
         </p>
       ) : (
-        <div
-          ref={scrollContainerRef}
-          className={`${maxHeightClass} overflow-y-auto`}
-        >
-          <ul className="flex flex-col">
-            {deliveries.map((delivery, index) => (
-              <PushNotificationDeliveryRow
-                key={delivery.id}
-                delivery={delivery}
-                showDivider={index < deliveries.length - 1}
-                showRecipient={showRecipient}
-              />
-            ))}
-          </ul>
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[11px] text-admin-faint font-secondary">
+              Preview how the notification appeared on device.
+            </p>
+            <PushNotificationPreviewModeToggle
+              value={previewMode}
+              onChange={setPreviewMode}
+            />
+          </div>
+          <div
+            ref={scrollContainerRef}
+            className={`${maxHeightClass} overflow-y-auto`}
+          >
+            <ul className="flex flex-col gap-3">
+              {deliveries.map((delivery) => (
+                <PushNotificationDeliveryRow
+                  key={delivery.id}
+                  delivery={delivery}
+                  showRecipient={showRecipient}
+                  previewMode={previewMode}
+                />
+              ))}
+            </ul>
           <div ref={loadMoreRef} className="h-4" aria-hidden />
           {loadingMore ? (
             <div className="flex justify-center py-3">
@@ -189,7 +205,8 @@ export default function OrganizationPushNotificationsPanel({
               />
             </div>
           ) : null}
-        </div>
+          </div>
+        </>
       )}
     </section>
   );

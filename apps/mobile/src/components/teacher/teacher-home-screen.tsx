@@ -10,11 +10,18 @@ import { TeacherHomeBulletinSheet } from '@/components/teacher/home/teacher-home
 import { TeacherHomeClassroomCard } from '@/components/teacher/home/teacher-home-classroom-card';
 import { TeacherHomeClassroomRosterSheet } from '@/components/teacher/home/teacher-home-classroom-roster-sheet';
 import { PortalAccountSheet } from '@/components/portal-account-sheet';
+import { TeacherPortalMudKitchenSupportMessagesCard } from '@/components/teacher/home/teacher-portal-mudkitchen-support-messages-card';
 import { PortalNeedHelpCard } from '@/components/portal/portal-need-help-card';
 import { useAuth } from '@/contexts/auth-context';
 import { PortalSupportRequestSheet } from '@/components/portal/portal-support-request-sheet';
 import { TeacherActivityNotificationsSheet } from '@/components/teacher/teacher-activity-notifications-sheet';
 import { TeacherHomeHeader } from '@/components/teacher/home/teacher-home-header';
+import { TeacherHomeHowToGuidesCard } from '@/components/teacher/home/teacher-home-how-to-guides-card';
+import {
+  isTeacherHomeSubTabId,
+  resolveTeacherHomeSubTabs,
+  type TeacherHomeSubTabId,
+} from '@/components/teacher/home/teacher-home-sub-tabs';
 import { TeacherHomeSchoolUpdatesCard } from '@/components/teacher/home/teacher-home-school-updates-card';
 import { TeacherHomeSnapshotCard } from '@/components/teacher/home/teacher-home-snapshot-card';
 import { TeacherHomeStartHereCard } from '@/components/teacher/home/teacher-home-start-here-card';
@@ -32,6 +39,7 @@ import { useAuthRequiredRedirect } from '@/hooks/use-auth-required-redirect';
 import type { AdminEnrolledStudentSummary } from '@/lib/school-admin/enrolled-students';
 import { filterStudentsByClassroomName } from '@/lib/teacher/teacher-home-utils';
 import {
+  resolveTeacherDocumentationMobileRoute,
   resolveTeacherFocusHref,
   teacherBulletinDetailRoute,
   teacherStudentDetailRoute,
@@ -45,13 +53,6 @@ import { usePortalPreview } from '@/lib/portal-preview-gating';
 
 const MAX_STUDENT_CARDS = 6;
 
-type TeacherHomeTab = 'overview' | 'attendance';
-
-const TEACHER_HOME_TABS = [
-  { id: 'overview' as const, label: 'Overview' },
-  { id: 'attendance' as const, label: 'Attendance', icon: 'clipboard-outline' as const },
-];
-
 type TeacherHomeScreenProps = {
   slug: string;
 };
@@ -63,7 +64,7 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
   const { data, isLoading, isRefreshing, error, refresh, ensureLoaded } = useTeacherHome();
   const [heroProfilePhotoUrl, setHeroProfilePhotoUrl] = useState<string | null>(null);
 
-  const [homeTab, setHomeTab] = useState<TeacherHomeTab>('overview');
+  const [homeTab, setHomeTab] = useState<TeacherHomeSubTabId>('overview');
   const [bulletinOpen, setBulletinOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
@@ -118,10 +119,27 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
     }
   };
 
+  const handleDocumentationStep = (href: string) => {
+    const route = resolveTeacherDocumentationMobileRoute(slug, href);
+    if (route) {
+      router.push(route);
+    }
+  };
+
   const openStudentProfile = (student: AdminEnrolledStudentSummary) => {
     setClassroomRoster(null);
     router.push(teacherStudentDetailRoute(slug, student.id));
   };
+
+  const attendanceEnabledForHooks = data
+    ? isTeacherFeatureEnabled(data.features, 'attendance')
+    : false;
+
+  useEffect(() => {
+    if (homeTab === 'attendance' && !attendanceEnabledForHooks) {
+      setHomeTab('overview');
+    }
+  }, [attendanceEnabledForHooks, homeTab]);
 
   if (isLoading && !data) {
     return <TeacherHomeSkeleton />;
@@ -138,8 +156,9 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
 
   if (!data) return null;
 
-  const { summary, features } = data;
+  const { summary, features, documentationGuides = [] } = data;
   const attendanceEnabled = isTeacherFeatureEnabled(features, 'attendance');
+  const homeSubTabs = resolveTeacherHomeSubTabs(attendanceEnabled);
   const myStudentsEnabled = isTeacherFeatureEnabled(features, 'my_students');
   const messagesEnabled = isTeacherFeatureEnabled(features, 'messages');
   const calendarEnabled = isTeacherFeatureEnabled(features, 'calendar');
@@ -240,13 +259,22 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
         </Animated.View>
       ) : null}
 
-      <Animated.View entering={FadeInDown.delay(240).duration(350)}>
-        <PortalNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
-      </Animated.View>
-
       <Text style={[styles.footerNote, { color: theme.muted }]}>
         Need access changes? Contact your school administrator.
       </Text>
+    </>
+  );
+
+  const helpBody = (
+    <>
+      <TeacherPortalMudKitchenSupportMessagesCard slug={slug} messagesEnabled={messagesEnabled} />
+      {documentationGuides.length > 0 ? (
+        <TeacherHomeHowToGuidesCard
+          guides={documentationGuides}
+          onStepAction={handleDocumentationStep}
+        />
+      ) : null}
+      <PortalNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
     </>
   );
 
@@ -303,57 +331,47 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
     </>
   );
 
-  if (attendanceEnabled) {
+  const refreshControl = (
+    <RefreshControl
+      refreshing={isRefreshing}
+      onRefresh={() => void refresh()}
+      tintColor={theme.primary}
+    />
+  );
+
+  const renderHomeTabContent = () => {
+    if (homeTab === 'attendance') {
+      return <AttendanceRosterPanel embedded active />;
+    }
+
+    const body = homeTab === 'help' ? helpBody : overviewBody;
+
     return (
-      <View style={styles.screen}>
-        <StatusBar style={isPreview ? 'dark' : 'light'} />
-        <Animated.View entering={FadeInDown.duration(350)}>{header}</Animated.View>
-
-        <SubmissionStoryTabBar
-          tabs={TEACHER_HOME_TABS}
-          activeTabId={homeTab}
-          onChange={(tabId) => setHomeTab(tabId as TeacherHomeTab)}
-        />
-
-        {homeTab === 'overview' ? (
-          <ScrollView
-            style={styles.tabScroll}
-            contentContainerStyle={styles.content}
-            refreshControl={
-              <RefreshControl
-                refreshing={isRefreshing}
-                onRefresh={() => void refresh()}
-                tintColor={theme.primary}
-              />
-            }>
-            {overviewBody}
-          </ScrollView>
-        ) : (
-          <AttendanceRosterPanel embedded active />
-        )}
-
-        {sheets}
-      </View>
+      <ScrollView
+        style={styles.tabScroll}
+        contentContainerStyle={styles.content}
+        refreshControl={refreshControl}>
+        {body}
+      </ScrollView>
     );
-  }
+  };
 
   return (
     <View style={styles.screen}>
       <StatusBar style={isPreview ? 'dark' : 'light'} />
       <Animated.View entering={FadeInDown.duration(350)}>{header}</Animated.View>
 
-      <ScrollView
-        style={styles.tabScroll}
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={() => void refresh()}
-            tintColor={theme.primary}
-          />
-        }>
-        {overviewBody}
-      </ScrollView>
+      <SubmissionStoryTabBar
+        tabs={homeSubTabs}
+        activeTabId={homeTab}
+        onChange={(tabId) => {
+          if (isTeacherHomeSubTabId(tabId, attendanceEnabled)) {
+            setHomeTab(tabId);
+          }
+        }}
+      />
+
+      {renderHomeTabContent()}
 
       {sheets}
     </View>

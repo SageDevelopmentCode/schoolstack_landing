@@ -1,41 +1,52 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { OrganizationSelector } from '@/components/organization-selector';
 import { OrganizationSelectorSkeleton } from '@/components/organization-selector-skeleton';
 import { PreAuthScreenShell } from '@/components/pre-auth-screen-shell';
+import { StoryButton } from '@/components/story/story-button';
 import {
   completeSchoolSignIn,
   useAuth,
 } from '@/contexts/auth-context';
-import { PortalAccessError } from '@/lib/auth/resolve-portal';
-import { resolveMobileSchoolAfterAuth } from '@/lib/auth/list-accessible-organizations';
+import { normalizeAuthErrorMessage } from '@/lib/auth/auth-error-message';
+import {
+  NO_SCHOOL_ACCESS_MESSAGE,
+  SCHOOLS_LOAD_FAILED_MESSAGE,
+} from '@/lib/auth/complete-accessible-school-sign-in';
+import {
+  filterAccessibleOrganizationsBySlugs,
+  listAccessibleLiveOrganizations,
+} from '@/lib/auth/list-accessible-organizations';
+import { PortalAccessError, resolvePlatformAdmin } from '@/lib/auth/resolve-portal';
 import { markExplicitMobileSignOut } from '@/lib/auth/mobile-explicit-sign-out';
 import { logMobileAuthSignedIn } from '@/lib/mobile-activity';
-import {
-  fetchLiveOrganizationsBySlugs,
-  type LiveOrganization,
-} from '@/lib/organizations';
+import type { LiveOrganization } from '@/lib/organizations';
 import { clearAllPersistedPortalCaches } from '@/lib/portal-cache';
 import { getSupabaseClient } from '@/lib/supabase';
-
-const NO_ACCESS_MESSAGE =
-  'You do not have access to any schools for this account. Try signing in with a different account.';
+import { Spacing } from '@/constants/theme';
 
 type ChooseSchoolExperienceProps = {
   /** When true, back navigates to the previous screen instead of signing out. */
   switchingSchool?: boolean;
   onBack?: () => void;
+  /** Slugs from portal post-auth (filter the accessible org list). */
+  initialSlugs?: string[] | null;
+  /** Wait for route slugs param before loading (portal navigation). */
+  expectSlugsFromRoute?: boolean;
 };
 
 export function ChooseSchoolExperience({
   switchingSchool = false,
   onBack,
+  initialSlugs = null,
+  expectSlugsFromRoute = false,
 }: ChooseSchoolExperienceProps) {
   const router = useRouter();
   const supabase = getSupabaseClient();
   const { user, setResolvedPortal, signOut, isLoading: authLoading } = useAuth();
+  const loadGenerationRef = useRef(0);
 
   const [organizations, setOrganizations] = useState<LiveOrganization[]>([]);
   const [accessibleSlugs, setAccessibleSlugs] = useState<string[] | null>(null);
@@ -51,11 +62,68 @@ export function ChooseSchoolExperience({
 
       const portal = await completeSchoolSignIn(user.id, organization);
       await clearAllPersistedPortalCaches();
-      await setResolvedPortal(portal);
-      void logMobileAuthSignedIn(portal);
+      await setResolvedPortal(portal, user.id);
+      void logMobileAuthSignedIn(portal, {
+        freshSignIn: !switchingSchool,
+      });
       router.replace('/portal');
     },
-    [router, setResolvedPortal, user?.id],
+    [router, setResolvedPortal, switchingSchool, user?.id],
+  );
+
+  const handleNoSchoolAccess = useCallback(async () => {
+    markExplicitMobileSignOut();
+    await signOut();
+    router.replace('/login');
+  }, [router, signOut]);
+
+  const goToPlatformAdminHome = useCallback(async (): Promise<boolean> => {
+    if (!user?.id) {
+      return false;
+    }
+
+    try {
+      const portal = await resolvePlatformAdmin(supabase, user.id);
+      await setResolvedPortal(portal, user.id);
+      router.replace('/platform-admin/organizations');
+      return true;
+    } catch (redirectError) {
+      if (redirectError instanceof PortalAccessError) {
+        return false;
+      }
+      throw redirectError;
+    }
+  }, [router, setResolvedPortal, supabase, user?.id]);
+
+  const applyOrganizations = useCallback(
+    async (allAccessible: LiveOrganization[], slugFilter: string[] | null) => {
+      const slugs =
+        slugFilter && slugFilter.length > 0
+          ? slugFilter
+          : allAccessible.map((organization) => organization.slug);
+      const orgs =
+        slugFilter && slugFilter.length > 0
+          ? filterAccessibleOrganizationsBySlugs(allAccessible, slugFilter)
+          : allAccessible;
+
+      setAccessibleSlugs(slugs);
+      setOrganizations(orgs);
+
+      if (slugs.length > 0 && orgs.length === 0) {
+        setError(SCHOOLS_LOAD_FAILED_MESSAGE);
+        return;
+      }
+
+      if (slugs.length === 1) {
+        const organization = orgs[0];
+        if (!organization) {
+          setError(SCHOOLS_LOAD_FAILED_MESSAGE);
+          return;
+        }
+        await finishSignIn(organization);
+      }
+    },
+    [finishSignIn],
   );
 
   const loadSchools = useCallback(async () => {
@@ -65,52 +133,88 @@ export function ChooseSchoolExperience({
       return;
     }
 
+    if (expectSlugsFromRoute && (!initialSlugs || initialSlugs.length === 0)) {
+      return;
+    }
+
+    const loadGeneration = loadGenerationRef.current + 1;
+    loadGenerationRef.current = loadGeneration;
+
     setLoading(true);
     setError(null);
 
     try {
-      const result = await resolveMobileSchoolAfterAuth(supabase, user.id);
+      const allAccessible = await listAccessibleLiveOrganizations(supabase, user.id);
 
-      if (result.kind === 'none') {
+      if (loadGeneration !== loadGenerationRef.current) {
+        return;
+      }
+
+      if (allAccessible.length === 0) {
         setAccessibleSlugs([]);
         setOrganizations([]);
-        setError(NO_ACCESS_MESSAGE);
+        setError(NO_SCHOOL_ACCESS_MESSAGE);
+        await handleNoSchoolAccess();
         return;
       }
 
-      if (result.kind === 'single') {
-        const orgs = await fetchLiveOrganizationsBySlugs([result.slug]);
-        const organization = orgs[0];
-        if (!organization) {
-          setError('School not found. Please try again.');
-          return;
-        }
-        await finishSignIn(organization);
-        return;
-      }
-
-      setAccessibleSlugs(result.slugs);
-      const orgs = await fetchLiveOrganizationsBySlugs(result.slugs);
-      setOrganizations(orgs);
+      const slugFilter =
+        initialSlugs && initialSlugs.length > 0 ? initialSlugs : null;
+      await applyOrganizations(allAccessible, slugFilter);
     } catch (loadError) {
+      if (loadGeneration !== loadGenerationRef.current) {
+        return;
+      }
       setError(
         loadError instanceof Error
           ? loadError.message
-          : 'Unable to load your schools right now.',
+          : SCHOOLS_LOAD_FAILED_MESSAGE,
       );
     } finally {
+      if (loadGeneration === loadGenerationRef.current) {
+        setLoading(false);
+      }
+    }
+  }, [
+    applyOrganizations,
+    expectSlugsFromRoute,
+    handleNoSchoolAccess,
+    initialSlugs,
+    supabase,
+    user?.id,
+  ]);
+
+  const bootstrapChooseSchool = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const redirected = await goToPlatformAdminHome();
+      if (!redirected) {
+        await loadSchools();
+      }
+    } catch (bootstrapError) {
+      setError(
+        normalizeAuthErrorMessage(bootstrapError, SCHOOLS_LOAD_FAILED_MESSAGE),
+      );
       setLoading(false);
     }
-  }, [finishSignIn, supabase, user?.id]);
+  }, [goToPlatformAdminHome, loadSchools]);
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (authLoading) {
+      return;
+    }
+    if (!user) {
       router.replace('/login');
       return;
     }
-    if (!user) return;
+    if (!switchingSchool) {
+      void bootstrapChooseSchool();
+      return;
+    }
     void loadSchools();
-  }, [authLoading, loadSchools, router, user]);
+  }, [authLoading, bootstrapChooseSchool, loadSchools, router, switchingSchool, user]);
 
   const handleOrganizationSelect = useCallback(
     async (organization: LiveOrganization) => {
@@ -151,14 +255,27 @@ export function ChooseSchoolExperience({
       return;
     }
 
+    let redirected = false;
+    try {
+      redirected = await goToPlatformAdminHome();
+    } catch {
+      redirected = false;
+    }
+
+    if (redirected) {
+      return;
+    }
+
     await signOut();
     router.replace('/login');
-  }, [onBack, router, signOut, switchingSchool]);
+  }, [goToPlatformAdminHome, onBack, router, signOut, switchingSchool]);
 
   const heading = switchingSchool ? 'Switch school' : 'Choose your school';
   const subtext = switchingSchool
     ? 'Open a different school you have access to.'
     : 'Choose which school to open.';
+
+  const showSelector = !loading && !(error && organizations.length === 0);
 
   return (
     <PreAuthScreenShell
@@ -168,17 +285,34 @@ export function ChooseSchoolExperience({
       error={error}
       onBack={handleBack}
       backDisabled={isSubmitting || loading}
-      showMudKitchenLogo>
+      showMudKitchenLogo
+      footer={
+        error && !loading ? (
+          <View style={styles.footer}>
+            <StoryButton
+              label="Try again"
+              onPress={() => void bootstrapChooseSchool()}
+              disabled={isSubmitting || loading}
+            />
+          </View>
+        ) : undefined
+      }>
       {loading ? (
         <OrganizationSelectorSkeleton rowCount={2} />
-      ) : (
+      ) : showSelector ? (
         <OrganizationSelector
           organizations={organizations}
           accessibleSlugs={accessibleSlugs}
           onSelect={handleOrganizationSelect}
           disabled={isSubmitting}
         />
-      )}
+      ) : null}
     </PreAuthScreenShell>
   );
 }
+
+const styles = StyleSheet.create({
+  footer: {
+    marginTop: Spacing.three,
+  },
+});

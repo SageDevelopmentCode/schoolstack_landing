@@ -58,6 +58,19 @@ export function isTeacherMessagesPath(pathname: string): boolean {
   return /\/teacher\/messages(?:\/|$)/.test(pathname);
 }
 
+export function isTeacherCommitteesPath(pathname: string): boolean {
+  if (parseSchoolTeacherPath(pathname)?.feature === "committees") return true;
+  return /\/teacher\/[^/]+\/committees(?:\/|$)/.test(pathname);
+}
+
+export function isTeacherCommitteeWorkspaceOpen(
+  pathname: string,
+  searchParams: Pick<URLSearchParams, "get"> | null,
+): boolean {
+  if (!searchParams?.get("committee")) return false;
+  return isTeacherCommitteesPath(pathname);
+}
+
 export function isTeacherFeatureEnabled(
   features: OrganizationFeatures,
   featureKey: string,

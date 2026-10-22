@@ -3,6 +3,8 @@ import { describe, it } from "node:test";
 import {
   classifyParentPortalLoginStatus,
   enrichGuardiansWithLoginStatus,
+  formatParentPortalImpersonateLearnersLabel,
+  parentImpersonateLearnerProgramLabel,
   summarizeParentPortalLoginStatus,
   type ParentPortalLoginStatus,
 } from "./parent-portal-login-status";
@@ -98,6 +100,68 @@ describe("summarizeParentPortalLoginStatus", () => {
       neverSignedIn: 1,
       noAccount: 1,
     });
+  });
+});
+
+describe("parentImpersonateLearnerProgramLabel", () => {
+  it("prefers program name over form title", () => {
+    assert.equal(
+      parentImpersonateLearnerProgramLabel({
+        programName: "Kindergarten Co-op",
+        formTitle: "Kindergarten Co-op Application",
+      }),
+      "Kindergarten Co-op",
+    );
+  });
+
+  it("falls back to form title when program name is missing", () => {
+    assert.equal(
+      parentImpersonateLearnerProgramLabel({
+        programName: null,
+        formTitle: "Rooted Meadows 2026 Application",
+      }),
+      "Rooted Meadows 2026 Application",
+    );
+  });
+});
+
+describe("formatParentPortalImpersonateLearnersLabel", () => {
+  it("returns null for an empty list", () => {
+    assert.equal(formatParentPortalImpersonateLearnersLabel([]), null);
+  });
+
+  it("formats a single learner", () => {
+    assert.equal(
+      formatParentPortalImpersonateLearnersLabel([
+        {
+          applicationId: "app-1",
+          studentName: "Maggie Landeen",
+          programName: null,
+          formTitle: "Rooted Meadows 2026 Application",
+        },
+      ]),
+      "Maggie Landeen · Rooted Meadows 2026 Application",
+    );
+  });
+
+  it("joins multiple learners with middle dots", () => {
+    assert.equal(
+      formatParentPortalImpersonateLearnersLabel([
+        {
+          applicationId: "app-1",
+          studentName: "Maggie Landeen",
+          programName: null,
+          formTitle: "Rooted Meadows 2026 Application",
+        },
+        {
+          applicationId: "app-2",
+          studentName: "Levi Landeen",
+          programName: "Kindergarten Co-op",
+          formTitle: "Kindergarten Co-op Application",
+        },
+      ]),
+      "Maggie Landeen · Rooted Meadows 2026 Application · Levi Landeen · Kindergarten Co-op",
+    );
   });
 });
 

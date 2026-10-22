@@ -28,6 +28,7 @@ import {
 import { ParentActivityNotificationsSheet } from '@/components/parent/parent-activity-notifications-sheet';
 import { ParentOnboardingSheet } from '@/components/parent/parent-onboarding-sheet';
 import { PortalAccountSheet } from '@/components/portal-account-sheet';
+import { ParentPortalMudKitchenSupportMessagesCard } from '@/components/parent/home/parent-portal-mudkitchen-support-messages-card';
 import { PortalNeedHelpCard } from '@/components/portal/portal-need-help-card';
 import { PortalSupportRequestSheet } from '@/components/portal/portal-support-request-sheet';
 import { useParentHome } from '@/contexts/parent-home-context';
@@ -226,6 +227,8 @@ export function ParentHomeDashboard({
 
   const renderHelpSections = () => (
     <>
+      <ParentPortalMudKitchenSupportMessagesCard slug={slug} messagesEnabled={messagesEnabled} />
+
       {documentationGuides.length > 0 ? (
         <ParentHomeHowToGuidesCard
           guides={documentationGuides}

@@ -1,22 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, Eye, Loader2, Mail } from "lucide-react";
 import OrganizationContactEmailHistoryPanel from "@/components/admin/OrganizationContactEmailHistoryPanel";
 import ParentPortalLoginBadge from "@/components/admissions/ParentPortalLoginBadge";
 import OrganizationFamilyNotificationsPanel from "@/components/admin/OrganizationFamilyNotificationsPanel";
 import OrganizationGuardianAccessTable from "@/components/admin/OrganizationGuardianAccessTable";
 import {
+  AdminSkeletonBlock,
+  OrganizationGuardianAccessTableSkeleton,
+  OrganizationSubmissionsTableSkeleton,
+} from "@/components/admin/ui/AdminSkeleton";
+import {
   applicationStatusLabel,
 } from "@/lib/admissions/application-status-ui";
 import {
-  listOrgApplicationSubmissions,
-  resolveApplicationFamilyId,
+  listOrgApplicationSubmissionsPage,
+  ORG_SUBMISSIONS_PAGE_DEFAULT_SIZE,
+  resolveApplicationFamilyIds,
   type AdminApplicationSubmission,
 } from "@/lib/admissions/application-submissions";
 import {
   findOwnerLinkedFamilyId,
-  familyHasEnrolledAccess,
+  familyIdsWithEnrolledAccess,
 } from "@/lib/admissions/family-preview-access";
 import {
   familyPreviewBasePath,
@@ -26,13 +32,12 @@ import type {
   ParentPortalLoginStatus,
   ParentPortalLoginSummary,
 } from "@/lib/admissions/parent-portal-login-status";
-import { mergeFeatures } from "@/lib/organization-settings/merge";
-import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
 import { createClient } from "@/utils/supabase/client";
 
 type OrganizationSubmissionsPanelProps = {
   organizationId: string;
   organizationSlug: string;
+  parentPortalEnabled: boolean;
 };
 
 function formatUpdatedAt(value: string): string {
@@ -42,14 +47,32 @@ function formatUpdatedAt(value: string): string {
   });
 }
 
+function PreviewColumnSkeleton() {
+  return (
+    <div className="flex flex-col items-end gap-1.5">
+      <AdminSkeletonBlock className="h-7 w-[5.5rem]" />
+      <AdminSkeletonBlock className="h-7 w-[6.5rem]" />
+    </div>
+  );
+}
+
 export default function OrganizationSubmissionsPanel({
   organizationId,
   organizationSlug,
+  parentPortalEnabled,
 }: OrganizationSubmissionsPanelProps) {
   const supabase = createClient();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [submissions, setSubmissions] = useState<AdminApplicationSubmission[]>([]);
+  const [listLoading, setListLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(true);
+  const [previewMetaLoading, setPreviewMetaLoading] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [submissions, setSubmissions] = useState<AdminApplicationSubmission[]>(
+    [],
+  );
+  const [totalCount, setTotalCount] = useState(0);
+  const [listOffset, setListOffset] = useState(0);
   const [familyIdByApplicationId, setFamilyIdByApplicationId] = useState<
     Record<string, string | null>
   >({});
@@ -64,7 +87,6 @@ export default function OrganizationSubmissionsPanel({
   const [ownerLinkedFamilyId, setOwnerLinkedFamilyId] = useState<string | null>(
     null,
   );
-  const [parentPortalEnabled, setParentPortalEnabled] = useState(false);
   const [enrolledFamilyIds, setEnrolledFamilyIds] = useState<Set<string>>(
     new Set(),
   );
@@ -77,32 +99,70 @@ export default function OrganizationSubmissionsPanel({
     contactLabel: string;
   } | null>(null);
 
-  const loadSubmissions = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const previewMetaRequestIdRef = useRef(0);
+
+  const loadPreviewMeta = useCallback(
+    async (rows: AdminApplicationSubmission[]) => {
+      const requestId = previewMetaRequestIdRef.current + 1;
+      previewMetaRequestIdRef.current = requestId;
+      setPreviewMetaLoading(true);
+
+      try {
+        const ownerFamilyId = await findOwnerLinkedFamilyId(
+          supabase,
+          organizationId,
+        );
+        if (previewMetaRequestIdRef.current !== requestId) return;
+        setOwnerLinkedFamilyId(ownerFamilyId);
+
+        const familyMap = await resolveApplicationFamilyIds(
+          supabase,
+          organizationId,
+          rows.map((submission) => ({
+            applicationId: submission.id,
+            familyId: submission.familyId,
+            primaryGuardianId: submission.primaryGuardianId,
+          })),
+        );
+        if (previewMetaRequestIdRef.current !== requestId) return;
+        setFamilyIdByApplicationId(familyMap);
+
+        const uniqueFamilyIds = [
+          ...new Set(
+            Object.values(familyMap).filter(
+              (familyId): familyId is string => Boolean(familyId),
+            ),
+          ),
+        ];
+        const enrolled = await familyIdsWithEnrolledAccess(
+          supabase,
+          organizationId,
+          uniqueFamilyIds,
+        );
+        if (previewMetaRequestIdRef.current !== requestId) return;
+        setEnrolledFamilyIds(enrolled);
+      } catch {
+        if (previewMetaRequestIdRef.current !== requestId) return;
+        setOwnerLinkedFamilyId(null);
+        setFamilyIdByApplicationId({});
+        setEnrolledFamilyIds(new Set());
+      } finally {
+        if (previewMetaRequestIdRef.current === requestId) {
+          setPreviewMetaLoading(false);
+        }
+      }
+    },
+    [organizationId, supabase],
+  );
+
+  const loadLoginStatus = useCallback(async () => {
+    setLoginLoading(true);
+    setLoginError(null);
 
     try {
-      const [rows, loginResponse, ownerFamilyId, settingsResult] =
-        await Promise.all([
-        listOrgApplicationSubmissions(supabase, organizationId),
-        fetch(`/api/admin/organizations/${organizationId}/parent-login-status`),
-        findOwnerLinkedFamilyId(supabase, organizationId),
-        supabase
-          .from("organization_settings")
-          .select("features")
-          .eq("organization_id", organizationId)
-          .maybeSingle(),
-      ]);
-      setSubmissions(rows);
-      setOwnerLinkedFamilyId(ownerFamilyId);
-      setParentPortalEnabled(
-        isParentPortalEnabled(
-          mergeFeatures(
-            settingsResult.data?.features as Record<string, unknown> | null,
-          ),
-        ),
+      const loginResponse = await fetch(
+        `/api/admin/organizations/${organizationId}/parent-login-status`,
       );
-
       if (loginResponse.ok) {
         const loginBody = (await loginResponse.json()) as {
           statuses?: ParentPortalLoginStatus[];
@@ -120,67 +180,99 @@ export default function OrganizationSubmissionsPanel({
         setGuardianStatuses([]);
         setGuardianSummary(null);
         setLoginStatusByGuardianId({});
+        setLoginError("Failed to load parent sign-in status.");
       }
-
-      const familyEntries = await Promise.all(
-        rows.map(async (submission) => {
-          const familyId = await resolveApplicationFamilyId(
-            supabase,
-            organizationId,
-            submission.id,
-          );
-          return [submission.id, familyId] as const;
-        }),
-      );
-
-      setFamilyIdByApplicationId(Object.fromEntries(familyEntries));
-
-      const uniqueFamilyIds = [
-        ...new Set(
-          familyEntries
-            .map(([, familyId]) => familyId)
-            .filter((familyId): familyId is string => Boolean(familyId)),
-        ),
-      ];
-      const enrolledEntries = await Promise.all(
-        uniqueFamilyIds.map(async (familyId) => {
-          const enrolled = await familyHasEnrolledAccess(
-            supabase,
-            organizationId,
-            familyId,
-          );
-          return [familyId, enrolled] as const;
-        }),
-      );
-      setEnrolledFamilyIds(
-        new Set(
-          enrolledEntries
-            .filter(([, enrolled]) => enrolled)
-            .map(([familyId]) => familyId),
-        ),
-      );
-    } catch (loadError) {
-      setError(
-        loadError instanceof Error ? loadError.message : "Failed to load submissions",
-      );
-      setSubmissions([]);
-      setFamilyIdByApplicationId({});
+    } catch {
       setGuardianStatuses([]);
       setGuardianSummary(null);
       setLoginStatusByGuardianId({});
-      setOwnerLinkedFamilyId(null);
-      setEnrolledFamilyIds(new Set());
-      setParentPortalEnabled(false);
+      setLoginError("Failed to load parent sign-in status.");
     } finally {
-      setLoading(false);
+      setLoginLoading(false);
     }
-  }, [organizationId, supabase]);
+  }, [organizationId]);
+
+  const fetchSubmissionsPage = useCallback(
+    async (offset: number, append: boolean) => {
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setListLoading(true);
+      }
+      setListError(null);
+
+      try {
+        const page = await listOrgApplicationSubmissionsPage(
+          supabase,
+          organizationId,
+          {
+            limit: ORG_SUBMISSIONS_PAGE_DEFAULT_SIZE,
+            offset,
+            enrichment: "minimal",
+          },
+        );
+
+        setTotalCount(page.totalCount);
+        setListOffset(offset + page.submissions.length);
+        setSubmissions((prev) => {
+          const merged = append
+            ? [...prev, ...page.submissions]
+            : page.submissions;
+          void loadPreviewMeta(merged);
+          return merged;
+        });
+      } catch (loadError) {
+        setListError(
+          loadError instanceof Error
+            ? loadError.message
+            : "Failed to load submissions",
+        );
+        if (!append) {
+          setSubmissions([]);
+          setTotalCount(0);
+          setListOffset(0);
+          setFamilyIdByApplicationId({});
+          setEnrolledFamilyIds(new Set());
+          setOwnerLinkedFamilyId(null);
+        }
+      } finally {
+        if (append) {
+          setLoadingMore(false);
+        } else {
+          setListLoading(false);
+        }
+      }
+    },
+    [loadPreviewMeta, organizationId, supabase],
+  );
+
+  const loadInitial = useCallback(async () => {
+    previewMetaRequestIdRef.current += 1;
+    setSubmissions([]);
+    setTotalCount(0);
+    setListOffset(0);
+    setFamilyIdByApplicationId({});
+    setEnrolledFamilyIds(new Set());
+    setOwnerLinkedFamilyId(null);
+
+    void loadLoginStatus();
+    await fetchSubmissionsPage(0, false);
+  }, [fetchSubmissionsPage, loadLoginStatus]);
 
   useEffect(() => {
     queueMicrotask(() => {
-      void loadSubmissions();
+      void loadInitial();
     });
-  }, [loadSubmissions]);
+  }, [loadInitial]);
+
+  const hasMore = submissions.length < totalCount;
+
+  const loadMore = useCallback(async () => {
+    if (!hasMore || loadingMore || listLoading) return;
+    await fetchSubmissionsPage(listOffset, true);
+  }, [fetchSubmissionsPage, hasMore, listLoading, listOffset, loadingMore]);
+
+  const showTableSkeleton = listLoading && submissions.length === 0;
 
   return (
     <div className="space-y-6">
@@ -189,20 +281,19 @@ export default function OrganizationSubmissionsPanel({
           <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
             Submissions
           </h2>
-          {!loading ? (
+          {!showTableSkeleton ? (
             <span className="text-xs text-admin-muted font-secondary">
-              {submissions.length} total
+              {totalCount > 0 && submissions.length < totalCount
+                ? `Showing ${submissions.length} of ${totalCount}`
+                : `${totalCount} total`}
             </span>
           ) : null}
         </div>
 
-        {loading ? (
-          <div className="flex items-center gap-2 py-6 text-sm text-admin-faint font-secondary">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading submissions…
-          </div>
-        ) : error ? (
-          <p className="text-sm text-admin-accent font-secondary">{error}</p>
+        {showTableSkeleton ? (
+          <OrganizationSubmissionsTableSkeleton />
+        ) : listError ? (
+          <p className="text-sm text-admin-accent font-secondary">{listError}</p>
         ) : submissions.length === 0 ? (
           <p className="text-sm text-admin-faint py-4">
             No submissions for this school yet.
@@ -261,120 +352,155 @@ export default function OrganizationSubmissionsPanel({
                         </span>
                       </td>
                       <td className="px-2 py-2.5 align-top">
-                        <ParentPortalLoginBadge
-                          compact
-                          status={
-                            submission.primaryGuardianId
-                              ? loginStatusByGuardianId[submission.primaryGuardianId]
-                              : null
-                          }
-                        />
+                        {loginLoading ? (
+                          <AdminSkeletonBlock className="h-6 w-20 rounded-full" />
+                        ) : (
+                          <ParentPortalLoginBadge
+                            compact
+                            status={
+                              submission.primaryGuardianId
+                                ? loginStatusByGuardianId[
+                                    submission.primaryGuardianId
+                                  ]
+                                : null
+                            }
+                          />
+                        )}
                       </td>
                       <td className="px-2 py-2.5 align-top text-xs text-admin-muted whitespace-nowrap">
                         {formatUpdatedAt(submission.updatedAt)}
                       </td>
                       <td className="px-2 py-2.5 align-top text-right whitespace-nowrap">
-                        <div className="flex flex-col items-end gap-1.5">
-                          {previewHref && familyId ? (
-                            <>
-                              <a
-                                href={previewHref}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs font-medium text-admin-accent hover:bg-admin-bg transition-colors"
-                                title="Open read-only family apply preview in a new tab"
-                              >
-                                <Eye className="h-3.5 w-3.5" />
-                                Family
-                              </a>
-                              {showAdminPreview ? (
+                        {previewMetaLoading ? (
+                          <PreviewColumnSkeleton />
+                        ) : (
+                          <div className="flex flex-col items-end gap-1.5">
+                            {previewHref && familyId ? (
+                              <>
                                 <a
-                                  href={schoolAdminPreviewBasePath(
-                                    organizationSlug,
-                                    familyId,
-                                  )}
+                                  href={previewHref}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs font-medium text-admin-accent hover:bg-admin-bg transition-colors"
-                                  title="Open read-only school admin preview with portal switcher"
+                                  title="Open read-only family apply preview in a new tab"
                                 >
                                   <Eye className="h-3.5 w-3.5" />
-                                  Admin
+                                  Family
                                 </a>
-                              ) : null}
-                              {showNotificationsPreview ? (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setNotificationsPreview({
+                                {showAdminPreview ? (
+                                  <a
+                                    href={schoolAdminPreviewBasePath(
+                                      organizationSlug,
                                       familyId,
-                                      familyLabel:
-                                        submission.guardianName ??
-                                        submission.contactEmail ??
-                                        "Family",
-                                    })
-                                  }
-                                  className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs font-medium text-admin-accent hover:bg-admin-bg transition-colors"
-                                  title="Preview this family's parent notifications without marking them read"
-                                >
-                                  <Bell className="h-3.5 w-3.5" />
-                                  Notifications
-                                </button>
-                              ) : null}
-                            </>
-                          ) : (
-                            <span
-                              className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs text-admin-faint opacity-60 cursor-not-allowed"
-                              title="No linked family yet — preview unavailable for unlinked drafts"
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                              Preview
-                            </span>
-                          )}
-                          {submission.contactEmail ? (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setEmailHistoryPreview({
-                                  contactEmail: submission.contactEmail!,
-                                  contactLabel:
-                                    submission.guardianName ??
-                                    submission.contactEmail ??
-                                    "Contact",
-                                })
-                              }
-                              className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs font-medium text-admin-accent hover:bg-admin-bg transition-colors"
-                              title="View Zoho Mail history for this contact email"
-                            >
-                              <Mail className="h-3.5 w-3.5" />
-                              Email history
-                            </button>
-                          ) : (
-                            <span
-                              className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs text-admin-faint opacity-60 cursor-not-allowed"
-                              title="No contact email on submission"
-                            >
-                              <Mail className="h-3.5 w-3.5" />
-                              Email history
-                            </span>
-                          )}
-                        </div>
+                                    )}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs font-medium text-admin-accent hover:bg-admin-bg transition-colors"
+                                    title="Open read-only school admin preview with portal switcher"
+                                  >
+                                    <Eye className="h-3.5 w-3.5" />
+                                    Admin
+                                  </a>
+                                ) : null}
+                                {showNotificationsPreview ? (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setNotificationsPreview({
+                                        familyId,
+                                        familyLabel:
+                                          submission.guardianName ??
+                                          submission.contactEmail ??
+                                          "Family",
+                                      })
+                                    }
+                                    className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs font-medium text-admin-accent hover:bg-admin-bg transition-colors"
+                                    title="Preview this family's parent notifications without marking them read"
+                                  >
+                                    <Bell className="h-3.5 w-3.5" />
+                                    Notifications
+                                  </button>
+                                ) : null}
+                              </>
+                            ) : (
+                              <span
+                                className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs text-admin-faint opacity-60 cursor-not-allowed"
+                                title="No linked family yet — preview unavailable for unlinked drafts"
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                                Preview
+                              </span>
+                            )}
+                            {submission.contactEmail ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setEmailHistoryPreview({
+                                    contactEmail: submission.contactEmail!,
+                                    contactLabel:
+                                      submission.guardianName ??
+                                      submission.contactEmail ??
+                                      "Contact",
+                                  })
+                                }
+                                className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs font-medium text-admin-accent hover:bg-admin-bg transition-colors"
+                                title="View Zoho Mail history for this contact email"
+                              >
+                                <Mail className="h-3.5 w-3.5" />
+                                Email history
+                              </button>
+                            ) : (
+                              <span
+                                className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs text-admin-faint opacity-60 cursor-not-allowed"
+                                title="No contact email on submission"
+                              >
+                                <Mail className="h-3.5 w-3.5" />
+                                Email history
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
+            {hasMore ? (
+              <div className="flex justify-center pt-4">
+                <button
+                  type="button"
+                  onClick={() => void loadMore()}
+                  disabled={loadingMore || listLoading}
+                  className="inline-flex items-center gap-2 rounded-admin-md border border-admin-border bg-admin-surface px-3 py-1.5 text-xs font-semibold text-admin-text hover:bg-admin-bg disabled:opacity-60"
+                >
+                  {loadingMore ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                      Loading…
+                    </>
+                  ) : (
+                    "Load more"
+                  )}
+                </button>
+              </div>
+            ) : null}
           </div>
         )}
       </section>
 
-      {!loading && !error ? (
+      {loginLoading ? (
+        <OrganizationGuardianAccessTableSkeleton />
+      ) : loginError ? (
+        <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4">
+          <p className="text-sm text-admin-accent font-secondary">{loginError}</p>
+        </section>
+      ) : (
         <OrganizationGuardianAccessTable
           statuses={guardianStatuses}
           summary={guardianSummary}
         />
-      ) : null}
+      )}
 
       {notificationsPreview ? (
         <OrganizationFamilyNotificationsPanel

@@ -14,6 +14,7 @@ const ALL_FEATURES_ENABLED: AdminFeatures = {
   dashboard: true,
   admissions: true,
   my_school: true,
+  communication: true,
   committees: true,
   schedule: true,
   messages: true,

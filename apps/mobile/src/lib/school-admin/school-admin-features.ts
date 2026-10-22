@@ -3,6 +3,8 @@ export type FeatureNavChildConfig = {
   enabled?: boolean;
 };
 
+import { mergeOrganizationFeatures } from '@/lib/organization-settings/merge-features';
+
 export type SchoolAdminOrganizationFeatures = {
   admin?: Record<string, boolean>;
   feature_nav?: {
@@ -62,11 +64,7 @@ function isFeatureNavChildEnabled(child: FeatureNavChildConfig): boolean {
 export function parseSchoolAdminFeatures(
   stored: unknown,
 ): SchoolAdminOrganizationFeatures {
-  if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
-    return {};
-  }
-
-  const record = stored as Record<string, unknown>;
+  const record = mergeOrganizationFeatures(stored);
   const admin =
     record.admin && typeof record.admin === 'object' && !Array.isArray(record.admin)
       ? (record.admin as Record<string, boolean>)
@@ -151,4 +149,10 @@ export function isSchoolAdminFridayBranchEnabled(
   features: SchoolAdminOrganizationFeatures | undefined,
 ): boolean {
   return isAdminNavPathEnabled(features, 'my_school', 'friday_branch');
+}
+
+export function isSchoolAdminPhotosEnabled(
+  features: SchoolAdminOrganizationFeatures | undefined,
+): boolean {
+  return isAdminFeatureEnabled(features, 'photos');
 }

@@ -38,6 +38,13 @@ export type OrganizationMembershipRecord = {
   status: string;
 };
 
+export type ParentImpersonateLearnerSummary = {
+  applicationId: string;
+  studentName: string;
+  programName: string | null;
+  formTitle: string;
+};
+
 export type ParentPortalLoginStatus = {
   guardianId: string;
   userId: string | null;
@@ -48,6 +55,8 @@ export type ParentPortalLoginStatus = {
   accountLinked: boolean;
   hasEverSignedIn: boolean;
   lastSignInAt: string | null;
+  learnersSummary?: ParentImpersonateLearnerSummary[];
+  learnersSummaryLabel?: string | null;
 };
 
 export type StaffMemberLoginRecord = {

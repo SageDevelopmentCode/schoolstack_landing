@@ -1,4 +1,5 @@
 import type { ScheduledVisitRecord } from "./admissions-booking";
+import type { ApplicationFileUploadMeta } from "./application-file-storage";
 import type {
   ApplicationFormPostSubmitConfig,
   PostSubmitActionType,
@@ -15,6 +16,7 @@ export type AdminPostSubmitStep = {
   sortIndex: number;
   status: "pending" | "scheduled";
   booking?: {
+    visitId?: string;
     schedulingMode?: "time_slot" | "whole_day";
     scheduledDate: string;
     endDate?: string;
@@ -23,6 +25,8 @@ export type AdminPostSubmitStep = {
     visitDayCount?: number;
     visitDates?: string[];
     completedManuallyAt?: string;
+    adminCompletionNotes?: string | null;
+    completionFiles?: ApplicationFileUploadMeta[];
   };
 };
 
@@ -32,6 +36,28 @@ export type PostSubmitSummary = {
   label: string;
   tone: PostSubmitSummaryTone;
 };
+
+export const SUBMISSION_POST_APPLICATION_STEPS_ANCHOR_ID =
+  "submission-post-application-steps";
+
+export type IncompletePostSubmitNotice = {
+  label: string;
+  tone: Exclude<PostSubmitSummaryTone, "complete" | "none">;
+};
+
+export function getIncompletePostSubmitNotice(
+  steps: AdminPostSubmitStep[],
+): IncompletePostSubmitNotice | null {
+  const summary = summarizePostSubmitSteps(steps);
+  if (
+    !summary ||
+    summary.tone === "complete" ||
+    summary.tone === "none"
+  ) {
+    return null;
+  }
+  return { label: summary.label, tone: summary.tone };
+}
 
 export function buildAdminPostSubmitSteps(
   config: ApplicationFormPostSubmitConfig,
@@ -58,6 +84,7 @@ export function buildAdminPostSubmitSteps(
         status: visit ? "scheduled" : "pending",
         booking: visit
           ? {
+              visitId: visit.id,
               schedulingMode: visit.schedulingMode,
               scheduledDate: visit.scheduledDate,
               endDate: visit.endDate,
@@ -66,6 +93,8 @@ export function buildAdminPostSubmitSteps(
               visitDayCount: visit.visitDayCount,
               visitDates: visit.visitDates,
               completedManuallyAt: visit.completedManuallyAt,
+              adminCompletionNotes: visit.adminCompletionNotes ?? null,
+              completionFiles: [],
             }
           : undefined,
       };

@@ -6,6 +6,7 @@ const ADMIN_FEATURE_ICON_COLORS: Record<string, string> = {
   dashboard: "#4F46E5",
   admissions: "#D97706",
   my_school: "#059669",
+  communication: "#2563EB",
   committees: "#E11D48",
   schedule: "#7C3AED",
   messages: "#2563EB",

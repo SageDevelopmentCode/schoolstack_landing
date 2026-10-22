@@ -44,7 +44,8 @@ export type MoreMenuItemId =
   | 'bulletin'
   | 'attendance'
   | 'committees'
-  | 'friday-branch';
+  | 'friday-branch'
+  | 'photos';
 
 type MoreMenuSheetProps = {
   visible: boolean;
@@ -109,6 +110,14 @@ const MENU_ITEMS: {
     iconColor: '#D97706',
   },
   {
+    id: 'photos',
+    label: 'Photos',
+    subtitle: 'School gallery for families and staff',
+    icon: 'images-outline',
+    iconBg: '#FCE7F3',
+    iconColor: '#EC4899',
+  },
+  {
     id: 'staff',
     label: 'Staff',
     subtitle: 'Roster and portal access',
@@ -152,7 +161,7 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
     previewSession,
   } = useAuth();
   const canSwitchSchool = useCanSwitchSchool(user?.id);
-  const { fridayBranchEnabled } = useSchoolAdminFeatures();
+  const { fridayBranchEnabled, photosEnabled } = useSchoolAdminFeatures();
   const displayName = useMemo(() => (user ? getDisplayName(user) : ''), [user]);
   const roleLabel = useMemo(
     () => getAccountRoleLabel(portalType, isPlatformAdminSession),
@@ -162,9 +171,10 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
     () =>
       MENU_ITEMS.filter((item) => {
         if (item.id === 'friday-branch') return fridayBranchEnabled;
+        if (item.id === 'photos') return photosEnabled;
         return true;
       }),
-    [fridayBranchEnabled],
+    [fridayBranchEnabled, photosEnabled],
   );
 
   const handleSignOut = async () => {

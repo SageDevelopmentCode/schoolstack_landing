@@ -51,6 +51,7 @@ export default async function SchoolAdminLoginPage({ params }: PageProps) {
     <Suspense fallback={<LoginFallback />}>
       <SchoolAdminLoginForm
         slug={slug}
+        organizationId={org.id}
         schoolName={org.name}
         branding={org.branding}
       />

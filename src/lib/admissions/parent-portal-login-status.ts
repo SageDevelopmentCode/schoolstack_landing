@@ -1,5 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  listOrgFamilyImpersonateLearnerSummariesByFamilyId,
+  type OrgFamilyImpersonateLearnerSummary,
+} from "./application-submissions";
 import type { FamilyGuardianRecord } from "./family-guardians";
+
+export type ParentImpersonateLearnerSummary = OrgFamilyImpersonateLearnerSummary;
 
 export type ParentPortalLoginStatus = {
   guardianId: string;
@@ -11,7 +17,31 @@ export type ParentPortalLoginStatus = {
   accountLinked: boolean;
   hasEverSignedIn: boolean;
   lastSignInAt: string | null;
+  learnersSummary?: ParentImpersonateLearnerSummary[];
+  learnersSummaryLabel?: string | null;
 };
+
+export function parentImpersonateLearnerProgramLabel(
+  summary: Pick<ParentImpersonateLearnerSummary, "programName" | "formTitle">,
+): string {
+  const programName = summary.programName?.trim();
+  if (programName) return programName;
+  const formTitle = summary.formTitle?.trim();
+  return formTitle || "Application";
+}
+
+export function formatParentPortalImpersonateLearnersLabel(
+  summaries: ParentImpersonateLearnerSummary[],
+): string | null {
+  if (summaries.length === 0) return null;
+
+  return summaries
+    .map(
+      (summary) =>
+        `${summary.studentName} · ${parentImpersonateLearnerProgramLabel(summary)}`,
+    )
+    .join(" · ");
+}
 
 export type ParentPortalLoginSummary = {
   total: number;
@@ -148,6 +178,10 @@ export async function listOrgParentPortalLoginStatus(
     .filter((userId): userId is string => userId != null);
 
   const loginByUserId = await fetchAuthLoginStatusByUserIds(admin, userIds);
+  const learnersByFamilyId = await listOrgFamilyImpersonateLearnerSummariesByFamilyId(
+    admin,
+    organizationId,
+  );
 
   return rows.map((row) => {
     const userId =
@@ -160,14 +194,19 @@ export async function listOrgParentPortalLoginStatus(
       lastSignInAt: authLogin?.lastSignInAt ?? null,
     });
 
+    const familyId = String(row.family_id);
+    const learnersSummary = learnersByFamilyId.get(familyId) ?? [];
+
     return {
       guardianId: String(row.id),
       userId,
       firstName: String(row.first_name ?? ""),
       lastName: String(row.last_name ?? ""),
       email: typeof row.email === "string" ? row.email : null,
-      familyId: String(row.family_id),
+      familyId,
       ...classification,
+      learnersSummary,
+      learnersSummaryLabel: formatParentPortalImpersonateLearnersLabel(learnersSummary),
     };
   });
 }

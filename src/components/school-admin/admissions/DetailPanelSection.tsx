@@ -14,6 +14,7 @@ type DetailPanelSectionProps = {
   actions?: ReactNode;
   children?: ReactNode;
   className?: string;
+  id?: string;
 };
 
 function DetailPanelSectionContent({
@@ -53,31 +54,34 @@ export default function DetailPanelSection({
   actions,
   children,
   className = "",
+  id,
 }: DetailPanelSectionProps) {
   const { variant, theme } = useSubmissionDetailStory();
 
   if (variant === "story" && theme) {
     return (
-      <AdminCard theme={theme} padding="canvas" className={className}>
-        <AdminSectionKicker theme={theme}>{title}</AdminSectionKicker>
+      <AdminCard theme={theme} padding="canvas" className={className} id={id}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <AdminSectionKicker theme={theme}>{title}</AdminSectionKicker>
+          {actions || badge ? (
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {actions}
+              {badge}
+            </div>
+          ) : null}
+        </div>
         {description ? (
           <p className="mt-2 text-xs leading-relaxed" style={{ color: theme.muted }}>
             {description}
           </p>
         ) : null}
-        {(actions || badge) && (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            {actions}
-            {badge}
-          </div>
-        )}
         {children ? <div className="mt-3">{children}</div> : null}
       </AdminCard>
     );
   }
 
   return (
-    <section className={className}>
+    <section id={id} className={className}>
       <DetailPanelSectionContent
         C={C}
         title={title}

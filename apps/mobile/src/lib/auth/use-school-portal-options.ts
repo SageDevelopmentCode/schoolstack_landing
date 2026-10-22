@@ -1,55 +1,22 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { fetchSchoolPortalOptions } from '@/lib/auth/school-portal-options-api';
+import { useAuth } from '@/contexts/auth-context';
 import {
-  filterSchoolPortalOptionsForMobile,
+  clearSchoolPortalOptionsCache,
+  invalidateSchoolPortalOptionsCache,
+  prefetchSchoolPortalOptions,
+  readCachedSchoolPortalOptions,
+} from '@/lib/auth/school-portal-options-cache';
+import {
   shouldShowMobilePortalSwitcher,
   type SchoolPortalOption,
 } from '@/lib/auth/school-portal-options-types';
 
-type CacheEntry = {
-  options: SchoolPortalOption[];
+export {
+  clearSchoolPortalOptionsCache,
+  invalidateSchoolPortalOptionsCache,
+  prefetchSchoolPortalOptions,
 };
-
-const optionsCache = new Map<string, CacheEntry>();
-const inflightRequests = new Map<string, Promise<SchoolPortalOption[]>>();
-
-function cacheKey(organizationId: string, slug: string): string {
-  return `${organizationId}:${slug}`;
-}
-
-export async function prefetchSchoolPortalOptions(
-  organizationId: string,
-  slug: string,
-): Promise<SchoolPortalOption[]> {
-  const key = cacheKey(organizationId, slug);
-  const cached = optionsCache.get(key);
-  if (cached) {
-    return cached.options;
-  }
-
-  const existing = inflightRequests.get(key);
-  if (existing) {
-    return existing;
-  }
-
-  const request = fetchSchoolPortalOptions(organizationId, slug)
-    .then((raw) => {
-      const options = filterSchoolPortalOptionsForMobile(raw);
-      optionsCache.set(key, { options });
-      return options;
-    })
-    .finally(() => {
-      inflightRequests.delete(key);
-    });
-
-  inflightRequests.set(key, request);
-  return request;
-}
-
-export function invalidateSchoolPortalOptionsCache(organizationId: string, slug: string): void {
-  optionsCache.delete(cacheKey(organizationId, slug));
-}
 
 type UseSchoolPortalOptionsArgs = {
   organizationId: string | null | undefined;
@@ -62,41 +29,55 @@ export function useSchoolPortalOptions({
   slug,
   enabled = true,
 }: UseSchoolPortalOptionsArgs) {
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   const [options, setOptions] = useState<SchoolPortalOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const requestIdRef = useRef(0);
 
-  const canLoad = Boolean(enabled && organizationId && slug);
+  const canLoad = Boolean(enabled && organizationId && slug && userId);
 
   const load = useCallback(async () => {
-    if (!organizationId || !slug) {
+    if (!organizationId || !slug || !userId) {
       setOptions([]);
       return;
     }
 
-    const key = cacheKey(organizationId, slug);
-    const cached = optionsCache.get(key);
+    const requestId = ++requestIdRef.current;
+    const cached = readCachedSchoolPortalOptions(userId, organizationId, slug);
     if (cached) {
-      setOptions(cached.options);
+      setOptions(cached);
       setError(null);
+      setLoading(false);
       return;
     }
 
+    setOptions([]);
     setLoading(true);
     setError(null);
     try {
-      const next = await prefetchSchoolPortalOptions(organizationId, slug);
-      setOptions(next);
+      await prefetchSchoolPortalOptions(organizationId, slug);
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+      setOptions(readCachedSchoolPortalOptions(userId, organizationId, slug) ?? []);
     } catch (err) {
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
       setOptions([]);
       setError(err instanceof Error ? err : new Error('Failed to load portal options.'));
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
-  }, [organizationId, slug]);
+  }, [organizationId, slug, userId]);
 
   useEffect(() => {
     if (!canLoad) {
+      requestIdRef.current += 1;
       setOptions([]);
       setLoading(false);
       return;

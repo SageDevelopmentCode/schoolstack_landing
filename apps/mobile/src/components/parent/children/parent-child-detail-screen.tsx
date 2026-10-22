@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
   View,
 } from 'react-native';
 
+import { ParentChildrenRecordSkeleton } from '@/components/parent/children/parent-children-record-skeleton';
 import { ParentChildRecordWorkspace } from '@/components/parent/children/parent-child-record-workspace';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { useParentHome } from '@/contexts/parent-home-context';
@@ -139,10 +139,7 @@ export function ParentChildDetailScreen({
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {profileLoading ? (
-          <View style={styles.loadingBlock}>
-            <ActivityIndicator color={theme.primary} />
-            <Text style={[styles.loadingCopy, { color: theme.muted }]}>Loading profile…</Text>
-          </View>
+          <ParentChildrenRecordSkeleton />
         ) : profileError ? (
           <Text style={[styles.errorCopy, { color: theme.alert }]}>{profileError}</Text>
         ) : profile?.application && childOverview ? (

@@ -70,12 +70,25 @@ npm run mobile:test:e2e:android   # Android
 
 Or from `apps/mobile`: `maestro test .maestro`
 
+**Visual screenshot gate (UI polish):** After changing `apps/mobile/src/**/*.tsx`, capture golden screens and run agent visual review per [mobile-ui-visual-verify](../mobile-ui-visual-verify/SKILL.md):
+
+```bash
+npm run mobile:visual:capture -- school-admin-dashboard
+npm run mobile:visual:capture -- parent-home
+npm run mobile:visual:capture -- teacher-messages
+npm run verify:mobile-artifacts -- parent-home
+```
+
+Visual golden slugs: school-admin ×4, parent ×6 (`parent-home`, `parent-messages`, `parent-billing`, `parent-committees`, `parent-coop-teaching-schedule`, `parent-coop-more-menu`), teacher ×2 (`teacher-home`, `teacher-messages`). Co-op program captures use platform-admin parent preview — see [README-parent-coop-program.md](../../apps/mobile/.maestro/visual/README-parent-coop-program.md). Flows `parent-coop-teaching-schedule` and `parent-coop-more-menu` are tagged `coop-demo-data` and excluded from `maestro test .maestro` (CI included); run them via `npm run mobile:visual:capture:coop-program` after manual co-op demo SQL. Platform admin functional flows remain CI-only (not golden visual review).
+
 ## Maestro flows
 
 | Flow | Covers |
 |------|--------|
 | `intro-to-login.yaml` | Launch app → wait for school login screen (E2E auto-skips intro) |
 | `school-admin-logged-in.yaml` | School admin password login → dashboard |
+| `parent-logged-in.yaml` | Parent password login → `parent-portal-ready` |
+| `teacher-logged-in.yaml` | Teacher password login → `teacher-portal-ready` |
 | `dashboard.yaml` | Dashboard shell |
 | `submissions-list.yaml` | Admissions list |
 | `submission-detail.yaml` | Submission detail + back |
@@ -91,7 +104,8 @@ Or from `apps/mobile`: `maestro test .maestro`
 |-------|------|
 | `e2e-admin@schoolstack.test` | School org admin |
 | `e2e-platform-admin@schoolstack.test` | Platform admin (`profiles.role = admin`) |
-| `e2e-parent@schoolstack.test` | Parent (web E2E; not used in mobile Maestro yet) |
+| `e2e-parent@schoolstack.test` | Parent (Maestro `parent-logged-in.yaml`, visual slugs) |
+| `e2e-staff@schoolstack.test` | Teacher (Maestro `teacher-logged-in.yaml`, visual slugs) |
 
 Password: `E2eTestPassword123!`
 

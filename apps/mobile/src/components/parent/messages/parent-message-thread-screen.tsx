@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
@@ -19,6 +20,7 @@ import { StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { useAuth } from '@/contexts/auth-context';
 import { useMessagesUnread } from '@/contexts/messages-unread-context';
+import { useParentMessagesInbox } from '@/contexts/parent-messages-inbox-context';
 import { useParentHome } from '@/contexts/parent-home-context';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { Radius, Spacing } from '@/constants/theme';
@@ -36,11 +38,17 @@ import {
 } from '@/lib/messages/optimistic-message';
 import { MessageThreadMutationOverlays } from '@/components/messages/message-thread-mutation-overlays';
 import {
+  createMudKitchenSupportThread,
   deleteParentMessage,
   editParentMessage,
   mergeMessages,
   sendParentMessage,
 } from '@/lib/messages/parent-api';
+import {
+  isMudKitchenSupportPlaceholder,
+  mudKitchenSupportPlaceholderThread,
+  MUDKITCHEN_SUPPORT_EMPTY_COPY,
+} from '@/lib/messages/platform-support';
 import { portalMessageSupportsTextMutation } from '@/lib/messages/message-mutation-eligibility';
 import { useMessageThreadMutations } from '@/lib/messages/use-message-thread-mutations';
 import {
@@ -68,10 +76,13 @@ export function ParentMessageThreadScreen({
   schoolName,
 }: ParentMessageThreadScreenProps) {
   const theme = useParentTheme();
+  const router = useRouter();
   const { user } = useAuth();
   const { data: homeData } = useParentHome();
+  const { refresh: refreshInbox } = useParentMessagesInbox();
   const { reportError } = useMobileErrorReporter(organizationId);
   const { refreshUnreadCount } = useMessagesUnread();
+  const isSupportPlaceholder = isMudKitchenSupportPlaceholder(threadId);
 
   const ownSenderFallback = useMemo(
     () => ({
@@ -89,8 +100,12 @@ export function ParentMessageThreadScreen({
     [homeData?.userProfile.displayName, homeData?.userProfile.profilePhotoUrl, user],
   );
 
-  const [thread, setThread] = useState<MessageThreadDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [thread, setThread] = useState<MessageThreadDetail | null>(() =>
+    isSupportPlaceholder
+      ? { ...mudKitchenSupportPlaceholderThread(), messages: [] }
+      : null,
+  );
+  const [loading, setLoading] = useState(!isSupportPlaceholder);
   const [error, setError] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [stagedFiles, setStagedFiles] = useState<StagedMessageFile[]>([]);
@@ -116,6 +131,11 @@ export function ParentMessageThreadScreen({
 
   const loadThread = useCallback(
     async (options?: { silent?: boolean; refresh?: boolean }) => {
+      if (isSupportPlaceholder) {
+        setLoading(false);
+        return;
+      }
+
       const cached =
         getCachedParentMessageThread(organizationId, schoolName, threadId) ??
         (await hydrateParentMessageThreadFromDisk(organizationId, schoolName, threadId));
@@ -165,7 +185,15 @@ export function ParentMessageThreadScreen({
         setLoading(false);
       }
     },
-    [applyThreadDetail, organizationId, refreshUnreadCount, reportError, schoolName, threadId],
+    [
+      applyThreadDetail,
+      isSupportPlaceholder,
+      organizationId,
+      refreshUnreadCount,
+      reportError,
+      schoolName,
+      threadId,
+    ],
   );
 
   useEffect(() => {
@@ -238,8 +266,21 @@ export function ParentMessageThreadScreen({
     const body = input.trim();
     if (!body && stagedFiles.length === 0) return;
 
+    let threadIdForSend = threadId;
+    if (isSupportPlaceholder) {
+      try {
+        threadIdForSend = await createMudKitchenSupportThread(organizationId);
+      } catch (createError) {
+        reportError('parent_message_thread_create', createError);
+        setError(
+          createError instanceof Error ? createError.message : 'Failed to start support conversation.',
+        );
+        return;
+      }
+    }
+
     const optimisticMessage = buildOptimisticPortalMessage({
-      threadId,
+      threadId: threadIdForSend,
       body,
       files: stagedFiles,
       senderKind: 'guardian',
@@ -258,13 +299,19 @@ export function ParentMessageThreadScreen({
     setSending(true);
 
     try {
-      const serverMessage = await sendParentMessage(threadId, {
+      const serverMessage = await sendParentMessage(threadIdForSend, {
         organizationId,
         organizationSlug,
         schoolName,
         body,
         files: filesToSend,
       });
+
+      if (isSupportPlaceholder) {
+        void refreshInbox({ silent: true });
+        router.replace(`/parent/${organizationSlug}/messages/${threadIdForSend}`);
+        return;
+      }
 
       optimisticSendRef.current.confirm(optimisticId, serverMessage.id);
       setThread((prev) => {
@@ -380,7 +427,9 @@ export function ParentMessageThreadScreen({
               Say hello to {thread.title}
             </Text>
             <Text style={[styles.emptyDescription, { color: theme.muted }]}>
-              Send a message to start the conversation.
+              {isSupportPlaceholder
+                ? MUDKITCHEN_SUPPORT_EMPTY_COPY
+                : 'Send a message to start the conversation.'}
             </Text>
           </View>
         )}

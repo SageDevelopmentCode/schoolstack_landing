@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { OrganizationEvent } from "@/lib/school-events/types";
 import ParentCalendarPage from "./ParentCalendarPage";
@@ -43,19 +43,21 @@ export default function ParentCalendarPageShell({
 
   return (
     <ParentCalendarPageContext.Provider value={contextValue}>
-      <ParentCalendarPage
-        branding={branding}
-        organizationId={organizationId}
-        organizationSlug={organizationSlug}
-        previewMode={previewMode}
-        agendaTitle={agendaTitle}
-        programId={programId}
-        initialView={initialView}
-        previewAnchorDate={previewAnchorDate}
-        previewAgendaAsOf={previewAgendaAsOf}
-        events={events}
-        eventsDeferred={!eventsHydrated}
-      />
+      <Suspense fallback={null}>
+        <ParentCalendarPage
+          branding={branding}
+          organizationId={organizationId}
+          organizationSlug={organizationSlug}
+          previewMode={previewMode}
+          agendaTitle={agendaTitle}
+          programId={programId}
+          initialView={initialView}
+          previewAnchorDate={previewAnchorDate}
+          previewAgendaAsOf={previewAgendaAsOf}
+          events={events}
+          eventsDeferred={!eventsHydrated}
+        />
+      </Suspense>
       {children}
     </ParentCalendarPageContext.Provider>
   );

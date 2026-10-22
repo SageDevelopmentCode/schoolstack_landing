@@ -3912,3 +3912,72 @@ export async function sendBulletinPublishedEmail(payload: {
 
   return { ok: true };
 }
+
+export function buildGalleryPhotosUploadedEmailHtml(payload: {
+  schoolName: string;
+  uploaderName: string;
+  photoCount: number;
+  photoDateLabel: string;
+  photosUrl: string;
+}): string {
+  const absoluteUrl = payload.photosUrl.startsWith("http")
+    ? payload.photosUrl
+    : `${getRuntimeSiteUrl()}${payload.photosUrl}`;
+
+  const countLabel =
+    payload.photoCount === 1 ? "1 photo" : `${payload.photoCount} photos`;
+
+  const details: { label: string; value: string }[] = [
+    { label: "School", value: payload.schoolName },
+    { label: "Uploaded by", value: payload.uploaderName },
+    { label: "Photos", value: countLabel },
+    { label: "Date", value: payload.photoDateLabel },
+  ];
+
+  return composeEmail({
+    preheader: `${payload.uploaderName} added ${countLabel} at ${payload.schoolName}`,
+    contentHtml: `
+      ${emailBadge("New Photos")}
+      ${emailHeading(`New photos at ${escapeHtml(payload.schoolName)}`)}
+      ${emailParagraph(
+        `<strong>${escapeHtml(payload.uploaderName)}</strong> uploaded <strong>${escapeHtml(countLabel)}</strong> for ${escapeHtml(payload.photoDateLabel)}.`,
+      )}
+      ${emailDetailCard(details)}
+      ${emailCta({ label: "View photos", href: absoluteUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendGalleryPhotosUploadedEmail(payload: {
+  to: string;
+  schoolName: string;
+  uploaderName: string;
+  photoCount: number;
+  photoDateLabel: string;
+  photosUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
+
+  const html = buildGalleryPhotosUploadedEmailHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.to,
+    subject: `New photos — ${payload.schoolName}`,
+    content: html,
+    discord: schoolOutboundDiscord(
+      "school_gallery_photos_uploaded",
+      "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
+  });
+
+  if (!result.success) {
+    return { ok: false };
+  }
+
+  return { ok: true };
+}

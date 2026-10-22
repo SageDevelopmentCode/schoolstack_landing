@@ -9,6 +9,7 @@ import ButtonLoadingLabel, {
 import PublicFormHoneypotField from "@/components/public-forms/PublicFormHoneypotField";
 import { MOBILE_APP_DOWNLOAD_DEFAULT_SOURCE_PAGE_PATH } from "@/lib/mobile-app-download/constants";
 import { PUBLIC_FORM_HONEYPOT_FIELD } from "@/lib/public-forms/honeypot";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { MUDKITCHEN_MARKETING_STORY_THEME } from "@/lib/marketing/mudkitchen-story-theme";
 
 const theme = MUDKITCHEN_MARKETING_STORY_THEME;
@@ -19,17 +20,21 @@ const inputClassName =
 type AndroidDownloadLeadSheetProps = {
   open: boolean;
   onClose: () => void;
+  sourcePagePath?: string;
 };
 
 type AndroidDownloadLeadSheetPanelProps = {
   titleId: string;
   onClose: () => void;
+  sourcePagePath: string;
 };
 
 function AndroidDownloadLeadSheetPanel({
   titleId,
   onClose,
+  sourcePagePath,
 }: AndroidDownloadLeadSheetPanelProps) {
+  const isMobileSheet = useMediaQuery("(max-width: 767px)");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [companyWebsite, setCompanyWebsite] = useState("");
@@ -54,7 +59,7 @@ function AndroidDownloadLeadSheetPanel({
         body: JSON.stringify({
           name: name.trim(),
           email: email.trim(),
-          sourcePagePath: MOBILE_APP_DOWNLOAD_DEFAULT_SOURCE_PAGE_PATH,
+          sourcePagePath,
           [PUBLIC_FORM_HONEYPOT_FIELD]: companyWebsite,
         }),
       });
@@ -87,16 +92,38 @@ function AndroidDownloadLeadSheetPanel({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 32, stiffness: 340 }}
-        className="absolute inset-x-0 bottom-0 z-[15] mx-auto flex max-h-[min(92vh,640px)] w-full max-w-lg flex-col overflow-hidden rounded-t-[28px] border border-black/[0.08] bg-[#FFFAF4] shadow-[0_-12px_48px_rgba(43,36,29,0.18)]"
+        initial={
+          isMobileSheet
+            ? { y: "100%" }
+            : { opacity: 0, scale: 0.96, y: 8 }
+        }
+        animate={
+          isMobileSheet
+            ? { y: 0 }
+            : { opacity: 1, scale: 1, y: 0 }
+        }
+        exit={
+          isMobileSheet
+            ? { y: "100%" }
+            : { opacity: 0, scale: 0.96, y: 8 }
+        }
+        transition={
+          isMobileSheet
+            ? { type: "spring", damping: 32, stiffness: 340 }
+            : { duration: 0.2, ease: "easeOut" }
+        }
+        className={
+          isMobileSheet
+            ? "absolute inset-x-0 bottom-0 z-[15] mx-auto flex max-h-[min(92vh,640px)] w-full max-w-lg flex-col overflow-hidden rounded-t-[28px] border border-black/[0.08] bg-[#FFFAF4] shadow-[0_-12px_48px_rgba(43,36,29,0.18)]"
+            : "relative z-[15] flex max-h-[min(92vh,640px)] w-full max-w-lg flex-col overflow-hidden rounded-[28px] border border-black/[0.08] bg-[#FFFAF4] shadow-[0_20px_60px_rgba(43,36,29,0.18)]"
+        }
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex justify-center pt-3 pb-1" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-black/12" />
-        </div>
+        {isMobileSheet ? (
+          <div className="flex justify-center pt-3 pb-1" aria-hidden="true">
+            <div className="h-1 w-10 rounded-full bg-black/12" />
+          </div>
+        ) : null}
 
         <div
           className="flex items-start justify-between gap-3 border-b px-5 py-3"
@@ -234,8 +261,11 @@ function AndroidDownloadLeadSheetPanel({
 export default function AndroidDownloadLeadSheet({
   open,
   onClose,
+  sourcePagePath: sourcePagePathProp,
 }: AndroidDownloadLeadSheetProps) {
   const titleId = useId();
+  const sourcePagePath =
+    sourcePagePathProp ?? MOBILE_APP_DOWNLOAD_DEFAULT_SOURCE_PAGE_PATH;
 
   useEffect(() => {
     if (!open) return;
@@ -260,13 +290,17 @@ export default function AndroidDownloadLeadSheet({
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-[120]"
+          className="fixed inset-0 z-[120] flex items-end justify-center md:items-center md:p-5"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
         >
-          <AndroidDownloadLeadSheetPanel titleId={titleId} onClose={onClose} />
+          <AndroidDownloadLeadSheetPanel
+            titleId={titleId}
+            onClose={onClose}
+            sourcePagePath={sourcePagePath}
+          />
         </motion.div>
       ) : null}
     </AnimatePresence>

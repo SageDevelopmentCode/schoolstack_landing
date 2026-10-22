@@ -1,11 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import GetStartedStoryHeader from "@/components/get-started/GetStartedStoryHeader";
-import AndroidDownloadLeadSheet from "@/components/download/AndroidDownloadLeadSheet";
-import { APPLE_APP_STORE_URL } from "@/lib/mobile-app-download/constants";
+import MobileAppDownloadBadges from "@/components/download/MobileAppDownloadBadges";
 import { MUDKITCHEN_MARKETING_STORY_THEME } from "@/lib/marketing/mudkitchen-story-theme";
 
 const theme = MUDKITCHEN_MARKETING_STORY_THEME;
@@ -17,8 +14,6 @@ const FEATURES = [
 ];
 
 export default function DownloadPageClient() {
-  const [androidSheetOpen, setAndroidSheetOpen] = useState(false);
-
   return (
     <>
       <section className="relative overflow-hidden pb-24 pt-[120px] sm:pt-[140px]">
@@ -57,40 +52,11 @@ export default function DownloadPageClient() {
               Get the app
             </p>
 
-            <div className="mt-6 flex flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:justify-center sm:gap-5">
-              <a
-                href={APPLE_APP_STORE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex justify-center rounded-2xl outline-none ring-clay/40 transition hover:scale-[1.02] focus-visible:ring-2"
-                aria-label="Download on the App Store"
-              >
-                <Image
-                  src="/images/AppleStore.webp"
-                  alt=""
-                  width={200}
-                  height={60}
-                  className="h-[52px] w-auto object-contain sm:h-[58px]"
-                  priority
-                />
-              </a>
-
-              <button
-                type="button"
-                onClick={() => setAndroidSheetOpen(true)}
-                className="group flex justify-center rounded-2xl outline-none ring-clay/40 transition hover:scale-[1.02] focus-visible:ring-2"
-                aria-label="Get notified for Google Play"
-              >
-                <Image
-                  src="/images/GooglePlay.webp"
-                  alt=""
-                  width={200}
-                  height={60}
-                  className="h-[52px] w-auto object-contain sm:h-[58px]"
-                  priority
-                />
-              </button>
-            </div>
+            <MobileAppDownloadBadges
+              className="mt-6 flex flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:justify-center sm:gap-5"
+              badgeClassName="h-[52px] w-auto object-contain sm:h-[58px]"
+              priority
+            />
 
             <ul className="mt-10 space-y-3 border-t border-black/[0.06] pt-8">
               {FEATURES.map((line) => (
@@ -125,11 +91,6 @@ export default function DownloadPageClient() {
           </p>
         </div>
       </section>
-
-      <AndroidDownloadLeadSheet
-        open={androidSheetOpen}
-        onClose={() => setAndroidSheetOpen(false)}
-      />
     </>
   );
 }

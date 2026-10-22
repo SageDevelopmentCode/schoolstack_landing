@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { logSettledNotificationFailures } from "@/lib/admissions/notification-logging";
+import {
+  logNotificationFailure,
+  logSettledNotificationFailures,
+} from "@/lib/admissions/notification-logging";
 import {
   ACTIVITY_ACTIONS,
   logActivityEvent,
@@ -19,6 +22,8 @@ import {
 import { sendExpoPushToUsers } from "@/lib/messages/expo-push";
 import { sendWebPushToUsers } from "@/lib/messages/web-push";
 import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
+import { notifyPlatformSupportParentMessage } from "@/lib/discord";
+import { MUDKITCHEN_SUPPORT_TEAM_NAME } from "@/lib/messages/platform-support";
 import type { PortalMessage } from "./types";
 
 export type MessageNotificationContext = {
@@ -38,6 +43,7 @@ type Recipient = {
   email: string | null;
   familyId?: string;
   portal: "parent" | "teacher" | "admin";
+  href?: string;
 };
 
 function portalPath(
@@ -76,10 +82,16 @@ export async function resolveThreadRecipients(
     email: string | null,
     portal: Recipient["portal"],
     familyId?: string,
+    href?: string,
   ) => {
     if (!userId || userId === senderUserId) return;
-    if (!recipients.has(userId)) {
-      recipients.set(userId, { userId, email, portal, familyId });
+    const existing = recipients.get(userId);
+    if (!existing) {
+      recipients.set(userId, { userId, email, portal, familyId, href });
+      return;
+    }
+    if (href && !existing.href) {
+      existing.href = href;
     }
   };
 
@@ -142,6 +154,27 @@ export async function resolveThreadRecipients(
         const userId = String(adminMembership.user_id);
         const { data: authUser } = await admin.auth.admin.getUserById(userId);
         addRecipient(userId, authUser.user?.email ?? null, "admin");
+      }
+    }
+
+    if (participant.participant_kind === "platform_support") {
+      const { data: profiles, error: profilesError } = await admin
+        .from("profiles")
+        .select("id")
+        .eq("role", "admin");
+
+      if (profilesError) throw new Error(profilesError.message);
+
+      for (const profile of profiles ?? []) {
+        const userId = String(profile.id);
+        const { data: authUser } = await admin.auth.admin.getUserById(userId);
+        addRecipient(
+          userId,
+          authUser.user?.email ?? null,
+          "admin",
+          undefined,
+          `/admin/support?thread=${threadId}`,
+        );
       }
     }
   }
@@ -207,13 +240,46 @@ export async function dispatchMessageNotifications(
     context.senderUserId,
   );
 
-  if (recipients.length === 0) return;
-
   const preview =
     context.message.body.trim() ||
     (context.message.attachments.length > 0
       ? `Sent ${context.message.attachments.length} attachment(s)`
       : "New message");
+
+  const notifySupportDiscord =
+    (context.viewer === "parent" && context.message.senderKind === "guardian") ||
+    (context.viewer === "teacher" && context.message.senderKind === "staff_member");
+
+  if (notifySupportDiscord) {
+    const { data: supportParticipant, error: supportParticipantError } =
+      await admin
+        .from("message_thread_participants")
+        .select("id")
+        .eq("thread_id", context.threadId)
+        .eq("organization_id", context.organizationId)
+        .eq("participant_kind", "platform_support")
+        .maybeSingle();
+
+    if (!supportParticipantError && supportParticipant) {
+      void notifyPlatformSupportParentMessage({
+        organizationName: context.schoolName,
+        threadId: context.threadId,
+        parentName: context.senderName,
+        preview,
+        senderLabel: context.viewer === "teacher" ? "Staff" : "Parent",
+      }).catch((err) => {
+        void logNotificationFailure(admin, {
+          organizationId: context.organizationId,
+          operation: "messages.platform_support_discord",
+          error: err,
+          entityType: "message_thread",
+          entityId: context.threadId,
+        });
+      });
+    }
+  }
+
+  if (recipients.length === 0) return;
 
   const now = new Date();
   const readStates = await loadThreadReadStates(
@@ -227,11 +293,9 @@ export async function dispatchMessageNotifications(
 
   const notificationResults = await Promise.allSettled(
     recipients.map(async (recipient) => {
-      const threadUrl = portalPath(
-        context.organizationSlug,
-        recipient.portal,
-        context.threadId,
-      );
+      const threadUrl =
+        recipient.href ??
+        portalPath(context.organizationSlug, recipient.portal, context.threadId);
 
       const readState = readStates.get(recipient.userId);
       const emailDecision = shouldSendMessageEmail({
@@ -373,7 +437,10 @@ export async function dispatchMessageNotifications(
   const messageMetadata = {
     threadId: context.threadId,
     senderUserId: context.senderUserId,
-    senderName,
+    senderName:
+      context.message.senderKind === "platform_support"
+        ? MUDKITCHEN_SUPPORT_TEAM_NAME
+        : senderName,
     senderPortal: context.viewer,
     recipientLabels,
     preview,

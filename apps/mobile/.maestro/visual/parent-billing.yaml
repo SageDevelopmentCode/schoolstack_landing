@@ -1,0 +1,8 @@
+appId: com.mudkitchen.schoolstack.mobile
+---
+- runFlow: ../parent-logged-in.yaml
+- tapOn: 'Billing / tuition'
+- extendedWaitUntil:
+    visible: 'Family tuition'
+    timeout: 30000
+- takeScreenshot: visual-capture

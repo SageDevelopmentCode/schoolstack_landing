@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
+import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import {
   getStaffMemberIdForUser,
   requireSchoolAdminUser,
@@ -82,12 +83,13 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
+    const resolved = portalRouteErrorStatus(err, "Failed to send message.");
     return apiError(ROUTE, {
       request,
-      status: 500,
-      error: "Failed to send message.",
+      status: resolved.status,
+      error: resolved.message,
+      code: resolved.code,
       cause: err,
-      code: "internal_error",
     });
   }
 }

@@ -1,5 +1,6 @@
 import { reportMobileOperationalError } from '@/lib/mobile-activity';
 import { fetchTeacherApiFormData } from '@/lib/teacher/teacher-portal-api';
+import { appendLocalFileToFormData } from '@/lib/upload/append-local-file-to-form-data';
 
 export class StaffProfilePhotoUploadError extends Error {
   code: string;
@@ -25,14 +26,11 @@ export async function uploadStaffProfilePhotoFromTeacher(
 
   const formData = new FormData();
   formData.append('organizationId', organizationId);
-  formData.append(
-    'file',
-    {
-      uri,
-      name: fileName,
-      type: mimeType,
-    } as unknown as Blob,
-  );
+  await appendLocalFileToFormData(formData, 'file', {
+    uri,
+    name: fileName,
+    type: mimeType,
+  });
 
   try {
     const payload = await fetchTeacherApiFormData<{ profilePhotoUrl?: string; error?: string }>(

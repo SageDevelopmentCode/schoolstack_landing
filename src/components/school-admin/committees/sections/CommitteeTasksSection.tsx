@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Calendar, Plus, UserRound } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -85,6 +85,7 @@ export default function CommitteeTasksSection({
   currentMemberId,
   isAdmin = true,
   portalApiNamespace = "parent-portal",
+  initialTaskId,
 }: {
   committee: Committee;
   theme: ParentThemeTokens;
@@ -95,6 +96,7 @@ export default function CommitteeTasksSection({
   currentMemberId?: string;
   isAdmin?: boolean;
   portalApiNamespace?: CommitteesApiNamespace | "school-admin";
+  initialTaskId?: string | null;
 }) {
   const [panelState, setPanelState] = useState<CommitteeTaskPanelState | null>(null);
   const [pendingPanelState, setPendingPanelState] =
@@ -102,6 +104,7 @@ export default function CommitteeTasksSection({
   const [panelDirty, setPanelDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const reducedMotion = useReducedMotion() ?? false;
+  const deepLinkHandledRef = useRef(false);
 
   const taskGroups = committee.config.taskGroups ?? [{ id: "general", label: "General" }];
 
@@ -136,6 +139,16 @@ export default function CommitteeTasksSection({
     if (panelState?.mode === "edit" && panelState.taskId === taskId) return;
     tryOpenPanel({ mode: "edit", taskId });
   };
+
+  useEffect(() => {
+    if (!initialTaskId || deepLinkHandledRef.current) return;
+    const match = committee.tasks.find((task) => task.id === initialTaskId);
+    if (!match) return;
+    deepLinkHandledRef.current = true;
+    queueMicrotask(() => {
+      openEditPanel(initialTaskId);
+    });
+  }, [committee.tasks, initialTaskId]);
 
   const closePanel = () => {
     setPanelState(null);

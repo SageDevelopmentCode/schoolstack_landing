@@ -56,6 +56,15 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
+      - name: Upload portal responsive screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: portal-responsive-screenshots
+          path: e2e/.artifacts/responsive/
+          retention-days: 3
+          if-no-files-found: ignore
+
   notify:
     needs: e2e
     if: failure()

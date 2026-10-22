@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronDown, Link2, Loader2, Star, Trash2 } from "lucide-react";
+import { AdminListItemsSkeleton } from "@/components/admin/ui/AdminSkeleton";
 import { PortalAccountLinkHubDiagram } from "@/components/admin/account-links/PortalAccountLinkHubDiagram";
 import { AdminSelect } from "@/components/admin/ui/AdminSelect";
 import type {
@@ -519,10 +520,10 @@ export default function OrganizationAccountLinksPanel({
         </p>
 
         {loading ? (
-          <div className="flex items-center gap-2 text-sm text-admin-faint font-secondary">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading account links…
-          </div>
+          <AdminListItemsSkeleton
+            count={3}
+            ariaLabel="Loading account links"
+          />
         ) : groups.length === 0 ? (
           <p className="text-sm text-admin-faint font-secondary">
             No linked accounts yet. Use the form above to link a staff login

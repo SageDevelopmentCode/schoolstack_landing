@@ -22,6 +22,12 @@ import {
   programPortalAudienceScope,
 } from "@/lib/school-events/event-audience";
 import {
+  buildPortalCalendarNotificationHref,
+} from "@/lib/school-events/calendar-notification-links";
+import { appendCommitteeActivityFocusParams } from "@/lib/committees/committee-workspace-notification-links";
+
+export { buildPortalCalendarNotificationHref as buildParentCalendarNotificationHref } from "@/lib/school-events/calendar-notification-links";
+import {
   COOP_CURRICULUM_UPDATED_ACTION,
   COOP_SUPPLY_ITEM_ADDED_ACTION,
   COOP_SUPPLY_ITEM_ASSIGNED_ACTION,
@@ -1065,6 +1071,7 @@ function resolveParentNotificationLink(
     chargeId?: string | null;
     bulletinPostId?: string | null;
     eventId?: string | null;
+    eventDate?: string | null;
   },
 ): { href: string; ctaLabel: string } {
   const parentBase = resolveParentNavBasePath(slug, options?.parentNavBasePath);
@@ -1103,8 +1110,13 @@ function resolveParentNotificationLink(
     };
     const section = committeeSectionByAction[action];
     if (committeeId && section) {
+      const params = new URLSearchParams({
+        committee: committeeId,
+        section,
+      });
+      appendCommitteeActivityFocusParams(params, action, event, metadataString);
       return {
-        href: `${parentBase}/committees?committee=${encodeURIComponent(committeeId)}&section=${section}`,
+        href: `${parentBase}/committees?${params.toString()}`,
         ctaLabel: "Open committee",
       };
     }
@@ -1149,8 +1161,15 @@ function resolveParentNotificationLink(
   }
 
   if (action === SYNTHETIC_EVENT_ACTION) {
+    const organizationEventId =
+      options?.eventId ??
+      (event.entity_type === "organization_event" ? event.entity_id : null) ??
+      metadataString(event.metadata, "eventId");
     return {
-      href: `${parentBase}/calendar`,
+      href: buildPortalCalendarNotificationHref(parentBase, {
+        eventId: organizationEventId,
+        eventDate: options?.eventDate ?? metadataString(event.metadata, "eventDate"),
+      }),
       ctaLabel: "View calendar",
     };
   }
@@ -1299,7 +1318,7 @@ async function fetchCalendarNotifications(
           metadata: { eventId: event.id },
           created_at: createdAt,
         },
-        { parentNavBasePath, eventId: event.id },
+        { parentNavBasePath, eventId: event.id, eventDate: event.date },
       ),
       category: "events" as const,
     };

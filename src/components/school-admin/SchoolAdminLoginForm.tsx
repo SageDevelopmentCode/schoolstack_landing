@@ -8,6 +8,10 @@ import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
 } from "@/components/ui/ButtonLoadingLabel";
 import VerificationCodeInput from "@/components/ui/VerificationCodeInput";
+import {
+  CLIENT_AUTH_ACTIVITY_ACTIONS,
+  reportAuthActivity,
+} from "@/lib/activity-auth-client";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
@@ -18,6 +22,7 @@ type AuthPhase = "email" | "verify" | "password";
 
 type SchoolAdminLoginFormProps = {
   slug: string;
+  organizationId: string;
   schoolName: string;
   branding: OrganizationBranding;
 };
@@ -26,6 +31,7 @@ const inputClassName = "w-full rounded-md border px-3 py-2.5 text-sm";
 
 export default function SchoolAdminLoginForm({
   slug,
+  organizationId,
   schoolName,
   branding,
 }: SchoolAdminLoginFormProps) {
@@ -116,6 +122,20 @@ export default function SchoolAdminLoginForm({
     setError(null);
   };
 
+  const reportSchoolAdminSignedIn = (method: "password" | "otp") => {
+    reportAuthActivity({
+      action: CLIENT_AUTH_ACTIVITY_ACTIONS.SIGNED_IN,
+      organizationId,
+      surface: "school_admin",
+      metadata: {
+        freshSignIn: true,
+        method,
+        client: "web",
+        organizationSlug: slug,
+      },
+    });
+  };
+
   const handleEmailSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsSubmitting(true);
@@ -151,6 +171,8 @@ export default function SchoolAdminLoginForm({
         throw new Error(signInError.message);
       }
 
+      reportSchoolAdminSignedIn("password");
+
       router.replace(nextPath);
       router.refresh();
     } catch (submitError) {
@@ -181,6 +203,18 @@ export default function SchoolAdminLoginForm({
       if (verifyError) {
         throw new Error(verifyError.message);
       }
+
+      reportAuthActivity({
+        action: CLIENT_AUTH_ACTIVITY_ACTIONS.OTP_VERIFIED,
+        organizationId,
+        surface: "school_admin",
+        metadata: {
+          method: "otp",
+          client: "web",
+          organizationSlug: slug,
+        },
+      });
+      reportSchoolAdminSignedIn("otp");
 
       router.replace(nextPath);
       router.refresh();

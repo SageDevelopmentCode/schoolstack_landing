@@ -20,6 +20,7 @@ const ADMIN_NAV_CATALOG_ENTRIES: PortalNavCatalogEntry[] = [
   { key: "dashboard", label: "Dashboard", group: "Main", icon: "layout-dashboard" },
   { key: "admissions", label: "Admissions", group: "Main", icon: "graduation-cap" },
   { key: "my_school", label: "My School", group: "Main", icon: "school" },
+  { key: "communication", label: "Communication", group: "Main", icon: "message-square" },
   { key: "committees", label: "Committees", group: "Main", icon: "heart" },
   { key: "schedule", label: "Schedule", group: "Main", icon: "calendar-days" },
   { key: "messages", label: "Messages", group: "Main", icon: "message-square" },
@@ -28,6 +29,28 @@ const ADMIN_NAV_CATALOG_ENTRIES: PortalNavCatalogEntry[] = [
   { key: "notifications", label: "Alerts", group: "Main", icon: "bell" },
   { key: "finances", label: "Finances", group: "Tools", icon: "dollar-sign" },
   { key: "marketing", label: "Marketing", group: "Tools", icon: "megaphone" },
+];
+
+const COMMUNICATION_CHILDREN: FeatureNavChildConfig[] = [
+  {
+    key: "newsletters",
+    label: "Newsletters",
+    icon: "mail",
+    routeFeature: "my_school",
+    routeSubtab: "newsletters",
+  },
+  {
+    key: "committees",
+    label: "Committees",
+    icon: "heart",
+    routeFeature: "committees",
+  },
+  {
+    key: "messages",
+    label: "Messages",
+    icon: "message-square",
+    routeFeature: "messages",
+  },
 ];
 
 const DEFAULT_FEATURE_CHILDREN: Record<string, FeatureNavChildConfig[]> = {
@@ -39,7 +62,6 @@ const DEFAULT_FEATURE_CHILDREN: Record<string, FeatureNavChildConfig[]> = {
     { key: "staff", label: "Staff", icon: "user-check" },
     { key: "classrooms", label: "Classrooms", icon: "home" },
     { key: "forms_documents", label: "Forms & documents", icon: "file-text" },
-    { key: "newsletters", label: "Newsletters", icon: "mail" },
     { key: "tuition", label: "Tuition", icon: "dollar-sign" },
     {
       key: "friday_branch",
@@ -48,6 +70,7 @@ const DEFAULT_FEATURE_CHILDREN: Record<string, FeatureNavChildConfig[]> = {
       enabled: false,
     },
   ],
+  communication: COMMUNICATION_CHILDREN.map((child) => ({ ...child })),
   admissions: [
     { key: "programs", label: "Programs", icon: "book-open" },
     { key: "flows", label: "Enrollment Flows", icon: "git-branch" },
@@ -64,16 +87,41 @@ const DEFAULT_FEATURE_CHILDREN: Record<string, FeatureNavChildConfig[]> = {
   ],
 };
 
+function collectDefaultChildLabels(
+  children: FeatureNavChildConfig[],
+  bucket: Record<string, string>,
+): void {
+  for (const child of children) {
+    if (child.label) {
+      bucket[child.key] = child.label;
+    }
+    if (child.children?.length) {
+      collectDefaultChildLabels(child.children, bucket);
+    }
+  }
+}
+
 const DEFAULT_CHILD_LABELS: Record<string, Record<string, string>> = {
-  my_school: Object.fromEntries(
-    DEFAULT_FEATURE_CHILDREN.my_school.map((child) => [child.key, child.label!]),
-  ),
+  my_school: {},
+  communication: {},
   admissions: Object.fromEntries(
     DEFAULT_FEATURE_CHILDREN.admissions.map((child) => [child.key, child.label!]),
   ),
   finances: Object.fromEntries(
     DEFAULT_FEATURE_CHILDREN.finances.map((child) => [child.key, child.label!]),
   ),
+};
+
+collectDefaultChildLabels(DEFAULT_FEATURE_CHILDREN.my_school, DEFAULT_CHILD_LABELS.my_school);
+collectDefaultChildLabels(
+  DEFAULT_FEATURE_CHILDREN.communication,
+  DEFAULT_CHILD_LABELS.communication,
+);
+
+/** Admin features shown only under Communication by default. */
+const ADMIN_NAV_HIDDEN_FROM_ROOT_DEFAULTS: Record<string, boolean> = {
+  committees: true,
+  messages: true,
 };
 
 /** Stale catalog defaults to replace when still present in saved feature_nav. */
@@ -122,17 +170,143 @@ export function hasDefaultFeatureChildren(parentKey: string): boolean {
   return Boolean(DEFAULT_FEATURE_CHILDREN[parentKey]?.length);
 }
 
+function cloneFeatureNavChild(child: FeatureNavChildConfig): FeatureNavChildConfig {
+  return {
+    ...child,
+    ...(child.children
+      ? { children: child.children.map((nested) => cloneFeatureNavChild(nested)) }
+      : {}),
+  };
+}
+
+function mergeSingleFeatureNavChild(
+  stored: FeatureNavChildConfig,
+  fallback?: FeatureNavChildConfig,
+): FeatureNavChildConfig {
+  const merged: FeatureNavChildConfig = {
+    key: stored.key,
+    label: stored.label ?? fallback?.label,
+    icon: stored.icon ?? fallback?.icon ?? DEFAULT_FEATURE_ICON_SLUG,
+    enabled: stored.enabled ?? fallback?.enabled,
+    routeFeature: stored.routeFeature ?? fallback?.routeFeature,
+    routeSubtab: stored.routeSubtab ?? fallback?.routeSubtab,
+  };
+
+  const defaultNested = fallback?.children;
+  const storedNested = stored.children;
+  if (defaultNested?.length || storedNested?.length) {
+    merged.children = mergeFeatureNavChildList(
+      stored.key,
+      storedNested,
+      defaultNested,
+    );
+  }
+
+  return merged;
+}
+
+function mergeFeatureNavChildList(
+  parentKey: string,
+  stored?: FeatureNavChildConfig[],
+  defaults?: FeatureNavChildConfig[],
+): FeatureNavChildConfig[] {
+  const defaultList = defaults ?? [];
+  if (defaultList.length === 0) {
+    return stored?.length ? stored.map((child) => cloneFeatureNavChild(child)) : [];
+  }
+
+  if (!stored?.length) {
+    return defaultList.map((child) => cloneFeatureNavChild(child));
+  }
+
+  const defaultByKey = new Map(defaultList.map((child) => [child.key, child]));
+  const result: FeatureNavChildConfig[] = [];
+
+  for (const child of stored) {
+    const fallback = defaultByKey.get(child.key);
+    result.push(mergeSingleFeatureNavChild(child, fallback));
+    defaultByKey.delete(child.key);
+  }
+
+  for (const child of defaultByKey.values()) {
+    result.push(cloneFeatureNavChild(child));
+  }
+
+  return result;
+}
+
+function normalizeNewslettersHoistChild(
+  child: FeatureNavChildConfig,
+): FeatureNavChildConfig {
+  return {
+    ...child,
+    routeFeature: child.routeFeature ?? "my_school",
+    routeSubtab: child.routeSubtab ?? "newsletters",
+    children: undefined,
+  };
+}
+
+function normalizeAdminCommunicationNav(
+  items: Record<string, FeatureNavItemConfig>,
+): void {
+  const mySchool = items.my_school;
+  if (!mySchool?.children?.length) {
+    return;
+  }
+
+  const hoisted: FeatureNavChildConfig[] = [];
+  const nextMySchoolChildren: FeatureNavChildConfig[] = [];
+
+  for (const child of mySchool.children) {
+    if (child.key === "newsletters") {
+      hoisted.push(normalizeNewslettersHoistChild(child));
+      continue;
+    }
+    if (child.key === "communication") {
+      if (child.children?.length) {
+        for (const nested of child.children) {
+          hoisted.push(cloneFeatureNavChild(nested));
+        }
+      }
+      continue;
+    }
+    nextMySchoolChildren.push(child);
+  }
+
+  if (hoisted.length === 0) {
+    return;
+  }
+
+  items.my_school = { ...mySchool, children: nextMySchoolChildren };
+
+  const existingCommChildren = items.communication?.children ?? [];
+  const mergedCommChildren = mergeFeatureNavChildList(
+    "communication",
+    [...hoisted, ...existingCommChildren],
+    getDefaultFeatureChildren("communication"),
+  );
+
+  items.communication = {
+    group: items.communication?.group ?? "Main",
+    label: items.communication?.label ?? "Communication",
+    icon: items.communication?.icon ?? "message-square",
+    children: mergedCommChildren,
+  };
+}
+
 function mergeFeatureNavChildren(
   parentKey: string,
   stored?: FeatureNavChildConfig[],
 ): FeatureNavChildConfig[] | undefined {
   const defaults = getDefaultFeatureChildren(parentKey);
   if (defaults.length === 0) {
-    return stored?.length ? stored.map((child) => ({ ...child })) : undefined;
+    return stored?.length
+      ? stored.map((child) => cloneFeatureNavChild(child))
+      : undefined;
   }
 
   if (!stored?.length) {
-    return defaults;
+    return defaults.map((child) => cloneFeatureNavChild(child));
   }
 
   const defaultByKey = new Map(defaults.map((child) => [child.key, child]));
@@ -140,20 +314,28 @@ function mergeFeatureNavChildren(
 
   for (const child of stored) {
     const fallback = defaultByKey.get(child.key);
-    result.push({
-      key: child.key,
-      label: child.label ?? fallback?.label,
-      icon: child.icon ?? fallback?.icon ?? DEFAULT_FEATURE_ICON_SLUG,
-      enabled: child.enabled ?? fallback?.enabled,
-    });
+    result.push(mergeSingleFeatureNavChild(child, fallback));
     defaultByKey.delete(child.key);
   }
 
   for (const child of defaultByKey.values()) {
-    result.push({ ...child });
+    result.push(cloneFeatureNavChild(child));
   }
 
   return result;
+}
+
+export function isAdminFeatureHiddenFromRootNav(
+  portal: Portal,
+  key: string,
+  portalNav: PortalFeatureNav | undefined,
+): boolean {
+  if (portal !== "admin") return false;
+  const resolved = resolveFeatureNavItem(portal, key, portalNav);
+  if (resolved.hiddenFromRootNav !== undefined) {
+    return resolved.hiddenFromRootNav;
+  }
+  return Boolean(ADMIN_NAV_HIDDEN_FROM_ROOT_DEFAULTS[key]);
 }
 
 const TEACHER_ICON_DEFAULTS: Record<string, string> = {
@@ -220,6 +402,9 @@ export function getDefaultPortalNav(portal: Portal): PortalFeatureNav {
       group: entry.group,
       label: entry.label,
       icon: entry.icon,
+      ...(ADMIN_NAV_HIDDEN_FROM_ROOT_DEFAULTS[entry.key]
+        ? { hiddenFromRootNav: true }
+        : {}),
       ...(children ? { children } : {}),
     };
   }
@@ -331,8 +516,14 @@ export function mergePortalFeatureNav(
       group: storedItem?.group ?? defaultItem?.group ?? groups[0] ?? "Main",
       label: storedItem?.label ?? defaultItem?.label,
       icon: storedItem?.icon ?? defaultItem?.icon ?? DEFAULT_FEATURE_ICON_SLUG,
+      hiddenFromRootNav:
+        storedItem?.hiddenFromRootNav ?? defaultItem?.hiddenFromRootNav,
       ...(children ? { children } : {}),
     });
+  }
+
+  if (portal === "admin") {
+    normalizeAdminCommunicationNav(items);
   }
 
   return {
@@ -471,21 +662,22 @@ export function resolveFeatureNavItem(
     stored?.children ?? defaults.items[key]?.children,
   );
 
-  return applyLegacyNavItemOverrides(
-    key,
-    stored,
-    defaults.items[key],
-    {
-      group: stored?.group ?? catalogEntry?.group ?? defaults.groups[0] ?? "Main",
-      label: stored?.label ?? catalogEntry?.label,
-      icon:
-        stored?.icon ??
-        catalogEntry?.icon ??
-        defaults.items[key]?.icon ??
-        DEFAULT_FEATURE_ICON_SLUG,
-      ...(children ? { children } : {}),
-    },
-  );
+  const defaultItem = defaults.items[key];
+
+  return applyLegacyNavItemOverrides(key, stored, defaultItem, {
+    group: stored?.group ?? catalogEntry?.group ?? defaults.groups[0] ?? "Main",
+    label: stored?.label ?? catalogEntry?.label,
+    icon:
+      stored?.icon ??
+      catalogEntry?.icon ??
+      defaultItem?.icon ??
+      DEFAULT_FEATURE_ICON_SLUG,
+    hiddenFromRootNav:
+      stored?.hiddenFromRootNav ??
+      defaultItem?.hiddenFromRootNav ??
+      (portal === "admin" ? ADMIN_NAV_HIDDEN_FROM_ROOT_DEFAULTS[key] : undefined),
+    ...(children ? { children } : {}),
+  });
 }
 
 export function resolveFeatureNavChildren(

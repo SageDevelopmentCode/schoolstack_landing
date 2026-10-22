@@ -157,7 +157,17 @@ export function PlatformAdminImpersonateSubjectsScreen({
         ...input,
         school: organization,
       });
-      router.replace(impersonatePreviewHomeRoute(input.portal, organization.slug) as never);
+      let entryPath = impersonatePreviewHomeRoute(input.portal, organization.slug);
+      if (input.portal === 'parent') {
+        try {
+          const { fetchParentPortalContexts } = await import('@/lib/parent/parent-portal-api');
+          const contexts = await fetchParentPortalContexts(organization.id, organization.slug);
+          entryPath = contexts.defaultMobileEntryPath;
+        } catch {
+          // Fall back to main parent home when contexts cannot be loaded.
+        }
+      }
+      router.replace(entryPath as never);
     },
     [organization, router, startPortalPreview],
   );
@@ -243,7 +253,7 @@ export function PlatformAdminImpersonateSubjectsScreen({
           key={status.familyId}
           title={name}
           subtitle={status.email}
-          meta={`Family ${status.familyId.slice(0, 8)}…`}
+          meta={status.learnersSummaryLabel ?? undefined}
           onPreview={() =>
             void handlePreview({
               portal: 'parent',

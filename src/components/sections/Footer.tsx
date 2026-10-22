@@ -6,6 +6,7 @@ import {
   FREE_TOOLS_HUB_PATH,
   FREE_TOOLS_NAV_LABEL,
 } from "@/lib/marketing/free-tools";
+import MobileAppDownloadBadges from "@/components/download/MobileAppDownloadBadges";
 
 const NAV_LINKS = [
   { label: "About", href: "/about", icon: Info },
@@ -39,6 +40,10 @@ export default function Footer() {
             <p className="text-sm text-white/50 mt-3 max-w-[240px] leading-relaxed">
               Software built to run a real microschool.
             </p>
+            <MobileAppDownloadBadges
+              className="mt-5 flex flex-wrap items-center gap-3"
+              badgeClassName="h-10 w-auto object-contain sm:h-11"
+            />
           </div>
 
           {/* Nav links */}

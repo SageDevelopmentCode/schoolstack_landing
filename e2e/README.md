@@ -6,7 +6,7 @@ For agent workflows, see [`.agents/skills/e2e-local/SKILL.md`](../.agents/skills
 
 `globalSetup` seeds the database; the `setup` project signs in test users and writes `e2e/.auth/` before authenticated tests run.
 
-**Important:** E2E runs its own Next.js server on **port 3100** (not 3000/3001), so your regular `npm run dev` can stay running. Playwright passes E2E env vars to that server via `webServer.env`.
+**Important:** E2E targets **port 3100** (not 3000/3001). Locally, Playwright runs **`next start` on 3100** so it can coexist with `npm run dev` on 3000 (Next.js allows only one `next dev` per repo). CI still uses `next dev` on 3100. Playwright passes E2E env vars via `webServer.env` ([`e2e/web-server-env.ts`](web-server-env.ts)).
 
 ## Prerequisites
 
@@ -27,9 +27,16 @@ npm run test:e2e:install
 
 ```bash
 npm run test:e2e:setup   # optional: reset local DB
+npm run test:e2e:build   # required locally before first run (or after app code changes)
 npm run test:e2e         # 41 tests (setup + smoke + admin + parent + API)
 npm run test:e2e:ui      # interactive mode
 ```
+
+**Keep dev on 3000 while testing:** build once, then either let Playwright start `next start` on 3100 automatically, or run `npm run test:e2e:server` in a second terminal and re-run tests (Playwright reuses an existing 3100 server when `reuseExistingServer` applies).
+
+**Skip Playwright’s web server** (you already have something on 3100): `PLAYWRIGHT_SKIP_WEBSERVER=1 npm run test:e2e`
+
+**Responsive screenshots + agent visual review:** Layout specs write PNGs to `e2e/.artifacts/responsive/`. Agents must **Read and analyze** those images per [portal-responsive-verify SKILL](../.agents/skills/portal-responsive-verify/SKILL.md). Check files exist with `npm run verify:responsive-artifacts -- committee-messages` (or `parent-messages`).
 
 ## Test suites
 
@@ -90,6 +97,14 @@ npm run performance:ci
 **Auth tests fail:** Delete `e2e/.auth/` and re-run — `globalSetup` recreates sessions.
 
 **Playwright browser missing:** `npm run test:e2e:install`
+
+**`Another next dev server is already running`:** You are on an old flow that tried `next dev` on 3100 while `next dev` runs on 3000. Run `npm run test:e2e:build`, then re-run tests (local config uses `next start` on 3100).
+
+**`E2E production server requires a build`:** Run `npm run test:e2e:build`.
+
+**Port 3100 in use:** `lsof -ti:3100 | xargs kill -9` then re-run (or use `PLAYWRIGHT_SKIP_WEBSERVER=1` if you manage the server yourself).
+
+**Missing responsive PNGs for visual review:** Run the layout spec (e.g. `committee-messages-layout.spec.ts`) or browser MCP capture, then `npm run verify:responsive-artifacts -- <feature-slug>`.
 
 ## Tuition billing cron (staging smoke)
 

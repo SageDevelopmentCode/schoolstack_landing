@@ -17,11 +17,21 @@ import SchoolAdminProfileMenu from "@/components/school-admin/SchoolAdminProfile
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 import { MessagesNavBadge } from "@/components/messages/MessagesNavBadge";
 import {
+  adminNavItemMatchesPath,
   buildAdminNavGroups,
+  type AdminNavChildItem,
   type AdminNavItem,
 } from "@/lib/organization-settings/admin-nav";
-import { schoolAdminPath, schoolMudKitchenPortalPath } from "@/lib/organization-settings/admin-routes";
-import { MUDKITCHEN_LOGO_BRAND as MK } from "@/lib/mudkitchen-portal/theme";
+import {
+  getFirstAdminNavChildPath,
+  resolveAdminNavChildHref,
+  schoolAdminPath,
+  schoolMudKitchenPortalPath,
+} from "@/lib/organization-settings/admin-routes";
+import {
+  MUDKITCHEN_BRAND_GRADIENT,
+  MUDKITCHEN_LOGO_BRAND as MK,
+} from "@/lib/mudkitchen-portal/theme";
 import {
   detectPortalFromPathname,
   type SchoolPortalOption,
@@ -43,13 +53,166 @@ function formatUnreadBadgeCount(count: number): string {
   return String(count);
 }
 
-function isParentPathActive(
-  pathname: string,
+function isAdminChildPathActive(
   slug: string,
-  parentKey: string,
+  pathname: string,
+  parentFeature: string,
+  child: AdminNavChildItem,
 ): boolean {
-  const prefix = `/school/${slug}/admin/${parentKey}`;
-  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+  if (child.children?.length) {
+    return child.children.some((nested) =>
+      isAdminChildPathActive(slug, pathname, parentFeature, nested),
+    );
+  }
+  const href = resolveAdminNavChildHref(slug, parentFeature, child);
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function AdminNavChildLinks({
+  slug,
+  parentFeature,
+  navChildren,
+  pathname,
+  depth,
+  openParents,
+  onToggleOpen,
+  messagesUnreadCount,
+  fridayBranchParentPortalPaused,
+}: {
+  slug: string;
+  parentFeature: string;
+  navChildren: AdminNavChildItem[];
+  pathname: string;
+  depth: number;
+  openParents: Record<string, boolean>;
+  onToggleOpen: (key: string) => void;
+  messagesUnreadCount: number;
+  fridayBranchParentPortalPaused: boolean;
+}) {
+  const { theme } = useSchoolAdminStoryTheme();
+
+  return (
+    <>
+      {navChildren.map((child) => {
+        const nestedKey = `${parentFeature}:${child.key}`;
+        const hasNested = Boolean(child.children?.length);
+        const childActive = isAdminChildPathActive(
+          slug,
+          pathname,
+          parentFeature,
+          child,
+        );
+
+        if (hasNested) {
+          const isOpen = openParents[nestedKey] ?? childActive;
+          const firstLeafHref = getFirstAdminNavChildPath(
+            slug,
+            parentFeature,
+            child.children!,
+          );
+
+          return (
+            <div key={child.key} className="py-[2px]">
+              <div className="flex items-center gap-0.5">
+                {firstLeafHref ? (
+                  <Link
+                    href={firstLeafHref}
+                    title={child.name}
+                    className="min-w-0 flex-1 truncate py-[5px] text-[11px] transition-colors"
+                    style={{
+                      color: childActive ? theme.primary : "#7B898D",
+                      fontWeight: childActive ? 700 : 500,
+                      textDecoration: "none",
+                    }}
+                  >
+                    {child.name}
+                  </Link>
+                ) : (
+                  <span
+                    className="min-w-0 flex-1 truncate py-[5px] text-[11px] font-medium"
+                    style={{ color: "#7B898D" }}
+                  >
+                    {child.name}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onToggleOpen(nestedKey)}
+                  className="shrink-0 p-0.5"
+                  style={{ color: childActive ? theme.primary : "#98A39F" }}
+                  aria-label={isOpen ? "Collapse sub-tabs" : "Expand sub-tabs"}
+                >
+                  <ChevronDown
+                    className="h-3 w-3 transition-transform duration-150"
+                    style={{
+                      transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+                    }}
+                  />
+                </button>
+              </div>
+              <div
+                className={`grid transition-[grid-template-rows,opacity] duration-150 ease-out ${
+                  isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <div
+                    className="ml-2 border-l pl-2"
+                    style={{ borderColor: "#DFE7DF" }}
+                  >
+                    <AdminNavChildLinks
+                      slug={slug}
+                      parentFeature={parentFeature}
+                      navChildren={child.children!}
+                      pathname={pathname}
+                      depth={depth + 1}
+                      openParents={openParents}
+                      onToggleOpen={onToggleOpen}
+                      messagesUnreadCount={messagesUnreadCount}
+                      fridayBranchParentPortalPaused={fridayBranchParentPortalPaused}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        const childHref = resolveAdminNavChildHref(slug, parentFeature, child);
+        const leafActive = pathname === childHref || pathname.startsWith(`${childHref}/`);
+
+        return (
+          <Link
+            key={child.key}
+            href={childHref}
+            title={child.name}
+            className="block py-[5px] text-[11px] transition-colors"
+            style={{
+              color: leafActive ? theme.primary : "#7B898D",
+              fontWeight: leafActive ? 700 : 500,
+              textDecoration: "none",
+              paddingLeft: depth > 0 ? 4 : 0,
+            }}
+          >
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span className="truncate">{child.name}</span>
+              {child.routeFeature === "messages" || child.key === "messages" ? (
+                <MessagesNavBadge
+                  count={messagesUnreadCount}
+                  theme={{ accent: theme.primary, accentLight: theme.primarySoft }}
+                />
+              ) : null}
+              {parentFeature === "my_school" &&
+              child.key === "friday_branch" &&
+              fridayBranchParentPortalPaused ? (
+                <FridayBranchPausedBadge compact />
+              ) : null}
+            </span>
+          </Link>
+        );
+      })}
+    </>
+  );
 }
 
 function SidebarNavItem({
@@ -59,6 +222,8 @@ function SidebarNavItem({
   isExpanded,
   isOpen,
   onToggleOpen,
+  openParents,
+  onToggleNestedOpen,
   messagesUnreadCount,
   fridayBranchParentPortalPaused = false,
 }: {
@@ -68,6 +233,8 @@ function SidebarNavItem({
   isExpanded: boolean;
   isOpen: boolean;
   onToggleOpen: () => void;
+  openParents: Record<string, boolean>;
+  onToggleNestedOpen: (key: string) => void;
   messagesUnreadCount: number;
   fridayBranchParentPortalPaused?: boolean;
 }) {
@@ -75,10 +242,10 @@ function SidebarNavItem({
   const Icon = item.icon;
   const iconColor = getAdminNavIconColor(item.key);
   const hasChildren = Boolean(item.children?.length);
-  const parentActive = isParentPathActive(pathname, slug, item.key);
-  const firstChild = item.children?.[0];
+  const parentActive = adminNavItemMatchesPath(slug, pathname, item);
   const parentHref = hasChildren
-    ? schoolAdminPath(slug, item.key, firstChild!.key)
+    ? (getFirstAdminNavChildPath(slug, item.key, item.children!) ??
+      schoolAdminPath(slug, item.key))
     : schoolAdminPath(slug, item.key);
 
   const activeRowStyle = (active: boolean) => ({
@@ -173,32 +340,17 @@ function SidebarNavItem({
               className="ml-[25px] border-l pl-[7px]"
               style={{ borderColor: "#DFE7DF" }}
             >
-              {item.children!.map((child) => {
-                const childHref = schoolAdminPath(slug, item.key, child.key);
-                const childActive = pathname === childHref;
-                return (
-                  <Link
-                    key={child.key}
-                    href={childHref}
-                    title={child.name}
-                    className="block py-[5px] text-[11px] transition-colors"
-                    style={{
-                      color: childActive ? theme.primary : "#7B898D",
-                      fontWeight: childActive ? 700 : 500,
-                      textDecoration: "none",
-                    }}
-                  >
-                    <span className="flex min-w-0 items-center gap-1.5">
-                      <span className="truncate">{child.name}</span>
-                      {item.key === "my_school" &&
-                      child.key === "friday_branch" &&
-                      fridayBranchParentPortalPaused ? (
-                        <FridayBranchPausedBadge compact />
-                      ) : null}
-                    </span>
-                  </Link>
-                );
-              })}
+              <AdminNavChildLinks
+                slug={slug}
+                parentFeature={item.key}
+                navChildren={item.children!}
+                pathname={pathname}
+                depth={0}
+                openParents={openParents}
+                onToggleOpen={onToggleNestedOpen}
+                messagesUnreadCount={messagesUnreadCount}
+                fridayBranchParentPortalPaused={fridayBranchParentPortalPaused}
+              />
             </div>
           </div>
         </div>
@@ -256,11 +408,16 @@ export default function SchoolAdminStorySidebar({
     const next: Record<string, boolean> = {};
     for (const group of navGroups) {
       for (const item of group.items) {
-        if (
-          item.children?.length &&
-          isParentPathActive(pathname, slug, item.key)
-        ) {
+        if (item.children?.length && adminNavItemMatchesPath(slug, pathname, item)) {
           next[item.key] = true;
+          for (const child of item.children) {
+            if (
+              child.children?.length &&
+              isAdminChildPathActive(slug, pathname, item.key, child)
+            ) {
+              next[`${item.key}:${child.key}`] = true;
+            }
+          }
         }
       }
     }
@@ -337,6 +494,13 @@ export default function SchoolAdminStorySidebar({
                       [item.key]: !prev[item.key],
                     }))
                   }
+                  openParents={openParents}
+                  onToggleNestedOpen={(key) =>
+                    setOpenParents((prev) => ({
+                      ...prev,
+                      [key]: !prev[key],
+                    }))
+                  }
                 />
               ))}
             </div>
@@ -390,7 +554,7 @@ export default function SchoolAdminStorySidebar({
             alignItems: isExpanded ? "flex-start" : "center",
             padding: isExpanded ? "8px" : "8px 6px",
             borderRadius: C.r.sm,
-            background: `linear-gradient(135deg, ${MK.terracottaDark} 0%, ${MK.terracotta} 45%, ${MK.terracottaBright} 75%, ${MK.wood} 100%)`,
+            background: MUDKITCHEN_BRAND_GRADIENT,
             color: MK.cream,
             textDecoration: "none",
           }}

@@ -20,6 +20,8 @@ import OrganizationMobilePanel from "@/components/admin/OrganizationMobilePanel"
 import { AdminSelect } from "@/components/admin/ui/AdminSelect";
 import { AdminPageState } from "@/components/admin/ui/AdminPageState";
 import { parseAdmissionsOrgSettings } from "@/lib/admissions/admissions-org-settings";
+import { mergeFeatures } from "@/lib/organization-settings/merge";
+import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
 import {
   isPublicTourEnabled,
   parsePublicTourPageSettings,
@@ -282,6 +284,11 @@ export default function AdminOrganizationsPage() {
         parseAdmissionsOrgSettings(settingsRow.admissions).publicTour,
       ),
     );
+  }, [settingsRow]);
+
+  const parentPortalEnabled = useMemo(() => {
+    if (!settingsRow) return false;
+    return isParentPortalEnabled(mergeFeatures(settingsRow.features));
   }, [settingsRow]);
 
   const settingsTabVisited = SETTINGS_TABS.some((tab) => visitedTabs.has(tab));
@@ -716,6 +723,7 @@ export default function AdminOrganizationsPage() {
                 <OrganizationSubmissionsPanel
                   organizationId={selected.id}
                   organizationSlug={selected.slug}
+                  parentPortalEnabled={parentPortalEnabled}
                 />
               </div>
             ) : null}

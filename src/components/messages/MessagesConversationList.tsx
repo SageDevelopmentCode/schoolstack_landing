@@ -1,6 +1,7 @@
 "use client";
 
-import type { KeyboardEvent } from "react";
+import type { CSSProperties, KeyboardEvent } from "react";
+import { Pin } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { MessageContact, MessageThreadSummary } from "@/lib/messages/types";
 import MessagesAvatar, { type MessagesLayoutVariant } from "./MessagesAvatar";
@@ -11,6 +12,8 @@ import {
   isStoryMessagesVariant,
 } from "@/lib/messages/messages-layout-variant";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { MUDKITCHEN_LOGO_BRAND } from "@/lib/mudkitchen-portal/theme";
+import { isMudKitchenSupportListThread } from "@/lib/messages/platform-support";
 
 export type MessagesConversationListItem =
   | { type: "section"; key: string; label: string; description?: string }
@@ -159,6 +162,39 @@ export default function MessagesConversationList({
             !listAvatars?.length &&
             (subtitle || subtitleStudents?.length) &&
             !(hideStudentSubtitle && subtitleStudents?.length);
+          const supportBrandRow =
+            storyVariant &&
+            item.type === "thread" &&
+            isMudKitchenSupportListThread(item.thread);
+
+          const rowClassName = `relative w-full flex items-start gap-3 text-left transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+            storyVariant
+              ? "border-b px-[15px] py-[13px] hover:bg-black/[0.02]"
+              : splitPane
+                ? "px-4 py-3.5 hover:bg-black/[0.03] active:scale-[0.99]"
+                : "p-3"
+          }`;
+
+          const rowStyle: CSSProperties = {
+            backgroundColor:
+              !splitPane && isActive && !storyVariant ? `${C.accent}14` : "transparent",
+            borderColor: storyVariant ? theme?.line ?? C.border : undefined,
+            ...(splitPane && isActive && !storyVariant
+              ? { boxShadow: `inset 3px 0 0 0 ${C.accent}` }
+              : {}),
+            ...(storyVariant && supportBrandRow && !isActive
+              ? {
+                  backgroundColor: "rgba(194, 105, 79, 0.06)",
+                  boxShadow: `inset 3px 0 0 0 ${MUDKITCHEN_LOGO_BRAND.terracotta}`,
+                }
+              : {}),
+            ...(storyVariant && isActive && theme
+              ? {
+                  backgroundColor: theme.primarySoft,
+                  boxShadow: `inset 3px 0 0 0 ${theme.primary}`,
+                }
+              : {}),
+          };
 
           return (
             <div key={key}>
@@ -187,27 +223,8 @@ export default function MessagesConversationList({
                 tabIndex={0}
                 onClick={() => onSelect(key)}
                 onKeyDown={(event) => handleRowKeyDown(event, () => onSelect(key))}
-                className={`relative w-full flex items-start gap-3 text-left transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
-                  storyVariant
-                    ? "border-b px-[15px] py-[13px] hover:bg-black/[0.02]"
-                    : splitPane
-                      ? "px-4 py-3.5 hover:bg-black/[0.03] active:scale-[0.99]"
-                      : "p-3"
-                }`}
-                style={{
-                  backgroundColor:
-                    !splitPane && isActive ? `${C.accent}14` : "transparent",
-                  borderColor: storyVariant ? theme?.line ?? C.border : undefined,
-                  ...(splitPane && isActive && !storyVariant
-                    ? { boxShadow: `inset 3px 0 0 0 ${C.accent}` }
-                    : {}),
-                  ...(storyVariant && isActive && theme
-                    ? {
-                        backgroundColor: theme.primarySoft,
-                        boxShadow: `inset 3px 0 0 0 ${theme.primary}`,
-                      }
-                    : {}),
-                }}
+                className={rowClassName}
+                style={rowStyle}
               >
                 {listAvatars?.length === 2 ? (
                   <MessagesDualAvatar avatars={listAvatars} size="sm" />
@@ -216,6 +233,10 @@ export default function MessagesConversationList({
                     name={title}
                     color={color}
                     photoUrl={photoUrl}
+                    photoBackground="#FFFFFF"
+                    photoObjectFit={
+                      supportBrandRow && photoUrl ? "contain" : "cover"
+                    }
                     size="sm"
                   />
                 )}
@@ -229,8 +250,15 @@ export default function MessagesConversationList({
                     >
                       {title}
                     </p>
-                    {timeLabel ? (
+                    {timeLabel || (storyVariant && supportBrandRow) ? (
                       <div className="flex shrink-0 items-center gap-1.5">
+                        {storyVariant && supportBrandRow ? (
+                          <Pin
+                            className="h-3 w-3 shrink-0"
+                            style={{ color: MUDKITCHEN_LOGO_BRAND.terracotta, opacity: 0.65 }}
+                            aria-label="Pinned"
+                          />
+                        ) : null}
                         {storyVariant && hasUnread ? (
                           <span
                             className="h-2 w-2 rounded-full"
@@ -238,18 +266,20 @@ export default function MessagesConversationList({
                             aria-hidden
                           />
                         ) : null}
-                        <p
-                          className={`shrink-0 ${splitPane ? "text-[11px]" : "text-[10px]"}`}
-                          style={{
-                            color:
-                              storyVariant || (hasUnread && splitPane)
-                                ? theme?.muted ?? C.textTertiary
-                                : C.textTertiary,
-                            fontWeight: !storyVariant && hasUnread && splitPane ? 600 : 400,
-                          }}
-                        >
-                          {timeLabel}
-                        </p>
+                        {timeLabel ? (
+                          <p
+                            className={`shrink-0 ${splitPane ? "text-[11px]" : "text-[10px]"}`}
+                            style={{
+                              color:
+                                storyVariant || (hasUnread && splitPane)
+                                  ? theme?.muted ?? C.textTertiary
+                                  : C.textTertiary,
+                              fontWeight: !storyVariant && hasUnread && splitPane ? 600 : 400,
+                            }}
+                          >
+                            {timeLabel}
+                          </p>
+                        ) : null}
                       </div>
                     ) : null}
                   </div>

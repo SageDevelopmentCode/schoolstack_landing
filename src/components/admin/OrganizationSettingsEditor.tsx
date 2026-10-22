@@ -18,6 +18,7 @@ import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
 } from "@/components/ui/ButtonLoadingLabel";
 import { AdminSelect } from "@/components/admin/ui/AdminSelect";
+import { AdminSectionCardSkeleton } from "@/components/admin/ui/AdminSkeleton";
 import { createClient } from "@/utils/supabase/client";
 import {
   addCustomPortalFeature,
@@ -758,6 +759,24 @@ export default function OrganizationSettingsEditor({
     });
   };
 
+  const patchFeatureChildTree = (
+    children: FeatureNavChildConfig[],
+    childKey: string,
+    patch: Partial<FeatureNavChildConfig>,
+  ): FeatureNavChildConfig[] =>
+    children.map((child) => {
+      if (child.key === childKey) {
+        return { ...child, ...patch };
+      }
+      if (child.children?.length) {
+        return {
+          ...child,
+          children: patchFeatureChildTree(child.children, childKey, patch),
+        };
+      }
+      return child;
+    });
+
   const updateFeatureChild = (
     portal: Portal,
     parentKey: string,
@@ -767,9 +786,7 @@ export default function OrganizationSettingsEditor({
     setFeatures((prev) => {
       const nav = ensurePortalNav(prev, portal);
       const children = resolveFeatureNavChildren(portal, parentKey, nav);
-      const nextChildren = children.map((child) =>
-        child.key === childKey ? { ...child, ...patch } : child,
-      );
+      const nextChildren = patchFeatureChildTree(children, childKey, patch);
       return updatePortalNav(
         prev,
         portal,
@@ -837,11 +854,10 @@ export default function OrganizationSettingsEditor({
 
   if (settingsLoading) {
     return (
-      <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4">
-        <p className="text-sm text-admin-faint font-secondary">
-          Loading organization settings…
-        </p>
-      </section>
+      <AdminSectionCardSkeleton
+        ariaLabel="Loading organization settings"
+        rows={6}
+      />
     );
   }
 
@@ -2081,6 +2097,7 @@ function FeatureSubtabsEditor({
   onLabelChange,
   onIconChange,
   onEnabledChange,
+  onReorderNested,
 }: {
   parentKey: string;
   subtabs: FeatureNavChildConfig[];
@@ -2088,6 +2105,10 @@ function FeatureSubtabsEditor({
   onLabelChange: (childKey: string, label: string) => void;
   onIconChange: (childKey: string, icon: string) => void;
   onEnabledChange: (childKey: string, enabled: boolean) => void;
+  onReorderNested?: (
+    groupKey: string,
+    childKeys: string[],
+  ) => void;
 }) {
   const childKeys = subtabs.map((child) => child.key);
 
@@ -2103,14 +2124,41 @@ function FeatureSubtabsEditor({
         className="space-y-2"
       >
         {subtabs.map((child) => (
-          <FeatureSubtabRow
-            key={child.key}
-            parentKey={parentKey}
-            child={child}
-            onLabelChange={(label) => onLabelChange(child.key, label)}
-            onIconChange={(icon) => onIconChange(child.key, icon)}
-            onEnabledChange={(enabled) => onEnabledChange(child.key, enabled)}
-          />
+          <div key={child.key} className="space-y-2">
+            <FeatureSubtabRow
+              parentKey={parentKey}
+              child={child}
+              onLabelChange={(label) => onLabelChange(child.key, label)}
+              onIconChange={(icon) => onIconChange(child.key, icon)}
+              onEnabledChange={(enabled) => onEnabledChange(child.key, enabled)}
+            />
+            {child.children?.length && onReorderNested ? (
+              <div className="ml-4 pl-3 border-l border-admin-border space-y-2">
+                <p className="text-[10px] uppercase tracking-wide text-admin-faint font-secondary">
+                  {child.label ?? getFeatureNavChildLabel(parentKey, child.key, child)}
+                </p>
+                <Reorder.Group
+                  axis="y"
+                  values={child.children.map((nested) => nested.key)}
+                  onReorder={(nestedKeys) => onReorderNested(child.key, nestedKeys)}
+                  className="space-y-2"
+                >
+                  {child.children.map((nested) => (
+                    <FeatureSubtabRow
+                      key={nested.key}
+                      parentKey={parentKey}
+                      child={nested}
+                      onLabelChange={(label) => onLabelChange(nested.key, label)}
+                      onIconChange={(icon) => onIconChange(nested.key, icon)}
+                      onEnabledChange={(enabled) =>
+                        onEnabledChange(nested.key, enabled)
+                      }
+                    />
+                  ))}
+                </Reorder.Group>
+              </div>
+            ) : null}
+          </div>
         ))}
       </Reorder.Group>
     </div>

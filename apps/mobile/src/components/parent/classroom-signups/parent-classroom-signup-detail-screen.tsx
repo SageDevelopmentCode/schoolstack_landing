@@ -2,13 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
+import { ParentClassroomSignupsSkeleton } from '@/components/parent/classroom-signups/parent-classroom-signups-skeleton';
 import { ParentClassroomSignupResponseForm } from '@/components/parent/classroom-signups/parent-classroom-signup-response-form';
 import { ParentKeyboardAwareScrollView } from '@/components/parent/parent-keyboard-aware-scroll-view';
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
@@ -115,9 +115,7 @@ export function ParentClassroomSignupDetailScreen({
       </Pressable>
 
       {isLoading ? (
-        <View style={styles.loading}>
-          <ActivityIndicator color={theme.primary} />
-        </View>
+        <ParentClassroomSignupsSkeleton rowCount={1} />
       ) : error ? (
         <StoryErrorBanner message={error} />
       ) : signup ? (

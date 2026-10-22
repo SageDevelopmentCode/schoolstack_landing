@@ -12,6 +12,7 @@ import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 import type { MessagesLayoutVariant } from '@/lib/messages/messages-layout-variant';
 import { isStoryMessagesVariant } from '@/lib/messages/messages-layout-variant';
+import { isMudKitchenSupportListThread } from '@/lib/messages/platform-support';
 import type { MessageThreadSummary } from '@/lib/messages/types';
 
 type MessageThreadHeaderProps = {
@@ -38,6 +39,7 @@ export function MessageThreadHeader({
   const accentColor = parentStory ? parentTheme.primary : theme.accent;
   const titleColor = parentStory ? parentTheme.ink : theme.textPrimary;
   const subtitleColor = parentStory ? parentTheme.muted : theme.textSecondary;
+  const supportBrandRow = isMudKitchenSupportListThread(thread);
 
   return (
     <View style={[styles.container, { borderBottomColor: borderColor, backgroundColor }]}>
@@ -64,6 +66,8 @@ export function MessageThreadHeader({
             color={thread.color}
             photoUrl={thread.photoUrl}
             size="sm"
+            photoBackgroundColor={supportBrandRow && thread.photoUrl ? '#FFFFFF' : undefined}
+            photoContentFit={supportBrandRow && thread.photoUrl ? 'contain' : 'cover'}
           />
         )}
         <View style={styles.titleBlock}>

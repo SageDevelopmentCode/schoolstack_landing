@@ -2,11 +2,16 @@ export type MessageParticipantKind =
   | 'family'
   | 'guardian'
   | 'staff_member'
-  | 'school_office';
+  | 'school_office'
+  | 'platform_support';
 
-export type PortalMessageSenderKind = 'guardian' | 'staff_member' | 'org_admin';
+export type PortalMessageSenderKind =
+  | 'guardian'
+  | 'staff_member'
+  | 'org_admin'
+  | 'platform_support';
 
-export type MessageContactKind = 'guardian' | 'staff_member' | 'school_office';
+export type MessageContactKind = 'guardian' | 'staff_member' | 'school_office' | 'platform_support';
 
 export type MessageStudentRef = {
   id: string;

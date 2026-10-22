@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
@@ -10,6 +9,7 @@ import {
 } from 'react-native';
 
 import { ParentCommitteeRequestStatusChip } from '@/components/parent/committees/parent-committee-request-status-chip';
+import { ParentCommitteesSkeleton } from '@/components/parent/committees/parent-committees-skeleton';
 import { ParentKeyboardAwareScrollView } from '@/components/parent/parent-keyboard-aware-scroll-view';
 import { StoryButton } from '@/components/story/story-button';
 import { StoryCard } from '@/components/story/story-card';
@@ -170,12 +170,7 @@ function CommitteeExploreDetailScreen({
   }, [committee, onWithdrawJoinRequest, organizationId, refresh, reportError, requesterName]);
 
   if (!committee) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: Story.paper }]}>
-        <ActivityIndicator color={theme.primary} />
-        <Text style={[styles.loadingCopy, { color: theme.muted }]}>Loading committee…</Text>
-      </View>
-    );
+    return <ParentCommitteesSkeleton rowCount={2} />;
   }
 
   return (

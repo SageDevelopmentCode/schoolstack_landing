@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Bell, Eye, Loader2 } from "lucide-react";
+import { Bell, Eye } from "lucide-react";
+import { AdminTableSkeleton } from "@/components/admin/ui/AdminSkeleton";
 import OrganizationTeacherNotificationsPanel from "@/components/admin/OrganizationTeacherNotificationsPanel";
 import ParentPortalLoginBadge, {
   getParentPortalLoginStatusLabel,
@@ -111,10 +112,11 @@ export default function OrganizationTeacherPortalPanel({
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 py-6 text-sm text-admin-faint font-secondary">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Loading teacher portal access…
-        </div>
+        <AdminTableSkeleton
+          columns={5}
+          rows={5}
+          ariaLabel="Loading teacher portal access"
+        />
       ) : error ? (
         <p className="text-sm text-admin-accent font-secondary">{error}</p>
       ) : staffMembers.length === 0 ? (

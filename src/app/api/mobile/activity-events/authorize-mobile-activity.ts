@@ -10,7 +10,8 @@ import { userHasTeacherPortalAccess } from "@/lib/staff/teacher-portal-access";
 export type MobilePortalSurface =
   | "parent_portal"
   | "school_admin"
-  | "teacher_portal";
+  | "teacher_portal"
+  | "platform_admin";
 
 export type MobileActivityAuthResult =
   | {
@@ -32,8 +33,27 @@ export async function authorizeMobileActivityEvent(
   surface: MobilePortalSurface,
   request?: Request,
 ): Promise<MobileActivityAuthResult> {
+  if (surface === "platform_admin") {
+    const platformAdmin = await isPlatformAdmin(supabase, userId);
+    if (!platformAdmin) {
+      return {
+        ok: false,
+        status: 403,
+        error: "Platform admin access is required.",
+        code: "forbidden",
+      };
+    }
+
+    return { ok: true, actorType: "platform_admin" };
+  }
+
   if (!organizationId) {
-    return { ok: true, actorType: "parent" };
+    return {
+      ok: false,
+      status: 400,
+      error: "organizationId is required for this surface.",
+      code: "invalid_organization",
+    };
   }
 
   if (surface === "parent_portal") {

@@ -29,7 +29,7 @@ export function buildGalleryUploadActivitySummary(input: {
 export async function logGalleryPhotosUploaded(
   supabase: SupabaseClient,
   input: LogGalleryPhotosUploadedInput,
-): Promise<void> {
+): Promise<string | null> {
   const uploaderName = input.actorName.trim() || "Someone";
   const summary = buildGalleryUploadActivitySummary({
     uploaderName,
@@ -37,7 +37,7 @@ export async function logGalleryPhotosUploaded(
     photoDate: input.photoDate,
   });
 
-  await logActivityEvent(supabase, {
+  return logActivityEvent(supabase, {
     organizationId: input.organizationId,
     actorType: input.actorType,
     actorUserId: input.actorUserId,

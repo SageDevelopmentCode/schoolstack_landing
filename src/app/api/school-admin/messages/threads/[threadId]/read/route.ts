@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
-import { markThreadRead, requireSchoolAdminUser } from "@/lib/messages/api-helpers";
+import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
+import {
+  assertSchoolAdminCanAccessThread,
+  markThreadRead,
+  requireSchoolAdminUser,
+} from "@/lib/messages/api-helpers";
 import { SchoolAdminAuthError } from "@/lib/school-admin/access";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -28,6 +33,7 @@ export async function POST(request: Request, context: RouteContext) {
 
     const user = await requireSchoolAdminUser(supabase, organizationId, request);
     const admin = createAdminClient();
+    await assertSchoolAdminCanAccessThread(admin, organizationId, threadId);
     await markThreadRead(admin, threadId, user.id);
 
     return NextResponse.json({ ok: true });
@@ -42,12 +48,13 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
+    const resolved = portalRouteErrorStatus(err, "Failed to mark thread read.");
     return apiError(ROUTE, {
       request,
-      status: 500,
-      error: "Failed to mark thread read.",
+      status: resolved.status,
+      error: resolved.message,
+      code: resolved.code,
       cause: err,
-      code: "internal_error",
     });
   }
 }

@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 
+import { useParentPortalContext } from '@/contexts/parent-portal-context';
 import { loadParentMessagesInbox } from '@/lib/messages/parent-api';
 import type { MessageContact, MessageThreadSummary } from '@/lib/messages/types';
 import {
@@ -38,7 +39,10 @@ const ParentMessagesInboxContext = createContext<ParentMessagesInboxContextValue
 
 const messagesInboxCache = createParentPortalCache<ParentMessagesInboxData>('parent_messages:');
 
-function cacheKey(organizationId: string, schoolName: string): string {
+function cacheKey(organizationId: string, schoolName: string, programId?: string): string {
+  if (programId) {
+    return `${organizationId}:${schoolName}:p:${programId}`;
+  }
   return `${organizationId}:${schoolName}`;
 }
 
@@ -57,13 +61,14 @@ function toInboxData(inbox: {
 function fetchAndCacheParentMessagesInbox(
   organizationId: string,
   schoolName: string,
+  programId?: string,
   options?: { refresh?: boolean },
 ): Promise<ParentMessagesInboxData> {
-  const key = cacheKey(organizationId, schoolName);
+  const key = cacheKey(organizationId, schoolName, programId);
   return messagesInboxCache.fetchAndCache(
     key,
     async () => {
-      const inbox = await loadParentMessagesInbox(organizationId, schoolName);
+      const inbox = await loadParentMessagesInbox(organizationId, schoolName, programId);
       return toInboxData(inbox);
     },
     options,
@@ -84,8 +89,9 @@ export function prefetchParentMessagesInbox(
 export async function hydrateParentMessagesInboxFromDisk(
   organizationId: string,
   schoolName: string,
+  programId?: string,
 ): Promise<ParentMessagesInboxData | null> {
-  return messagesInboxCache.hydrateFromDisk(cacheKey(organizationId, schoolName));
+  return messagesInboxCache.hydrateFromDisk(cacheKey(organizationId, schoolName, programId));
 }
 
 type ParentMessagesInboxProviderProps = {
@@ -101,7 +107,11 @@ export function ParentMessagesInboxProvider({
   schoolName,
   authReady = true,
 }: ParentMessagesInboxProviderProps) {
-  const key = cacheKey(organizationId, schoolName);
+  const { activeProgramSlug, programsByPortalSlug } = useParentPortalContext();
+  const programId = activeProgramSlug
+    ? programsByPortalSlug[activeProgramSlug]?.programId
+    : undefined;
+  const key = cacheKey(organizationId, schoolName, programId);
   const cached = messagesInboxCache.get(key);
 
   const [threads, setThreads] = useState<MessageThreadSummary[]>(cached?.threads ?? []);
@@ -145,9 +155,12 @@ export function ParentMessagesInboxProvider({
         setError(null);
 
         try {
-          const nextData = await fetchAndCacheParentMessagesInbox(organizationId, schoolName, {
-            refresh: isRefresh,
-          });
+          const nextData = await fetchAndCacheParentMessagesInbox(
+            organizationId,
+            schoolName,
+            programId,
+            { refresh: isRefresh },
+          );
           applyInboxData(nextData);
           setHasLoaded(true);
         } catch (loadError) {
@@ -166,7 +179,7 @@ export function ParentMessagesInboxProvider({
       }
       await promise;
     },
-    [applyInboxData, key, organizationId, reportError, schoolName],
+    [applyInboxData, key, organizationId, programId, reportError, schoolName],
   );
 
   const refresh = useCallback(
@@ -185,7 +198,7 @@ export function ParentMessagesInboxProvider({
 
     async function init() {
       const resolved = await resolveParentPortalProviderInit(key, messagesInboxCache, () =>
-        hydrateParentMessagesInboxFromDisk(organizationId, schoolName),
+        hydrateParentMessagesInboxFromDisk(organizationId, schoolName, programId),
       );
       if (cancelled) return;
 
@@ -203,7 +216,7 @@ export function ParentMessagesInboxProvider({
       }
 
       try {
-        await fetchAndCacheParentMessagesInbox(organizationId, schoolName);
+        await fetchAndCacheParentMessagesInbox(organizationId, schoolName, programId);
         if (cancelled) return;
 
         applyInboxData(messagesInboxCache.get(key));
@@ -227,7 +240,7 @@ export function ParentMessagesInboxProvider({
     return () => {
       cancelled = true;
     };
-  }, [applyInboxData, authReady, key, organizationId, reportError, schoolName]);
+  }, [applyInboxData, authReady, key, organizationId, programId, reportError, schoolName]);
 
   const value = useMemo(
     () => ({

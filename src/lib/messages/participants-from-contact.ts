@@ -33,6 +33,24 @@ export function participantsFromContact(
     ];
   }
 
+  if (contact.kind === "platform_support") {
+    if (context.guardianId) {
+      return [
+        { kind: "guardian", guardianId: context.guardianId },
+        { kind: "platform_support" },
+      ];
+    }
+    if (context.staffMemberId) {
+      return [
+        { kind: "staff_member", staffMemberId: context.staffMemberId },
+        { kind: "platform_support" },
+      ];
+    }
+    throw new Error(
+      "A guardian or staff profile is required to message MudKitchen Support.",
+    );
+  }
+
   if (contact.kind === "guardian") {
     if (!contact.guardianId) throw new Error("Guardian contact is missing guardianId.");
     if (context.staffMemberId) {
@@ -96,8 +114,22 @@ export function contactKeyForThread(
     staffMemberId?: string | null;
   },
 ): string | null {
-  const hasOffice = threadParticipants.some((p) => p.kind === "school_office");
+  const hasPlatformSupport = threadParticipants.some((p) => p.kind === "platform_support");
   const guardianParticipant = threadParticipants.find((p) => p.kind === "guardian");
+
+  if (hasPlatformSupport) {
+    if (viewer === "parent" || viewer === "teacher") return "platform_support";
+    if (guardianParticipant?.guardianId) {
+      return `platform_support:guardian:${guardianParticipant.guardianId}`;
+    }
+    const staffParticipant = threadParticipants.find((p) => p.kind === "staff_member");
+    if (staffParticipant?.staffMemberId) {
+      return `platform_support:staff:${staffParticipant.staffMemberId}`;
+    }
+    return "platform_support";
+  }
+
+  const hasOffice = threadParticipants.some((p) => p.kind === "school_office");
   const legacyFamilyParticipant = threadParticipants.find((p) => p.kind === "family");
   const staffParticipants = threadParticipants.filter((p) => p.kind === "staff_member");
 

@@ -12,6 +12,7 @@ function submission(
 ): AdminApplicationSubmission {
   return {
     id: "app-1",
+    familyId: null,
     status: "submitted",
     feeStatus: "paid",
     feeEnabled: true,

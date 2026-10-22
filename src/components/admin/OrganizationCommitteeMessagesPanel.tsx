@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
+import {
+  AdminListItemsSkeleton,
+  AdminSkeletonBlock,
+} from "@/components/admin/ui/AdminSkeleton";
 import AdminReadOnlyMessageBubble from "@/components/admin/messages/AdminReadOnlyMessageBubble";
 import { AdminDetailEmpty } from "@/components/admin/ui/AdminDetailEmpty";
 import { AdminDetailHeader } from "@/components/admin/ui/AdminDetailHeader";
@@ -41,9 +45,13 @@ function CommitteeDetailPanel({
   if (loading) {
     return (
       <AdminDetailLayout>
-        <div className="flex items-center gap-2 py-12 text-sm text-admin-faint">
-          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-          Loading committee messages…
+        <div
+          className="space-y-3 px-4 py-8"
+          aria-busy="true"
+          aria-label="Loading committee messages"
+        >
+          <AdminSkeletonBlock className="h-4 w-48" />
+          <AdminListItemsSkeleton count={4} ariaLabel="Loading messages" />
         </div>
       </AdminDetailLayout>
     );
@@ -204,10 +212,11 @@ export default function OrganizationCommitteeMessagesPanel({
 
             <div className="flex-1 overflow-y-auto">
               {listLoading ? (
-                <div className="flex items-center gap-2 px-4 py-8 text-sm text-admin-faint">
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                  Loading committees…
-                </div>
+                <AdminListItemsSkeleton
+                  count={5}
+                  ariaLabel="Loading committees"
+                  className="px-4 py-6"
+                />
               ) : listError ? (
                 <div className="px-4 py-8 text-center">
                   <p className="text-sm text-admin-error">{listError}</p>

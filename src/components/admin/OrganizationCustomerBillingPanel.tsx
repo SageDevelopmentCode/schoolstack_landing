@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ExternalLink, Loader2, Plus } from "lucide-react";
+import { AdminListItemsSkeleton } from "@/components/admin/ui/AdminSkeleton";
 import { AdminSelect } from "@/components/admin/ui/AdminSelect";
 import {
   BILLING_PERIOD_MONTHS,
@@ -262,10 +263,7 @@ export default function OrganizationCustomerBillingPanel({
 
       <div className="space-y-2">
         {loading ? (
-          <div className="flex items-center gap-2 text-sm text-admin-faint font-secondary">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading invoices…
-          </div>
+          <AdminListItemsSkeleton count={3} ariaLabel="Loading invoices" />
         ) : invoices.length === 0 ? (
           <p className="text-sm text-admin-faint font-secondary">
             No invoices yet.

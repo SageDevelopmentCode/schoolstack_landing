@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState } from "react";
 import {
   ArrowLeft,
   Activity,
@@ -12,6 +13,9 @@ import {
   Settings,
   Users,
 } from "lucide-react";
+import CommitteeWorkspaceMobileMenuSheet, {
+  CommitteeWorkspaceMobileMenuButton,
+} from "@/components/school-admin/committees/CommitteeWorkspaceMobileMenuSheet";
 import type { LucideIcon } from "lucide-react";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
 import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
@@ -67,6 +71,9 @@ export function CommitteeWorkspaceSidePanel({
   navItems,
   navTestId = "committee-section-nav",
 }: CommitteeWorkspaceSidePanelProps) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
+
   const leaders = committee.members.filter((member) => member.role === "lead");
   const leaderLine =
     leaders.length > 0 ? `Led by ${leaders.map((leader) => leader.name).join(", ")}` : null;
@@ -82,8 +89,15 @@ export function CommitteeWorkspaceSidePanel({
       };
     });
 
-  return (
-    <div className="flex flex-col gap-5">
+  const currentSectionLabel = COMMITTEE_SECTION_LABELS[activeSection];
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
+    queueMicrotask(() => mobileMenuButtonRef.current?.focus());
+  };
+
+  const desktopSidePanel = (
+    <div className="hidden flex-col gap-5 lg:flex">
       {onBack ? (
         <button
           type="button"
@@ -151,6 +165,53 @@ export function CommitteeWorkspaceSidePanel({
         data-testid={navTestId}
       />
     </div>
+  );
+
+  const mobileCompactBar = (
+    <div className="flex flex-col gap-2 lg:hidden">
+      <div className="flex min-w-0 items-center gap-2">
+        {onBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex shrink-0 items-center gap-1 border-0 bg-transparent p-0 text-[12px] font-medium transition-opacity hover:opacity-80"
+            style={{ color: theme.muted }}
+            aria-label={backLabel}
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+          </button>
+        ) : null}
+        <h1 className="min-w-0 flex-1 truncate text-sm font-bold" style={{ color: theme.ink }}>
+          {committee.name}
+        </h1>
+        <CommitteeWorkspaceMobileMenuButton
+          theme={theme}
+          currentSectionLabel={currentSectionLabel}
+          expanded={mobileMenuOpen}
+          onClick={() => setMobileMenuOpen(true)}
+          buttonRef={mobileMenuButtonRef}
+        />
+      </div>
+      <CommitteeWorkspaceMobileMenuSheet
+        theme={theme}
+        open={mobileMenuOpen}
+        committee={committee}
+        variant={variant}
+        leaderLine={leaderLine}
+        items={items}
+        activeSection={activeSection}
+        onSectionChange={(key) => onSectionChange(key as CommitteeWorkspaceSection)}
+        onClose={closeMobileMenu}
+        navTestId={navTestId}
+      />
+    </div>
+  );
+
+  return (
+    <>
+      {mobileCompactBar}
+      {desktopSidePanel}
+    </>
   );
 }
 

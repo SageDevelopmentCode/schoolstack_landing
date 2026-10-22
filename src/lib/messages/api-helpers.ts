@@ -10,6 +10,7 @@ import {
   getThreadDetail,
   markThreadRead,
 } from "@/lib/messages/threads";
+import { assertSchoolAdminCanAccessThread } from "@/lib/messages/thread-access";
 import type { MessageContactInput, MessageParticipantInput } from "@/lib/messages/types";
 import {
   getStaffMemberIdForUser,
@@ -100,6 +101,8 @@ export async function assertTeacherCanAccessThread(
   }
 }
 
+export { assertSchoolAdminCanAccessThread };
+
 export async function resolveParticipantsForContact(
   admin: SupabaseClient,
   organizationId: string,
@@ -136,6 +139,11 @@ export async function resolveParticipantsForContact(
 
   if (context.viewer === "teacher") {
     if (!context.staffMemberId) throw new Error("Staff profile not found.");
+    if (contact.kind === "platform_support") {
+      return participantsFromContact(contact, {
+        staffMemberId: context.staffMemberId,
+      });
+    }
     if (contact.kind === "guardian" && contact.guardianId) {
       const { data: guardian, error: guardianError } = await admin
         .from("guardians")

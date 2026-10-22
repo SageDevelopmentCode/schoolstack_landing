@@ -1,35 +1,22 @@
-import fs from "node:fs";
-import { defineConfig, devices } from "@playwright/test";
-import dotenv from "dotenv";
-import { AUTH_STATE_PATHS, E2E_BASE_URL, E2E_PORT } from "./e2e/fixtures/constants";
+import { defineConfig, devices, type PlaywrightTestConfig } from "@playwright/test";
+import { AUTH_STATE_PATHS } from "./e2e/fixtures/constants";
+import {
+  buildE2eWebServerEnv,
+  loadE2eDotenv,
+  resolveE2eBaseUrl,
+  resolveE2eWebServerCommand,
+  resolveE2eWebServerPort,
+  shouldSkipPlaywrightWebServer,
+} from "./e2e/web-server-env";
 
-if (fs.existsSync(".env.e2e.local")) {
-  dotenv.config({ path: ".env.e2e.local", override: true });
-}
+loadE2eDotenv();
 
-// Dedicated E2E port so `npm run dev` on 3000/3001 can stay running.
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? E2E_BASE_URL;
+// Dedicated E2E port so `npm run dev` on 3000/3001 can stay running (local uses next start on 3100).
+const baseURL = resolveE2eBaseUrl();
+const webServerPort = resolveE2eWebServerPort(baseURL);
+const skipWebServer = shouldSkipPlaywrightWebServer();
 
-function resolveWebServerPort(): number {
-  if (process.env.PLAYWRIGHT_PORT) {
-    return Number(process.env.PLAYWRIGHT_PORT);
-  }
-
-  try {
-    const url = new URL(baseURL);
-    if (url.port) {
-      return Number(url.port);
-    }
-  } catch {
-    // fall through to default E2E port
-  }
-
-  return E2E_PORT;
-}
-
-const webServerPort = resolveWebServerPort();
-
-export default defineConfig({
+const config: PlaywrightTestConfig = {
   testDir: "./e2e",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
@@ -104,31 +91,16 @@ export default defineConfig({
       },
     },
   ],
-  webServer: {
-    command: `npm run dev:next -- -p ${webServerPort}`,
+};
+
+if (!skipWebServer) {
+  config.webServer = {
+    command: resolveE2eWebServerCommand(webServerPort),
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
-    env: {
-      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
-        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "",
-      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
-      NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL ?? baseURL,
-      DISABLE_OUTBOUND_EMAIL: "1",
-      DISCORD_E2E_ALERTS_WEBHOOK_URL:
-        process.env.DISCORD_E2E_ALERTS_WEBHOOK_URL ?? "",
-      ROOTED_MEADOWS_WEBSITE_NOTIFICATION_DISCORD_WEBHOOK_URL: "",
-      STRIPE_SECRET_KEY: "",
-      STRIPE_WEBHOOK_SECRET: "",
-      ZOHO_CLIENT_ID: "",
-      ZOHO_CLIENT_SECRET: "",
-      ZOHO_REDIRECT_URI: "",
-      ZOHO_REFRESH_TOKEN: "",
-      ZOHO_ACCOUNT_ID: "",
-      ZOHO_FROM_ADDRESS: "",
-      ZOHO_SMTP_USER: "",
-      ZOHO_SMTP_PASSWORD: "",
-    },
-  },
-});
+    env: buildE2eWebServerEnv(baseURL),
+  };
+}
+
+export default defineConfig(config);

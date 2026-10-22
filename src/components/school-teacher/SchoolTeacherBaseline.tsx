@@ -1,15 +1,18 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
+import { Suspense, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import SchoolTeacherHeader from "@/components/school-teacher/SchoolTeacherHeader";
 import ParentToaster from "@/components/school-parent/ParentToaster";
 import {
   ParentThemeProvider,
   useParentTheme,
 } from "@/components/school-parent/ParentThemeContext";
-import { isTeacherMessagesPath } from "@/lib/organization-settings/teacher-routes";
+import {
+  isTeacherCommitteeWorkspaceOpen,
+  isTeacherMessagesPath,
+} from "@/lib/organization-settings/teacher-routes";
 import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
 import type { StaffUserProfile } from "@/lib/staff/teacher-portal-access";
 import { parentThemeCssVars } from "@/lib/organization-settings/parent-theme";
@@ -58,9 +61,17 @@ function SchoolTeacherBaselineInner({
   portalOptions = [],
   openPortalLinksInNewTab = false,
   children,
-}: SchoolTeacherBaselineProps) {
+}: SchoolTeacherBaselineProps & {
+  searchParams: ReturnType<typeof useSearchParams>;
+}) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isMessagesPage = isTeacherMessagesPath(pathname);
+  const isCommitteeWorkspaceOpen = isTeacherCommitteeWorkspaceOpen(
+    pathname,
+    searchParams,
+  );
+  const isFixedLayoutPage = isMessagesPage || isCommitteeWorkspaceOpen;
   const messagesEnabled = Boolean(features.teacher?.messages) && !previewMode;
   const { theme, adminCompat: C } = useParentTheme();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -146,7 +157,7 @@ function SchoolTeacherBaselineInner({
 
         <main
           className={`flex min-h-0 flex-1 flex-col ${
-            isMessagesPage ? "overflow-hidden" : "overflow-y-auto"
+            isFixedLayoutPage ? "overflow-hidden" : "overflow-y-auto"
           }`}
         >
           <div className="flex min-h-0 flex-1 flex-col">{children}</div>
@@ -168,10 +179,17 @@ function SchoolTeacherBaselineInner({
   );
 }
 
+function SchoolTeacherBaselineWithSearchParams(props: SchoolTeacherBaselineProps) {
+  const searchParams = useSearchParams();
+  return <SchoolTeacherBaselineInner {...props} searchParams={searchParams} />;
+}
+
 export default function SchoolTeacherBaseline(props: SchoolTeacherBaselineProps) {
   return (
     <ParentThemeProvider branding={props.branding}>
-      <SchoolTeacherBaselineInner {...props} />
+      <Suspense fallback={null}>
+        <SchoolTeacherBaselineWithSearchParams {...props} />
+      </Suspense>
     </ParentThemeProvider>
   );
 }

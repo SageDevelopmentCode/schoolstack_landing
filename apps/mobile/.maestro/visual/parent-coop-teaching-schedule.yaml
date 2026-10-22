@@ -1,0 +1,13 @@
+appId: com.mudkitchen.schoolstack.mobile
+tags:
+  - coop-demo-data
+---
+- runFlow: ../parent-coop-program-preview.yaml
+- tapOn: 'Schedule'
+- extendedWaitUntil:
+    visible:
+      id: 'parent-coop-teaching-schedule-ready'
+    timeout: 45000
+- assertVisible: 'Teaching schedule'
+- assertVisible: 'All weeks'
+- takeScreenshot: visual-capture

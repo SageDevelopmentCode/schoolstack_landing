@@ -189,7 +189,9 @@ function TeacherLayoutContent() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: Story.paper }]}>
+    <SafeAreaView
+      testID={showTabBar ? 'teacher-portal-ready' : undefined}
+      style={[styles.container, { backgroundColor: Story.paper }]}>
       <StatusBar style="dark" />
       {isPreview ? <PortalPreviewBanner onExit={() => void exitPreview()} /> : null}
       <View

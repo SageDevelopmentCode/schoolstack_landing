@@ -2,15 +2,23 @@
 
 import { useMemo, useState } from "react";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
+import PostSubmitStepCompleteDialog from "@/components/school-admin/admissions/PostSubmitStepCompleteDialog";
+import PostSubmitStepDocumentationDialog, {
+  type PostSubmitStepDocumentationSaveHelpers,
+  type PostSubmitStepDocumentationSaveInput,
+} from "@/components/school-admin/admissions/PostSubmitStepDocumentationDialog";
 import DetailPanelSection from "@/components/school-admin/admissions/DetailPanelSection";
 import DetailPanelStepTimeline, {
   type DetailPanelStepTimelineItem,
 } from "@/components/school-admin/admissions/DetailPanelStepTimeline";
 import { formatScheduledVisitWhenLabel } from "@/lib/admissions/admissions-availability";
-import type { AdminPostSubmitStep } from "@/lib/admissions/admin-post-submit-steps";
+import {
+  SUBMISSION_POST_APPLICATION_STEPS_ANCHOR_ID,
+  type AdminPostSubmitStep,
+} from "@/lib/admissions/admin-post-submit-steps";
+import { postSubmitStepDocumentationSummary } from "@/lib/admissions/post-submit-step-documentation";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
-import { SITE_NAME } from "@/lib/site";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
@@ -28,10 +36,13 @@ type PendingAction =
 
 function formatBookingLabel(step: AdminPostSubmitStep): string {
   if (!step.booking) return "";
+  const docSummary = postSubmitStepDocumentationSummary(step);
   if (step.booking.completedManuallyAt) {
-    return formatScheduledVisitWhenLabel(step.booking);
+    const base = formatScheduledVisitWhenLabel(step.booking);
+    return docSummary ? `${base} · ${docSummary}` : base;
   }
-  return `Scheduled ${formatScheduledVisitWhenLabel(step.booking)}`;
+  const scheduled = `Scheduled ${formatScheduledVisitWhenLabel(step.booking)}`;
+  return docSummary ? `${scheduled} · ${docSummary}` : scheduled;
 }
 
 export default function ApplicationSubmissionPostSubmitSection({
@@ -42,20 +53,31 @@ export default function ApplicationSubmissionPostSubmitSection({
   onStepUpdated,
 }: ApplicationSubmissionPostSubmitSectionProps) {
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+  const [documentationStep, setDocumentationStep] = useState<AdminPostSubmitStep | null>(
+    null,
+  );
   const [submitting, setSubmitting] = useState(false);
 
-  async function handleConfirm() {
-    if (!pendingAction) return;
+  async function handleMarkComplete(input: { notes: string; pendingFiles: File[] }) {
+    if (!pendingAction || pendingAction.type !== "complete") return;
 
     setSubmitting(true);
     let responseStatus: number | undefined;
     try {
+      const formData = new FormData();
+      formData.set("actionId", pendingAction.step.actionId);
+      if (input.notes) {
+        formData.set("notes", input.notes);
+      }
+      for (const file of input.pendingFiles) {
+        formData.append("attachments", file);
+      }
+
       const response = await fetch(
         `/api/admissions/applications/${applicationId}/post-submit/complete`,
         {
-          method: pendingAction.type === "complete" ? "POST" : "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ actionId: pendingAction.step.actionId }),
+          method: "POST",
+          body: formData,
         },
       );
       responseStatus = response.status;
@@ -65,11 +87,7 @@ export default function ApplicationSubmissionPostSubmitSection({
         throw new Error(body.error ?? "Failed to update post-application step.");
       }
 
-      adminToast.success(
-        pendingAction.type === "complete"
-          ? "Post-application step marked complete"
-          : "Manual completion undone",
-      );
+      adminToast.success("Post-application step marked complete");
       setPendingAction(null);
       onStepUpdated?.();
     } catch (error) {
@@ -93,6 +111,135 @@ export default function ApplicationSubmissionPostSubmitSection({
     }
   }
 
+  async function handleUndoConfirm() {
+    if (!pendingAction || pendingAction.type !== "undo") return;
+
+    setSubmitting(true);
+    let responseStatus: number | undefined;
+    try {
+      const response = await fetch(
+        `/api/admissions/applications/${applicationId}/post-submit/complete`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ actionId: pendingAction.step.actionId }),
+        },
+      );
+      responseStatus = response.status;
+
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(body.error ?? "Failed to update post-application step.");
+      }
+
+      adminToast.success("Manual completion undone");
+      setPendingAction(null);
+      onStepUpdated?.();
+    } catch (error) {
+      if (responseStatus === undefined || responseStatus < 500) {
+        void reportPortalOperationalError(
+          "school_admin",
+          {
+            organizationId,
+            operation: "admissions.post_submit.update",
+            error: "",
+            entityType: "application",
+            entityId: applicationId,
+          },
+          error,
+          responseStatus,
+        );
+      }
+      adminToast.error(formatActionError(error, "Failed to update post-application step."));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function isPostSubmitStepFileAlreadyRemoved(
+    status: number,
+    body: { code?: string; error?: string },
+  ): boolean {
+    return (
+      status === 404 &&
+      body.code === "not_found" &&
+      body.error === "File not found."
+    );
+  }
+
+  async function handleSaveDocumentation(
+    input: PostSubmitStepDocumentationSaveInput,
+    helpers: PostSubmitStepDocumentationSaveHelpers,
+  ) {
+    if (!documentationStep) return;
+
+    setSubmitting(true);
+    let responseStatus: number | undefined;
+    const actionId = documentationStep.actionId;
+
+    try {
+      for (const fileId of input.removedFileIds) {
+        const deleteResponse = await fetch(
+          `/api/admissions/applications/${applicationId}/post-submit/steps/${encodeURIComponent(actionId)}/files/${encodeURIComponent(fileId)}`,
+          { method: "DELETE" },
+        );
+        responseStatus = deleteResponse.status;
+        const deleteBody = (await deleteResponse.json().catch(() => ({}))) as {
+          code?: string;
+          error?: string;
+        };
+        if (!deleteResponse.ok) {
+          if (!isPostSubmitStepFileAlreadyRemoved(deleteResponse.status, deleteBody)) {
+            throw new Error(deleteBody.error ?? "Failed to remove file.");
+          }
+        }
+        helpers.commitFileRemoval(fileId);
+      }
+
+      const formData = new FormData();
+      formData.set("notes", input.notes);
+      for (const file of input.pendingFiles) {
+        formData.append("attachments", file);
+      }
+
+      const response = await fetch(
+        `/api/admissions/applications/${applicationId}/post-submit/steps/${encodeURIComponent(actionId)}/documentation`,
+        {
+          method: "PATCH",
+          body: formData,
+        },
+      );
+      responseStatus = response.status;
+
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(body.error ?? "Failed to save documentation.");
+      }
+
+      adminToast.success("Step documentation saved");
+      setDocumentationStep(null);
+      onStepUpdated?.();
+    } catch (error) {
+      if (responseStatus === undefined || responseStatus < 500) {
+        void reportPortalOperationalError(
+          "school_admin",
+          {
+            organizationId,
+            operation: "admissions.post_submit.documentation",
+            error: "",
+            entityType: "application",
+            entityId: applicationId,
+          },
+          error,
+          responseStatus,
+        );
+      }
+      adminToast.error(formatActionError(error, "Failed to save documentation."));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   const timelineItems: DetailPanelStepTimelineItem[] = useMemo(
     () =>
       steps.map((step) => {
@@ -109,16 +256,26 @@ export default function ApplicationSubmissionPostSubmitSection({
             ? formatBookingLabel(step)
             : "Not scheduled",
           trailingAction: isScheduled ? (
-            isManual ? (
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setPendingAction({ type: "undo", step })}
+                onClick={() => setDocumentationStep(step)}
                 className="text-[11px] font-medium underline-offset-2 hover:underline"
                 style={{ color: C.textSecondary }}
               >
-                Undo
+                Notes & files
               </button>
-            ) : null
+              {isManual ? (
+                <button
+                  type="button"
+                  onClick={() => setPendingAction({ type: "undo", step })}
+                  className="text-[11px] font-medium underline-offset-2 hover:underline"
+                  style={{ color: C.textSecondary }}
+                >
+                  Undo
+                </button>
+              ) : null}
+            </div>
           ) : (
             <button
               type="button"
@@ -138,19 +295,18 @@ export default function ApplicationSubmissionPostSubmitSection({
 
   if (steps.length === 0) return null;
 
-  const confirmTitle =
-    pendingAction?.type === "complete"
-      ? "Mark step complete?"
-      : "Undo manual completion?";
-
-  const confirmDescription =
-    pendingAction?.type === "complete"
-      ? `Mark "${pendingAction.step.title}" as complete? Use this when the family completed this step outside ${SITE_NAME}.`
-      : `Revert "${pendingAction?.step.title}" to not started? The family will be able to schedule this step again in the portal.`;
+  const confirmTitle = "Undo manual completion?";
+  const confirmDescription = pendingAction?.type === "undo"
+    ? `Revert "${pendingAction.step.title}" to not started? The family will be able to schedule this step again in the portal.`
+    : "";
 
   return (
     <>
-      <DetailPanelSection C={C} title="Post-application steps">
+      <DetailPanelSection
+        C={C}
+        id={SUBMISSION_POST_APPLICATION_STEPS_ANCHOR_ID}
+        title="Post-application steps"
+      >
         <DetailPanelStepTimeline
           C={C}
           items={timelineItems}
@@ -158,17 +314,41 @@ export default function ApplicationSubmissionPostSubmitSection({
         />
       </DetailPanelSection>
 
-      <ConfirmDialog
+      <PostSubmitStepCompleteDialog
         C={C}
-        open={pendingAction !== null}
-        title={confirmTitle}
-        description={confirmDescription}
-        confirmLabel={pendingAction?.type === "complete" ? "Mark complete" : "Undo"}
-        variant={pendingAction?.type === "undo" ? "destructive" : "default"}
+        open={pendingAction?.type === "complete"}
+        step={pendingAction?.type === "complete" ? pendingAction.step : null}
         loading={submitting}
-        onConfirm={() => void handleConfirm()}
+        onConfirm={(input) => void handleMarkComplete(input)}
         onClose={() => {
           if (!submitting) setPendingAction(null);
+        }}
+      />
+
+      <ConfirmDialog
+        C={C}
+        open={pendingAction?.type === "undo"}
+        title={confirmTitle}
+        description={confirmDescription}
+        confirmLabel="Undo"
+        variant="destructive"
+        loading={submitting}
+        onConfirm={() => void handleUndoConfirm()}
+        onClose={() => {
+          if (!submitting) setPendingAction(null);
+        }}
+      />
+
+      <PostSubmitStepDocumentationDialog
+        C={C}
+        organizationId={organizationId}
+        applicationId={applicationId}
+        open={documentationStep !== null}
+        step={documentationStep}
+        loading={submitting}
+        onSave={(input, helpers) => void handleSaveDocumentation(input, helpers)}
+        onClose={() => {
+          if (!submitting) setDocumentationStep(null);
         }}
       />
     </>

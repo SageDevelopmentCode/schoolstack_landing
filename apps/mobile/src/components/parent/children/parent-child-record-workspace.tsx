@@ -34,6 +34,7 @@ import {
   StudentProfilePhotoUploadError,
   uploadStudentProfilePhotoFromParent,
 } from '@/lib/parent/upload-student-profile-photo';
+import { MOBILE_PROFILE_PHOTO_UPLOAD_ENABLED } from '@/lib/profile-photo/mobile-profile-photo-upload-enabled';
 
 type RecordTab = 'application' | 'checklist' | 'teachers';
 
@@ -127,7 +128,8 @@ export function ParentChildRecordWorkspace({
   const resolvedChecklist = localChecklist ?? checklist;
   const hasChecklist = Boolean(resolvedChecklist && resolvedChecklist.items.length > 0);
   const hasTeachersTab = Boolean(application.studentId);
-  const canUploadPhoto = Boolean(application.studentId);
+  const canUploadPhoto =
+    MOBILE_PROFILE_PHOTO_UPLOAD_ENABLED && Boolean(application.studentId);
   const statusLabel = applicationStatusLabel(application.status);
   const statusTone = childStatusChipTone(childOverview);
   const activeTab = toRecordTab(activeSection);

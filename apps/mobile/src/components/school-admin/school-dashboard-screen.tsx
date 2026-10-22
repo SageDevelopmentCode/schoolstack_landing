@@ -1,4 +1,3 @@
-import type { User } from '@supabase/supabase-js';
 import { type Href, useFocusEffect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -7,7 +6,10 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { AttendanceRosterPanel } from '@/components/attendance/attendance-roster-panel';
 import { PrimaryButton } from '@/components/primary-button';
+import { completeSchoolSignIn, useAuth } from '@/contexts/auth-context';
 import { useAuthRequiredRedirect } from '@/hooks/use-auth-required-redirect';
+import { getMobileEntryRoute } from '@/lib/auth/mobile-portal-entry';
+import { fetchLiveOrganizationsBySlugs } from '@/lib/organizations';
 import { SubmissionStoryTabBar } from '@/components/school-admin/admissions/submission-story-tab-bar';
 import { AdminActivityNotificationsSheet } from '@/components/school-admin/dashboard/admin-activity-notifications-sheet';
 import { AdminDashboardHeader } from '@/components/school-admin/dashboard/admin-dashboard-header';
@@ -47,6 +49,9 @@ import {
 import { usePortalPreview } from '@/lib/portal-preview-gating';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
+const SCHOOL_ADMIN_ACCESS_DENIED_MESSAGE =
+  'You do not have admin access to this school.';
+
 type SchoolDashboardTab = 'overview' | 'attendance';
 
 const SCHOOL_DASHBOARD_TABS = [
@@ -58,18 +63,17 @@ type SchoolDashboardScreenProps = {
   organizationId: string;
   slug: string;
   schoolName: string;
-  user?: User | null;
 };
 
 export function SchoolDashboardScreen({
   organizationId,
   slug,
   schoolName,
-  user,
 }: SchoolDashboardScreenProps) {
   const theme = useAdminTheme();
   const router = useRouter();
   const { isPreview } = usePortalPreview();
+  const { user, setResolvedPortal } = useAuth();
   const { reportError } = useMobileErrorReporter(organizationId);
   const [homeTab, setHomeTab] = useState<SchoolDashboardTab>('overview');
   const [summary, setSummary] = useState<MobileAdminDashboardSummary | null>(null);
@@ -181,18 +185,44 @@ export function SchoolDashboardScreen({
     router.replace(schoolAdminSubmissionsRoute(slug) as Href);
   }, [router, slug]);
 
+  const handleOpenStaffPortal = useCallback(async () => {
+    if (!user?.id) {
+      return;
+    }
+
+    const organizations = await fetchLiveOrganizationsBySlugs([slug]);
+    const organization = organizations[0];
+    if (!organization) {
+      return;
+    }
+
+    const portal = await completeSchoolSignIn(user.id, organization);
+    await setResolvedPortal(portal, user.id);
+    router.replace(getMobileEntryRoute(portal.portalType, slug));
+  }, [router, setResolvedPortal, slug, user?.id]);
+
   if (loading && !summary) {
     return <AdminDashboardSkeleton />;
   }
 
   if (error && !summary) {
+    const showStaffPortalAction = error === SCHOOL_ADMIN_ACCESS_DENIED_MESSAGE;
+
     return (
       <View style={[styles.centered, { backgroundColor: theme.bg }]}>
         <ThemedText type="small" style={{ color: theme.textSecondary, textAlign: 'center' }}>
           {error}
         </ThemedText>
+        {showStaffPortalAction ? (
+          <PrimaryButton
+            label="Open staff portal"
+            onPress={() => void handleOpenStaffPortal()}
+            style={styles.retry}
+          />
+        ) : null}
         <PrimaryButton
           label="Try again"
+          variant={showStaffPortalAction ? 'surface' : 'clay'}
           onPress={() => void loadSummary()}
           style={styles.retry}
         />

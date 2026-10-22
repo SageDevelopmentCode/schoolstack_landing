@@ -1,4 +1,4 @@
-import { SITE_URL } from "@/lib/site";
+import { getRuntimeSiteUrl, SITE_URL } from "@/lib/site";
 import { DRAFT_REMINDER_DELAY_PRESETS } from "@/lib/admissions/application-form-schema";
 import type { CommitteeDigestCommitteeGroup } from "@/lib/committees/daily-digest-utils";
 import type { UnreadDigestDiscordDelivery } from "@/lib/messages/unread-message-digest-types";
@@ -1077,6 +1077,152 @@ export async function notifyRootedMeadowsVerificationCodeSent(payload: {
   });
 }
 
+export type PortalSignInDiscordSurface =
+  | "parent_portal"
+  | "school_admin"
+  | "teacher_portal"
+  | "platform_admin"
+  | "public_apply";
+
+export type PortalSignInDiscordActorType =
+  | "parent"
+  | "school_admin"
+  | "platform_admin"
+  | "teacher";
+
+/** @deprecated Use PortalSignInDiscordSurface */
+export type MobileSignInDiscordSurface = Exclude<
+  PortalSignInDiscordSurface,
+  "public_apply"
+>;
+
+/** @deprecated Use PortalSignInDiscordActorType */
+export type MobileSignInDiscordActorType = PortalSignInDiscordActorType;
+
+export function formatPortalSignInDiscordRoleLabel(
+  surface: PortalSignInDiscordSurface,
+  actorType: PortalSignInDiscordActorType,
+): string {
+  if (surface === "platform_admin" || actorType === "platform_admin") {
+    return "Platform admin";
+  }
+  if (surface === "teacher_portal" || actorType === "teacher") {
+    return "Teacher";
+  }
+  if (surface === "school_admin" || actorType === "school_admin") {
+    return "School admin";
+  }
+  return "Parent";
+}
+
+/** @deprecated Use formatPortalSignInDiscordRoleLabel */
+export const formatMobileSignInDiscordRoleLabel = formatPortalSignInDiscordRoleLabel;
+
+export type PortalSignInDiscordPage =
+  | "/login"
+  | "/parent"
+  | "/apply"
+  | "/forms/apply";
+
+export type PortalSignInDiscordPayload = {
+  email: string;
+  client: "web" | "mobile";
+  surface: PortalSignInDiscordSurface;
+  actorType: PortalSignInDiscordActorType;
+  schoolName?: string;
+  method?: "otp" | "password";
+  page?: PortalSignInDiscordPage;
+  platform?: "ios" | "android";
+  appVersion?: string;
+};
+
+function formatPortalSignInDiscordPageLabel(
+  page: PortalSignInDiscordPage | undefined,
+): string | null {
+  if (!page) return null;
+  switch (page) {
+    case "/login":
+      return "Login";
+    case "/parent":
+      return "Parent portal";
+    case "/apply":
+      return "Apply";
+    case "/forms/apply":
+      return "Application form";
+    default:
+      return page;
+  }
+}
+
+export async function notifyRootedMeadowsPortalSignedIn(
+  payload: PortalSignInDiscordPayload,
+) {
+  const fields: DiscordEmbedField[] = [
+    embedField(
+      "Role",
+      truncate(
+        formatPortalSignInDiscordRoleLabel(payload.surface, payload.actorType),
+      ),
+      true,
+    ),
+    embedField("Email", truncate(payload.email), true),
+  ];
+
+  const schoolName = payload.schoolName?.trim();
+  if (schoolName) {
+    fields.push(embedField("School", truncate(schoolName), true));
+  }
+
+  if (payload.method === "otp" || payload.method === "password") {
+    fields.push(
+      embedField(
+        "Method",
+        payload.method === "otp" ? "Verification code" : "Password",
+        true,
+      ),
+    );
+  }
+
+  const pageLabel = formatPortalSignInDiscordPageLabel(payload.page);
+  if (pageLabel) {
+    fields.push(embedField("Page", pageLabel, true));
+  }
+
+  const platform = payload.platform;
+  if (platform === "ios" || platform === "android") {
+    fields.push(embedField("Platform", platform === "ios" ? "iOS" : "Android", true));
+  }
+
+  const appVersion = payload.appVersion?.trim();
+  if (appVersion) {
+    fields.push(embedField("App version", truncate(appVersion), true));
+  }
+
+  const title =
+    payload.client === "mobile" ? "📱 Mobile sign-in" : "🌐 Web sign-in";
+
+  await sendRootedMeadowsDiscordEmbed({
+    title,
+    color: DISCORD_EMBED_COLORS.admissions,
+    fields,
+  });
+}
+
+export async function notifyRootedMeadowsMobileSignedIn(payload: {
+  email: string;
+  surface: MobileSignInDiscordSurface;
+  actorType: MobileSignInDiscordActorType;
+  schoolName?: string;
+  method?: "otp" | "password";
+  platform?: "ios" | "android";
+  appVersion?: string;
+}) {
+  await notifyRootedMeadowsPortalSignedIn({
+    ...payload,
+    client: "mobile",
+  });
+}
+
 export async function notifyRootedMeadowsParentApplicationStarted(payload: {
   schoolName: string;
   email: string;
@@ -1958,6 +2104,40 @@ const SUPPORT_REQUEST_TOPIC_LABELS: Record<string, string> = {
   "account-deletion": "Delete my account",
   other: "Other",
 };
+
+export async function notifyPlatformSupportParentMessage(payload: {
+  organizationName: string;
+  threadId: string;
+  parentName: string;
+  preview: string;
+  senderLabel?: "Parent" | "Staff";
+}) {
+  const webhookUrl = process.env.DISCORD_SUPPORT_WEBHOOK_URL?.trim();
+  if (!webhookUrl) {
+    console.warn(
+      "DISCORD_SUPPORT_WEBHOOK_URL is not set; skipping Discord notification.",
+    );
+    return;
+  }
+
+  const inboxUrl = `${getRuntimeSiteUrl()}/admin/support?thread=${encodeURIComponent(payload.threadId)}`;
+
+  await sendDiscordEmbedToWebhook(webhookUrl, {
+    title: "MudKitchen Support — new message",
+    url: inboxUrl,
+    color: DISCORD_EMBED_COLORS.support,
+    fields: [
+      embedField("School", truncate(payload.organizationName), true),
+      embedField(
+        payload.senderLabel ?? "Parent",
+        truncate(payload.parentName),
+        true,
+      ),
+      embedField("Preview", truncate(payload.preview)),
+      embedField("Inbox", truncate(inboxUrl)),
+    ],
+  });
+}
 
 export async function notifyPublicSupportRequest(payload: {
   requestId: string;

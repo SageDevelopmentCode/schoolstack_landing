@@ -8,6 +8,7 @@ import {
   assertPreviewWriteAllowed,
   isPreviewSessionActive,
 } from '@/lib/platform-admin/preview-session-store';
+import { appendLocalFileToFormData } from '@/lib/upload/append-local-file-to-form-data';
 import {
   fetchMobilePreviewApi,
   resolveParentPreviewPath,
@@ -16,6 +17,7 @@ import { resolveChecklistProgress } from '@/lib/admissions/enrollment-checklist'
 import type { ChildProfileData } from '@/lib/parent/parent-children-utils';
 import type {
   Committee,
+  CommitteeWorkspaceLoad,
   CommitteeWorkspaceSection,
   ParentCommitteeBrowseItem,
   ParentCommitteeListItem,
@@ -42,6 +44,7 @@ import type {
 import type { OrganizationBranding } from '@/lib/organization-settings/types';
 import type { OrganizationEvent, ParentCalendarInitialData } from '@/lib/school-events/types';
 import type { BulletinPost } from '@/lib/school-bulletin/types';
+import { adaptParentDocumentationGuidesForMobile } from '@/lib/parent/parent-documentation-mobile';
 
 const siteUrl = process.env.EXPO_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https://trymudkitchen.com';
 
@@ -148,11 +151,11 @@ export async function submitParentSupportRequest(
   }
 
   for (const file of input.attachments ?? []) {
-    formData.append('attachments', {
+    await appendLocalFileToFormData(formData, 'attachments', {
       uri: file.uri,
       name: file.name,
       type: file.mimeType ?? 'application/octet-stream',
-    } as unknown as Blob);
+    });
   }
 
   await fetchParentApiFormData('/api/parent-portal/support-requests', formData);
@@ -279,6 +282,7 @@ export type ParentHomeData = {
   formAttentionItems?: ParentFormAttentionItem[];
   formSnapshot?: ParentFormHomeSnapshot | null;
   bulletinEnabled: boolean;
+  schoolGalleryEnabled?: boolean;
   bulletinPosts: BulletinPost[];
   fridayBranchHome?: ParentFridayBranchPageBundle | null;
   fridayBranchParentPortalPaused?: boolean;
@@ -342,13 +346,18 @@ export type ParentProgramHomeData = ParentHomeData & {
 };
 
 export function normalizeParentHomeData(data: ParentHomeData): ParentHomeData {
+  const rawGuides = data.documentationGuides ?? [];
+  const slug = data.schoolSlug;
   return {
     ...data,
     bulletinEnabled: data.bulletinEnabled ?? false,
+    schoolGalleryEnabled: data.schoolGalleryEnabled ?? false,
     bulletinPosts: data.bulletinPosts ?? [],
     fridayBranchHome: data.fridayBranchHome ?? null,
     featureAnnouncements: data.featureAnnouncements ?? [],
-    documentationGuides: data.documentationGuides ?? [],
+    documentationGuides: slug
+      ? adaptParentDocumentationGuidesForMobile(rawGuides, slug)
+      : rawGuides,
   };
 }
 
@@ -474,9 +483,13 @@ export type ParentCalendarData = ParentCalendarInitialData & {
 export async function fetchParentCalendarData(
   organizationId: string,
   slug: string,
+  programId?: string,
 ): Promise<ParentCalendarData> {
-  const query = new URLSearchParams({ organizationId, slug }).toString();
-  return fetchParentApi<ParentCalendarData>(`/api/parent-portal/calendar?${query}`);
+  const params = new URLSearchParams({ organizationId, slug });
+  if (programId) {
+    params.set('programId', programId);
+  }
+  return fetchParentApi<ParentCalendarData>(`/api/parent-portal/calendar?${params.toString()}`);
 }
 
 export async function fetchParentMessagesUnreadCount(
@@ -825,15 +838,19 @@ export async function fetchParentCommitteeActivity(
 export async function fetchParentCommitteeWorkspace(
   organizationId: string,
   committeeId: string,
-): Promise<Committee> {
+): Promise<CommitteeWorkspaceLoad> {
   const query = new URLSearchParams({ organizationId }).toString();
-  const payload = await fetchParentApi<{ committee: Committee }>(
-    `/api/parent-portal/committees/${committeeId}?${query}`,
-  );
+  const payload = await fetchParentApi<{
+    committee: Committee;
+    viewerMemberId?: string | null;
+  }>(`/api/parent-portal/committees/${committeeId}?${query}`);
   if (!payload.committee) {
     throw new Error('Committee not found.');
   }
-  return payload.committee;
+  return {
+    committee: payload.committee,
+    viewerMemberId: payload.viewerMemberId ?? null,
+  };
 }
 
 export async function markParentCommitteeSectionRead(
@@ -1126,6 +1143,212 @@ async function arrayBufferToBase64(buffer: ArrayBuffer): Promise<string> {
     binary += String.fromCharCode(...chunk);
   }
   return btoa(binary);
+}
+
+export type ParentCoopCurriculumRecord = {
+  id: string;
+  displayName: string | null;
+  fileName: string;
+  sortOrder: number;
+};
+
+export type ParentCoopCurriculumDiscussionMessage = {
+  id: string;
+  body: string;
+  senderGuardianId: string;
+  senderDisplayName: string;
+  curriculumId: string | null;
+  createdAt: string;
+};
+
+export type ParentCoopCurriculumPageData = {
+  curricula: ParentCoopCurriculumRecord[];
+  discussionMessages: ParentCoopCurriculumDiscussionMessage[];
+  currentGuardianId: string | null;
+};
+
+export type ParentCoopSupplyListItem = {
+  id: string;
+  name: string;
+  quantityLabel: string;
+  whereToBuy: string;
+  itemType: string;
+  usageTiming: string;
+  months: string[];
+  colorId: string | null;
+  assignedFamilyIds: string[];
+};
+
+export type ParentCoopSupplyListPageData = {
+  items: ParentCoopSupplyListItem[];
+  colorLegend: Array<{ id: string; hex: string; label: string }>;
+  currentFamilyId: string;
+  currentFamilyLabel: string;
+  familyNameMap: Record<string, string>;
+};
+
+export type ParentCoopTeachingScheduleWeek = {
+  id: string;
+  startDate: string;
+  endDate: string;
+  instructorFamilyIds: string[];
+  assistantFamilyIds: string[];
+  weekName: string;
+  seasonalTheme: string;
+  characterLesson: string;
+  celebrationEvent: string | null;
+};
+
+export type ParentCoopTeachingSchedulePageData = {
+  weeks: ParentCoopTeachingScheduleWeek[];
+  currentFamilyId: string;
+  currentFamilyLabel: string;
+  familyNameMap: Record<string, string>;
+};
+
+export async function fetchParentCoopCurriculumPageData(
+  organizationId: string,
+  programId: string,
+): Promise<ParentCoopCurriculumPageData> {
+  const query = new URLSearchParams({ organizationId, programId }).toString();
+  return fetchParentApi<ParentCoopCurriculumPageData>(
+    `/api/parent-portal/coop/curriculum?${query}`,
+  );
+}
+
+export async function fetchParentCoopSupplyListPageData(
+  organizationId: string,
+  programId: string,
+): Promise<ParentCoopSupplyListPageData> {
+  const query = new URLSearchParams({ organizationId, programId }).toString();
+  return fetchParentApi<ParentCoopSupplyListPageData>(
+    `/api/parent-portal/coop/supply-list?${query}`,
+  );
+}
+
+export async function fetchParentCoopTeachingSchedulePageData(
+  organizationId: string,
+  programId: string,
+): Promise<ParentCoopTeachingSchedulePageData> {
+  const query = new URLSearchParams({ organizationId, programId }).toString();
+  return fetchParentApi<ParentCoopTeachingSchedulePageData>(
+    `/api/parent-portal/coop/teaching-schedule?${query}`,
+  );
+}
+
+export async function claimParentCoopSupplyItem(input: {
+  organizationId: string;
+  programId: string;
+  itemId: string;
+}): Promise<{ item: ParentCoopSupplyListItem }> {
+  return fetchParentApi<{ item: ParentCoopSupplyListItem }>(
+    '/api/parent-portal/supply-list/claim',
+    { method: 'POST', body: input },
+  );
+}
+
+export async function unclaimParentCoopSupplyItem(input: {
+  organizationId: string;
+  programId: string;
+  itemId: string;
+}): Promise<{ item: ParentCoopSupplyListItem }> {
+  return fetchParentApi<{ item: ParentCoopSupplyListItem }>(
+    '/api/parent-portal/supply-list/unclaim',
+    { method: 'POST', body: input },
+  );
+}
+
+export async function signupParentCoopTeachingSchedule(input: {
+  organizationId: string;
+  programId: string;
+  weekId: string;
+  role: 'instructor' | 'assistant';
+}): Promise<{ week: ParentCoopTeachingScheduleWeek }> {
+  return fetchParentApi<{ week: ParentCoopTeachingScheduleWeek }>(
+    '/api/parent-portal/teaching-schedule/signup',
+    { method: 'POST', body: input },
+  );
+}
+
+export async function withdrawParentCoopTeachingSchedule(input: {
+  organizationId: string;
+  programId: string;
+  weekId: string;
+  role: 'instructor' | 'assistant';
+}): Promise<{ week: ParentCoopTeachingScheduleWeek }> {
+  return fetchParentApi<{ week: ParentCoopTeachingScheduleWeek }>(
+    '/api/parent-portal/teaching-schedule/withdraw',
+    { method: 'POST', body: input },
+  );
+}
+
+export async function fetchParentCoopCurriculumDiscussion(
+  organizationId: string,
+  programId: string,
+  curriculumId?: string | null,
+): Promise<{ messages: ParentCoopCurriculumDiscussionMessage[] }> {
+  const params = new URLSearchParams({ organizationId, programId });
+  if (curriculumId) {
+    params.set('curriculumId', curriculumId);
+  } else {
+    params.set('curriculumId', 'general');
+  }
+  return fetchParentApi<{ messages: ParentCoopCurriculumDiscussionMessage[] }>(
+    `/api/parent-portal/curriculum-discussion?${params.toString()}`,
+  );
+}
+
+export async function postParentCoopCurriculumDiscussionMessage(input: {
+  organizationId: string;
+  programId: string;
+  body: string;
+  curriculumId?: string | null;
+}): Promise<{ message: ParentCoopCurriculumDiscussionMessage }> {
+  return fetchParentApi<{ message: ParentCoopCurriculumDiscussionMessage }>(
+    '/api/parent-portal/curriculum-discussion',
+    { method: 'POST', body: input },
+  );
+}
+
+async function fetchParentCoopCurriculumPdfBytes(
+  organizationId: string,
+  programId: string,
+  curriculumId: string,
+): Promise<ArrayBuffer> {
+  const query = new URLSearchParams({
+    organizationId,
+    programId,
+    curriculumId,
+  }).toString();
+  const apiPath = `/api/parent-portal/curriculum/pdf?${query}`;
+  const previewPath = resolveParentPreviewPath(apiPath);
+  const headers = await getApiAuthHeaders();
+  if (previewPath) {
+    const { MOBILE_PREVIEW_HEADER } = await import('@/lib/platform-admin/preview-session-store');
+    headers[MOBILE_PREVIEW_HEADER] = '1';
+  }
+  const response = await fetch(`${siteUrl}${previewPath ?? apiPath}`, {
+    headers,
+  });
+  await assertApiAuthenticated(response);
+  if (!response.ok) {
+    throw new Error('Failed to load curriculum PDF.');
+  }
+  return response.arrayBuffer();
+}
+
+export async function fetchParentCoopCurriculumPdfDataUri(
+  organizationId: string,
+  programId: string,
+  curriculumId: string,
+): Promise<string> {
+  const buffer = await fetchParentCoopCurriculumPdfBytes(
+    organizationId,
+    programId,
+    curriculumId,
+  );
+  const base64 = await arrayBufferToBase64(buffer);
+  return `data:application/pdf;base64,${base64}`;
 }
 
 export async function fetchParentFridayBranchFlyerDataUri(

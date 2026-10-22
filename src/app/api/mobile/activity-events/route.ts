@@ -5,21 +5,25 @@ import {
 } from "@/lib/activity-auth-server";
 import { mergeActivityClientMetadata } from "@/lib/activity-client";
 import {
+  ACTIVITY_ACTIONS,
   type ActivitySurface,
   type AuthActivityMetadata,
 } from "@/lib/activity-log";
 import { apiError } from "@/lib/api/route-errors";
+import { notifyRootedMeadowsPortalSignedIn } from "@/lib/discord";
+import { reportOperationalError } from "@/lib/operational-errors";
 import { createAdminClient } from "@/utils/supabase/admin";
 import {
   createClientFromRequest,
   getUserFromRequest,
   signedInErrorForRequest,
 } from "@/lib/supabase/request-client";
-import { authorizeMobileActivityEvent } from "./authorize-mobile-activity";
+import {
+  authorizeMobileActivityEvent,
+  type MobilePortalSurface,
+} from "./authorize-mobile-activity";
 
 const ROUTE = "/api/mobile/activity-events";
-
-type MobilePortalSurface = "parent_portal" | "school_admin" | "teacher_portal";
 
 type MobileActivityBody = {
   action?: string;
@@ -32,6 +36,7 @@ const VALID_SURFACES = new Set<ActivitySurface>([
   "parent_portal",
   "school_admin",
   "teacher_portal",
+  "platform_admin",
 ]);
 
 export async function POST(request: Request) {
@@ -121,6 +126,51 @@ export async function POST(request: Request) {
       client: "mobile",
     },
   });
+
+  if (
+    action === ACTIVITY_ACTIONS.AUTH_SIGNED_IN &&
+    metadata.freshSignIn === true &&
+    user.email
+  ) {
+    let schoolName: string | undefined;
+    if (organizationId) {
+      const { data: organization } = await admin
+        .from("organizations")
+        .select("name")
+        .eq("id", organizationId)
+        .maybeSingle();
+      schoolName = organization?.name ? String(organization.name) : undefined;
+    }
+
+    try {
+      await notifyRootedMeadowsPortalSignedIn({
+        email: user.email,
+        client: "mobile",
+        surface,
+        actorType: authResult.actorType,
+        schoolName,
+        method: metadata.method,
+        platform: metadata.platform,
+        appVersion: metadata.appVersion,
+      });
+    } catch (error) {
+      void reportOperationalError({
+        supabase: admin,
+        surface: "api",
+        operation: "mobile_fresh_sign_in_discord",
+        error: "Failed to send mobile sign-in Discord notification.",
+        notify: true,
+        cause: error,
+        actor: {
+          type: authResult.actorType,
+          userId: user.id,
+          email: user.email ?? undefined,
+        },
+        organizationId: organizationId ?? undefined,
+        api: { route: ROUTE, method: "POST", status: 500 },
+      });
+    }
+  }
 
   return new NextResponse(null, { status: 204 });
 }

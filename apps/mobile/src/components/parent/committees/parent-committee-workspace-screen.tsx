@@ -1,12 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { ParentCommitteeWorkspaceSkeleton } from '@/components/parent/committees/parent-committee-workspace-skeleton';
 import { ParentCommitteeWorkspaceHeader } from '@/components/parent/committees/parent-committee-workspace-header';
 import { ParentCommitteeCalendarSection } from '@/components/parent/committees/sections/parent-committee-calendar-section';
 import { ParentCommitteeHomeSection } from '@/components/parent/committees/sections/parent-committee-home-section';
@@ -27,7 +22,12 @@ import {
   markParentCommitteeSectionRead,
 } from '@/lib/parent/parent-portal-api';
 import { markTeacherCommitteeSectionRead } from '@/lib/teacher/teacher-portal-api';
-import type { Committee, CommitteeWorkspaceSection } from '@/lib/parent/parent-committees-types';
+import type {
+  Committee,
+  CommitteeWorkspaceLoad,
+  CommitteeWorkspaceSection,
+} from '@/lib/parent/parent-committees-types';
+import { usePortalPreview } from '@/lib/portal-preview-gating';
 import { Story, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
@@ -38,8 +38,14 @@ type CommitteeWorkspaceScreenProps = {
   organizationId: string;
   committeeId: string;
   portalApiNamespace?: CommitteePortalApiNamespace;
-  fetchWorkspace: (organizationId: string, committeeId: string) => Promise<Committee>;
+  fetchWorkspace: (
+    organizationId: string,
+    committeeId: string,
+  ) => Promise<CommitteeWorkspaceLoad>;
   initialSection?: CommitteeWorkspaceSection;
+  initialEventId?: string | null;
+  initialResourceId?: string | null;
+  initialTaskId?: string | null;
 };
 
 function resolveVisibleSection(
@@ -63,8 +69,12 @@ function CommitteeWorkspaceScreen({
   portalApiNamespace = 'parent-portal',
   fetchWorkspace,
   initialSection = 'home',
+  initialEventId,
+  initialResourceId,
+  initialTaskId,
 }: CommitteeWorkspaceScreenProps) {
   const theme = useParentTheme();
+  const { isPreview } = usePortalPreview();
   const { reportError } = useMobileErrorReporter(organizationId);
   const committeeUnreadRefresh = useCommitteeUnreadRefresh();
   const portal = portalFromApiNamespace(portalApiNamespace);
@@ -76,6 +86,7 @@ function CommitteeWorkspaceScreen({
   const supabase = useMemo(() => getSupabaseClient(), []);
 
   const [committee, setCommittee] = useState<Committee | null>(null);
+  const [previewViewerMemberId, setPreviewViewerMemberId] = useState<string | null>(null);
   const [currentMemberId, setCurrentMemberId] = useState<string | undefined>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,8 +100,9 @@ function CommitteeWorkspaceScreen({
     }
     try {
       const loaded = await fetchWorkspace(organizationId, committeeId);
-      setCommittee(loaded);
-      const sections = loaded.config.sections.filter(
+      setCommittee(loaded.committee);
+      setPreviewViewerMemberId(loaded.viewerMemberId);
+      const sections = loaded.committee.config.sections.filter(
         (section): section is CommitteeWorkspaceSection => section !== 'settings',
       );
       setActiveSection((current) => resolveVisibleSection(sections, current));
@@ -115,27 +127,31 @@ function CommitteeWorkspaceScreen({
   }, [loadWorkspace]);
 
   useEffect(() => {
+    if (!committee) return;
+    if (isPreview) {
+      setCurrentMemberId(previewViewerMemberId ?? undefined);
+      return;
+    }
+
     let cancelled = false;
     (async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (cancelled || !user || !committee) return;
+      if (cancelled || !user) return;
 
       const member = committee.members.find(
         (entry) => entry.userId === user.id && entry.status === 'active',
       );
-      if (member) {
-        setCurrentMemberId(member.id);
-      }
+      setCurrentMemberId(member?.id);
     })();
     return () => {
       cancelled = true;
     };
-  }, [committee, supabase]);
+  }, [committee, isPreview, previewViewerMemberId, supabase]);
 
   useEffect(() => {
-    if (!currentMemberId) return;
+    if (!currentMemberId || isPreview) return;
     const section = activeSection;
     if (
       section !== 'messages' &&
@@ -164,6 +180,7 @@ function CommitteeWorkspaceScreen({
     committeeId,
     committeeUnreadRefresh,
     currentMemberId,
+    isPreview,
     organizationId,
     portalApiNamespace,
     reportError,
@@ -182,21 +199,19 @@ function CommitteeWorkspaceScreen({
         organizationId,
         supabase,
         currentMemberId,
-        readOnly: !currentMemberId,
+        readOnly: !currentMemberId || isPreview,
         portalApiNamespace,
         onCommitteeChange: setCommittee,
         onRefresh,
         onNavigate: setActiveSection,
+        initialEventId,
+        initialResourceId,
+        initialTaskId,
       }
     : null;
 
   if (loading) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: Story.paper }]}>
-        <ActivityIndicator color={theme.primary} />
-        <Text style={[styles.loadingCopy, { color: theme.muted }]}>Loading committee…</Text>
-      </View>
-    );
+    return <ParentCommitteeWorkspaceSkeleton />;
   }
 
   if (error || !committee || !sectionProps) {
@@ -259,12 +274,18 @@ type ParentCommitteeWorkspaceScreenProps = {
   organizationId: string;
   committeeId: string;
   initialSection?: CommitteeWorkspaceSection;
+  initialEventId?: string | null;
+  initialResourceId?: string | null;
+  initialTaskId?: string | null;
 };
 
 export function ParentCommitteeWorkspaceScreen({
   organizationId,
   committeeId,
   initialSection,
+  initialEventId,
+  initialResourceId,
+  initialTaskId,
 }: ParentCommitteeWorkspaceScreenProps) {
   return (
     <CommitteeWorkspaceScreen
@@ -272,6 +293,9 @@ export function ParentCommitteeWorkspaceScreen({
       committeeId={committeeId}
       fetchWorkspace={fetchParentCommitteeWorkspace}
       initialSection={initialSection}
+      initialEventId={initialEventId}
+      initialResourceId={initialResourceId}
+      initialTaskId={initialTaskId}
     />
   );
 }

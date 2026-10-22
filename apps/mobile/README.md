@@ -112,6 +112,21 @@ npm run mobile:test:e2e:ios
 # or: cd apps/mobile && maestro test .maestro
 ```
 
+### Visual screenshot review (agents / UI changes)
+
+Golden Maestro captures for layout review (iOS required; Android optional). See [`.agents/skills/mobile-ui-visual-verify/SKILL.md`](../../.agents/skills/mobile-ui-visual-verify/SKILL.md).
+
+```bash
+npm run mobile:visual:capture -- school-admin-dashboard
+npm run mobile:visual:capture -- parent-home
+npm run mobile:visual:capture -- teacher-messages
+npm run mobile:visual:capture:coop-program   # teaching schedule + co-op More menu (see .maestro/visual/README-parent-coop-program.md)
+npm run verify:mobile-artifacts -- parent-home
+npm run verify:parent-coop-visual              # co-op PNGs + review checklist
+```
+
+PNG output: `apps/mobile/.artifacts/responsive/{feature}-ios.png` (gitignored).
+
 Build the simulator app manually when needed:
 
 ```bash

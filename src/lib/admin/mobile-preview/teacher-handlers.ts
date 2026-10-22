@@ -11,6 +11,16 @@ import {
 } from "@/lib/admin/mobile-preview/access";
 import { apiError } from "@/lib/api/route-errors";
 import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
+import {
+  fetchCommitteeActivityEvents,
+  mapCommitteeActivityItems,
+} from "@/lib/committees/activity-feed";
+import { getCommitteeUnreadSummaryForUser } from "@/lib/committees/committee-unread";
+import {
+  getTeacherCommitteeWorkspace,
+  listBrowsableCommitteesForTeacher,
+  listTeacherCommitteeMemberships,
+} from "@/lib/committees/teacher-committees";
 import { assertTeacherCanAccessThread, getThreadDetail } from "@/lib/messages/api-helpers";
 import { getTotalUnreadCount } from "@/lib/messages/threads";
 import { fetchOrganizationWithSettingsUncached } from "@/lib/organization-settings/fetch";
@@ -416,6 +426,115 @@ export async function handleTeacherMobilePreviewGet(
       );
 
       return NextResponse.json(page);
+    }
+
+    if (segment === "committees") {
+      const subsegment = pathSegments[1] ?? "";
+
+      if (subsegment === "browse") {
+        const committees = await listBrowsableCommitteesForTeacher(
+          admin,
+          organizationId,
+          previewUserId,
+        );
+        return NextResponse.json({ committees });
+      }
+
+      if (subsegment === "mine") {
+        const committees = previewContext.userId
+          ? await listTeacherCommitteeMemberships(
+              admin,
+              organizationId,
+              previewContext.userId,
+            )
+          : [];
+        return NextResponse.json({ committees });
+      }
+
+      if (subsegment === "unread-summary") {
+        if (!previewContext.userId) {
+          return NextResponse.json({ totalUnread: 0, byCommittee: [] });
+        }
+
+        const summary = await getCommitteeUnreadSummaryForUser(
+          admin,
+          organizationId,
+          previewContext.userId,
+        );
+        return NextResponse.json(summary);
+      }
+
+      const committeeId = subsegment;
+      if (!committeeId || pathSegments.length > 3) {
+        return apiError(route, {
+          request: req,
+          status: 404,
+          error: "Not found.",
+          code: "not_found",
+        });
+      }
+
+      if (!previewContext.userId) {
+        return apiError(route, {
+          request: req,
+          status: 403,
+          error: "You do not have access to this committee.",
+          code: "forbidden",
+        });
+      }
+
+      if (pathSegments[2] === "activity") {
+        const limitParam = url.searchParams.get("limit");
+        const limit = limitParam
+          ? Math.min(Math.max(Number(limitParam) || 15, 1), 50)
+          : 15;
+
+        await getTeacherCommitteeWorkspace(
+          admin,
+          organizationId,
+          previewContext.userId,
+          committeeId,
+        );
+
+        const rows = await fetchCommitteeActivityEvents(admin, {
+          organizationId,
+          committeeId,
+          limit,
+          audience: "parent",
+        });
+        const items = mapCommitteeActivityItems(rows, {
+          slug,
+          committeeId,
+          staffMemberId,
+          linkSurface: "teacherPreview",
+          includeHref: Boolean(slug),
+        });
+
+        return NextResponse.json({ items });
+      }
+
+      if (pathSegments[2]) {
+        return apiError(route, {
+          request: req,
+          status: 404,
+          error: "Not found.",
+          code: "not_found",
+        });
+      }
+
+      const committee = await getTeacherCommitteeWorkspace(
+        admin,
+        organizationId,
+        previewContext.userId,
+        committeeId,
+      );
+      const viewerMemberId =
+        committee.members.find(
+          (member) =>
+            member.userId === previewContext.userId && member.status === "active",
+        )?.id ?? null;
+
+      return NextResponse.json({ committee, viewerMemberId });
     }
 
     return apiError(route, {

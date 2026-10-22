@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { StoryTextLink } from '@/components/story/story-text-link';
 import { useAuth } from '@/contexts/auth-context';
@@ -19,13 +19,16 @@ export function PortalPreviewBanner({ onExit }: PortalPreviewBannerProps) {
 
   return (
     <View style={styles.banner}>
-      <View style={styles.copy}>
-        <Text style={styles.title} numberOfLines={2}>
-          Previewing as {previewSession.subjectLabel}
-        </Text>
-        <Text style={styles.subtitle}>Read-only</Text>
-      </View>
-      <StoryTextLink label="Exit preview" onPress={onExit} variant="primary" />
+      <Text style={styles.title} numberOfLines={1}>
+        Previewing as {previewSession.subjectLabel} · Read-only
+      </Text>
+      <StoryTextLink
+        label="Exit preview"
+        onPress={onExit}
+        variant="primary"
+        hitSlop={8}
+        style={styles.exit}
+      />
     </View>
   );
 }
@@ -37,28 +40,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: Spacing.two,
     paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-    paddingVertical: Spacing.two,
+    paddingVertical: Spacing.one,
     backgroundColor: '#F5F0FF',
     borderBottomWidth: 1,
     borderBottomColor: '#DDD6FE',
   },
-  copy: {
+  title: {
     flex: 1,
     minWidth: 0,
-    gap: 2,
-  },
-  title: {
     fontFamily: StoryFonts.bodySemiBold,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 16,
     color: '#4C1D95',
   },
-  subtitle: {
-    fontFamily: StoryFonts.body,
-    fontSize: 11,
-    lineHeight: 14,
-    color: '#6D28D9',
-    textTransform: 'uppercase',
-    letterSpacing: 0.44,
+  exit: {
+    paddingVertical: 0,
   },
 });

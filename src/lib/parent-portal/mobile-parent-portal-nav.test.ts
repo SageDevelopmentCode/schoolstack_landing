@@ -162,8 +162,43 @@ describe("mobile-parent-portal-nav", () => {
     assert.equal(moreKeys.includes("notifications"), true);
   });
 
+  it("includes curriculum and supply list in program co-op More menu when enabled", () => {
+    const moreKeys = resolveMobileMoreMenuFeatureKeys({
+      mode: "program",
+      coopMode: true,
+      parentFeatures: {
+        ...DEFAULT_FEATURES.parent,
+        portal: true,
+        curriculum: true,
+        supply_list: true,
+        teaching_schedule: true,
+      },
+    });
+
+    assert.equal(moreKeys.includes("curriculum"), true);
+    assert.equal(moreKeys.includes("supply_list"), true);
+    assert.equal(moreKeys[0], "curriculum");
+    assert.equal(moreKeys[1], "supply_list");
+  });
+
+  it("omits curriculum and supply list from More menu outside program co-op", () => {
+    const moreKeys = resolveMobileMoreMenuFeatureKeys({
+      mode: "main",
+      coopMode: true,
+      parentFeatures: {
+        ...DEFAULT_FEATURES.parent,
+        curriculum: true,
+        supply_list: true,
+      },
+    });
+
+    assert.equal(moreKeys.includes("curriculum"), false);
+    assert.equal(moreKeys.includes("supply_list"), false);
+  });
+
   it("routes committees and children to More menu in co-op mode", () => {
     const moreKeys = resolveMobileMoreMenuFeatureKeys({
+      mode: "program",
       coopMode: true,
       parentFeatures: {
         ...DEFAULT_FEATURES.parent,

@@ -6,13 +6,16 @@ import {
   isAuthRequiredError,
   MOBILE_CLIENT_HEADER,
   MOBILE_PLATFORM_HEADER,
+  requireSupabaseAccessToken,
   resolveAccessToken,
   setCachedAccessToken,
+  waitForSupabaseSessionAccessToken,
 } from '@/lib/auth/auth-session';
 import { getSupabaseClient } from '@/lib/supabase';
 
 jest.mock('@/lib/supabase', () => ({
   getSupabaseClient: jest.fn(),
+  ensureSupabaseAuthStorageReady: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock('react-native', () => ({
@@ -46,6 +49,30 @@ describe('isAuthRequiredError', () => {
   it('returns false for other errors', () => {
     expect(isAuthRequiredError(new Error('Request failed.'))).toBe(false);
     expect(isAuthRequiredError('You must be signed in to continue.')).toBe(false);
+  });
+});
+
+describe('waitForSupabaseSessionAccessToken', () => {
+  const signOut = jest.fn().mockResolvedValue(undefined);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    clearCachedAccessToken();
+  });
+
+  it('waits until getSession returns an access token', async () => {
+    const getSession = jest
+      .fn()
+      .mockResolvedValueOnce({ data: { session: null } })
+      .mockResolvedValueOnce({
+        data: { session: { access_token: 'delayed-session-token' } },
+      });
+    mockGetSupabaseClient.mockReturnValue({
+      auth: { getSession, refreshSession: jest.fn(), signOut },
+    } as never);
+
+    await expect(waitForSupabaseSessionAccessToken()).resolves.toBe('delayed-session-token');
+    expect(getSession).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -109,6 +136,32 @@ describe('resolveAccessToken', () => {
 
     await expect(resolveAccessToken()).resolves.toBeNull();
     expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it('throws when no token is available', async () => {
+    const getSession = jest.fn().mockResolvedValue({
+      data: { session: null },
+    });
+    const refreshSession = jest.fn().mockResolvedValue({
+      data: { session: null },
+    });
+    mockGetSupabaseClient.mockReturnValue({
+      auth: { getSession, refreshSession, signOut },
+    } as never);
+
+    await expect(requireSupabaseAccessToken()).rejects.toThrow(AUTH_REQUIRED_MESSAGE);
+  });
+
+  it('requireSupabaseAccessToken uses the Supabase client session', async () => {
+    const getSession = jest.fn().mockResolvedValue({
+      data: { session: { access_token: 'session-required-token' } },
+    });
+    mockGetSupabaseClient.mockReturnValue({
+      auth: { getSession, refreshSession: jest.fn(), signOut },
+    } as never);
+
+    await expect(requireSupabaseAccessToken()).resolves.toBe('session-required-token');
+    expect(getSession).toHaveBeenCalled();
   });
 
   it('signs out when signOutOnFailure is true', async () => {

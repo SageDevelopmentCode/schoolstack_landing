@@ -7,6 +7,7 @@ import {
   type PortalMessageRow,
 } from "@/lib/messages/mappers";
 import { getThreadDetail, loadFamilyGuardianDisplayMaps } from "@/lib/messages/threads";
+import { threadHasPlatformSupport } from "@/lib/messages/platform-support";
 import type { MessageThreadDetail, MessageThreadSummary } from "@/lib/messages/types";
 
 export const DEFAULT_PLATFORM_MESSAGE_THREAD_PAGE_SIZE = 25;
@@ -135,19 +136,21 @@ async function hydrateThreadSummaries(
     }
   }
 
-  return threadRows.map((thread) => {
-    const participants = (participantsByThread.get(String(thread.id)) ?? []).map(
-      mapParticipantRow,
-    );
-    return mapThreadSummary(
-      thread,
-      participants,
-      context,
-      "admin",
-      lastMessageByThread.get(String(thread.id)) ?? null,
-      0,
-    );
-  });
+  return threadRows
+    .map((thread) => {
+      const participants = (participantsByThread.get(String(thread.id)) ?? []).map(
+        mapParticipantRow,
+      );
+      return mapThreadSummary(
+        thread,
+        participants,
+        context,
+        "admin",
+        lastMessageByThread.get(String(thread.id)) ?? null,
+        0,
+      );
+    })
+    .filter((thread) => !threadHasPlatformSupport(thread.participants));
 }
 
 export async function listPlatformMessageThreads(
@@ -214,7 +217,7 @@ export async function getPlatformMessageThreadDetail(
   schoolName: string,
 ): Promise<MessageThreadDetail | null> {
   const schoolOfficeLabel = `${schoolName} Office`;
-  return getThreadDetail(
+  const thread = await getThreadDetail(
     admin,
     organizationId,
     threadId,
@@ -222,4 +225,6 @@ export async function getPlatformMessageThreadDetail(
     schoolOfficeLabel,
     "admin",
   );
+  if (!thread || threadHasPlatformSupport(thread.participants)) return null;
+  return thread;
 }

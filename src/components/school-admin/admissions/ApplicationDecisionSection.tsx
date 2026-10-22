@@ -2,7 +2,11 @@
 
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
+import {
+  postSubmitSummaryBadgeStyle,
+  type IncompletePostSubmitNotice,
+} from "@/lib/admissions/admin-post-submit-steps";
 import DetailPanelSection from "@/components/school-admin/admissions/DetailPanelSection";
 import {
   getApplicationDecisionActions,
@@ -20,6 +24,7 @@ type ApplicationDecisionSectionProps = {
   currentStatus: string;
   onStatusChanged: (status: string) => void;
   onAccept?: () => void;
+  postSubmitNotice?: IncompletePostSubmitNotice & { onClick: () => void };
 };
 
 function buttonStyle(
@@ -43,6 +48,7 @@ export default function ApplicationDecisionSection({
   currentStatus,
   onStatusChanged,
   onAccept,
+  postSubmitNotice,
 }: ApplicationDecisionSectionProps) {
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -160,11 +166,32 @@ export default function ApplicationDecisionSection({
     }
   }
 
+  const postSubmitNoticeBadge = postSubmitNotice
+    ? (() => {
+        const badgeStyle = postSubmitSummaryBadgeStyle(postSubmitNotice.tone, C);
+        return (
+          <button
+            type="button"
+            onClick={postSubmitNotice.onClick}
+            className="inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-extrabold transition-opacity hover:opacity-90"
+            style={badgeStyle}
+            aria-label="Jump to post-application steps"
+          >
+            <span className="truncate">
+              Post-application steps · {postSubmitNotice.label}
+            </span>
+            <ChevronDown className="h-3 w-3 shrink-0" aria-hidden="true" />
+          </button>
+        );
+      })()
+    : undefined;
+
   return (
     <DetailPanelSection
       C={C}
       title="Decision"
       description="Move this application through your admissions workflow."
+      badge={postSubmitNoticeBadge}
     >
       {loadingActions ? (
         <div className="flex items-center gap-2 text-sm" style={{ color: C.textSecondary }}>

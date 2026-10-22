@@ -19,6 +19,7 @@ import {
   resolveActivityEventLinks,
   tuitionFamiliesAdminHref,
 } from "@/lib/activity-event-links";
+import { appendCommitteeActivityFocusParams } from "@/lib/committees/committee-workspace-notification-links";
 
 export const SCHOOL_ADMIN_NOTIFICATION_ACTIONS = [
   ACTIVITY_ACTIONS.APPLICATION_SUBMITTED,
@@ -1450,8 +1451,19 @@ export async function resolveActivityNotificationLink(
     };
     const section = sectionByAction[event.action];
     if (committeeId && section) {
+      const params = new URLSearchParams({
+        committee: committeeId,
+        section,
+      });
+      appendCommitteeActivityFocusParams(
+        params,
+        event.action,
+        event,
+        metadataString,
+      );
+      const base = schoolAdminPath(slug, "committees");
       return {
-        href: `${committeesHref(slug, committeeId)}&section=${section}`,
+        href: `${base}?${params.toString()}`,
         ctaLabel: "Open committee",
       };
     }

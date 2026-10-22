@@ -10,6 +10,7 @@ type AdminCardProps = {
   style?: CSSProperties;
   padding?: "none" | "default" | "canvas" | "compact";
   "data-testid"?: string;
+  id?: string;
 };
 
 export default function AdminCard({
@@ -19,6 +20,7 @@ export default function AdminCard({
   style,
   padding = "default",
   "data-testid": dataTestId,
+  id,
 }: AdminCardProps) {
   const paddingClass =
     padding === "none"
@@ -31,6 +33,7 @@ export default function AdminCard({
 
   return (
     <div
+      id={id}
       data-testid={dataTestId}
       className={`overflow-hidden border bg-white ${paddingClass} ${className}`}
       style={{

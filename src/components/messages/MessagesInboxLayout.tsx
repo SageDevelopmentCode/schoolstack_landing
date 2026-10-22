@@ -15,6 +15,8 @@ import {
 } from "@/lib/messages/thread-placeholders";
 import { useMessagesRefresh } from "@/lib/messages/messages-refresh-context";
 import { useVisibilityPolling } from "@/lib/hooks/use-visibility-polling";
+import { useMessageComposerDraft } from "@/hooks/useMessageComposerDraft";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import { PORTAL_MESSAGE_DELETED_PREVIEW } from "@/lib/messages/constants";
 import { registerWebPushSubscription } from "@/lib/messages/web-push-client";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
@@ -62,6 +64,15 @@ import {
   type PortalOperationalSurface,
 } from "@/lib/portal-operational-errors";
 import { isBenignClientNetworkError } from "@/lib/client-network-errors";
+import { buildParentFamilyPreviewMessagesQuery } from "@/lib/admin/mobile-preview/parent-portal-preview-api";
+import {
+  isMudKitchenSupportPlaceholder,
+  MUDKITCHEN_SUPPORT_CONTACT_KEY,
+  MUDKITCHEN_SUPPORT_TEAM_NAME,
+  baseThreadsForInboxList,
+  filterStoryInboxThreads,
+  pinMudKitchenSupportThread,
+} from "@/lib/messages/platform-support";
 
 export type MessagesApiConfig = {
   basePath: string;
@@ -71,6 +82,7 @@ export type MessagesApiConfig = {
   familyId?: string;
   guardianId?: string;
   programId?: string;
+  familyPreview?: { slug: string; familyId: string };
   viewer: "parent" | "teacher" | "admin";
 };
 
@@ -184,6 +196,7 @@ export default function MessagesInboxLayout({
   api,
   initialInbox,
   readOnly = false,
+  readOnlyFetchThreads = false,
   previewThreadMessages,
   deferContactsLoad = false,
   C,
@@ -197,6 +210,7 @@ export default function MessagesInboxLayout({
   api: MessagesApiConfig;
   initialInbox?: MessagesInboxData;
   readOnly?: boolean;
+  readOnlyFetchThreads?: boolean;
   previewThreadMessages?: Record<string, PortalMessage[]>;
   deferContactsLoad?: boolean;
   C: AdminThemeTokens;
@@ -261,6 +275,30 @@ export default function MessagesInboxLayout({
   const [inboxSearch, setInboxSearch] = useState("");
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [deletingMessage, setDeletingMessage] = useState(false);
+  const {
+    discardDialogOpen: attachmentDiscardDialogOpen,
+    requestComposerNavigation,
+    confirmDiscardAttachments,
+    cancelDiscardAttachments,
+    clearDraftForThread,
+  } = useMessageComposerDraft({
+    organizationId: api.organizationId,
+    viewer: api.viewer,
+    threadId: activeThreadId,
+    input,
+    setInput,
+    stagedFiles,
+    setStagedFiles,
+    readOnly,
+  });
+  const {
+    dialogOpen: attachmentRouteLeaveDialogOpen,
+    confirmLeave: confirmAttachmentRouteLeave,
+    cancelLeave: cancelAttachmentRouteLeave,
+  } = useUnsavedChangesGuard({
+    isDirty: stagedFiles.length > 0,
+    enabled: !readOnly,
+  });
   const handledThreadParam = useRef<string | null>(null);
   const optimisticSendRef = useRef(createOptimisticSendTracker());
   const loadGenerationRef = useRef(createLoadGenerationGuard());
@@ -281,6 +319,15 @@ export default function MessagesInboxLayout({
   }
 
   const query = useMemo(() => {
+    if (api.familyPreview) {
+      return buildParentFamilyPreviewMessagesQuery({
+        organizationId: api.organizationId,
+        slug: api.familyPreview.slug,
+        familyId: api.familyPreview.familyId,
+        schoolName: api.schoolName,
+        programId: api.programId,
+      });
+    }
     const params = new URLSearchParams({
       organizationId: api.organizationId,
       schoolName: api.schoolName,
@@ -289,7 +336,7 @@ export default function MessagesInboxLayout({
       params.set("programId", api.programId);
     }
     return params.toString();
-  }, [api.organizationId, api.programId, api.schoolName]);
+  }, [api.familyPreview, api.organizationId, api.programId, api.schoolName]);
 
   const loadInbox = useCallback(async (options?: { silent?: boolean }) => {
     if (hasLoadedThreadsRef.current) {
@@ -402,12 +449,20 @@ export default function MessagesInboxLayout({
 
   const selectThread = useCallback(
     async (thread: MessageThreadSummary) => {
+      if (isMudKitchenSupportPlaceholder(thread.id)) {
+        setMobileView("chat");
+        setActiveThreadId(thread.id);
+        setActiveThread(threadDetailFromSummary(thread, []));
+        return;
+      }
+
       setMobileView("chat");
       setActiveThreadId(thread.id);
+      const useStaticPreviewMessages = readOnly && !readOnlyFetchThreads;
       setActiveThread((prev) =>
         threadDetailFromSummary(
           thread,
-          readOnly
+          useStaticPreviewMessages
             ? (previewThreadMessages?.[thread.id] ?? [])
             : prev?.id === thread.id
               ? prev.messages
@@ -415,7 +470,7 @@ export default function MessagesInboxLayout({
         ),
       );
       clearThreadUnread(thread.id);
-      if (readOnly) return;
+      if (readOnly && !readOnlyFetchThreads) return;
       setLoadingMessages(true);
       try {
         await loadThread(thread.id, { silent: true });
@@ -423,7 +478,13 @@ export default function MessagesInboxLayout({
         setLoadingMessages(false);
       }
     },
-    [clearThreadUnread, loadThread, previewThreadMessages, readOnly],
+    [
+      clearThreadUnread,
+      loadThread,
+      previewThreadMessages,
+      readOnly,
+      readOnlyFetchThreads,
+    ],
   );
 
   const openContact = useCallback(
@@ -495,28 +556,61 @@ export default function MessagesInboxLayout({
     ],
   );
 
-  const handleSelect = useCallback(
-    async (key: string) => {
-      const thread = threads.find((item) => item.id === key);
-      if (thread) {
-        await selectThread(thread);
-        return;
-      }
+  const teacherStaffMemberId =
+    teacherPortal?.staffMemberId ?? viewerContext?.staffMemberId ?? null;
 
-      const contact = contacts.find((item) => item.key === key);
-      if (contact) {
-        await openContact(contact);
-      }
+  const listedThreads = useMemo(() => {
+    if (api.viewer === "parent" && api.guardianId) {
+      return pinMudKitchenSupportThread(
+        threads,
+        activeThread ? threadSummaryFromDetail(activeThread) : null,
+        { mode: "parent", guardianId: api.guardianId },
+      );
+    }
+    if (api.viewer === "teacher" && teacherStaffMemberId) {
+      return pinMudKitchenSupportThread(
+        threads,
+        activeThread ? threadSummaryFromDetail(activeThread) : null,
+        { mode: "teacher", staffMemberId: teacherStaffMemberId },
+      );
+    }
+    return threads;
+  }, [
+    activeThread,
+    api.guardianId,
+    api.viewer,
+    teacherStaffMemberId,
+    threads,
+  ]);
+
+  const handleSelect = useCallback(
+    (key: string) => {
+      requestComposerNavigation(() => {
+        void (async () => {
+          const thread = listedThreads.find((item) => item.id === key);
+          if (thread) {
+            await selectThread(thread);
+            return;
+          }
+
+          const contact = contacts.find((item) => item.key === key);
+          if (contact) {
+            await openContact(contact);
+          }
+        })();
+      });
     },
-    [contacts, openContact, selectThread, threads],
+    [contacts, listedThreads, openContact, requestComposerNavigation, selectThread],
   );
 
   const handleNewConversationSelect = useCallback(
-    async (contact: MessageContact) => {
+    (contact: MessageContact) => {
       setNewConversationOpen(false);
-      await openContact(contact);
+      requestComposerNavigation(() => {
+        void openContact(contact);
+      });
     },
-    [openContact],
+    [openContact, requestComposerNavigation],
   );
 
   const handleSend = useCallback(async () => {
@@ -564,8 +658,50 @@ export default function MessagesInboxLayout({
     setStagedFiles([]);
     setSending(true);
 
+    let threadIdForSend = activeThreadId;
     let responseStatus: number | undefined;
     try {
+      if (isMudKitchenSupportPlaceholder(threadIdForSend)) {
+        if (api.viewer === "parent") {
+          const created = await fetchJson<{ threadId: string }>(`${api.basePath}/threads`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              organizationId: api.organizationId,
+              programId: api.programId ?? null,
+              contact: {
+                key: MUDKITCHEN_SUPPORT_CONTACT_KEY,
+                kind: "platform_support",
+                name: MUDKITCHEN_SUPPORT_TEAM_NAME,
+              },
+            }),
+          });
+          threadIdForSend = created.threadId;
+          setActiveThreadId(threadIdForSend);
+          setActiveThread((prev) =>
+            prev ? { ...prev, id: threadIdForSend } : prev,
+          );
+        } else if (api.viewer === "teacher") {
+          const created = await fetchJson<{ threadId: string }>(`${api.basePath}/threads`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              organizationId: api.organizationId,
+              contact: {
+                key: MUDKITCHEN_SUPPORT_CONTACT_KEY,
+                kind: "platform_support",
+                name: MUDKITCHEN_SUPPORT_TEAM_NAME,
+              },
+            }),
+          });
+          threadIdForSend = created.threadId;
+          setActiveThreadId(threadIdForSend);
+          setActiveThread((prev) =>
+            prev ? { ...prev, id: threadIdForSend } : prev,
+          );
+        }
+      }
+
       let response: Response;
       if (filesToSend.length > 0) {
         const formData = new FormData();
@@ -576,12 +712,12 @@ export default function MessagesInboxLayout({
         for (const file of filesToSend) {
           formData.append("files", file);
         }
-        response = await fetch(`${api.basePath}/threads/${activeThreadId}/messages`, {
+        response = await fetch(`${api.basePath}/threads/${threadIdForSend}/messages`, {
           method: "POST",
           body: formData,
         });
       } else {
-        response = await fetch(`${api.basePath}/threads/${activeThreadId}/messages`, {
+        response = await fetch(`${api.basePath}/threads/${threadIdForSend}/messages`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -609,13 +745,14 @@ export default function MessagesInboxLayout({
           messages: mergeMessages(withoutPending, [serverMessage]),
         };
       });
-      await loadThread(activeThreadId, { silent: true });
+      await loadThread(threadIdForSend, { silent: true });
+      clearDraftForThread(threadIdForSend);
     } catch (err) {
       let recovered = false;
       if (isBenignClientNetworkError(err)) {
         try {
           const data = await fetchJson<{ thread: MessageThreadDetail }>(
-            `${api.basePath}/threads/${activeThreadId}?${query}`,
+            `${api.basePath}/threads/${threadIdForSend}?${query}`,
           );
           const newOwnMessages = data.thread.messages.filter(
             (message) =>
@@ -630,7 +767,7 @@ export default function MessagesInboxLayout({
           if (matched) {
             optimisticSendRef.current.confirm(optimisticId, matched.id);
             setActiveThread((prev) => {
-              if (!prev || prev.id !== activeThreadId) {
+              if (!prev || prev.id !== threadIdForSend) {
                 return {
                   ...data.thread,
                   messages: reconcileThreadMessages(
@@ -658,6 +795,7 @@ export default function MessagesInboxLayout({
             void loadInbox({ silent: true });
             recovered = true;
             setError(null);
+            clearDraftForThread(threadIdForSend);
           }
         } catch {
           // keep failure path below
@@ -686,6 +824,7 @@ export default function MessagesInboxLayout({
     api.basePath,
     api.organizationId,
     api.organizationSlug,
+    api.programId,
     api.schoolName,
     api.viewer,
     input,
@@ -694,6 +833,7 @@ export default function MessagesInboxLayout({
     query,
     readOnly,
     reportMessagesError,
+    clearDraftForThread,
     stagedFiles,
   ]);
 
@@ -822,7 +962,9 @@ export default function MessagesInboxLayout({
 
   const pollInbox = useCallback(() => {
     void loadInbox();
-    if (activeThreadId) void loadThread(activeThreadId, { silent: true });
+    if (activeThreadId && !isMudKitchenSupportPlaceholder(activeThreadId)) {
+      void loadThread(activeThreadId, { silent: true });
+    }
   }, [activeThreadId, loadInbox, loadThread]);
 
   useVisibilityPolling(pollInbox, 300_000, !readOnly && !realtimeConnected);
@@ -856,17 +998,30 @@ export default function MessagesInboxLayout({
     handledThreadParam.current = threadParam;
     queueMicrotask(() => {
       setMobileView("chat");
-      if (readOnly) {
+      if (readOnly && !readOnlyFetchThreads) {
         const thread = threads.find((item) => item.id === threadParam);
         if (thread) {
           void selectThread(thread);
         }
         return;
       }
+      const thread = threads.find((item) => item.id === threadParam);
+      if (thread) {
+        void selectThread(thread);
+        return;
+      }
       setLoadingMessages(true);
       void loadThread(threadParam).finally(() => setLoadingMessages(false));
     });
-  }, [loadThread, loadingInbox, readOnly, searchParams, selectThread, threads]);
+  }, [
+    loadThread,
+    loadingInbox,
+    readOnly,
+    readOnlyFetchThreads,
+    searchParams,
+    selectThread,
+    threads,
+  ]);
 
   useEffect(() => {
     if (readOnly || pushPromptDismissed) return;
@@ -904,7 +1059,7 @@ export default function MessagesInboxLayout({
   const splitPane = isSplitPaneMessagesVariant(variant);
 
   const threadsForList = useMemo(() => {
-    let base = threads;
+    let base = baseThreadsForInboxList(api.viewer, listedThreads, threads);
     if (
       activeThread &&
       !activeThread.id.startsWith("pending-") &&
@@ -913,15 +1068,8 @@ export default function MessagesInboxLayout({
       base = [threadSummaryFromDetail(activeThread), ...base];
     }
 
-    const query = inboxSearch.trim().toLowerCase();
-    if (!storyVariant || !query) return base;
-    return base.filter(
-      (thread) =>
-        thread.title.toLowerCase().includes(query) ||
-        thread.subtitle?.toLowerCase().includes(query) ||
-        thread.lastMessagePreview?.toLowerCase().includes(query),
-    );
-  }, [activeThread, inboxSearch, storyVariant, threads]);
+    return filterStoryInboxThreads(base, inboxSearch, storyVariant);
+  }, [activeThread, api.viewer, inboxSearch, listedThreads, storyVariant, threads]);
 
   useEffect(() => {
     onRegisterActions?.({
@@ -942,9 +1090,6 @@ export default function MessagesInboxLayout({
       ),
     [activeThread, api.viewer, readOnly, viewerContext?.staffDisplayName],
   );
-
-  const teacherStaffMemberId =
-    teacherPortal?.staffMemberId ?? viewerContext?.staffMemberId ?? null;
 
   const handleStudentClick = useCallback(
     (studentId: string) => {
@@ -996,6 +1141,9 @@ export default function MessagesInboxLayout({
       return (
         <div
           className="flex h-full min-h-0 flex-1 flex-col overflow-hidden"
+          data-testid={
+            variant === "parent-story" ? "parent-messages-inbox-layout" : undefined
+          }
           style={{
             backgroundColor: storyVariant ? theme?.white ?? C.bg : C.bg,
           }}
@@ -1078,10 +1226,14 @@ export default function MessagesInboxLayout({
       ? "No conversations yet. Message a co-op family from the home page, or start a new conversation with the school office."
       : api.viewer === "parent"
         ? "No conversations yet. Start a new conversation with the school office or your child's teachers."
-        : "No conversations yet. Start a new conversation to reach families and colleagues.";
+        : api.viewer === "teacher"
+          ? "No conversations yet. Message MudKitchen Support or start a conversation with families and colleagues."
+          : "No conversations yet. Start a new conversation to reach families and colleagues.";
 
   if (
     !loadingInbox &&
+    api.viewer !== "parent" &&
+    api.viewer !== "teacher" &&
     threads.length === 0 &&
     contacts.length === 0 &&
     !initialInbox?.threadsDeferred &&
@@ -1105,6 +1257,9 @@ export default function MessagesInboxLayout({
           ? "h-full min-h-0 flex-1"
           : "flex-1 min-h-[480px] h-[calc(100vh-220px)] max-h-[720px] border rounded-xl"
       }`}
+      data-testid={
+        variant === "parent-story" ? "parent-messages-inbox-layout" : undefined
+      }
       style={
         storyVariant && theme
           ? {
@@ -1241,7 +1396,11 @@ export default function MessagesInboxLayout({
             <div className="md:hidden border-b px-3 py-2" style={{ borderColor: C.border }}>
               <button
                 type="button"
-                onClick={() => setMobileView("list")}
+                onClick={() =>
+                  requestComposerNavigation(() => {
+                    setMobileView("list");
+                  })
+                }
                 className="inline-flex items-center gap-1 text-sm cursor-pointer"
                 style={{ color: C.textSecondary }}
               >
@@ -1265,7 +1424,14 @@ export default function MessagesInboxLayout({
             theme={theme}
             variant={variant}
             schoolName={api.schoolName}
-            onBack={splitPane ? () => setMobileView("list") : undefined}
+            onBack={
+              splitPane
+                ? () =>
+                    requestComposerNavigation(() => {
+                      setMobileView("list");
+                    })
+                : undefined
+            }
             loadingMessages={loadingMessages}
             onStudentClick={
               api.viewer === "teacher" && teacherStaffMemberId
@@ -1291,6 +1457,33 @@ export default function MessagesInboxLayout({
         onClose={() => {
           if (!deletingMessage) setDeleteTargetId(null);
         }}
+      />
+
+      <ConfirmDialog
+        C={C}
+        open={attachmentDiscardDialogOpen}
+        title="Discard unsent attachments?"
+        description="Your message text is saved for this conversation. Unsent file attachments will be lost if you continue."
+        confirmLabel="Continue"
+        cancelLabel="Stay"
+        variant="destructive"
+        onConfirm={confirmDiscardAttachments}
+        onClose={cancelDiscardAttachments}
+      />
+
+      <ConfirmDialog
+        C={C}
+        open={attachmentRouteLeaveDialogOpen}
+        title="Discard unsent attachments?"
+        description="Unsent file attachments will be lost if you leave this page."
+        confirmLabel="Leave"
+        cancelLabel="Stay"
+        variant="destructive"
+        onConfirm={() => {
+          setStagedFiles([]);
+          confirmAttachmentRouteLeave();
+        }}
+        onClose={cancelAttachmentRouteLeave}
       />
 
       {splitPane ? (

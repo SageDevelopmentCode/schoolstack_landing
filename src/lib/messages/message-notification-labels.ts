@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { MUDKITCHEN_SUPPORT_TEAM_NAME } from "@/lib/messages/platform-support";
 
 export type MessagePortalViewer = "parent" | "teacher" | "admin";
 
@@ -147,6 +148,12 @@ export async function resolveThreadRecipientLabels(
     if (participant.participant_kind === "school_office") {
       if (viewer === "admin") continue;
       addLabel(schoolOfficeLabel);
+      continue;
+    }
+
+    if (participant.participant_kind === "platform_support") {
+      if (viewer === "admin") continue;
+      addLabel(MUDKITCHEN_SUPPORT_TEAM_NAME);
       continue;
     }
 

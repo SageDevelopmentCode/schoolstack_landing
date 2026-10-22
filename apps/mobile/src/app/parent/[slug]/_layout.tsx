@@ -1,9 +1,10 @@
 import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { ActivityIndicator, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
+import { ParentHomeSkeleton } from '@/components/parent/parent-home-skeleton';
 import { ParentPortalShell } from '@/components/parent/parent-portal-shell';
 import { ParentPortalContextProvider } from '@/contexts/parent-portal-context';
 import { MessagesRealtimeProvider, useMessagesRealtime } from '@/contexts/messages-realtime-context';
@@ -16,7 +17,7 @@ import { ParentFridayBranchProvider } from '@/contexts/parent-friday-branch-cont
 import { ParentCommitteesProvider } from '@/contexts/parent-committees-context';
 import { ParentHomeProvider, useParentHome } from '@/contexts/parent-home-context';
 import { ParentMessagesInboxProvider, useParentMessagesInbox } from '@/contexts/parent-messages-inbox-context';
-import { SchoolAdminThemeProvider, useAdminTheme } from '@/contexts/admin-theme-context';
+import { SchoolAdminThemeProvider } from '@/contexts/admin-theme-context';
 import { ParentThemeProvider } from '@/contexts/parent-theme-context';
 import { Story } from '@/constants/story-theme';
 import { useAuth } from '@/contexts/auth-context';
@@ -74,7 +75,6 @@ function ParentMessagesInboxRealtimeBridge() {
 function ParentLayoutContent() {
   const router = useRouter();
   const isFocused = useIsFocused();
-  const theme = useAdminTheme();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const {
     user,
@@ -121,7 +121,7 @@ function ParentLayoutContent() {
   if (isLoading || !organization) {
     return (
       <SafeAreaView style={[styles.loadingContainer, { backgroundColor: Story.paper }]}>
-        <ActivityIndicator color={theme.accent} />
+        <ParentHomeSkeleton />
       </SafeAreaView>
     );
   }
@@ -153,8 +153,8 @@ export default function ParentLayout() {
 
   if (!orgReady) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator color={Story.primary} />
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: Story.paper }]}>
+        <ParentHomeSkeleton />
       </SafeAreaView>
     );
   }

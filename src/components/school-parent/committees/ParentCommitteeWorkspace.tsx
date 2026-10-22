@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { CommitteeActivityItem } from "@/lib/committees/activity-feed";
 import type { CommitteeSectionUnreadCounts } from "@/lib/committees/committee-unread-types";
@@ -28,6 +28,10 @@ type ParentCommitteeWorkspaceProps = {
   previewMode?: boolean;
   apiNamespace?: CommitteesApiNamespace;
   operationalSurface?: PortalOperationalSurface;
+  initialCommitteeEventId?: string | null;
+  initialCommitteeEventDate?: string | null;
+  initialCommitteeResourceId?: string | null;
+  initialCommitteeTaskId?: string | null;
   onSectionChange: (section: string) => void;
   onBack: () => void;
 };
@@ -45,6 +49,10 @@ export default function ParentCommitteeWorkspace({
   previewMode = false,
   apiNamespace = "parent-portal",
   operationalSurface = "parent_portal",
+  initialCommitteeEventId,
+  initialCommitteeEventDate,
+  initialCommitteeResourceId,
+  initialCommitteeTaskId,
   onSectionChange,
   onBack,
 }: ParentCommitteeWorkspaceProps) {
@@ -53,6 +61,51 @@ export default function ParentCommitteeWorkspace({
   const [currentMemberId, setCurrentMemberId] = useState<string | undefined>();
   const [loading, setLoading] = useState(!initialCommittee && !previewMode);
   const [error, setError] = useState<string | null>(null);
+  const [initialRefreshDone, setInitialRefreshDone] = useState(false);
+  const emptySectionRetryRef = useRef(false);
+
+  const fetchWorkspace = useCallback(
+    async (options?: { silent?: boolean }) => {
+      const silent = options?.silent ?? false;
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
+      let res: Response | undefined;
+      try {
+        const params = new URLSearchParams({ organizationId });
+        res = await fetch(`/api/${apiNamespace}/committees/${committeeId}?${params}`);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error ?? "Failed to load committee.");
+        }
+        setCommittee(data.committee);
+      } catch (err) {
+        if (!silent) {
+          setError(err instanceof Error ? err.message : "Failed to load committee.");
+          setCommittee(null);
+        }
+        void reportPortalOperationalError(
+          operationalSurface,
+          {
+            organizationId,
+            operation: "committees.load_workspace",
+            error: "",
+          },
+          err,
+          res?.status,
+        );
+      } finally {
+        if (!silent) {
+          setLoading(false);
+        }
+        queueMicrotask(() => {
+          setInitialRefreshDone(true);
+        });
+      }
+    },
+    [apiNamespace, committeeId, operationalSurface, organizationId],
+  );
 
   useEffect(() => {
     if (previewMode && initialCommittee && previewGuardianUserId) {
@@ -86,57 +139,92 @@ export default function ParentCommitteeWorkspace({
   }, [committee, initialCommittee, previewGuardianUserId, previewMode, supabase]);
 
   useEffect(() => {
+    if (previewMode) {
+      if (initialCommittee) {
+        queueMicrotask(() => {
+          setCommittee(initialCommittee);
+          setLoading(false);
+        });
+      } else {
+        queueMicrotask(() => {
+          setError("Committee workspace preview is unavailable for this selection.");
+          setLoading(false);
+        });
+      }
+      return;
+    }
+
     if (initialCommittee) {
       queueMicrotask(() => {
         setCommittee(initialCommittee);
         setLoading(false);
       });
-      return;
     }
-    if (previewMode) {
-      queueMicrotask(() => {
-        setError("Committee workspace preview is unavailable for this selection.");
-        setLoading(false);
-      });
-      return;
-    }
+  }, [initialCommittee, previewMode]);
+
+  useEffect(() => {
+    if (previewMode) return;
+
+    emptySectionRetryRef.current = false;
 
     let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      let res: Response | undefined;
-      try {
-        const params = new URLSearchParams({ organizationId });
-        res = await fetch(`/api/${apiNamespace}/committees/${committeeId}?${params}`);
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          throw new Error(data.error ?? "Failed to load committee.");
-        }
-        if (!cancelled) setCommittee(data.committee);
-      } catch (err) {
+    if (initialCommittee) {
+      queueMicrotask(() => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load committee.");
-          setCommittee(null);
-          void reportPortalOperationalError(
-            operationalSurface,
-            {
-              organizationId,
-              operation: "committees.load_workspace",
-              error: "",
-            },
-            err,
-            res?.status,
-          );
+          setInitialRefreshDone(true);
         }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
+      });
+    } else {
+      queueMicrotask(() => {
+        if (!cancelled) {
+          setInitialRefreshDone(false);
+          void fetchWorkspace();
+        }
+      });
+    }
+
     return () => {
       cancelled = true;
     };
-  }, [apiNamespace, committeeId, initialCommittee, operationalSurface, organizationId, previewMode]);
+  }, [committeeId, fetchWorkspace, initialCommittee, previewMode]);
+
+  useEffect(() => {
+    if (previewMode) return undefined;
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void fetchWorkspace({ silent: true });
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [fetchWorkspace, previewMode]);
+
+  useEffect(() => {
+    if (previewMode || !initialRefreshDone || !committee) return;
+    const section = parseCommitteeSection(activeSection);
+    if (section !== "resources" && section !== "tasks" && section !== "messages") {
+      return;
+    }
+    const isEmpty =
+      section === "resources"
+        ? committee.resources.length === 0
+        : section === "tasks"
+          ? committee.tasks.length === 0
+          : committee.messages.length === 0;
+    if (!isEmpty || emptySectionRetryRef.current) return;
+    emptySectionRetryRef.current = true;
+    void fetchWorkspace({ silent: true });
+  }, [
+    activeSection,
+    committee,
+    fetchWorkspace,
+    initialRefreshDone,
+    previewMode,
+  ]);
 
   if (loading) {
     return <ParentCommitteeWorkspaceSkeleton theme={theme} variant="workspace" />;
@@ -155,21 +243,26 @@ export default function ParentCommitteeWorkspace({
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
       <ParentCommitteeWorkspaceShell
-      committee={committee}
-      theme={theme}
-      supabase={supabase}
-      organizationId={organizationId}
-      schoolSlug={schoolSlug}
-      activeSection={parseCommitteeSection(activeSection)}
-      onSectionChange={onSectionChange}
-      onBack={onBack}
-      onCommitteeChange={setCommittee}
-      currentMemberId={currentMemberId}
-      previewMode={previewMode}
-      initialActivityItems={initialActivityItems}
-      initialSectionUnread={initialSectionUnread}
+        committee={committee}
+        theme={theme}
+        supabase={supabase}
+        organizationId={organizationId}
+        schoolSlug={schoolSlug}
+        activeSection={parseCommitteeSection(activeSection)}
+        onSectionChange={onSectionChange}
+        onBack={onBack}
+        onCommitteeChange={setCommittee}
+        currentMemberId={currentMemberId}
+        previewMode={previewMode}
+        initialActivityItems={initialActivityItems}
+        initialSectionUnread={initialSectionUnread}
       portalApiNamespace={apiNamespace}
       backLabel="My committees"
+      initialCommitteeEventId={initialCommitteeEventId}
+      initialCommitteeEventDate={initialCommitteeEventDate}
+      initialCommitteeResourceId={initialCommitteeResourceId}
+      initialCommitteeTaskId={initialCommitteeTaskId}
+      workspaceDataReady={initialRefreshDone}
     />
     </div>
   );

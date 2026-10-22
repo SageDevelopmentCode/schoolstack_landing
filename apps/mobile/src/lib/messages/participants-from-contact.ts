@@ -8,10 +8,38 @@ export function contactKeyForThread(
   viewer: 'parent' | 'teacher' | 'admin',
   context: { guardianId?: string | null; staffMemberId?: string | null },
 ): string | null {
-  const hasOffice = threadParticipants.some((p) => p.kind === 'school_office');
+  const hasPlatformSupport = threadParticipants.some((p) => p.kind === 'platform_support');
   const guardianParticipant = threadParticipants.find((p) => p.kind === 'guardian');
+
+  if (hasPlatformSupport) {
+    if (viewer === 'parent' || viewer === 'teacher') return 'platform_support';
+    if (guardianParticipant?.guardianId) {
+      return `platform_support:guardian:${guardianParticipant.guardianId}`;
+    }
+    const staffParticipant = threadParticipants.find((p) => p.kind === 'staff_member');
+    if (staffParticipant?.staffMemberId) {
+      return `platform_support:staff:${staffParticipant.staffMemberId}`;
+    }
+    return 'platform_support';
+  }
+
+  const hasOffice = threadParticipants.some((p) => p.kind === 'school_office');
   const legacyFamilyParticipant = threadParticipants.find((p) => p.kind === 'family');
   const staffParticipants = threadParticipants.filter((p) => p.kind === 'staff_member');
+  const guardianParticipants = threadParticipants.filter((p) => p.kind === 'guardian');
+
+  if (
+    guardianParticipants.length === 2 &&
+    !hasOffice &&
+    staffParticipants.length === 0 &&
+    !legacyFamilyParticipant
+  ) {
+    const other = guardianParticipants.find(
+      (participant) =>
+        participant.guardianId && participant.guardianId !== context.guardianId,
+    );
+    return other?.guardianId ? `guardian:${other.guardianId}` : null;
+  }
 
   if (hasOffice && guardianParticipant?.guardianId) {
     if (viewer === 'parent') return 'school_office';

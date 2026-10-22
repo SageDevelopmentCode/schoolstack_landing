@@ -11,6 +11,16 @@ import {
   type ActivitySurface,
   type AuthActivityMetadata,
 } from "@/lib/activity-log";
+import {
+  loadOrganizationName,
+  resolvePortalSignInDiscordActorType,
+} from "@/lib/auth/portal-sign-in-discord";
+import { notifyRootedMeadowsPortalSignedIn } from "@/lib/discord";
+import { reportOperationalError } from "@/lib/operational-errors";
+import {
+  isPlatformAdmin,
+  userCanAccessSchoolAdmin,
+} from "@/lib/school-admin/access";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -20,6 +30,8 @@ const VALID_SURFACES = new Set<ActivitySurface>([
   "parent_portal",
   "public_apply",
   "login",
+  "platform_admin",
+  "school_admin",
 ]);
 
 type AuthEventRequestBody = {
@@ -81,8 +93,25 @@ export async function POST(request: Request) {
 
   const organizationId = body.organizationId?.trim();
   const admin = createAdminClient();
+  const canAccessSchoolAdmin =
+    surface === "school_admin" && organizationId
+      ? await userCanAccessSchoolAdmin(supabase, user.id, organizationId)
+      : false;
 
-  if (organizationId && action !== ACTIVITY_ACTIONS.AUTH_SESSION_RESTORED) {
+  if (surface === "platform_admin") {
+    if (!(await isPlatformAdmin(supabase, user.id))) {
+      return apiError(ROUTE, {
+        request,
+        status: 403,
+        error: "Platform admin access is required.",
+        code: "forbidden",
+      });
+    }
+  } else if (
+    organizationId &&
+    !canAccessSchoolAdmin &&
+    action !== ACTIVITY_ACTIONS.AUTH_SESSION_RESTORED
+  ) {
     const hasMembership = await userHasActiveOrgMembership(
       admin,
       user.id,
@@ -99,14 +128,95 @@ export async function POST(request: Request) {
     }
   }
 
+  const metadata = body.metadata;
+
   await recordAuthActivity(admin, {
     organizationId: organizationId ?? null,
     actorUserId: user.id,
     actorEmail: user.email ?? null,
+    actorType: surface === "platform_admin" ? "platform_admin" : undefined,
     surface,
     action,
-    metadata: body.metadata,
+    metadata,
   });
+
+  if (
+    action === ACTIVITY_ACTIONS.AUTH_SIGNED_IN &&
+    metadata?.freshSignIn === true &&
+    surface === "platform_admin" &&
+    user.email
+  ) {
+    try {
+      await notifyRootedMeadowsPortalSignedIn({
+        email: user.email,
+        client: "web",
+        surface: "platform_admin",
+        actorType: "platform_admin",
+        method: metadata.method,
+        page: "/login",
+      });
+    } catch (error) {
+      void reportOperationalError({
+        supabase: admin,
+        surface: "api",
+        operation: "web_platform_admin_sign_in_discord",
+        error: "Failed to send platform admin sign-in Discord notification.",
+        notify: true,
+        cause: error,
+        actor: {
+          type: "platform_admin",
+          userId: user.id,
+          email: user.email,
+        },
+        api: { route: ROUTE, method: "POST", status: 500 },
+      });
+    }
+  }
+
+  if (
+    action === ACTIVITY_ACTIONS.AUTH_SIGNED_IN &&
+    metadata?.freshSignIn === true &&
+    surface === "school_admin" &&
+    organizationId &&
+    canAccessSchoolAdmin &&
+    user.email
+  ) {
+    try {
+      const actorType = await resolvePortalSignInDiscordActorType(
+        supabase,
+        user.id,
+        "school_admin",
+        "school_admin",
+      );
+      const schoolName = await loadOrganizationName(admin, organizationId);
+
+      await notifyRootedMeadowsPortalSignedIn({
+        email: user.email,
+        client: "web",
+        surface: "school_admin",
+        actorType,
+        schoolName,
+        method: metadata.method,
+        page: "/login",
+      });
+    } catch (error) {
+      void reportOperationalError({
+        supabase: admin,
+        surface: "api",
+        operation: "web_school_admin_sign_in_discord",
+        error: "Failed to send school admin sign-in Discord notification.",
+        notify: true,
+        cause: error,
+        organizationId,
+        actor: {
+          type: "school_admin",
+          userId: user.id,
+          email: user.email,
+        },
+        api: { route: ROUTE, method: "POST", status: 500 },
+      });
+    }
+  }
 
   return new NextResponse(null, { status: 204 });
 }

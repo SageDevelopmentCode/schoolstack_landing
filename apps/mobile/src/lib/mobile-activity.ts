@@ -8,7 +8,11 @@ import type { PortalType, ResolvedPortal } from '@/lib/auth/resolve-portal';
 
 const siteUrl = process.env.EXPO_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https://trymudkitchen.com';
 
-export type MobilePortalSurface = 'parent_portal' | 'school_admin' | 'teacher_portal';
+export type MobilePortalSurface =
+  | 'parent_portal'
+  | 'school_admin'
+  | 'teacher_portal'
+  | 'platform_admin';
 
 export type MobileOperationalErrorPayload = {
   organizationId: string;
@@ -182,6 +186,9 @@ async function postMobileActivityWithAccessToken(
 export function portalTypeToMobileSurface(
   portalType: PortalType | null,
 ): MobilePortalSurface | null {
+  if (portalType === 'platform_admin') {
+    return 'platform_admin';
+  }
   if (portalType === 'parent' || portalType === 'parent_apply') {
     return 'parent_portal';
   }
@@ -194,10 +201,24 @@ export function portalTypeToMobileSurface(
   return null;
 }
 
+export type MobileAuthSignedInMetadata = {
+  freshSignIn?: boolean;
+  method?: 'otp' | 'password';
+};
+
 export async function logMobileAuthSignedIn(
   portal: ResolvedPortal,
-  metadata?: Record<string, unknown>,
+  metadata?: MobileAuthSignedInMetadata,
 ): Promise<void> {
+  if (portal.portalType === 'platform_admin') {
+    await reportMobileActivity({
+      action: 'auth.signed_in',
+      surface: 'platform_admin',
+      metadata,
+    });
+    return;
+  }
+
   const surface = portalTypeToMobileSurface(portal.portalType);
   if (!surface || !portal.school?.id) {
     return;

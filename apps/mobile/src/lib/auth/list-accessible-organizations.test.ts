@@ -1,6 +1,22 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+jest.mock('@/lib/auth/auth-session', () => ({
+  requireSupabaseAccessToken: jest.fn().mockResolvedValue('test-access-token'),
+}));
+
+jest.mock('@/lib/organizations', () => {
+  const actual = jest.requireActual('@/lib/organizations');
+  return {
+    ...actual,
+    hydrateLiveOrganizationsBranding: jest.fn(
+      async (organizations: unknown[]) => organizations,
+    ),
+  };
+});
+
+import { requireSupabaseAccessToken } from '@/lib/auth/auth-session';
 import {
+  listAccessibleLiveOrganizations,
   listAccessibleLiveOrganizationSlugs,
   resolveMobileSchoolAfterAuth,
 } from '@/lib/auth/list-accessible-organizations';
@@ -69,6 +85,21 @@ const PEER_USER_ID = 'user-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 const LINK_GROUP_ID = 'group-cccc-cccc-cccc-cccccccccccc';
 
 describe('listAccessibleLiveOrganizationSlugs', () => {
+  it('requires a Supabase access token before querying', async () => {
+    const supabase = createSupabase({
+      profiles: async () => ({ data: { role: 'user' }, error: null }),
+      organization_portal_account_link_members: async () => ({
+        data: [],
+        error: null,
+      }),
+      organization_memberships: async () => ({ data: [], error: null }),
+      guardians: async () => ({ data: [], error: null }),
+    });
+
+    await listAccessibleLiveOrganizationSlugs(supabase, USER_ID);
+    expect(requireSupabaseAccessToken).toHaveBeenCalled();
+  });
+
   it('returns empty when user has no memberships', async () => {
     const supabase = createSupabase({
       profiles: async () => ({ data: { role: 'user' }, error: null }),
@@ -97,7 +128,9 @@ describe('listAccessibleLiveOrganizationSlugs', () => {
             data: [
               {
                 organizations: {
+                  id: 'org-rooted',
                   slug: 'rooted-meadows',
+                  name: 'Rooted Meadows',
                   status: 'live',
                 },
               },
@@ -142,7 +175,9 @@ describe('listAccessibleLiveOrganizationSlugs', () => {
             data: [
               {
                 organizations: {
+                  id: 'org-peer',
                   slug: 'linked-peer-school',
+                  name: 'Peer School',
                   status: 'live',
                 },
               },
@@ -157,6 +192,59 @@ describe('listAccessibleLiveOrganizationSlugs', () => {
 
     const slugs = await listAccessibleLiveOrganizationSlugs(supabase, USER_ID);
     expect(slugs).toEqual(['linked-peer-school']);
+  });
+});
+
+describe('listAccessibleLiveOrganizations', () => {
+  it('dedupes organizations by id across membership sources', async () => {
+    const supabase = createSupabase({
+      profiles: async () => ({ data: { role: 'user' }, error: null }),
+      organization_portal_account_link_members: async () => ({
+        data: [],
+        error: null,
+      }),
+      organization_memberships: async (filters) => {
+        const roles = filters.role as string[] | string | undefined;
+        const roleList = Array.isArray(roles) ? roles : [roles];
+        if (roleList.includes('teacher')) {
+          return {
+            data: [
+              {
+                organizations: {
+                  id: 'org-shared',
+                  slug: 'shared-school',
+                  name: 'Shared School',
+                  status: 'live',
+                },
+              },
+            ],
+            error: null,
+          };
+        }
+        if (filters.role === 'parent') {
+          return {
+            data: [
+              {
+                organizations: {
+                  id: 'org-shared',
+                  slug: 'shared-school',
+                  name: 'Shared School',
+                  status: 'live',
+                },
+              },
+            ],
+            error: null,
+          };
+        }
+        return { data: [], error: null };
+      },
+      guardians: async () => ({ data: [], error: null }),
+    });
+
+    const organizations = await listAccessibleLiveOrganizations(supabase, USER_ID);
+    expect(organizations).toHaveLength(1);
+    expect(organizations[0]?.slug).toBe('shared-school');
+    expect(organizations[0]?.id).toBe('org-shared');
   });
 });
 
@@ -188,7 +276,12 @@ describe('resolveMobileSchoolAfterAuth', () => {
           return {
             data: [
               {
-                organizations: { slug: 'sage-field', status: 'live' },
+                organizations: {
+                  id: 'org-sage',
+                  slug: 'sage-field',
+                  name: 'Sage Field',
+                  status: 'live',
+                },
               },
             ],
             error: null,
@@ -214,8 +307,22 @@ describe('resolveMobileSchoolAfterAuth', () => {
         if (filters.role === 'parent') {
           return {
             data: [
-              { organizations: { slug: 'school-a', status: 'live' } },
-              { organizations: { slug: 'school-b', status: 'live' } },
+              {
+                organizations: {
+                  id: 'org-a',
+                  slug: 'school-a',
+                  name: 'School A',
+                  status: 'live',
+                },
+              },
+              {
+                organizations: {
+                  id: 'org-b',
+                  slug: 'school-b',
+                  name: 'School B',
+                  status: 'live',
+                },
+              },
             ],
             error: null,
           };
@@ -256,7 +363,12 @@ describe('resolveMobileSchoolAfterAuth', () => {
           return {
             data: [
               {
-                organizations: { slug: 'peer-only-school', status: 'live' },
+                organizations: {
+                  id: 'org-peer-only',
+                  slug: 'peer-only-school',
+                  name: 'Peer Only',
+                  status: 'live',
+                },
               },
             ],
             error: null,
