@@ -155,6 +155,39 @@ export async function loadParentCoopCurriculumPageDataForFamily(input: {
   };
 }
 
+export async function loadParentCoopCurriculumDiscussionForFamily(input: {
+  supabase: SupabaseClient;
+  organizationId: string;
+  familyId: string;
+  programId: string;
+  curriculumId?: string | null;
+}): Promise<
+  Awaited<ReturnType<typeof listProgramCoopCurriculumDiscussionMessages>>
+> {
+  const hasAccess = await familyHasEnrolledAccessInProgram(
+    input.supabase,
+    input.organizationId,
+    input.familyId,
+    input.programId,
+  );
+  if (!hasAccess) {
+    throw new Error("forbidden");
+  }
+
+  await assertCoopProgramForParent(
+    input.supabase,
+    input.organizationId,
+    input.programId,
+  );
+
+  const admin = createAdminClient();
+  return listProgramCoopCurriculumDiscussionMessages(admin, {
+    organizationId: input.organizationId,
+    programId: input.programId,
+    curriculumId: input.curriculumId,
+  });
+}
+
 export async function loadParentCoopSupplyListPageDataForUser(input: {
   supabase: SupabaseClient;
   userId: string;

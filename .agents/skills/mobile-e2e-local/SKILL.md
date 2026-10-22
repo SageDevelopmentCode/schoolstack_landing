@@ -79,7 +79,7 @@ npm run mobile:visual:capture -- teacher-messages
 npm run verify:mobile-artifacts -- parent-home
 ```
 
-Visual golden slugs: school-admin ×4, parent ×6 (`parent-home`, `parent-messages`, `parent-billing`, `parent-committees`, `parent-coop-teaching-schedule`, `parent-coop-more-menu`), teacher ×2 (`teacher-home`, `teacher-messages`). Co-op program captures use platform-admin parent preview — see [README-parent-coop-program.md](../../apps/mobile/.maestro/visual/README-parent-coop-program.md). Platform admin functional flows remain CI-only (not golden visual review).
+Visual golden slugs: school-admin ×4, parent ×6 (`parent-home`, `parent-messages`, `parent-billing`, `parent-committees`, `parent-coop-teaching-schedule`, `parent-coop-more-menu`), teacher ×2 (`teacher-home`, `teacher-messages`). Co-op program captures use platform-admin parent preview — see [README-parent-coop-program.md](../../apps/mobile/.maestro/visual/README-parent-coop-program.md). Flows `parent-coop-teaching-schedule` and `parent-coop-more-menu` are tagged `coop-demo-data` and excluded from `maestro test .maestro` (CI included); run them via `npm run mobile:visual:capture:coop-program` after manual co-op demo SQL. Platform admin functional flows remain CI-only (not golden visual review).
 
 ## Maestro flows
 

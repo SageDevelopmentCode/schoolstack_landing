@@ -13,7 +13,7 @@ function item(partial: Partial<ParentCoopSupplyListItem> = {}): ParentCoopSupply
     whereToBuy: 'Costco',
     itemType: 'consumable',
     usageTiming: 'year_round',
-    month: null,
+    months: [],
     colorId: null,
     assignedFamilyIds: [],
     ...partial,
@@ -33,9 +33,15 @@ describe('supply-list-helpers', () => {
     expect(supplyItemDisplayName(item({ name: '   ' }))).toBe('Untitled item');
   });
 
-  it('supplyUsageTimingLabel uses month when set', () => {
-    expect(supplyUsageTimingLabel(item({ usageTiming: 'specific_months', month: 'September' }))).toBe(
-      'September',
+  it('supplyUsageTimingLabel joins months when set', () => {
+    expect(
+      supplyUsageTimingLabel(item({ usageTiming: 'specific_months', months: ['Sep', 'Oct'] })),
+    ).toBe('Sep, Oct');
+  });
+
+  it('supplyUsageTimingLabel falls back when specific_months has no months', () => {
+    expect(supplyUsageTimingLabel(item({ usageTiming: 'specific_months', months: [] }))).toBe(
+      'Specific months',
     );
   });
 });

@@ -1,4 +1,6 @@
 appId: com.mudkitchen.schoolstack.mobile
+tags:
+  - coop-demo-data
 ---
 - runFlow: ../parent-coop-program-preview.yaml
 - tapOn: 'More'

@@ -88,21 +88,16 @@ async function loadLatestMessageAt(
   committeeIds: string[],
 ): Promise<Map<string, string>> {
   const map = new Map<string, string>();
-  if (committeeIds.length === 0) return map;
-
-  const { data, error } = await admin
-    .from("committee_messages")
-    .select("committee_id, created_at")
-    .in("committee_id", committeeIds)
-    .order("created_at", { ascending: false });
-
-  if (error) throw new Error(error.message);
-
-  for (const row of data ?? []) {
-    const committeeId = String(row.committee_id);
-    if (!map.has(committeeId) && row.created_at) {
-      map.set(committeeId, String(row.created_at));
-    }
+  for (const committeeId of committeeIds) {
+    const { data, error } = await admin
+      .from("committee_messages")
+      .select("created_at")
+      .eq("committee_id", committeeId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (data?.created_at) map.set(committeeId, String(data.created_at));
   }
   return map;
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -72,6 +72,9 @@ export function ParentCoopCurriculumScreen({
     [activeId, curricula],
   );
 
+  const activeCurriculumIdRef = useRef<string | null>(null);
+  activeCurriculumIdRef.current = activeCurriculum?.id ?? null;
+
   const guidePills = useMemo(
     () =>
       curricula.map((guide) => ({
@@ -139,28 +142,76 @@ export function ParentCoopCurriculumScreen({
     };
   }, [activeCurriculum, organizationId, programId]);
 
-  const refreshDiscussion = useCallback(async () => {
-    const payload = await fetchParentCoopCurriculumDiscussion(
-      organizationId,
-      programId,
-      activeCurriculum?.id ?? null,
-    );
-    setMessages(payload.messages);
-  }, [activeCurriculum?.id, organizationId, programId]);
+  const applyDiscussionMessages = useCallback(
+    (
+      forCurriculumId: string | null,
+      newMessages: Awaited<
+        ReturnType<typeof fetchParentCoopCurriculumDiscussion>
+      >['messages'],
+    ) => {
+      if (forCurriculumId === activeCurriculumIdRef.current) {
+        setMessages(newMessages);
+      }
+    },
+    [],
+  );
+
+  const refreshDiscussion = useCallback(
+    async (curriculumId?: string | null) => {
+      const targetId = curriculumId ?? activeCurriculumIdRef.current;
+      const payload = await fetchParentCoopCurriculumDiscussion(
+        organizationId,
+        programId,
+        targetId,
+      );
+      applyDiscussionMessages(targetId, payload.messages);
+    },
+    [applyDiscussionMessages, organizationId, programId],
+  );
+
+  useEffect(() => {
+    const curriculumId = activeCurriculum?.id ?? null;
+    let cancelled = false;
+    setMessages([]);
+
+    if (!discussionOpen || !activeCurriculum) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void fetchParentCoopCurriculumDiscussion(organizationId, programId, curriculumId)
+      .then((payload) => {
+        if (cancelled) return;
+        applyDiscussionMessages(curriculumId, payload.messages);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeCurriculum,
+    activeCurriculum?.id,
+    applyDiscussionMessages,
+    discussionOpen,
+    organizationId,
+    programId,
+  ]);
 
   const handleSend = async () => {
     const body = draft.trim();
     if (!body || previewReadOnly) return;
+    const curriculumId = activeCurriculum?.id ?? null;
     setSending(true);
     try {
       await postParentCoopCurriculumDiscussionMessage({
         organizationId,
         programId,
         body,
-        curriculumId: activeCurriculum?.id ?? null,
+        curriculumId,
       });
       setDraft('');
-      await refreshDiscussion();
+      await refreshDiscussion(curriculumId);
     } finally {
       setSending(false);
     }
@@ -246,10 +297,7 @@ export function ParentCoopCurriculumScreen({
           <Animated.View entering={FadeInDown.duration(300).delay(80)}>
             <StoryCard>
               <Pressable
-                onPress={() => {
-                  setDiscussionOpen((open) => !open);
-                  if (!discussionOpen) void refreshDiscussion();
-                }}
+                onPress={() => setDiscussionOpen((open) => !open)}
                 style={styles.discussionHeader}>
                 <Text style={[styles.discussionTitle, { color: theme.ink }]}>Discussion</Text>
                 <Text style={[styles.discussionToggle, { color: theme.primary }]}>
@@ -269,8 +317,8 @@ export function ParentCoopCurriculumScreen({
                         key={item.id}
                         style={[styles.messageRow, { borderColor: theme.line }]}>
                         <Text style={[styles.messageAuthor, { color: theme.ink }]}>
-                          {item.guardianName}
-                          {item.guardianId === currentGuardianId ? ' (you)' : ''}
+                          {item.senderDisplayName}
+                          {item.senderGuardianId === currentGuardianId ? ' (you)' : ''}
                         </Text>
                         <Text style={{ color: theme.ink, fontFamily: StoryFonts.body, fontSize: 14 }}>
                           {item.body}

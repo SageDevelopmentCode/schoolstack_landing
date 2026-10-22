@@ -11,6 +11,8 @@ Maestro flows for **Kindergarten Co-op** program portal UI (Emily-style family p
 
 Shared login: `parent-coop-program-preview.yaml` (platform admin → Rooted Meadows Waldorf School → Parent → Preview).
 
+These two flows are tagged `coop-demo-data` and excluded from the default Maestro suite (`apps/mobile/.maestro/config.yaml`). CI and local `maestro test .maestro` do not run them. Use `npm run mobile:visual:capture:coop-program` (or per-slug capture) after manual co-op SQL below.
+
 ## Prerequisites
 
 1. Standard mobile E2E stack ([mobile-e2e-local SKILL](../../../.agents/skills/mobile-e2e-local/SKILL.md)): local Supabase, `seed:e2e`, API `:3100`, `.env.e2e.local`, Metro on simulator.

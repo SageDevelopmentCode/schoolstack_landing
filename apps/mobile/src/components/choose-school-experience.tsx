@@ -10,6 +10,7 @@ import {
   completeSchoolSignIn,
   useAuth,
 } from '@/contexts/auth-context';
+import { normalizeAuthErrorMessage } from '@/lib/auth/auth-error-message';
 import {
   NO_SCHOOL_ACCESS_MESSAGE,
   SCHOOLS_LOAD_FAILED_MESSAGE,
@@ -183,6 +184,23 @@ export function ChooseSchoolExperience({
     user?.id,
   ]);
 
+  const bootstrapChooseSchool = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const redirected = await goToPlatformAdminHome();
+      if (!redirected) {
+        await loadSchools();
+      }
+    } catch (bootstrapError) {
+      setError(
+        normalizeAuthErrorMessage(bootstrapError, SCHOOLS_LOAD_FAILED_MESSAGE),
+      );
+      setLoading(false);
+    }
+  }, [goToPlatformAdminHome, loadSchools]);
+
   useEffect(() => {
     if (authLoading) {
       return;
@@ -192,15 +210,11 @@ export function ChooseSchoolExperience({
       return;
     }
     if (!switchingSchool) {
-      void goToPlatformAdminHome().then((redirected) => {
-        if (!redirected) {
-          void loadSchools();
-        }
-      });
+      void bootstrapChooseSchool();
       return;
     }
     void loadSchools();
-  }, [authLoading, goToPlatformAdminHome, loadSchools, router, switchingSchool, user]);
+  }, [authLoading, bootstrapChooseSchool, loadSchools, router, switchingSchool, user]);
 
   const handleOrganizationSelect = useCallback(
     async (organization: LiveOrganization) => {
@@ -241,7 +255,14 @@ export function ChooseSchoolExperience({
       return;
     }
 
-    if (await goToPlatformAdminHome()) {
+    let redirected = false;
+    try {
+      redirected = await goToPlatformAdminHome();
+    } catch {
+      redirected = false;
+    }
+
+    if (redirected) {
       return;
     }
 
@@ -270,7 +291,7 @@ export function ChooseSchoolExperience({
           <View style={styles.footer}>
             <StoryButton
               label="Try again"
-              onPress={() => void loadSchools()}
+              onPress={() => void bootstrapChooseSchool()}
               disabled={isSubmitting || loading}
             />
           </View>

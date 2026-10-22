@@ -1155,8 +1155,8 @@ export type ParentCoopCurriculumRecord = {
 export type ParentCoopCurriculumDiscussionMessage = {
   id: string;
   body: string;
-  guardianId: string;
-  guardianName: string;
+  senderGuardianId: string;
+  senderDisplayName: string;
   curriculumId: string | null;
   createdAt: string;
 };
@@ -1174,7 +1174,7 @@ export type ParentCoopSupplyListItem = {
   whereToBuy: string;
   itemType: string;
   usageTiming: string;
-  month: string | null;
+  months: string[];
   colorId: string | null;
   assignedFamilyIds: string[];
 };

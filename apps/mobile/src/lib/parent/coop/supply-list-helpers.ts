@@ -54,10 +54,10 @@ export function supplyUsageTimingLabel(item: ParentCoopSupplyListItem): string {
   if (item.usageTiming === 'year_round') {
     return 'Year-round';
   }
-  if (item.month) {
-    return item.month;
+  if (item.months.length === 0) {
+    return 'Specific months';
   }
-  return 'Specific months';
+  return item.months.join(', ');
 }
 
 export function formatSupplyAssignedFamilies(

@@ -52,6 +52,7 @@ import {
 } from "@/lib/admissions/program-coop-curriculum-storage";
 import { familyHasEnrolledAccessInProgram } from "@/lib/admissions/program-parent-portal-access";
 import {
+  loadParentCoopCurriculumDiscussionForFamily,
   loadParentCoopCurriculumPageDataForFamily,
   loadParentCoopSupplyListPageDataForFamily,
   loadParentCoopTeachingSchedulePageDataForFamily,
@@ -477,10 +478,12 @@ export async function handleParentMobilePreviewGet(
       if (downloadError || !fileBlob) {
         return apiError(route, {
           request,
-          status: 403,
-          error: "You do not have access to this curriculum.",
-          code: "forbidden",
-          cause: downloadError,
+          status: 500,
+          error: "Failed to load curriculum PDF.",
+          code: "internal_error",
+          cause:
+            downloadError ??
+            new Error("Storage download returned no data."),
         });
       }
 
@@ -494,6 +497,48 @@ export async function handleParentMobilePreviewGet(
           "Cache-Control": "private, no-store",
         },
       });
+    }
+
+    if (segment === "curriculum-discussion") {
+      const programId = url.searchParams.get("programId")?.trim() ?? "";
+      const curriculumId = url.searchParams.get("curriculumId");
+      if (!programId) {
+        return apiError(route, {
+          request,
+          status: 400,
+          error: "programId is required.",
+          code: "missing_fields",
+        });
+      }
+
+      try {
+        const messages = await loadParentCoopCurriculumDiscussionForFamily({
+          supabase: admin,
+          organizationId,
+          familyId,
+          programId,
+          curriculumId,
+        });
+        return NextResponse.json({ messages });
+      } catch (err) {
+        if (err instanceof Error && err.message === "forbidden") {
+          return apiError(route, {
+            request,
+            status: 403,
+            error: "You do not have access to this program.",
+            code: "forbidden",
+          });
+        }
+        if (err instanceof Error && err.message === "coop_not_enabled") {
+          return apiError(route, {
+            request,
+            status: 404,
+            error: "Co-op content is not available for this program.",
+            code: "not_found",
+          });
+        }
+        throw err;
+      }
     }
 
     if (segment === "coop") {

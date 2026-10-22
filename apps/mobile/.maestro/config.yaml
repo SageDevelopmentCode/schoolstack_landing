@@ -1,1 +1,3 @@
 appId: com.mudkitchen.schoolstack.mobile
+excludeTags:
+  - coop-demo-data
