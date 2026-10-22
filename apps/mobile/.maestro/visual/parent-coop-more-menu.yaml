@@ -6,6 +6,12 @@ appId: com.mudkitchen.schoolstack.mobile
     visible: 'Curriculum'
     timeout: 30000
 - assertVisible: 'Supply list'
+- tapOn: 'Curriculum'
+- extendedWaitUntil:
+    visible:
+      id: 'parent-coop-curriculum-ready'
+    timeout: 30000
+- tapOn: 'More'
 - tapOn: 'Supply list'
 - extendedWaitUntil:
     visible:

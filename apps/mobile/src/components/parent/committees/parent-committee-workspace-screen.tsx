@@ -1,12 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { ParentCommitteeWorkspaceSkeleton } from '@/components/parent/committees/parent-committee-workspace-skeleton';
 import { ParentCommitteeWorkspaceHeader } from '@/components/parent/committees/parent-committee-workspace-header';
 import { ParentCommitteeCalendarSection } from '@/components/parent/committees/sections/parent-committee-calendar-section';
 import { ParentCommitteeHomeSection } from '@/components/parent/committees/sections/parent-committee-home-section';
@@ -216,12 +211,7 @@ function CommitteeWorkspaceScreen({
     : null;
 
   if (loading) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: Story.paper }]}>
-        <ActivityIndicator color={theme.primary} />
-        <Text style={[styles.loadingCopy, { color: theme.muted }]}>Loading committee…</Text>
-      </View>
-    );
+    return <ParentCommitteeWorkspaceSkeleton />;
   }
 
   if (error || !committee || !sectionProps) {

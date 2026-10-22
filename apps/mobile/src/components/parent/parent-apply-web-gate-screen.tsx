@@ -7,6 +7,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { OrganizationLogo } from '@/components/organization-logo';
+import { ParentApplyWebGateSkeleton } from '@/components/parent/parent-apply-web-gate-skeleton';
 import { PrimaryButton } from '@/components/primary-button';
 import { ThemedText } from '@/components/themed-text';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
@@ -197,11 +198,7 @@ export function ParentApplyWebGateScreen() {
   }, [router, signOut]);
 
   if (isLoading || !user || portalType !== 'parent_apply' || !selectedSchool) {
-    return (
-      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: loadingTheme.bg }]}>
-        <ActivityIndicator color={loadingTheme.accent} />
-      </SafeAreaView>
-    );
+    return <ParentApplyWebGateSkeleton />;
   }
 
   return (

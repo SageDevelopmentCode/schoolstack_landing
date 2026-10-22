@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,28 +7,44 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { ParentCoopCurriculumSkeleton } from '@/components/parent/coop/parent-coop-curriculum-skeleton';
 import { ParentCoopCurriculumStoryHeader } from '@/components/parent/coop/parent-coop-curriculum-story-header';
 import { ParentEmbeddedPdfPreview } from '@/components/parent/shared/parent-embedded-pdf-preview';
 import { StoryButton } from '@/components/story/story-button';
+import { StoryCard } from '@/components/story/story-card';
+import { StoryPillNav } from '@/components/story/story-pill-nav';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
-import { Story, StoryFonts } from '@/constants/story-theme';
+import { Story, StoryCardPadding, StoryFonts, StoryRadius } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 import { useParentTheme } from '@/contexts/parent-theme-context';
+import { cacheParentCoopCurriculumPdf } from '@/lib/pdf/cache-authenticated-parent-pdf';
 import { usePortalReadOnly } from '@/lib/portal-preview-gating';
 import {
   fetchParentCoopCurriculumDiscussion,
   fetchParentCoopCurriculumPageData,
-  fetchParentCoopCurriculumPdfDataUri,
   postParentCoopCurriculumDiscussionMessage,
   type ParentCoopCurriculumRecord,
 } from '@/lib/parent/parent-portal-api';
-import { buildEmbeddedPdfViewerUrl } from '@/lib/school-bulletin/bulletin-format';
 
 type ParentCoopCurriculumScreenProps = {
   organizationId: string;
   programId: string;
 };
+
+function PdfSkeletonBlock() {
+  return (
+    <View
+      style={{
+        minHeight: 360,
+        borderRadius: StoryRadius.card,
+        backgroundColor: Story.line,
+        opacity: 0.55,
+      }}
+    />
+  );
+}
 
 export function ParentCoopCurriculumScreen({
   organizationId,
@@ -42,8 +56,9 @@ export function ParentCoopCurriculumScreen({
   const [error, setError] = useState<string | null>(null);
   const [curricula, setCurricula] = useState<ParentCoopCurriculumRecord[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfFileUri, setPdfFileUri] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState(false);
   const [discussionOpen, setDiscussionOpen] = useState(false);
   const [messages, setMessages] = useState<
     Awaited<ReturnType<typeof fetchParentCoopCurriculumDiscussion>>['messages']
@@ -55,6 +70,15 @@ export function ParentCoopCurriculumScreen({
   const activeCurriculum = useMemo(
     () => curricula.find((record) => record.id === activeId) ?? curricula[0] ?? null,
     [activeId, curricula],
+  );
+
+  const guidePills = useMemo(
+    () =>
+      curricula.map((guide) => ({
+        key: guide.id,
+        label: guide.displayName ?? guide.fileName,
+      })),
+    [curricula],
   );
 
   const load = useCallback(async () => {
@@ -81,24 +105,30 @@ export function ParentCoopCurriculumScreen({
 
   useEffect(() => {
     if (!activeCurriculum) {
-      setPdfUrl(null);
+      setPdfFileUri(null);
+      setPdfError(false);
       return;
     }
 
     let cancelled = false;
     setPdfLoading(true);
-    void fetchParentCoopCurriculumPdfDataUri(
+    setPdfError(false);
+    setPdfFileUri(null);
+
+    void cacheParentCoopCurriculumPdf({
       organizationId,
       programId,
-      activeCurriculum.id,
-    )
-      .then((dataUri) => {
+      curriculumId: activeCurriculum.id,
+    })
+      .then((fileUri) => {
         if (!cancelled) {
-          setPdfUrl(buildEmbeddedPdfViewerUrl(dataUri));
+          setPdfFileUri(fileUri);
         }
       })
       .catch(() => {
-        if (!cancelled) setPdfUrl(null);
+        if (!cancelled) {
+          setPdfError(true);
+        }
       })
       .finally(() => {
         if (!cancelled) setPdfLoading(false);
@@ -136,12 +166,22 @@ export function ParentCoopCurriculumScreen({
     }
   };
 
+  const retryPdf = () => {
+    if (!activeCurriculum) return;
+    setPdfLoading(true);
+    setPdfError(false);
+    void cacheParentCoopCurriculumPdf({
+      organizationId,
+      programId,
+      curriculumId: activeCurriculum.id,
+    })
+      .then(setPdfFileUri)
+      .catch(() => setPdfError(true))
+      .finally(() => setPdfLoading(false));
+  };
+
   if (loading) {
-    return (
-      <View style={[styles.centered, { backgroundColor: Story.paper }]}>
-        <ActivityIndicator color={theme.primary} />
-      </View>
-    );
+    return <ParentCoopCurriculumSkeleton />;
   }
 
   if (error) {
@@ -153,128 +193,122 @@ export function ParentCoopCurriculumScreen({
     );
   }
 
+  const pdfTitle = activeCurriculum?.displayName ?? activeCurriculum?.fileName ?? 'Curriculum';
+
   return (
-    <View style={[styles.root, { backgroundColor: Story.paper }]}>
-      <View
-        style={[
-          styles.headerWrap,
-          { borderBottomColor: theme.line, backgroundColor: theme.white },
-        ]}>
+    <ScrollView
+      testID="parent-coop-curriculum-ready"
+      style={{ flex: 1, backgroundColor: Story.paper }}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled">
+      <Animated.View entering={FadeInDown.duration(280)}>
         <ParentCoopCurriculumStoryHeader />
-      </View>
+      </Animated.View>
 
       {curricula.length === 0 ? (
-        <View style={styles.centered}>
-          <Text style={{ color: theme.muted }}>No curriculum guides yet.</Text>
-        </View>
+        <Text style={[styles.empty, { color: theme.muted }]}>No curriculum guides yet.</Text>
       ) : (
         <>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.guideRow}
-            style={[styles.guideScroll, { borderBottomColor: theme.line }]}>
-            {curricula.map((guide) => {
-              const selected = guide.id === activeCurriculum?.id;
-              return (
-                <Pressable
-                  key={guide.id}
-                  onPress={() => setActiveId(guide.id)}
-                  style={[
-                    styles.guideChip,
-                    {
-                      backgroundColor: selected ? theme.primarySoft : theme.white,
-                      borderColor: selected ? theme.primary : theme.line,
-                    },
-                  ]}>
-                  <Text
-                    style={[
-                      styles.guideChipText,
-                      { color: selected ? theme.primary : theme.ink },
-                    ]}>
-                    {guide.displayName ?? guide.fileName}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-
-          <View style={styles.pdfSection}>
-            {pdfLoading ? (
-              <ActivityIndicator color={theme.primary} style={styles.pdfLoader} />
-            ) : pdfUrl ? (
-              <ParentEmbeddedPdfPreview
-                url={pdfUrl}
-                title={activeCurriculum?.displayName ?? activeCurriculum?.fileName ?? 'Curriculum'}
-                minHeight={360}
+          {guidePills.length > 1 ? (
+            <Animated.View entering={FadeInDown.duration(300).delay(40)}>
+              <StoryPillNav
+                items={guidePills}
+                activeKey={activeCurriculum?.id ?? guidePills[0]?.key ?? ''}
+                onChange={setActiveId}
+                size="compact"
               />
-            ) : (
-              <Text style={[styles.error, { color: theme.muted }]}>Could not load this guide.</Text>
-            )}
-          </View>
+            </Animated.View>
+          ) : null}
 
-          <Pressable
-            onPress={() => {
-              setDiscussionOpen((open) => !open);
-              if (!discussionOpen) void refreshDiscussion();
-            }}
-            style={[styles.discussionToggle, { borderTopColor: theme.line }]}>
-            <Text style={[styles.discussionToggleText, { color: theme.primary }]}>
-              {discussionOpen ? 'Hide discussion' : 'Open discussion'}
-            </Text>
-          </Pressable>
-
-          {discussionOpen ? (
-            <View style={styles.discussionPanel}>
-              <FlatList
-                data={messages}
-                keyExtractor={(item) => item.id}
-                scrollEnabled={false}
-                renderItem={({ item }) => (
-                  <View style={[styles.messageRow, { borderColor: theme.line }]}>
-                    <Text style={[styles.messageAuthor, { color: theme.ink }]}>
-                      {item.guardianName}
-                      {item.guardianId === currentGuardianId ? ' (you)' : ''}
+          <Animated.View entering={FadeInDown.duration(300).delay(60)}>
+            <StoryCard>
+              <View style={styles.pdfCardInner}>
+                {pdfLoading ? (
+                  <PdfSkeletonBlock />
+                ) : pdfFileUri ? (
+                  <ParentEmbeddedPdfPreview url={pdfFileUri} title={pdfTitle} minHeight={360} />
+                ) : pdfError ? (
+                  <View style={styles.pdfError}>
+                    <Text style={[styles.error, { color: theme.muted }]}>
+                      Could not load this guide.
                     </Text>
-                    <Text style={{ color: theme.ink }}>{item.body}</Text>
+                    <StoryButton label="Try again" previewSafe onPress={retryPdf} />
                   </View>
-                )}
-                ListEmptyComponent={
-                  <Text style={{ color: theme.muted, padding: Spacing.three }}>
-                    No messages yet. Start the conversation.
+                ) : (
+                  <Text style={[styles.error, { color: theme.muted }]}>
+                    Could not load this guide.
                   </Text>
-                }
-              />
-              {!previewReadOnly ? (
-                <View style={styles.composeRow}>
-                  <TextInput
-                    value={draft}
-                    onChangeText={setDraft}
-                    placeholder="Write a message…"
-                    placeholderTextColor={theme.muted}
-                    style={[
-                      styles.composeInput,
-                      { borderColor: theme.line, color: theme.ink, backgroundColor: theme.white },
-                    ]}
-                    multiline
-                  />
-                  <StoryButton
-                    label={sending ? 'Sending…' : 'Send'}
-                    disabled={sending || !draft.trim()}
-                    onPress={() => void handleSend()}
-                  />
+                )}
+              </View>
+            </StoryCard>
+          </Animated.View>
+
+          <Animated.View entering={FadeInDown.duration(300).delay(80)}>
+            <StoryCard>
+              <Pressable
+                onPress={() => {
+                  setDiscussionOpen((open) => !open);
+                  if (!discussionOpen) void refreshDiscussion();
+                }}
+                style={styles.discussionHeader}>
+                <Text style={[styles.discussionTitle, { color: theme.ink }]}>Discussion</Text>
+                <Text style={[styles.discussionToggle, { color: theme.primary }]}>
+                  {discussionOpen ? 'Hide' : 'Show'}
+                </Text>
+              </Pressable>
+
+              {discussionOpen ? (
+                <View style={styles.discussionBody}>
+                  {messages.length === 0 ? (
+                    <Text style={{ color: theme.muted, fontFamily: StoryFonts.body, fontSize: 14 }}>
+                      No messages yet. Start the conversation.
+                    </Text>
+                  ) : (
+                    messages.map((item) => (
+                      <View
+                        key={item.id}
+                        style={[styles.messageRow, { borderColor: theme.line }]}>
+                        <Text style={[styles.messageAuthor, { color: theme.ink }]}>
+                          {item.guardianName}
+                          {item.guardianId === currentGuardianId ? ' (you)' : ''}
+                        </Text>
+                        <Text style={{ color: theme.ink, fontFamily: StoryFonts.body, fontSize: 14 }}>
+                          {item.body}
+                        </Text>
+                      </View>
+                    ))
+                  )}
+                  {!previewReadOnly ? (
+                    <View style={styles.composeRow}>
+                      <TextInput
+                        value={draft}
+                        onChangeText={setDraft}
+                        placeholder="Write a message…"
+                        placeholderTextColor={theme.muted}
+                        style={[
+                          styles.composeInput,
+                          { borderColor: theme.line, color: theme.ink, backgroundColor: theme.white },
+                        ]}
+                        multiline
+                      />
+                      <StoryButton
+                        label={sending ? 'Sending…' : 'Send'}
+                        disabled={sending || !draft.trim()}
+                        onPress={() => void handleSend()}
+                      />
+                    </View>
+                  ) : null}
                 </View>
               ) : null}
-            </View>
-          ) : null}
+            </StoryCard>
+          </Animated.View>
         </>
       )}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
   centered: {
     flex: 1,
     alignItems: 'center',
@@ -282,61 +316,57 @@ const styles = StyleSheet.create({
     padding: SCREEN_HORIZONTAL_PADDING,
     gap: Spacing.three,
   },
-  headerWrap: {
+  content: {
     paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingTop: Spacing.four,
+    paddingBottom: Spacing.six,
+    gap: Spacing.three,
+  },
+  empty: {
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    paddingVertical: Spacing.four,
   },
   error: {
     fontFamily: StoryFonts.body,
     fontSize: 14,
     textAlign: 'center',
   },
-  guideScroll: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    maxHeight: 56,
+  pdfCardInner: {
+    padding: StoryCardPadding,
+    overflow: 'hidden',
+    borderRadius: StoryRadius.card,
   },
-  guideRow: {
-    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-    paddingVertical: Spacing.two,
-    gap: Spacing.two,
-  },
-  guideChip: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.one,
-  },
-  guideChipText: {
-    fontFamily: StoryFonts.bodyMedium,
-    fontSize: 13,
-  },
-  pdfSection: {
-    flex: 1,
-    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-    paddingTop: Spacing.three,
-  },
-  pdfLoader: { marginTop: Spacing.six },
-  discussionToggle: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingVertical: Spacing.three,
-    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+  pdfError: {
+    minHeight: 200,
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.three,
+    padding: Spacing.three,
   },
-  discussionToggleText: {
+  discussionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: StoryCardPadding,
+  },
+  discussionTitle: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 16,
+  },
+  discussionToggle: {
     fontFamily: StoryFonts.bodyMedium,
     fontSize: 14,
   },
-  discussionPanel: {
-    maxHeight: 280,
-    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-    paddingBottom: Spacing.six,
+  discussionBody: {
+    paddingHorizontal: StoryCardPadding,
+    paddingBottom: StoryCardPadding,
     gap: Spacing.two,
   },
   messageRow: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 12,
     padding: Spacing.two,
-    marginBottom: Spacing.two,
     gap: 4,
   },
   messageAuthor: {
@@ -345,6 +375,7 @@ const styles = StyleSheet.create({
   },
   composeRow: {
     gap: Spacing.two,
+    marginTop: Spacing.two,
   },
   composeInput: {
     borderWidth: 1,

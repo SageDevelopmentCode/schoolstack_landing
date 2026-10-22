@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Linking,
   Platform,
   StyleSheet,
@@ -12,6 +11,7 @@ import {
 import { WebView, type WebViewProps } from 'react-native-webview';
 import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 
+import { ParentEmbeddedPdfLoadingPlaceholder } from '@/components/parent/shared/parent-embedded-pdf-loading-placeholder';
 import { StoryButton } from '@/components/story/story-button';
 import { StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
@@ -147,9 +147,7 @@ export function ParentEmbeddedPdfWebView({
   if (!source) {
     return (
       <View style={[styles.wrap, style]}>
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator color="#64748B" />
-        </View>
+        <ParentEmbeddedPdfLoadingPlaceholder />
       </View>
     );
   }
@@ -177,7 +175,7 @@ export function ParentEmbeddedPdfWebView({
       />
       {phase === 'loading' || (androidPdfJs && !assetsReady) ? (
         <View style={styles.loadingOverlay} pointerEvents="none">
-          <ActivityIndicator color="#64748B" />
+          <ParentEmbeddedPdfLoadingPlaceholder style={StyleSheet.absoluteFill} />
         </View>
       ) : null}
     </View>
