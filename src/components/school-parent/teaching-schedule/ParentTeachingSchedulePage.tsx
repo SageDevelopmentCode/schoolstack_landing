@@ -138,7 +138,10 @@ export default function ParentTeachingSchedulePage({
   );
 
   return (
-    <div className="mx-auto w-full max-w-[1250px] px-4 py-6 sm:py-8 md:px-9">
+    <div
+      className="mx-auto w-full max-w-[1250px] px-4 py-6 sm:py-8 md:px-9"
+      data-testid="parent-coop-teaching-schedule-ready"
+    >
       <div className="mb-5">
         <ParentSectionKicker theme={theme}>Co-op</ParentSectionKicker>
         <div className="mt-1 flex items-center gap-2.5">

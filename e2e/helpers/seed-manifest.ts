@@ -23,7 +23,13 @@ export function getSeedManifest(): E2eSeedManifest {
     !manifest.applications?.enrollTarget ||
     !manifest.applications?.feePendingDraft ||
     !manifest.applications?.noFeeDraft ||
-    !manifest.applications?.noFeeSubmitDraft
+    !manifest.applications?.noFeeSubmitDraft ||
+    !manifest.committees?.parentWorkspace ||
+    !manifest.programs?.coop?.id ||
+    !manifest.programs?.coop?.slug ||
+    !manifest.classroomSignups?.openSignupId ||
+    !manifest.parentPublishedFormId ||
+    !manifest.fridayBranch?.classId
   ) {
     throw new Error(
       `E2E seed manifest at ${SEED_MANIFEST_PATH} is missing required IDs.`,

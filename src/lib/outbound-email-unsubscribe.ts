@@ -14,6 +14,8 @@ export const TRANSACTIONAL_OUTBOUND_EMAIL_CHANNELS = new Set<string>([
   "public_support_request_confirmation",
   "demo_feedback_confirmation",
   "admin_support_request_confirmation",
+  "admin_support_request_resolved",
+  "public_support_request_resolved",
   "application_submitted_confirmation",
   "application_accepted_enrollment",
   "enrollment_completed_confirmation",

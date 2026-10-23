@@ -15,6 +15,7 @@ import { AdminStatusBadge } from "@/components/admin/ui/AdminStatusBadge";
 import { AdminEmptyState } from "@/components/admin/ui/AdminEmptyState";
 import { AdminPageState } from "@/components/admin/ui/AdminPageState";
 import { AdminSelect } from "@/components/admin/ui/AdminSelect";
+import { AdminButton } from "@/components/admin/ui/AdminButton";
 import { TICKET_STATUS, type TicketStatus } from "@/lib/admin-ui/admin-status-styles";
 import {
   type AdminSupportRequestRow,
@@ -82,6 +83,9 @@ export default function AdminTicketsPage() {
   const [attachments, setAttachments] = useState<SignedAttachment[]>([]);
   const [attachmentsLoading, setAttachmentsLoading] = useState(false);
   const [attachmentsError, setAttachmentsError] = useState<string | null>(null);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [resolveFeedback, setResolveFeedback] = useState<string | null>(null);
+  const [resolveError, setResolveError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -184,6 +188,13 @@ export default function AdminTicketsPage() {
     };
   }, [ticketSource, selectedPortal?.id, selectedPortal?.attachments.length]);
 
+  useEffect(() => {
+    queueMicrotask(() => {
+      setResolveFeedback(null);
+      setResolveError(null);
+    });
+  }, [ticketSource, selectedPortalId, selectedPublicId]);
+
   const handlePortalStatusChange = useCallback(
     async (id: string, status: SupportRequestStatus) => {
       const { data, error: updateError } = await supabase
@@ -211,6 +222,70 @@ export default function AdminTicketsPage() {
       );
     },
     [supabase],
+  );
+
+  const handleResolveAndEmail = useCallback(
+    async (source: TicketSource, id: string, alreadyCompleted: boolean) => {
+      if (alreadyCompleted) {
+        const confirmed = window.confirm(
+          "This ticket is already completed. Send another resolved email anyway?",
+        );
+        if (!confirmed) return;
+      }
+
+      setResolvingId(id);
+      setResolveFeedback(null);
+      setResolveError(null);
+
+      const endpoint =
+        source === "portal"
+          ? `/api/admin/support-requests/${id}/send-resolved-email`
+          : `/api/admin/public-support-requests/${id}/send-resolved-email`;
+
+      try {
+        const response = await fetch(endpoint, { method: "POST" });
+
+        if (!response.ok) {
+          let message = "Failed to send resolved email.";
+          try {
+            const payload = (await response.json()) as { error?: string };
+            if (payload.error?.trim()) message = payload.error.trim();
+          } catch {
+            // ignore JSON parse errors
+          }
+          setResolveError(message);
+          return;
+        }
+
+        const payload = (await response.json()) as { updated_at?: string };
+        const updatedAt = payload.updated_at ?? new Date().toISOString();
+
+        if (source === "portal") {
+          setPortalTickets((prev) =>
+            prev.map((ticket) =>
+              ticket.id === id
+                ? { ...ticket, status: "completed", updated_at: updatedAt }
+                : ticket,
+            ),
+          );
+        } else {
+          setPublicTickets((prev) =>
+            prev.map((ticket) =>
+              ticket.id === id
+                ? { ...ticket, status: "completed", updated_at: updatedAt }
+                : ticket,
+            ),
+          );
+        }
+
+        setResolveFeedback("Resolved email sent.");
+      } catch {
+        setResolveError("Failed to send resolved email.");
+      } finally {
+        setResolvingId(null);
+      }
+    },
+    [],
   );
 
   const handlePublicStatusChange = useCallback(
@@ -377,22 +452,50 @@ export default function AdminTicketsPage() {
                     title={selectedPortal.submitter_email}
                     subtitle={selectedPortal.organization_name}
                     actions={
-                      <AdminSelect
-                        value={selectedPortal.status}
-                        onChange={(event) => {
-                          const nextStatus = parseSupportRequestStatus(
-                            event.target.value,
-                          );
-                          if (!nextStatus) return;
-                          void handlePortalStatusChange(selectedPortal.id, nextStatus);
-                        }}
-                      >
-                        {SUPPORT_REQUEST_STATUSES.map((status) => (
-                          <option key={status} value={status}>
-                            {TICKET_STATUS[status as TicketStatus].label}
-                          </option>
-                        ))}
-                      </AdminSelect>
+                      <div className="flex flex-col items-end gap-2">
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          <AdminButton
+                            variant="primary"
+                            disabled={resolvingId === selectedPortal.id}
+                            onClick={() => {
+                              void handleResolveAndEmail(
+                                "portal",
+                                selectedPortal.id,
+                                selectedPortal.status === "completed",
+                              );
+                            }}
+                          >
+                            {resolvingId === selectedPortal.id
+                              ? "Sending…"
+                              : "Resolve & email"}
+                          </AdminButton>
+                          <AdminSelect
+                            value={selectedPortal.status}
+                            onChange={(event) => {
+                              const nextStatus = parseSupportRequestStatus(
+                                event.target.value,
+                              );
+                              if (!nextStatus) return;
+                              void handlePortalStatusChange(
+                                selectedPortal.id,
+                                nextStatus,
+                              );
+                            }}
+                          >
+                            {SUPPORT_REQUEST_STATUSES.map((status) => (
+                              <option key={status} value={status}>
+                                {TICKET_STATUS[status as TicketStatus].label}
+                              </option>
+                            ))}
+                          </AdminSelect>
+                        </div>
+                        {resolveFeedback ? (
+                          <p className="text-xs text-admin-success">{resolveFeedback}</p>
+                        ) : null}
+                        {resolveError ? (
+                          <p className="text-xs text-admin-error">{resolveError}</p>
+                        ) : null}
+                      </div>
                     }
                   />
 
@@ -484,22 +587,50 @@ export default function AdminTicketsPage() {
                   title={selectedPublic.submitter_name}
                   subtitle={selectedPublic.submitter_email}
                   actions={
-                    <AdminSelect
-                      value={selectedPublic.status}
-                      onChange={(event) => {
-                        const nextStatus = parseSupportRequestStatus(
-                          event.target.value,
-                        );
-                        if (!nextStatus) return;
-                        void handlePublicStatusChange(selectedPublic.id, nextStatus);
-                      }}
-                    >
-                      {SUPPORT_REQUEST_STATUSES.map((status) => (
-                        <option key={status} value={status}>
-                          {TICKET_STATUS[status as TicketStatus].label}
-                        </option>
-                      ))}
-                    </AdminSelect>
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        <AdminButton
+                          variant="primary"
+                          disabled={resolvingId === selectedPublic.id}
+                          onClick={() => {
+                            void handleResolveAndEmail(
+                              "public",
+                              selectedPublic.id,
+                              selectedPublic.status === "completed",
+                            );
+                          }}
+                        >
+                          {resolvingId === selectedPublic.id
+                            ? "Sending…"
+                            : "Resolve & email"}
+                        </AdminButton>
+                        <AdminSelect
+                          value={selectedPublic.status}
+                          onChange={(event) => {
+                            const nextStatus = parseSupportRequestStatus(
+                              event.target.value,
+                            );
+                            if (!nextStatus) return;
+                            void handlePublicStatusChange(
+                              selectedPublic.id,
+                              nextStatus,
+                            );
+                          }}
+                        >
+                          {SUPPORT_REQUEST_STATUSES.map((status) => (
+                            <option key={status} value={status}>
+                              {TICKET_STATUS[status as TicketStatus].label}
+                            </option>
+                          ))}
+                        </AdminSelect>
+                      </div>
+                      {resolveFeedback ? (
+                        <p className="text-xs text-admin-success">{resolveFeedback}</p>
+                      ) : null}
+                      {resolveError ? (
+                        <p className="text-xs text-admin-error">{resolveError}</p>
+                      ) : null}
+                    </div>
                   }
                 />
 

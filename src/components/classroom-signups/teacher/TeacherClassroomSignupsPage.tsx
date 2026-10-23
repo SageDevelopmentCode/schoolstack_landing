@@ -229,7 +229,10 @@ function TeacherClassroomSignupsPageContent({
   }, []);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <div
+      data-testid="teacher-classroom-signups-page"
+      className="mx-auto max-w-5xl px-4 py-8 sm:px-6"
+    >
       <AnimatePresence mode="wait" initial={false}>
         {creating ? (
           <motion.div

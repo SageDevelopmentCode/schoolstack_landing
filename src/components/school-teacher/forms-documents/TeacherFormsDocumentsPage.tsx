@@ -110,6 +110,7 @@ function FormListRow({
   return (
     <button
       type="button"
+      data-testid={`teacher-form-row-${form.id}`}
       onClick={onOpen}
       className="grid w-full cursor-pointer grid-cols-[1fr_auto_auto_auto_auto] items-center gap-3 border-b px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-[#F7FAF7]"
       style={{
@@ -168,6 +169,7 @@ function FormListCard({
   return (
     <button
       type="button"
+      data-testid={`teacher-form-row-${form.id}`}
       onClick={onOpen}
       className="w-full cursor-pointer rounded-xl border p-4 text-left transition-colors hover:bg-[#F7FAF7]"
       style={{
@@ -600,7 +602,7 @@ function TeacherFormsDocumentsPageContent({
   );
 
   return (
-    <div className={PORTAL_HOME_CONTAINER_CLASS}>
+    <div className={PORTAL_HOME_CONTAINER_CLASS} data-testid="teacher-forms-documents-page">
       <AnimatePresence mode="wait" initial={false}>
         {creating ? (
           <motion.div

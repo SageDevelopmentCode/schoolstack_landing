@@ -2,6 +2,11 @@
 
 import Link from "next/link";
 import { Eye, X } from "lucide-react";
+import { Suspense } from "react";
+import AdminPreviewDeviceFrame from "@/components/admin/AdminPreviewDeviceFrame";
+import AdminPreviewViewportToggle from "@/components/admin/AdminPreviewViewportToggle";
+import { useAdminPreviewEmbed } from "@/components/admin/useAdminPreviewEmbed";
+import { useAdminPreviewViewport } from "@/components/admin/useAdminPreviewViewport";
 import type { FamilyUserProfile } from "@/lib/admissions/parent-portal-access";
 
 type SchoolAdminPreviewShellProps = {
@@ -11,12 +16,29 @@ type SchoolAdminPreviewShellProps = {
   children: React.ReactNode;
 };
 
-export default function SchoolAdminPreviewShell({
+export default function SchoolAdminPreviewShell(
+  props: SchoolAdminPreviewShellProps,
+) {
+  return (
+    <Suspense fallback={<>{props.children}</>}>
+      <SchoolAdminPreviewShellInner {...props} />
+    </Suspense>
+  );
+}
+
+function SchoolAdminPreviewShellInner({
   schoolName,
   userProfile,
   familyId,
   children,
 }: SchoolAdminPreviewShellProps) {
+  const isEmbed = useAdminPreviewEmbed();
+  const { viewport, setViewport } = useAdminPreviewViewport();
+
+  if (isEmbed) {
+    return <>{children}</>;
+  }
+
   return (
     <div className="flex min-h-dvh flex-col bg-bg">
       <div
@@ -42,7 +64,11 @@ export default function SchoolAdminPreviewShell({
               </p>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <AdminPreviewViewportToggle
+              viewport={viewport}
+              onViewportChange={setViewport}
+            />
             <Link
               href="/admin/organizations"
               className="inline-flex items-center gap-1.5 rounded-md border border-violet-300 bg-white px-3 py-1.5 text-xs font-medium text-violet-900 transition hover:bg-violet-50"
@@ -54,7 +80,9 @@ export default function SchoolAdminPreviewShell({
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      <AdminPreviewDeviceFrame viewport={viewport}>
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      </AdminPreviewDeviceFrame>
     </div>
   );
 }
