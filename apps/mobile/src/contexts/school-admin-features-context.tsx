@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 
+import { createSchoolAdminErrorReporter } from '@/lib/mobile-error-reporter';
 import { fetchOrganizationBySlug } from '@/lib/school-admin/fetch-organization';
 import {
   isSchoolAdminFridayBranchEnabled,
@@ -28,13 +29,23 @@ const SchoolAdminFeaturesContext = createContext<SchoolAdminFeaturesContextValue
 
 type SchoolAdminFeaturesProviderProps = {
   children: ReactNode;
+  organizationId: string;
   slug: string;
 };
 
-export function SchoolAdminFeaturesProvider({ children, slug }: SchoolAdminFeaturesProviderProps) {
+export function SchoolAdminFeaturesProvider({
+  children,
+  organizationId,
+  slug,
+}: SchoolAdminFeaturesProviderProps) {
   const [features, setFeatures] = useState<SchoolAdminOrganizationFeatures | undefined>();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const reportError = useMemo(
+    () => createSchoolAdminErrorReporter(organizationId),
+    [organizationId],
+  );
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -47,11 +58,12 @@ export function SchoolAdminFeaturesProvider({ children, slug }: SchoolAdminFeatu
       }
       setFeatures(organization.features);
     } catch (loadError) {
+      reportError('school_admin_features_load', loadError);
       setError(loadError instanceof Error ? loadError.message : 'Failed to load school features.');
     } finally {
       setIsLoading(false);
     }
-  }, [slug]);
+  }, [reportError, slug]);
 
   useEffect(() => {
     void load();

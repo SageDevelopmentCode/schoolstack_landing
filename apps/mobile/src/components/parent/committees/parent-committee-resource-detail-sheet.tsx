@@ -12,6 +12,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 type ParentCommitteeResourceDetailSheetProps = {
   visible: boolean;
+  organizationId: string;
   resource: CommitteeResource | null;
   supabase: SupabaseClient;
   onClose: () => void;
@@ -19,6 +20,7 @@ type ParentCommitteeResourceDetailSheetProps = {
 
 export function ParentCommitteeResourceDetailSheet({
   visible,
+  organizationId,
   resource,
   supabase,
   onClose,
@@ -43,7 +45,11 @@ export function ParentCommitteeResourceDetailSheet({
       ) : null}
       <StoryChip tone="info" label={COMMITTEE_RESOURCE_TYPE_LABELS[resource.type]} />
       {isOpenable ? (
-        <ParentCommitteeResourceViewer supabase={supabase} resource={resource} />
+        <ParentCommitteeResourceViewer
+          organizationId={organizationId}
+          supabase={supabase}
+          resource={resource}
+        />
       ) : (
         <Text style={[styles.unavailable, { color: theme.muted }]}>
           This resource is not available to open yet.

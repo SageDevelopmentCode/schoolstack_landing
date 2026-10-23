@@ -7,6 +7,12 @@ import {
 import { ParentPortalApiError } from '@/lib/parent/parent-portal-api';
 import { TeacherPortalApiError } from '@/lib/teacher/teacher-portal-api';
 
+const BENIGN_ERROR_CODES = new Set(['already_completed', 'already_paid']);
+
+export function isBenignMobileErrorCode(code?: string): boolean {
+  return code ? BENIGN_ERROR_CODES.has(code) : false;
+}
+
 function resolveResponseStatus(err: unknown, explicit?: number): number | undefined {
   if (explicit !== undefined) {
     return explicit;
@@ -58,7 +64,12 @@ export function createMobileErrorReporter(
   const orgId = organizationId?.trim() ?? '';
 
   return (operation, err, options = {}) => {
-    if (!surface || !orgId || !operation.trim()) {
+    if (!surface || surface === 'platform_admin' || !orgId || !operation.trim()) {
+      return;
+    }
+
+    const resolvedCode = options.code ?? resolveApiErrorCode(err);
+    if (isBenignMobileErrorCode(resolvedCode)) {
       return;
     }
 
@@ -71,7 +82,7 @@ export function createMobileErrorReporter(
         surface,
         operation,
         error: options.error ?? parsed.message,
-        code: options.code ?? parsed.code ?? resolveApiErrorCode(err),
+        code: resolvedCode ?? parsed.code,
         details: options.details ?? parsed.details,
         entityType: options.entityType,
         entityId: options.entityId,

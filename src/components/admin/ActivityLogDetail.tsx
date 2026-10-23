@@ -79,6 +79,10 @@ export default function ActivityLogDetail({ event }: ActivityLogDetailProps) {
   const errorMessage = readMetadataString(event.metadata, "error");
   const errorStack =
     typeof event.metadata.stack === "string" ? event.metadata.stack : null;
+  const sentryEventId = readMetadataString(event.metadata, "sentryEventId");
+  const sentryEventUrl = sentryEventId
+    ? `https://sentry.io/issues/?query=${encodeURIComponent(sentryEventId)}`
+    : null;
 
   return (
     <div className="p-4 space-y-6">
@@ -168,6 +172,16 @@ export default function ActivityLogDetail({ event }: ActivityLogDetailProps) {
           <h2 className="text-xs font-semibold text-red-800 uppercase tracking-wide">
             Error details
           </h2>
+          {sentryEventUrl ? (
+            <a
+              href={sentryEventUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex text-sm text-red-900 underline underline-offset-2"
+            >
+              Open in Sentry
+            </a>
+          ) : null}
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             {errorRoute ? <DetailField label="Route" value={errorRoute} mono /> : null}
             {errorMethod ? <DetailField label="Method" value={errorMethod} /> : null}

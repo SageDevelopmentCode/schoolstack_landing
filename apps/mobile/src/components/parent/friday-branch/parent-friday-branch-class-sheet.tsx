@@ -1,5 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useState } from 'react';
+
+import { createParentPortalErrorReporter } from '@/lib/mobile-error-reporter';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ParentBottomSheet } from '@/components/parent/parent-bottom-sheet';
@@ -80,6 +82,10 @@ export function ParentFridayBranchClassSheet({
   onViewFlyer,
 }: ParentFridayBranchClassSheetProps) {
   const theme = useParentTheme();
+  const reportError = useMemo(
+    () => createParentPortalErrorReporter(organizationId),
+    [organizationId],
+  );
   const [detail, setDetail] = useState<ParentFridayBranchClassDetailBundle | null>(null);
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
@@ -109,6 +115,10 @@ export function ParentFridayBranchClassSheet({
       })
       .catch((error) => {
         if (cancelled) return;
+        reportError('parent_friday_branch_class_load', error, {
+          entityType: 'friday_branch_class',
+          entityId: classId ?? undefined,
+        });
         setLoadError(error instanceof Error ? error.message : 'Failed to load class.');
       })
       .finally(() => {
@@ -118,7 +128,7 @@ export function ParentFridayBranchClassSheet({
     return () => {
       cancelled = true;
     };
-  }, [classId, organizationId, visible]);
+  }, [classId, organizationId, reportError, visible]);
 
   const { enrollableIds, withdrawableIds } = useMemo(
     () => partitionFridayBranchChildSelection(detail?.studentStates ?? [], selectedStudentIds),
@@ -180,6 +190,10 @@ export function ParentFridayBranchClassSheet({
       );
       onEnrollmentChange(classId, lastDetail);
     } catch (error) {
+      reportError('parent_friday_branch_enrollment_update', error, {
+        entityType: 'friday_branch_class',
+        entityId: classId ?? undefined,
+      });
       if (lastDetail && lastDetail !== detail) {
         setSelectedStudentIds(
           new Set(syncFridayBranchChildSelection(lastDetail.studentStates, selectedStudentIds)),

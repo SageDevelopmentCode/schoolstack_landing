@@ -1,11 +1,22 @@
 import { fetchWithAuth } from '@/lib/auth/auth-session';
-import { createParentPortalErrorReporter } from '@/lib/mobile-error-reporter';
+import {
+  createParentPortalErrorReporter,
+  isBenignMobileErrorCode,
+} from '@/lib/mobile-error-reporter';
 import { ParentPortalApiError } from '@/lib/parent/parent-portal-api';
 import { shouldReportMobileOperationalError } from '@/lib/mobile-activity';
 
 jest.mock('@/lib/auth/auth-session', () => ({
   fetchWithAuth: jest.fn(),
 }));
+
+describe('isBenignMobileErrorCode', () => {
+  it('skips known benign billing race codes', () => {
+    expect(isBenignMobileErrorCode('already_paid')).toBe(true);
+    expect(isBenignMobileErrorCode('already_completed')).toBe(true);
+    expect(isBenignMobileErrorCode('upload_failed')).toBe(false);
+  });
+});
 
 describe('createParentPortalErrorReporter', () => {
   beforeEach(() => {
@@ -22,6 +33,14 @@ describe('createParentPortalErrorReporter', () => {
 
     const reportError = createParentPortalErrorReporter('org-1');
     reportError('friday_branch.load', err);
+
+    expect(fetchWithAuth).not.toHaveBeenCalled();
+  });
+
+  it('skips posting operational errors for benign API codes', () => {
+    const err = new ParentPortalApiError('Charge already paid.', 409, 'already_paid');
+    const reportError = createParentPortalErrorReporter('org-1');
+    reportError('parent_billing_checkout', err);
 
     expect(fetchWithAuth).not.toHaveBeenCalled();
   });

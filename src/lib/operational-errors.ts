@@ -90,6 +90,25 @@ export async function reportOperationalError(
     ? `${api.method} ${api.route} returned ${api.status}: ${error}`
     : `${operation} failed: ${error}`;
 
+  Sentry.captureException(
+    cause instanceof Error ? cause : new Error(error),
+    {
+      tags: {
+        surface,
+        operation,
+        ...(api ? { route: api.route, status: String(api.status) } : {}),
+      },
+      extra: {
+        code,
+        details,
+        organizationId,
+        entityType,
+        entityId,
+      },
+    },
+  );
+  const sentryEventId = Sentry.lastEventId();
+
   if (!skipActivityLog) {
     await logActivityEvent(supabase, {
       organizationId,
@@ -107,6 +126,7 @@ export async function reportOperationalError(
         error,
         code: code ?? null,
         details: details ?? null,
+        ...(sentryEventId ? { sentryEventId } : {}),
         ...(stack ? { stack } : {}),
         ...(api
           ? {
@@ -147,24 +167,6 @@ export async function reportOperationalError(
       });
     }
   }
-
-  Sentry.captureException(
-    cause instanceof Error ? cause : new Error(error),
-    {
-      tags: {
-        surface,
-        operation,
-        ...(api ? { route: api.route, status: String(api.status) } : {}),
-      },
-      extra: {
-        code,
-        details,
-        organizationId,
-        entityType,
-        entityId,
-      },
-    },
-  );
 }
 
 export async function reportMobileOperationalError(
@@ -196,6 +198,26 @@ export async function reportMobileOperationalError(
   const platform =
     typeof metadata?.platform === "string" ? metadata.platform : undefined;
 
+  Sentry.captureException(
+    cause instanceof Error ? cause : new Error(error),
+    {
+      tags: {
+        surface,
+        operation,
+        client: "mobile",
+      },
+      extra: {
+        code,
+        details,
+        organizationId,
+        entityType,
+        entityId,
+        platform,
+      },
+    },
+  );
+  const sentryEventId = Sentry.lastEventId();
+
   if (!skipActivityLog) {
     await logActivityEvent(supabase, {
       organizationId,
@@ -214,6 +236,7 @@ export async function reportMobileOperationalError(
         code: code ?? null,
         details: details ?? null,
         client: "mobile",
+        ...(sentryEventId ? { sentryEventId } : {}),
         ...(platform ? { platform } : {}),
         ...(stack ? { stack } : {}),
         ...(metadata ?? {}),
@@ -237,23 +260,4 @@ export async function reportMobileOperationalError(
       platform,
     });
   }
-
-  Sentry.captureException(
-    cause instanceof Error ? cause : new Error(error),
-    {
-      tags: {
-        surface,
-        operation,
-        client: "mobile",
-      },
-      extra: {
-        code,
-        details,
-        organizationId,
-        entityType,
-        entityId,
-        platform,
-      },
-    },
-  );
 }

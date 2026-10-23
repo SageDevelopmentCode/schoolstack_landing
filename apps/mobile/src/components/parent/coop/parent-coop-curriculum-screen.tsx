@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import { createParentPortalErrorReporter } from '@/lib/mobile-error-reporter';
 import {
   Pressable,
   ScrollView,
@@ -52,6 +54,10 @@ export function ParentCoopCurriculumScreen({
 }: ParentCoopCurriculumScreenProps) {
   const theme = useParentTheme();
   const previewReadOnly = usePortalReadOnly();
+  const reportError = useMemo(
+    () => createParentPortalErrorReporter(organizationId),
+    [organizationId],
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [curricula, setCurricula] = useState<ParentCoopCurriculumRecord[]>([]);
@@ -96,11 +102,15 @@ export function ParentCoopCurriculumScreen({
         setActiveId(data.curricula[0].id);
       }
     } catch (loadError) {
+      reportError('parent_coop_curriculum_load', loadError, {
+        entityType: 'program',
+        entityId: programId,
+      });
       setError(loadError instanceof Error ? loadError.message : 'Failed to load curriculum.');
     } finally {
       setLoading(false);
     }
-  }, [organizationId, programId]);
+  }, [organizationId, programId, reportError]);
 
   useEffect(() => {
     void load();
@@ -128,8 +138,12 @@ export function ParentCoopCurriculumScreen({
           setPdfFileUri(fileUri);
         }
       })
-      .catch(() => {
+      .catch((pdfError) => {
         if (!cancelled) {
+          reportError('parent_coop_curriculum_pdf_cache', pdfError, {
+            entityType: 'curriculum',
+            entityId: activeCurriculum.id,
+          });
           setPdfError(true);
         }
       })
@@ -140,7 +154,7 @@ export function ParentCoopCurriculumScreen({
     return () => {
       cancelled = true;
     };
-  }, [activeCurriculum, organizationId, programId]);
+  }, [activeCurriculum, organizationId, programId, reportError]);
 
   const applyDiscussionMessages = useCallback(
     (
@@ -212,6 +226,11 @@ export function ParentCoopCurriculumScreen({
       });
       setDraft('');
       await refreshDiscussion(curriculumId);
+    } catch (sendError) {
+      reportError('parent_coop_curriculum_discussion_send', sendError, {
+        entityType: 'program',
+        entityId: programId,
+      });
     } finally {
       setSending(false);
     }
@@ -227,7 +246,13 @@ export function ParentCoopCurriculumScreen({
       curriculumId: activeCurriculum.id,
     })
       .then(setPdfFileUri)
-      .catch(() => setPdfError(true))
+      .catch((pdfError) => {
+        reportError('parent_coop_curriculum_pdf_cache', pdfError, {
+          entityType: 'curriculum',
+          entityId: activeCurriculum.id,
+        });
+        setPdfError(true);
+      })
       .finally(() => setPdfLoading(false));
   };
 

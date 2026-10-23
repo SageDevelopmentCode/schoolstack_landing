@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+
+import { createParentPortalErrorReporter } from '@/lib/mobile-error-reporter';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -59,6 +61,10 @@ export function ParentCoopSupplyListScreen({
 }: ParentCoopSupplyListScreenProps) {
   const theme = useParentTheme();
   const previewReadOnly = usePortalReadOnly();
+  const reportError = useMemo(
+    () => createParentPortalErrorReporter(organizationId),
+    [organizationId],
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<ParentCoopSupplyListItem[]>([]);
@@ -76,11 +82,15 @@ export function ParentCoopSupplyListScreen({
       setCurrentFamilyId(data.currentFamilyId);
       setFamilyNameMap(data.familyNameMap);
     } catch (loadError) {
+      reportError('parent_coop_supply_list_load', loadError, {
+        entityType: 'program',
+        entityId: programId,
+      });
       setError(loadError instanceof Error ? loadError.message : 'Failed to load supply list.');
     } finally {
       setLoading(false);
     }
-  }, [organizationId, programId]);
+  }, [organizationId, programId, reportError]);
 
   useEffect(() => {
     void load();
@@ -113,7 +123,11 @@ export function ParentCoopSupplyListScreen({
             itemId: item.id,
           });
       setItems((prev) => prev.map((row) => (row.id === item.id ? result.item : row)));
-    } catch {
+    } catch (claimError) {
+      reportError('parent_coop_supply_list_claim', claimError, {
+        entityType: 'program',
+        entityId: programId,
+      });
       await load();
     } finally {
       setPendingId(null);

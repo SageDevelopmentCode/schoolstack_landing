@@ -9,6 +9,7 @@ import { AdminDrawer } from "@/components/admin/ui/AdminDrawer";
 import { AdminSelect } from "@/components/admin/ui/AdminSelect";
 import { enrichActivityEventsForDisplay, type EnrichedActivityEvent } from "@/lib/activity-event-display";
 import {
+  ACTIVITY_ACTIONS,
   fetchActivityEvents,
   type ActivityDatePreset,
   type ActivityEventRow,
@@ -207,6 +208,7 @@ export default function AdminActivityPage() {
   const [datePreset, setDatePreset] = useState<ActivityDatePreset>("7d");
   const [organizationId, setOrganizationId] = useState("");
   const [surfaceFilter, setSurfaceFilter] = useState<SurfaceFilter>("");
+  const [errorsOnly, setErrorsOnly] = useState(false);
 
   const loadEvents = useCallback(async () => {
     if (view !== "log") return;
@@ -218,6 +220,15 @@ export default function AdminActivityPage() {
         datePreset,
         organizationId: organizationId || undefined,
         surface: surfaceFilter || undefined,
+        ...(errorsOnly
+          ? {
+              actions: [
+                ACTIVITY_ACTIONS.API_ERROR,
+                ACTIVITY_ACTIONS.ADMIN_OPERATION_FAILED,
+                ACTIVITY_ACTIONS.NOTIFICATION_FAILED,
+              ],
+            }
+          : {}),
       });
       const enriched = await enrichActivityEventsForDisplay(supabase, data);
       setEvents(enriched);
@@ -232,7 +243,7 @@ export default function AdminActivityPage() {
     } finally {
       setLoading(false);
     }
-  }, [supabase, view, datePreset, organizationId, surfaceFilter]);
+  }, [supabase, view, datePreset, organizationId, surfaceFilter, errorsOnly]);
 
   useEffect(() => {
     async function loadOrganizations() {
@@ -329,6 +340,16 @@ export default function AdminActivityPage() {
                 onOrganizationChange={setOrganizationId}
                 onSurfaceFilterChange={setSurfaceFilter}
               />
+
+              <label className="flex items-center gap-2 text-xs text-admin-muted cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={errorsOnly}
+                  onChange={(e) => setErrorsOnly(e.target.checked)}
+                  className="rounded border-admin-border"
+                />
+                Errors only (API, admin ops, notification failures)
+              </label>
 
               {error ? (
                 <p className="text-xs text-admin-accent">{error}</p>

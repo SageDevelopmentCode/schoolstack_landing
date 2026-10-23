@@ -309,7 +309,9 @@ export default function SchoolAdminLayout() {
         <MessagesRealtimeProvider organizationId={organization.id} enabled={!isPreview}>
           <SchoolAdminSubmissionsProvider organizationId={organization.id}>
             <SchoolAdminStudentsProvider organizationId={organization.id}>
-              <SchoolAdminFeaturesProvider slug={organization.slug}>
+              <SchoolAdminFeaturesProvider
+                organizationId={organization.id}
+                slug={organization.slug}>
                 <SchoolAdminCommitteesProvider organizationId={organization.id}>
                   <SchoolAdminFridayBranchProvider organizationId={organization.id}>
               <SchoolAdminMessagesInboxProvider

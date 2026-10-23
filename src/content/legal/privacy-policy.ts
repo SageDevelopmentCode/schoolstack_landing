@@ -189,6 +189,7 @@ export const PRIVACY_POLICY: LegalDocument = {
           items: [
             "Essential cookies: required for authentication, session management, and security. These are set when you sign in to a MudKitchen portal and are necessary for the service to function.",
             "Analytics cookies: used only on our public marketing pages when you accept analytics through our cookie banner. These help us understand page visits and usage patterns on the marketing site.",
+            "Performance measurement: we use Vercel Speed Insights across the web app to collect Core Web Vitals (such as loading speed and layout stability) so we can monitor reliability and performance. This is separate from marketing analytics cookies and is not controlled by the cookie banner.",
             "Error monitoring: we use error monitoring tools to capture errors and limited diagnostic information. Session replay is disabled on our homepage, parent portals, application flows, and public school forms. On other pages where replay may be enabled, text and media masking are applied, but masking may not capture every sensitive field entered into a form.",
           ],
         },
