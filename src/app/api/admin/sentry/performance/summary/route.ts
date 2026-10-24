@@ -9,10 +9,12 @@ import {
 } from "@/lib/sentry/admin-config";
 import {
   buildSentryPerformanceExploreUrl,
+  parseSentryPerformanceEnvironment,
   queryDiscoverPerformance,
   resolvePerformanceQuery,
   type SentryPerformancePreset,
 } from "@/lib/sentry/admin-api";
+import { sentryApiErrorResponse } from "@/lib/sentry/sentry-admin-route-response";
 import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/admin/sentry/performance/summary";
@@ -25,6 +27,19 @@ const PRESETS = new Set<SentryPerformancePreset>([
 ]);
 
 export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const presetParam = searchParams.get("preset") ?? "parent_committees";
+  const preset = PRESETS.has(presetParam as SentryPerformancePreset)
+    ? (presetParam as SentryPerformancePreset)
+    : "parent_committees";
+  const customQuery = searchParams.get("query") ?? undefined;
+  const statsPeriod = searchParams.get("statsPeriod") ?? undefined;
+  const environment = parseSentryPerformanceEnvironment(
+    searchParams.get("environment"),
+  );
+  const query = resolvePerformanceQuery(preset, customQuery);
+  const period = statsPeriod ?? "7d";
+
   try {
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
@@ -37,33 +52,41 @@ export async function GET(request: Request) {
       );
     }
 
-    const { searchParams } = new URL(request.url);
-    const presetParam = searchParams.get("preset") ?? "parent_committees";
-    const preset = PRESETS.has(presetParam as SentryPerformancePreset)
-      ? (presetParam as SentryPerformancePreset)
-      : "parent_committees";
-    const customQuery = searchParams.get("query") ?? undefined;
-    const statsPeriod = searchParams.get("statsPeriod") ?? undefined;
+    const config = getSentryAdminConfig();
+    const exploreUrl = buildSentryPerformanceExploreUrl(config, query, environment);
 
-    const query = resolvePerformanceQuery(preset, customQuery);
     const rows = await queryDiscoverPerformance({
       preset,
       customQuery,
       statsPeriod,
+      environment,
     });
 
-    const config = getSentryAdminConfig();
     return NextResponse.json({
       preset,
       query,
-      statsPeriod: statsPeriod ?? "7d",
+      statsPeriod: period,
+      environment,
+      projectSlug: config.projectSlug,
       rows,
-      exploreUrl: buildSentryPerformanceExploreUrl(config, query),
+      exploreUrl,
     });
   } catch (err) {
     if (err instanceof AuthError) {
       return NextResponse.json({ error: err.message }, { status: err.status });
     }
+    const exploreUrl = isSentryAdminConfigured()
+      ? buildSentryPerformanceExploreUrl(getSentryAdminConfig(), query, environment)
+      : undefined;
+    const sentryResponse = sentryApiErrorResponse(err, {
+      preset,
+      query,
+      statsPeriod: period,
+      environment,
+      rows: [],
+      exploreUrl,
+    });
+    if (sentryResponse) return sentryResponse;
     return apiError(ROUTE, {
       request,
       status: 500,

@@ -19,6 +19,7 @@ export type SentryIssueDetail = SentryIssueSummary & {
 
 export type SentryPerformanceRow = {
   transaction: string;
+  environment: string | null;
   p75DurationMs: number | null;
   count: number;
   failureRate: number | null;
@@ -29,3 +30,13 @@ export type SentryPerformancePreset =
   | "api_routes"
   | "parent_portal"
   | "custom";
+
+export const SENTRY_PERFORMANCE_ENVIRONMENT_FILTERS = [
+  "all",
+  "development",
+  "production",
+  "vercel-production",
+] as const;
+
+export type SentryPerformanceEnvironmentFilter =
+  (typeof SENTRY_PERFORMANCE_ENVIRONMENT_FILTERS)[number];

@@ -1,8 +1,10 @@
+import { performance } from "node:perf_hooks";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { getParentCommitteeWorkspace } from "@/lib/committees/parent-committees";
+import { recordApiDuration } from "@/lib/sentry/record-route-metric";
 import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -11,11 +13,13 @@ const ROUTE = "/api/parent-portal/committees/[committeeId]";
 type RouteContext = { params: Promise<{ committeeId: string }> };
 
 export async function GET(request: Request, context: RouteContext) {
+  const started = performance.now();
   const supabase = await createClientFromRequest(request);
   const { committeeId } = await context.params;
   const organizationId = new URL(request.url).searchParams.get("organizationId")?.trim() ?? "";
 
   if (!organizationId || !committeeId) {
+    recordApiDuration(ROUTE, "GET", 400, performance.now() - started);
     return apiError(ROUTE, {
       request,
       status: 400,
@@ -30,6 +34,7 @@ export async function GET(request: Request, context: RouteContext) {
   } = await getUserFromRequest(supabase, request);
 
   if (!user) {
+    recordApiDuration(ROUTE, "GET", 401, performance.now() - started);
     return apiError(ROUTE, {
       request,
       status: 401,
@@ -46,6 +51,7 @@ export async function GET(request: Request, context: RouteContext) {
     );
 
     if (!hasEnrolledAccess) {
+      recordApiDuration(ROUTE, "GET", 403, performance.now() - started);
       return apiError(ROUTE, {
         request,
         status: 403,
@@ -62,9 +68,11 @@ export async function GET(request: Request, context: RouteContext) {
       committeeId,
     );
 
+    recordApiDuration(ROUTE, "GET", 200, performance.now() - started);
     return NextResponse.json({ committee });
   } catch (err) {
     const resolved = portalRouteErrorStatus(err, "Failed to load committee.");
+    recordApiDuration(ROUTE, "GET", resolved.status, performance.now() - started);
     return apiError(ROUTE, {
       request,
       status: resolved.status,

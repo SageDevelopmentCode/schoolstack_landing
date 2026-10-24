@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   FlatList,
   Modal,
   Pressable,
@@ -16,7 +18,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 import { formatGalleryDateLabel } from '@/lib/school-gallery/format-gallery-date';
+import { shareGalleryPhoto } from '@/lib/school-gallery/share-gallery-photo';
 import type { GalleryPhoto } from '@/lib/school-gallery/types';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 export type GalleryPhotoViewerState = {
   photos: GalleryPhoto[];
@@ -24,6 +28,7 @@ export type GalleryPhotoViewerState = {
 };
 
 type GalleryPhotoViewerModalProps = {
+  organizationId: string;
   viewerState: GalleryPhotoViewerState | null;
   visible: boolean;
   hasMore: boolean;
@@ -33,6 +38,7 @@ type GalleryPhotoViewerModalProps = {
 };
 
 export function GalleryPhotoViewerModal({
+  organizationId,
   viewerState,
   visible,
   hasMore,
@@ -43,6 +49,8 @@ export function GalleryPhotoViewerModal({
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<GalleryPhoto>>(null);
+  const [sharing, setSharing] = useState(false);
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const photos = viewerState?.photos ?? [];
   const activeIndex = Math.min(viewerState?.index ?? 0, Math.max(photos.length - 1, 0));
@@ -61,6 +69,29 @@ export function GalleryPhotoViewerModal({
     [activeIndex, hasMore, onChangeIndex, onRequestMore, photos.length],
   );
 
+  const handleSharePhoto = useCallback(() => {
+    if (!activePhoto || sharing) {
+      return;
+    }
+    setSharing(true);
+    void (async () => {
+      try {
+        await shareGalleryPhoto(activePhoto);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Could not share this photo.';
+        Alert.alert('Could not share photo', message);
+        reportError('gallery_photo_share', error, {
+          error: message,
+          entityType: 'gallery_photo',
+          entityId: activePhoto.id,
+        });
+      } finally {
+        setSharing(false);
+      }
+    })();
+  }, [activePhoto, reportError, sharing]);
+
   if (!visible || !viewerState) {
     return null;
   }
@@ -75,6 +106,23 @@ export function GalleryPhotoViewerModal({
           <Text style={styles.counter}>
             {photos.length > 0 ? `${activeIndex + 1} / ${photos.length}${hasMore ? '+' : ''}` : ''}
           </Text>
+          {activePhoto?.imageUrl ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Share photo"
+              accessibilityState={{ disabled: sharing }}
+              disabled={sharing}
+              onPress={handleSharePhoto}
+              style={styles.shareButton}>
+              {sharing ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Ionicons name="share-outline" size={26} color="#FFFFFF" />
+              )}
+            </Pressable>
+          ) : (
+            <View style={styles.shareButtonPlaceholder} />
+          )}
         </View>
 
         <FlatList
@@ -135,9 +183,21 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.two,
   },
   counter: {
+    flex: 1,
     fontFamily: StoryFonts.body,
     fontSize: 14,
     color: '#E2E8F0',
+    textAlign: 'center',
+  },
+  shareButton: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shareButtonPlaceholder: {
+    width: 28,
+    height: 28,
   },
   slide: {
     alignItems: 'center',

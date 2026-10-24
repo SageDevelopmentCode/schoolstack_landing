@@ -25,9 +25,19 @@ export default function ObservabilityResourcesPanel({
         </Link>
       </div>
       <div className="rounded-admin-md border border-admin-border bg-admin-surface p-4 space-y-2">
-        <h3 className="text-sm font-medium text-admin-text">Vercel Speed Insights</h3>
+        <h3 className="text-sm font-medium text-admin-text">Load time and speed</h3>
         <p className="text-xs text-admin-muted">
-          Real-user Core Web Vitals (LCP, INP, CLS) from production traffic, including parent portal routes.
+          <strong className="font-medium text-admin-text">Vercel Speed Insights</strong> — real-user
+          LCP, INP, and CLS (including parent/committees).{" "}
+          <strong className="font-medium text-admin-text">Sentry Traces</strong> — server and API
+          transaction duration (~10% sampled in production).{" "}
+          <strong className="font-medium text-admin-text">Sentry Metrics</strong> — custom{" "}
+          <code className="font-mono text-[10px]">api.request.duration</code> on hot API routes;
+          open Explore → Metrics in Sentry after deploy.
+        </p>
+        <p className="text-xs text-admin-muted">
+          Env setup and verification steps:{" "}
+          <code className="font-mono text-[10px]">docs/sentry-env-and-verification.md</code>
         </p>
         <a
           href="https://vercel.com/dashboard"
@@ -55,17 +65,37 @@ export default function ObservabilityResourcesPanel({
         <div className="rounded-admin-md border border-admin-border bg-admin-surface p-4 space-y-2 sm:col-span-2">
           <h3 className="text-sm font-medium text-admin-text">Sentry project</h3>
           <p className="text-xs text-admin-muted">
-            Full issue triage, assignment, session replay, and release health.
+            Issues, session replay, Traces (load time), and Application Metrics.
           </p>
-          <a
-            href={`${sentryWebBaseUrl}/issues/`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-admin-accent hover:underline"
-          >
-            Open Sentry
-            <ExternalLink className="size-3" aria-hidden />
-          </a>
+          <div className="flex flex-wrap gap-3">
+            <a
+              href={`${sentryWebBaseUrl}/issues/`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-admin-accent hover:underline"
+            >
+              Issues
+              <ExternalLink className="size-3" aria-hidden />
+            </a>
+            <a
+              href={`${sentryWebBaseUrl}/explore/traces/`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-admin-accent hover:underline"
+            >
+              Traces
+              <ExternalLink className="size-3" aria-hidden />
+            </a>
+            <a
+              href={`${sentryWebBaseUrl}/explore/metrics/`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-admin-accent hover:underline"
+            >
+              Metrics
+              <ExternalLink className="size-3" aria-hidden />
+            </a>
+          </div>
         </div>
       ) : null}
     </div>

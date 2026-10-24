@@ -5,12 +5,31 @@ import {
   getSentryAdminConfig,
   type SentryAdminConfig,
 } from "@/lib/sentry/admin-config";
+import { throwIfSentryResponseNotOk } from "@/lib/sentry/sentry-api-error";
+
+export { isSentryApiError, SentryApiError } from "@/lib/sentry/sentry-api-error";
 import type {
   SentryIssueDetail,
   SentryIssueSummary,
+  SentryPerformanceEnvironmentFilter,
   SentryPerformancePreset,
   SentryPerformanceRow,
 } from "@/lib/sentry/types";
+import {
+  normalizeSpansExploreQuery,
+  parseSentryPerformanceEnvironment,
+  resolvePerformanceQuery,
+} from "@/lib/sentry/sentry-performance-queries";
+import {
+  mapSentryPerformanceDiscoverRow,
+  performanceDiscoverPageSize,
+} from "@/lib/sentry/sentry-performance-rows";
+
+export {
+  normalizeSpansExploreQuery,
+  parseSentryPerformanceEnvironment,
+  resolvePerformanceQuery,
+} from "@/lib/sentry/sentry-performance-queries";
 
 export type {
   SentryIssueDetail,
@@ -20,17 +39,6 @@ export type {
 } from "@/lib/sentry/types";
 
 const SENTRY_API_BASE = "https://sentry.io/api/0";
-
-const PERFORMANCE_PRESET_QUERIES: Record<
-  Exclude<SentryPerformancePreset, "custom">,
-  string
-> = {
-  parent_committees:
-    "has:transaction.duration transaction:*parent*committees*",
-  api_routes: "has:transaction.duration transaction:/api/*",
-  parent_portal:
-    "has:transaction.duration transaction:*parent-portal*",
-};
 
 async function sentryFetch<T>(
   config: SentryAdminConfig,
@@ -48,12 +56,7 @@ async function sentryFetch<T>(
     next: { revalidate: 0 },
   });
 
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(
-      `Sentry API ${response.status}: ${body.slice(0, 300) || response.statusText}`,
-    );
-  }
+  await throwIfSentryResponseNotOk(response);
 
   return (await response.json()) as T;
 }
@@ -109,12 +112,7 @@ async function listProjectIssuesUncached(input: {
     next: { revalidate: 0 },
   });
 
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(
-      `Sentry API ${response.status}: ${body.slice(0, 300) || response.statusText}`,
-    );
-  }
+  await throwIfSentryResponseNotOk(response);
 
   const rows = (await response.json()) as RawIssue[];
   const issues = rows.map(mapIssue);
@@ -172,72 +170,54 @@ type DiscoverRow = Record<string, unknown>;
 async function queryDiscoverUncached(input: {
   query: string;
   statsPeriod?: string;
+  environment?: SentryPerformanceEnvironmentFilter;
 }): Promise<SentryPerformanceRow[]> {
   const config = getSentryAdminConfig();
   const statsPeriod = input.statsPeriod ?? "7d";
+  const query = normalizeSpansExploreQuery(input.query);
 
-  const payload = {
-    field: [
-      "transaction",
-      "p75(transaction.duration)",
-      "count()",
-      "failure_rate()",
-    ],
-    query: input.query,
-    sort: "-p75(transaction.duration)",
-    per_page: 25,
-    dataset: "transactions",
-    statsPeriod,
-  };
+  const environmentFilter = input.environment ?? "all";
+
+  const params = new URLSearchParams();
+  for (const field of [
+    "transaction",
+    "environment",
+    "p75(span.duration)",
+    "count(span.duration)",
+    "failure_rate()",
+  ]) {
+    params.append("field", field);
+  }
+  params.set("dataset", "spans");
+  params.set("query", query);
+  params.set("sort", "-p75(span.duration)");
+  params.set("per_page", String(performanceDiscoverPageSize(environmentFilter)));
+  params.set("statsPeriod", statsPeriod);
+  if (environmentFilter !== "all") {
+    params.append("environment", environmentFilter);
+  }
 
   const result = await sentryFetch<{ data: DiscoverRow[] }>(
     config,
-    `/organizations/${config.orgSlug}/events/`,
-    {
-      method: "POST",
-      body: JSON.stringify(payload),
-    },
+    `/organizations/${config.orgSlug}/events/?${params.toString()}`,
   );
 
-  return (result.data ?? []).map((row) => {
-    const transaction = String(row.transaction ?? "—");
-    const p75Raw = row["p75(transaction.duration)"];
-    const countRaw = row["count()"];
-    const failureRaw = row["failure_rate()"];
-
-    return {
-      transaction,
-      p75DurationMs:
-        p75Raw === null || p75Raw === undefined ? null : Number(p75Raw),
-      count: Number(countRaw) || 0,
-      failureRate:
-        failureRaw === null || failureRaw === undefined
-          ? null
-          : Number(failureRaw),
-    };
-  });
-}
-
-export function resolvePerformanceQuery(
-  preset: SentryPerformancePreset,
-  customQuery?: string,
-): string {
-  if (preset === "custom") {
-    return customQuery?.trim() || "has:transaction.duration";
-  }
-  return PERFORMANCE_PRESET_QUERIES[preset];
+  return (result.data ?? []).map((row) => mapSentryPerformanceDiscoverRow(row));
 }
 
 export async function queryDiscoverPerformance(input: {
   preset: SentryPerformancePreset;
   customQuery?: string;
   statsPeriod?: string;
+  environment?: SentryPerformanceEnvironmentFilter;
 }): Promise<SentryPerformanceRow[]> {
   const query = resolvePerformanceQuery(input.preset, input.customQuery);
+  const environment = input.environment ?? "all";
 
   const cacheKey = JSON.stringify({
     query,
     p: input.statsPeriod ?? "7d",
+    env: environment,
   });
 
   return unstable_cache(
@@ -245,6 +225,7 @@ export async function queryDiscoverPerformance(input: {
       queryDiscoverUncached({
         query,
         statsPeriod: input.statsPeriod,
+        environment,
       }),
     ["sentry-admin-perf", cacheKey],
     { revalidate: 60 },
@@ -254,12 +235,17 @@ export async function queryDiscoverPerformance(input: {
 export function buildSentryPerformanceExploreUrl(
   config: SentryAdminConfig,
   query: string,
+  environment: SentryPerformanceEnvironmentFilter = "all",
 ): string {
+  const spansQuery = normalizeSpansExploreQuery(query);
   const params = new URLSearchParams({
     field: "transaction",
-    query,
-    dataset: "transactions",
-    sort: "-p75(transaction.duration)",
+    query: spansQuery,
+    dataset: "spans",
+    sort: "-p75(span.duration)",
   });
+  if (environment !== "all") {
+    params.append("environment", environment);
+  }
   return `${config.webBaseUrl}/explore/traces/?${params.toString()}`;
 }

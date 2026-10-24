@@ -5,6 +5,7 @@ import { AuthError } from "@/lib/admissions/application-auth";
 import { apiError } from "@/lib/api/route-errors";
 import { isSentryAdminConfigured } from "@/lib/sentry/admin-config";
 import { getIssue } from "@/lib/sentry/admin-api";
+import { sentryApiErrorResponse } from "@/lib/sentry/sentry-admin-route-response";
 import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/admin/sentry/issues/[issueId]";
@@ -31,6 +32,8 @@ export async function GET(request: Request, context: RouteContext) {
     if (err instanceof AuthError) {
       return NextResponse.json({ error: err.message }, { status: err.status });
     }
+    const sentryResponse = sentryApiErrorResponse(err);
+    if (sentryResponse) return sentryResponse;
     return apiError(ROUTE, { request, status: 500, error: "Failed to load Sentry issue.", cause: err });
   }
 }

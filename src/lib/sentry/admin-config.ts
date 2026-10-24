@@ -1,8 +1,9 @@
 /**
  * Server-only Sentry org API credentials for platform admin observability.
- * Requires token scopes: org:read, project:read, event:read (and Discover for performance).
+ * Requires token scopes: org:read, project:read, event:read (Explore spans for performance).
  *
  * Env: SENTRY_ORG, SENTRY_PROJECT, SENTRY_AUTH_TOKEN (same as next.config / source maps).
+ * See docs/sentry-env-and-verification.md for DSN and Vercel setup.
  */
 
 export type SentryAdminConfig = {
