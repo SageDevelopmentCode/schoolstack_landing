@@ -34,7 +34,7 @@ import {
 } from "@/components/demo/shared/DemoActivityTimelineRow";
 import { mapDemoLeadToSubmission } from "@/components/demo/shared/demo-submissions-mapper";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
-import { fraunces, dmSans } from "@/lib/fonts";
+import { fraunces, dmSans } from "@/lib/fonts/local";
 import {
   LayoutDashboard,
   TrendingUp,

@@ -74,28 +74,49 @@ export async function resetFamilyBillingState(
 
   if (deleteAssignmentsError) throw deleteAssignmentsError;
 
+  await deleteBillingTestStudents(admin, familyId);
+}
+
+function isBillingE2eTestStudent(firstName: string | null, lastName: string | null): boolean {
+  const first = (firstName ?? "").trim();
+  const last = (lastName ?? "").trim();
+  return first === "Billing" || first.startsWith("Smoke Child");
+}
+
+/** Removes students created by billing/tuition E2E specs; preserves seeded portal students. */
+export async function deleteBillingTestStudents(
+  admin: SupabaseClient,
+  familyId: string,
+): Promise<void> {
   const { data: students, error: studentsError } = await admin
     .from("students")
-    .select("id")
+    .select("id, first_name, last_name")
     .eq("family_id", familyId);
 
   if (studentsError) throw studentsError;
 
-  const studentIds = (students ?? []).map((row) => String(row.id));
+  const testStudentIds = (students ?? [])
+    .filter((row) =>
+      isBillingE2eTestStudent(
+        row.first_name as string | null,
+        row.last_name as string | null,
+      ),
+    )
+    .map((row) => String(row.id));
 
-  if (studentIds.length > 0) {
-    const { error: enrollmentsError } = await admin
-      .from("enrollments")
-      .delete()
-      .in("student_id", studentIds);
+  if (testStudentIds.length === 0) return;
 
-    if (enrollmentsError) throw enrollmentsError;
-  }
+  const { error: enrollmentsError } = await admin
+    .from("enrollments")
+    .delete()
+    .in("student_id", testStudentIds);
+
+  if (enrollmentsError) throw enrollmentsError;
 
   const { error: deleteStudentsError } = await admin
     .from("students")
     .delete()
-    .eq("family_id", familyId);
+    .in("id", testStudentIds);
 
   if (deleteStudentsError) throw deleteStudentsError;
 }
@@ -108,7 +129,20 @@ export async function waitForBillingPage(page: Page): Promise<void> {
     .or(page.getByTestId("parent-billing-readiness"))
     .filter({ visible: true })
     .first();
-  await expect(billingPanel).toBeVisible({ timeout: 15_000 });
+  try {
+    await expect(billingPanel).toBeVisible({ timeout: 15_000 });
+  } catch {
+    const url = page.url();
+    if (url.includes("/parent/p/")) {
+      throw new Error(
+        `Parent billing UI not found: redirected to program portal (${url}). ` +
+          "Ensure E2E parent retains main school-year enrollment.",
+      );
+    }
+    throw new Error(
+      `Parent billing UI not found at ${url}. Expected billing summary, child detail, or readiness panel.`,
+    );
+  }
 }
 
 const BILLING_GOTO_TIMEOUT_MS = 60_000;

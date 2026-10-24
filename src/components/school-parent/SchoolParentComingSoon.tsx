@@ -44,6 +44,7 @@ export default function SchoolParentComingSoon({
       <div
         className="relative flex min-h-full flex-col overflow-hidden"
         style={{ backgroundColor: C.bg }}
+        data-testid="parent-portal-coming-soon"
       >
         <div
           className="pointer-events-none absolute -right-20 top-0 h-80 w-80 rounded-full blur-3xl"

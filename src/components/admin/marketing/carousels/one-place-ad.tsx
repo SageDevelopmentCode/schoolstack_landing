@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import type { MarketingCarousel, MarketingSlide } from "@/components/admin/marketing/carousels/types";
 import SlideCanvas, { SLIDE, SLIDE_WIDTH } from "@/components/admin/marketing/slide-frame";
-import { dmSans, fraunces } from "@/lib/fonts";
+import { dmSans, fraunces } from "@/lib/fonts/local";
 
 export const ONE_PLACE_AD_CAROUSEL = {
   id: "one-place-ad",

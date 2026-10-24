@@ -371,7 +371,10 @@ export default function TeacherMyStudentsPage({
   }
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col">
+    <div
+      data-testid="teacher-my-students-page"
+      className="relative flex h-full min-h-0 flex-col"
+    >
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14">
           <header className="mb-[23px]">

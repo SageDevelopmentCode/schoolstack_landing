@@ -76,6 +76,37 @@ async function convertStudentThumbs() {
   }
 }
 
+const MOBILE_APP_DIR = "mobileapp";
+const MOBILE_APP_MAX_WIDTH = 960;
+const MOBILE_APP_WEBP_QUALITY = 82;
+
+async function convertMobileAppSlides() {
+  const mobileAppDir = path.join(ROOT, MOBILE_APP_DIR);
+  const entries = await fs.readdir(mobileAppDir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    if (!entry.isFile()) continue;
+
+    const ext = path.extname(entry.name).toLowerCase();
+    if (![".png", ".jpg", ".jpeg"].includes(ext)) continue;
+
+    const filePath = path.join(mobileAppDir, entry.name);
+    const outPath = filePath.replace(/\.(png|jpe?g)$/i, ".webp");
+    const stat = await fs.stat(filePath);
+
+    await sharp(filePath)
+      .rotate()
+      .resize({ width: MOBILE_APP_MAX_WIDTH, withoutEnlargement: true })
+      .webp({ quality: MOBILE_APP_WEBP_QUALITY, effort: 4 })
+      .toFile(outPath);
+
+    const outStat = await fs.stat(outPath);
+    console.log(
+      `${path.relative(ROOT, filePath)} -> ${path.relative(ROOT, outPath)} (${(stat.size / 1024).toFixed(0)}KB -> ${(outStat.size / 1024).toFixed(0)}KB)`,
+    );
+  }
+}
+
 async function convertLogo() {
   const logoPath = path.join(ROOT, "Logo.png");
   const outPath = path.join(ROOT, "Logo.webp");
@@ -93,6 +124,7 @@ async function main() {
     await walk(path.join(ROOT, dir));
   }
   await convertStudentThumbs();
+  await convertMobileAppSlides();
   await convertLogo();
 }
 

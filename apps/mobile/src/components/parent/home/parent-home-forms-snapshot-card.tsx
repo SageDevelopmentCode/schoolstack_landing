@@ -4,7 +4,6 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { StoryCard } from '@/components/story/story-card';
 import { StoryChip } from '@/components/story/story-chip';
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
-import { StorySectionKicker } from '@/components/story/story-section-kicker';
 import { StoryTextLink } from '@/components/story/story-text-link';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
@@ -54,8 +53,7 @@ export function ParentHomeFormsSnapshotCard({
 
   return (
     <StoryCard style={styles.card}>
-      <StorySectionKicker>Forms &amp; documents</StorySectionKicker>
-      <StoryDisplayHeading size="section" style={styles.heading}>
+      <StoryDisplayHeading size="section">
         Your family&apos;s forms
       </StoryDisplayHeading>
 
@@ -119,9 +117,6 @@ export function ParentHomeFormsSnapshotCard({
 const styles = StyleSheet.create({
   card: {
     padding: StoryCardPadding,
-  },
-  heading: {
-    marginTop: 6,
   },
   chipRow: {
     flexDirection: 'row',

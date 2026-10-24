@@ -409,6 +409,7 @@ export function GalleryPhotosScreen(props: GalleryPhotosScreenProps) {
       ) : null}
 
       <GalleryPhotoViewerModal
+        organizationId={organizationId}
         visible={viewerPayload != null}
         viewerState={viewerPayload}
         hasMore={hasMore}

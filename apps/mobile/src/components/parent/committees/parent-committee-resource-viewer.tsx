@@ -1,10 +1,11 @@
 import * as WebBrowser from 'expo-web-browser';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { ParentEmbeddedPdfPreview } from '@/components/parent/shared/parent-embedded-pdf-preview';
 import { StoryButton } from '@/components/story/story-button';
 import { useParentTheme } from '@/contexts/parent-theme-context';
+import { createParentPortalErrorReporter } from '@/lib/mobile-error-reporter';
 import { resolveCommitteeResourceUrl } from '@/lib/parent/committees/mutations';
 import type { CommitteeResource } from '@/lib/parent/parent-committees-types';
 import { buildEmbeddedPdfViewerUrl } from '@/lib/school-bulletin/bulletin-format';
@@ -13,15 +14,21 @@ import { Spacing } from '@/constants/theme';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 type ParentCommitteeResourceViewerProps = {
+  organizationId: string;
   supabase: SupabaseClient;
   resource: CommitteeResource;
 };
 
 export function ParentCommitteeResourceViewer({
+  organizationId,
   supabase,
   resource,
 }: ParentCommitteeResourceViewerProps) {
   const theme = useParentTheme();
+  const reportError = useMemo(
+    () => createParentPortalErrorReporter(organizationId),
+    [organizationId],
+  );
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +43,10 @@ export function ParentCommitteeResourceViewer({
         if (!cancelled) setUrl(resolved);
       } catch (resolveError) {
         if (!cancelled) {
+          reportError('parent_committee_resource_resolve', resolveError, {
+            entityType: 'committee_resource',
+            entityId: resource.id,
+          });
           setError(resolveError instanceof Error ? resolveError.message : 'Failed to open resource.');
         }
       } finally {
@@ -45,7 +56,7 @@ export function ParentCommitteeResourceViewer({
     return () => {
       cancelled = true;
     };
-  }, [resource, supabase]);
+  }, [organizationId, reportError, resource, supabase]);
 
   const openExternally = useCallback(async () => {
     if (!url) return;

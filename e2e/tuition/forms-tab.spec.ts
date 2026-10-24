@@ -28,34 +28,17 @@ test.describe("Tuition forms tab", () => {
     const manifest = getSeedManifest();
     const organizationId = manifest.organizationId;
 
-    const { data: program } = await admin
-      .from("programs")
-      .select("id")
-      .eq("organization_id", organizationId)
-      .limit(1)
-      .maybeSingle();
-
-    expect(program?.id).toBeTruthy();
+    const programId = manifest.programs.schoolYear.id;
     await ensureE2eRateCatalogForProgram(
       admin,
       organizationId,
-      String(program!.id),
+      programId,
       "E2E Forms Tab",
     );
 
-    await page.goto(ADMIN_TUITION_PATH);
+    await page.goto(`${ADMIN_TUITION_PATH}?tab=forms`);
     await expect(page.getByRole("heading", { name: "Tuition" })).toBeVisible();
     await expect(page.getByTestId("tuition-tab-forms")).toBeVisible();
-
-    const formsResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/school-admin/forms-documents") &&
-        response.url().includes("category=tuition") &&
-        response.ok(),
-    );
-    await page.getByTestId("tuition-tab-forms").click();
-    await formsResponse;
-
     await expect(page.getByTestId("tuition-forms-new-agreement")).toBeVisible();
     await expect(page.getByText("Tuition agreements", { exact: true })).toBeVisible();
   });

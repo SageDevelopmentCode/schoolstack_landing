@@ -151,4 +151,5 @@ Because `disable-model-invocation: true`, the user must name the skill or path.
 ## Related skills
 
 - Local E2E after fixes: [`.agents/skills/e2e-local/SKILL.md`](../e2e-local/SKILL.md)
+- Portal UI/UX QA on a branch: [`.agents/skills/portal-qa/SKILL.md`](../portal-qa/SKILL.md)
 - SQL placement: [`.agents/skills/supabase-migrations/SKILL.md`](../supabase-migrations/SKILL.md)

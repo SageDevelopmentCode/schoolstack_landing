@@ -18,6 +18,7 @@ import {
 import { formatCents } from '@/lib/tuition/format-cents';
 
 type ParentTuitionPlanSelectorProps = {
+  organizationId: string;
   selectionItem: FamilyTuitionSelectionItem;
   studentName?: string;
   onComplete: () => void;
@@ -30,11 +31,12 @@ function possessiveFirstName(fullName: string): string {
 }
 
 export function ParentTuitionPlanSelector({
+  organizationId,
   selectionItem,
   studentName,
   onComplete,
 }: ParentTuitionPlanSelectorProps) {
-  const { reportError } = useMobileErrorReporter();
+  const { reportError } = useMobileErrorReporter(organizationId);
   const theme = useParentTheme();
   const { assignment, ratePlan } = selectionItem.context;
   const tier =

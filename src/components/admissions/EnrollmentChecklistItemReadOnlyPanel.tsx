@@ -32,7 +32,7 @@ import {
   parseAgreementSectionSignatures,
   signaturesBySectionId,
 } from "@/lib/admissions/enrollment-agreement-progress";
-import { greatVibes } from "@/lib/fonts";
+import { greatVibes } from "@/lib/fonts/great-vibes";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { createClient } from "@/utils/supabase/client";
 import { reportEnrollmentChecklistError } from "@/lib/admissions/enrollment-checklist-errors";

@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { cookies } from "next/headers";
 import { getFamilyPreviewGuardianUserId } from "@/lib/admissions/family-preview-access";
 import type { CommitteeActivityItem } from "@/lib/committees/activity-feed";
@@ -38,47 +39,58 @@ export async function loadParentCommitteesInitialData(input: {
   userId: string;
   selectedCommitteeId?: string | null;
 }): Promise<ParentCommitteesInitialData> {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  return Sentry.startSpan(
+    {
+      name: "committees.load_initial",
+      op: "committees.load_initial",
+      attributes: {
+        has_selected_committee: Boolean(input.selectedCommitteeId),
+      },
+    },
+    async () => {
+      const cookieStore = await cookies();
+      const supabase = createClient(cookieStore);
 
-  const [browseCommittees, myCommittees] = await Promise.all([
-    listBrowsableCommitteesForParent(
-      supabase,
-      input.organizationId,
-      input.userId,
-    ),
-    listParentCommitteeMemberships(
-      supabase,
-      input.organizationId,
-      input.userId,
-    ),
-  ]);
-
-  const admin = createAdminClient();
-  const workspacesByCommitteeId: Record<string, Committee> = {};
-  const workspaceIds = new Set<string>();
-  if (input.selectedCommitteeId) workspaceIds.add(input.selectedCommitteeId);
-
-  await Promise.all(
-    [...workspaceIds].map(async (committeeId) => {
-      try {
-        workspacesByCommitteeId[committeeId] = await getParentCommitteeWorkspace(
-          admin,
+      const [browseCommittees, myCommittees] = await Promise.all([
+        listBrowsableCommitteesForParent(
+          supabase,
           input.organizationId,
           input.userId,
-          committeeId,
-        );
-      } catch {
-        // Workspace loads on selection when preload fails.
-      }
-    }),
-  );
+        ),
+        listParentCommitteeMemberships(
+          supabase,
+          input.organizationId,
+          input.userId,
+        ),
+      ]);
 
-  return {
-    browseCommittees,
-    myCommittees,
-    workspacesByCommitteeId,
-  };
+      const admin = createAdminClient();
+      const workspacesByCommitteeId: Record<string, Committee> = {};
+      const workspaceIds = new Set<string>();
+      if (input.selectedCommitteeId) workspaceIds.add(input.selectedCommitteeId);
+
+      await Promise.all(
+        [...workspaceIds].map(async (committeeId) => {
+          try {
+            workspacesByCommitteeId[committeeId] = await getParentCommitteeWorkspace(
+              admin,
+              input.organizationId,
+              input.userId,
+              committeeId,
+            );
+          } catch {
+            // Workspace loads on selection when preload fails.
+          }
+        }),
+      );
+
+      return {
+        browseCommittees,
+        myCommittees,
+        workspacesByCommitteeId,
+      };
+    },
+  );
 }
 
 export async function loadParentCommitteesPreviewData(input: {

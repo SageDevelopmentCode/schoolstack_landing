@@ -20,6 +20,7 @@ import { formatCents } from '@/lib/tuition/format-cents';
 import type { ParentLastPaymentDaySummary } from '@/lib/tuition/payment-summary';
 
 type ParentBillingChildPanelProps = {
+  organizationId: string;
   child: ParentBillingChildView;
   charges: TuitionCharge[];
   payments: ParentTuitionPaymentRecord[];
@@ -40,6 +41,7 @@ type ParentBillingChildPanelProps = {
 };
 
 export function ParentBillingChildPanel({
+  organizationId,
   child,
   charges,
   payments,
@@ -104,6 +106,7 @@ export function ParentBillingChildPanel({
 
       {child.status === 'needs_schedule' && child.selectionItem ? (
         <ParentTuitionPlanSelector
+          organizationId={organizationId}
           selectionItem={child.selectionItem}
           studentName={child.studentName}
           onComplete={onScheduleComplete}

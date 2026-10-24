@@ -235,11 +235,6 @@ export async function seedIncompleteAgreementState(
         signerName: "E2E Parent",
         signedAt: "2026-08-30T00:00:00.000Z",
       },
-      {
-        sectionId: "std-3",
-        signerName: "E2E Parent",
-        signedAt: "2026-08-30T00:00:01.000Z",
-      },
     ],
   };
 

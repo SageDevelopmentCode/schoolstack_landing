@@ -37,7 +37,7 @@ import {
   DEMO_PORTAL_SLUG,
   resolveDemoParentSchoolName,
 } from "@/data/school-demos/demo-portal-shared";
-import { fraunces, dmSans } from "@/lib/fonts";
+import { fraunces, dmSans } from "@/lib/fonts/local";
 
 export type ParentDemoNavTab =
   | "home"

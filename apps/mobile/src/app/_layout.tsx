@@ -19,6 +19,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { LogBox, View } from 'react-native';
 
 import { AuthSessionGuard } from '@/components/auth-session-guard';
+import { MobileGlobalErrorReportingBridge } from '@/components/mobile-global-error-reporting-bridge';
+import { MobileOperationalErrorBoundary } from '@/components/mobile-operational-error-boundary';
 import { OtaUpdateManager } from '@/components/ota-update-manager';
 import { SupabaseAuthLifecycle } from '@/components/supabase-auth-lifecycle';
 import { PushNotificationManager } from '@/components/push-notification-manager';
@@ -54,6 +56,8 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <PortalTransitionProvider>
+        <MobileGlobalErrorReportingBridge />
+        <MobileOperationalErrorBoundary>
         <AuthSessionGuard />
         <SupabaseAuthLifecycle />
         <OtaUpdateManager />
@@ -93,6 +97,7 @@ export default function RootLayout() {
         />
         <Stack.Screen name="stripe-checkout" options={{ animation: 'none' }} />
         </Stack>
+        </MobileOperationalErrorBoundary>
       </PortalTransitionProvider>
     </AuthProvider>
   );

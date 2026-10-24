@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+
+import { createParentPortalErrorReporter } from '@/lib/mobile-error-reporter';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -72,6 +74,10 @@ export function ParentCoopTeachingScheduleScreen({
 }: ParentCoopTeachingScheduleScreenProps) {
   const theme = useParentTheme();
   const previewReadOnly = usePortalReadOnly();
+  const reportError = useMemo(
+    () => createParentPortalErrorReporter(organizationId),
+    [organizationId],
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [weeks, setWeeks] = useState<ParentCoopTeachingScheduleWeek[]>([]);
@@ -89,13 +95,17 @@ export function ParentCoopTeachingScheduleScreen({
       setCurrentFamilyId(data.currentFamilyId);
       setFamilyNameMap(data.familyNameMap);
     } catch (loadError) {
+      reportError('parent_coop_teaching_schedule_load', loadError, {
+        entityType: 'program',
+        entityId: programId,
+      });
       setError(
         loadError instanceof Error ? loadError.message : 'Failed to load teaching schedule.',
       );
     } finally {
       setLoading(false);
     }
-  }, [organizationId, programId]);
+  }, [organizationId, programId, reportError]);
 
   useEffect(() => {
     void load();
@@ -138,7 +148,11 @@ export function ParentCoopTeachingScheduleScreen({
             role,
           });
       setWeeks((prev) => prev.map((row) => (row.id === week.id ? result.week : row)));
-    } catch {
+    } catch (toggleError) {
+      reportError('parent_coop_teaching_schedule_signup', toggleError, {
+        entityType: 'program',
+        entityId: programId,
+      });
       await load();
     } finally {
       setPendingKey(null);

@@ -10,12 +10,37 @@ import {
   type OrganizationFeatures,
 } from "@/lib/organization-settings/catalog";
 
-/** Parent committees E2E (layout spec) — off in DEFAULT_FEATURES. */
+/** Full parent catalog for portal-qa (all ParentFeatures enabled). */
 const E2E_ORGANIZATION_FEATURES: OrganizationFeatures = {
   ...DEFAULT_FEATURES,
-  parent: {
-    ...DEFAULT_FEATURES.parent,
+  teacher: {
+    dashboard: true,
+    my_students: true,
+    classroom_signups: true,
+    my_hours: true,
+    messages: true,
+    calendar: true,
+    attendance: true,
+    feed: true,
+    payroll: true,
+    forms_documents: true,
     committees: true,
+  },
+  parent: {
+    portal: true,
+    billing: true,
+    messages: true,
+    calendar: true,
+    attendance: true,
+    feed: true,
+    children: true,
+    committees: true,
+    classroom_signups: true,
+    forms_documents: true,
+    curriculum: true,
+    supply_list: true,
+    teaching_schedule: true,
+    friday_branch: true,
   },
 };
 import { buildApplySystemSection, emptyApplyCustomSection } from "@/lib/admissions/apply-system-fields";
@@ -31,6 +56,7 @@ import {
   E2E_TEST_PASSWORD,
   TEST_ORG_SLUG,
 } from "./constants";
+import { seedPortalQaParentFixtures } from "./portal-qa-parent-seed";
 
 type TestUserSpec = {
   email: string;
@@ -840,6 +866,22 @@ export type E2eSeedManifest = {
   committees: {
     parentWorkspace: string;
   };
+  programs: {
+    schoolYear: {
+      id: string;
+    };
+    coop: {
+      id: string;
+      slug: string;
+    };
+  };
+  classroomSignups: {
+    openSignupId: string;
+  };
+  parentPublishedFormId: string;
+  fridayBranch: {
+    classId: string;
+  };
 };
 
 const E2E_COMMITTEE_NAME = "E2E Volunteer Committee";
@@ -903,6 +945,7 @@ async function ensureE2eParentEnrolledAccess(
     .select("id")
     .eq("organization_id", organizationId)
     .eq("student_id", studentId)
+    .eq("program_id", programId)
     .eq("status", "enrolled")
     .maybeSingle();
 
@@ -919,10 +962,48 @@ async function ensureE2eParentEnrolledAccess(
   if (enrollmentInsertError) throw enrollmentInsertError;
 }
 
+async function ensureE2eCommitteeMember(
+  admin: ReturnType<typeof createAdminClient>,
+  committeeId: string,
+  organizationId: string,
+  input: { userId: string; displayName: string; email: string },
+): Promise<string> {
+  const { data: existingMember, error: memberLookupError } = await admin
+    .from("committee_members")
+    .select("id")
+    .eq("committee_id", committeeId)
+    .eq("user_id", input.userId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (memberLookupError) throw memberLookupError;
+
+  if (existingMember?.id) {
+    return String(existingMember.id);
+  }
+
+  const { data: member, error: memberInsertError } = await admin
+    .from("committee_members")
+    .insert({
+      committee_id: committeeId,
+      organization_id: organizationId,
+      user_id: input.userId,
+      display_name: input.displayName,
+      email: input.email,
+      role: "member",
+      status: "active",
+    })
+    .select("id")
+    .single();
+  if (memberInsertError) throw memberInsertError;
+  return String(member.id);
+}
+
 async function ensureE2eParentCommittee(
   admin: ReturnType<typeof createAdminClient>,
   organizationId: string,
   parentUserId: string,
+  staffUserId: string,
 ): Promise<string> {
   const { data: existingCommittee, error: committeeLookupError } = await admin
     .from("committees")
@@ -951,34 +1032,17 @@ async function ensureE2eParentCommittee(
     committeeId = committee.id as string;
   }
 
-  const { data: existingMember, error: memberLookupError } = await admin
-    .from("committee_members")
-    .select("id")
-    .eq("committee_id", committeeId)
-    .eq("user_id", parentUserId)
-    .eq("status", "active")
-    .maybeSingle();
+  const memberId = await ensureE2eCommitteeMember(admin, committeeId, organizationId, {
+    userId: parentUserId,
+    displayName: "E2E Parent",
+    email: E2E_PARENT_EMAIL,
+  });
 
-  if (memberLookupError) throw memberLookupError;
-
-  let memberId = existingMember?.id as string | undefined;
-  if (!memberId) {
-    const { data: member, error: memberInsertError } = await admin
-      .from("committee_members")
-      .insert({
-        committee_id: committeeId,
-        organization_id: organizationId,
-        user_id: parentUserId,
-        display_name: "E2E Parent",
-        email: E2E_PARENT_EMAIL,
-        role: "member",
-        status: "active",
-      })
-      .select("id")
-      .single();
-    if (memberInsertError) throw memberInsertError;
-    memberId = member.id as string;
-  }
+  await ensureE2eCommitteeMember(admin, committeeId, organizationId, {
+    userId: staffUserId,
+    displayName: "E2E Staff",
+    email: E2E_STAFF_EMAIL,
+  });
 
   const { count, error: messageCountError } = await admin
     .from("committee_messages")
@@ -1249,6 +1313,13 @@ export async function seedE2eDatabase(): Promise<void> {
     admin,
     organizationId,
     parentUserId,
+    staffUserId,
+  );
+
+  const portalQa = await seedPortalQaParentFixtures(
+    admin,
+    organizationId,
+    formContext.programId,
   );
 
   writeSeedManifest({
@@ -1268,5 +1339,12 @@ export async function seedE2eDatabase(): Promise<void> {
     committees: {
       parentWorkspace: parentCommitteeId,
     },
+    programs: {
+      schoolYear: { id: formContext.programId },
+      ...portalQa.programs,
+    },
+    classroomSignups: portalQa.classroomSignups,
+    parentPublishedFormId: portalQa.parentPublishedFormId,
+    fridayBranch: portalQa.fridayBranch,
   });
 }

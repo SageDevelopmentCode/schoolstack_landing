@@ -101,7 +101,6 @@ export function ParentHomeStartHereCard({
               <StoryAttentionItem
                 icon={<AttentionIcon item={item} />}
                 title={item.title}
-                subtitle={item.subtitle}
                 iconBg={item.urgent ? undefined : iconStyle.iconBg}
                 urgent={item.urgent}
                 isFirst={index === 0}
@@ -127,7 +126,6 @@ export function ParentHomeStartHereCard({
         <StoryAttentionItem
           icon={<Ionicons name="clipboard-outline" size={18} color={theme.primary} />}
           title="Complete your onboarding"
-          subtitle="A few quick steps to get the most from your portal"
           iconBg={theme.primarySoft}
           isFirst
         />

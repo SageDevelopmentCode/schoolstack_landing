@@ -1,6 +1,7 @@
 import NavigationRestoreInit from "@/components/NavigationRestoreInit";
 import CookieConsentBanner from "@/components/legal/CookieConsentBanner";
 import ConditionalAnalytics from "@/components/legal/ConditionalAnalytics";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import {
   fragmentMono,
   geist,
@@ -24,6 +25,7 @@ export default function RootLayout({
         {children}
         <CookieConsentBanner />
         <ConditionalAnalytics />
+        <SpeedInsights />
       </body>
     </html>
   );

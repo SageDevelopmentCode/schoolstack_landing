@@ -36,6 +36,7 @@ import {
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING, screenScrollContentPadding } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 const FRIDAY_BRANCH_SAVE_FOOTER_HEIGHT = 88;
 
@@ -50,6 +51,7 @@ export function SchoolAdminFridayBranchScreen({
 }: SchoolAdminFridayBranchScreenProps) {
   const theme = useParentTheme();
   const router = useRouter();
+  const { reportError } = useMobileErrorReporter(organizationId);
   const {
     blocks,
     selectedBlockId,
@@ -85,13 +87,13 @@ export function SchoolAdminFridayBranchScreen({
       .then((settings) => {
         if (!cancelled) setParentPortalPaused(settings.parent_portal_paused);
       })
-      .catch(() => {
-        // Non-fatal — schedule still loads.
+      .catch((settingsError) => {
+        reportError('school_admin_friday_branch_settings_load', settingsError);
       });
     return () => {
       cancelled = true;
     };
-  }, [organizationId]);
+  }, [organizationId, reportError]);
 
   const handleToggleParentPortalPause = useCallback(() => {
     if (parentPortalPaused) {
@@ -102,6 +104,12 @@ export function SchoolAdminFridayBranchScreen({
             parent_portal_paused: false,
           });
           setParentPortalPaused(settings.parent_portal_paused);
+        } catch (pauseError) {
+          reportError('school_admin_friday_branch_pause_update', pauseError);
+          Alert.alert(
+            'Update failed',
+            pauseError instanceof Error ? pauseError.message : 'Could not resume parent signup.',
+          );
         } finally {
           setTogglingPause(false);
         }
@@ -125,6 +133,12 @@ export function SchoolAdminFridayBranchScreen({
                   parent_portal_paused: true,
                 });
                 setParentPortalPaused(settings.parent_portal_paused);
+              } catch (pauseError) {
+                reportError('school_admin_friday_branch_pause_update', pauseError);
+                Alert.alert(
+                  'Update failed',
+                  pauseError instanceof Error ? pauseError.message : 'Could not pause parent signup.',
+                );
               } finally {
                 setTogglingPause(false);
               }
@@ -133,7 +147,7 @@ export function SchoolAdminFridayBranchScreen({
         },
       ],
     );
-  }, [organizationId, parentPortalPaused]);
+  }, [organizationId, parentPortalPaused, reportError]);
 
   useEffect(() => {
     if (!initialClassId || blocks.length === 0) return;

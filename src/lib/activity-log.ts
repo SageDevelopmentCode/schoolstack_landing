@@ -204,6 +204,8 @@ export type FetchActivityEventsFilters = {
   organizationId?: string;
   surface?: ActivitySurface | "parent" | "teacher" | "school_admin" | "system";
   action?: string;
+  /** When set, matches any of these actions (overrides `action` if both were passed). */
+  actions?: string[];
   datePreset?: ActivityDatePreset;
   limit?: number;
 };
@@ -767,7 +769,9 @@ export async function fetchActivityEvents(
     query = query.in("surface", surfaces);
   }
 
-  if (filters.action) {
+  if (filters.actions && filters.actions.length > 0) {
+    query = query.in("action", filters.actions);
+  } else if (filters.action) {
     query = query.eq("action", filters.action);
   }
 

@@ -16,6 +16,9 @@ const baseURL = resolveE2eBaseUrl();
 const webServerPort = resolveE2eWebServerPort(baseURL);
 const skipWebServer = shouldSkipPlaywrightWebServer();
 
+const portalQaEnabled =
+  process.env.PORTAL_QA_RUN === "1" || Boolean(process.env.PORTAL_QA_SCENARIOS?.trim());
+
 const config: PlaywrightTestConfig = {
   testDir: "./e2e",
   fullyParallel: true,
@@ -74,6 +77,18 @@ const config: PlaywrightTestConfig = {
         storageState: AUTH_STATE_PATHS.staff,
       },
     },
+    ...(portalQaEnabled
+      ? [
+          {
+            name: "qa",
+            testMatch: /qa\/.*\.spec\.ts/,
+            dependencies: ["setup"],
+            use: {
+              ...devices["Desktop Chrome"],
+            },
+          },
+        ]
+      : []),
     {
       name: "api-parent",
       testMatch: /api\/(submit|bootstrap|checkout)\.spec\.ts/,

@@ -11,6 +11,7 @@ import { buildFridayBranchClassSavePayload } from '@/lib/school-admin/friday-bra
 import { uploadFridayBranchClassFlyer } from '@/lib/school-admin/friday-branch/friday-branch-flyer-storage';
 import type { FridayBranchClass, FridayBranchTimeSlot } from '@/lib/school-admin/friday-branch/friday-branch-types';
 import { formatFridayBranchPriceInput } from '@/lib/school-admin/friday-branch/friday-branch-price-utils';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { getSupabaseClient } from '@/lib/supabase';
 import { StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
@@ -40,6 +41,7 @@ export function SchoolAdminFridayBranchClassEditSheet({
   onSave,
 }: SchoolAdminFridayBranchClassEditSheetProps) {
   const theme = useParentTheme();
+  const { reportError } = useMobileErrorReporter(organizationId);
   const supabase = useMemo(() => getSupabaseClient(), []);
   const [draft, setDraft] = useState<FridayBranchClass | null>(classEntry);
   const [draftSlotId, setDraftSlotId] = useState(slotId ?? slots[0]?.id ?? '');
@@ -110,6 +112,10 @@ export function SchoolAdminFridayBranchClassEditSheet({
         flyerFileSizeBytes: uploaded.fileSizeBytes,
       });
     } catch (error) {
+      reportError('school_admin_friday_branch_flyer_upload', error, {
+        entityType: 'friday_branch_class',
+        entityId: draft.id,
+      });
       Alert.alert(
         'Upload failed',
         error instanceof Error ? error.message : 'Failed to upload flyer.',

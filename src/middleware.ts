@@ -1,4 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
+import {
+  ADMIN_PREVIEW_EMBED_COOKIE,
+  ADMIN_PREVIEW_EMBED_PARAM,
+  isAdminPreviewEmbeddablePath,
+  isAdminPreviewEmbedSearchParam,
+} from "@/lib/admin/preview-device-viewport";
 import { updateSession } from "@/utils/supabase/middleware";
 
 function isSchoolAdminLoginPath(pathname: string): boolean {
@@ -41,6 +47,19 @@ export async function middleware(request: NextRequest) {
       loginUrl.searchParams.set("next", pathname);
       return NextResponse.redirect(loginUrl);
     }
+  }
+
+  if (
+    isAdminPreviewEmbeddablePath(pathname) &&
+    request.cookies.get(ADMIN_PREVIEW_EMBED_COOKIE)?.value === "1" &&
+    !isAdminPreviewEmbedSearchParam(
+      request.nextUrl.searchParams.get(ADMIN_PREVIEW_EMBED_PARAM),
+    ) &&
+    request.headers.get("sec-fetch-dest") === "iframe"
+  ) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.searchParams.set(ADMIN_PREVIEW_EMBED_PARAM, "1");
+    return NextResponse.redirect(redirectUrl);
   }
 
   return response;

@@ -13,6 +13,7 @@ import { Spacing } from '@/constants/theme';
 
 export function ParentCommitteeResourcesSection({
   committee,
+  organizationId,
   supabase,
   currentMemberId,
   isAdmin = false,
@@ -68,6 +69,7 @@ export function ParentCommitteeResourcesSection({
 
       <ParentCommitteeResourceDetailSheet
         visible={Boolean(selectedResource)}
+        organizationId={organizationId}
         resource={selectedResource}
         supabase={supabase}
         onClose={() => setSelectedResource(null)}

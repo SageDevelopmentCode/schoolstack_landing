@@ -72,6 +72,8 @@ Those specs write PNGs under `e2e/.artifacts/responsive/` when layout-critical p
 
 After layout specs (or browser MCP capture), agents **must** complete **visual review**: `npm run verify:responsive-artifacts -- committee-messages` (file check), then Read each PNG and apply checklists in [portal-responsive-verify](../portal-responsive-verify/SKILL.md) §3.
 
+**Branch-wide portal QA:** [portal-qa](../portal-qa/SKILL.md) — `npm run portal-qa:scope` then `npm run test:qa:portal` with `PORTAL_QA_SCENARIOS`.
+
 ## Integration tests (no Playwright)
 
 ```bash

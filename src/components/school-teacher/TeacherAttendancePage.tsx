@@ -21,17 +21,19 @@ export default function TeacherAttendancePage({
   initialRoster,
 }: TeacherAttendancePageProps) {
   return (
-    <SchoolAdminStoryShell branding={branding} className="min-h-0 flex-1">
-      <AttendancePage
-        organizationId={organizationId}
-        branding={branding}
-        slug={slug}
-        apiBasePath="/api/teacher-portal/attendance"
-        operationalErrorSurface="teacher_portal"
-        previewMode={previewMode}
-        initialRoster={initialRoster}
-        sectionKicker="Your classroom"
-      />
-    </SchoolAdminStoryShell>
+    <div data-testid="teacher-attendance-page" className="flex min-h-0 flex-1 flex-col">
+      <SchoolAdminStoryShell branding={branding} className="min-h-0 flex-1">
+        <AttendancePage
+          organizationId={organizationId}
+          branding={branding}
+          slug={slug}
+          apiBasePath="/api/teacher-portal/attendance"
+          operationalErrorSurface="teacher_portal"
+          previewMode={previewMode}
+          initialRoster={initialRoster}
+          sectionKicker="Your classroom"
+        />
+      </SchoolAdminStoryShell>
+    </div>
   );
 }

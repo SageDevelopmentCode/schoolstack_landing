@@ -28,7 +28,12 @@ import type {
   OutboundEmailDiscordMeta,
 } from "@/lib/discord";
 import { deliverZohoEmail } from "@/lib/notification-delivery";
-import { isZohoConfigured, sendZohoEmail } from "@/lib/zoho";
+import {
+  isZohoConfigured,
+  sendZohoEmail,
+  type SendZohoEmailResult,
+} from "@/lib/zoho";
+import { formatPublicSupportRequestTopic } from "@/lib/public-support/public-support-types";
 
 /** Optional fields from domain libs for outbound email Discord alerts. */
 export type OutboundEmailNotificationContext = Pick<
@@ -359,6 +364,109 @@ export async function sendAdminSupportRequestConfirmation(payload: {
   if (!result.success) {
     console.error("Admin support request confirmation email failed:", result.error);
   }
+}
+
+export function buildSupportRequestResolvedEmailSubject(): string {
+  return `Your support request has been resolved — ${SITE_NAME}`;
+}
+
+export function buildAdminSupportRequestResolvedHtml(payload: {
+  submitterEmail: string;
+  schoolName: string;
+  topic: string;
+}): string {
+  const topicLabel =
+    SUPPORT_REQUEST_TOPIC_LABELS[payload.topic] ?? payload.topic;
+  const greetingName = firstNameFromEmail(payload.submitterEmail);
+
+  const detailRows = [
+    { label: "Topic", value: topicLabel },
+    { label: "School", value: payload.schoolName },
+  ];
+
+  return composeEmail({
+    preheader: "Your support request has been resolved.",
+    contentHtml: `
+      ${emailBadge("Support Request Resolved")}
+      ${emailHeading(`Hi ${greetingName},`)}
+      ${emailParagraph(
+        `Thanks for reaching out to ${escapeHtml(SITE_NAME)}. We reviewed the support request you submitted and we've resolved it.`,
+      )}
+      ${emailDetailCard(detailRows)}
+      ${emailParagraph(
+        "If anything still does not look right or you have more questions, reply to this email and we will pick it back up.",
+      )}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendAdminSupportRequestResolved(payload: {
+  submitterEmail: string;
+  schoolName: string;
+  topic: string;
+  notificationContext?: OutboundEmailNotificationContext;
+}): Promise<SendZohoEmailResult> {
+  if (!(await isZohoConfigured())) {
+    return { success: false, error: "Outbound email is not configured." };
+  }
+
+  const content = buildAdminSupportRequestResolvedHtml(payload);
+  return sendZohoEmail({
+    toAddress: payload.submitterEmail,
+    subject: buildSupportRequestResolvedEmailSubject(),
+    content,
+    discord: schoolOutboundDiscord(
+      "admin_support_request_resolved",
+      "school_admin",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
+  });
+}
+
+export function buildPublicSupportRequestResolvedHtml(payload: {
+  name: string;
+  topic: string;
+}): string {
+  const topicLabel = formatPublicSupportRequestTopic(payload.topic);
+
+  return composeEmail({
+    preheader: "Your support request has been resolved.",
+    contentHtml: `
+      ${emailBadge("Support Request Resolved")}
+      ${emailHeading(`Hi ${firstName(payload.name)},`)}
+      ${emailParagraph(
+        `Thanks for reaching out to ${escapeHtml(SITE_NAME)}. We reviewed the support request you submitted and we've resolved it.`,
+      )}
+      ${emailDetailCard([{ label: "Topic", value: topicLabel }])}
+      ${emailParagraph(
+        "If anything still does not look right or you have more questions, reply to this email and we will pick it back up.",
+      )}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendPublicSupportRequestResolved(payload: {
+  name: string;
+  email: string;
+  topic: string;
+}): Promise<SendZohoEmailResult> {
+  if (!(await isZohoConfigured())) {
+    return { success: false, error: "Outbound email is not configured." };
+  }
+
+  const content = buildPublicSupportRequestResolvedHtml({
+    name: payload.name,
+    topic: payload.topic,
+  });
+  return sendZohoEmail({
+    toAddress: payload.email,
+    subject: buildSupportRequestResolvedEmailSubject(),
+    content,
+    discord: prospectOutboundDiscord("public_support_request_resolved"),
+  });
 }
 
 export function buildApplicationSubmittedConfirmationSubject(payload: {

@@ -18,6 +18,7 @@ export default function SchoolTeacherComingSoon({
 
   return (
     <div
+      data-testid="teacher-portal-coming-soon"
       className="flex min-h-full flex-col items-center justify-center px-6 py-16 text-center"
       style={{ backgroundColor: C.bg }}
     >

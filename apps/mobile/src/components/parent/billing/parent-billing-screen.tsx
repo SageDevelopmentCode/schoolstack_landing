@@ -40,7 +40,10 @@ import {
   stageCheckoutBaseline,
   wasCheckoutReturnConsumed,
 } from '@/lib/parent/stripe-checkout-return-handoff';
-import type { StripeCheckoutOutcome } from '@/lib/parent/stripe-checkout-outcome';
+import {
+  isStripeCheckoutSuccess,
+  type StripeCheckoutOutcome,
+} from '@/lib/parent/stripe-checkout-outcome';
 import {
   captureCheckoutSettlementBaseline,
   runCheckoutSettlement,
@@ -272,9 +275,17 @@ export function ParentBillingScreen({
     async (outcome: StripeCheckoutOutcome, baseline: CheckoutSettlementBaseline) => {
       if (checkoutSettlementDoneRef.current) return;
       checkoutSettlementDoneRef.current = true;
-      await runCheckoutSettlement({ refresh, outcome, baseline });
+      try {
+        await runCheckoutSettlement({ refresh, outcome, baseline });
+      } catch (settleError) {
+        if (isStripeCheckoutSuccess(outcome)) {
+          reportError('parent_billing_checkout_settle', settleError, {
+            metadata: { outcome },
+          });
+        }
+      }
     },
-    [refresh],
+    [refresh, reportError],
   );
 
   const trySettleFromReturnHandoff = useCallback(async () => {
@@ -617,6 +628,7 @@ export function ParentBillingScreen({
             />
           ) : activeChild ? (
             <ParentBillingChildPanel
+              organizationId={data.organizationId}
               child={activeChild}
               charges={displayedCharges}
               payments={(data.payments ?? []).filter((payment) => payment.status === 'succeeded')}

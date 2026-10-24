@@ -260,7 +260,10 @@ function ParentClassroomSignupsPageContent({
   );
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+    <div
+      className="mx-auto max-w-3xl px-4 py-8 sm:px-6"
+      data-testid="parent-classroom-signups-page"
+    >
       <ParentSectionKicker
         theme={theme}
         className="normal-case tracking-normal font-semibold"

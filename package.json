@@ -2,6 +2,9 @@
   "name": "schoollayer_landing",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "workspaces": [
     "apps/*"
   ],
@@ -25,6 +28,9 @@
     "test:e2e:setup": "supabase db reset",
     "test:e2e:install": "playwright install chromium",
     "verify:responsive-artifacts": "node scripts/verify-responsive-artifacts.mjs",
+    "portal-qa:scope": "bash .agents/skills/portal-qa/scripts/portal-qa-scope.sh",
+    "test:qa:portal": "PORTAL_QA_RUN=1 playwright test e2e/qa/portal-qa-capture.spec.ts --project=qa",
+    "verify:portal-qa-artifacts": "node scripts/verify-portal-qa-artifacts.mjs",
     "import-schools": "tsx scripts/import-schools-csv.ts",
     "preview:emails": "tsx scripts/preview-emails.ts",
     "resend:payment-admin": "tsx --require ./src/test/integration/mock-server-only.cjs scripts/resend-payment-admin-notification.ts",
@@ -67,6 +73,7 @@
     "@tiptap/starter-kit": "^3.31.4",
     "@types/canvas-confetti": "^1.9.0",
     "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "canvas-confetti": "^1.9.4",
     "dompurify": "^3.4.16",
     "framer-motion": "^12.38.0",

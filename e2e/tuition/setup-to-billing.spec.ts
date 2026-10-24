@@ -81,15 +81,7 @@ test("full tuition setup to parent billing smoke", async ({
   const manifest = getSeedManifest();
   const organizationId = manifest.organizationId;
 
-  const { data: program } = await admin
-    .from("programs")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .limit(1)
-    .maybeSingle();
-
-  expect(program?.id).toBeTruthy();
-  const programId = String(program!.id);
+  const programId = manifest.programs.schoolYear.id;
 
   await ensureE2eRateCatalogForProgram(admin, organizationId, programId, "E2E Smoke");
 
@@ -176,15 +168,7 @@ test("tuition assignment PATCH requires admin", async ({ playwright, baseURL }) 
   const manifest = getSeedManifest();
   const organizationId = manifest.organizationId;
 
-  const { data: program } = await admin
-    .from("programs")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .limit(1)
-    .maybeSingle();
-
-  expect(program?.id).toBeTruthy();
-  const programId = String(program!.id);
+  const programId = manifest.programs.schoolYear.id;
   const { ratePlanId } = await ensureE2eRateCatalogForProgram(
     admin,
     organizationId,
@@ -255,16 +239,7 @@ test("tier-aware charges are generated after payment plan selection", async () =
   const manifest = getSeedManifest();
   const organizationId = manifest.organizationId;
 
-  const { data: program, error: programError } = await admin
-    .from("programs")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .limit(1)
-    .maybeSingle();
-
-  expect(programError).toBeNull();
-  expect(program?.id).toBeTruthy();
-  const programId = String(program!.id);
+  const programId = manifest.programs.schoolYear.id;
 
   const { data: family, error: familyError } = await admin
     .from("families")
@@ -413,12 +388,7 @@ test("enrollment payment plan selection generates charges", async ({ playwright,
   const manifest = getSeedManifest();
   const organizationId = manifest.organizationId;
 
-  const { data: program } = await admin
-    .from("programs")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .limit(1)
-    .maybeSingle();
+  const programId = manifest.programs.schoolYear.id;
 
   const { data: family } = await admin
     .from("families")
@@ -427,7 +397,6 @@ test("enrollment payment plan selection generates charges", async ({ playwright,
     .eq("primary_email", E2E_PARENT_EMAIL)
     .maybeSingle();
 
-  expect(program?.id).toBeTruthy();
   expect(family?.id).toBeTruthy();
 
   const { data: student } = await admin
@@ -447,7 +416,7 @@ test("enrollment payment plan selection generates charges", async ({ playwright,
     .insert({
       organization_id: organizationId,
       student_id: student!.id,
-      program_id: program!.id,
+      program_id: programId,
       status: "enrolled",
     })
     .select("id")
@@ -457,7 +426,7 @@ test("enrollment payment plan selection generates charges", async ({ playwright,
     .from("tuition_rate_plans")
     .insert({
       organization_id: organizationId,
-      program_id: program!.id,
+      program_id: programId,
       name: "Plan Picker Tuition",
       billing_basis: "annual",
       amount_cents: 720000,
@@ -555,16 +524,10 @@ test("admin can mark a charge sent as invoice", async ({ playwright, baseURL }) 
   const admin = createAdminClient();
   const manifest = getSeedManifest();
   const organizationId = manifest.organizationId;
+  const programId = manifest.programs.schoolYear.id;
 
   const { data: family } = await admin
     .from("families")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .limit(1)
-    .maybeSingle();
-
-  const { data: program } = await admin
-    .from("programs")
     .select("id")
     .eq("organization_id", organizationId)
     .limit(1)
@@ -587,7 +550,7 @@ test("admin can mark a charge sent as invoice", async ({ playwright, baseURL }) 
     .insert({
       organization_id: organizationId,
       student_id: student!.id,
-      program_id: program!.id,
+      program_id: programId,
       status: "enrolled",
     })
     .select("id")
@@ -597,7 +560,7 @@ test("admin can mark a charge sent as invoice", async ({ playwright, baseURL }) 
     .from("tuition_rate_plans")
     .insert({
       organization_id: organizationId,
-      program_id: program!.id,
+      program_id: programId,
       name: "Invoice Test Plan",
       billing_basis: "annual",
       amount_cents: 120000,
@@ -681,19 +644,12 @@ test("tuition dashboard sync button assigns newly enrolled students", async ({
   const admin = createAdminClient();
   const manifest = getSeedManifest();
   const organizationId = manifest.organizationId;
+  const programId = manifest.programs.schoolYear.id;
 
-  const { data: program } = await admin
-    .from("programs")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .limit(1)
-    .maybeSingle();
-
-  expect(program?.id).toBeTruthy();
   await ensureE2eRateCatalogForProgram(
     admin,
     organizationId,
-    String(program!.id),
+    programId,
     "E2E Smoke",
   );
 
@@ -721,7 +677,7 @@ test("tuition dashboard sync button assigns newly enrolled students", async ({
     .insert({
       organization_id: organizationId,
       student_id: student!.id,
-      program_id: program!.id,
+      program_id: programId,
       status: "enrolled",
     })
     .select("id")
@@ -764,19 +720,12 @@ test("sync-assignments API creates tuition assignments for enrolled students", a
   const admin = createAdminClient();
   const manifest = getSeedManifest();
   const organizationId = manifest.organizationId;
+  const programId = manifest.programs.schoolYear.id;
 
-  const { data: program } = await admin
-    .from("programs")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .limit(1)
-    .maybeSingle();
-
-  expect(program?.id).toBeTruthy();
   await ensureE2eRateCatalogForProgram(
     admin,
     organizationId,
-    String(program!.id),
+    programId,
     "E2E Smoke",
   );
 
@@ -804,7 +753,7 @@ test("sync-assignments API creates tuition assignments for enrolled students", a
     .insert({
       organization_id: organizationId,
       student_id: student!.id,
-      program_id: program!.id,
+      program_id: programId,
       status: "enrolled",
     })
     .select("id")
@@ -847,19 +796,12 @@ test("tuition setup panel opens from header button with three steps", async ({
   const admin = createAdminClient();
   const manifest = getSeedManifest();
   const organizationId = manifest.organizationId;
+  const programId = manifest.programs.schoolYear.id;
 
-  const { data: program } = await admin
-    .from("programs")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .limit(1)
-    .maybeSingle();
-
-  expect(program?.id).toBeTruthy();
   await ensureE2eRateCatalogForProgram(
     admin,
     organizationId,
-    String(program!.id),
+    programId,
     "E2E Smoke",
   );
 

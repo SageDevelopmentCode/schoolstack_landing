@@ -12,7 +12,7 @@ import NavigationLoadingProvider from "@/components/school/shared/NavigationLoad
 import { CommitteeUnreadRefreshProvider } from "@/lib/committees/committee-unread-refresh-context";
 import type { CommitteeUnreadSummary } from "@/lib/committees/committee-unread-types";
 import { MessagesRefreshProvider } from "@/lib/messages/messages-refresh-context";
-import { fraunces, dmSans } from "@/lib/fonts";
+import { fraunces, dmSans } from "@/lib/fonts/local";
 import type { FamilyUserProfile } from "@/lib/admissions/parent-portal-access";
 import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
 import type { ParentPortalContextOption } from "@/lib/organization-settings/resolve-program-parent-features";

@@ -31,7 +31,7 @@ import {
 import { demoStoryShellStyle } from "@/components/demo/shared/demo-story-theme";
 import SchoolTeacherComingSoon from "@/components/school-teacher/SchoolTeacherComingSoon";
 import { buildDemoTeacherBranding } from "@/data/school-demos/demo-portal-shared";
-import { fraunces, dmSans } from "@/lib/fonts";
+import { fraunces, dmSans } from "@/lib/fonts/local";
 
 export type TeacherDemoNavTab =
   | "dashboard"

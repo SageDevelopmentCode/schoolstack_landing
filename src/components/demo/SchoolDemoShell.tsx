@@ -7,7 +7,7 @@ import {
   buildDemoParentThemeTokens,
   demoStoryShellStyle,
 } from "@/components/demo/shared/demo-story-theme";
-import { dmSans, fraunces } from "@/lib/fonts";
+import { dmSans, fraunces } from "@/lib/fonts/local";
 import { resolveWalkthroughStepIndex } from "@/lib/demo-walkthrough";
 import DemoContactPanel from "@/components/demo/DemoContactPanel";
 import DemoPreviewHint from "@/components/demo/DemoPreviewHint";

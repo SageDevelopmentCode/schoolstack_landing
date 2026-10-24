@@ -38,6 +38,18 @@ npm run test:e2e:ui      # interactive mode
 
 **Responsive screenshots + agent visual review:** Layout specs write PNGs to `e2e/.artifacts/responsive/`. Agents must **Read and analyze** those images per [portal-responsive-verify SKILL](../.agents/skills/portal-responsive-verify/SKILL.md). Check files exist with `npm run verify:responsive-artifacts -- committee-messages` (or `parent-messages`).
 
+**On-demand portal QA (branch-scoped):** [portal-qa SKILL](../.agents/skills/portal-qa/SKILL.md) — scope routes from git diff, capture golden scenarios, vision review + report.
+
+```bash
+npm run portal-qa:scope
+PORTAL_QA_SCENARIOS=committee-messages npm run test:qa:portal
+npm run verify:portal-qa-artifacts -- committee-messages
+```
+
+PNGs: `e2e/.artifacts/portal-qa/{scenario-id}-{mobile|tablet|desktop}.png`. Scenario catalog: [`e2e/qa/portal-scenarios.ts`](qa/portal-scenarios.ts), [`e2e/qa/parent-portal-scenarios.ts`](qa/parent-portal-scenarios.ts), and [`e2e/qa/teacher-portal-scenarios.ts`](qa/teacher-portal-scenarios.ts).
+
+`PORTAL_QA_SCENARIOS=parent-all` runs every parent golden scenario (full `ParentFeatures` catalog on the E2E org, including co-op program routes). `PORTAL_QA_SCENARIOS=teacher-all` runs every teacher golden scenario (full `TeacherFeatures` catalog, including Coming Soon routes). Seed data: [`e2e/fixtures/portal-qa-parent-seed.ts`](fixtures/portal-qa-parent-seed.ts) (shared classroom signup, forms, and staff committee membership).
+
 ## Test suites
 
 | Project | Tests | Auth |
@@ -49,6 +61,7 @@ npm run test:e2e:ui      # interactive mode
 | `parent` | Apply dashboard, submit, mobile flows | `e2e-parent@schoolstack.test` |
 | `api-parent` | Admissions submit, bootstrap, checkout API routes | `e2e-parent@schoolstack.test` |
 | `api-admin` | Admissions status API routes | `e2e-admin@schoolstack.test` |
+| `qa` | On-demand portal QA capture (`test:qa:portal`) | Per-scenario (parent / staff / school admin) |
 
 Seeded password (local only): `E2eTestPassword123!` — override via `.env.e2e.local`.
 
