@@ -43,12 +43,7 @@ test("parent billing page shows generated tuition charges", async ({ page }) => 
   const family = await getE2eParentFamily(admin, organizationId);
   await resetFamilyBillingState(admin, family.id);
 
-  const { data: program } = await admin
-    .from("programs")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .limit(1)
-    .maybeSingle();
+  const programId = manifest.programs.schoolYear.id;
 
   const { data: student } = await admin
     .from("students")
@@ -67,7 +62,7 @@ test("parent billing page shows generated tuition charges", async ({ page }) => 
     .insert({
       organization_id: organizationId,
       student_id: student!.id,
-      program_id: program!.id,
+      program_id: programId,
       status: "enrolled",
     })
     .select("id")
@@ -77,7 +72,7 @@ test("parent billing page shows generated tuition charges", async ({ page }) => 
     .from("tuition_rate_plans")
     .insert({
       organization_id: organizationId,
-      program_id: program!.id,
+      program_id: programId,
       name: "Parent Billing E2E",
       billing_basis: "annual",
       amount_cents: 500000,
@@ -154,12 +149,7 @@ test("parent billing page shows readiness guidance when charges are missing", as
   const family = await getE2eParentFamily(admin, organizationId);
   await resetFamilyBillingState(admin, family.id);
 
-  const { data: program } = await admin
-    .from("programs")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .limit(1)
-    .maybeSingle();
+  const programId = manifest.programs.schoolYear.id;
 
   const { data: student } = await admin
     .from("students")
@@ -176,7 +166,7 @@ test("parent billing page shows readiness guidance when charges are missing", as
   await admin.from("enrollments").insert({
     organization_id: organizationId,
     student_id: student!.id,
-    program_id: program!.id,
+    program_id: programId,
     status: "enrolled",
   });
 
@@ -196,12 +186,7 @@ test("parent billing page lets family choose payment schedule inline", async ({
   const family = await getE2eParentFamily(admin, organizationId);
   await resetFamilyBillingState(admin, family.id);
 
-  const { data: program } = await admin
-    .from("programs")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .limit(1)
-    .maybeSingle();
+  const programId = manifest.programs.schoolYear.id;
 
   const { data: student } = await admin
     .from("students")
@@ -220,7 +205,7 @@ test("parent billing page lets family choose payment schedule inline", async ({
     .insert({
       organization_id: organizationId,
       student_id: student!.id,
-      program_id: program!.id,
+      program_id: programId,
       status: "enrolled",
     })
     .select("id")
@@ -230,7 +215,7 @@ test("parent billing page lets family choose payment schedule inline", async ({
     .from("tuition_rate_plans")
     .insert({
       organization_id: organizationId,
-      program_id: program!.id,
+      program_id: programId,
       name: "Parent Schedule Picker E2E",
       billing_basis: "annual",
       amount_cents: 720000,
@@ -328,18 +313,13 @@ test("parent billing page uses child tabs for multiple pending schedules", async
   const family = await getE2eParentFamily(admin, organizationId);
   await resetFamilyBillingState(admin, family.id);
 
-  const { data: program } = await admin
-    .from("programs")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .limit(1)
-    .maybeSingle();
+  const programId = manifest.programs.schoolYear.id;
 
   const { data: ratePlan } = await admin
     .from("tuition_rate_plans")
     .insert({
       organization_id: organizationId,
-      program_id: program!.id,
+      program_id: programId,
       name: "Multi Child Billing E2E",
       billing_basis: "annual",
       amount_cents: 720000,
@@ -413,7 +393,7 @@ test("parent billing page uses child tabs for multiple pending schedules", async
       .insert({
         organization_id: organizationId,
         student_id: student!.id,
-        program_id: program!.id,
+        program_id: programId,
         status: "enrolled",
       })
       .select("id")
@@ -481,12 +461,7 @@ test("parent billing page shows per-charge adjustment breakdown", async ({ page 
   const family = await getE2eParentFamily(admin, organizationId);
   await resetFamilyBillingState(admin, family.id);
 
-  const { data: program } = await admin
-    .from("programs")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .limit(1)
-    .maybeSingle();
+  const programId = manifest.programs.schoolYear.id;
 
   const { data: student } = await admin
     .from("students")
@@ -505,7 +480,7 @@ test("parent billing page shows per-charge adjustment breakdown", async ({ page 
     .insert({
       organization_id: organizationId,
       student_id: student!.id,
-      program_id: program!.id,
+      program_id: programId,
       status: "enrolled",
     })
     .select("id")
@@ -515,7 +490,7 @@ test("parent billing page shows per-charge adjustment breakdown", async ({ page 
     .from("tuition_rate_plans")
     .insert({
       organization_id: organizationId,
-      program_id: program!.id,
+      program_id: programId,
       name: "Adjustment E2E",
       billing_basis: "annual",
       amount_cents: 720000,
@@ -602,12 +577,7 @@ test("parent billing deep link highlights the target charge", async ({ page }) =
   const family = await getE2eParentFamily(admin, organizationId);
   await resetFamilyBillingState(admin, family.id);
 
-  const { data: program } = await admin
-    .from("programs")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .limit(1)
-    .maybeSingle();
+  const programId = manifest.programs.schoolYear.id;
 
   const { data: student } = await admin
     .from("students")
@@ -626,7 +596,7 @@ test("parent billing deep link highlights the target charge", async ({ page }) =
     .insert({
       organization_id: organizationId,
       student_id: student!.id,
-      program_id: program!.id,
+      program_id: programId,
       status: "enrolled",
     })
     .select("id")
@@ -636,7 +606,7 @@ test("parent billing deep link highlights the target charge", async ({ page }) =
     .from("tuition_rate_plans")
     .insert({
       organization_id: organizationId,
-      program_id: program!.id,
+      program_id: programId,
       name: "Deep Link E2E",
       billing_basis: "annual",
       amount_cents: 720000,
@@ -713,18 +683,13 @@ test("parent billing summary supports per-student pay and child drill-down", asy
   const family = await getE2eParentFamily(admin, organizationId);
   await resetFamilyBillingState(admin, family.id);
 
-  const { data: program } = await admin
-    .from("programs")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .limit(1)
-    .maybeSingle();
+  const programId = manifest.programs.schoolYear.id;
 
   const { data: ratePlan } = await admin
     .from("tuition_rate_plans")
     .insert({
       organization_id: organizationId,
-      program_id: program!.id,
+      program_id: programId,
       name: "Multi Child Pay E2E",
       billing_basis: "annual",
       amount_cents: 720000,
@@ -787,7 +752,7 @@ test("parent billing summary supports per-student pay and child drill-down", asy
       .insert({
         organization_id: organizationId,
         student_id: student!.id,
-        program_id: program!.id,
+        program_id: programId,
         status: "enrolled",
         enrolled_at: "2026-08-01T12:00:00.000Z",
       })
@@ -939,12 +904,7 @@ test("parent billing extra payment shows updated schedule preview", async ({ pag
   const family = await getE2eParentFamily(admin, organizationId);
   await resetFamilyBillingState(admin, family.id);
 
-  const { data: program } = await admin
-    .from("programs")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .limit(1)
-    .maybeSingle();
+  const programId = manifest.programs.schoolYear.id;
 
   const { data: student } = await admin
     .from("students")
@@ -963,7 +923,7 @@ test("parent billing extra payment shows updated schedule preview", async ({ pag
     .insert({
       organization_id: organizationId,
       student_id: student!.id,
-      program_id: program!.id,
+      program_id: programId,
       status: "enrolled",
     })
     .select("id")
@@ -973,7 +933,7 @@ test("parent billing extra payment shows updated schedule preview", async ({ pag
     .from("tuition_rate_plans")
     .insert({
       organization_id: organizationId,
-      program_id: program!.id,
+      program_id: programId,
       name: "Extra Pay E2E",
       billing_basis: "annual",
       amount_cents: 720000,

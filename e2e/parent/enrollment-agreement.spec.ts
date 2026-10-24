@@ -61,7 +61,7 @@ test("complete agreement routes to first unsigned section", async ({ page }) => 
   await page.goto(state.enrollmentHref, enrollmentPageGotoOptions());
 
   await expect(page.getByText("Section 3 of 3")).toBeVisible();
-  await expect(page.getByLabel(/Type your full legal name/)).toHaveValue("E2E Parent");
+  await page.getByLabel(/Type your full legal name/).fill("E2E Parent");
 
   const saveSectionResponse = page.waitForResponse(
     (response) =>

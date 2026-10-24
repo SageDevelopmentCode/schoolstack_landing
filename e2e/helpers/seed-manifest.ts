@@ -25,6 +25,7 @@ export function getSeedManifest(): E2eSeedManifest {
     !manifest.applications?.noFeeDraft ||
     !manifest.applications?.noFeeSubmitDraft ||
     !manifest.committees?.parentWorkspace ||
+    !manifest.programs?.schoolYear?.id ||
     !manifest.programs?.coop?.id ||
     !manifest.programs?.coop?.slug ||
     !manifest.classroomSignups?.openSignupId ||

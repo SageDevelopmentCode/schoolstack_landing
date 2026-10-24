@@ -867,6 +867,9 @@ export type E2eSeedManifest = {
     parentWorkspace: string;
   };
   programs: {
+    schoolYear: {
+      id: string;
+    };
     coop: {
       id: string;
       slug: string;
@@ -1336,7 +1339,10 @@ export async function seedE2eDatabase(): Promise<void> {
     committees: {
       parentWorkspace: parentCommitteeId,
     },
-    programs: portalQa.programs,
+    programs: {
+      schoolYear: { id: formContext.programId },
+      ...portalQa.programs,
+    },
     classroomSignups: portalQa.classroomSignups,
     parentPublishedFormId: portalQa.parentPublishedFormId,
     fridayBranch: portalQa.fridayBranch,
