@@ -2,7 +2,7 @@
 
 import { useId } from "react";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
-import { greatVibes } from "@/lib/fonts";
+import { greatVibes } from "@/lib/fonts/google";
 
 const SIGNATURE_PREVIEW_FONT_FAMILY =
   'var(--font-great-vibes), "Great Vibes", cursive';

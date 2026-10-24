@@ -1,7 +1,7 @@
 "use client";
 
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import { greatVibes } from "@/lib/fonts";
+import { greatVibes } from "@/lib/fonts/google";
 
 const SIGNATURE_PREVIEW_FONT_FAMILY =
   'var(--font-great-vibes), "Great Vibes", cursive';

@@ -22,7 +22,7 @@ import type {
 } from "@/lib/organization-settings/types";
 import { CommitteeUnreadRefreshProvider } from "@/lib/committees/committee-unread-refresh-context";
 import { MessagesRefreshProvider } from "@/lib/messages/messages-refresh-context";
-import { fraunces, dmSans } from "@/lib/fonts";
+import { fraunces, dmSans } from "@/lib/fonts/local";
 
 const TeacherActivityNotificationsPanel = dynamic(
   () => import("@/components/school-teacher/TeacherActivityNotificationsPanel"),

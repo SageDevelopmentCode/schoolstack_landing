@@ -4,7 +4,8 @@ import type { ReactNode } from "react";
 import { ParentThemeProvider } from "@/components/school-parent/ParentThemeContext";
 import { PARENT_DEMO_STORY_THEME } from "@/components/demo/shared/parent-demo-runtime";
 import { buildDemoParentBranding } from "@/data/school-demos/demo-portal-shared";
-import { dmSans, fraunces, greatVibes } from "@/lib/fonts";
+import { dmSans, fraunces } from "@/lib/fonts/local";
+import { greatVibes } from "@/lib/fonts/google";
 
 type DemoSchoolParentStoryProviderProps = {
   children: ReactNode;

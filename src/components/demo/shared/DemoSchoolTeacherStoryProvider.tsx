@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { ParentThemeProvider } from "@/components/school-parent/ParentThemeContext";
 import { TEACHER_DEMO_STORY_THEME } from "@/components/demo/shared/teacher-demo-runtime";
 import { buildDemoTeacherBranding } from "@/data/school-demos/demo-portal-shared";
-import { fraunces, dmSans } from "@/lib/fonts";
+import { fraunces, dmSans } from "@/lib/fonts/local";
 
 type DemoSchoolTeacherStoryProviderProps = {
   children: ReactNode;

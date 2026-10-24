@@ -6,7 +6,7 @@ import {
   ParentThemeProvider,
   useParentTheme,
 } from "@/components/school-parent/ParentThemeContext";
-import { fraunces, dmSans } from "@/lib/fonts";
+import { fraunces, dmSans } from "@/lib/fonts/local";
 import { parentThemeCssVars } from "@/lib/organization-settings/parent-theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 

@@ -68,10 +68,11 @@ export function buildPreviewOuterHref(
   pathname: string,
   searchParams: URLSearchParams | ReadonlyURLSearchParamsLike | string,
 ): string {
-  const params =
+  const params = stripPreviewEmbedFromSearchParams(
     typeof searchParams === "string"
       ? new URLSearchParams(searchParams)
-      : stripPreviewEmbedFromSearchParams(searchParams);
+      : searchParams,
+  );
   const query = params.toString();
   return query ? `${pathname}?${query}` : pathname;
 }

@@ -105,6 +105,16 @@ describe("buildPreviewOuterHref", () => {
       "/admin/preview/s/a/family/f1?focus=1",
     );
   });
+
+  it("strips previewEmbed from search string from postMessage", () => {
+    assert.equal(
+      buildPreviewOuterHref(
+        "/admin/preview/s/a/family/f1",
+        `focus=1&${ADMIN_PREVIEW_EMBED_PARAM}=1`,
+      ),
+      "/admin/preview/s/a/family/f1?focus=1",
+    );
+  });
 });
 
 describe("isAdminPreviewEmbedRouteMessage", () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { fraunces, dmSans } from "@/lib/fonts";
+import { fraunces, dmSans } from "@/lib/fonts/local";
 import {
   parentThemeCssVars,
   type ParentThemeTokens,
