@@ -1,7 +1,6 @@
 // Google fonts — import only from Server Components / layouts (or narrow client imports of a single font).
 import {
   Geist,
-  Great_Vibes,
   Fragment_Mono,
   Delicious_Handrawn,
   Inter,
@@ -27,13 +26,6 @@ export const deliciousHandrawn = Delicious_Handrawn({
   weight: ["400"],
   display: "swap",
   variable: "--font-delicious",
-});
-
-export const greatVibes = Great_Vibes({
-  subsets: ["latin"],
-  weight: ["400"],
-  display: "swap",
-  variable: "--font-great-vibes",
 });
 
 export const poppins = Poppins({
