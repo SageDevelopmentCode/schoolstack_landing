@@ -42,7 +42,10 @@ export default function ParentCalendarPageShell({
   const contextValue = useMemo(() => ({ hydrateEvents }), [hydrateEvents]);
 
   return (
-    <div data-testid="parent-calendar-page">
+    <div
+      data-testid="parent-calendar-page"
+      className="flex min-h-0 flex-1 flex-col"
+    >
       <ParentCalendarPageContext.Provider value={contextValue}>
       <Suspense fallback={null}>
         <ParentCalendarPage

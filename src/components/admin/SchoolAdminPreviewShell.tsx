@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Eye, X } from "lucide-react";
 import { Suspense } from "react";
 import AdminPreviewDeviceFrame from "@/components/admin/AdminPreviewDeviceFrame";
+import AdminPreviewEmbedRouteReporter from "@/components/admin/AdminPreviewEmbedRouteReporter";
 import AdminPreviewViewportToggle from "@/components/admin/AdminPreviewViewportToggle";
 import { useAdminPreviewEmbed } from "@/components/admin/useAdminPreviewEmbed";
 import { useAdminPreviewViewport } from "@/components/admin/useAdminPreviewViewport";
@@ -36,7 +37,12 @@ function SchoolAdminPreviewShellInner({
   const { viewport, setViewport } = useAdminPreviewViewport();
 
   if (isEmbed) {
-    return <>{children}</>;
+    return (
+      <>
+        <AdminPreviewEmbedRouteReporter />
+        {children}
+      </>
+    );
   }
 
   return (

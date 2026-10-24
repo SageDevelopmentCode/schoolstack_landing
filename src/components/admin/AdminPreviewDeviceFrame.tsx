@@ -1,12 +1,22 @@
 "use client";
 
-import { usePathname, useSearchParams } from "next/navigation";
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   ADMIN_PREVIEW_DEVICE_BEZEL_PX,
   ADMIN_PREVIEW_MOBILE_HEIGHT,
   ADMIN_PREVIEW_MOBILE_WIDTH,
   buildPreviewEmbedHref,
+  buildPreviewOuterHref,
+  isAdminPreviewEmbeddablePath,
+  isAdminPreviewEmbedRouteMessage,
   type AdminPreviewViewportMode,
 } from "@/lib/admin/preview-device-viewport";
 
@@ -21,8 +31,60 @@ export default function AdminPreviewDeviceFrame({
 }: AdminPreviewDeviceFrameProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const canvasRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [availableHeight, setAvailableHeight] = useState(ADMIN_PREVIEW_MOBILE_HEIGHT);
+
+  const replaceOuterRouteIfNeeded = useCallback(
+    (nextPathname: string, search: string) => {
+      if (!isAdminPreviewEmbeddablePath(nextPathname)) {
+        return;
+      }
+      const nextHref = buildPreviewOuterHref(nextPathname, search);
+      const currentHref = buildPreviewOuterHref(pathname, searchParams);
+      if (nextHref !== currentHref) {
+        router.replace(nextHref);
+      }
+    },
+    [pathname, router, searchParams],
+  );
+
+  useEffect(() => {
+    if (viewport !== "mobile") {
+      return;
+    }
+
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) {
+        return;
+      }
+      if (!isAdminPreviewEmbedRouteMessage(event.data)) {
+        return;
+      }
+      replaceOuterRouteIfNeeded(event.data.pathname, event.data.search);
+    };
+
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [replaceOuterRouteIfNeeded, viewport]);
+
+  useLayoutEffect(() => {
+    return () => {
+      if (viewport !== "mobile") {
+        return;
+      }
+      try {
+        const location = iframeRef.current?.contentWindow?.location;
+        if (!location) {
+          return;
+        }
+        replaceOuterRouteIfNeeded(location.pathname, location.search.slice(1));
+      } catch {
+        // ignore cross-origin or detached iframe
+      }
+    };
+  }, [replaceOuterRouteIfNeeded, viewport]);
 
   useLayoutEffect(() => {
     const element = canvasRef.current;
@@ -41,7 +103,7 @@ export default function AdminPreviewDeviceFrame({
     const observer = new ResizeObserver((entries) => update(entries[0]));
     observer.observe(element);
     return () => observer.disconnect();
-  }, []);
+  }, [viewport]);
 
   if (viewport !== "mobile") {
     return <>{children}</>;
@@ -85,6 +147,7 @@ export default function AdminPreviewDeviceFrame({
             }}
           >
             <iframe
+              ref={iframeRef}
               key={iframeSrc}
               src={iframeSrc}
               title="Mobile preview"

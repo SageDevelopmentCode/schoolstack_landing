@@ -2,9 +2,13 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   ADMIN_PREVIEW_EMBED_PARAM,
+  ADMIN_PREVIEW_EMBED_ROUTE_MESSAGE,
   buildPreviewEmbedHref,
+  buildPreviewOuterHref,
   isAdminPreviewEmbeddablePath,
+  isAdminPreviewEmbedRouteMessage,
   isAdminPreviewEmbedSearchParam,
+  stripPreviewEmbedFromSearchParams,
   withPreviewEmbedSearchParams,
 } from "@/lib/admin/preview-device-viewport";
 
@@ -67,5 +71,53 @@ describe("isAdminPreviewEmbedSearchParam", () => {
     assert.equal(isAdminPreviewEmbedSearchParam("true"), true);
     assert.equal(isAdminPreviewEmbedSearchParam("0"), false);
     assert.equal(isAdminPreviewEmbedSearchParam(null), false);
+  });
+});
+
+describe("stripPreviewEmbedFromSearchParams", () => {
+  it("removes previewEmbed and preserves other keys", () => {
+    const params = new URLSearchParams(
+      `focus=app-1&${ADMIN_PREVIEW_EMBED_PARAM}=1&tab=mine`,
+    );
+    const stripped = stripPreviewEmbedFromSearchParams(params);
+    assert.equal(stripped.toString(), "focus=app-1&tab=mine");
+  });
+});
+
+describe("buildPreviewOuterHref", () => {
+  it("builds outer href without previewEmbed", () => {
+    const embedHref = withPreviewEmbedSearchParams(
+      "/admin/preview/slug/family/fam-1/parent/billing",
+      new URLSearchParams("tab=mine"),
+    );
+    assert.equal(
+      buildPreviewOuterHref(
+        "/admin/preview/slug/family/fam-1/parent/billing",
+        new URLSearchParams(embedHref.split("?")[1] ?? ""),
+      ),
+      "/admin/preview/slug/family/fam-1/parent/billing?tab=mine",
+    );
+  });
+
+  it("accepts search string from postMessage", () => {
+    assert.equal(
+      buildPreviewOuterHref("/admin/preview/s/a/family/f1", "focus=1"),
+      "/admin/preview/s/a/family/f1?focus=1",
+    );
+  });
+});
+
+describe("isAdminPreviewEmbedRouteMessage", () => {
+  it("validates embed route messages", () => {
+    assert.equal(
+      isAdminPreviewEmbedRouteMessage({
+        type: ADMIN_PREVIEW_EMBED_ROUTE_MESSAGE,
+        pathname: "/admin/preview/x/family/f1/parent/home",
+        search: "",
+      }),
+      true,
+    );
+    assert.equal(isAdminPreviewEmbedRouteMessage({ type: "other" }), false);
+    assert.equal(isAdminPreviewEmbedRouteMessage(null), false);
   });
 });

@@ -165,6 +165,31 @@ export async function getIssue(issueId: string): Promise<SentryIssueDetail> {
   )();
 }
 
+type RawSentryProject = {
+  id: string;
+};
+
+async function fetchSentryProjectIdUncached(
+  config: SentryAdminConfig,
+): Promise<string> {
+  const project = await sentryFetch<RawSentryProject>(
+    config,
+    `/projects/${config.orgSlug}/${config.projectSlug}/`,
+  );
+  return project.id;
+}
+
+export async function getSentryProjectId(
+  config?: SentryAdminConfig,
+): Promise<string> {
+  const resolved = config ?? getSentryAdminConfig();
+  return unstable_cache(
+    () => fetchSentryProjectIdUncached(resolved),
+    ["sentry-admin-project-id", resolved.orgSlug, resolved.projectSlug],
+    { revalidate: 3600 },
+  )();
+}
+
 type DiscoverRow = Record<string, unknown>;
 
 async function queryDiscoverUncached(input: {
@@ -196,6 +221,8 @@ async function queryDiscoverUncached(input: {
   if (environmentFilter !== "all") {
     params.append("environment", environmentFilter);
   }
+  const projectId = await getSentryProjectId(config);
+  params.append("project", projectId);
 
   const result = await sentryFetch<{ data: DiscoverRow[] }>(
     config,
@@ -235,6 +262,7 @@ export async function queryDiscoverPerformance(input: {
 export function buildSentryPerformanceExploreUrl(
   config: SentryAdminConfig,
   query: string,
+  projectId: string,
   environment: SentryPerformanceEnvironmentFilter = "all",
 ): string {
   const spansQuery = normalizeSpansExploreQuery(query);
@@ -243,6 +271,7 @@ export function buildSentryPerformanceExploreUrl(
     query: spansQuery,
     dataset: "spans",
     sort: "-p75(span.duration)",
+    project: projectId,
   });
   if (environment !== "all") {
     params.append("environment", environment);

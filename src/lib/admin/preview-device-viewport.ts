@@ -10,6 +10,15 @@ export const ADMIN_PREVIEW_EMBED_PARAM = "previewEmbed";
 export const ADMIN_PREVIEW_EMBED_COOKIE = "mk_admin_preview_embed";
 export const ADMIN_PREVIEW_VIEWPORT_STORAGE_KEY = "adminPreviewViewport";
 
+/** postMessage `type` when the mobile preview iframe navigates. */
+export const ADMIN_PREVIEW_EMBED_ROUTE_MESSAGE = "mk-admin-preview-embed-route";
+
+export type AdminPreviewEmbedRouteMessage = {
+  type: typeof ADMIN_PREVIEW_EMBED_ROUTE_MESSAGE;
+  pathname: string;
+  search: string;
+};
+
 export type AdminPreviewViewportMode = "desktop" | "mobile";
 
 const ADMIN_PREVIEW_EMBEDDABLE_PATH =
@@ -45,4 +54,38 @@ export function buildPreviewEmbedHref(
   searchParams: URLSearchParams | ReadonlyURLSearchParamsLike,
 ): string {
   return withPreviewEmbedSearchParams(pathname, searchParams);
+}
+
+export function stripPreviewEmbedFromSearchParams(
+  searchParams: URLSearchParams | ReadonlyURLSearchParamsLike,
+): URLSearchParams {
+  const params = new URLSearchParams(searchParams.toString());
+  params.delete(ADMIN_PREVIEW_EMBED_PARAM);
+  return params;
+}
+
+export function buildPreviewOuterHref(
+  pathname: string,
+  searchParams: URLSearchParams | ReadonlyURLSearchParamsLike | string,
+): string {
+  const params =
+    typeof searchParams === "string"
+      ? new URLSearchParams(searchParams)
+      : stripPreviewEmbedFromSearchParams(searchParams);
+  const query = params.toString();
+  return query ? `${pathname}?${query}` : pathname;
+}
+
+export function isAdminPreviewEmbedRouteMessage(
+  data: unknown,
+): data is AdminPreviewEmbedRouteMessage {
+  if (!data || typeof data !== "object") {
+    return false;
+  }
+  const message = data as Record<string, unknown>;
+  return (
+    message.type === ADMIN_PREVIEW_EMBED_ROUTE_MESSAGE &&
+    typeof message.pathname === "string" &&
+    typeof message.search === "string"
+  );
 }

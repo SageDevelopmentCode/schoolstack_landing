@@ -9,6 +9,7 @@ import {
 } from "@/lib/sentry/admin-config";
 import {
   buildSentryPerformanceExploreUrl,
+  getSentryProjectId,
   parseSentryPerformanceEnvironment,
   queryDiscoverPerformance,
   resolvePerformanceQuery,
@@ -53,7 +54,13 @@ export async function GET(request: Request) {
     }
 
     const config = getSentryAdminConfig();
-    const exploreUrl = buildSentryPerformanceExploreUrl(config, query, environment);
+    const projectId = await getSentryProjectId(config);
+    const exploreUrl = buildSentryPerformanceExploreUrl(
+      config,
+      query,
+      projectId,
+      environment,
+    );
 
     const rows = await queryDiscoverPerformance({
       preset,
@@ -75,9 +82,21 @@ export async function GET(request: Request) {
     if (err instanceof AuthError) {
       return NextResponse.json({ error: err.message }, { status: err.status });
     }
-    const exploreUrl = isSentryAdminConfigured()
-      ? buildSentryPerformanceExploreUrl(getSentryAdminConfig(), query, environment)
-      : undefined;
+    let exploreUrl: string | undefined;
+    if (isSentryAdminConfigured()) {
+      try {
+        const config = getSentryAdminConfig();
+        const projectId = await getSentryProjectId(config);
+        exploreUrl = buildSentryPerformanceExploreUrl(
+          config,
+          query,
+          projectId,
+          environment,
+        );
+      } catch {
+        exploreUrl = undefined;
+      }
+    }
     const sentryResponse = sentryApiErrorResponse(err, {
       preset,
       query,

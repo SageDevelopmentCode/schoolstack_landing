@@ -942,6 +942,7 @@ async function ensureE2eParentEnrolledAccess(
     .select("id")
     .eq("organization_id", organizationId)
     .eq("student_id", studentId)
+    .eq("program_id", programId)
     .eq("status", "enrolled")
     .maybeSingle();
 
@@ -1312,7 +1313,11 @@ export async function seedE2eDatabase(): Promise<void> {
     staffUserId,
   );
 
-  const portalQa = await seedPortalQaParentFixtures(admin, organizationId);
+  const portalQa = await seedPortalQaParentFixtures(
+    admin,
+    organizationId,
+    formContext.programId,
+  );
 
   writeSeedManifest({
     organizationId,

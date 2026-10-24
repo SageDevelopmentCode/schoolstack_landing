@@ -112,7 +112,9 @@ export const TEACHER_PORTAL_QA_SCENARIOS: PortalQaScenario[] = [
         timeout: 30_000,
       });
       await expect(
-        page.getByTestId(`teacher-form-row-${manifest.parentPublishedFormId}`),
+        page
+          .getByTestId(`teacher-form-row-${manifest.parentPublishedFormId}`)
+          .filter({ visible: true }),
       ).toBeVisible({ timeout: 30_000 });
     },
   },

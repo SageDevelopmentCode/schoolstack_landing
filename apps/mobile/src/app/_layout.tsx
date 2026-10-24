@@ -56,8 +56,8 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <PortalTransitionProvider>
-        <MobileOperationalErrorBoundary>
         <MobileGlobalErrorReportingBridge />
+        <MobileOperationalErrorBoundary>
         <AuthSessionGuard />
         <SupabaseAuthLifecycle />
         <OtaUpdateManager />

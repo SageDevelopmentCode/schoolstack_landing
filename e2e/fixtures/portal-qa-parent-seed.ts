@@ -59,6 +59,7 @@ async function getEnrolledStudentForFamily(
   admin: SupabaseClient,
   organizationId: string,
   familyId: string,
+  schoolProgramId: string,
 ): Promise<string> {
   const { data: students, error: studentsError } = await admin
     .from("students")
@@ -77,6 +78,7 @@ async function getEnrolledStudentForFamily(
     .select("id")
     .eq("organization_id", organizationId)
     .eq("student_id", studentId)
+    .eq("program_id", schoolProgramId)
     .eq("status", "enrolled")
     .maybeSingle();
   if (enrollmentError) throw enrollmentError;
@@ -407,10 +409,16 @@ async function ensureE2eAttendanceRecord(
 export async function seedPortalQaParentFixtures(
   admin: SupabaseClient,
   organizationId: string,
+  schoolProgramId: string,
 ): Promise<PortalQaParentSeedResult> {
   const familyId = await getFamilyIdByParentEmail(admin, organizationId, E2E_PARENT_EMAIL);
   const staffMemberId = await getStaffMemberId(admin, organizationId, E2E_STAFF_EMAIL);
-  const studentId = await getEnrolledStudentForFamily(admin, organizationId, familyId);
+  const studentId = await getEnrolledStudentForFamily(
+    admin,
+    organizationId,
+    familyId,
+    schoolProgramId,
+  );
 
   const coop = await ensureE2eCoopProgram(admin, organizationId, familyId, studentId);
   const openSignupId = await ensureE2eClassroomSignup(

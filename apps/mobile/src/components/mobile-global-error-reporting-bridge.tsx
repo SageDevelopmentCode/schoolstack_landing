@@ -17,15 +17,15 @@ export function MobileGlobalErrorReportingBridge() {
     [organizationId, portalType],
   );
 
-  useEffect(() => {
-    if (isMobileE2e) {
-      setMobileGlobalErrorReporter(null);
-      return;
-    }
-
+  if (isMobileE2e) {
+    setMobileGlobalErrorReporter(null);
+  } else {
     setMobileGlobalErrorReporter(reportError);
+  }
+
+  useEffect(() => {
     return () => setMobileGlobalErrorReporter(null);
-  }, [reportError]);
+  }, []);
 
   useEffect(() => {
     if (isMobileE2e) {
