@@ -36,6 +36,7 @@ import NewsletterEditorPanel, {
 import NewsletterModals, { type NewsletterModalState } from "./NewsletterModals";
 import NewsletterPreviewPanel, { type PreviewDevice } from "./NewsletterPreviewPanel";
 import NewsletterPreviewToolbar from "./NewsletterPreviewToolbar";
+import NewsletterWorkspaceSkeleton from "./NewsletterWorkspaceSkeleton";
 import styles from "./newsletter-workspace.module.css";
 
 type NewsletterWorkspaceProps = {
@@ -84,6 +85,8 @@ export default function NewsletterWorkspace({
   );
 
   const locked = activeEdition.status === "published";
+  const showBuilderSkeleton =
+    staffLoading && staffMembers.length === 0 && !staffError;
 
   const renderOptions = useMemo(
     () => ({
@@ -329,13 +332,6 @@ export default function NewsletterWorkspace({
 
       <div className={`${styles.navRow} ${styles.navRowActionsOnly}`}>
         <div className={styles.navActions}>
-          <AdminTextLink
-            theme={theme}
-            disabled={locked}
-            onClick={() => setModal({ type: "sections" })}
-          >
-            Sections
-          </AdminTextLink>
           <AdminTextLink theme={theme} onClick={() => setModal({ type: "nextWeek" })}>
             <span className="inline-flex items-center gap-1">
               <Copy size={14} strokeWidth={1.65} aria-hidden />
@@ -368,50 +364,54 @@ export default function NewsletterWorkspace({
       ) : null}
 
       <div className={styles.builderShell}>
-        <NewsletterPreviewToolbar
-          {...toolbarProps}
-          className={styles.builderToolbarRow}
-        />
-        <div
-          className={`${styles.builder} ${previewVisible ? "" : styles.builderPreviewHidden}`.trim()}
-        >
-          <div
-            className={`${styles.editorColumn} ${previewVisible ? "" : styles.editorColumnCentered}`.trim()}
-          >
-            <NewsletterEditorPanel
-              edition={activeEdition}
-              template={workspace.template}
-              locked={locked}
-              editorTab={editorTab}
-              staffMembers={staffMembers}
-              staffLoading={staffLoading}
-              staffError={staffError}
-              onTabChange={(tab) => {
-                if (tab === "teachers") loadStaff();
-                setEditorTab(tab);
-              }}
-              onEditionChange={updateActiveEdition}
-              onTemplateChange={updateTemplate}
-              onOpenSections={() => setModal({ type: "sections" })}
-              onAddEvent={() => setModal({ type: "event" })}
-              onEditEvent={(index) => setModal({ type: "event", index })}
-              onUploadPhotos={() => photoInputRef.current?.click()}
+        {showBuilderSkeleton ? (
+          <NewsletterWorkspaceSkeleton previewVisible={previewVisible} />
+        ) : (
+          <>
+            <NewsletterPreviewToolbar
+              {...toolbarProps}
+              className={styles.builderToolbarRow}
             />
-          </div>
+            <div
+              className={`${styles.builder} ${previewVisible ? "" : styles.builderPreviewHidden}`.trim()}
+            >
+              <div className={styles.editorColumn}>
+                <NewsletterEditorPanel
+                  edition={activeEdition}
+                  template={workspace.template}
+                  locked={locked}
+                  editorTab={editorTab}
+                  staffMembers={staffMembers}
+                  staffLoading={staffLoading}
+                  staffError={staffError}
+                  onTabChange={(tab) => {
+                    if (tab === "teachers") loadStaff();
+                    setEditorTab(tab);
+                  }}
+                  onEditionChange={updateActiveEdition}
+                  onTemplateChange={updateTemplate}
+                  onOpenSections={() => setModal({ type: "sections" })}
+                  onAddEvent={() => setModal({ type: "event" })}
+                  onEditEvent={(index) => setModal({ type: "event", index })}
+                  onUploadPhotos={() => photoInputRef.current?.click()}
+                />
+              </div>
 
-          {previewVisible ? (
-            <div ref={previewColumnRef} className={styles.previewColumnWrap}>
-              <NewsletterPreviewPanel
-                theme={theme}
-                edition={activeEdition}
-                school={workspace.school}
-                device={device}
-                staffMembers={staffMembers}
-                template={workspace.template}
-              />
+              {previewVisible ? (
+                <div ref={previewColumnRef} className={styles.previewColumnWrap}>
+                  <NewsletterPreviewPanel
+                    theme={theme}
+                    edition={activeEdition}
+                    school={workspace.school}
+                    device={device}
+                    staffMembers={staffMembers}
+                    template={workspace.template}
+                  />
+                </div>
+              ) : null}
             </div>
-          ) : null}
-        </div>
+          </>
+        )}
       </div>
 
       <footer className={styles.bottomNote}>

@@ -1,25 +1,20 @@
 "use client";
 
-import { Check, Info, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Check, Info } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { weekLabel, plusDays } from "@/lib/school-admin/newsletter/newsletter-dates";
 import { editionHasContent } from "@/lib/school-admin/newsletter/newsletter-render";
-import {
-  applyTemplateToEdition,
-  createEditionFromTemplate,
-} from "@/lib/school-admin/newsletter/newsletter-template";
+import { createEditionFromTemplate } from "@/lib/school-admin/newsletter/newsletter-template";
 import {
   createNewsletterId,
   type NewsletterEdition,
   type NewsletterEvent,
   type NewsletterSchoolTemplate,
-  type NewsletterSections,
-  type NewsletterStoryBlockKind,
   type NewsletterWorkspaceState,
 } from "@/lib/school-admin/newsletter/newsletter-types";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import AdminTextLink from "@/components/school-admin/ui/story/AdminTextLink";
+import NewsletterSectionsSheet from "./NewsletterSectionsSheet";
 import styles from "./newsletter-workspace.module.css";
 
 export type NewsletterModalState =
@@ -56,6 +51,15 @@ type NewsletterModalsProps = {
 export default function NewsletterModals(props: NewsletterModalsProps) {
   const { modal, onClose } = props;
   const { theme } = useSchoolAdminStoryTheme();
+  const [sectionsDraftKey, setSectionsDraftKey] = useState(0);
+  const prevModalTypeRef = useRef(modal?.type);
+
+  useEffect(() => {
+    if (modal?.type === "sections" && prevModalTypeRef.current !== "sections") {
+      setSectionsDraftKey((key) => key + 1);
+    }
+    prevModalTypeRef.current = modal?.type;
+  }, [modal?.type]);
 
   useEffect(() => {
     if (!modal) return;
@@ -66,11 +70,24 @@ export default function NewsletterModals(props: NewsletterModalsProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [modal, onClose]);
 
+  if (modal?.type === "sections") {
+    return (
+      <NewsletterSectionsSheet
+        key={sectionsDraftKey}
+        open
+        workspace={props.workspace}
+        activeEdition={props.activeEdition}
+        onClose={onClose}
+        onWorkspaceChange={props.onWorkspaceChange}
+        onToast={props.onToast}
+      />
+    );
+  }
+
   if (!modal) return null;
 
   let body: React.ReactNode = null;
   if (modal.type === "editions") body = <EditionsBody {...props} />;
-  if (modal.type === "sections") body = <SectionsBody {...props} />;
   if (modal.type === "event") body = <EventBody {...props} index={modal.index} />;
   if (modal.type === "nextWeek") body = <NextWeekBody {...props} />;
   if (modal.type === "publish") body = <PublishBody {...props} />;
@@ -101,9 +118,7 @@ export default function NewsletterModals(props: NewsletterModalsProps) {
   const title =
     modal.type === "editions"
       ? "Editions"
-      : modal.type === "sections"
-        ? "Newsletter sections"
-        : modal.type === "event"
+      : modal.type === "event"
           ? modal.index === undefined
             ? "Add date"
             : "Edit date"
@@ -179,175 +194,6 @@ function EditionsBody({
           </span>
         </button>
       ))}
-    </>
-  );
-}
-
-const STORY_KIND_LABELS: Record<NewsletterStoryBlockKind, string> = {
-  welcome: "Opening note",
-  learning: "This week's learning",
-  moment: "A moment worth sharing",
-  next: "Looking ahead",
-  family: "At home",
-  quote: "Child's words",
-  custom: "Custom section",
-};
-
-const SECTION_TOGGLE_LABELS: Record<keyof NewsletterSections, string> = {
-  teacherUpdates: "Teacher updates",
-  events: "Dates",
-  reminders: "Reminders",
-  photos: "Photos",
-};
-
-function SectionsBody({
-  workspace,
-  activeEdition,
-  onClose,
-  onWorkspaceChange,
-  onToast,
-}: NewsletterModalsProps) {
-  const { theme } = useSchoolAdminStoryTheme();
-  const [template, setTemplate] = useState(() => ({
-    ...workspace.template,
-    storyBlocks: workspace.template.storyBlocks.map((b) => ({ ...b })),
-    sections: { ...workspace.template.sections },
-  }));
-
-  const toggleBlock = (id: string) => {
-    setTemplate((prev) => ({
-      ...prev,
-      storyBlocks: prev.storyBlocks.map((b) =>
-        b.id === id ? { ...b, enabled: !b.enabled } : b,
-      ),
-    }));
-  };
-
-  const toggleSection = (key: keyof NewsletterSections) => {
-    setTemplate((prev) => ({
-      ...prev,
-      sections: { ...prev.sections, [key]: !prev.sections[key] },
-    }));
-  };
-
-  const fixedBlocks = template.storyBlocks.filter((b) => b.kind !== "custom");
-  const customBlocks = template.storyBlocks.filter((b) => b.kind === "custom");
-
-  return (
-    <>
-      <p className={styles.helper} style={{ marginTop: 0 }}>
-        Choose which story prompts and sections appear. Headings are edited on The story tab.
-      </p>
-      <div className={styles.sectionToggles}>
-        {fixedBlocks.map((block) => (
-          <label key={block.id} className={styles.toggleRow}>
-            <input
-              type="checkbox"
-              checked={block.enabled}
-              onChange={() => toggleBlock(block.id)}
-            />
-            {STORY_KIND_LABELS[block.kind]}
-          </label>
-        ))}
-      </div>
-      <hr className={styles.divider} />
-      <div className={styles.sectionToggles}>
-        {(Object.keys(SECTION_TOGGLE_LABELS) as (keyof NewsletterSections)[]).map((key) => (
-          <label key={key} className={styles.toggleRow}>
-            <input
-              type="checkbox"
-              checked={template.sections[key]}
-              onChange={() => toggleSection(key)}
-            />
-            {SECTION_TOGGLE_LABELS[key]}
-          </label>
-        ))}
-      </div>
-      <hr className={styles.divider} />
-      <div className={styles.smallHeadingRow}>
-        <span className={styles.smallHeading}>Custom prompts</span>
-        <AdminTextLink
-          theme={theme}
-          onClick={() => {
-            const customCount = template.storyBlocks.filter((b) => b.kind === "custom").length;
-            if (customCount >= 6) {
-              onToast("Up to six custom prompts.");
-              return;
-            }
-            const id = createNewsletterId();
-            setTemplate((prev) => ({
-              ...prev,
-              storyBlocks: [
-                ...prev.storyBlocks,
-                {
-                  id,
-                  kind: "custom",
-                  heading: "Custom section",
-                  prompt: "Your prompt",
-                  optional: true,
-                  enabled: true,
-                },
-              ],
-            }));
-          }}
-        >
-          + Add
-        </AdminTextLink>
-      </div>
-      {customBlocks.map((block, index) => (
-        <div key={block.id} className={styles.customRow}>
-          <input
-            className={styles.input}
-            value={block.prompt}
-            placeholder="Prompt / section title"
-            maxLength={100}
-            aria-label={`Custom prompt ${index + 1}`}
-            onChange={(e) => {
-              const prompt = e.target.value;
-              setTemplate((prev) => ({
-                ...prev,
-                storyBlocks: prev.storyBlocks.map((b) =>
-                  b.id === block.id
-                    ? { ...b, prompt, heading: prompt || b.heading }
-                    : b,
-                ),
-              }));
-            }}
-          />
-          <button
-            type="button"
-            className={styles.iconBtn}
-            aria-label={`Remove custom prompt ${index + 1}`}
-            onClick={() => {
-              setTemplate((prev) => ({
-                ...prev,
-                storyBlocks: prev.storyBlocks.filter((b) => b.id !== block.id),
-              }));
-            }}
-          >
-            <Trash2 size={14} strokeWidth={1.65} />
-          </button>
-        </div>
-      ))}
-      <div className={styles.modalActions}>
-        <AdminButton
-          theme={theme}
-          variant="primary"
-          onClick={() => {
-            const nextEdition = applyTemplateToEdition(template, activeEdition);
-            onWorkspaceChange({
-              ...workspace,
-              template,
-              editions: workspace.editions.map((e) =>
-                e.id === activeEdition.id ? nextEdition : e,
-              ),
-            });
-            onClose();
-          }}
-        >
-          Apply
-        </AdminButton>
-      </div>
     </>
   );
 }

@@ -55,6 +55,23 @@ describe("buildPostSubmitVisitNotificationTasks", () => {
     assert.equal(tasks.length, 4);
   });
 
+  it("omits parent confirmation when includeFamilyConfirmation is false", () => {
+    const tasks = buildPostSubmitVisitNotificationTasks({
+      booking,
+      contact,
+      notifyEmails: ["admin@school.org"],
+      organizationId: "org-1",
+      schoolName: "Rooted Meadows Waldorf School",
+      schoolSlug: "rooted-meadows",
+      stepTitle: "Schedule shadow / observation days",
+      timezoneLabel: "Central Time",
+      applicationId: "app-1",
+      includeFamilyConfirmation: false,
+    });
+
+    assert.equal(tasks.length, 2);
+  });
+
   it("still notifies admins and discord when parent contact is missing", () => {
     const tasks = buildPostSubmitVisitNotificationTasks({
       booking,

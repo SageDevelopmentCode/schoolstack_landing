@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CalendarPlus } from "lucide-react";
 import { SchoolAdminCalendarSkeleton } from "@/components/school-admin/skeletons";
 import ScheduleCalendarShell from "@/components/school-admin/schedule/ScheduleCalendarShell";
 import ScheduleAvailabilityLegend from "@/components/school-admin/schedule/ScheduleAvailabilityLegend";
@@ -35,6 +36,8 @@ import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-st
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
+import AdminScheduleManualBookingDialog from "@/components/school-admin/schedule/AdminScheduleManualBookingDialog";
+import { useOptionalScheduleVisitsContext } from "@/components/school-admin/schedule/schedule-visits-context";
 import { createClient } from "@/utils/supabase/client";
 
 type AdmissionsObservationDayAvailabilityEditorProps = {
@@ -95,11 +98,14 @@ export default function AdmissionsObservationDayAvailabilityEditor({
     createDefaultObservationSlotDraft(false),
   );
   const onMonthDayCountChangeRef = useRef(onMonthDayCountChange);
+  const [manualBookingOpen, setManualBookingOpen] = useState(false);
+  const visitsContext = useOptionalScheduleVisitsContext();
 
   const includeTime = schedulingMode === "grade_and_time";
   const usesGradeSlots = schedulingMode !== "whole_day";
 
   const {
+    timezone,
     today,
     timezoneLabel,
     timezoneError,
@@ -365,6 +371,11 @@ export default function AdmissionsObservationDayAvailabilityEditor({
 
   const displayError = error ?? timezoneError;
 
+  const handleManualBooked = useCallback(() => {
+    void loadMonthDays();
+    void visitsContext?.refetchVisits();
+  }, [loadMonthDays, visitsContext]);
+
   if (loading || modeLoading) {
     return (
       <SchoolAdminCalendarSkeleton
@@ -386,6 +397,20 @@ export default function AdmissionsObservationDayAvailabilityEditor({
         >
           {displayError}
         </p>
+      ) : null}
+
+      {!readOnly ? (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => setManualBookingOpen(true)}
+            className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium"
+            style={getAdminButtonStyle(C, "secondary")}
+          >
+            <CalendarPlus className="h-4 w-4" aria-hidden />
+            Book for a family
+          </button>
+        </div>
       ) : null}
 
       <div
@@ -532,6 +557,19 @@ export default function AdmissionsObservationDayAvailabilityEditor({
           ) : null}
         </div>
       </div>
+
+      {manualBookingOpen ? (
+        <AdminScheduleManualBookingDialog
+          C={C}
+          open
+          onClose={() => setManualBookingOpen(false)}
+          context="shadow"
+          organizationId={organizationId}
+          timezone={timezone}
+          initialDate={selectedDate}
+          onBooked={handleManualBooked}
+        />
+      ) : null}
     </div>
   );
 }

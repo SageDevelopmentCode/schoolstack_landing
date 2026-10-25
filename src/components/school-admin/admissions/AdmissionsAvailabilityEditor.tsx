@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pencil } from "lucide-react";
+import { CalendarPlus, Pencil } from "lucide-react";
 import { SchoolAdminCalendarSkeleton } from "@/components/school-admin/skeletons";
 import ScheduleCalendarShell from "@/components/school-admin/schedule/ScheduleCalendarShell";
 import ScheduleAvailabilityLegend from "@/components/school-admin/schedule/ScheduleAvailabilityLegend";
@@ -29,6 +29,9 @@ import { formatSelectedDate } from "@/lib/demo-scheduler";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import AdminScheduleManualBookingDialog from "@/components/school-admin/schedule/AdminScheduleManualBookingDialog";
+import { useOptionalScheduleVisitsContext } from "@/components/school-admin/schedule/schedule-visits-context";
+import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import { createClient } from "@/utils/supabase/client";
 
 type AdmissionsAvailabilityEditorProps = {
@@ -120,9 +123,12 @@ export default function AdmissionsAvailabilityEditor({
   const [toggling, setToggling] = useState<string | null>(null);
   const [activePeriod, setActivePeriod] = useState<AdmissionsTimeSlotPeriod>("morning");
   const [slotSettingsTime, setSlotSettingsTime] = useState<string | null>(null);
+  const [manualBookingOpen, setManualBookingOpen] = useState(false);
+  const visitsContext = useOptionalScheduleVisitsContext();
   const onMonthSlotCountChangeRef = useRef(onMonthSlotCountChange);
 
   const {
+    timezone,
     today,
     timezoneLabel,
     timezoneError,
@@ -360,6 +366,11 @@ export default function AdmissionsAvailabilityEditor({
 
   const displayError = error ?? timezoneError;
 
+  const handleManualBooked = useCallback(() => {
+    void loadMonthData();
+    void visitsContext?.refetchVisits();
+  }, [loadMonthData, visitsContext]);
+
   if (loading) {
     return <SchoolAdminCalendarSkeleton C={C} compactLayout={compactLayout} label="Loading availability" />;
   }
@@ -375,6 +386,20 @@ export default function AdmissionsAvailabilityEditor({
         >
           {displayError}
         </p>
+      ) : null}
+
+      {!readOnly && previewSlots == null ? (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => setManualBookingOpen(true)}
+            className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium"
+            style={getAdminButtonStyle(C, "secondary")}
+          >
+            <CalendarPlus className="h-4 w-4" aria-hidden />
+            Book for a family
+          </button>
+        </div>
       ) : null}
 
       <div
@@ -560,6 +585,19 @@ export default function AdmissionsAvailabilityEditor({
           ) : null}
         </div>
       </div>
+
+      {manualBookingOpen ? (
+        <AdminScheduleManualBookingDialog
+          C={C}
+          open
+          onClose={() => setManualBookingOpen(false)}
+          context="tours"
+          organizationId={organizationId}
+          timezone={timezone}
+          initialDate={selectedDate}
+          onBooked={handleManualBooked}
+        />
+      ) : null}
     </div>
   );
 }

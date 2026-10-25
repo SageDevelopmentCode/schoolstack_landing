@@ -86,7 +86,17 @@ export default function NewsletterEditorPanel({
 
   return (
     <section className={styles.editor} aria-label="Weekly prompts">
-      <div className={styles.editorHeading}>Weekly prompts</div>
+      <div className={styles.editorHeadingRow}>
+        <span className={styles.editorHeadingTitle}>Weekly prompts</span>
+        <AdminTextLink
+          theme={theme}
+          disabled={locked}
+          className={`${styles.editorSectionsLink} !text-[10px] !font-bold`}
+          onClick={onOpenSections}
+        >
+          Edit sections
+        </AdminTextLink>
+      </div>
       <nav className={styles.editorTabs} aria-label="Newsletter content">
         {tabs.map(({ id, label }) => (
           <button
@@ -169,7 +179,7 @@ function StoryTab({
   const contentBlocks = edition.storyBlocks.filter((b) => b.enabled);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <AdminCard theme={theme} padding="compact">
         <Field label="Newsletter title">
           <input

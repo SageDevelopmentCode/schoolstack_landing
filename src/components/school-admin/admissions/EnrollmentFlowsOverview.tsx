@@ -48,6 +48,7 @@ type EnrollmentFlowsOverviewProps = {
   onCreateChecklist: () => void;
   onCreateApplyForProgram: (programId: string) => void;
   onDuplicateForm: (formId: string) => void;
+  onOpenPostSubmit: (applyFormId: string) => void;
   onReviewAttentionProgram?: (programId: string) => void;
 };
 
@@ -66,6 +67,7 @@ export default function EnrollmentFlowsOverview({
   onCreateChecklist,
   onCreateApplyForProgram,
   onDuplicateForm,
+  onOpenPostSubmit,
   onReviewAttentionProgram,
 }: EnrollmentFlowsOverviewProps) {
   const [activeView, setActiveView] = useState<OverviewView>("programs");
@@ -308,6 +310,7 @@ export default function EnrollmentFlowsOverview({
                 searchQuery={search}
                 onSelect={onSelect}
                 onEditFlow={handleEditFlow}
+                onOpenPostSubmit={onOpenPostSubmit}
               />
             </section>
           ) : null}

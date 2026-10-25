@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Check, ClipboardList, FileText, Info } from "lucide-react";
+import { Check, ClipboardList, FileText, Info, ListTodo } from "lucide-react";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
@@ -13,6 +13,10 @@ import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme
 import { enrollmentFlowStatusChipTone } from "./EnrollmentProgramFlowCard";
 import { getStatusLabel } from "./ApplicationFormListBadges";
 import EnrollmentFlowStepConnector from "./EnrollmentFlowStepConnector";
+import {
+  getPostSubmitActionLabels,
+  getEnabledPostSubmitActions,
+} from "./enrollment-flow-post-submit-overview";
 import type { ProgramFlowBinding } from "./enrollment-flow-program-bindings";
 import {
   formatProgramMetaLine,
@@ -27,19 +31,44 @@ type EnrollmentFlowsProgramTableProps = {
   searchQuery: string;
   onSelect: (selection: FlowListSelection) => void;
   onEditFlow: (programId: string, binding: ProgramFlowBinding) => void;
+  onOpenPostSubmit: (applyFormId: string) => void;
 };
 
 function bindingMatchesSearch(binding: ProgramFlowBinding, query: string): boolean {
   if (!query) return true;
+  const postSubmitLabels =
+    binding.applyForm ? getPostSubmitActionLabels(binding.applyForm) : [];
   const haystack = [
     binding.program.name,
     binding.applyForm?.title,
     binding.checklist?.name,
+    ...postSubmitLabels,
   ]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
   return haystack.includes(query);
+}
+
+function StepMobileLabel({ children }: { children: ReactNode }) {
+  return (
+    <p className="mb-2 text-[8px] font-extrabold uppercase tracking-[0.09em] text-[#8C9B88] lg:hidden">
+      {children}
+    </p>
+  );
+}
+
+function StepDesktopLabel({ number, children }: { number: string; children: ReactNode }) {
+  return (
+    <span className="mb-2 hidden items-center gap-1.5 text-[9px] font-extrabold uppercase tracking-[0.07em] text-[#8A9786] lg:flex">
+      <span
+        className="grid h-4 w-4 place-items-center rounded-[5px] bg-[#EDF3E9] text-[8px] text-[#7F987B]"
+      >
+        {number}
+      </span>
+      {children}
+    </span>
+  );
 }
 
 function FormLinkButton({
@@ -106,11 +135,8 @@ function ApplicationStep({
 }) {
   return (
     <div className="min-w-0 flex-1">
-      <p
-        className="mb-2 text-[8px] font-extrabold uppercase tracking-[0.09em] text-[#8C9B88] lg:hidden"
-      >
-        1 · Application
-      </p>
+      <StepMobileLabel>1 · Application</StepMobileLabel>
+      <StepDesktopLabel number="1">Application</StepDesktopLabel>
       {applyForm ? (
         <FormLinkButton
           theme={theme}
@@ -133,6 +159,75 @@ function ApplicationStep({
   );
 }
 
+function PostSubmitStep({
+  C,
+  theme,
+  applyForm,
+  onOpenPostSubmit,
+}: {
+  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
+  applyForm?: ApplicationFormVersion;
+  onOpenPostSubmit: (applyFormId: string) => void;
+}) {
+  const labels = applyForm ? getPostSubmitActionLabels(applyForm) : [];
+  const enabledCount = applyForm ? getEnabledPostSubmitActions(applyForm).length : 0;
+
+  return (
+    <div className="min-w-0 flex-1">
+      <StepMobileLabel>2 · Post-submit steps</StepMobileLabel>
+      <StepDesktopLabel number="2">Post-submit steps</StepDesktopLabel>
+      {!applyForm ? (
+        <span className="text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
+          —
+        </span>
+      ) : enabledCount === 0 ? (
+        <button
+          type="button"
+          onClick={() => onOpenPostSubmit(applyForm.id)}
+          className="text-left text-[11px] leading-relaxed"
+          style={{ color: C.textTertiary }}
+        >
+          None configured
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onOpenPostSubmit(applyForm.id)}
+          className="flex w-full items-start gap-2.5 text-left"
+          style={{ color: theme.primary }}
+        >
+          <span
+            className="mt-0.5 flex h-[29px] w-[29px] shrink-0 items-center justify-center rounded-[9px]"
+            style={{ backgroundColor: "#FFF8ED", color: "#8A7355" }}
+          >
+            <ListTodo className="h-3.5 w-3.5" />
+          </span>
+          <span className="min-w-0">
+            {labels.slice(0, 2).map((label) => (
+              <strong
+                key={label}
+                className="block text-[11px] font-semibold leading-relaxed"
+                style={{ color: C.textPrimary }}
+              >
+                {label}
+              </strong>
+            ))}
+            {labels.length > 2 ? (
+              <span className="mt-1 block text-[9px]" style={{ color: theme.muted }}>
+                + {labels.length - 2} more
+              </span>
+            ) : null}
+            <AdminChip theme={theme} tone="info" className="mt-1.5">
+              {enabledCount} {enabledCount === 1 ? "step" : "steps"}
+            </AdminChip>
+          </span>
+        </button>
+      )}
+    </div>
+  );
+}
+
 function AfterAcceptanceStep({
   C,
   theme,
@@ -146,11 +241,8 @@ function AfterAcceptanceStep({
 }) {
   return (
     <div className="min-w-0 flex-1">
-      <p
-        className="mb-2 text-[8px] font-extrabold uppercase tracking-[0.09em] text-[#8C9B88] lg:hidden"
-      >
-        2 · After acceptance
-      </p>
+      <StepMobileLabel>3 · After acceptance</StepMobileLabel>
+      <StepDesktopLabel number="3">After acceptance</StepDesktopLabel>
       {checklist ? (
         <FormLinkButton
           theme={theme}
@@ -183,67 +275,57 @@ function FlowRow({
   binding,
   onSelect,
   onEditFlow,
+  onOpenPostSubmit,
 }: {
   C: AdminThemeTokens;
   theme: ParentThemeTokens;
   binding: ProgramFlowBinding;
   onSelect: (selection: FlowListSelection) => void;
   onEditFlow: (programId: string, binding: ProgramFlowBinding) => void;
+  onOpenPostSubmit: (applyFormId: string) => void;
 }) {
   const { program, applyForm, checklist } = binding;
   const openLabel = formatProgramOpenLabel(program);
   const isOpen = program.status === "open";
 
   return (
-    <article
-      className="grid gap-5 border-b border-[#E9EFEA] px-5 py-6 last:border-0 lg:grid-cols-[minmax(180px,1fr)_minmax(420px,2.25fr)_70px] lg:items-center lg:gap-6 lg:px-6"
-    >
-      <div className="relative min-w-0 pr-14 lg:col-start-1 lg:row-start-1 lg:pr-0">
-        <AdminTextLink
-          theme={theme}
-          className="absolute right-0 top-0 text-[10px] lg:hidden"
-          onClick={() => onEditFlow(program.id, binding)}
-        >
-          Edit flow
-        </AdminTextLink>
-        <AdminDisplayHeading
-          theme={theme}
-          as="h2"
-          size="section"
-          className="text-xl leading-tight tracking-[-0.025em] lg:text-[21px]"
-        >
-          {program.name}
-        </AdminDisplayHeading>
-        <p className="mt-2 text-[10px] leading-relaxed" style={{ color: theme.muted }}>
-          {formatProgramMetaLine(program)}
-        </p>
-        <div
-          className="mt-2 flex items-center gap-1.5 text-[9px]"
-          style={{ color: "#7F977E" }}
-        >
-          <span
-            className="h-1 w-1 shrink-0 rounded-full"
-            style={{ backgroundColor: isOpen ? "#85AF8F" : "#B0B8B0" }}
-            aria-hidden
-          />
-          {openLabel}
+    <article className="border-b border-[#E9EFEA] px-5 py-6 last:border-0 lg:px-6">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <AdminDisplayHeading
+            theme={theme}
+            as="h2"
+            size="section"
+            className="text-xl leading-tight tracking-[-0.025em] lg:text-[21px]"
+          >
+            {program.name}
+          </AdminDisplayHeading>
+          <p className="mt-2 text-[10px] leading-relaxed" style={{ color: theme.muted }}>
+            {formatProgramMetaLine(program)}
+          </p>
+          <div
+            className="mt-2 flex items-center gap-1.5 text-[9px]"
+            style={{ color: "#7F977E" }}
+          >
+            <span
+              className="h-1 w-1 shrink-0 rounded-full"
+              style={{ backgroundColor: isOpen ? "#85AF8F" : "#B0B8B0" }}
+              aria-hidden
+            />
+            {openLabel}
+          </div>
         </div>
-      </div>
-
-      <div className="hidden min-w-0 lg:col-start-3 lg:row-start-1 lg:flex lg:justify-end">
         <AdminTextLink
           theme={theme}
-          className="text-[10px]"
+          className="shrink-0 text-[10px]"
           onClick={() => onEditFlow(program.id, binding)}
         >
           Edit flow
         </AdminTextLink>
       </div>
 
-      <div
-        className="min-w-0 border-t border-[#E9EFEA] pt-4 lg:col-start-2 lg:row-start-1 lg:border-0 lg:pt-0"
-      >
-        <div className="flex flex-col lg:flex-row lg:items-center lg:gap-3">
+      <div className="mt-5 border-t border-[#E9EFEA] pt-5">
+        <div className="flex flex-col lg:flex-row lg:items-start lg:gap-2">
           <ApplicationStep
             C={C}
             theme={theme}
@@ -258,7 +340,23 @@ function FlowRow({
           <EnrollmentFlowStepConnector
             theme={theme}
             orientation="horizontal"
-            className="hidden lg:flex"
+            className="hidden shrink-0 self-center lg:flex"
+          />
+          <PostSubmitStep
+            C={C}
+            theme={theme}
+            applyForm={applyForm}
+            onOpenPostSubmit={onOpenPostSubmit}
+          />
+          <EnrollmentFlowStepConnector
+            theme={theme}
+            orientation="vertical"
+            className="lg:hidden"
+          />
+          <EnrollmentFlowStepConnector
+            theme={theme}
+            orientation="horizontal"
+            className="hidden shrink-0 self-center lg:flex"
           />
           <AfterAcceptanceStep
             C={C}
@@ -272,24 +370,6 @@ function FlowRow({
   );
 }
 
-function StepHeaderLabel({ children }: { children: ReactNode }) {
-  return (
-    <span className="flex items-center gap-1.5">
-      {children}
-    </span>
-  );
-}
-
-function StepNumberBadge({ children }: { children: ReactNode }) {
-  return (
-    <span
-      className="grid h-4 w-4 place-items-center rounded-[5px] bg-[#EDF3E9] text-[8px] text-[#7F987B]"
-    >
-      {children}
-    </span>
-  );
-}
-
 export default function EnrollmentFlowsProgramTable({
   C,
   theme,
@@ -297,32 +377,13 @@ export default function EnrollmentFlowsProgramTable({
   searchQuery,
   onSelect,
   onEditFlow,
+  onOpenPostSubmit,
 }: EnrollmentFlowsProgramTableProps) {
   const query = searchQuery.toLowerCase().trim();
   const filtered = bindings.filter((binding) => bindingMatchesSearch(binding, query));
 
   return (
     <AdminCard theme={theme} padding="none" className="overflow-hidden shadow-[0_3px_10px_rgba(50,72,61,0.035)]">
-      <div
-        className="hidden border-b px-6 py-3.5 text-[9px] font-extrabold uppercase tracking-[0.07em] text-[#8A9786] lg:grid lg:grid-cols-[minmax(180px,1fr)_minmax(420px,2.25fr)_70px] lg:gap-6"
-        style={{ backgroundColor: "#FCFDFB", borderColor: theme.line }}
-        aria-hidden
-      >
-        <span>Program</span>
-        <div className="flex items-center justify-between gap-3 px-0">
-          <StepHeaderLabel>
-            <StepNumberBadge>1</StepNumberBadge>
-            Application
-          </StepHeaderLabel>
-          <span className="w-8 shrink-0" />
-          <StepHeaderLabel>
-            <StepNumberBadge>2</StepNumberBadge>
-            After acceptance
-          </StepHeaderLabel>
-        </div>
-        <span />
-      </div>
-
       {filtered.length === 0 ? (
         <p className="px-6 py-8 text-center text-xs leading-relaxed" style={{ color: theme.muted }}>
           No matching programs.
@@ -336,6 +397,7 @@ export default function EnrollmentFlowsProgramTable({
             binding={binding}
             onSelect={onSelect}
             onEditFlow={onEditFlow}
+            onOpenPostSubmit={onOpenPostSubmit}
           />
         ))
       )}

@@ -39,10 +39,14 @@
 
 .builder {
   display: grid;
-  grid-template-columns: minmax(0, 430px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 25px;
   align-items: start;
   transition: grid-template-columns 0.28s ease, gap 0.28s ease;
+}
+
+.builder:not(.builderPreviewHidden) {
+  grid-template-columns: minmax(0, 430px) minmax(0, 1fr);
 }
 
 .builderPreviewHidden {
@@ -56,16 +60,8 @@
   transition: max-width 0.28s ease;
 }
 
-.editorColumnCentered {
-  max-width: min(680px, 100%);
-  margin: 0 auto;
+.editorColumn .editor {
   width: 100%;
-}
-
-@media (min-width: 900px) {
-  .editorColumnCentered {
-    max-width: min(720px, 100%);
-  }
 }
 
 .previewColumnWrap {
@@ -75,32 +71,58 @@
 }
 
 @media (min-width: 1500px) {
-  .builder {
+  .builder:not(.builderPreviewHidden) {
     grid-template-columns: minmax(0, 450px) minmax(0, 1fr);
     gap: 30px;
   }
 }
 
 @media (max-width: 1150px) {
-  .builder {
+  .builder:not(.builderPreviewHidden) {
     grid-template-columns: minmax(0, 390px) minmax(0, 1fr);
     gap: 20px;
   }
 }
 
 @media (max-width: 950px) {
-  .builder {
+  .builder:not(.builderPreviewHidden) {
     grid-template-columns: minmax(0, 350px) minmax(0, 1fr);
     gap: 17px;
   }
 }
 
 @media (max-width: 760px) {
-  .builder {
+  .builder:not(.builderPreviewHidden) {
     grid-template-columns: 1fr;
   }
 }
 
+/* Override legacy minified .builder breakpoints when preview is hidden */
+.builder.builderPreviewHidden {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .navRowActionsOnly {
   justify-content: flex-end;
+}
+
+.editorHeadingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 19px 22px 15px;
+}
+
+.editorHeadingTitle {
+  font: 600 20px Fraunces, Georgia, serif;
+  letter-spacing: -0.03em;
+}
+
+.editorSectionsLink {
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: normal;
+  line-height: 1.5;
 }

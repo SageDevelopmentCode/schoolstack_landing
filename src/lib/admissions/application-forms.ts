@@ -8,6 +8,7 @@ import {
   emptyApplicationSection,
   normalizePublicSlug,
   parseApplicationFormFeeConfig,
+  parseApplicationFormPostSubmitConfig,
   schemaToDbJson,
   slugifyFormTitle,
   validatePublicSlug,
@@ -277,6 +278,7 @@ const APPLICATION_FORM_SUMMARY_SELECT = `
   intro,
   public_slug,
   published_at,
+  post_submit_config,
   created_at,
   updated_at
 `;
@@ -296,7 +298,7 @@ export function applicationFormSummaryFromRow(
     public_slug: row.public_slug ? String(row.public_slug) : null,
     schema: emptyApplicationFormSchema(),
     fee_config: defaultApplicationFormFeeConfig(),
-    post_submit_config: defaultApplicationFormPostSubmitConfig(),
+    post_submit_config: parseApplicationFormPostSubmitConfig(row.post_submit_config),
     notification_config: defaultApplicationFormNotificationConfig(),
     published_at: row.published_at ? String(row.published_at) : null,
     created_at: String(row.created_at),

@@ -507,6 +507,7 @@ export function buildPostSubmitVisitNotificationTasks(input: {
   familyName?: string;
   tourFormatLabel?: string | null;
   locationDetails?: ReturnType<typeof buildSchoolVisitEmailDetailRows>;
+  includeFamilyConfirmation?: boolean;
 }): Array<() => Promise<unknown>> {
   const {
     booking,
@@ -522,6 +523,7 @@ export function buildPostSubmitVisitNotificationTasks(input: {
     familyName,
     tourFormatLabel,
     locationDetails,
+    includeFamilyConfirmation = true,
   } = input;
 
   const whenLabel = formatScheduledVisitWhenLabel(booking);
@@ -592,7 +594,7 @@ export function buildPostSubmitVisitNotificationTasks(input: {
     ),
   ];
 
-  if (contact) {
+  if (includeFamilyConfirmation && contact) {
     for (const email of contact.emails) {
       tasks.push(() =>
         sendPostSubmitVisitConfirmation({
@@ -624,7 +626,9 @@ export async function sendPostSubmitVisitScheduledNotifications(
   admin: SupabaseClient,
   applicationId: string,
   booking: ScheduledVisitRecord,
+  options?: { sendConfirmationEmail?: boolean },
 ): Promise<void> {
+  const sendConfirmationEmail = options?.sendConfirmationEmail ?? true;
   let organizationId: string | undefined;
   try {
     const { data: application, error } = await admin
@@ -734,6 +738,7 @@ export async function sendPostSubmitVisitScheduledNotifications(
       familyName,
       tourFormatLabel,
       locationDetails,
+      includeFamilyConfirmation: sendConfirmationEmail,
     });
 
     if (notificationTasks.length === 0) {
@@ -768,8 +773,10 @@ export async function sendPreApplicationCampusTourAdminNotifications(
     organizationId: string;
     familyId: string;
     booking: ScheduledVisitRecord;
+    sendConfirmationEmail?: boolean;
   },
 ): Promise<void> {
+  const sendConfirmationEmail = input.sendConfirmationEmail ?? false;
   const visitId = input.booking.id;
   try {
     const notifyEmails = await resolveVisitNotificationEmails(
@@ -865,6 +872,36 @@ export async function sendPreApplicationCampusTourAdminNotifications(
       );
     }
 
+    const schoolProfileBundle = await loadSchoolProfileBundle(
+      admin,
+      input.organizationId,
+    );
+    const locationDetails = buildSchoolVisitEmailDetailRows(schoolProfileBundle);
+    const applyDashboardUrl = `${getRuntimeSiteUrl()}/school/${schoolSlug}/apply`;
+
+    if (sendConfirmationEmail && contactEmail) {
+      tasks.push(() =>
+        sendPostSubmitVisitConfirmation({
+          name: familyName ?? "Family",
+          email: contactEmail,
+          schoolName,
+          stepTitle: "Campus tour",
+          scheduledDate: input.booking.scheduledDate,
+          endDate: input.booking.endDate,
+          startTimeSlot: input.booking.startTimeSlot,
+          schedulingMode: input.booking.schedulingMode,
+          visitDayCount: input.booking.visitDayCount,
+          timezoneLabel,
+          durationMinutes: input.booking.durationMinutes,
+          whenLabel,
+          durationLabel,
+          applyDashboardUrl,
+          locationDetails,
+          notificationContext: visitEmailContext,
+        }),
+      );
+    }
+
     const notificationResults = await Promise.allSettled(
       tasks.map((task) => task()),
     );
@@ -900,8 +937,10 @@ export async function sendPublicTourBookingAdminNotifications(
         answers: Record<string, unknown>;
       };
     };
+    sendGuestConfirmation?: boolean;
   },
 ): Promise<void> {
+  const sendGuestConfirmation = input.sendGuestConfirmation ?? true;
   const visitId = input.booking.visitId;
   try {
     const notifyEmails = await resolveVisitNotificationEmails(
@@ -976,7 +1015,7 @@ export async function sendPublicTourBookingAdminNotifications(
         }),
     ];
 
-    if (contactEmail) {
+    if (sendGuestConfirmation && contactEmail) {
       tasks.push(() =>
         sendPublicCampusTourConfirmation({
           name: contactName,

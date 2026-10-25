@@ -690,11 +690,15 @@ export default function ApplicationFormsPage({
   );
 
   const enterEditor = useCallback(
-    (nextSelection: FlowListSelection) => {
+    (
+      nextSelection: FlowListSelection,
+      options?: { focus?: BuilderFocus },
+    ) => {
       if (!nextSelection) return;
       setSelection(nextSelection);
       setShowOverview(false);
       syncEditorUrl(nextSelection);
+      setFocus(options?.focus ?? DEFAULT_BUILDER_FOCUS);
     },
     [syncEditorUrl],
   );
@@ -1126,6 +1130,12 @@ export default function ApplicationFormsPage({
     }
     requestAction(() => {
       void performCreateApply(programId);
+    });
+  };
+
+  const handleOpenPostSubmit = (applyFormId: string) => {
+    requestAction(() => {
+      enterEditor({ kind: "apply", id: applyFormId }, { focus: { kind: "postSubmit" } });
     });
   };
 
@@ -1755,6 +1765,7 @@ export default function ApplicationFormsPage({
           onCreateChecklist={handleCreateChecklist}
           onCreateApplyForProgram={handleCreateApplyForProgram}
           onDuplicateForm={handleDuplicateFormFromOverview}
+          onOpenPostSubmit={handleOpenPostSubmit}
         />
         {createApplyDialog}
         {createChecklistDialog}
