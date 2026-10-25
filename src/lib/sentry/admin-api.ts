@@ -3,7 +3,9 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import {
   getSentryAdminConfig,
+  getSentryAdminConfigForTarget,
   type SentryAdminConfig,
+  type SentryProjectTarget,
 } from "@/lib/sentry/admin-config";
 import { throwIfSentryResponseNotOk } from "@/lib/sentry/sentry-api-error";
 
@@ -193,11 +195,12 @@ export async function getSentryProjectId(
 type DiscoverRow = Record<string, unknown>;
 
 async function queryDiscoverUncached(input: {
+  config: SentryAdminConfig;
   query: string;
   statsPeriod?: string;
   environment?: SentryPerformanceEnvironmentFilter;
 }): Promise<SentryPerformanceRow[]> {
-  const config = getSentryAdminConfig();
+  const config = input.config;
   const statsPeriod = input.statsPeriod ?? "7d";
   const query = normalizeSpansExploreQuery(input.query);
 
@@ -233,15 +236,18 @@ async function queryDiscoverUncached(input: {
 }
 
 export async function queryDiscoverPerformance(input: {
+  project: SentryProjectTarget;
   preset: SentryPerformancePreset;
   customQuery?: string;
   statsPeriod?: string;
   environment?: SentryPerformanceEnvironmentFilter;
 }): Promise<SentryPerformanceRow[]> {
+  const config = getSentryAdminConfigForTarget(input.project);
   const query = resolvePerformanceQuery(input.preset, input.customQuery);
   const environment = input.environment ?? "all";
 
   const cacheKey = JSON.stringify({
+    project: config.projectSlug,
     query,
     p: input.statsPeriod ?? "7d",
     env: environment,
@@ -250,6 +256,7 @@ export async function queryDiscoverPerformance(input: {
   return unstable_cache(
     () =>
       queryDiscoverUncached({
+        config,
         query,
         statsPeriod: input.statsPeriod,
         environment,

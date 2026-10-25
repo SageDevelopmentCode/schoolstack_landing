@@ -17,11 +17,13 @@ import {
 
 type DemoAdminEnrollmentFlowsPageProps = {
   initialFlowSelection?: FlowListSelection;
+  startOnOverview?: boolean;
   wrapOutlineLabels?: boolean;
 };
 
 export default function DemoAdminEnrollmentFlowsPage({
   initialFlowSelection,
+  startOnOverview = false,
   wrapOutlineLabels = false,
 }: DemoAdminEnrollmentFlowsPageProps) {
   const branding = useMemo(() => buildDemoAdminBranding(), []);
@@ -50,6 +52,7 @@ export default function DemoAdminEnrollmentFlowsPage({
           listDeferred={false}
           previewMode
           initialFlowSelection={initialFlowSelection}
+          startOnOverview={startOnOverview}
           previewChecklistItemsByTemplateId={previewChecklistItemsByTemplateId}
         />
       </div>

@@ -49,6 +49,7 @@ export const ACTIVITY_ACTIONS = {
   AUTH_SIGNED_OUT: "auth.signed_out",
   AUTH_SESSION_RESTORED: "auth.session_restored",
   AUTH_SESSION_CLEARED: "auth.session_cleared",
+  MOBILE_FEATURE_VISITED: "mobile.feature.visited",
   TUITION_AUTOPAY_ENABLED: "tuition.autopay_enabled",
   TUITION_AUTOPAY_DISABLED: "tuition.autopay_disabled",
   TUITION_AUTOPAY_SUCCEEDED: "tuition.autopay_succeeded",
@@ -203,12 +204,40 @@ export type ActivityDatePreset = "today" | "7d" | "30d" | "all";
 export type FetchActivityEventsFilters = {
   organizationId?: string;
   surface?: ActivitySurface | "parent" | "teacher" | "school_admin" | "system";
+  actorType?: ActorType;
+  actorEmail?: string;
+  actorUserId?: string;
   action?: string;
   /** When set, matches any of these actions (overrides `action` if both were passed). */
   actions?: string[];
   datePreset?: ActivityDatePreset;
   limit?: number;
 };
+
+/** Normalizes actor email for activity_events queries (stored lowercase). */
+export function normalizeActivityActorEmail(email: string): string | null {
+  const normalized = email.trim().toLowerCase();
+  return normalized.length > 0 ? normalized : null;
+}
+
+/** Link to platform admin activity log with optional filters pre-filled. */
+export function buildAdminActivityLogHref(params: {
+  organizationId?: string;
+  actorEmail?: string;
+  actorType?: ActorType;
+}): string {
+  const search = new URLSearchParams();
+  if (params.organizationId?.trim()) {
+    search.set("organizationId", params.organizationId.trim());
+  }
+  const email = params.actorEmail
+    ? normalizeActivityActorEmail(params.actorEmail)
+    : null;
+  if (email) search.set("actorEmail", email);
+  if (params.actorType) search.set("actorType", params.actorType);
+  const query = search.toString();
+  return query ? `/admin/activity?${query}` : "/admin/activity";
+}
 
 const ACTION_LABELS: Record<string, string> = {
   [ACTIVITY_ACTIONS.APPLICATION_STARTED]: "Application started",
@@ -258,6 +287,7 @@ const ACTION_LABELS: Record<string, string> = {
   [ACTIVITY_ACTIONS.AUTH_SIGNED_OUT]: "Signed out",
   [ACTIVITY_ACTIONS.AUTH_SESSION_RESTORED]: "Session restored",
   [ACTIVITY_ACTIONS.AUTH_SESSION_CLEARED]: "Session cleared unexpectedly",
+  [ACTIVITY_ACTIONS.MOBILE_FEATURE_VISITED]: "Mobile feature opened",
   [ACTIVITY_ACTIONS.TUITION_AUTOPAY_ENABLED]: "Autopay enabled",
   [ACTIVITY_ACTIONS.TUITION_AUTOPAY_DISABLED]: "Autopay disabled",
   [ACTIVITY_ACTIONS.TUITION_AUTOPAY_SUCCEEDED]: "Autopay charge succeeded",
@@ -760,6 +790,26 @@ export async function fetchActivityEvents(
 
   if (filters.organizationId) {
     query = query.eq("organization_id", filters.organizationId);
+  }
+
+  if (filters.actorType) {
+    query = query.eq("actor_type", filters.actorType);
+  }
+
+  const actorEmail =
+    filters.actorEmail != null
+      ? normalizeActivityActorEmail(filters.actorEmail)
+      : null;
+  const actorUserId = filters.actorUserId?.trim() || null;
+
+  if (actorEmail && actorUserId) {
+    query = query.or(
+      `actor_email.eq.${actorEmail},actor_user_id.eq.${actorUserId}`,
+    );
+  } else if (actorEmail) {
+    query = query.eq("actor_email", actorEmail);
+  } else if (actorUserId) {
+    query = query.eq("actor_user_id", actorUserId);
   }
 
   const surfaces = surfacesForFilter(filters.surface);

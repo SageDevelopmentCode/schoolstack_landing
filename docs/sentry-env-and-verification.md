@@ -8,7 +8,9 @@ Use project **mudkitchenweb** in Sentry. Set these on **Vercel** (Production + P
 |----------|----------------|
 | `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` | **Settings → Projects → mudkitchenweb → Client Keys (DSN)** — same URL for both vars |
 | `SENTRY_ORG` | **Organization Settings → General** — organization slug (also in settings URL) |
-| `SENTRY_PROJECT` | `mudkitchenweb` |
+| `SENTRY_PROJECT` | `mudkitchenweb` (Next.js web) |
+| `SENTRY_MOBILE_PROJECT` | `mudkitchen-mobile` (Expo app — admin observability + EAS source maps) |
+| `EXPO_PUBLIC_SENTRY_DSN` | **Mobile project** DSN — set on EAS `production` environment and local `apps/mobile/.env` for testing (not Vercel) |
 | `SENTRY_AUTH_TOKEN` | See **Auth token types** below |
 
 `SENTRY_AUTH_TOKEN` must **not** be prefixed with `NEXT_PUBLIC_`.
@@ -65,9 +67,35 @@ After changing `.env.local`, **restart** `next dev` (env is read at server start
 - Sentry → **Explore → Metrics** — search `api.request.duration`
 - Complete Sentry onboarding **step 3 (Verify)** when the metric appears
 
+### MudKitchen mobile app (React Native)
+
+1. Create Sentry project **mudkitchen-mobile** (React Native) in org `mudkitchen`.
+2. **First release with Sentry requires a new native EAS build** (OTA cannot add the native SDK). Set on EAS `production` environment:
+   - `EXPO_PUBLIC_SENTRY_DSN` — mobile project DSN
+   - `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT=mudkitchen-mobile` — for release/source map upload during `eas build`
+3. Local dev: add `EXPO_PUBLIC_SENTRY_DSN` to `apps/mobile/.env`, run the app, navigate a few screens.
+4. Sentry → **mudkitchen-mobile** → Explore → Traces — filter `development` (simulator) or `production` (store builds).
+
+#### EAS env in this monorepo (required)
+
+`@sentry/react-native` is hoisted to the repo root while `expo` stays under `apps/mobile`. **Do not run bare `eas env:set`** — it fails loading `expo/config-plugins`.
+
+From `apps/mobile`:
+
+```bash
+npm run eas:env:set -- --environment production --name EXPO_PUBLIC_SENTRY_DSN --value "<DSN>" --visibility sensitive
+npm run eas:env:list -- --environment production
+npm run assert:production-eas-env
+```
+
+Equivalent: `bash scripts/with-mobile-node-path.sh eas env:set …` (same wrapper as `npm run build:production:ios`). Quick check: `npm run expo:config` should exit 0.
+
+Alternative: set `EXPO_PUBLIC_SENTRY_DSN` in the [Expo dashboard](https://expo.dev) → project → Environment variables → `production`.
+
 ### MudKitchen admin
 
-- `/admin/observability` — needs `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` (personal token with **Issue & Event: Read** for performance)
-- **Sentry performance** tab reads traces from the **mudkitchenweb** project in Sentry (not “this laptop” unless you filter **development**). Default is all environments mixed; use the environment dropdown for local (`development`) vs deployed (`production`, `vercel-production`).
+- `/admin/observability` — needs `SENTRY_ORG`, `SENTRY_AUTH_TOKEN`, `SENTRY_PROJECT` (web), and optionally `SENTRY_MOBILE_PROJECT` (mobile admin tab)
+- **Sentry performance → Web** reads **mudkitchenweb** (Next.js routes and server APIs).
+- **Sentry performance → Mobile app** reads **mudkitchen-mobile** (on-device navigation + client HTTP spans). Requires `SENTRY_MOBILE_PROJECT` on Vercel.
 - If **performance** still shows a permission message, confirm `SENTRY_ORG` (slug `mudkitchen`) and token scopes; use **Open in Sentry Performance** on that tab as a fallback
 - `/admin/performance` — Lighthouse audits (separate from Sentry)

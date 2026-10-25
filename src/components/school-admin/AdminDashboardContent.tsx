@@ -1,20 +1,25 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import AdminDocumentationGuidePanel from "@/components/school-admin/AdminDocumentationGuidePanel";
-import AdminDashboardAttendanceSection from "@/components/school-admin/AdminDashboardAttendanceSection";
-import AdminActivityFeed from "@/components/school-admin/ui/story/AdminActivityFeed";
-import AdminCard from "@/components/school-admin/ui/story/AdminCard";
-import AdminDashboardHowToGuidesCard from "@/components/school-admin/ui/story/AdminDashboardHowToGuidesCard";
-import AdminFeatureAnnouncementsCard from "@/components/school-admin/ui/story/AdminFeatureAnnouncementsCard";
-import AdminFocusQueue from "@/components/school-admin/ui/story/AdminFocusQueue";
-import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
-import AdminQuickActionsCard from "@/components/school-admin/ui/story/AdminQuickActionsCard";
-import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
-import AdminSignalCard from "@/components/school-admin/ui/story/AdminSignalCard";
-import DetailPanelProgressBar from "@/components/school-admin/admissions/DetailPanelProgressBar";
+import AdminDashboardActivityPanel from "@/components/school-admin/dashboard/AdminDashboardActivityPanel";
+import AdminDashboardGuidesPanel from "@/components/school-admin/dashboard/AdminDashboardGuidesPanel";
+import AdminDashboardJourneyPanel from "@/components/school-admin/dashboard/AdminDashboardJourneyPanel";
+import AdminDashboardStoryHeader from "@/components/school-admin/dashboard/AdminDashboardStoryHeader";
+import AdminDashboardTodayPanel from "@/components/school-admin/dashboard/AdminDashboardTodayPanel";
+import {
+  parseDashboardTab,
+  type DashboardTabId,
+} from "@/components/school-admin/dashboard/dashboard-tabs";
+import { DASHBOARD_TAB_ROOT_CLASS } from "@/components/school-admin/dashboard/dashboard-panel-layout";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
-import type { AdminDashboardSummary } from "@/lib/school-admin/dashboard-summary";
+import type {
+  AdminDashboardActivity,
+  AdminDashboardGuides,
+  AdminDashboardToday,
+} from "@/lib/school-admin/dashboard-summary";
 import {
   buildAdminDocumentationGuides,
   groupAdminDocumentationByCategory,
@@ -24,25 +29,78 @@ import { schoolMudKitchenPortalPath } from "@/lib/organization-settings/admin-ro
 import type { OrganizationFeatures } from "@/lib/organization-settings/types";
 import { useAdminNotificationsPanel } from "@/lib/school-admin/admin-notifications-panel-context";
 import { useVisibilityPolling } from "@/lib/hooks/use-visibility-polling";
+import {
+  buildJourneySections,
+  hasJourneyNavigator,
+} from "@/lib/school-admin/dashboard-family-journey";
 
 type AdminDashboardContentProps = {
   organizationId: string;
   slug: string;
   features: OrganizationFeatures;
-  initialSummary: AdminDashboardSummary;
+  userFirstName?: string | null;
+  schoolName: string;
+  initialToday: AdminDashboardToday;
 };
+
+function dashboardSectionFetch(
+  organizationId: string,
+  slug: string,
+  section: "today" | "activity" | "guides",
+): string {
+  const params = new URLSearchParams({ organizationId, slug, section });
+  return `/api/school-admin/dashboard-summary?${params.toString()}`;
+}
+
+function tabNeedsAsyncLoad(tab: DashboardTabId): boolean {
+  return tab === "activity" || tab === "guides";
+}
+
+function isTabDataReady(
+  tab: DashboardTabId,
+  activityLoaded: boolean,
+  guidesLoaded: boolean,
+): boolean {
+  if (tab === "activity") return activityLoaded;
+  if (tab === "guides") return guidesLoaded;
+  return true;
+}
 
 export default function AdminDashboardContent({
   organizationId,
   slug,
   features,
-  initialSummary,
+  userFirstName,
+  schoolName,
+  initialToday,
 }: AdminDashboardContentProps) {
   const { theme, C } = useSchoolAdminStoryTheme();
   const { openNotifications } = useAdminNotificationsPanel();
-  const [summary, setSummary] = useState(initialSummary);
-  const [prevInitialSummary, setPrevInitialSummary] = useState(initialSummary);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const activeTab = parseDashboardTab(searchParams.get("tab"));
+
+  const [today, setToday] = useState(initialToday);
+  const [prevInitialToday, setPrevInitialToday] = useState(initialToday);
+  const [activity, setActivity] = useState<AdminDashboardActivity | null>(null);
+  const [guides, setGuides] = useState<AdminDashboardGuides | null>(null);
   const [activeGuide, setActiveGuide] = useState<AdminDocGuide | null>(null);
+  const [everVisitedTabs, setEverVisitedTabs] = useState<Set<DashboardTabId>>(
+    () => new Set([activeTab]),
+  );
+  const visitedTabs = useMemo(() => {
+    const next = new Set(everVisitedTabs);
+    next.add(activeTab);
+    return next;
+  }, [everVisitedTabs, activeTab]);
+  const [pendingTabKey, setPendingTabKey] = useState<DashboardTabId | null>(null);
+  const [loadingTabKey, setLoadingTabKey] = useState<DashboardTabId | null>(null);
+  const [activityLoaded, setActivityLoaded] = useState(false);
+  const [guidesLoaded, setGuidesLoaded] = useState(false);
+  const activityFetchStartedRef = useRef(false);
+  const guidesFetchStartedRef = useRef(false);
 
   const howToGuides = useMemo(
     () => buildAdminDocumentationGuides(slug, features),
@@ -53,6 +111,242 @@ export default function AdminDashboardContent({
     [howToGuides],
   );
 
+  const adminFeatures = features.admin;
+
+  const journeySections = useMemo(
+    () => buildJourneySections(slug, features),
+    [slug, features],
+  );
+
+  const visibleTabs = useMemo(() => {
+    const tabs: DashboardTabId[] = ["today"];
+    if (hasJourneyNavigator(features)) {
+      tabs.push("journey");
+    }
+    const showActivity =
+      adminFeatures?.admissions ||
+      adminFeatures?.messages ||
+      (activity != null && activity.recentActivity.length > 0) ||
+      (activity != null && activity.quickActions.length > 0) ||
+      loadingTabKey === "activity";
+    if (showActivity) {
+      tabs.push("activity");
+    }
+    const announcementCount = guides?.featureAnnouncements.length ?? 0;
+    const showGuides =
+      howToGuides.length > 0 ||
+      announcementCount > 0 ||
+      loadingTabKey === "guides";
+    if (showGuides) {
+      tabs.push("guides");
+    }
+    return tabs;
+  }, [
+    adminFeatures,
+    activity,
+    features,
+    guides,
+    howToGuides.length,
+    loadingTabKey,
+  ]);
+
+  if (initialToday !== prevInitialToday) {
+    setPrevInitialToday(initialToday);
+    setToday(initialToday);
+  }
+
+  const setActiveTab = useCallback(
+    (tab: DashboardTabId) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (tab === "today") {
+        params.delete("tab");
+      } else {
+        params.set("tab", tab);
+      }
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname);
+    },
+    [pathname, router, searchParams],
+  );
+
+  const loadActivity = useCallback(async () => {
+    if (activityLoaded || activityFetchStartedRef.current) {
+      setLoadingTabKey((current) => (current === "activity" ? null : current));
+      setPendingTabKey((current) => (current === "activity" ? null : current));
+      return;
+    }
+    activityFetchStartedRef.current = true;
+    await Promise.resolve();
+    setLoadingTabKey("activity");
+    try {
+      const response = await fetch(
+        dashboardSectionFetch(organizationId, slug, "activity"),
+      );
+      if (!response.ok) return;
+      const next = (await response.json()) as AdminDashboardActivity;
+      setActivity(next);
+      setActivityLoaded(true);
+    } finally {
+      setLoadingTabKey((current) => (current === "activity" ? null : current));
+      setPendingTabKey((current) => (current === "activity" ? null : current));
+    }
+  }, [activityLoaded, organizationId, slug]);
+
+  const loadGuides = useCallback(async () => {
+    if (guidesLoaded || guidesFetchStartedRef.current) {
+      setLoadingTabKey((current) => (current === "guides" ? null : current));
+      setPendingTabKey((current) => (current === "guides" ? null : current));
+      return;
+    }
+    guidesFetchStartedRef.current = true;
+    await Promise.resolve();
+    setLoadingTabKey("guides");
+    try {
+      const response = await fetch(
+        dashboardSectionFetch(organizationId, slug, "guides"),
+      );
+      if (!response.ok) return;
+      const next = (await response.json()) as AdminDashboardGuides;
+      setGuides(next);
+      setGuidesLoaded(true);
+    } finally {
+      setLoadingTabKey((current) => (current === "guides" ? null : current));
+      setPendingTabKey((current) => (current === "guides" ? null : current));
+    }
+  }, [guidesLoaded, organizationId, slug]);
+
+  const ensureTabData = useCallback(
+    (tab: DashboardTabId) => {
+      if (tab === "activity") {
+        void loadActivity();
+      }
+      if (tab === "guides") {
+        void loadGuides();
+      }
+    },
+    [loadActivity, loadGuides],
+  );
+
+  const refreshToday = useCallback(async () => {
+    try {
+      const response = await fetch(
+        dashboardSectionFetch(organizationId, slug, "today"),
+      );
+      if (!response.ok) return;
+      const next = (await response.json()) as AdminDashboardToday;
+      setToday(next);
+    } catch {
+      // Keep last known today payload. intentionally silent
+    }
+  }, [organizationId, slug]);
+
+  useEffect(() => {
+    if (visitedTabs.has("activity")) {
+      void loadActivity();
+    }
+    if (visitedTabs.has("guides")) {
+      void loadGuides();
+    }
+  }, [visitedTabs, loadActivity, loadGuides]);
+
+  const handleTabChange = useCallback(
+    (tab: DashboardTabId) => {
+      setEverVisitedTabs((current) => {
+        if (current.has(tab)) return current;
+        const next = new Set(current);
+        next.add(tab);
+        return next;
+      });
+      ensureTabData(tab);
+      if (
+        tab !== activeTab &&
+        tabNeedsAsyncLoad(tab) &&
+        !isTabDataReady(tab, activityLoaded, guidesLoaded)
+      ) {
+        setPendingTabKey(tab);
+      } else {
+        setPendingTabKey(null);
+      }
+      setActiveTab(tab);
+    },
+    [activeTab, activityLoaded, ensureTabData, guidesLoaded, setActiveTab],
+  );
+
+  useEffect(() => {
+    if (!visibleTabs.includes(activeTab)) {
+      setActiveTab("today");
+    }
+  }, [activeTab, visibleTabs, setActiveTab]);
+
+  const refreshActivity = useCallback(async () => {
+    try {
+      const response = await fetch(
+        dashboardSectionFetch(organizationId, slug, "activity"),
+      );
+      if (!response.ok) return;
+      const next = (await response.json()) as AdminDashboardActivity;
+      setActivity(next);
+      setActivityLoaded(true);
+    } catch {
+      // Keep last known activity payload. intentionally silent
+    }
+  }, [organizationId, slug]);
+
+  const refreshGuides = useCallback(async () => {
+    try {
+      const response = await fetch(
+        dashboardSectionFetch(organizationId, slug, "guides"),
+      );
+      if (!response.ok) return;
+      const next = (await response.json()) as AdminDashboardGuides;
+      setGuides(next);
+      setGuidesLoaded(true);
+    } catch {
+      // Keep last known guides payload. intentionally silent
+    }
+  }, [organizationId, slug]);
+
+  const refreshOnFocus = useCallback(async () => {
+    await refreshToday();
+    if (visitedTabs.has("activity") && activityLoaded) {
+      await refreshActivity();
+    }
+    if (visitedTabs.has("guides") && guidesLoaded) {
+      await refreshGuides();
+    }
+  }, [
+    refreshToday,
+    visitedTabs,
+    activityLoaded,
+    guidesLoaded,
+    refreshActivity,
+    refreshGuides,
+  ]);
+
+  useEffect(() => {
+    const onFocus = () => {
+      void refreshOnFocus();
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [refreshOnFocus]);
+
+  const stripeStep = today.setupStatus.steps.find((step) => step.id === "stripe");
+  const pollStripe = useCallback(async () => {
+    try {
+      await fetch("/api/stripe/connect/status");
+      await refreshToday();
+    } catch {
+      // Ignore polling errors. intentionally silent
+    }
+  }, [refreshToday]);
+
+  useVisibilityPolling(
+    pollStripe,
+    60_000,
+    stripeStep?.status === "in_progress",
+  );
+
   const openGuide = useCallback((guide: AdminDocGuide) => {
     setActiveGuide(guide);
   }, []);
@@ -60,49 +354,6 @@ export default function AdminDashboardContent({
   const closeGuide = useCallback(() => {
     setActiveGuide(null);
   }, []);
-
-  if (initialSummary !== prevInitialSummary) {
-    setPrevInitialSummary(initialSummary);
-    setSummary(initialSummary);
-  }
-
-  const refreshSummary = useCallback(async () => {
-    try {
-      const params = new URLSearchParams({ organizationId, slug });
-      const response = await fetch(
-        `/api/school-admin/dashboard-summary?${params.toString()}`,
-      );
-      if (!response.ok) return;
-      const next = (await response.json()) as AdminDashboardSummary;
-      setSummary(next);
-    } catch {
-      // Keep last known summary on refresh failure. intentionally silent
-    }
-  }, [organizationId, slug]);
-
-  useEffect(() => {
-    const onFocus = () => {
-      void refreshSummary();
-    };
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, [refreshSummary]);
-
-  const stripeStep = summary.setupStatus.steps.find((step) => step.id === "stripe");
-  const pollStripe = useCallback(async () => {
-    try {
-      await fetch("/api/stripe/connect/status");
-      await refreshSummary();
-    } catch {
-      // Ignore polling errors. intentionally silent
-    }
-  }, [refreshSummary]);
-
-  useVisibilityPolling(
-    pollStripe,
-    60_000,
-    stripeStep?.status === "in_progress",
-  );
 
   useEffect(() => {
     if (!activeGuide) return;
@@ -117,117 +368,93 @@ export default function AdminDashboardContent({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [activeGuide, closeGuide]);
 
+  const resolvedActiveTab = visibleTabs.includes(activeTab) ? activeTab : "today";
+
   return (
     <>
-      {!summary.setupComplete ? (
-        <div className="mb-5 max-w-md">
-          <DetailPanelProgressBar
-            C={C}
-            completed={summary.setupStatus.completedCount}
-            total={summary.setupStatus.totalCount}
-            label="Setup progress"
-            subtitle={`${summary.setupStatus.totalCount - summary.setupStatus.completedCount} step${
-              summary.setupStatus.totalCount - summary.setupStatus.completedCount === 1
-                ? ""
-                : "s"
-            } remaining before go-live`}
-          />
-        </div>
-      ) : null}
+      <AdminDashboardStoryHeader
+        theme={theme}
+        schoolName={schoolName}
+        userFirstName={userFirstName}
+        activeTab={resolvedActiveTab}
+        visibleTabs={visibleTabs}
+        pendingTabKey={pendingTabKey}
+        loadingTabKey={loadingTabKey}
+        onTabChange={handleTabChange}
+      />
 
-      <div className="mb-[19px] grid grid-cols-1 gap-[15px] lg:grid-cols-[1.3fr_0.7fr]">
-        <AdminCard theme={theme} padding="canvas" className="today-card bg-gradient-to-br from-[#FFFDF8] to-[#EEF7EF]">
-          <AdminFocusQueue theme={theme} items={summary.focusItems} />
-        </AdminCard>
-        {summary.signal ? (
-          <AdminSignalCard
-            theme={theme}
-            headline={summary.signal.headline}
-            body={summary.signal.body}
-            href={summary.signal.href}
-            ctaLabel={summary.signal.ctaLabel}
-          />
-        ) : (
-          <AdminCard theme={theme} padding="canvas">
-            <AdminSectionKicker theme={theme}>School signal</AdminSectionKicker>
-            <p className="mt-3 text-sm" style={{ color: theme.muted }}>
-              Activity will appear here as families apply and enroll.
-            </p>
-          </AdminCard>
-        )}
-      </div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={resolvedActiveTab}
+          id={`dashboard-panel-${resolvedActiveTab}`}
+          role="tabpanel"
+          aria-labelledby={`dashboard-tab-${resolvedActiveTab}`}
+          className={DASHBOARD_TAB_ROOT_CLASS}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.18 }}
+        >
+          {visitedTabs.has("today") ? (
+            <div className={DASHBOARD_TAB_ROOT_CLASS} hidden={resolvedActiveTab !== "today"}>
+              <AdminDashboardTodayPanel
+                theme={theme}
+                C={C}
+                organizationId={organizationId}
+                slug={slug}
+                features={features}
+                today={today}
+                onTodayChange={setToday}
+              />
+            </div>
+          ) : null}
 
-      {summary.metrics.length > 0 ? (
-        <div className="mb-[19px] grid grid-cols-1 gap-[13px] sm:grid-cols-2 xl:grid-cols-4">
-          {summary.metrics.map((metric) => (
-            <AdminMetricCard
-              key={metric.id}
-              theme={theme}
-              value={metric.value}
-              label={metric.label}
-              accent={metric.accent}
-            />
-          ))}
-        </div>
-      ) : null}
+          {visitedTabs.has("journey") ? (
+            <div className={DASHBOARD_TAB_ROOT_CLASS} hidden={resolvedActiveTab !== "journey"}>
+              <AdminDashboardJourneyPanel
+                theme={theme}
+                slug={slug}
+                features={features}
+              />
+            </div>
+          ) : null}
 
-      {features.admin?.my_school && summary.attendanceToday ? (
-        <div className="mb-[19px]">
-          <AdminCard theme={theme} padding="canvas">
-            <AdminDashboardAttendanceSection
-              organizationId={organizationId}
-              slug={slug}
-              date={summary.attendanceToday.date}
-              students={summary.attendanceToday.students}
-              summary={summary.attendanceToday.summary}
-              onSummaryChange={(nextSummary) => {
-                setSummary((prev) => {
-                  if (!prev.attendanceToday) return prev;
-                  return {
-                    ...prev,
-                    attendanceToday: {
-                      ...prev.attendanceToday,
-                      summary: nextSummary,
-                    },
-                  };
-                });
-              }}
-            />
-          </AdminCard>
-        </div>
-      ) : null}
+          {visitedTabs.has("activity") ? (
+            <div className={DASHBOARD_TAB_ROOT_CLASS} hidden={resolvedActiveTab !== "activity"}>
+              {activity ? (
+                <AdminDashboardActivityPanel
+                  theme={theme}
+                  activity={activity}
+                  onViewAllActivity={openNotifications}
+                />
+              ) : (
+                <p className="text-sm" style={{ color: theme.muted }}>
+                  Loading activity…
+                </p>
+              )}
+            </div>
+          ) : null}
 
-      <div className="mb-[19px] grid grid-cols-1 gap-[15px] lg:grid-cols-[1.35fr_0.65fr]">
-        <AdminCard theme={theme} padding="none">
-          <AdminActivityFeed
-            theme={theme}
-            items={summary.recentActivity}
-            onViewAll={openNotifications}
-          />
-        </AdminCard>
-        <AdminCard theme={theme} padding="none">
-          <AdminQuickActionsCard theme={theme} actions={summary.quickActions} />
-        </AdminCard>
-      </div>
-
-      {summary.featureAnnouncements.length > 0 ? (
-        <div className="mb-[19px]">
-          <AdminFeatureAnnouncementsCard
-            theme={theme}
-            announcements={summary.featureAnnouncements}
-            buildLogHref={schoolMudKitchenPortalPath(slug, "build-log")}
-          />
-        </div>
-      ) : null}
-
-      {howToGuides.length > 0 ? (
-        <AdminDashboardHowToGuidesCard
-          theme={theme}
-          slug={slug}
-          groupedGuides={groupedHowToGuides}
-          onOpenGuide={openGuide}
-        />
-      ) : null}
+          {visitedTabs.has("guides") ? (
+            <div className={DASHBOARD_TAB_ROOT_CLASS} hidden={resolvedActiveTab !== "guides"}>
+              {guides ? (
+                <AdminDashboardGuidesPanel
+                  theme={theme}
+                  slug={slug}
+                  guides={guides}
+                  groupedHowToGuides={groupedHowToGuides}
+                  buildLogHref={schoolMudKitchenPortalPath(slug, "build-log")}
+                  onOpenGuide={openGuide}
+                />
+              ) : (
+                <p className="text-sm" style={{ color: theme.muted }}>
+                  Loading guides…
+                </p>
+              )}
+            </div>
+          ) : null}
+        </motion.div>
+      </AnimatePresence>
 
       <AdminDocumentationGuidePanel
         C={C}

@@ -72,6 +72,10 @@ const SchoolProfilePage = nextDynamic(
   () => import("@/components/school-admin/school-profile/SchoolProfilePage"),
   { loading: () => <AdminPageSkeleton label="Loading school profile" /> },
 );
+const NewsletterPage = nextDynamic(
+  () => import("@/components/school-admin/newsletter/NewsletterPage"),
+  { loading: () => <AdminPageSkeleton label="Loading newsletters" /> },
+);
 
 export const dynamic = "force-dynamic";
 
@@ -320,6 +324,17 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
           slug={slug}
         />
       </Suspense>
+    );
+  }
+
+  if (feature === "my_school" && subtab === "newsletters") {
+    return (
+      <NewsletterPage
+        organizationId={org.id}
+        slug={slug}
+        schoolName={org.name}
+        branding={org.branding}
+      />
     );
   }
 

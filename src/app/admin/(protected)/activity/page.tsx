@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import ActivityFunnelPanel from "@/components/admin/ActivityFunnelPanel";
 import ActivityLogDetail from "@/components/admin/ActivityLogDetail";
@@ -11,6 +12,8 @@ import { enrichActivityEventsForDisplay, type EnrichedActivityEvent } from "@/li
 import {
   ACTIVITY_ACTIONS,
   fetchActivityEvents,
+  normalizeActivityActorEmail,
+  type ActorType,
   type ActivityDatePreset,
   type ActivityEventRow,
 } from "@/lib/activity-log";
@@ -22,7 +25,25 @@ type OrganizationOption = {
 };
 
 type SurfaceFilter = "" | "parent" | "teacher" | "school_admin" | "system";
+type ActorTypeFilter = "" | ActorType;
 type ActivityView = "funnel" | "log";
+
+const ACTOR_TYPE_VALUES: ActorType[] = [
+  "parent",
+  "teacher",
+  "school_admin",
+  "platform_admin",
+  "system",
+];
+
+const ACTOR_FILTERS: { value: ActorTypeFilter; label: string }[] = [
+  { value: "", label: "All actors" },
+  { value: "parent", label: "Parent" },
+  { value: "teacher", label: "Teacher" },
+  { value: "school_admin", label: "School admin" },
+  { value: "platform_admin", label: "Platform admin" },
+  { value: "system", label: "System" },
+];
 
 const DATE_PRESETS: { value: ActivityDatePreset; label: string }[] = [
   { value: "today", label: "Today" },
@@ -41,7 +62,7 @@ const SURFACE_FILTERS: { value: SurfaceFilter; label: string }[] = [
   { value: "parent", label: "Parent" },
   { value: "teacher", label: "Teacher" },
   { value: "school_admin", label: "School admin" },
-  { value: "system", label: "System" },
+  { value: "system", label: "API / system surface" },
 ];
 
 function ActivityFilters({
@@ -103,17 +124,25 @@ function ActivityLogFilterBar({
   organizationId,
   organizations,
   surfaceFilter,
+  actorTypeFilter,
+  actorEmailInput,
   onDatePresetChange,
   onOrganizationChange,
   onSurfaceFilterChange,
+  onActorTypeFilterChange,
+  onActorEmailInputChange,
 }: {
   datePreset: ActivityDatePreset;
   organizationId: string;
   organizations: OrganizationOption[];
   surfaceFilter: SurfaceFilter;
+  actorTypeFilter: ActorTypeFilter;
+  actorEmailInput: string;
   onDatePresetChange: (value: ActivityDatePreset) => void;
   onOrganizationChange: (value: string) => void;
   onSurfaceFilterChange: (value: SurfaceFilter) => void;
+  onActorTypeFilterChange: (value: ActorTypeFilter) => void;
+  onActorEmailInputChange: (value: string) => void;
 }) {
   return (
     <div className="rounded-admin-md border border-admin-border bg-admin-surface p-3 space-y-3">
@@ -165,7 +194,32 @@ function ActivityLogFilterBar({
             </option>
           ))}
         </AdminSelect>
+
+        <AdminSelect
+          value={actorTypeFilter}
+          onChange={(e) =>
+            onActorTypeFilterChange(e.target.value as ActorTypeFilter)
+          }
+          className="flex-1 min-w-0"
+          triggerClassName="text-xs px-2 py-1.5 text-admin-text"
+          aria-label="Actor type filter"
+        >
+          {ACTOR_FILTERS.map((filter) => (
+            <option key={filter.value || "all"} value={filter.value}>
+              {filter.label}
+            </option>
+          ))}
+        </AdminSelect>
       </div>
+
+      <input
+        type="search"
+        value={actorEmailInput}
+        onChange={(e) => onActorEmailInputChange(e.target.value)}
+        placeholder="Search by actor email"
+        className="w-full rounded-admin-md border border-admin-border bg-admin-bg px-2.5 py-1.5 text-xs text-admin-text placeholder:text-admin-faint"
+        aria-label="Search by actor email"
+      />
     </div>
   );
 }
@@ -197,8 +251,17 @@ function ViewToggle({
   );
 }
 
+function parseActorTypeFilter(value: string | null): ActorTypeFilter {
+  if (!value) return "";
+  return ACTOR_TYPE_VALUES.includes(value as ActorType)
+    ? (value as ActorType)
+    : "";
+}
+
 export default function AdminActivityPage() {
   const supabase = createClient();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [view, setView] = useState<ActivityView>("log");
   const [events, setEvents] = useState<EnrichedActivityEvent[]>([]);
   const [organizations, setOrganizations] = useState<OrganizationOption[]>([]);
@@ -206,9 +269,51 @@ export default function AdminActivityPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [datePreset, setDatePreset] = useState<ActivityDatePreset>("7d");
-  const [organizationId, setOrganizationId] = useState("");
+  const [organizationId, setOrganizationId] = useState(
+    () => searchParams.get("organizationId")?.trim() ?? "",
+  );
   const [surfaceFilter, setSurfaceFilter] = useState<SurfaceFilter>("");
+  const [actorTypeFilter, setActorTypeFilter] = useState<ActorTypeFilter>(() =>
+    parseActorTypeFilter(searchParams.get("actorType")),
+  );
+  const [actorEmailInput, setActorEmailInput] = useState(
+    () => searchParams.get("actorEmail")?.trim() ?? "",
+  );
+  const [debouncedActorEmail, setDebouncedActorEmail] = useState(() => {
+    const fromUrl = searchParams.get("actorEmail")?.trim() ?? "";
+    return normalizeActivityActorEmail(fromUrl) ?? "";
+  });
   const [errorsOnly, setErrorsOnly] = useState(false);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setDebouncedActorEmail(
+        normalizeActivityActorEmail(actorEmailInput) ?? "",
+      );
+    }, 300);
+    return () => window.clearTimeout(handle);
+  }, [actorEmailInput]);
+
+  const searchParamsString = searchParams.toString();
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (organizationId) params.set("organizationId", organizationId);
+    if (debouncedActorEmail) params.set("actorEmail", debouncedActorEmail);
+    if (actorTypeFilter) params.set("actorType", actorTypeFilter);
+    const next = params.toString();
+    if (next !== searchParamsString) {
+      router.replace(next ? `/admin/activity?${next}` : "/admin/activity", {
+        scroll: false,
+      });
+    }
+  }, [
+    organizationId,
+    debouncedActorEmail,
+    actorTypeFilter,
+    router,
+    searchParamsString,
+  ]);
 
   const loadEvents = useCallback(async () => {
     if (view !== "log") return;
@@ -220,6 +325,8 @@ export default function AdminActivityPage() {
         datePreset,
         organizationId: organizationId || undefined,
         surface: surfaceFilter || undefined,
+        actorType: actorTypeFilter || undefined,
+        actorEmail: debouncedActorEmail || undefined,
         ...(errorsOnly
           ? {
               actions: [
@@ -243,7 +350,16 @@ export default function AdminActivityPage() {
     } finally {
       setLoading(false);
     }
-  }, [supabase, view, datePreset, organizationId, surfaceFilter, errorsOnly]);
+  }, [
+    supabase,
+    view,
+    datePreset,
+    organizationId,
+    surfaceFilter,
+    actorTypeFilter,
+    debouncedActorEmail,
+    errorsOnly,
+  ]);
 
   useEffect(() => {
     async function loadOrganizations() {
@@ -336,9 +452,13 @@ export default function AdminActivityPage() {
                 organizationId={organizationId}
                 organizations={organizations}
                 surfaceFilter={surfaceFilter}
+                actorTypeFilter={actorTypeFilter}
+                actorEmailInput={actorEmailInput}
                 onDatePresetChange={setDatePreset}
                 onOrganizationChange={setOrganizationId}
                 onSurfaceFilterChange={setSurfaceFilter}
+                onActorTypeFilterChange={setActorTypeFilter}
+                onActorEmailInputChange={setActorEmailInput}
               />
 
               <label className="flex items-center gap-2 text-xs text-admin-muted cursor-pointer">

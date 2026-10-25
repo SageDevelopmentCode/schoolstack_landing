@@ -1,0 +1,30 @@
+@keyframes enrollment-flow-dash-offset {
+  to {
+    stroke-dashoffset: -14;
+  }
+}
+
+@keyframes enrollment-flow-chevron-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.enrollment-flow-connector-dash-animate {
+  animation: enrollment-flow-dash-offset 2.8s ease-in-out infinite;
+}
+
+.enrollment-flow-connector-chevron-animate {
+  animation: enrollment-flow-chevron-pulse 2.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enrollment-flow-connector-dash-animate,
+  .enrollment-flow-connector-chevron-animate {
+    animation: none;
+  }
+}

@@ -70,7 +70,7 @@ export type DashboardQuickAction =
       applyFormPublicPath: string;
     };
 
-export type AdminDashboardSummary = {
+export type AdminDashboardToday = {
   setupStatus: AdmissionsSetupStatus;
   focusItems: DashboardFocusItem[];
   signal: {
@@ -80,9 +80,6 @@ export type AdminDashboardSummary = {
     ctaLabel: string;
   } | null;
   metrics: DashboardMetric[];
-  recentActivity: SchoolAdminActivityNotification[];
-  quickActions: DashboardQuickAction[];
-  featureAnnouncements: ResolvedAdminFeatureAnnouncement[];
   messagesUnreadCount: number;
   setupComplete: boolean;
   attendanceToday: {
@@ -92,136 +89,150 @@ export type AdminDashboardSummary = {
   } | null;
 };
 
-export async function fetchAdminDashboardSummary(
+export type AdminDashboardActivity = {
+  recentActivity: SchoolAdminActivityNotification[];
+  quickActions: DashboardQuickAction[];
+};
+
+export type AdminDashboardGuides = {
+  featureAnnouncements: ResolvedAdminFeatureAnnouncement[];
+};
+
+export type AdminDashboardSummary = AdminDashboardToday &
+  AdminDashboardActivity &
+  AdminDashboardGuides;
+
+export type AdminDashboardSection = "today" | "activity" | "guides";
+
+const DASHBOARD_SECTIONS = new Set<AdminDashboardSection>([
+  "today",
+  "activity",
+  "guides",
+]);
+
+export function parseAdminDashboardSection(
+  value: string | null,
+): AdminDashboardSection | null {
+  if (value && DASHBOARD_SECTIONS.has(value as AdminDashboardSection)) {
+    return value as AdminDashboardSection;
+  }
+  return null;
+}
+
+type DashboardFetchContext = {
+  supabase: SupabaseClient;
+  admin: SupabaseClient;
+  organizationId: string;
+  slug: string;
+  features: AdminFeatures;
+  userId?: string;
+  schoolName?: string;
+};
+
+async function loadScheduleStats(
   supabase: SupabaseClient,
-  admin: SupabaseClient,
   organizationId: string,
-  slug: string,
-  features: AdminFeatures,
-  options?: { userId?: string; schoolName?: string },
-): Promise<AdminDashboardSummary> {
-  const todayKey = dateKey(new Date());
-  const [
-    setupStatus,
-    aggregateMetrics,
-    latestSubmitted,
-    activityPage,
-    scheduleStats,
-    attendanceToday,
-  ] = await Promise.all([
-    fetchAdmissionsSetupStatus(supabase, organizationId, slug),
-    features.admissions || (options?.userId && features.messages)
-      ? fetchDashboardAggregateMetrics(supabase, organizationId, options?.userId)
-      : Promise.resolve(null),
-    features.admissions
-      ? fetchLatestSubmittedApplication(supabase, organizationId)
-      : Promise.resolve(null),
-    fetchSchoolAdminActivityNotifications(supabase, organizationId, slug, {
-      limit: 8,
-    }).catch((err) => {
-      void reportOperationalError({
-        supabase,
-        surface: "school_admin",
-        organizationId,
-        operation: "dashboard.load_activity_notifications",
-        error:
-          err instanceof Error
-            ? err.message
-            : "Failed to load activity notifications.",
-        severity: "warning",
-        notify: true,
-        actor: { type: "system" },
-        cause: err,
-      });
-      return {
-        notifications: [] as SchoolAdminActivityNotification[],
-        nextCursor: null,
-        hasMore: false,
-      };
-    }),
-    features.schedule
-      ? loadScheduleStats(supabase, organizationId)
-      : Promise.resolve({ shadowDaysThisMonth: null, openSlots: null }),
-    features.my_school
-      ? loadAttendanceRoster(admin, organizationId, todayKey)
-          .then((roster) => ({
-            date: roster.date,
-            summary: roster.summary,
-            students: roster.students,
-          }))
-          .catch((err) => {
-            void reportOperationalError({
-              supabase: admin,
-              surface: "school_admin",
-              organizationId,
-              operation: "dashboard.load_attendance_roster",
-              error:
-                err instanceof Error
-                  ? err.message
-                  : "Failed to load today's attendance roster.",
-              severity: "warning",
-              notify: true,
-              actor: { type: "system" },
-              cause: err,
-            });
-            return null;
-          })
-      : Promise.resolve(null),
-  ]);
+): Promise<{ shadowDaysThisMonth: number | null; openSlots: number | null }> {
+  try {
+    const tz = await getOrganizationTimezone(supabase, organizationId);
+    const { year, month } = todayMonthYearInTimezone(tz);
+    const [openSlots, shadowDaysThisMonth] = await Promise.all([
+      countAdmissionsAvailabilitySlotsInMonth(supabase, organizationId, year, month),
+      countObservationDaysInMonth(supabase, organizationId, year, month),
+    ]);
+    return { shadowDaysThisMonth, openSlots };
+  } catch {
+    return { shadowDaysThisMonth: null, openSlots: null };
+  }
+}
 
-  const setupComplete =
-    setupStatus.completedCount === setupStatus.totalCount;
+async function resolveMessagesUnreadCount(
+  ctx: DashboardFetchContext,
+  aggregateMessagesUnread: number | undefined,
+): Promise<number> {
+  if (aggregateMessagesUnread != null) {
+    return aggregateMessagesUnread;
+  }
+  if (!ctx.userId || !ctx.features.messages) {
+    return 0;
+  }
+  return getCachedAdminMessagesUnreadCount(
+    ctx.admin,
+    ctx.organizationId,
+    ctx.userId,
+    ctx.schoolName ?? "School",
+  ).catch((err) => {
+    void reportOperationalError({
+      supabase: ctx.admin,
+      surface: "school_admin",
+      organizationId: ctx.organizationId,
+      operation: "dashboard.load_messages_unread_count",
+      error:
+        err instanceof Error
+          ? err.message
+          : "Failed to load messages unread count.",
+      severity: "warning",
+      notify: true,
+      actor: { type: "system" },
+      cause: err,
+    });
+    return 0;
+  });
+}
 
+async function resolveApplicationMetrics(
+  ctx: DashboardFetchContext,
+  aggregateMetrics: Awaited<ReturnType<typeof fetchDashboardAggregateMetrics>> | null,
+): Promise<{
+  activeApplications: number;
+  enrolledCount: number;
+  submittedAwaitingReview: number;
+  collectedThisMonthCents: number;
+}> {
   let activeApplications = aggregateMetrics?.activeApplications ?? 0;
   let enrolledCount = aggregateMetrics?.enrolledCount ?? 0;
   let submittedAwaitingReview = aggregateMetrics?.submittedCount ?? 0;
   let collectedThisMonthCents = aggregateMetrics?.collectedThisMonthCents ?? 0;
-  const resolvedMessagesUnreadCount =
-    aggregateMetrics?.messagesUnread ??
-    (options?.userId && features.messages
-      ? await getCachedAdminMessagesUnreadCount(
-          admin,
-          organizationId,
-          options.userId,
-          options.schoolName ?? "School",
-        ).catch((err) => {
-          void reportOperationalError({
-            supabase: admin,
-            surface: "school_admin",
-            organizationId,
-            operation: "dashboard.load_messages_unread_count",
-            error:
-              err instanceof Error
-                ? err.message
-                : "Failed to load messages unread count.",
-            severity: "warning",
-            notify: true,
-            actor: { type: "system" },
-            cause: err,
-          });
-          return 0;
-        })
-      : 0);
 
-  if (features.admissions && !aggregateMetrics) {
+  if (ctx.features.admissions && !aggregateMetrics) {
     const fallbackMetrics = await fetchDashboardApplicationMetrics(
-      supabase,
-      organizationId,
+      ctx.supabase,
+      ctx.organizationId,
     );
     activeApplications = fallbackMetrics.activeApplications;
     enrolledCount = fallbackMetrics.enrolledCount;
     submittedAwaitingReview = fallbackMetrics.submittedCount;
     collectedThisMonthCents = await fetchCollectedThisMonthCents(
-      supabase,
-      organizationId,
+      ctx.supabase,
+      ctx.organizationId,
     );
   }
 
+  return {
+    activeApplications,
+    enrolledCount,
+    submittedAwaitingReview,
+    collectedThisMonthCents,
+  };
+}
+
+function buildFocusItems(
+  ctx: DashboardFetchContext,
+  input: {
+    setupStatus: AdmissionsSetupStatus;
+    setupComplete: boolean;
+    latestSubmitted: Awaited<ReturnType<typeof fetchLatestSubmittedApplication>>;
+    scheduleStats: { shadowDaysThisMonth: number | null; openSlots: number | null };
+    messagesUnreadCount: number;
+    attendanceToday: AdminDashboardToday["attendanceToday"];
+  },
+): DashboardFocusItem[] {
+  const { slug, features } = ctx;
   const focusItems: DashboardFocusItem[] = [];
 
-  if (features.admissions && !setupComplete) {
-    const nextStep = setupStatus.steps.find(
-      (step) => step.id === setupStatus.firstIncompleteStepId,
+  if (features.admissions && !input.setupComplete) {
+    const nextStep = input.setupStatus.steps.find(
+      (step) => step.id === input.setupStatus.firstIncompleteStepId,
     );
     if (nextStep) {
       focusItems.push({
@@ -235,22 +246,22 @@ export async function fetchAdminDashboardSummary(
     }
   }
 
-  if (features.admissions && latestSubmitted) {
+  if (features.admissions && input.latestSubmitted) {
     focusItems.push({
-      id: `review-${latestSubmitted.id}`,
+      id: `review-${input.latestSubmitted.id}`,
       icon: "application",
-      title: `Review ${latestSubmitted.guardianName ?? "family"}'s application`,
-      subtitle: latestSubmitted.submittedAt
-        ? `Submitted ${formatShortDate(latestSubmitted.submittedAt)} · ready for decision`
+      title: `Review ${input.latestSubmitted.guardianName ?? "family"}'s application`,
+      subtitle: input.latestSubmitted.submittedAt
+        ? `Submitted ${formatShortDate(input.latestSubmitted.submittedAt)} · ready for decision`
         : "Submitted · ready for decision",
-      href: `${schoolAdminPath(slug, "admissions", "submissions")}?applicationId=${latestSubmitted.id}`,
+      href: `${schoolAdminPath(slug, "admissions", "submissions")}?applicationId=${input.latestSubmitted.id}`,
       ctaLabel: "Open →",
     });
   }
 
   if (
     features.schedule &&
-    scheduleStats.openSlots === 0 &&
+    input.scheduleStats.openSlots === 0 &&
     focusItems.length < 3
   ) {
     focusItems.push({
@@ -263,11 +274,11 @@ export async function fetchAdminDashboardSummary(
     });
   }
 
-  if (features.messages && resolvedMessagesUnreadCount > 0 && focusItems.length < 3) {
+  if (features.messages && input.messagesUnreadCount > 0 && focusItems.length < 3) {
     focusItems.push({
       id: "unread-messages",
       icon: "message",
-      title: `Reply to ${resolvedMessagesUnreadCount} unread message${resolvedMessagesUnreadCount === 1 ? "" : "s"}`,
+      title: `Reply to ${input.messagesUnreadCount} unread message${input.messagesUnreadCount === 1 ? "" : "s"}`,
       subtitle: "Families are waiting on your response",
       href: schoolAdminPath(slug, "messages"),
       ctaLabel: "Reply →",
@@ -276,11 +287,11 @@ export async function fetchAdminDashboardSummary(
 
   if (
     features.my_school &&
-    attendanceToday &&
-    attendanceToday.summary.notMarkedCount > 0 &&
+    input.attendanceToday &&
+    input.attendanceToday.summary.notMarkedCount > 0 &&
     focusItems.length < 3
   ) {
-    const count = attendanceToday.summary.notMarkedCount;
+    const count = input.attendanceToday.summary.notMarkedCount;
     focusItems.push({
       id: "attendance-not-marked",
       icon: "attendance",
@@ -291,33 +302,54 @@ export async function fetchAdminDashboardSummary(
     });
   }
 
-  const signal =
-    features.admissions && (enrolledCount > 0 || submittedAwaitingReview > 0)
-      ? {
-          headline:
-            enrolledCount > 0 ? "Enrollment is on track." : "Applications need attention.",
-          body:
-            enrolledCount > 0
-              ? `${enrolledCount} learner${enrolledCount === 1 ? "" : "s"} enrolled${
-                  submittedAwaitingReview > 0
-                    ? `, with ${submittedAwaitingReview} application${
-                        submittedAwaitingReview === 1 ? "" : "s"
-                      } ready for review.`
-                    : "."
-                }`
-              : `${submittedAwaitingReview} application${
-                  submittedAwaitingReview === 1 ? "" : "s"
-                } waiting for your review.`,
-          href: schoolAdminPath(slug, "admissions", "submissions"),
-          ctaLabel: "Open admissions →",
-        }
-      : null;
+  return focusItems.slice(0, 3);
+}
 
+function buildSignal(
+  ctx: DashboardFetchContext,
+  enrolledCount: number,
+  submittedAwaitingReview: number,
+): AdminDashboardToday["signal"] {
+  const { slug, features } = ctx;
+  if (!features.admissions || (enrolledCount <= 0 && submittedAwaitingReview <= 0)) {
+    return null;
+  }
+
+  return {
+    headline:
+      enrolledCount > 0 ? "Enrollment is on track." : "Applications need attention.",
+    body:
+      enrolledCount > 0
+        ? `${enrolledCount} learner${enrolledCount === 1 ? "" : "s"} enrolled${
+            submittedAwaitingReview > 0
+              ? `, with ${submittedAwaitingReview} application${
+                  submittedAwaitingReview === 1 ? "" : "s"
+                } ready for review.`
+              : "."
+          }`
+        : `${submittedAwaitingReview} application${
+            submittedAwaitingReview === 1 ? "" : "s"
+          } waiting for your review.`,
+    href: schoolAdminPath(slug, "admissions", "submissions"),
+    ctaLabel: "Open admissions →",
+  };
+}
+
+function buildMetrics(
+  ctx: DashboardFetchContext,
+  input: {
+    activeApplications: number;
+    collectedThisMonthCents: number;
+    messagesUnreadCount: number;
+    scheduleStats: { shadowDaysThisMonth: number | null; openSlots: number | null };
+  },
+): DashboardMetric[] {
+  const { features } = ctx;
   const metrics: DashboardMetric[] = [
     {
       id: "active-applications",
       label: "Active applications",
-      value: String(activeApplications),
+      value: String(input.activeApplications),
       accent: "forest",
       enabled: features.admissions,
     },
@@ -325,8 +357,8 @@ export async function fetchAdminDashboardSummary(
       id: "shadow-days",
       label: "Shadow days this month",
       value:
-        scheduleStats.shadowDaysThisMonth != null
-          ? String(scheduleStats.shadowDaysThisMonth)
+        input.scheduleStats.shadowDaysThisMonth != null
+          ? String(input.scheduleStats.shadowDaysThisMonth)
           : "—",
       accent: "sky",
       enabled: features.schedule,
@@ -334,19 +366,27 @@ export async function fetchAdminDashboardSummary(
     {
       id: "collected-month",
       label: "Collected this month",
-      value: formatCents(collectedThisMonthCents),
+      value: formatCents(input.collectedThisMonthCents),
       accent: "gold",
       enabled: features.admissions,
     },
     {
       id: "unread-messages",
       label: "Unread family messages",
-      value: String(resolvedMessagesUnreadCount),
+      value: String(input.messagesUnreadCount),
       accent: "berry",
       enabled: features.messages,
     },
   ];
 
+  return metrics.filter((metric) => metric.enabled);
+}
+
+function buildQuickActions(
+  ctx: DashboardFetchContext,
+  setupStatus: AdmissionsSetupStatus,
+): DashboardQuickAction[] {
+  const { slug, features } = ctx;
   const quickActions: DashboardQuickAction[] = [];
   if (features.admissions) {
     quickActions.push({
@@ -383,41 +423,209 @@ export async function fetchAdminDashboardSummary(
       href: schoolAdminPath(slug, "messages"),
     });
   }
+  return quickActions;
+}
+
+async function loadAttendanceToday(
+  ctx: DashboardFetchContext,
+): Promise<AdminDashboardToday["attendanceToday"]> {
+  if (!ctx.features.my_school) {
+    return null;
+  }
+  const todayKey = dateKey(new Date());
+  return loadAttendanceRoster(ctx.admin, ctx.organizationId, todayKey)
+    .then((roster) => ({
+      date: roster.date,
+      summary: roster.summary,
+      students: roster.students,
+    }))
+    .catch((err) => {
+      void reportOperationalError({
+        supabase: ctx.admin,
+        surface: "school_admin",
+        organizationId: ctx.organizationId,
+        operation: "dashboard.load_attendance_roster",
+        error:
+          err instanceof Error
+            ? err.message
+            : "Failed to load today's attendance roster.",
+        severity: "warning",
+        notify: true,
+        actor: { type: "system" },
+        cause: err,
+      });
+      return null;
+    });
+}
+
+export async function fetchAdminDashboardToday(
+  supabase: SupabaseClient,
+  admin: SupabaseClient,
+  organizationId: string,
+  slug: string,
+  features: AdminFeatures,
+  options?: { userId?: string; schoolName?: string },
+): Promise<AdminDashboardToday> {
+  const ctx: DashboardFetchContext = {
+    supabase,
+    admin,
+    organizationId,
+    slug,
+    features,
+    userId: options?.userId,
+    schoolName: options?.schoolName,
+  };
+
+  const [
+    setupStatus,
+    aggregateMetrics,
+    latestSubmitted,
+    scheduleStats,
+    attendanceToday,
+  ] = await Promise.all([
+    fetchAdmissionsSetupStatus(supabase, organizationId, slug),
+    features.admissions || (options?.userId && features.messages)
+      ? fetchDashboardAggregateMetrics(supabase, organizationId, options?.userId)
+      : Promise.resolve(null),
+    features.admissions
+      ? fetchLatestSubmittedApplication(supabase, organizationId)
+      : Promise.resolve(null),
+    features.schedule
+      ? loadScheduleStats(supabase, organizationId)
+      : Promise.resolve({ shadowDaysThisMonth: null, openSlots: null }),
+    loadAttendanceToday(ctx),
+  ]);
+
+  const setupComplete =
+    setupStatus.completedCount === setupStatus.totalCount;
+
+  const messagesUnreadCount = await resolveMessagesUnreadCount(
+    ctx,
+    aggregateMetrics?.messagesUnread,
+  );
+
+  const {
+    activeApplications,
+    enrolledCount,
+    submittedAwaitingReview,
+    collectedThisMonthCents,
+  } = await resolveApplicationMetrics(ctx, aggregateMetrics);
+
+  const focusItems = buildFocusItems(ctx, {
+    setupStatus,
+    setupComplete,
+    latestSubmitted,
+    scheduleStats,
+    messagesUnreadCount,
+    attendanceToday,
+  });
 
   return {
     setupStatus,
-    focusItems: focusItems.slice(0, 3),
-    signal,
-    metrics: metrics.filter((metric) => metric.enabled),
+    focusItems,
+    signal: buildSignal(ctx, enrolledCount, submittedAwaitingReview),
+    metrics: buildMetrics(ctx, {
+      activeApplications,
+      collectedThisMonthCents,
+      messagesUnreadCount,
+      scheduleStats,
+    }),
+    messagesUnreadCount,
+    setupComplete,
+    attendanceToday,
+  };
+}
+
+export async function fetchAdminDashboardActivity(
+  supabase: SupabaseClient,
+  admin: SupabaseClient,
+  organizationId: string,
+  slug: string,
+  features: AdminFeatures,
+): Promise<AdminDashboardActivity> {
+  const ctx: DashboardFetchContext = {
+    supabase,
+    admin,
+    organizationId,
+    slug,
+    features,
+  };
+
+  const [setupStatus, activityPage] = await Promise.all([
+    fetchAdmissionsSetupStatus(supabase, organizationId, slug),
+    fetchSchoolAdminActivityNotifications(supabase, organizationId, slug, {
+      limit: 8,
+    }).catch((err) => {
+      void reportOperationalError({
+        supabase,
+        surface: "school_admin",
+        organizationId,
+        operation: "dashboard.load_activity_notifications",
+        error:
+          err instanceof Error
+            ? err.message
+            : "Failed to load activity notifications.",
+        severity: "warning",
+        notify: true,
+        actor: { type: "system" },
+        cause: err,
+      });
+      return {
+        notifications: [] as SchoolAdminActivityNotification[],
+        nextCursor: null,
+        hasMore: false,
+      };
+    }),
+  ]);
+
+  return {
     recentActivity: activityPage.notifications,
-    quickActions,
+    quickActions: buildQuickActions(ctx, setupStatus),
+  };
+}
+
+export async function fetchAdminDashboardGuides(
+  admin: SupabaseClient,
+  organizationId: string,
+  slug: string,
+  features: AdminFeatures,
+): Promise<AdminDashboardGuides> {
+  return {
     featureAnnouncements: await fetchAdminFeatureAnnouncements(
       admin,
       organizationId,
       slug,
       features,
     ),
-    messagesUnreadCount: resolvedMessagesUnreadCount,
-    setupComplete,
-    attendanceToday,
   };
 }
 
-async function loadScheduleStats(
+export async function fetchAdminDashboardSummary(
   supabase: SupabaseClient,
+  admin: SupabaseClient,
   organizationId: string,
-): Promise<{ shadowDaysThisMonth: number | null; openSlots: number | null }> {
-  try {
-    const tz = await getOrganizationTimezone(supabase, organizationId);
-    const { year, month } = todayMonthYearInTimezone(tz);
-    const [openSlots, shadowDaysThisMonth] = await Promise.all([
-      countAdmissionsAvailabilitySlotsInMonth(supabase, organizationId, year, month),
-      countObservationDaysInMonth(supabase, organizationId, year, month),
-    ]);
-    return { shadowDaysThisMonth, openSlots };
-  } catch {
-    return { shadowDaysThisMonth: null, openSlots: null };
-  }
+  slug: string,
+  features: AdminFeatures,
+  options?: { userId?: string; schoolName?: string },
+): Promise<AdminDashboardSummary> {
+  const [today, activity, guides] = await Promise.all([
+    fetchAdminDashboardToday(
+      supabase,
+      admin,
+      organizationId,
+      slug,
+      features,
+      options,
+    ),
+    fetchAdminDashboardActivity(supabase, admin, organizationId, slug, features),
+    fetchAdminDashboardGuides(admin, organizationId, slug, features),
+  ]);
+
+  return {
+    ...today,
+    ...activity,
+    ...guides,
+  };
 }
 
 export function activityCategoryChipTone(

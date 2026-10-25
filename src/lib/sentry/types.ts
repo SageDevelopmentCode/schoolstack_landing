@@ -25,10 +25,23 @@ export type SentryPerformanceRow = {
   failureRate: number | null;
 };
 
-export type SentryPerformancePreset =
+export type SentryProjectTarget = "web" | "mobile";
+
+export type SentryWebPerformancePreset =
   | "parent_committees"
   | "api_routes"
-  | "parent_portal"
+  | "parent_portal";
+
+export type SentryMobilePerformancePreset =
+  | "mobile_all_screens"
+  | "mobile_parent_portal"
+  | "mobile_teacher_portal"
+  | "mobile_school_admin"
+  | "mobile_api_client";
+
+export type SentryPerformancePreset =
+  | SentryWebPerformancePreset
+  | SentryMobilePerformancePreset
   | "custom";
 
 export const SENTRY_PERFORMANCE_ENVIRONMENT_FILTERS = [
