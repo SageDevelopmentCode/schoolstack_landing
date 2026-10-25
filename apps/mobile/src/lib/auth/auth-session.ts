@@ -2,6 +2,7 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 import { agentLog } from '@/lib/debug-agent-log';
+import { withMobileApiSpan } from '@/lib/sentry';
 import { markExplicitMobileSignOut } from '@/lib/auth/mobile-explicit-sign-out';
 import { ensureSupabaseAuthStorageReady, getSupabaseClient } from '@/lib/supabase';
 
@@ -268,11 +269,13 @@ export async function fetchWithAuth(
   }
 
   const request = (token: string) =>
-    fetch(url, {
-      method,
-      headers: buildAuthHeaders(token, includeJson || body !== undefined),
-      body,
-    });
+    withMobileApiSpan(url, method, () =>
+      fetch(url, {
+        method,
+        headers: buildAuthHeaders(token, includeJson || body !== undefined),
+        body,
+      }),
+    );
 
   let response = await request(accessToken);
   // #region agent log

@@ -46,6 +46,7 @@ import {
 import { useRecoverableAuthRedirect } from '@/lib/auth/use-recoverable-auth-redirect';
 import { isPortalSessionAllowed } from '@/lib/platform-admin/portal-preview-layout';
 import { useExitPortalPreviewNavigation, usePortalPreview } from '@/lib/portal-preview-gating';
+import { useMobileFeatureVisitTracking } from '@/hooks/use-mobile-feature-visit-tracking';
 
 function getActiveTab(pathname: string): TeacherTab | null {
   if (isTeacherStudentDetailPath(pathname)) return null;
@@ -90,6 +91,14 @@ function TeacherLayoutContent() {
   const { isPreview } = usePortalPreview();
   const exitPreview = useExitPortalPreviewNavigation();
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
+  const organizationId =
+    selectedSchool?.slug === slug ? (selectedSchool?.id ?? '') : '';
+
+  useMobileFeatureVisitTracking({
+    surface: 'teacher_portal',
+    organizationId,
+    enabled: Boolean(organizationId && slug && user),
+  });
 
   useCompletePortalTransitionOnMount('teacher');
   useReleaseAccountPortalSwitchOnBlur();

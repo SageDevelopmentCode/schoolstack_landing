@@ -29,6 +29,7 @@ import {
 } from '@/lib/parent/parent-nav';
 import { prefetchSchoolPortalOptions } from '@/lib/auth/use-school-portal-options';
 import { usePortalPreview, useExitPortalPreviewNavigation } from '@/lib/portal-preview-gating';
+import { useMobileFeatureVisitTracking } from '@/hooks/use-mobile-feature-visit-tracking';
 
 export function ParentPortalShell() {
   const router = useRouter();
@@ -49,6 +50,13 @@ export function ParentPortalShell() {
     activePortalFeatures,
     organizationId,
   } = useParentPortalContext();
+
+  useMobileFeatureVisitTracking({
+    surface: 'parent_portal',
+    organizationId,
+    enabled: Boolean(organizationId && slug),
+    parentTabs: tabBarTabs,
+  });
 
   useEffect(() => {
     if (organizationId && slug) {

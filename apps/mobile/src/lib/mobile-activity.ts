@@ -2,6 +2,7 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 import { isBenignClientNetworkError } from '@/lib/client-network-errors';
+import { resetMobileFeatureVisitSession } from '@/lib/mobile-feature-visit-session';
 import { fetchWithAuth, postJsonWithAccessToken } from '@/lib/auth/auth-session';
 import { consumePendingAuthDiagnostics } from '@/lib/mobile-auth-diagnostics';
 import type { PortalType, ResolvedPortal } from '@/lib/auth/resolve-portal';
@@ -236,6 +237,7 @@ export async function logMobileAuthSignedOut(
   portalType: PortalType | null,
   organizationId: string | null | undefined,
 ): Promise<void> {
+  resetMobileFeatureVisitSession();
   const surface = portalTypeToMobileSurface(portalType);
   if (!surface || !organizationId) {
     return;
@@ -270,6 +272,7 @@ export async function logMobileAuthSessionCleared(input: {
   portalType: PortalType | null;
   organizationId: string | null | undefined;
 }): Promise<void> {
+  resetMobileFeatureVisitSession();
   const surface = portalTypeToMobileSurface(input.portalType) ?? 'parent_portal';
   const token = input.accessToken?.trim();
   if (!token) {

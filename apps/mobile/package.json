@@ -11,6 +11,7 @@
     "@expo/ui": "~57.0.11",
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@sentry/react-native": "^6.22.0",
     "@supabase/supabase-js": "^2.112.3",
     "aes-js": "^3.1.2",
     "expo": "~57.0.14",
@@ -81,11 +82,14 @@
     "test:e2e:android:run": "bash scripts/run-e2e-android.sh",
     "generate:icons": "tsx scripts/generate-app-icons.ts",
     "assert:production-env": "bash scripts/assert-production-mobile-env.sh",
-    "assert:production-eas-env": "bash scripts/assert-production-eas-env.sh",
-    "build:production:ios": "EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com bash scripts/assert-production-mobile-env.sh && eas build --profile production --platform ios",
-    "build:production:android": "EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com bash scripts/assert-production-mobile-env.sh && eas build --profile production --platform android",
-    "update:production": "bash scripts/assert-production-eas-env.sh && eas update --channel production --environment production --platform ios",
-    "update:production:android": "bash scripts/assert-production-eas-env.sh && eas update --channel production --environment production --platform android"
+    "assert:production-eas-env": "bash scripts/with-mobile-node-path.sh bash scripts/assert-production-eas-env.sh",
+    "expo:config": "bash scripts/with-mobile-node-path.sh npx expo config --json",
+    "eas:env:list": "bash scripts/with-mobile-node-path.sh eas env:list",
+    "eas:env:set": "bash scripts/with-mobile-node-path.sh eas env:set",
+    "build:production:ios": "EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com bash scripts/assert-production-mobile-env.sh && bash scripts/with-mobile-node-path.sh eas build --profile production --platform ios",
+    "build:production:android": "EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com bash scripts/assert-production-mobile-env.sh && bash scripts/with-mobile-node-path.sh eas build --profile production --platform android",
+    "update:production": "bash scripts/with-mobile-node-path.sh bash scripts/assert-production-eas-env.sh && bash scripts/with-mobile-node-path.sh eas update --channel production --environment production --platform ios",
+    "update:production:android": "bash scripts/with-mobile-node-path.sh bash scripts/assert-production-eas-env.sh && bash scripts/with-mobile-node-path.sh eas update --channel production --environment production --platform android"
   },
   "private": true,
   "expo": {

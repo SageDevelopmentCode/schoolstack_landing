@@ -258,6 +258,7 @@ Set these URLs in App Store Connect and Google Play Console:
 | OTA published but app crashes / missing Supabase after restart | EAS `production` env missing `EXPO_PUBLIC_SUPABASE_*` or vars use `secret` visibility — fix env, republish OTA |
 | OTA published but env wrong in bundle | Use `update:production` (assert + `--environment production`); ensure EAS `production` env matches store build |
 | `eas update` / export fails: `Unable to resolve module @expo/metro-runtime` | Default `eas update` bundles **web** too; [`app.json`](app.json) `web.output: static` needs that package. Use `npm run update:production` (`--platform ios`) or install `@expo/metro-runtime` in the mobile workspace |
+| `could not list EAS production environment` / `Cannot find module 'expo/config-plugins'` / `env:list` or `env:set` command failed | npm workspace hoisting — use [`with-mobile-node-path.sh`](scripts/with-mobile-node-path.sh). Prefer `npm run eas:env:set -- --environment production --name VAR --value …` or `npm run eas:env:list -- --environment production`. Raw `eas` without `NODE_PATH` breaks `expo config` (Sentry plugin). |
 | Keeps returning to intro / welcome (logged out) on iOS | Ship a build with `SupabaseAuthLifecycle` (AppState refresh). After TestFlight install: login → background 30+ min → foreground (stay signed in); force-quit → reopen (stay signed in). If still failing, check `activity_events` for `auth.session_cleared` vs `pendingAuthDiagnostics` on next `auth.signed_in` |
 
 ## Session persistence verification (TestFlight)
