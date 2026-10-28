@@ -427,6 +427,35 @@ function validateFormSection(section: ApplicationSection): string[] {
   return errors;
 }
 
+function validateInlineDocumentConsentOptions(
+  itemLabel: string,
+  consentOptions: { value: string; label: string }[] | undefined,
+): string[] {
+  if (!consentOptions?.length) return [];
+
+  const errors: string[] = [];
+  const values = new Set<string>();
+
+  for (const option of consentOptions) {
+    if (!option.label.trim()) {
+      errors.push(`"${itemLabel}" has a consent option without label text.`);
+      break;
+    }
+    const value = option.value.trim();
+    if (!value) {
+      errors.push(`"${itemLabel}" has an invalid consent option.`);
+      break;
+    }
+    if (values.has(value)) {
+      errors.push(`"${itemLabel}" has duplicate consent options.`);
+      break;
+    }
+    values.add(value);
+  }
+
+  return errors;
+}
+
 export function validateEnrollmentChecklistItems(
   items: EnrollmentChecklistItem[],
   options?: { paymentsReady?: boolean },
@@ -467,6 +496,12 @@ export function validateEnrollmentChecklistItems(
             break;
           }
         }
+        errors.push(
+          ...validateInlineDocumentConsentOptions(
+            item.label,
+            item.document.consentOptions,
+          ),
+        );
         break;
       }
       case "document_sign_pdf": {

@@ -1,6 +1,7 @@
 "use client";
 
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import type { NewsletterVisualBranding } from "@/lib/school-admin/newsletter/newsletter-branding";
 import type {
   NewsletterEdition,
   NewsletterSchoolMeta,
@@ -16,6 +17,7 @@ type NewsletterPreviewPanelProps = {
   theme: ParentThemeTokens;
   edition: NewsletterEdition;
   school: NewsletterSchoolMeta;
+  branding: NewsletterVisualBranding;
   device: PreviewDevice;
   staffMembers: StaffMemberRecord[];
   template: NewsletterSchoolTemplate;
@@ -24,6 +26,7 @@ type NewsletterPreviewPanelProps = {
 export default function NewsletterPreviewPanel({
   edition,
   school,
+  branding,
   device,
   staffMembers,
   template,
@@ -37,6 +40,7 @@ export default function NewsletterPreviewPanel({
           <NewsletterPreviewArticle
             edition={edition}
             school={school}
+            branding={branding}
             staffMembers={staffMembers}
             template={template}
           />

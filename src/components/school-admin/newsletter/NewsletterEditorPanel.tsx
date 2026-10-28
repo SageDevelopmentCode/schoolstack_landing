@@ -1,6 +1,9 @@
 "use client";
 
-import { Calendar, ImageIcon, Pencil, Trash2 } from "lucide-react";
+import { Calendar, ImageIcon, Images, Pencil, Trash2 } from "lucide-react";
+import { useRef } from "react";
+import { resizeImageFileToDataUrl } from "@/lib/school-admin/newsletter/newsletter-photos";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
@@ -9,10 +12,20 @@ import AdminTextLink from "@/components/school-admin/ui/story/AdminTextLink";
 import { initialsFromName } from "@/lib/messages/format";
 import { submissionContactAvatarStyle } from "@/components/admissions/ParentPortalLoginIcon";
 import { shortDate } from "@/lib/school-admin/newsletter/newsletter-dates";
-import type {
-  NewsletterEdition,
-  NewsletterSchoolTemplate,
-  NewsletterStoryBlock,
+import {
+  canAddCustomStoryBlock,
+  countEnabledStoryBlocks,
+  customStoryBlockLimitMessage,
+  MAX_ENABLED_STORY_BLOCKS,
+  MAX_NEWSLETTER_EVENTS,
+  MAX_NEWSLETTER_PHOTOS,
+  MAX_NEWSLETTER_REMINDERS,
+} from "@/lib/school-admin/newsletter/newsletter-limits";
+import {
+  createNewsletterId,
+  type NewsletterEdition,
+  type NewsletterSchoolTemplate,
+  type NewsletterStoryBlock,
 } from "@/lib/school-admin/newsletter/newsletter-types";
 import { staffDisplayName } from "@/lib/staff/staff-display";
 import type { StaffMemberRecord } from "@/lib/staff/staff-members";
@@ -35,6 +48,10 @@ type NewsletterEditorPanelProps = {
   onAddEvent: () => void;
   onEditEvent: (index: number) => void;
   onUploadPhotos: () => void;
+  onOpenGalleryPicker: () => void;
+  galleryEnabled: boolean;
+  slug: string;
+  onToast?: (message: string) => void;
 };
 
 export default function NewsletterEditorPanel({
@@ -52,6 +69,10 @@ export default function NewsletterEditorPanel({
   onAddEvent,
   onEditEvent,
   onUploadPhotos,
+  onOpenGalleryPicker,
+  galleryEnabled,
+  slug,
+  onToast,
 }: NewsletterEditorPanelProps) {
   const { theme, C } = useSchoolAdminStoryTheme();
 
@@ -113,11 +134,15 @@ export default function NewsletterEditorPanel({
         {editorTab === "story" ? (
           <StoryTab
             edition={edition}
+            template={template}
             locked={locked}
             theme={theme}
             onPatch={patch}
+            onEditionChange={onEditionChange}
+            onTemplateChange={onTemplateChange}
             onUpdateBlock={updateBlock}
             onUpdateBlockHeading={updateBlockHeading}
+            onToast={onToast}
           />
         ) : null}
         {editorTab === "teachers" ? (
@@ -142,6 +167,7 @@ export default function NewsletterEditorPanel({
             onPatch={onEditionChange}
             onAddEvent={onAddEvent}
             onEditEvent={onEditEvent}
+            onToast={onToast}
           />
         ) : null}
         {editorTab === "photos" ? (
@@ -149,8 +175,11 @@ export default function NewsletterEditorPanel({
             edition={edition}
             locked={locked}
             theme={theme}
+            slug={slug}
+            galleryEnabled={galleryEnabled}
             onPatch={onEditionChange}
             onUploadPhotos={onUploadPhotos}
+            onOpenGalleryPicker={onOpenGalleryPicker}
           />
         ) : null}
       </div>
@@ -160,23 +189,112 @@ export default function NewsletterEditorPanel({
 
 function StoryTab({
   edition,
+  template,
   locked,
   theme,
   onPatch,
+  onEditionChange,
+  onTemplateChange,
   onUpdateBlock,
   onUpdateBlockHeading,
+  onToast,
 }: {
   edition: NewsletterEdition;
+  template: NewsletterSchoolTemplate;
   locked: boolean;
   theme: ReturnType<typeof useSchoolAdminStoryTheme>["theme"];
   onPatch: (partial: Partial<NewsletterEdition>) => void;
+  onEditionChange: (edition: NewsletterEdition) => void;
+  onTemplateChange: (template: NewsletterSchoolTemplate) => void;
   onUpdateBlock: (
     blockId: string,
     updater: (block: NewsletterStoryBlock) => NewsletterStoryBlock,
   ) => void;
   onUpdateBlockHeading: (blockId: string, heading: string) => void;
+  onToast?: (message: string) => void;
 }) {
   const contentBlocks = edition.storyBlocks.filter((b) => b.enabled);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
+  const removeSection = (block: NewsletterStoryBlock) => {
+    if (locked) return;
+    if (block.kind === "custom") {
+      onTemplateChange({
+        ...template,
+        storyBlocks: template.storyBlocks.filter((b) => b.id !== block.id),
+      });
+      onEditionChange({
+        ...edition,
+        storyBlocks: edition.storyBlocks.filter((b) => b.id !== block.id),
+      });
+      return;
+    }
+    onTemplateChange({
+      ...template,
+      storyBlocks: template.storyBlocks.map((b) =>
+        b.id === block.id ? { ...b, enabled: false } : b,
+      ),
+    });
+    onEditionChange({
+      ...edition,
+      storyBlocks: edition.storyBlocks.map((b) =>
+        b.id === block.id ? { ...b, enabled: false } : b,
+      ),
+    });
+  };
+
+  const addSection = () => {
+    if (locked) return;
+    if (!canAddCustomStoryBlock(template)) {
+      onToast?.(customStoryBlockLimitMessage());
+      return;
+    }
+    const id = createNewsletterId();
+    const block: NewsletterStoryBlock = {
+      id,
+      kind: "custom",
+      heading: "Custom section",
+      prompt: "Your prompt",
+      optional: true,
+      enabled: true,
+      value: "",
+    };
+    onTemplateChange({
+      ...template,
+      storyBlocks: [
+        ...template.storyBlocks,
+        {
+          id: block.id,
+          kind: block.kind,
+          heading: block.heading,
+          prompt: block.prompt,
+          optional: block.optional,
+          enabled: block.enabled,
+        },
+      ],
+    });
+    onEditionChange({
+      ...edition,
+      storyBlocks: [...edition.storyBlocks, block],
+    });
+  };
+
+  const handleCoverFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (locked) return;
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      onToast?.("Use a JPG or PNG image.");
+      return;
+    }
+    try {
+      const src = await resizeImageFileToDataUrl(file);
+      onPatch({ coverImage: src });
+    } catch {
+      onToast?.("Could not load that image. Try JPG or PNG.");
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -190,6 +308,55 @@ function StoryTab({
             onChange={(e) => onPatch({ title: e.target.value })}
           />
         </Field>
+        <div className="mt-4">
+          <Field label="Cover image" optional>
+            {edition.coverImage ? (
+              <>
+                <div className={styles.coverPreview}>
+                  <img src={edition.coverImage} alt="" />
+                </div>
+                <div className={styles.coverActions}>
+                  <AdminButton
+                    theme={theme}
+                    variant="outline"
+                    size="compact"
+                    disabled={locked}
+                    onClick={() => coverInputRef.current?.click()}
+                  >
+                    Change
+                  </AdminButton>
+                  <AdminButton
+                    theme={theme}
+                    variant="outline"
+                    size="compact"
+                    disabled={locked}
+                    onClick={() => onPatch({ coverImage: undefined })}
+                  >
+                    Remove
+                  </AdminButton>
+                </div>
+              </>
+            ) : (
+              <button
+                type="button"
+                className={styles.coverUploadBtn}
+                disabled={locked}
+                onClick={() => coverInputRef.current?.click()}
+              >
+                <ImageIcon size={22} strokeWidth={1.65} aria-hidden />
+                Add cover image
+              </button>
+            )}
+          </Field>
+          <input
+            ref={coverInputRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(e) => void handleCoverFile(e)}
+          />
+          <p className={styles.helper}>Shown on the newsletters list in this browser.</p>
+        </div>
         <div className={`${styles.twoFields} mt-4`}>
           <Field label="Week beginning">
             <input
@@ -217,8 +384,27 @@ function StoryTab({
         </p>
       </AdminCard>
 
+      <p className="text-[10px] leading-relaxed" style={{ color: theme.muted }}>
+        {countEnabledStoryBlocks(edition.storyBlocks)} of {MAX_ENABLED_STORY_BLOCKS} story
+        sections
+      </p>
+
       {contentBlocks.map((block) => (
         <AdminCard key={block.id} theme={theme} padding="compact">
+          <div className={styles.smallHeadingRow}>
+            <span className={styles.smallHeading}>Section</span>
+            <button
+              type="button"
+              className={styles.iconBtn}
+              disabled={locked}
+              aria-label={
+                block.kind === "custom" ? "Remove section" : "Hide section"
+              }
+              onClick={() => removeSection(block)}
+            >
+              <Trash2 size={14} strokeWidth={1.65} aria-hidden />
+            </button>
+          </div>
           <Field label="Section heading">
             <input
               className={styles.input}
@@ -244,6 +430,10 @@ function StoryTab({
           </Field>
         </AdminCard>
       ))}
+
+      <AdminTextLink theme={theme} disabled={locked} onClick={addSection}>
+        + Add section
+      </AdminTextLink>
     </div>
   );
 }
@@ -349,6 +539,7 @@ function DetailsTab({
   onPatch,
   onAddEvent,
   onEditEvent,
+  onToast,
 }: {
   edition: NewsletterEdition;
   locked: boolean;
@@ -356,7 +547,10 @@ function DetailsTab({
   onPatch: (edition: NewsletterEdition) => void;
   onAddEvent: () => void;
   onEditEvent: (index: number) => void;
+  onToast?: (message: string) => void;
 }) {
+  const atEventCap = edition.events.length >= MAX_NEWSLETTER_EVENTS;
+  const atReminderCap = edition.reminders.length >= MAX_NEWSLETTER_REMINDERS;
   if (!edition.sections.events && !edition.sections.reminders) {
     return <p className={styles.emptyNote}>Dates and reminders are off.</p>;
   }
@@ -367,9 +561,9 @@ function DetailsTab({
         <AdminCard theme={theme} padding="compact">
           <div className={styles.smallHeadingRow}>
             <AdminDisplayHeading theme={theme} size="section" as="h3" className="!mt-0">
-              Important dates
+              Important dates · {edition.events.length} / {MAX_NEWSLETTER_EVENTS}
             </AdminDisplayHeading>
-            <AdminTextLink theme={theme} disabled={locked} onClick={onAddEvent}>
+            <AdminTextLink theme={theme} disabled={locked || atEventCap} onClick={onAddEvent}>
               + Add date
             </AdminTextLink>
           </div>
@@ -418,12 +612,16 @@ function DetailsTab({
         <AdminCard theme={theme} padding="compact">
           <div className={styles.smallHeadingRow}>
             <AdminDisplayHeading theme={theme} size="section" as="h3" className="!mt-0">
-              Reminders
+              Reminders · {edition.reminders.length} / {MAX_NEWSLETTER_REMINDERS}
             </AdminDisplayHeading>
             <AdminTextLink
               theme={theme}
-              disabled={locked}
+              disabled={locked || atReminderCap}
               onClick={() => {
+                if (atReminderCap) {
+                  onToast?.(`Up to ${MAX_NEWSLETTER_REMINDERS} reminders.`);
+                  return;
+                }
                 onPatch({
                   ...edition,
                   reminders: [
@@ -497,40 +695,76 @@ function PhotosTab({
   edition,
   locked,
   theme,
+  slug,
+  galleryEnabled,
   onPatch,
   onUploadPhotos,
+  onOpenGalleryPicker,
 }: {
   edition: NewsletterEdition;
   locked: boolean;
   theme: ReturnType<typeof useSchoolAdminStoryTheme>["theme"];
+  slug: string;
+  galleryEnabled: boolean;
   onPatch: (edition: NewsletterEdition) => void;
   onUploadPhotos: () => void;
+  onOpenGalleryPicker: () => void;
 }) {
   if (!edition.sections.photos) {
     return <p className={styles.emptyNote}>Photos are off for this edition.</p>;
   }
 
+  const atPhotoCap = edition.photos.length >= MAX_NEWSLETTER_PHOTOS;
+  const photosHref = `/school/${slug}/admin/photos`;
+
   return (
     <AdminCard theme={theme} padding="compact">
       <AdminDisplayHeading theme={theme} size="section" as="h3" className="!mt-0">
-        Photos
+        Photos · {edition.photos.length} / {MAX_NEWSLETTER_PHOTOS}
       </AdminDisplayHeading>
-      <button
-        type="button"
-        className={styles.upload}
-        disabled={locked || edition.photos.length >= 6}
-        onClick={onUploadPhotos}
-      >
-        <ImageIcon size={24} strokeWidth={1.65} aria-hidden />
-        <strong>Add photos</strong>
-        <small>Up to six images · JPG or PNG</small>
-      </button>
+      <div className="mt-3 flex flex-row flex-nowrap items-center gap-2">
+        {galleryEnabled ? (
+          <AdminButton
+            theme={theme}
+            variant="primary"
+            size="compact"
+            className="!px-2.5 whitespace-nowrap"
+            disabled={locked || atPhotoCap}
+            onClick={onOpenGalleryPicker}
+          >
+            <Images size={14} strokeWidth={1.65} aria-hidden />
+            From library
+          </AdminButton>
+        ) : null}
+        <AdminButton
+          theme={theme}
+          variant="soft"
+          size="compact"
+          className="!px-2.5 whitespace-nowrap"
+          disabled={locked || atPhotoCap}
+          onClick={onUploadPhotos}
+        >
+          <ImageIcon size={14} strokeWidth={1.65} aria-hidden />
+          From device
+        </AdminButton>
+      </div>
+      {!galleryEnabled ? (
+        <p className={styles.helper}>
+          School photo library is off. Upload from your device, or manage photos under{" "}
+          <a href={photosHref} className="underline" style={{ color: theme.primary }}>
+            My School → Photos
+          </a>
+          .
+        </p>
+      ) : (
+        <p className={styles.helper}>JPG or PNG from your device, or pick from the school library.</p>
+      )}
       {edition.photos.length === 0 ? (
         <div
           className="mt-4 flex min-h-[100px] items-center justify-center rounded-xl border border-dashed px-4 py-6 text-center text-[11px]"
           style={{ borderColor: "#DCE4D8", color: theme.muted }}
         >
-          No photos yet. Upload from your device.
+          No photos yet.
         </div>
       ) : (
         edition.photos.map((photo, index) => (

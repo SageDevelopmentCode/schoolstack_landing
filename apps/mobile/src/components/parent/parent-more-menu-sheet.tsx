@@ -27,6 +27,7 @@ import { useParentPortalContext } from '@/contexts/parent-portal-context';
 import {
   isParentHomeFridayBranchEnabled,
   isParentNavFridayBranchEnabled,
+  resolveFridayBranchSettingsFromHome,
 } from '@/lib/parent/parent-features';
 import { resolveMobileMoreMenuFeatureKeys } from '@/lib/parent/mobile-parent-portal-nav';
 import {
@@ -71,7 +72,8 @@ export function ParentMoreMenuSheet({
 }: ParentMoreMenuSheetProps) {
   const theme = useParentTheme();
   const { user, portalType } = useAuth();
-  const { data: homeData, ensureLoaded } = useParentHome();
+  const { data: homeData, ensureLoaded, hasLoaded: homeHasLoaded, isLoading: homeIsLoading } =
+    useParentHome();
   const [activeTab, setActiveTab] = useState<MoreMenuTabId>('menu');
   const {
     contexts,
@@ -140,21 +142,20 @@ export function ParentMoreMenuSheet({
 
   const portalFeatureRecord = activePortalFeatures?.parent ?? homeData?.features?.parent;
 
-  const fridayBranchSettings = homeData?.fridayBranchParentPortalPaused
-    ? { parent_portal_paused: true as const }
-    : { parent_portal_paused: false as const };
+  const fridayBranchSettings = resolveFridayBranchSettingsFromHome(homeData);
 
   const schoolGalleryEnabled = homeData?.schoolGalleryEnabled ?? false;
 
+  const mainPortalFeaturesPending =
+    !activeProgramSlug && !portalFeatureRecord && (homeIsLoading || !homeHasLoaded);
+
   const visibleMenuItemIds = useMemo(() => {
-    if (programPortalFeaturesPending) {
+    if (programPortalFeaturesPending || mainPortalFeaturesPending) {
       return [] as ParentMoreMenuItemId[];
     }
 
     if (!portalFeatureRecord) {
-      return (Object.keys(PARENT_MORE_MENU_META) as ParentMoreMenuItemId[]).filter(
-        (id) => id !== 'photos' || schoolGalleryEnabled,
-      );
+      return [] as ParentMoreMenuItemId[];
     }
 
     const featureKeys = resolveMobileMoreMenuFeatureKeys({
@@ -205,6 +206,7 @@ export function ParentMoreMenuSheet({
     activeProgramSlug,
     fridayBranchSettings,
     homeData?.features?.parent_home,
+    mainPortalFeaturesPending,
     portalFeatureRecord,
     programPortalFeaturesPending,
     schoolGalleryEnabled,
@@ -275,7 +277,7 @@ export function ParentMoreMenuSheet({
 
       <StoryMoreMenuTabPanel visible={showMenuPanel}>
         <>
-          {programPortalFeaturesPending ? (
+          {programPortalFeaturesPending || mainPortalFeaturesPending ? (
             <ParentPortalMoreMenuItemsSkeleton />
           ) : (
             <StoryMoreMenuItemsCard>

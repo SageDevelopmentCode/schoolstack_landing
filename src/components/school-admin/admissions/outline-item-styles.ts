@@ -6,6 +6,14 @@ export const BUILDER_CANVAS_BG = "#F7F9F7";
 export const OUTLINE_ACTIVE_BG = "#EDF5EE";
 export const OUTLINE_ACTIVE_BORDER = "#CDE0D0";
 
+export function outlineRowInteractiveClassName(active: boolean): string {
+  const base = "cursor-pointer transition-colors";
+  if (active) {
+    return base;
+  }
+  return `${base} hover:border-[#E5EDE6] hover:bg-[#F3F8F4]`;
+}
+
 export function outlineActiveRowStyle(
   active: boolean,
   theme?: ParentThemeTokens,

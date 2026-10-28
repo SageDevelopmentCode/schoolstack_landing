@@ -1,12 +1,11 @@
 "use client";
 
-import { Check, Copy, Eye, FileText } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
-import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
 import AdminTextLink from "@/components/school-admin/ui/story/AdminTextLink";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { weekLabel } from "@/lib/school-admin/newsletter/newsletter-dates";
@@ -15,14 +14,19 @@ import {
   downloadFile,
   plainTextFromHtml,
 } from "@/lib/school-admin/newsletter/newsletter-export";
+import {
+  newsletterVisualBrandingForExport,
+  newsletterVisualBrandingForPreview,
+} from "@/lib/school-admin/newsletter/newsletter-branding";
 import { buildNewsletterArticleHtml } from "@/lib/school-admin/newsletter/newsletter-render";
 import { resizeImageFileToDataUrl } from "@/lib/school-admin/newsletter/newsletter-photos";
-import { createSampleEdition } from "@/lib/school-admin/newsletter/newsletter-sample";
 import {
-  loadSchoolTemplate,
   saveSchoolTemplate,
   templateFromEdition,
 } from "@/lib/school-admin/newsletter/newsletter-template";
+import { MAX_NEWSLETTER_EVENTS, MAX_NEWSLETTER_PHOTOS } from "@/lib/school-admin/newsletter/newsletter-limits";
+import { refreshNewsletterGalleryPhotoUrls } from "@/lib/school-admin/newsletter/refresh-newsletter-gallery-photo-urls";
+import { createInitialNewsletterWorkspace } from "@/lib/school-admin/newsletter/newsletter-workspace-storage";
 import {
   createNewsletterId,
   type NewsletterEdition,
@@ -36,6 +40,7 @@ import NewsletterEditorPanel, {
 import NewsletterModals, { type NewsletterModalState } from "./NewsletterModals";
 import NewsletterPreviewPanel, { type PreviewDevice } from "./NewsletterPreviewPanel";
 import NewsletterPreviewToolbar from "./NewsletterPreviewToolbar";
+import NewsletterGalleryPickerSheet from "./NewsletterGalleryPickerSheet";
 import NewsletterWorkspaceSkeleton from "./NewsletterWorkspaceSkeleton";
 import styles from "./newsletter-workspace.module.css";
 
@@ -44,32 +49,31 @@ type NewsletterWorkspaceProps = {
   slug: string;
   schoolName: string;
   branding: OrganizationBranding;
+  editionId: string;
+  workspace: NewsletterWorkspaceState;
+  onWorkspaceChange: (next: NewsletterWorkspaceState) => void;
+  onBack: () => void;
+  galleryEnabled: boolean;
 };
-
-function initWorkspace(
-  organizationId: string,
-  schoolName: string,
-  primary: string,
-): NewsletterWorkspaceState {
-  const stored = loadSchoolTemplate(organizationId);
-  return createSampleEdition(schoolName, primary, stored ?? undefined);
-}
 
 export default function NewsletterWorkspace({
   organizationId,
   slug,
   schoolName,
-  branding: _branding,
+  branding,
+  editionId,
+  workspace,
+  onWorkspaceChange,
+  onBack,
+  galleryEnabled,
 }: NewsletterWorkspaceProps) {
-  const { theme } = useSchoolAdminStoryTheme();
-  const [workspace, setWorkspace] = useState<NewsletterWorkspaceState>(() =>
-    initWorkspace(organizationId, schoolName, theme.primary),
-  );
+  const { theme, C } = useSchoolAdminStoryTheme();
   const [previewVisible, setPreviewVisible] = useState(true);
   const [editorTab, setEditorTab] = useState<NewsletterEditorTab>("story");
   const [device, setDevice] = useState<PreviewDevice>("desktop");
   const [modal, setModal] = useState<NewsletterModalState | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [galleryPickerOpen, setGalleryPickerOpen] = useState(false);
   const [staffMembers, setStaffMembers] = useState<StaffMemberRecord[]>([]);
   const [staffLoading, setStaffLoading] = useState(true);
   const [staffError, setStaffError] = useState<string | null>(null);
@@ -79,21 +83,52 @@ export default function NewsletterWorkspace({
 
   const activeEdition = useMemo(
     () =>
-      workspace.editions.find((e) => e.id === workspace.activeEditionId) ??
-      workspace.editions[0],
-    [workspace],
+      workspace.editions.find((e) => e.id === editionId) ?? workspace.editions[0],
+    [workspace.editions, editionId],
   );
 
-  const locked = activeEdition.status === "published";
+  const locked = activeEdition?.status === "published";
+
+  const galleryRefreshKey = activeEdition?.photos
+    .filter((p) => p.galleryPhotoId)
+    .map((p) => p.galleryPhotoId)
+    .join(",");
+
+  useEffect(() => {
+    if (!galleryRefreshKey) return;
+    const edition = workspace.editions.find((e) => e.id === editionId);
+    if (!edition) return;
+    const prior = edition.photos;
+    let cancelled = false;
+    void refreshNewsletterGalleryPhotoUrls(slug, prior).then((photos) => {
+      if (cancelled) return;
+      if (!photos.some((p, i) => p.src !== prior[i]?.src)) return;
+      onWorkspaceChange({
+        ...workspace,
+        editions: workspace.editions.map((e) =>
+          e.id === editionId ? { ...e, photos } : e,
+        ),
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [editionId, slug, galleryRefreshKey, onWorkspaceChange, workspace.editions]);
   const showBuilderSkeleton =
     staffLoading && staffMembers.length === 0 && !staffError;
+
+  const previewBranding = useMemo(
+    () => newsletterVisualBrandingForPreview(branding),
+    [branding],
+  );
 
   const renderOptions = useMemo(
     () => ({
       staff: staffMembers,
       template: workspace.template,
+      branding: newsletterVisualBrandingForExport(branding),
     }),
-    [staffMembers, workspace.template],
+    [branding, staffMembers, workspace.template],
   );
 
   useEffect(() => {
@@ -153,23 +188,28 @@ export default function NewsletterWorkspace({
 
   const updateActiveEdition = useCallback(
     (edition: NewsletterEdition) => {
-      setWorkspace((prev) => ({
-        ...prev,
-        editions: prev.editions.map((e) => (e.id === edition.id ? edition : e)),
-        template: templateFromEdition(edition, prev.template),
-      }));
+      onWorkspaceChange({
+        ...workspace,
+        activeEditionId: editionId,
+        editions: workspace.editions.map((e) => (e.id === edition.id ? edition : e)),
+        template: templateFromEdition(edition, workspace.template),
+      });
     },
-    [],
+    [editionId, onWorkspaceChange, workspace],
   );
 
-  const updateTemplate = useCallback((template: NewsletterSchoolTemplate) => {
-    setWorkspace((prev) => {
-      const edition = prev.editions.find((e) => e.id === prev.activeEditionId);
-      if (!edition) return { ...prev, template };
-      return {
-        ...prev,
+  const updateTemplate = useCallback(
+    (template: NewsletterSchoolTemplate) => {
+      const edition = workspace.editions.find((e) => e.id === editionId);
+      if (!edition) {
+        onWorkspaceChange({ ...workspace, template, activeEditionId: editionId });
+        return;
+      }
+      onWorkspaceChange({
+        ...workspace,
+        activeEditionId: editionId,
         template,
-        editions: prev.editions.map((e) =>
+        editions: workspace.editions.map((e) =>
           e.id === edition.id
             ? {
                 ...e,
@@ -181,9 +221,10 @@ export default function NewsletterWorkspace({
               }
             : e,
         ),
-      };
-    });
-  }, []);
+      });
+    },
+    [editionId, onWorkspaceChange, workspace],
+  );
 
   const showToast = useCallback((message: string) => {
     setToast(message);
@@ -202,19 +243,20 @@ export default function NewsletterWorkspace({
   }, []);
 
   const resetSample = useCallback(() => {
-    setWorkspace(initWorkspace(organizationId, schoolName, theme.primary));
+    onWorkspaceChange(
+      createInitialNewsletterWorkspace(organizationId, schoolName, theme.primary),
+    );
     setEditorTab("story");
-  }, [organizationId, schoolName, theme.primary]);
+    onBack();
+  }, [organizationId, onBack, onWorkspaceChange, schoolName, theme.primary]);
 
   const handlePhotoInput = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
       if (locked) return;
-      const files = [...(event.target.files ?? [])].slice(
-        0,
-        6 - activeEdition.photos.length,
-      );
+      const slotsLeft = MAX_NEWSLETTER_PHOTOS - activeEdition.photos.length;
+      const files = [...(event.target.files ?? [])].slice(0, slotsLeft);
       if (!files.length) {
-        showToast("Up to six photos.");
+        showToast(`Up to ${MAX_NEWSLETTER_PHOTOS} photos.`);
         event.target.value = "";
         return;
       }
@@ -282,64 +324,50 @@ export default function NewsletterWorkspace({
 
   const toolbarProps = {
     theme,
-    edition: activeEdition,
+    C,
     device,
     locked,
     previewVisible,
     onTogglePreview: togglePreview,
     onDeviceChange: setDevice,
-    onLayoutChange: (layout: NewsletterEdition["layout"]) =>
-      updateActiveEdition({ ...activeEdition, layout }),
     onExport: () => setModal({ type: "export" }),
+    onVersionHistory: () => showToast("Version history is coming soon."),
+    onPublish: openPublish,
   };
 
   return (
     <main className={styles.workspace} style={workspaceStyle}>
       <header className={styles.pagehead}>
-        <div>
-          <AdminSectionKicker theme={theme}>Communications</AdminSectionKicker>
-          <AdminDisplayHeading theme={theme} as="h1" size="display" className="mt-2">
-            Weekly newsletter
-          </AdminDisplayHeading>
-          <div className={styles.editionMeta}>
-            <AdminChip theme={theme} tone={locked ? "success" : "warning"}>
-              {locked ? "Published" : "Draft"}
-            </AdminChip>
-            <span>{weekLabel(activeEdition)}</span>
-            <span>Not saved to MudKitchen yet</span>
+        <AdminButton
+          theme={theme}
+          variant="outline"
+          size="compact"
+          className="mb-3"
+          onClick={onBack}
+        >
+          <ArrowLeft size={14} strokeWidth={1.65} aria-hidden />
+          Back to newsletters
+        </AdminButton>
+        <div className={styles.pageheadMain}>
+          <div className={styles.pageheadTitle}>
+            <AdminDisplayHeading theme={theme} as="h1" size="display">
+              Weekly newsletter
+            </AdminDisplayHeading>
+            <div className={styles.editionMeta}>
+              <AdminChip theme={theme} tone={locked ? "success" : "warning"}>
+                {locked ? "Published" : "Draft"}
+              </AdminChip>
+              <span>{weekLabel(activeEdition)}</span>
+              <span>Not saved to MudKitchen yet</span>
+            </div>
           </div>
-        </div>
-        <div className={styles.headingActions}>
-          <AdminButton
-            theme={theme}
-            variant="outline"
-            size="compact"
-            onClick={() => setModal({ type: "editions" })}
-          >
-            <FileText size={14} strokeWidth={1.65} aria-hidden />
-            Editions
-          </AdminButton>
-          <AdminButton theme={theme} variant="primary" size="compact" onClick={openPublish}>
-            {locked ? (
-              <Eye size={14} strokeWidth={1.65} aria-hidden />
-            ) : (
-              <Check size={14} strokeWidth={1.65} aria-hidden />
-            )}
-            {locked ? "View edition" : "Review & publish"}
-          </AdminButton>
+          <NewsletterPreviewToolbar
+            {...toolbarProps}
+            variant="pagehead"
+            className={styles.pageheadToolbar}
+          />
         </div>
       </header>
-
-      <div className={`${styles.navRow} ${styles.navRowActionsOnly}`}>
-        <div className={styles.navActions}>
-          <AdminTextLink theme={theme} onClick={() => setModal({ type: "nextWeek" })}>
-            <span className="inline-flex items-center gap-1">
-              <Copy size={14} strokeWidth={1.65} aria-hidden />
-              Next week
-            </span>
-          </AdminTextLink>
-        </div>
-      </div>
 
       {locked ? (
         <div className={styles.publishedBanner}>
@@ -367,14 +395,9 @@ export default function NewsletterWorkspace({
         {showBuilderSkeleton ? (
           <NewsletterWorkspaceSkeleton previewVisible={previewVisible} />
         ) : (
-          <>
-            <NewsletterPreviewToolbar
-              {...toolbarProps}
-              className={styles.builderToolbarRow}
-            />
-            <div
-              className={`${styles.builder} ${previewVisible ? "" : styles.builderPreviewHidden}`.trim()}
-            >
+          <div
+            className={`${styles.builder} ${previewVisible ? "" : styles.builderPreviewHidden}`.trim()}
+          >
               <div className={styles.editorColumn}>
                 <NewsletterEditorPanel
                   edition={activeEdition}
@@ -391,9 +414,19 @@ export default function NewsletterWorkspace({
                   onEditionChange={updateActiveEdition}
                   onTemplateChange={updateTemplate}
                   onOpenSections={() => setModal({ type: "sections" })}
-                  onAddEvent={() => setModal({ type: "event" })}
+                  onAddEvent={() => {
+                    if (activeEdition.events.length >= MAX_NEWSLETTER_EVENTS) {
+                      showToast(`Up to ${MAX_NEWSLETTER_EVENTS} dates.`);
+                      return;
+                    }
+                    setModal({ type: "event" });
+                  }}
+                  onOpenGalleryPicker={() => setGalleryPickerOpen(true)}
+                  galleryEnabled={galleryEnabled}
+                  slug={slug}
                   onEditEvent={(index) => setModal({ type: "event", index })}
                   onUploadPhotos={() => photoInputRef.current?.click()}
+                  onToast={showToast}
                 />
               </div>
 
@@ -403,6 +436,7 @@ export default function NewsletterWorkspace({
                     theme={theme}
                     edition={activeEdition}
                     school={workspace.school}
+                    branding={previewBranding}
                     device={device}
                     staffMembers={staffMembers}
                     template={workspace.template}
@@ -410,7 +444,6 @@ export default function NewsletterWorkspace({
                 </div>
               ) : null}
             </div>
-          </>
         )}
       </div>
 
@@ -447,15 +480,28 @@ export default function NewsletterWorkspace({
         workspace={workspace}
         activeEdition={activeEdition}
         onClose={() => setModal(null)}
-        onWorkspaceChange={setWorkspace}
+        onWorkspaceChange={onWorkspaceChange}
         onActiveEditionChange={updateActiveEdition}
         onTemplateChange={updateTemplate}
         onToast={showToast}
         onShowPreview={showPreview}
-        onEditorTabStory={() => setEditorTab("story")}
         onExportHtml={exportHtml}
         onExportText={() => void exportText()}
         onCopyText={() => void copyText()}
+      />
+
+      <NewsletterGalleryPickerSheet
+        open={galleryPickerOpen}
+        slug={slug}
+        edition={activeEdition}
+        onClose={() => setGalleryPickerOpen(false)}
+        onAddPhotos={(newPhotos) => {
+          const merged = [...activeEdition.photos, ...newPhotos].slice(
+            0,
+            MAX_NEWSLETTER_PHOTOS,
+          );
+          updateActiveEdition({ ...activeEdition, photos: merged });
+        }}
       />
 
       {toast ? (

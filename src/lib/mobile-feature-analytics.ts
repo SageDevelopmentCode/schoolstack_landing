@@ -101,6 +101,32 @@ export function mobileFeatureAnalyticsSurfaceLabel(
   return SURFACE_LABELS[surface];
 }
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function mobileFeatureKeyFromActivityRow(row: {
+  entity_id: string | null;
+  metadata: unknown;
+}): string | null {
+  const metadata = row.metadata;
+  if (metadata && typeof metadata === "object" && !Array.isArray(metadata)) {
+    const raw = (metadata as Record<string, unknown>).featureKey;
+    if (typeof raw === "string") {
+      const key = raw.trim();
+      if (key) {
+        return key;
+      }
+    }
+  }
+
+  const entityId = row.entity_id ? String(row.entity_id).trim() : "";
+  if (entityId && !UUID_PATTERN.test(entityId)) {
+    return entityId;
+  }
+
+  return null;
+}
+
 function isTrackedSurface(
   surface: string,
 ): surface is MobileFeatureAnalyticsSurface {
@@ -130,7 +156,7 @@ export async function fetchMobileFeatureAnalytics(
   while (fetched < MAX_ROWS) {
     let query = admin
       .from("activity_events")
-      .select("surface, entity_id, actor_user_id")
+      .select("surface, entity_id, metadata, actor_user_id")
       .eq("action", ACTIVITY_ACTIONS.MOBILE_FEATURE_VISITED)
       .in("actor_type", ["parent", "teacher", "school_admin"])
       .order("created_at", { ascending: true })
@@ -160,7 +186,10 @@ export async function fetchMobileFeatureAnalytics(
 
     for (const row of batch) {
       const surface = String(row.surface ?? "");
-      const featureKey = String(row.entity_id ?? "").trim();
+      const featureKey = mobileFeatureKeyFromActivityRow({
+        entity_id: row.entity_id as string | null,
+        metadata: row.metadata,
+      });
       if (!isTrackedSurface(surface) || !featureKey) {
         continue;
       }

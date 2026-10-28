@@ -7,7 +7,7 @@ import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { StorySectionKicker } from '@/components/story/story-section-kicker';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { createParentMessageThread } from '@/lib/messages/parent-api';
-import { createParentPortalErrorReporter } from '@/lib/mobile-error-reporter';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import type { ProgramCoopFamily, ProgramCoopLearner } from '@/lib/parent/parent-portal-api';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
@@ -37,6 +37,7 @@ export function ParentHomeCoopFamiliesCard({
   onOpenThread,
 }: ParentHomeCoopFamiliesCardProps) {
   const theme = useParentTheme();
+  const { reportError } = useMobileErrorReporter(organizationId);
   const [loadingFamilyId, setLoadingFamilyId] = useState<string | null>(null);
 
   const handleMessage = async (family: ProgramCoopFamily) => {
@@ -58,7 +59,7 @@ export function ParentHomeCoopFamiliesCard({
       );
       onOpenThread(threadId);
     } catch (err) {
-      createParentPortalErrorReporter(organizationId)('coop_family_message_thread', err);
+      reportError('coop_family_message_thread', err);
     } finally {
       setLoadingFamilyId(null);
     }

@@ -32,6 +32,10 @@ import { Story, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 import { getSupabaseClient } from '@/lib/supabase';
+import {
+  isCommitteeWorkspaceLoadTimeoutError,
+  withCommitteeWorkspaceLoadTimeout,
+} from '@/lib/school-admin/committees/committee-workspace-load';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type CommitteeWorkspaceScreenProps = {
@@ -99,7 +103,9 @@ function CommitteeWorkspaceScreen({
       setError(null);
     }
     try {
-      const loaded = await fetchWorkspace(organizationId, committeeId);
+      const loaded = await withCommitteeWorkspaceLoadTimeout(
+        fetchWorkspace(organizationId, committeeId),
+      );
       setCommittee(loaded.committee);
       setPreviewViewerMemberId(loaded.viewerMemberId);
       const sections = loaded.committee.config.sections.filter(
@@ -107,9 +113,13 @@ function CommitteeWorkspaceScreen({
       );
       setActiveSection((current) => resolveVisibleSection(sections, current));
     } catch (loadError) {
-      reportError('committees.load_workspace', loadError, {
+      const operation = isCommitteeWorkspaceLoadTimeoutError(loadError)
+        ? 'committees.load_workspace_timeout'
+        : 'committees.load_workspace';
+      reportError(operation, loadError, {
         entityType: 'committee',
         entityId: committeeId,
+        metadata: { committeeId },
       });
       if (!silent) {
         setError(loadError instanceof Error ? loadError.message : 'Failed to load committee.');

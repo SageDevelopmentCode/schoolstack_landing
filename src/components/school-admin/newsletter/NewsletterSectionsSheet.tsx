@@ -12,6 +12,13 @@ import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionK
 import AdminTextLink from "@/components/school-admin/ui/story/AdminTextLink";
 import { applyTemplateToEdition } from "@/lib/school-admin/newsletter/newsletter-template";
 import {
+  canAddCustomStoryBlock,
+  canEnableStoryBlock,
+  countEnabledStoryBlocks,
+  customStoryBlockLimitMessage,
+  MAX_ENABLED_STORY_BLOCKS,
+} from "@/lib/school-admin/newsletter/newsletter-limits";
+import {
   createNewsletterId,
   type NewsletterEdition,
   type NewsletterSchoolTemplate,
@@ -60,6 +67,10 @@ export default function NewsletterSectionsSheet({
   const [template, setTemplate] = useState(() => cloneTemplate(workspace.template));
 
   const toggleBlock = (id: string, enabled: boolean) => {
+    if (enabled && !canEnableStoryBlock(template.storyBlocks, id)) {
+      onToast(customStoryBlockLimitMessage());
+      return;
+    }
     setTemplate((prev) => ({
       ...prev,
       storyBlocks: prev.storyBlocks.map((b) => (b.id === id ? { ...b, enabled } : b)),
@@ -89,9 +100,8 @@ export default function NewsletterSectionsSheet({
   const customBlocks = template.storyBlocks.filter((b) => b.kind === "custom");
 
   const addCustom = () => {
-    const customCount = template.storyBlocks.filter((b) => b.kind === "custom").length;
-    if (customCount >= 6) {
-      onToast("Up to six custom prompts.");
+    if (!canAddCustomStoryBlock(template)) {
+      onToast(customStoryBlockLimitMessage());
       return;
     }
     const id = createNewsletterId();
@@ -136,6 +146,10 @@ export default function NewsletterSectionsSheet({
           <AdminDisplayHeading theme={theme} size="section" as="h3" className="!mt-1 mb-2">
             Story prompts
           </AdminDisplayHeading>
+          <p className="mb-2 text-[10px] leading-relaxed" style={{ color: theme.muted }}>
+            {countEnabledStoryBlocks(template.storyBlocks)} of {MAX_ENABLED_STORY_BLOCKS} story
+            sections enabled
+          </p>
           <AdminCard theme={theme} padding="none" className="pb-1 mb-4">
             {fixedBlocks.map((block, index) => (
               <SettingToggleRow

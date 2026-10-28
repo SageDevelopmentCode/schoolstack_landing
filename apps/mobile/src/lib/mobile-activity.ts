@@ -5,6 +5,7 @@ import { isBenignClientNetworkError } from '@/lib/client-network-errors';
 import { resetMobileFeatureVisitSession } from '@/lib/mobile-feature-visit-session';
 import { fetchWithAuth, postJsonWithAccessToken } from '@/lib/auth/auth-session';
 import { consumePendingAuthDiagnostics } from '@/lib/mobile-auth-diagnostics';
+import { captureMobileOperationalPostFailure } from '@/lib/sentry';
 import type { PortalType, ResolvedPortal } from '@/lib/auth/resolve-portal';
 
 const siteUrl = process.env.EXPO_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https://trymudkitchen.com';
@@ -74,6 +75,7 @@ async function postMobileApi(path: string, body: Record<string, unknown>): Promi
     });
   } catch (reportError) {
     console.error(`[mobile-activity] ${path} report failed:`, reportError);
+    captureMobileOperationalPostFailure(path, reportError);
   }
 }
 

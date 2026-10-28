@@ -1,4 +1,5 @@
-export type NewsletterLayout = "storybook" | "brief" | "journal";
+/** Single storybook layout; legacy values are normalized on workspace load. */
+export type NewsletterLayout = "storybook";
 
 export type NewsletterEditionStatus = "draft" | "published";
 
@@ -55,6 +56,8 @@ export type NewsletterPhoto = {
   id: string;
   src: string;
   caption: string;
+  /** When picked from the school photo library. */
+  galleryPhotoId?: string;
 };
 
 export type NewsletterEdition = {
@@ -71,6 +74,8 @@ export type NewsletterEdition = {
   events: NewsletterEvent[];
   reminders: NewsletterReminder[];
   photos: NewsletterPhoto[];
+  /** Data URL for overview grid banner (browser-only draft). */
+  coverImage?: string;
 };
 
 export type NewsletterSchoolMeta = {

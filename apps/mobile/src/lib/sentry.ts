@@ -70,3 +70,17 @@ export async function withMobileApiSpan<T>(
 }
 
 export { Sentry };
+
+export function captureMobileOperationalPostFailure(path: string, err: unknown): void {
+  if (!sentryInitialized) {
+    return;
+  }
+
+  Sentry.captureMessage(`mobile_api_post_failed:${path}`, {
+    level: 'warning',
+    extra: {
+      path,
+      error: err instanceof Error ? err.message : String(err),
+    },
+  });
+}

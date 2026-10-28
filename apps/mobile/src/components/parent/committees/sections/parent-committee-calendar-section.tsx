@@ -70,6 +70,7 @@ export function ParentCommitteeCalendarSection({
     organizationId,
     supabase,
     theme,
+    reportError,
   });
   const { goToDate } = calendar;
 

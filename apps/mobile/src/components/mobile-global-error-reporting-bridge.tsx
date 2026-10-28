@@ -1,31 +1,23 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 
-import { useAuth } from '@/contexts/auth-context';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { isMobileE2e } from '@/lib/e2e';
-import { createMobileErrorReporter } from '@/lib/mobile-error-reporter';
 import {
   reportMobileGlobalOperationalError,
   setMobileGlobalErrorReporter,
 } from '@/lib/mobile-global-error-reporting';
 
 export function MobileGlobalErrorReportingBridge() {
-  const { portalType, selectedSchool } = useAuth();
-  const organizationId = selectedSchool?.id ?? null;
-
-  const reportError = useMemo(
-    () => createMobileErrorReporter(portalType, organizationId),
-    [organizationId, portalType],
-  );
-
-  if (isMobileE2e) {
-    setMobileGlobalErrorReporter(null);
-  } else {
-    setMobileGlobalErrorReporter(reportError);
-  }
+  const { reportError } = useMobileErrorReporter();
 
   useEffect(() => {
+    if (isMobileE2e) {
+      setMobileGlobalErrorReporter(null);
+      return;
+    }
+    setMobileGlobalErrorReporter(reportError);
     return () => setMobileGlobalErrorReporter(null);
-  }, []);
+  }, [reportError]);
 
   useEffect(() => {
     if (isMobileE2e) {
@@ -42,7 +34,7 @@ export function MobileGlobalErrorReportingBridge() {
     }
 
     return undefined;
-  }, []);
+  }, [reportError]);
 
   return null;
 }

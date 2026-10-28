@@ -19,7 +19,6 @@ import type {
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
-import FormattedDocumentText from "@/components/admissions/FormattedDocumentText";
 import MarkdownTextareaField from "@/components/school-admin/admissions/MarkdownTextareaField";
 import { createClient } from "@/utils/supabase/client";
 
@@ -132,17 +131,6 @@ function SectionEditorCard({
         <p className="text-[10px]" style={{ color: C.textTertiary }}>
           Use the toolbar or type markdown directly (headings, bold, lists, --- dividers). Families sign this section before moving on.
         </p>
-        {section.body.trim() ? (
-          <div
-            className="rounded-md border p-4"
-            style={{ borderColor: C.border, backgroundColor: C.surface }}
-          >
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide" style={{ color: C.textTertiary }}>
-              Preview
-            </p>
-            <FormattedDocumentText C={C} content={section.body} />
-          </div>
-        ) : null}
       </div>
     </Reorder.Item>
   );
@@ -176,6 +164,17 @@ export function EnrollmentInlineAgreementEditor({
     );
   };
 
+  const consentOptions = document.consentOptions ?? [];
+
+  const updateConsentOptions = (
+    options: { value: string; label: string }[],
+  ) => {
+    onChange({
+      ...document,
+      consentOptions: options.length > 0 ? options : undefined,
+    });
+  };
+
   const addSectionButton = !readOnly ? (
     <button
       type="button"
@@ -193,16 +192,6 @@ export function EnrollmentInlineAgreementEditor({
 
   return (
     <div className="space-y-4">
-      {document.consentOptions && document.consentOptions.length > 0 && (
-        <div
-          className="rounded-md border px-3 py-2 text-[11px] leading-relaxed"
-          style={{ borderColor: C.border, backgroundColor: C.bg, color: C.textTertiary }}
-        >
-          Includes {document.consentOptions.length} consent options families choose before
-          signing.
-        </div>
-      )}
-
       {document.sections.length === 0 ? (
         <div
           className="rounded-md px-3 py-6 text-center text-[11px]"
@@ -239,6 +228,90 @@ export function EnrollmentInlineAgreementEditor({
       )}
 
       {addSectionButton}
+
+      <div
+        className="space-y-3 border-t pt-4"
+        style={{ borderColor: C.border }}
+      >
+        <div>
+          <p className="text-xs font-medium" style={{ color: C.textSecondary }}>
+            What permission choices must families select?
+          </p>
+          <p className="mt-1 text-[10px] leading-relaxed" style={{ color: C.textTertiary }}>
+            Optional. When you add choices, families pick one on the last agreement section
+            before signing. Use Preview in the toolbar to see the family view.
+          </p>
+        </div>
+
+        {consentOptions.length > 0 ? (
+          <div className="space-y-2">
+            {consentOptions.map((option, index) => (
+              <div key={option.value} className="flex gap-2 items-start">
+                <span
+                  className="mt-2.5 text-xs font-bold shrink-0"
+                  style={{ color: C.textTertiary }}
+                >
+                  {index + 1}.
+                </span>
+                <textarea
+                  rows={2}
+                  value={option.label}
+                  onChange={(e) => {
+                    const next = [...consentOptions];
+                    next[index] = { ...option, label: e.target.value };
+                    updateConsentOptions(next);
+                  }}
+                  disabled={readOnly}
+                  style={{ ...style, resize: "vertical" }}
+                />
+                {!readOnly ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateConsentOptions(
+                        consentOptions.filter((row) => row.value !== option.value),
+                      )
+                    }
+                    className="mt-1 rounded p-1.5 shrink-0"
+                    style={{ color: C.error, backgroundColor: C.errorBg }}
+                    aria-label="Remove consent option"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm" style={{ color: C.textTertiary }}>
+            No consent choices yet.
+          </p>
+        )}
+
+        {!readOnly ? (
+          <button
+            type="button"
+            onClick={() =>
+              updateConsentOptions([
+                ...consentOptions,
+                {
+                  value: newAdmissionsId().slice(0, 8),
+                  label: "New option",
+                },
+              ])
+            }
+            className="flex items-center gap-1 rounded-sm px-3 py-1.5 text-xs font-medium"
+            style={{
+              backgroundColor: C.accentLight,
+              color: C.accent,
+              border: `1px solid ${C.secondaryBtnBorder}`,
+            }}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add consent option
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }

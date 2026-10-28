@@ -36,7 +36,10 @@ export function resolveParentMobileFeatureKey(
 
   const tab = getParentActiveTabFromPathname(pathname, tabs);
   if (tab && tab !== 'more') {
-    return tab === 'home' ? 'home' : tab;
+    if (tab === 'home') {
+      return null;
+    }
+    return tab;
   }
 
   const programSegmentMatch = pathname.match(/\/parent\/[^/]+\/p\/[^/]+\/([^/?]+)/);
@@ -73,7 +76,7 @@ export function resolveTeacherMobileFeatureKey(pathname: string): string | null 
   if (pathname.includes('/my-students')) return 'my_students';
   if (pathname.includes('/messages')) return 'messages';
   if (pathname.includes('/calendar')) return 'calendar';
-  if (pathname.includes('/home')) return 'home';
+  if (pathname.includes('/home')) return null;
   return null;
 }
 

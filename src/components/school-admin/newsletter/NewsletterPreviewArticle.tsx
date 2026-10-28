@@ -4,6 +4,13 @@ import { Sprout } from "lucide-react";
 import { useMemo } from "react";
 import { weekLabel } from "@/lib/school-admin/newsletter/newsletter-dates";
 import {
+  MUDKITCHEN_FOOTER_LABEL,
+  MUDKITCHEN_LOGO_ALT,
+  MUDKITCHEN_SITE_URL,
+  NEWSLETTER_MASTHEAD_TAGLINE,
+  type NewsletterVisualBranding,
+} from "@/lib/school-admin/newsletter/newsletter-branding";
+import {
   buildPreviewSections,
   previewHasWelcome,
   previewHeroTitle,
@@ -20,20 +27,16 @@ import styles from "./newsletter-workspace.module.css";
 type NewsletterPreviewArticleProps = {
   edition: NewsletterEdition;
   school: NewsletterSchoolMeta;
+  branding: NewsletterVisualBranding;
   staffMembers?: StaffMemberRecord[];
   template?: NewsletterSchoolTemplate;
   className?: string;
 };
 
-function layoutModifierClass(layout: NewsletterEdition["layout"]): string {
-  if (layout === "brief") return styles.newsletterBrief;
-  if (layout === "journal") return styles.newsletterJournal;
-  return "";
-}
-
 export default function NewsletterPreviewArticle({
   edition,
   school,
+  branding,
   staffMembers = [],
   template,
   className = "",
@@ -61,17 +64,33 @@ export default function NewsletterPreviewArticle({
   const title = previewHeroTitle(edition);
   const welcome = getWelcomeValue(edition);
   const signatureLines = school.signature.split("\n");
+  const schoolLogoSrc = branding.schoolLogoSrc?.trim();
 
   return (
-    <article
-      className={`${styles.newsletter} ${layoutModifierClass(edition.layout)} ${className}`.trim()}
-    >
+    <article className={`${styles.newsletter} ${className}`.trim()}>
       <div className={styles.nMasthead}>
-        <div className={styles.nSchool}>
-          <Sprout size={15} strokeWidth={1.65} aria-hidden />
-          {school.name}
+        <div className={styles.nMastheadSchool}>
+          <div className={styles.nSchool}>
+            {schoolLogoSrc ? (
+              <img
+                className={styles.nLogoSchool}
+                src={schoolLogoSrc}
+                alt={branding.schoolLogoAlt ?? "School logo"}
+              />
+            ) : (
+              <Sprout size={15} strokeWidth={1.65} aria-hidden />
+            )}
+            {school.name}
+          </div>
         </div>
-        <span>School stories</span>
+        <div className={styles.nMastheadMk}>
+          <img
+            className={styles.nLogoMk}
+            src={branding.mudkitchenLogoSrc}
+            alt={MUDKITCHEN_LOGO_ALT}
+          />
+          <span className={styles.nMastheadTagline}>{NEWSLETTER_MASTHEAD_TAGLINE}</span>
+        </div>
       </div>
       <header className={styles.nHero}>
         <div className={styles.nEyebrow}>{weekLabel(edition)}</div>
@@ -91,12 +110,24 @@ export default function NewsletterPreviewArticle({
         )}
       </div>
       <footer className={styles.nFooter}>
-        {signatureLines.map((line, index) => (
-          <span key={`${line}-${index}`}>
-            {line}
-            {index < signatureLines.length - 1 ? <br /> : null}
-          </span>
-        ))}
+        <div className={styles.nFooterSignature}>
+          {signatureLines.map((line, index) => (
+            <span key={`${line}-${index}`}>
+              {line}
+              {index < signatureLines.length - 1 ? <br /> : null}
+            </span>
+          ))}
+        </div>
+        <div className={styles.nFooterMk}>
+          <a href={MUDKITCHEN_SITE_URL} target="_blank" rel="noopener noreferrer">
+            <img
+              className={styles.nLogoMkFooter}
+              src={branding.mudkitchenLogoSrc}
+              alt={MUDKITCHEN_LOGO_ALT}
+            />
+            <span>{MUDKITCHEN_FOOTER_LABEL}</span>
+          </a>
+        </div>
       </footer>
     </article>
   );

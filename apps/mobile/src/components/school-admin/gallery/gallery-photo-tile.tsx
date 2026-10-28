@@ -13,6 +13,7 @@ type GalleryPhotoTileProps = {
   tileSize: number;
   selectionMode: boolean;
   selected: boolean;
+  showUploaderBadge?: boolean;
   onPress: () => void;
   onLongPress: () => void;
 };
@@ -22,6 +23,7 @@ export function GalleryPhotoTile({
   tileSize,
   selectionMode,
   selected,
+  showUploaderBadge = true,
   onPress,
   onLongPress,
 }: GalleryPhotoTileProps) {
@@ -78,7 +80,7 @@ export function GalleryPhotoTile({
           {selected ? <Ionicons name="checkmark" size={14} color="#FFFFFF" /> : null}
         </View>
       ) : null}
-      {!selectionMode && photo.uploadedByName ? (
+      {!selectionMode && showUploaderBadge && photo.uploadedByName ? (
         <View style={styles.uploaderPill}>
           <Text style={styles.uploaderText} numberOfLines={1}>
             {photo.uploadedByName}

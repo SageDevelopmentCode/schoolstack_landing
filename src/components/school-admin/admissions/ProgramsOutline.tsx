@@ -11,7 +11,10 @@ import {
 import { isProgramParentPortalCoopMode } from "@/lib/admissions/program-parent-portal";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
-import { outlineActiveRowStyle } from "./outline-item-styles";
+import {
+  outlineActiveRowStyle,
+  outlineRowInteractiveClassName,
+} from "./outline-item-styles";
 import { programStatusChipTone } from "./program-status-chip";
 
 const NEW_PROGRAM_ID = "__new__";
@@ -52,7 +55,7 @@ function ProgramOutlineRow({
       <button
         type="button"
         onClick={onSelect}
-        className="mb-1 w-full rounded-[11px] border px-3 py-3 text-left transition-colors"
+        className={`mb-1 w-full rounded-[11px] border px-3 py-3 text-left ${outlineRowInteractiveClassName(active)}`}
         style={outlineActiveRowStyle(active, theme)}
       >
         <p

@@ -19,7 +19,7 @@ import { stripHtmlTags } from '@/lib/parent/parent-committees-types';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
-import { createSchoolAdminErrorReporter } from '@/lib/mobile-error-reporter';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type DutyRolePanelMode = 'create' | 'edit';
 
@@ -143,7 +143,7 @@ export function SchoolAdminCommitteeAboutSection({
   onCommitteeChange,
 }: ParentCommitteeSectionProps) {
   const theme = useParentTheme();
-  const reportError = createSchoolAdminErrorReporter(organizationId);
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const [aboutText, setAboutText] = useState(stripHtmlTags(committee.aboutHtml));
   const [savingAbout, setSavingAbout] = useState(false);

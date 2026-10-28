@@ -64,6 +64,28 @@ describe('MobileOperationalErrorBoundary', () => {
       expect.objectContaining({ message: 'initial mount render failure' }),
       expect.objectContaining({
         details: expect.any(String),
+        metadata: undefined,
+      }),
+    );
+  });
+
+  it('includes pathname metadata when provided', () => {
+    act(() => {
+      TestRenderer.create(
+        <>
+          <MobileGlobalErrorReportingBridge />
+          <MobileOperationalErrorBoundary pathname="/parent/demo/more/photos">
+            <ThrowOnMount />
+          </MobileOperationalErrorBoundary>
+        </>,
+      );
+    });
+
+    expect(mockReportError).toHaveBeenCalledWith(
+      'react_render_error',
+      expect.objectContaining({ message: 'initial mount render failure' }),
+      expect.objectContaining({
+        metadata: { pathname: '/parent/demo/more/photos' },
       }),
     );
   });

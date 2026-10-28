@@ -7,6 +7,7 @@ import {
   todayKeyInTimezone,
   todayMonthYearInTimezone,
 } from '@/lib/admissions/admissions-availability';
+import type { MobileErrorReporter } from '@/lib/mobile-error-reporter';
 import type { MobileParentTheme } from '@/lib/organization-settings/parent-theme';
 import {
   addDays,
@@ -27,6 +28,8 @@ type UseParentCalendarViewOptions = {
   supabase: SupabaseClient;
   timezoneProp?: string;
   theme: MobileParentTheme;
+  reportError?: MobileErrorReporter;
+  timezoneResolveFailedOperation?: string;
 };
 
 export function useParentCalendarView({
@@ -34,6 +37,8 @@ export function useParentCalendarView({
   supabase,
   timezoneProp,
   theme,
+  reportError,
+  timezoneResolveFailedOperation = 'parent.calendar.timezone_resolve_failed',
 }: UseParentCalendarViewOptions) {
   const [timezone, setTimezone] = useState(timezoneProp ?? 'America/Chicago');
   const [viewMode, setViewMode] = useState<ParentCalendarViewMode>('day');
@@ -84,12 +89,16 @@ export function useParentCalendarView({
       .then((value) => {
         if (!cancelled) setTimezone(value);
       })
-      .catch(() => undefined);
+      .catch((err) => {
+        if (reportError) {
+          reportError(timezoneResolveFailedOperation, err);
+        }
+      });
 
     return () => {
       cancelled = true;
     };
-  }, [organizationId, supabase, timezoneProp]);
+  }, [organizationId, reportError, supabase, timezoneProp, timezoneResolveFailedOperation]);
 
   const syncFromSelectedDate = useCallback((dateKeyValue: string) => {
     const parsed = parseEventDate(dateKeyValue);

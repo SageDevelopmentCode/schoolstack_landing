@@ -38,7 +38,7 @@ import type { CommitteeActivityItem, CommitteeListItem } from '@/lib/parent/pare
 import { Story, StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
-import { createSchoolAdminErrorReporter } from '@/lib/mobile-error-reporter';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type SchoolAdminCommitteesScreenProps = {
   slug: string;
@@ -117,10 +117,7 @@ function CommitteeListCard({
 export function SchoolAdminCommitteesScreen({ slug, organizationId }: SchoolAdminCommitteesScreenProps) {
   const theme = useParentTheme();
   const router = useRouter();
-  const reportError = useMemo(
-    () => createSchoolAdminErrorReporter(organizationId),
-    [organizationId],
-  );
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const {
     committees,

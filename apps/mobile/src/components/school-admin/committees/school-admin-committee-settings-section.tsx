@@ -11,7 +11,7 @@ import type { CommitteeWorkspaceSection } from '@/lib/parent/parent-committees-t
 import type { ParentCommitteeSectionProps } from '@/lib/parent/committees/section-props';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
-import { createSchoolAdminErrorReporter } from '@/lib/mobile-error-reporter';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 export function SchoolAdminCommitteeSettingsSection({
   committee,
@@ -21,7 +21,7 @@ export function SchoolAdminCommitteeSettingsSection({
   onNavigate,
 }: ParentCommitteeSectionProps) {
   const theme = useParentTheme();
-  const reportError = createSchoolAdminErrorReporter(organizationId);
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const [name, setName] = useState(committee.name);
   const [description, setDescription] = useState(committee.description);

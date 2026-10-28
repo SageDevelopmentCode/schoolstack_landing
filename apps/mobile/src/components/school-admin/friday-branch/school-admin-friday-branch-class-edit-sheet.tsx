@@ -76,8 +76,12 @@ export function SchoolAdminFridayBranchClassEditSheet({
     try {
       await onSave(draftSlotId, payload, slotId ?? undefined);
       onClose();
-    } catch {
-      // Parent surfaces the error.
+    } catch (saveError) {
+      reportError('school_admin_friday_branch_class_save', saveError, {
+        entityType: 'friday_branch_class',
+        entityId: draft.id,
+        metadata: { classId: draft.id, slotId: draftSlotId },
+      });
     } finally {
       setIsSaving(false);
     }

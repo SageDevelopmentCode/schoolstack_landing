@@ -5,7 +5,6 @@ import { Check, ClipboardList, FileText, Info, ListTodo } from "lucide-react";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
-import AdminTextLink from "@/components/school-admin/ui/story/AdminTextLink";
 import type { ApplicationFormVersion } from "@/lib/admissions/application-form-schema";
 import type { EnrollmentChecklistTemplate } from "@/lib/admissions/enrollment-checklist-templates";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -30,9 +29,13 @@ type EnrollmentFlowsProgramTableProps = {
   bindings: ProgramFlowBinding[];
   searchQuery: string;
   onSelect: (selection: FlowListSelection) => void;
-  onEditFlow: (programId: string, binding: ProgramFlowBinding) => void;
+  onSetupApplication: (programId: string) => void;
+  onSetupChecklist: (programId: string) => void;
   onOpenPostSubmit: (applyFormId: string) => void;
 };
+
+const FLOW_STEP_TILE_CLASS =
+  "flex w-full cursor-pointer items-start gap-2.5 rounded-[11px] border border-[#E9EFEA] px-3 py-2.5 text-left transition-colors hover:border-[#E5EDE6] hover:bg-[#F3F8F4]";
 
 function bindingMatchesSearch(binding: ProgramFlowBinding, query: string): boolean {
   if (!query) return true;
@@ -71,6 +74,22 @@ function StepDesktopLabel({ number, children }: { number: string; children: Reac
   );
 }
 
+function FlowStepTile({
+  onClick,
+  children,
+  className = "",
+}: {
+  onClick: () => void;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <button type="button" onClick={onClick} className={`${FLOW_STEP_TILE_CLASS} ${className}`}>
+      {children}
+    </button>
+  );
+}
+
 function FormLinkButton({
   theme,
   C,
@@ -91,12 +110,7 @@ function FormLinkButton({
   const tileColor = variant === "checklist" ? "#39788D" : theme.primary;
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex w-full items-start gap-2.5 text-left"
-      style={{ color: theme.primary }}
-    >
+    <FlowStepTile onClick={onClick}>
       <span
         className="mt-0.5 flex h-[29px] w-[29px] shrink-0 items-center justify-center rounded-[9px]"
         style={{ backgroundColor: tileBg, color: tileColor }}
@@ -118,20 +132,24 @@ function FormLinkButton({
           {getStatusLabel(status)}
         </AdminChip>
       </span>
-    </button>
+    </FlowStepTile>
   );
 }
 
 function ApplicationStep({
   C,
   theme,
+  programId,
   applyForm,
   onSelect,
+  onSetupApplication,
 }: {
   C: AdminThemeTokens;
   theme: ParentThemeTokens;
+  programId: string;
   applyForm?: ApplicationFormVersion;
   onSelect: (selection: FlowListSelection) => void;
+  onSetupApplication: (programId: string) => void;
 }) {
   return (
     <div className="min-w-0 flex-1">
@@ -147,13 +165,25 @@ function ApplicationStep({
           onClick={() => onSelect({ kind: "apply", id: applyForm.id })}
         />
       ) : (
-        <span
-          className="flex items-center gap-1.5 text-[11px] leading-relaxed"
-          style={{ color: "#A26B22" }}
-        >
-          <Info className="h-3.5 w-3.5 shrink-0" />
-          No form selected
-        </span>
+        <FlowStepTile onClick={() => onSetupApplication(programId)}>
+          <span
+            className="mt-0.5 flex h-[29px] w-[29px] shrink-0 items-center justify-center rounded-[9px]"
+            style={{ backgroundColor: "#FFF4E8", color: "#A26B22" }}
+          >
+            <Info className="h-3.5 w-3.5" />
+          </span>
+          <span className="min-w-0">
+            <strong
+              className="block text-[11px] font-semibold leading-relaxed"
+              style={{ color: "#A26B22" }}
+            >
+              No form selected
+            </strong>
+            <span className="mt-1 block text-[9px] leading-relaxed" style={{ color: theme.muted }}>
+              Set up application
+            </span>
+          </span>
+        </FlowStepTile>
       )}
     </div>
   );
@@ -162,12 +192,16 @@ function ApplicationStep({
 function PostSubmitStep({
   C,
   theme,
+  programId,
   applyForm,
+  onSetupApplication,
   onOpenPostSubmit,
 }: {
   C: AdminThemeTokens;
   theme: ParentThemeTokens;
+  programId: string;
   applyForm?: ApplicationFormVersion;
+  onSetupApplication: (programId: string) => void;
   onOpenPostSubmit: (applyFormId: string) => void;
 }) {
   const labels = applyForm ? getPostSubmitActionLabels(applyForm) : [];
@@ -178,25 +212,47 @@ function PostSubmitStep({
       <StepMobileLabel>2 · Post-submit steps</StepMobileLabel>
       <StepDesktopLabel number="2">Post-submit steps</StepDesktopLabel>
       {!applyForm ? (
-        <span className="text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
-          —
-        </span>
+        <FlowStepTile onClick={() => onSetupApplication(programId)}>
+          <span
+            className="mt-0.5 flex h-[29px] w-[29px] shrink-0 items-center justify-center rounded-[9px]"
+            style={{ backgroundColor: "#F3F5F4", color: C.textTertiary }}
+          >
+            <ListTodo className="h-3.5 w-3.5" />
+          </span>
+          <span className="min-w-0">
+            <strong
+              className="block text-[11px] font-semibold leading-relaxed"
+              style={{ color: C.textSecondary }}
+            >
+              Set up application first
+            </strong>
+            <span className="mt-1 block text-[9px] leading-relaxed" style={{ color: C.textTertiary }}>
+              Post-submit steps follow your application form
+            </span>
+          </span>
+        </FlowStepTile>
       ) : enabledCount === 0 ? (
-        <button
-          type="button"
-          onClick={() => onOpenPostSubmit(applyForm.id)}
-          className="text-left text-[11px] leading-relaxed"
-          style={{ color: C.textTertiary }}
-        >
-          None configured
-        </button>
+        <FlowStepTile onClick={() => onOpenPostSubmit(applyForm.id)}>
+          <span
+            className="mt-0.5 flex h-[29px] w-[29px] shrink-0 items-center justify-center rounded-[9px]"
+            style={{ backgroundColor: "#FFF8ED", color: "#8A7355" }}
+          >
+            <ListTodo className="h-3.5 w-3.5" />
+          </span>
+          <span className="min-w-0">
+            <strong
+              className="block text-[11px] font-semibold leading-relaxed"
+              style={{ color: C.textSecondary }}
+            >
+              None configured
+            </strong>
+            <span className="mt-1 block text-[9px] leading-relaxed" style={{ color: C.textTertiary }}>
+              Add post-submit steps
+            </span>
+          </span>
+        </FlowStepTile>
       ) : (
-        <button
-          type="button"
-          onClick={() => onOpenPostSubmit(applyForm.id)}
-          className="flex w-full items-start gap-2.5 text-left"
-          style={{ color: theme.primary }}
-        >
+        <FlowStepTile onClick={() => onOpenPostSubmit(applyForm.id)}>
           <span
             className="mt-0.5 flex h-[29px] w-[29px] shrink-0 items-center justify-center rounded-[9px]"
             style={{ backgroundColor: "#FFF8ED", color: "#8A7355" }}
@@ -222,7 +278,7 @@ function PostSubmitStep({
               {enabledCount} {enabledCount === 1 ? "step" : "steps"}
             </AdminChip>
           </span>
-        </button>
+        </FlowStepTile>
       )}
     </div>
   );
@@ -231,13 +287,17 @@ function PostSubmitStep({
 function AfterAcceptanceStep({
   C,
   theme,
+  programId,
   checklist,
   onSelect,
+  onSetupChecklist,
 }: {
   C: AdminThemeTokens;
   theme: ParentThemeTokens;
+  programId: string;
   checklist?: EnrollmentChecklistTemplate;
   onSelect: (selection: FlowListSelection) => void;
+  onSetupChecklist: (programId: string) => void;
 }) {
   return (
     <div className="min-w-0 flex-1">
@@ -253,17 +313,25 @@ function AfterAcceptanceStep({
           onClick={() => onSelect({ kind: "checklist", id: checklist.id })}
         />
       ) : (
-        <div className="flex gap-2.5" style={{ color: "#526C5A" }}>
-          <Check className="mt-0.5 h-[15px] w-[15px] shrink-0 text-[#8AA18A]" />
-          <div>
-            <strong className="block text-[11px] font-medium leading-relaxed">
+        <FlowStepTile onClick={() => onSetupChecklist(programId)}>
+          <span
+            className="mt-0.5 flex h-[29px] w-[29px] shrink-0 items-center justify-center rounded-[9px]"
+            style={{ backgroundColor: "#EAF2EB", color: "#8AA18A" }}
+          >
+            <Check className="h-3.5 w-3.5" />
+          </span>
+          <span className="min-w-0">
+            <strong
+              className="block text-[11px] font-semibold leading-relaxed"
+              style={{ color: C.textPrimary }}
+            >
               Mark enrolled directly
             </strong>
-            <small className="mt-1 block text-[9px] leading-relaxed text-[#8A9A86]">
+            <span className="mt-1 block text-[9px] leading-relaxed" style={{ color: "#8A9A86" }}>
               In Submissions · No checklist
-            </small>
-          </div>
-        </div>
+            </span>
+          </span>
+        </FlowStepTile>
       )}
     </div>
   );
@@ -274,14 +342,16 @@ function FlowRow({
   theme,
   binding,
   onSelect,
-  onEditFlow,
+  onSetupApplication,
+  onSetupChecklist,
   onOpenPostSubmit,
 }: {
   C: AdminThemeTokens;
   theme: ParentThemeTokens;
   binding: ProgramFlowBinding;
   onSelect: (selection: FlowListSelection) => void;
-  onEditFlow: (programId: string, binding: ProgramFlowBinding) => void;
+  onSetupApplication: (programId: string) => void;
+  onSetupChecklist: (programId: string) => void;
   onOpenPostSubmit: (applyFormId: string) => void;
 }) {
   const { program, applyForm, checklist } = binding;
@@ -289,39 +359,30 @@ function FlowRow({
   const isOpen = program.status === "open";
 
   return (
-    <article className="border-b border-[#E9EFEA] px-5 py-6 last:border-0 lg:px-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <AdminDisplayHeading
-            theme={theme}
-            as="h2"
-            size="section"
-            className="text-xl leading-tight tracking-[-0.025em] lg:text-[21px]"
-          >
-            {program.name}
-          </AdminDisplayHeading>
-          <p className="mt-2 text-[10px] leading-relaxed" style={{ color: theme.muted }}>
-            {formatProgramMetaLine(program)}
-          </p>
-          <div
-            className="mt-2 flex items-center gap-1.5 text-[9px]"
-            style={{ color: "#7F977E" }}
-          >
-            <span
-              className="h-1 w-1 shrink-0 rounded-full"
-              style={{ backgroundColor: isOpen ? "#85AF8F" : "#B0B8B0" }}
-              aria-hidden
-            />
-            {openLabel}
-          </div>
-        </div>
-        <AdminTextLink
+    <article>
+      <div className="min-w-0">
+        <AdminDisplayHeading
           theme={theme}
-          className="shrink-0 text-[10px]"
-          onClick={() => onEditFlow(program.id, binding)}
+          as="h2"
+          size="section"
+          className="text-xl leading-tight tracking-[-0.025em] lg:text-[21px]"
         >
-          Edit flow
-        </AdminTextLink>
+          {program.name}
+        </AdminDisplayHeading>
+        <p className="mt-2 text-[10px] leading-relaxed" style={{ color: theme.muted }}>
+          {formatProgramMetaLine(program)}
+        </p>
+        <div
+          className="mt-2 flex items-center gap-1.5 text-[9px]"
+          style={{ color: "#7F977E" }}
+        >
+          <span
+            className="h-1 w-1 shrink-0 rounded-full"
+            style={{ backgroundColor: isOpen ? "#85AF8F" : "#B0B8B0" }}
+            aria-hidden
+          />
+          {openLabel}
+        </div>
       </div>
 
       <div className="mt-5 border-t border-[#E9EFEA] pt-5">
@@ -329,8 +390,10 @@ function FlowRow({
           <ApplicationStep
             C={C}
             theme={theme}
+            programId={program.id}
             applyForm={applyForm}
             onSelect={onSelect}
+            onSetupApplication={onSetupApplication}
           />
           <EnrollmentFlowStepConnector
             theme={theme}
@@ -345,7 +408,9 @@ function FlowRow({
           <PostSubmitStep
             C={C}
             theme={theme}
+            programId={program.id}
             applyForm={applyForm}
+            onSetupApplication={onSetupApplication}
             onOpenPostSubmit={onOpenPostSubmit}
           />
           <EnrollmentFlowStepConnector
@@ -361,8 +426,10 @@ function FlowRow({
           <AfterAcceptanceStep
             C={C}
             theme={theme}
+            programId={program.id}
             checklist={checklist}
             onSelect={onSelect}
+            onSetupChecklist={onSetupChecklist}
           />
         </div>
       </div>
@@ -376,31 +443,36 @@ export default function EnrollmentFlowsProgramTable({
   bindings,
   searchQuery,
   onSelect,
-  onEditFlow,
+  onSetupApplication,
+  onSetupChecklist,
   onOpenPostSubmit,
 }: EnrollmentFlowsProgramTableProps) {
   const query = searchQuery.toLowerCase().trim();
   const filtered = bindings.filter((binding) => bindingMatchesSearch(binding, query));
 
   return (
-    <AdminCard theme={theme} padding="none" className="overflow-hidden shadow-[0_3px_10px_rgba(50,72,61,0.035)]">
+    <div className="space-y-4">
       {filtered.length === 0 ? (
-        <p className="px-6 py-8 text-center text-xs leading-relaxed" style={{ color: theme.muted }}>
-          No matching programs.
-        </p>
+        <AdminCard theme={theme} padding="canvas">
+          <p className="text-center text-xs leading-relaxed" style={{ color: theme.muted }}>
+            No matching programs.
+          </p>
+        </AdminCard>
       ) : (
         filtered.map((binding) => (
-          <FlowRow
-            key={binding.program.id}
-            C={C}
-            theme={theme}
-            binding={binding}
-            onSelect={onSelect}
-            onEditFlow={onEditFlow}
-            onOpenPostSubmit={onOpenPostSubmit}
-          />
+          <AdminCard key={binding.program.id} theme={theme} padding="canvas">
+            <FlowRow
+              C={C}
+              theme={theme}
+              binding={binding}
+              onSelect={onSelect}
+              onSetupApplication={onSetupApplication}
+              onSetupChecklist={onSetupChecklist}
+              onOpenPostSubmit={onOpenPostSubmit}
+            />
+          </AdminCard>
         ))
       )}
-    </AdminCard>
+    </div>
   );
 }

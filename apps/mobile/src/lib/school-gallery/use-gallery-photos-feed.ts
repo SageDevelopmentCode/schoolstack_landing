@@ -6,11 +6,19 @@ function messageFromError(error: unknown): string {
   return error instanceof Error ? error.message : 'Could not load photos.';
 }
 
+export type GalleryPhotosFeedLoadPhase = 'initial' | 'load_more';
+
 export function useGalleryPhotosFeed(options: {
   enabled?: boolean;
   listPage: (offset: number) => Promise<GalleryPhotosPage>;
+  onLoadError?: (error: unknown, phase: GalleryPhotosFeedLoadPhase) => void;
 }) {
-  const { enabled = true, listPage } = options;
+  const { enabled = true, listPage, onLoadError } = options;
+  const onLoadErrorRef = useRef(onLoadError);
+
+  useEffect(() => {
+    onLoadErrorRef.current = onLoadError;
+  }, [onLoadError]);
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
   const [loading, setLoading] = useState(enabled);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -46,6 +54,7 @@ export function useGalleryPhotosFeed(options: {
     try {
       await fetchPage(0, false);
     } catch (error) {
+      onLoadErrorRef.current?.(error, 'initial');
       setInitialError(messageFromError(error));
     } finally {
       setLoading(false);
@@ -59,6 +68,7 @@ export function useGalleryPhotosFeed(options: {
     try {
       await fetchPage(nextOffset, true);
     } catch (error) {
+      onLoadErrorRef.current?.(error, 'load_more');
       setLoadMoreError(messageFromError(error));
     } finally {
       setLoadingMore(false);

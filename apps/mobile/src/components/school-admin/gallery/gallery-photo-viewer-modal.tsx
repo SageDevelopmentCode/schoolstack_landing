@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -69,6 +69,25 @@ export function GalleryPhotoViewerModal({
     [activeIndex, hasMore, onChangeIndex, onRequestMore, photos.length],
   );
 
+  const scrollToActiveIndex = useCallback(
+    (index: number, animated = false) => {
+      if (index <= 0 || photos.length === 0) return;
+      listRef.current?.scrollToIndex({ index, animated });
+    },
+    [photos.length],
+  );
+
+  useEffect(() => {
+    if (!visible || photos.length === 0) return;
+    const index = Math.min(Math.max(activeIndex, 0), photos.length - 1);
+    if (index <= 0) return;
+
+    const frame = requestAnimationFrame(() => {
+      scrollToActiveIndex(index, false);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [activeIndex, photos.length, scrollToActiveIndex, visible]);
+
   const handleSharePhoto = useCallback(() => {
     if (!activePhoto || sharing) {
       return;
@@ -130,7 +149,6 @@ export function GalleryPhotoViewerModal({
           data={photos}
           horizontal
           pagingEnabled
-          initialScrollIndex={activeIndex > 0 ? activeIndex : undefined}
           getItemLayout={(_, index) => ({
             length: windowWidth,
             offset: windowWidth * index,
@@ -140,6 +158,12 @@ export function GalleryPhotoViewerModal({
           showsHorizontalScrollIndicator={false}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
+          onScrollToIndexFailed={(info) => {
+            listRef.current?.scrollToOffset({
+              offset: windowWidth * info.index,
+              animated: false,
+            });
+          }}
           renderItem={({ item }) => (
             <View style={[styles.slide, { width: windowWidth, height: windowHeight * 0.72 }]}>
               {item.imageUrl ? (

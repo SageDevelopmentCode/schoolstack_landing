@@ -548,6 +548,7 @@ export async function loadPostSubmitActionForApplication(
 ): Promise<{
   organizationId: string;
   applicationStatus: string;
+  familyId: string | null;
   action: PostSubmitAction;
 } | null> {
   const { data, error } = await supabase
@@ -557,6 +558,7 @@ export async function loadPostSubmitActionForApplication(
       id,
       organization_id,
       status,
+      family_id,
       application_form_versions!inner (
         post_submit_config
       )
@@ -583,6 +585,7 @@ export async function loadPostSubmitActionForApplication(
   return {
     organizationId: String(data.organization_id),
     applicationStatus: String(data.status),
+    familyId: data.family_id != null ? String(data.family_id) : null,
     action,
   };
 }
@@ -701,6 +704,7 @@ async function bookWholeDayVisit(
     organizationId: string;
     applicationId: string;
     actionId: string;
+    familyId: string | null;
     action: PostSubmitAction;
   },
   scheduledDates: string[],
@@ -749,6 +753,7 @@ async function bookWholeDayVisit(
     .insert({
       organization_id: context.organizationId,
       application_id: context.applicationId,
+      family_id: context.familyId,
       post_submit_action_id: context.actionId,
       action_type: context.action.type,
       scheduling_mode: "whole_day",
@@ -820,6 +825,7 @@ async function bookObservationSlotVisit(
     organizationId: string;
     applicationId: string;
     actionId: string;
+    familyId: string | null;
     action: PostSubmitAction;
   },
   slotIds: string[],
@@ -882,6 +888,7 @@ async function bookObservationSlotVisit(
     .insert({
       organization_id: context.organizationId,
       application_id: context.applicationId,
+      family_id: context.familyId,
       post_submit_action_id: context.actionId,
       action_type: context.action.type,
       scheduling_mode: "whole_day",
@@ -938,6 +945,7 @@ async function bookTimeSlotVisit(
     organizationId: string;
     applicationId: string;
     actionId: string;
+    familyId: string | null;
     action: PostSubmitAction;
   },
   scheduledDate: string,
@@ -972,6 +980,7 @@ async function bookTimeSlotVisit(
     .insert({
       organization_id: context.organizationId,
       application_id: context.applicationId,
+      family_id: context.familyId,
       post_submit_action_id: context.actionId,
       action_type: context.action.type,
       scheduling_mode: "time_slot",

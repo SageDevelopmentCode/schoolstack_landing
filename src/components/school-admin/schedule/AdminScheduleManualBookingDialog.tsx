@@ -1,8 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { Search, UserPlus, X } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { Loader2, Search, UserPlus, X } from "lucide-react";
+import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
+import { SettingToggleRow } from "@/components/school-admin/notifications/NotificationChannelCard";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import AdminManualGuestRegistrantForm from "@/components/school-admin/schedule/AdminManualGuestRegistrantForm";
 import { extractGuestContactEmail } from "@/lib/admissions/admin-manual-guest-contact";
 import type { PublicTourFieldDefinition } from "@/lib/admissions/public-tour-settings";
@@ -119,7 +122,7 @@ export default function AdminScheduleManualBookingDialog({
     setError(null);
   }, [initialDate]);
 
-  const handleClose = useCallback(() => {
+  const forceClose = useCallback(() => {
     setSearchQuery("");
     setApplications([]);
     setFamilies([]);
@@ -131,6 +134,46 @@ export default function AdminScheduleManualBookingDialog({
     setSendConfirmationEmail(false);
     onClose();
   }, [onClose]);
+
+  const isDirty = useMemo(() => {
+    if (searchQuery.trim().length > 0) return true;
+    if (pendingStepChoice) return true;
+    if (target != null) return true;
+    if (sendConfirmationEmail) return true;
+    if (selectedDate || selectedTime) return true;
+    if (selectedDates.length > 0) return true;
+    if (selectedSlotIds.length > 0) return true;
+    return false;
+  }, [
+    pendingStepChoice,
+    searchQuery,
+    selectedDate,
+    selectedDates.length,
+    selectedSlotIds.length,
+    selectedTime,
+    sendConfirmationEmail,
+    target,
+  ]);
+
+  const {
+    dialogOpen: leaveDialogOpen,
+    requestAction,
+    confirmLeave,
+    cancelLeave,
+  } = useUnsavedChangesGuard({ isDirty, enabled: open && !submitting });
+
+  const requestClose = useCallback(() => {
+    requestAction(forceClose);
+  }, [forceClose, requestAction]);
+
+  const runGuarded = useCallback(
+    (action: () => void) => {
+      requestAction(action);
+    },
+    [requestAction],
+  );
+
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     if (!open) return;
@@ -428,7 +471,7 @@ export default function AdminScheduleManualBookingDialog({
 
       adminToast.success("Visit scheduled");
       onBooked();
-      handleClose();
+      forceClose();
     } catch (err) {
       void reportPortalOperationalError(
         "school_admin",
@@ -484,7 +527,29 @@ export default function AdminScheduleManualBookingDialog({
         ? PUBLIC_TOUR_POST_SUBMIT_ACTION_ID
         : PRE_APPLICATION_CAMPUS_TOUR_ACTION_ID;
 
+  const stepKey = !target
+    ? pendingStepChoice
+      ? "stepChoice"
+      : "search"
+    : target.kind === "guest" && !guestSchedulingReady
+      ? "guest"
+      : "schedule";
+
+  const stepTransition = { duration: 0.2 };
+
+  function handleChangeTargetBack() {
+    if (!target) return;
+    if (target.kind === "guest") {
+      setGuestSchedulingReady(false);
+      resetSchedulingState();
+      return;
+    }
+    setTarget(null);
+    resetSchedulingState();
+  }
+
   return (
+    <>
     <AnimatePresence>
       {open ? (
         <motion.div
@@ -493,7 +558,7 @@ export default function AdminScheduleManualBookingDialog({
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 flex items-end justify-center p-4 pb-safe sm:items-center"
           style={{ backgroundColor: "rgba(15, 23, 42, 0.45)" }}
-          onClick={handleClose}
+          onClick={requestClose}
         >
           <motion.div
             initial={{ opacity: 0, y: 24 }}
@@ -526,7 +591,7 @@ export default function AdminScheduleManualBookingDialog({
               </div>
               <button
                 type="button"
-                onClick={handleClose}
+                onClick={requestClose}
                 className="rounded-sm p-1"
                 style={{ color: C.textTertiary }}
                 aria-label="Close"
@@ -545,6 +610,14 @@ export default function AdminScheduleManualBookingDialog({
               </p>
             ) : null}
 
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={stepKey}
+                initial={reduceMotion ? false : { opacity: 0, x: 12 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={reduceMotion ? undefined : { opacity: 0, x: -8 }}
+                transition={stepTransition}
+              >
             {!target ? (
               <div className="space-y-4">
                 <div className="relative">
@@ -602,7 +675,7 @@ export default function AdminScheduleManualBookingDialog({
                     ))}
                     <button
                       type="button"
-                      onClick={() => setPendingStepChoice(null)}
+                      onClick={() => runGuarded(() => setPendingStepChoice(null))}
                       className="text-xs underline-offset-2 hover:underline"
                       style={{ color: C.textSecondary }}
                     >
@@ -703,7 +776,7 @@ export default function AdminScheduleManualBookingDialog({
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"
-                    onClick={() => setTarget(null)}
+                    onClick={() => runGuarded(() => setTarget(null))}
                     className="rounded-md px-3 py-2 text-sm font-medium"
                     style={getAdminButtonStyle(C, "secondary")}
                   >
@@ -742,15 +815,7 @@ export default function AdminScheduleManualBookingDialog({
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (target.kind === "guest") {
-                        setGuestSchedulingReady(false);
-                        resetSchedulingState();
-                        return;
-                      }
-                      setTarget(null);
-                      resetSchedulingState();
-                    }}
+                    onClick={() => runGuarded(handleChangeTargetBack)}
                     className="text-xs underline-offset-2 hover:underline"
                     style={{ color: C.textSecondary }}
                   >
@@ -805,31 +870,28 @@ export default function AdminScheduleManualBookingDialog({
                   )
                 ) : null}
 
-                <label
-                  className="flex cursor-pointer items-start gap-3 rounded-md border px-3 py-3"
+                <div
+                  className="overflow-hidden rounded-md border"
                   style={{ borderColor: C.border, backgroundColor: C.bg }}
                 >
-                  <input
-                    type="checkbox"
-                    className="mt-0.5 h-4 w-4 rounded"
+                  <SettingToggleRow
+                    C={C}
+                    label="Send confirmation email"
+                    description={
+                      contactEmailForConfirmation
+                        ? `We'll email ${contactEmailForConfirmation} with the visit date, time, and details.`
+                        : "Add a contact email to send a confirmation."
+                    }
                     checked={sendConfirmationEmail}
                     disabled={!contactEmailForConfirmation}
-                    onChange={(event) => setSendConfirmationEmail(event.target.checked)}
+                    onChange={setSendConfirmationEmail}
                   />
-                  <span className="text-sm" style={{ color: C.textPrimary }}>
-                    <span className="font-medium">Send confirmation email</span>
-                    <span className="mt-0.5 block text-xs" style={{ color: C.textSecondary }}>
-                      {contactEmailForConfirmation
-                        ? `We'll email ${contactEmailForConfirmation} with the visit date, time, and details.`
-                        : "Add a contact email to send a confirmation."}
-                    </span>
-                  </span>
-                </label>
+                </div>
 
                 <div className="flex justify-end gap-2 border-t pt-4" style={{ borderColor: C.border }}>
                   <button
                     type="button"
-                    onClick={handleClose}
+                    onClick={requestClose}
                     className="rounded-md px-3 py-2 text-sm font-medium"
                     style={getAdminButtonStyle(C, "secondary")}
                   >
@@ -839,17 +901,39 @@ export default function AdminScheduleManualBookingDialog({
                     type="button"
                     disabled={!canConfirm || submitting}
                     onClick={() => void handleConfirm()}
-                    className="rounded-md px-3 py-2 text-sm font-medium disabled:opacity-60"
+                    className="inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium disabled:opacity-60"
                     style={getAdminButtonStyle(C, "primary")}
                   >
-                    {submitting ? "Scheduling…" : "Confirm booking"}
+                    {submitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                        Scheduling…
+                      </>
+                    ) : (
+                      "Confirm booking"
+                    )}
                   </button>
                 </div>
               </div>
             ) : null}
+              </motion.div>
+            </AnimatePresence>
           </motion.div>
         </motion.div>
       ) : null}
     </AnimatePresence>
+
+    <ConfirmDialog
+      C={C}
+      open={leaveDialogOpen}
+      title="Unsaved changes"
+      description="You have unsaved changes. If you leave now, your changes will be lost."
+      confirmLabel="Leave without saving"
+      cancelLabel="Keep editing"
+      variant="destructive"
+      onConfirm={confirmLeave}
+      onClose={cancelLeave}
+    />
+    </>
   );
 }

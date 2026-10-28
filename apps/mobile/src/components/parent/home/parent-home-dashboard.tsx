@@ -40,7 +40,11 @@ import { Story, StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 import { resolveWebUrl, schoolApplyUrl } from '@/lib/admissions/school-apply-url';
-import { isParentFeatureEnabled, isParentHomeFridayBranchEnabled } from '@/lib/parent/parent-features';
+import {
+  isParentFeatureEnabled,
+  isParentHomeFridayBranchEnabled,
+  resolveFridayBranchSettingsFromHome,
+} from '@/lib/parent/parent-features';
 import type { ParentSignupAttentionItem } from '@/lib/parent/parent-classroom-signups-types';
 import {
   submitParentSupportRequest,
@@ -267,9 +271,10 @@ export function ParentHomeDashboard({
         />
       ) : null}
 
-      {isParentHomeFridayBranchEnabled(data.features, {
-        parent_portal_paused: Boolean(data.fridayBranchParentPortalPaused),
-      }) && data.fridayBranchHome ? (
+      {isParentHomeFridayBranchEnabled(
+        data.features,
+        resolveFridayBranchSettingsFromHome(data),
+      ) && data.fridayBranchHome ? (
         <ParentHomeFridayBranchCard
           slug={slug}
           programSlug={programSlug}

@@ -19,18 +19,6 @@ export default function NewsletterWorkspaceSkeleton({
       aria-busy="true"
       aria-label="Loading newsletter builder"
     >
-      <div className={`${styles.previewToolbar} ${styles.builderToolbarRow}`}>
-        <div className={styles.previewLeft}>
-          <SkeletonBlock C={C} className="h-3 w-10" />
-          <SkeletonBlock C={C} className="h-8 w-[140px] rounded-lg" />
-        </div>
-        <div className={styles.previewTools}>
-          <SkeletonBlock C={C} className="h-8 w-8 rounded-[9px]" />
-          <SkeletonBlock C={C} className="h-8 w-8 rounded-[9px]" />
-          <SkeletonBlock C={C} className="h-8 w-16 rounded-[9px]" />
-          <SkeletonBlock C={C} className="h-8 w-24 rounded-[9px]" />
-        </div>
-      </div>
       <div
         className={`${styles.builder} ${previewVisible ? "" : styles.builderPreviewHidden}`.trim()}
       >

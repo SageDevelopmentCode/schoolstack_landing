@@ -3,8 +3,10 @@ import { describe, it } from "node:test";
 import {
   dateKeyInTimezone,
   isMondayMorningWindow,
+  resolveVisitFamilyId,
   tomorrowKey,
   weekRangeForWeeklyDigest,
+  type VisitReminderRow,
 } from "./scheduled-visit-reminders";
 import { addCalendarDays } from "./admissions-observation-availability";
 
@@ -45,5 +47,34 @@ describe("scheduled visit reminder date helpers", () => {
     assert.equal(today, "2026-09-28");
     assert.equal(tomorrow, "2026-09-29");
     assert.equal(tomorrow, addCalendarDays(today, 1));
+  });
+});
+
+describe("resolveVisitFamilyId", () => {
+  it("prefers visit family_id when set", () => {
+    const row = {
+      family_id: "visit-family",
+      applications: { family_id: "app-family" },
+    } as VisitReminderRow;
+
+    assert.equal(resolveVisitFamilyId(row), "visit-family");
+  });
+
+  it("falls back to application family_id when visit family_id is null", () => {
+    const row = {
+      family_id: null,
+      applications: { family_id: "74d76a59-7b17-4abc-8196-b4f623451c91" },
+    } as VisitReminderRow;
+
+    assert.equal(resolveVisitFamilyId(row), "74d76a59-7b17-4abc-8196-b4f623451c91");
+  });
+
+  it("returns null when neither visit nor application has family_id", () => {
+    const row = {
+      family_id: null,
+      applications: { family_id: null },
+    } as VisitReminderRow;
+
+    assert.equal(resolveVisitFamilyId(row), null);
   });
 });

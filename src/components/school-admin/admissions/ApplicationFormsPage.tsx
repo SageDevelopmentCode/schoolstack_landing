@@ -1120,7 +1120,6 @@ export default function ApplicationFormsPage({
   };
 
   const handleCreateApplyForProgram = (programId: string) => {
-    if (!canCreateApplyForm) return;
     if (programsWithApplyForm.has(programId)) {
       const form = applyForms.find((row) => row.program_id === programId);
       if (form) {
@@ -1128,8 +1127,23 @@ export default function ApplicationFormsPage({
       }
       return;
     }
+    if (!canCreateApplyForm) return;
     requestAction(() => {
       void performCreateApply(programId);
+    });
+  };
+
+  const handleCreateChecklistForProgram = (programId: string) => {
+    if (programsWithEnrollmentChecklist.has(programId)) {
+      const checklist = activeChecklists.find((row) => row.programId === programId);
+      if (checklist) {
+        handleSelect({ kind: "checklist", id: checklist.id });
+      }
+      return;
+    }
+    if (!canCreateChecklist) return;
+    requestAction(() => {
+      void performCreateChecklist(programId);
     });
   };
 
@@ -1735,6 +1749,8 @@ export default function ApplicationFormsPage({
         <EnrollmentFlowsEmptyState
           C={C}
           theme={theme}
+          slug={slug}
+          hasPrograms={programs.length > 0}
           creating={creating}
           canCreateApplyForm={canCreateApplyForm}
           canCreateChecklist={canCreateChecklist}
@@ -1764,6 +1780,7 @@ export default function ApplicationFormsPage({
           onCreateApply={handleCreateApply}
           onCreateChecklist={handleCreateChecklist}
           onCreateApplyForProgram={handleCreateApplyForProgram}
+          onCreateChecklistForProgram={handleCreateChecklistForProgram}
           onDuplicateForm={handleDuplicateFormFromOverview}
           onOpenPostSubmit={handleOpenPostSubmit}
         />
@@ -1877,7 +1894,7 @@ export default function ApplicationFormsPage({
             </div>
           ) : null}
 
-          <div className="min-h-0 flex-1 overflow-hidden">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             {checklistEditable.programId || checklistReadOnly ? (
               <EnrollmentChecklistBuilder
                 branding={branding}

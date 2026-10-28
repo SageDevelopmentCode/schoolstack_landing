@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -17,8 +17,15 @@ import { SchoolAdminCommitteeHomeSection } from '@/components/school-admin/commi
 import { SchoolAdminCommitteeMembersSection } from '@/components/school-admin/committees/school-admin-committee-members-section';
 import { SchoolAdminCommitteeSettingsSection } from '@/components/school-admin/committees/school-admin-committee-settings-section';
 import { SchoolAdminCommitteeWorkspaceHeader } from '@/components/school-admin/committees/school-admin-committee-workspace-header';
+import { StoryButton } from '@/components/story/story-button';
+import { StoryErrorBanner } from '@/components/story/story-error-banner';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { useSchoolAdminCommittees } from '@/contexts/school-admin-committees-context';
+import {
+  CommitteeWorkspaceLoadCoalescer,
+  fetchSchoolAdminCommitteeWorkspace,
+  isCommitteeWorkspaceLoadTimeoutError,
+} from '@/lib/school-admin/committees/committee-workspace-load';
 import { getCommittee } from '@/lib/school-admin/committees/queries';
 import {
   ADMIN_VISIBLE_SECTIONS,
@@ -30,7 +37,7 @@ import { Story, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 import { getSupabaseClient } from '@/lib/supabase';
-import { createSchoolAdminErrorReporter } from '@/lib/mobile-error-reporter';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type SchoolAdminCommitteeWorkspaceScreenProps = {
   slug: string;
@@ -56,8 +63,9 @@ export function SchoolAdminCommitteeWorkspaceScreen({
 }: SchoolAdminCommitteeWorkspaceScreenProps) {
   const theme = useParentTheme();
   const supabase = useMemo(() => getSupabaseClient(), []);
-  const reportError = createSchoolAdminErrorReporter(organizationId);
+  const { reportError } = useMobileErrorReporter(organizationId);
   const { refresh: refreshCommitteesList } = useSchoolAdminCommittees();
+  const loadCoalescerRef = useRef(new CommitteeWorkspaceLoadCoalescer());
 
   const [committee, setCommittee] = useState<Committee | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,37 +75,45 @@ export function SchoolAdminCommitteeWorkspaceScreen({
   const loadWorkspace = useCallback(
     async (options?: { silent?: boolean }) => {
       const silent = options?.silent ?? false;
-      if (!silent) {
-        setLoading(true);
-        setError(null);
-      }
-      try {
-        const loaded = await getCommittee(supabase, organizationId, committeeId);
-        if (!loaded) {
-          throw new Error('Committee not found.');
-        }
-        setCommittee(loaded);
-        const sections = loaded.config.sections.filter(
-          (section): section is CommitteeWorkspaceSection =>
-            ADMIN_VISIBLE_SECTIONS.includes(section as CommitteeWorkspaceSection),
-        );
-        setActiveSection((current) => resolveVisibleSection(sections, current));
-      } catch (loadError) {
-        reportError('committees.load_workspace', loadError, {
-          entityType: 'committee',
-          entityId: committeeId,
-        });
+
+      await loadCoalescerRef.current.run(silent, async () => {
         if (!silent) {
-          setError(loadError instanceof Error ? loadError.message : 'Failed to load committee.');
-          setCommittee(null);
+          setLoading(true);
+          setError(null);
         }
-      } finally {
-        if (!silent) {
-          setLoading(false);
+        try {
+          const loaded = await fetchSchoolAdminCommitteeWorkspace(
+            async (orgId, id) => getCommittee(supabase, orgId, id),
+            organizationId,
+            committeeId,
+          );
+          setCommittee(loaded);
+          const sections = loaded.config.sections.filter(
+            (section): section is CommitteeWorkspaceSection =>
+              ADMIN_VISIBLE_SECTIONS.includes(section as CommitteeWorkspaceSection),
+          );
+          setActiveSection((current) => resolveVisibleSection(sections, current));
+        } catch (loadError) {
+          const operation = isCommitteeWorkspaceLoadTimeoutError(loadError)
+            ? 'committees.load_workspace_timeout'
+            : 'committees.load_workspace';
+          reportError(operation, loadError, {
+            entityType: 'committee',
+            entityId: committeeId,
+            metadata: { slug, committeeId },
+          });
+          if (!silent) {
+            setError(loadError instanceof Error ? loadError.message : 'Failed to load committee.');
+            setCommittee(null);
+          }
+        } finally {
+          if (!silent) {
+            setLoading(false);
+          }
         }
-      }
+      });
     },
-    [committeeId, organizationId, reportError, supabase],
+    [committeeId, organizationId, reportError, slug, supabase],
   );
 
   useEffect(() => {
@@ -149,9 +165,8 @@ export function SchoolAdminCommitteeWorkspaceScreen({
   if (error || !committee || !sectionProps) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: Story.paper }]}>
-        <Text style={[styles.errorCopy, { color: theme.alert }]}>
-          {error ?? 'Committee not found.'}
-        </Text>
+        <StoryErrorBanner message={error ?? 'Committee not found.'} style={styles.errorBanner} />
+        <StoryButton label="Try again" onPress={() => void loadWorkspace()} />
       </View>
     );
   }
@@ -220,9 +235,7 @@ const styles = StyleSheet.create({
     fontFamily: StoryFonts.body,
     fontSize: 14,
   },
-  errorCopy: {
-    fontFamily: StoryFonts.body,
-    fontSize: 14,
-    textAlign: 'center',
+  errorBanner: {
+    width: '100%',
   },
 });

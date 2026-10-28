@@ -64,6 +64,7 @@ const VISIT_REMINDER_SELECT = `
   day_before_parent_reminder_sent_at,
   day_of_parent_reminder_sent_at,
   applications (
+    family_id,
     application_form_versions (
       title,
       post_submit_config
@@ -91,7 +92,7 @@ export type ScheduledVisitRemindersResult = {
 
 type VisitReminderFamilyJoin = { name?: string | null };
 
-type VisitReminderRow = {
+export type VisitReminderRow = {
   id: string;
   application_id: string | null;
   family_id: string | null;
@@ -159,11 +160,20 @@ export function weekRangeForWeeklyDigest(
 }
 
 type ApplicationJoin = {
+  family_id?: string | null;
   primary_guardian_id?: string | null;
   created_by_user_id?: string | null;
   application_form_versions?: unknown;
   students?: unknown;
 };
+
+export function resolveVisitFamilyId(row: VisitReminderRow): string | null {
+  const application = applicationJoin(row);
+  const fromRow = row.family_id?.trim();
+  if (fromRow) return fromRow;
+  const fromApplication = application?.family_id?.trim();
+  return fromApplication || null;
+}
 
 function applicationJoin(row: VisitReminderRow): ApplicationJoin | null {
   return unwrapJoin(row.applications as ApplicationJoin | ApplicationJoin[] | null);
@@ -308,7 +318,7 @@ async function resolveParentRecipients(
   if (row.application_id) {
     const application = applicationJoin(row);
     const contact = await resolveApplicantContact(admin, {
-      family_id: row.family_id,
+      family_id: resolveVisitFamilyId(row),
       created_by_user_id: application?.created_by_user_id ?? null,
       primary_guardian_id: application?.primary_guardian_id ?? null,
     });
@@ -792,4 +802,218 @@ export async function sendScheduledVisitRemindersForOrganization(
     adminDayOfDigestsSent,
     failures,
   };
+}
+
+export type ScheduledVisitParentReminderKind = "day_before" | "day_of";
+
+export type ScheduledVisitParentReminderRecipient = ParentRecipient;
+
+export type SendScheduledVisitParentReminderResult = {
+  ok: boolean;
+  recipients: ScheduledVisitParentReminderRecipient[];
+  stepTitle?: string;
+  whenLabel?: string;
+  error?: string;
+};
+
+const VISIT_PARENT_REMINDER_LOAD_SELECT = `
+  organization_id,
+  status,
+  completed_manually_at,
+  ${VISIT_REMINDER_SELECT}
+`;
+
+export async function sendScheduledVisitParentReminderForVisit(
+  admin: SupabaseClient,
+  options: {
+    visitId: string;
+    kind: ScheduledVisitParentReminderKind;
+    now?: Date;
+    dryRun?: boolean;
+    force?: boolean;
+  },
+  deps: ReminderDeps = {},
+): Promise<SendScheduledVisitParentReminderResult> {
+  const now = options.now ?? new Date();
+  const dryRun = options.dryRun ?? false;
+  const force = options.force ?? false;
+
+  const { data: row, error: visitError } = await admin
+    .from("admissions_scheduled_visits")
+    .select(VISIT_PARENT_REMINDER_LOAD_SELECT)
+    .eq("id", options.visitId)
+    .maybeSingle();
+
+  if (visitError) throw visitError;
+  if (!row) {
+    return { ok: false, recipients: [], error: "Scheduled visit not found" };
+  }
+
+  const visit = row as VisitReminderRow & {
+    organization_id: string;
+    status: string;
+    completed_manually_at: string | null;
+  };
+
+  if (visit.status !== "scheduled" || visit.completed_manually_at) {
+    return {
+      ok: false,
+      recipients: [],
+      error: "Visit is not an active scheduled visit",
+    };
+  }
+
+  const sentAtColumn =
+    options.kind === "day_before"
+      ? visit.day_before_parent_reminder_sent_at
+      : visit.day_of_parent_reminder_sent_at;
+
+  if (sentAtColumn && !force) {
+    return {
+      ok: false,
+      recipients: [],
+      error: "Reminder was already sent for this visit",
+    };
+  }
+
+  const organizationId = String(visit.organization_id);
+  const recipients = await resolveParentRecipients(admin, visit);
+  const stepTitle = resolveStepTitle(visit);
+  const whenLabel = visitWhenLabel(visit);
+
+  if (recipients.length === 0) {
+    return {
+      ok: false,
+      recipients: [],
+      stepTitle,
+      whenLabel,
+      error: "No deliverable parent email for scheduled visit",
+    };
+  }
+
+  if (dryRun) {
+    return { ok: true, recipients, stepTitle, whenLabel };
+  }
+
+  const sendDayBeforeParentEmail =
+    deps.sendDayBeforeParentEmail ?? sendScheduledVisitDayBeforeReminderEmail;
+  const sendDayOfParentEmail =
+    deps.sendDayOfParentEmail ?? sendScheduledVisitDayOfReminderEmail;
+  const loadVisitLocationDetails =
+    deps.loadVisitLocationDetails ??
+    (async (client, orgId) => {
+      const bundle = await loadSchoolProfileBundle(client, orgId);
+      return buildSchoolVisitEmailDetailRows(bundle);
+    });
+
+  const { data: org, error: orgError } = await admin
+    .from("organizations")
+    .select("name, slug")
+    .eq("id", organizationId)
+    .maybeSingle();
+
+  if (orgError) throw orgError;
+
+  const schoolName = String(org?.name ?? "Your school");
+  const schoolSlug = String(org?.slug ?? "");
+  const timezone = await getOrganizationTimezone(admin, organizationId);
+  const timezoneLabel = formatOrganizationTimezoneLabel(timezone);
+  const durationLabel = formatDurationLabel(visit.duration_minutes);
+  const optionalLink = resolveOptionalParentLink(schoolSlug, visit);
+  const locationDetails = await loadVisitLocationDetails(admin, organizationId);
+
+  const sentAtField =
+    options.kind === "day_before"
+      ? "day_before_parent_reminder_sent_at"
+      : "day_of_parent_reminder_sent_at";
+
+  const { data: claimed, error: claimError } = await admin
+    .from("admissions_scheduled_visits")
+    .update({ [sentAtField]: now.toISOString() })
+    .eq("id", visit.id)
+    .eq("organization_id", organizationId)
+    .is(sentAtField, null)
+    .select("id");
+
+  if (claimError) throw claimError;
+  if (!claimed?.length && !force) {
+    return {
+      ok: false,
+      recipients,
+      stepTitle,
+      whenLabel,
+      error: "Reminder was already sent for this visit",
+    };
+  }
+
+  let delivered = false;
+  const visitNotificationContext = buildEmailNotificationContext({
+    organizationId,
+    organizationSlug: schoolSlug,
+    surface: "cron",
+    entityType: "admissions_scheduled_visit",
+    entityId: visit.id,
+  });
+
+  for (const recipient of recipients) {
+    const result =
+      options.kind === "day_before"
+        ? await sendDayBeforeParentEmail({
+            email: recipient.email,
+            name: recipient.name,
+            schoolName,
+            stepTitle,
+            whenLabel,
+            timezoneLabel,
+            durationLabel,
+            optionalLink,
+            locationDetails,
+            notificationContext: visitNotificationContext,
+          })
+        : await sendDayOfParentEmail({
+            email: recipient.email,
+            name: recipient.name,
+            schoolName,
+            stepTitle,
+            whenLabel,
+            timezoneLabel,
+            durationLabel,
+            optionalLink,
+            locationDetails,
+            notificationContext: visitNotificationContext,
+          });
+
+    if (result.ok) {
+      delivered = true;
+    } else {
+      await logNotificationFailure(admin, {
+        organizationId,
+        operation:
+          options.kind === "day_before"
+            ? "scheduled_visit_day_before_parent_reminder"
+            : "scheduled_visit_day_of_parent_reminder",
+        error: `Failed to send ${options.kind} reminder to ${recipient.email}`,
+        entityType: "admissions_scheduled_visit",
+        entityId: visit.id,
+      });
+    }
+  }
+
+  if (!delivered) {
+    await admin
+      .from("admissions_scheduled_visits")
+      .update({ [sentAtField]: null })
+      .eq("id", visit.id)
+      .eq("organization_id", organizationId);
+
+    return {
+      ok: false,
+      recipients,
+      stepTitle,
+      whenLabel,
+      error: "Failed to deliver reminder email",
+    };
+  }
+
+  return { ok: true, recipients, stepTitle, whenLabel };
 }

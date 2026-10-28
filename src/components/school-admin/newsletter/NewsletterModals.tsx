@@ -2,9 +2,9 @@
 
 import { Check, Info } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { weekLabel, plusDays } from "@/lib/school-admin/newsletter/newsletter-dates";
+import { weekLabel } from "@/lib/school-admin/newsletter/newsletter-dates";
+import { MAX_NEWSLETTER_EVENTS } from "@/lib/school-admin/newsletter/newsletter-limits";
 import { editionHasContent } from "@/lib/school-admin/newsletter/newsletter-render";
-import { createEditionFromTemplate } from "@/lib/school-admin/newsletter/newsletter-template";
 import {
   createNewsletterId,
   type NewsletterEdition,
@@ -18,10 +18,8 @@ import NewsletterSectionsSheet from "./NewsletterSectionsSheet";
 import styles from "./newsletter-workspace.module.css";
 
 export type NewsletterModalState =
-  | { type: "editions" }
   | { type: "sections" }
   | { type: "event"; index?: number }
-  | { type: "nextWeek" }
   | { type: "publish" }
   | { type: "export" }
   | {
@@ -42,7 +40,6 @@ type NewsletterModalsProps = {
   onTemplateChange: (template: NewsletterSchoolTemplate) => void;
   onToast: (message: string) => void;
   onShowPreview: () => void;
-  onEditorTabStory: () => void;
   onExportHtml: () => void;
   onExportText: () => void;
   onCopyText: () => void;
@@ -87,9 +84,7 @@ export default function NewsletterModals(props: NewsletterModalsProps) {
   if (!modal) return null;
 
   let body: React.ReactNode = null;
-  if (modal.type === "editions") body = <EditionsBody {...props} />;
   if (modal.type === "event") body = <EventBody {...props} index={modal.index} />;
-  if (modal.type === "nextWeek") body = <NextWeekBody {...props} />;
   if (modal.type === "publish") body = <PublishBody {...props} />;
   if (modal.type === "export") body = <ExportBody {...props} />;
   if (modal.type === "confirm") {
@@ -116,21 +111,17 @@ export default function NewsletterModals(props: NewsletterModalsProps) {
   }
 
   const title =
-    modal.type === "editions"
-      ? "Editions"
-      : modal.type === "event"
-          ? modal.index === undefined
-            ? "Add date"
-            : "Edit date"
-          : modal.type === "nextWeek"
-            ? "Start next week"
-            : modal.type === "publish"
-              ? "Review & publish"
-              : modal.type === "export"
-                ? "Export newsletter"
-                : modal.type === "confirm"
-                  ? modal.title
-                  : undefined;
+    modal.type === "event"
+      ? modal.index === undefined
+        ? "Add date"
+        : "Edit date"
+      : modal.type === "publish"
+        ? "Review & publish"
+        : modal.type === "export"
+          ? "Export newsletter"
+          : modal.type === "confirm"
+            ? modal.title
+            : undefined;
 
   return (
     <div
@@ -161,47 +152,11 @@ export default function NewsletterModals(props: NewsletterModalsProps) {
   );
 }
 
-function EditionsBody({
-  workspace,
-  onClose,
-  onWorkspaceChange,
-  onEditorTabStory,
-}: NewsletterModalsProps) {
-  return (
-    <>
-      {workspace.editions.map((edition) => (
-        <button
-          key={edition.id}
-          type="button"
-          className={styles.editionItem}
-          onClick={() => {
-            onWorkspaceChange({ ...workspace, activeEditionId: edition.id });
-            onEditorTabStory();
-            onClose();
-          }}
-        >
-          <span>
-            <strong>{edition.title || "Untitled edition"}</strong>
-            <small>
-              {weekLabel(edition)}
-              {edition.id === workspace.activeEditionId ? " · Open" : ""}
-            </small>
-          </span>
-          <span
-            className={`${styles.chip} ${edition.status === "published" ? styles.chipSuccess : ""}`}
-          >
-            {edition.status === "published" ? "Published" : "Draft"}
-          </span>
-        </button>
-      ))}
-    </>
-  );
-}
-
 function EventBody({
   activeEdition,
   onClose,
   onActiveEditionChange,
+  onToast,
   index,
 }: NewsletterModalsProps & { index?: number }) {
   const { theme } = useSchoolAdminStoryTheme();
@@ -225,8 +180,13 @@ function EventBody({
       note: note.trim(),
     };
     const events = [...activeEdition.events];
-    if (index === undefined) events.push(updated);
-    else events[index] = updated;
+    if (index === undefined) {
+      if (events.length >= MAX_NEWSLETTER_EVENTS) {
+        onToast(`Up to ${MAX_NEWSLETTER_EVENTS} dates.`);
+        return;
+      }
+      events.push(updated);
+    } else events[index] = updated;
     events.sort((a, b) => a.date.localeCompare(b.date));
     onActiveEditionChange({ ...activeEdition, events });
     onClose();
@@ -277,86 +237,6 @@ function EventBody({
       <div className={styles.modalActions}>
         <AdminButton theme={theme} variant="primary" onClick={save}>
           Save date
-        </AdminButton>
-      </div>
-    </>
-  );
-}
-
-function NextWeekBody({
-  activeEdition,
-  workspace,
-  onClose,
-  onWorkspaceChange,
-  onEditorTabStory,
-  onToast,
-}: NewsletterModalsProps) {
-  const { theme } = useSchoolAdminStoryTheme();
-  const defaultWeek = plusDays(activeEdition.week || "2026-10-26", 7);
-  const [week, setWeek] = useState(defaultWeek);
-  const [carryReminders, setCarryReminders] = useState(true);
-  const [carryEvents, setCarryEvents] = useState(true);
-
-  const create = () => {
-    if (!week) return;
-    const edition = createEditionFromTemplate(workspace.template, {
-      week,
-      layout: activeEdition.layout,
-      title: "This week at our school",
-    });
-    edition.reminders = carryReminders
-      ? activeEdition.reminders
-          .filter((r) => r.keep && r.text.trim())
-          .map((r) => ({ ...r, id: createNewsletterId() }))
-      : [];
-    edition.events = carryEvents
-      ? activeEdition.events
-          .filter((x) => x.date >= week)
-          .map((x) => ({ ...x, id: createNewsletterId() }))
-      : [];
-    onWorkspaceChange({
-      ...workspace,
-      editions: [edition, ...workspace.editions],
-      activeEditionId: edition.id,
-    });
-    onEditorTabStory();
-    onClose();
-    onToast("New week ready.");
-  };
-
-  return (
-    <>
-      <div className={styles.field}>
-        <label>Week beginning</label>
-        <input
-          className={styles.input}
-          type="date"
-          value={week}
-          onChange={(e) => setWeek(e.target.value)}
-        />
-      </div>
-      <label className={styles.checkLabel} style={{ fontSize: 11, marginTop: 20 }}>
-        <input
-          type="checkbox"
-          checked={carryReminders}
-          onChange={(e) => setCarryReminders(e.target.checked)}
-        />
-        Keep reminders marked &ldquo;Reuse next week&rdquo;
-      </label>
-      <label className={styles.checkLabel} style={{ fontSize: 11, marginTop: 12 }}>
-        <input
-          type="checkbox"
-          checked={carryEvents}
-          onChange={(e) => setCarryEvents(e.target.checked)}
-        />
-        Keep dates on or after the new week
-      </label>
-      <p className={styles.helper}>
-        Same prompts and layout. Fresh stories and photos. This edition stays in your editions list.
-      </p>
-      <div className={styles.modalActions}>
-        <AdminButton theme={theme} variant="primary" onClick={create}>
-          Create draft
         </AdminButton>
       </div>
     </>

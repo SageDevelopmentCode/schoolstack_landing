@@ -8,6 +8,7 @@ import {
 import { apiError } from "@/lib/api/route-errors";
 import { isMobilePreviewRequest } from "@/lib/mobile-preview-header";
 import {
+  isExcludedMobileFeatureVisitKey,
   normalizeMobileFeatureKey,
   shouldRecordMobileFeatureVisit,
 } from "@/lib/mobile-feature-visit-policy";
@@ -93,6 +94,10 @@ export async function POST(request: Request) {
     });
   }
 
+  if (isExcludedMobileFeatureVisitKey(featureKey)) {
+    return new NextResponse(null, { status: 204 });
+  }
+
   const organizationId = body.organizationId?.trim();
   if (!organizationId) {
     return apiError(ROUTE, {
@@ -149,7 +154,7 @@ export async function POST(request: Request) {
     surface,
     action: ACTIVITY_ACTIONS.MOBILE_FEATURE_VISITED,
     entityType: "mobile_feature",
-    entityId: featureKey,
+    entityId: null,
     summary: `Opened ${featureKey} (MudKitchen mobile)`,
     metadata,
   });

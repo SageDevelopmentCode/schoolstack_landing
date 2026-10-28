@@ -75,9 +75,14 @@ import { listProgramCoopTeachingSchedule } from "@/lib/admissions/program-coop-t
 import { getGuardianIdForUser } from "@/lib/messages/messages";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts-home";
-import SchoolGalleryPage from "@/components/school-gallery/SchoolGalleryPage";
+import ParentPhotosPage from "@/components/school-parent/photos/ParentPhotosPage";
 import { isSchoolGalleryEnabled } from "@/lib/school-gallery/gallery-enabled";
 import { isSchoolGalleryFeatureKey } from "@/lib/school-gallery/gallery-nav";
+import { filterPhotoPermissionChildren } from "@/lib/parent-portal/photos/filter-photo-permission-children";
+import {
+  buildInitialConsentsMap,
+  loadStudentPhotoMediaConsents,
+} from "@/lib/students/load-student-photo-media-consents";
 
 export type SchoolParentFeaturePageContext = {
   slug: string;
@@ -198,16 +203,39 @@ export async function renderSchoolParentFeaturePage(
       notFound();
     }
 
+    const user = await getRequestUser();
+    if (!user) {
+      notFound();
+    }
+
+    const allFamilyChildren = await listFamilyChildrenForHome(
+      supabase,
+      org.id,
+      user.id,
+    );
+    const familyChildren = programId
+      ? filterFamilyChildrenForProgramPortal(allFamilyChildren, programId)
+      : allFamilyChildren;
+    const eligibleChildren = filterPhotoPermissionChildren(familyChildren);
+    const studentIds = eligibleChildren
+      .map((child) => child.studentId)
+      .filter((studentId): studentId is string => Boolean(studentId));
+    const admin = createAdminClient();
+    const consentRows = await loadStudentPhotoMediaConsents(
+      admin,
+      org.id,
+      studentIds,
+    );
+
     return (
       <SchoolParentPageShell title="Photos">
-        <div className="px-[clamp(20px,4vw,48px)] py-8">
-          <SchoolGalleryPage
-            organizationId={org.id}
-            slug={context.slug}
-            programId={programId}
-            portal="parent"
-          />
-        </div>
+        <ParentPhotosPage
+          organizationId={org.id}
+          slug={context.slug}
+          programId={programId}
+          eligibleChildren={eligibleChildren}
+          initialConsentsByStudentId={buildInitialConsentsMap(consentRows)}
+        />
       </SchoolParentPageShell>
     );
   }

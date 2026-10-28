@@ -36,6 +36,7 @@ import {
   type ResolvedParentOnboardingItem,
 } from '@/lib/parent/parent-portal-api';
 import { usePortalPreview } from '@/lib/portal-preview-gating';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type ParentProgramHomeScreenProps = {
   slug: string;
@@ -47,6 +48,7 @@ export function ParentProgramHomeScreen({ slug, programSlug }: ParentProgramHome
   const router = useRouter();
   const { isPreview } = usePortalPreview();
   const { data, isLoading, isRefreshing, error, refresh, ensureLoaded } = useParentProgramHome();
+  const { reportError } = useMobileErrorReporter(data?.organizationId);
   const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
   const [signupAttentionItems, setSignupAttentionItems] = useState<ParentSignupAttentionItem[]>(
     [],
@@ -73,10 +75,10 @@ export function ParentProgramHomeScreen({ slug, programSlug }: ParentProgramHome
         }),
       );
       setNotificationUnreadCount(count);
-    } catch {
-      // Keep the last known count on transient errors.
+    } catch (err) {
+      reportError('parent.activity_notifications.unread_count_failed', err);
     }
-  }, [data?.coopModeEnabled, data?.organizationId, data?.parentNavBasePath, data?.programId, data?.programSlug, slug]);
+  }, [data?.coopModeEnabled, data?.organizationId, data?.parentNavBasePath, data?.programId, data?.programSlug, reportError, slug]);
 
   useFocusEffect(
     useCallback(() => {
@@ -94,12 +96,14 @@ export function ParentProgramHomeScreen({ slug, programSlug }: ParentProgramHome
           setSignupAttentionItems(items);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        reportError('parent.signup_attention.fetch_failed', err);
+      });
 
     return () => {
       cancelled = true;
     };
-  }, [data?.organizationId]);
+  }, [data?.organizationId, reportError]);
 
   const openWebUrl = async (href: string) => {
     await openBrowserAsync(resolveWebUrl(href), {

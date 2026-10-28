@@ -34,6 +34,7 @@ import {
   StudentProfilePhotoUploadError,
   uploadStudentProfilePhotoFromParent,
 } from '@/lib/parent/upload-student-profile-photo';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { MOBILE_PROFILE_PHOTO_UPLOAD_ENABLED } from '@/lib/profile-photo/mobile-profile-photo-upload-enabled';
 
 type RecordTab = 'application' | 'checklist' | 'teachers';
@@ -98,6 +99,7 @@ export function ParentChildRecordWorkspace({
   workspaceRef,
 }: ParentChildRecordWorkspaceProps) {
   const theme = useParentTheme();
+  const { reportError } = useMobileErrorReporter(organizationId);
   const { refresh: refreshMainHome } = useParentHome();
   const refresh = refreshHome ?? refreshMainHome;
 
@@ -202,6 +204,7 @@ export function ParentChildRecordWorkspace({
         onPhotoUpdated?.(nextUrl);
         void refresh();
       } catch (error) {
+        reportError('parent.student_profile_photo.upload_failed', error);
         const message =
           error instanceof StudentProfilePhotoUploadError
             ? error.message
@@ -213,7 +216,7 @@ export function ParentChildRecordWorkspace({
         setPhotoUploading(false);
       }
     },
-    [application.studentId, onPhotoUpdated, organizationId, refresh],
+    [application.studentId, onPhotoUpdated, organizationId, refresh, reportError],
   );
 
   const handleTabChange = useCallback(

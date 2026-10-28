@@ -5,7 +5,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { ParentEmbeddedPdfPreview } from '@/components/parent/shared/parent-embedded-pdf-preview';
 import { StoryButton } from '@/components/story/story-button';
 import { useParentTheme } from '@/contexts/parent-theme-context';
-import { createParentPortalErrorReporter } from '@/lib/mobile-error-reporter';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { resolveCommitteeResourceUrl } from '@/lib/parent/committees/mutations';
 import type { CommitteeResource } from '@/lib/parent/parent-committees-types';
 import { buildEmbeddedPdfViewerUrl } from '@/lib/school-bulletin/bulletin-format';
@@ -25,10 +25,7 @@ export function ParentCommitteeResourceViewer({
   resource,
 }: ParentCommitteeResourceViewerProps) {
   const theme = useParentTheme();
-  const reportError = useMemo(
-    () => createParentPortalErrorReporter(organizationId),
-    [organizationId],
-  );
+  const { reportError } = useMobileErrorReporter(organizationId);
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

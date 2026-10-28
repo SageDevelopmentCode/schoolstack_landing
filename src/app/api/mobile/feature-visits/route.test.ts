@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  isExcludedMobileFeatureVisitKey,
   normalizeMobileFeatureKey,
   shouldRecordMobileFeatureVisit,
 } from "@/lib/mobile-feature-visit-policy";
@@ -13,6 +14,17 @@ describe("normalizeMobileFeatureKey", () => {
   it("rejects empty keys", () => {
     assert.equal(normalizeMobileFeatureKey(""), null);
     assert.equal(normalizeMobileFeatureKey("   "), null);
+  });
+});
+
+describe("isExcludedMobileFeatureVisitKey", () => {
+  it("excludes parent/teacher landing keys", () => {
+    assert.equal(isExcludedMobileFeatureVisitKey("home"), true);
+    assert.equal(isExcludedMobileFeatureVisitKey("portal"), true);
+  });
+
+  it("allows real features", () => {
+    assert.equal(isExcludedMobileFeatureVisitKey("billing"), false);
   });
 });
 

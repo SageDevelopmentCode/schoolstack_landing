@@ -47,6 +47,7 @@ type EnrollmentFlowsOverviewProps = {
   onCreateApply: () => void;
   onCreateChecklist: () => void;
   onCreateApplyForProgram: (programId: string) => void;
+  onCreateChecklistForProgram: (programId: string) => void;
   onDuplicateForm: (formId: string) => void;
   onOpenPostSubmit: (applyFormId: string) => void;
   onReviewAttentionProgram?: (programId: string) => void;
@@ -66,6 +67,7 @@ export default function EnrollmentFlowsOverview({
   onCreateApply,
   onCreateChecklist,
   onCreateApplyForProgram,
+  onCreateChecklistForProgram,
   onDuplicateForm,
   onOpenPostSubmit,
   onReviewAttentionProgram,
@@ -309,7 +311,8 @@ export default function EnrollmentFlowsOverview({
                 bindings={bindings}
                 searchQuery={search}
                 onSelect={onSelect}
-                onEditFlow={handleEditFlow}
+                onSetupApplication={onCreateApplyForProgram}
+                onSetupChecklist={onCreateChecklistForProgram}
                 onOpenPostSubmit={onOpenPostSubmit}
               />
             </section>

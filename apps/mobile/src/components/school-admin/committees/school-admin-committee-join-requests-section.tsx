@@ -22,7 +22,7 @@ import type {
 } from '@/lib/parent/parent-committees-types';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
-import { createSchoolAdminErrorReporter } from '@/lib/mobile-error-reporter';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 function formatSubmittedAt(value: string): string {
   try {
@@ -64,10 +64,7 @@ export function SchoolAdminCommitteeJoinRequestsSection({
   onChanged,
 }: SchoolAdminCommitteeJoinRequestsSectionProps) {
   const theme = useParentTheme();
-  const reportError = useMemo(
-    () => createSchoolAdminErrorReporter(organizationId),
-    [organizationId],
-  );
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const [requests, setRequests] = useState<CommitteeJoinRequest[]>([]);
   const [dutyRolesByCommitteeId, setDutyRolesByCommitteeId] = useState<

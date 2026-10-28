@@ -16,6 +16,7 @@ import { getParentPortalActivityUnreadCount } from "@/lib/parent-portal/parent-a
 import { buildProgramParentNotificationContext } from "@/lib/parent-portal/parent-notification-context";
 import { programParentPortalHasEnabledFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -55,8 +56,9 @@ export default async function FamilyPreviewProgramParentLayout({
     notFound();
   }
 
+  const admin = createAdminClient();
   const hasProgramAccess = await familyHasEnrolledAccessInProgram(
-    supabase,
+    admin,
     org.id,
     familyId,
     programContext.programId,

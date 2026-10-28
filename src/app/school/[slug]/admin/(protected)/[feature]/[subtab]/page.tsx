@@ -18,6 +18,7 @@ import { fetchSubmissionPageMeta } from "@/lib/school-admin/submissions-page-met
 import StudentsPageShell from "@/components/school-admin/students/StudentsPageShell";
 import StudentsTableLoader from "@/components/school-admin/students/StudentsTableLoader";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { isSchoolGalleryEnabled } from "@/lib/school-gallery/gallery-enabled";
 import { parseProgramParentPortalOrgConfig } from "@/lib/admissions/program-parent-portal-governance";
 import { parseAdmissionsOrgSettings } from "@/lib/admissions/admissions-org-settings";
 import { ParentThemeProvider } from "@/components/school-parent/ParentThemeContext";
@@ -81,6 +82,7 @@ export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ slug: string; feature: string; subtab: string }>;
+  searchParams: Promise<{ edition?: string | string[] }>;
 };
 
 export async function generateMetadata({
@@ -110,8 +112,19 @@ export async function generateMetadata({
   };
 }
 
-export default async function SchoolAdminSubtabPage({ params }: PageProps) {
+export default async function SchoolAdminSubtabPage({
+  params,
+  searchParams,
+}: PageProps) {
   const { slug, feature, subtab } = await params;
+  const resolvedSearchParams = await searchParams;
+  const editionParam = resolvedSearchParams.edition;
+  const initialEditionId =
+    typeof editionParam === "string"
+      ? editionParam
+      : Array.isArray(editionParam)
+        ? editionParam[0] ?? null
+        : null;
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   const org = await fetchOrganizationWithSettings(supabase, slug);
@@ -334,6 +347,8 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
         slug={slug}
         schoolName={org.name}
         branding={org.branding}
+        galleryEnabled={isSchoolGalleryEnabled(org.features)}
+        initialEditionId={initialEditionId}
       />
     );
   }

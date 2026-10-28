@@ -1,5 +1,14 @@
 import type { StaffMemberRecord } from "@/lib/staff/staff-members";
 import { staffDisplayName } from "@/lib/staff/staff-display";
+import {
+  MUDKITCHEN_FOOTER_LABEL,
+  MUDKITCHEN_LOGO_ALT,
+  MUDKITCHEN_LOGO_PATH,
+  MUDKITCHEN_SITE_URL,
+  NEWSLETTER_MASTHEAD_TAGLINE,
+  mudkitchenLogoUrlForExport,
+  type NewsletterVisualBranding,
+} from "./newsletter-branding";
 import { getWelcomeValue } from "./newsletter-template";
 import type {
   NewsletterEdition,
@@ -64,7 +73,33 @@ function blockContentHtml(block: NewsletterStoryBlock): string {
 export type BuildContentOptions = {
   staff?: StaffMemberRecord[];
   template?: NewsletterSchoolTemplate;
+  branding?: NewsletterVisualBranding;
 };
+
+function newsletterMastheadHtml(
+  school: NewsletterSchoolMeta,
+  branding?: NewsletterVisualBranding,
+): string {
+  const mkSrc = branding?.mudkitchenLogoSrc ?? mudkitchenLogoUrlForExport();
+  const schoolName = escapeHtml(school.name);
+  const schoolLogo = branding?.schoolLogoSrc?.trim();
+  const schoolInner = schoolLogo
+    ? `<img class="n-logo n-logo-school" src="${escapeHtml(schoolLogo)}" alt="${escapeHtml(branding?.schoolLogoAlt ?? "School logo")}">${schoolName}`
+    : schoolName;
+
+  return `<div class="n-masthead"><div class="n-masthead-school"><div class="n-school">${schoolInner}</div></div><div class="n-masthead-mk"><img class="n-logo n-logo-mk" src="${escapeHtml(mkSrc)}" alt="${escapeHtml(MUDKITCHEN_LOGO_ALT)}"><span class="n-masthead-tagline">${escapeHtml(NEWSLETTER_MASTHEAD_TAGLINE)}</span></div></div>`;
+}
+
+function newsletterFooterHtml(
+  signatureHtml: string,
+  branding?: NewsletterVisualBranding,
+): string {
+  const mkSrc =
+    branding?.mudkitchenLogoSrc ?? `${MUDKITCHEN_SITE_URL}${MUDKITCHEN_LOGO_PATH}`;
+  const mkRow = `<div class="n-footer-mk"><a href="${MUDKITCHEN_SITE_URL}" target="_blank" rel="noopener noreferrer"><img class="n-logo n-logo-mk-footer" src="${escapeHtml(mkSrc)}" alt="${escapeHtml(MUDKITCHEN_LOGO_ALT)}"><span>${escapeHtml(MUDKITCHEN_FOOTER_LABEL)}</span></a></div>`;
+
+  return `<footer class="n-footer"><div class="n-footer-signature">${signatureHtml}</div>${mkRow}</footer>`;
+}
 
 export function buildNewsletterContentHtml(
   edition: NewsletterEdition,
@@ -144,7 +179,10 @@ export function buildNewsletterArticleHtml(
   const signature = escapeHtml(school.signature).replaceAll("\n", "<br>");
   const title = edition.title.trim() || "A note from our school";
 
-  return `<article class="newsletter ${edition.layout}"><div class="n-masthead"><div class="n-school">${escapeHtml(school.name)}</div><span>School stories</span></div><header class="n-hero"><div class="n-eyebrow">${escapeHtml(weekLabel(edition))}</div><h2>${escapeHtml(title)}</h2>${welcome}</header><div class="n-content">${contentBlock}</div><footer class="n-footer">${signature}</footer></article>`;
+  const masthead = newsletterMastheadHtml(school, options.branding);
+  const footer = newsletterFooterHtml(signature, options.branding);
+
+  return `<article class="newsletter storybook">${masthead}<header class="n-hero"><div class="n-eyebrow">${escapeHtml(weekLabel(edition))}</div><h2>${escapeHtml(title)}</h2>${welcome}</header><div class="n-content">${contentBlock}</div>${footer}</article>`;
 }
 
 export function editionHasContent(edition: NewsletterEdition): boolean {

@@ -19,7 +19,7 @@ import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 import { getSupabaseClient } from '@/lib/supabase';
-import { createSchoolAdminErrorReporter } from '@/lib/mobile-error-reporter';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type TemplateOption = {
   id: string | null;
@@ -63,7 +63,7 @@ export function SchoolAdminCreateCommitteeSheet({
 }: SchoolAdminCreateCommitteeSheetProps) {
   const theme = useParentTheme();
   const supabase = useMemo(() => getSupabaseClient(), []);
-  const reportError = createSchoolAdminErrorReporter(organizationId);
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const options = useMemo(() => buildTemplateOptions(templates), [templates]);
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(options[0]?.id ?? null);

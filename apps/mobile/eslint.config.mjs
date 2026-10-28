@@ -16,4 +16,26 @@ export default defineConfig([
       'react-hooks/preserve-manual-memoization': 'off',
     },
   },
+  {
+    files: ['src/components/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@/lib/mobile-error-reporter',
+              importNames: [
+                'createSchoolAdminErrorReporter',
+                'createParentPortalErrorReporter',
+                'createTeacherPortalErrorReporter',
+              ],
+              message:
+                'Use useMobileErrorReporter from @/lib/use-mobile-error-reporter in components.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]);

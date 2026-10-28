@@ -8,11 +8,14 @@ import {
 } from '@/lib/mobile-feature-from-pathname';
 
 describe('resolveTeacherMobileFeatureKey', () => {
-  it('maps primary tabs', () => {
+  it('skips home landing', () => {
     assert.equal(
       resolveTeacherMobileFeatureKey('/teacher/rooted-meadows/home'),
-      'home',
+      null,
     );
+  });
+
+  it('maps primary tabs', () => {
     assert.equal(
       resolveTeacherMobileFeatureKey('/teacher/rooted-meadows/more/attendance'),
       'attendance',
@@ -41,6 +44,16 @@ describe('resolveSchoolAdminMobileFeatureKey', () => {
 });
 
 describe('resolveParentMobileFeatureKey', () => {
+  it('skips home landing', () => {
+    assert.equal(
+      resolveParentMobileFeatureKey('/parent/rooted-meadows/home', [
+        { tabId: 'home', pathSegment: 'home' },
+        { tabId: 'billing', pathSegment: 'billing' },
+      ]),
+      null,
+    );
+  });
+
   it('maps billing tab', () => {
     assert.equal(
       resolveParentMobileFeatureKey('/parent/rooted-meadows/billing', [

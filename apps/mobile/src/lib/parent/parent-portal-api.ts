@@ -70,6 +70,16 @@ export class ParentPortalApiError extends Error {
   }
 }
 
+export function isFridayBranchParentPortalPausedError(err: unknown): boolean {
+  if (err instanceof ParentPortalApiError) {
+    return err.code === 'friday_branch_paused';
+  }
+  if (err instanceof Error) {
+    return err.message.toLowerCase().includes('signup is paused');
+  }
+  return false;
+}
+
 function throwParentApiError(payload: ParentApiErrorPayload, status: number): never {
   throw new ParentPortalApiError(
     typeof payload.error === 'string' ? payload.error : 'Request failed.',

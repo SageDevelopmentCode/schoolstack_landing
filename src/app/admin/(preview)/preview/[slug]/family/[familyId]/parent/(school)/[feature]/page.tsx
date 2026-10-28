@@ -55,10 +55,15 @@ import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch
 import { resolveMainParentOrganizationFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
-import SchoolGalleryPage from "@/components/school-gallery/SchoolGalleryPage";
+import ParentPhotosPage from "@/components/school-parent/photos/ParentPhotosPage";
 import { isSchoolGalleryEnabled } from "@/lib/school-gallery/gallery-enabled";
 import { isSchoolGalleryFeatureKey } from "@/lib/school-gallery/gallery-nav";
 import { listGalleryPhotosPage } from "@/lib/school-gallery/photos";
+import { filterPhotoPermissionChildren } from "@/lib/parent-portal/photos/filter-photo-permission-children";
+import {
+  buildInitialConsentsMap,
+  loadStudentPhotoMediaConsents,
+} from "@/lib/students/load-student-photo-media-consents";
 
 export const dynamic = "force-dynamic";
 
@@ -427,19 +432,32 @@ export default async function FamilyPreviewParentFeaturePage({
   }
 
   if (feature === "photos") {
+    const familyChildren = await listFamilyChildrenForHomeByFamilyId(
+      admin,
+      org.id,
+      familyId,
+    );
+    const eligibleChildren = filterPhotoPermissionChildren(familyChildren);
+    const studentIds = eligibleChildren
+      .map((child) => child.studentId)
+      .filter((studentId): studentId is string => Boolean(studentId));
+    const consentRows = await loadStudentPhotoMediaConsents(
+      admin,
+      org.id,
+      studentIds,
+    );
     const initialFeed = await listGalleryPhotosPage(admin, org.id);
     return (
       <SchoolParentPageShell title="Photos">
-        <div className="px-[clamp(20px,4vw,48px)] py-8">
-          <SchoolGalleryPage
-            organizationId={org.id}
-            slug={slug}
-            portal="parent"
-            initialFeed={initialFeed}
-            readOnly
-            previewFamilyId={familyId}
-          />
-        </div>
+        <ParentPhotosPage
+          organizationId={org.id}
+          slug={slug}
+          eligibleChildren={eligibleChildren}
+          initialConsentsByStudentId={buildInitialConsentsMap(consentRows)}
+          previewMode
+          previewFamilyId={familyId}
+          initialFeed={initialFeed}
+        />
       </SchoolParentPageShell>
     );
   }
