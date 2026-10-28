@@ -29,6 +29,18 @@ export const PHOTO_MEDIA_CONSENT_OPTIONS: PhotoMediaConsentOption[] = [
   },
 ];
 
+export function isPhotoMediaConsent(value: string): value is PhotoMediaConsent {
+  return (PHOTO_MEDIA_CONSENT_VALUES as readonly string[]).includes(value);
+}
+
+export function parsePhotoMediaConsent(
+  value: string | null | undefined,
+): PhotoMediaConsent | null {
+  const trimmed = value?.trim();
+  if (!trimmed || !isPhotoMediaConsent(trimmed)) return null;
+  return trimmed;
+}
+
 export function photoMediaConsentLabel(consent: PhotoMediaConsent | null): string {
   if (!consent) return 'Not set yet';
   return PHOTO_MEDIA_CONSENT_OPTIONS.find((option) => option.value === consent)?.label ?? consent;
@@ -37,4 +49,30 @@ export function photoMediaConsentLabel(consent: PhotoMediaConsent | null): strin
 export function childFirstName(fullName: string): string {
   const part = fullName.trim().split(/\s+/).filter(Boolean)[0];
   return part ?? fullName;
+}
+
+export type PhotoMediaConsentChipTone = 'success' | 'warning' | 'alert' | 'info';
+
+export type PhotoMediaConsentIoniconName =
+  | 'checkmark-circle'
+  | 'eye-outline'
+  | 'close-circle'
+  | 'camera-outline';
+
+export function photoMediaConsentChipTone(
+  consent: PhotoMediaConsent | null,
+): PhotoMediaConsentChipTone {
+  if (consent === 'full') return 'success';
+  if (consent === 'limited') return 'warning';
+  if (consent === 'none') return 'alert';
+  return 'info';
+}
+
+export function photoMediaConsentIconName(
+  consent: PhotoMediaConsent | null,
+): PhotoMediaConsentIoniconName {
+  if (consent === 'full') return 'checkmark-circle';
+  if (consent === 'limited') return 'eye-outline';
+  if (consent === 'none') return 'close-circle';
+  return 'camera-outline';
 }

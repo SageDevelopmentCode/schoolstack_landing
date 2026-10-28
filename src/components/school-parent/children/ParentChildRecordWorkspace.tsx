@@ -444,6 +444,13 @@ export default function ParentChildRecordWorkspace({
               />
             ) : null}
 
+            {activeSection === "health" && !hasHealthTab ? (
+              <p className="m-0 py-6 text-center text-sm" style={{ color: theme.muted }}>
+                Health information will be available once your child&apos;s student record is
+                linked.
+              </p>
+            ) : null}
+
             {activeSection === "pickup" && hasPickupTab && application.studentId ? (
               <ParentChildPickupTab
                 theme={theme}
@@ -452,6 +459,13 @@ export default function ParentChildRecordWorkspace({
                 studentFirstName={firstName}
                 readOnly={readOnly}
               />
+            ) : null}
+
+            {activeSection === "pickup" && !hasPickupTab ? (
+              <p className="m-0 py-6 text-center text-sm" style={{ color: theme.muted }}>
+                Authorized pickup will be available once your child&apos;s student record is
+                linked.
+              </p>
             ) : null}
           </motion.div>
         </AnimatePresence>

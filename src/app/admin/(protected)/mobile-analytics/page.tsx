@@ -165,7 +165,14 @@ export default function AdminMobileAnalyticsPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
-        <MobileFeatureAnalyticsPanel data={data} loading={loading} error={error} />
+        <MobileFeatureAnalyticsPanel
+          data={data}
+          loading={loading}
+          error={error}
+          datePreset={datePreset}
+          organizationId={organizationId}
+          organizations={organizations}
+        />
       </div>
     </div>
   );

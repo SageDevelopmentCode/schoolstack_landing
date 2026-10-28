@@ -18,6 +18,7 @@ import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplay
 import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
 import StudentClassroomTeachersCell from "./StudentClassroomTeachersCell";
 import StudentClassroomAssignSelect from "./StudentClassroomAssignSelect";
+import PhotoMediaConsentBadge from "./PhotoMediaConsentBadge";
 import {
   formatEnrolledDate,
   formatEnrolledStudentName,
@@ -265,6 +266,18 @@ export default function StudentDetailPanel({
               </dt>
               <dd className="mt-0.5" style={{ color: C.textPrimary }}>
                 {panelDetail.familyPrimaryEmail ?? "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium" style={{ color: C.textTertiary }}>
+                Photo permissions
+              </dt>
+              <dd className="mt-1">
+                <PhotoMediaConsentBadge
+                  theme={theme}
+                  consent={panelDetail.photoMediaConsent}
+                  label={panelDetail.photoMediaConsentLabel}
+                />
               </dd>
             </div>
           </dl>

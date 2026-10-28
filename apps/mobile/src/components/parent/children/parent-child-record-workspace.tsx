@@ -3,6 +3,8 @@ import { Alert, StyleSheet, Text, View, type View as ViewType } from 'react-nati
 
 import { ParentApplicationStepBottomSheet } from '@/components/parent/children/parent-application-step-bottom-sheet';
 import { ParentChecklistItemBottomSheet } from '@/components/parent/children/parent-checklist-item-bottom-sheet';
+import { ParentChildHealthTab } from '@/components/parent/children/parent-child-health-tab';
+import { ParentChildPickupTab } from '@/components/parent/children/parent-child-pickup-tab';
 import { EditableStudentPhoto } from '@/components/parent/children/editable-student-photo';
 import { StudentPhoto } from '@/components/school-admin/student-photo';
 import {
@@ -26,6 +28,7 @@ import { extractStudentFromResponses } from '@/lib/admissions/apply-system-field
 import { applicationStatusLabel } from '@/lib/admissions/application-status-ui';
 import type { LoadedEnrollmentChecklist } from '@/lib/admissions/enrollment-checklist';
 import {
+  childFirstName,
   childStatusChipTone,
   type ParentChildRecordSection,
 } from '@/lib/parent/parent-children-utils';
@@ -36,8 +39,6 @@ import {
 } from '@/lib/parent/upload-student-profile-photo';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { MOBILE_PROFILE_PHOTO_UPLOAD_ENABLED } from '@/lib/profile-photo/mobile-profile-photo-upload-enabled';
-
-type RecordTab = 'application' | 'checklist' | 'teachers';
 
 type ParentChildRecordWorkspaceProps = {
   childOverview: FamilyChildOverview;
@@ -76,11 +77,6 @@ function calculateAge(value: string): number | null {
     (now.getMonth() === birth.getMonth() && now.getDate() >= birth.getDate());
   if (!hasHadBirthdayThisYear) age -= 1;
   return age >= 0 ? age : null;
-}
-
-function toRecordTab(section: ParentChildRecordSection): RecordTab {
-  if (section === 'checklist' || section === 'teachers') return section;
-  return 'application';
 }
 
 export function ParentChildRecordWorkspace({
@@ -130,11 +126,13 @@ export function ParentChildRecordWorkspace({
   const resolvedChecklist = localChecklist ?? checklist;
   const hasChecklist = Boolean(resolvedChecklist && resolvedChecklist.items.length > 0);
   const hasTeachersTab = Boolean(application.studentId);
+  const hasHealthTab = Boolean(application.studentId);
+  const hasPickupTab = Boolean(application.studentId);
   const canUploadPhoto =
     MOBILE_PROFILE_PHOTO_UPLOAD_ENABLED && Boolean(application.studentId);
   const statusLabel = applicationStatusLabel(application.status);
   const statusTone = childStatusChipTone(childOverview);
-  const activeTab = toRecordTab(activeSection);
+  const studentFirstName = childFirstName(fullName);
 
   const navItems = useMemo((): StoryPillNavItem[] => {
     const items: StoryPillNavItem[] = [
@@ -146,8 +144,14 @@ export function ParentChildRecordWorkspace({
     if (hasTeachersTab) {
       items.push({ key: 'teachers', label: 'Teachers', icon: 'people-outline' });
     }
+    if (hasHealthTab) {
+      items.push({ key: 'health', label: 'Health', icon: 'heart-outline' });
+    }
+    if (hasPickupTab) {
+      items.push({ key: 'pickup', label: 'Pickup', icon: 'car-outline' });
+    }
     return items;
-  }, [hasChecklist, hasTeachersTab]);
+  }, [hasChecklist, hasHealthTab, hasPickupTab, hasTeachersTab]);
 
   const selectedApplicationStep = useMemo(() => {
     if (!selectedApplicationStepId) return null;
@@ -221,12 +225,22 @@ export function ParentChildRecordWorkspace({
 
   const handleTabChange = useCallback(
     (key: string) => {
-      if (key === 'application' || key === 'checklist' || key === 'teachers') {
+      if (
+        key === 'application' ||
+        key === 'checklist' ||
+        key === 'teachers' ||
+        key === 'health' ||
+        key === 'pickup'
+      ) {
         onSectionChange(key);
       }
     },
     [onSectionChange],
   );
+
+  const handleRecordSaved = useCallback(() => {
+    void refresh();
+  }, [refresh]);
 
   return (
     <View
@@ -275,14 +289,14 @@ export function ParentChildRecordWorkspace({
           <StoryPillNav
             fullWidth
             items={navItems}
-            activeKey={activeTab}
+            activeKey={activeSection}
             onChange={handleTabChange}
             accessibilityLabel="School record sections"
           />
         ) : null}
 
         <View style={styles.tabContent}>
-          {activeTab === 'application' ? (
+          {activeSection === 'application' ? (
             <SubmissionApplicationStepsSection
               embedded
               detail={application}
@@ -296,7 +310,7 @@ export function ParentChildRecordWorkspace({
             />
           ) : null}
 
-          {activeTab === 'checklist' && resolvedChecklist ? (
+          {activeSection === 'checklist' && resolvedChecklist ? (
             <SubmissionEnrollmentStepsSection
               embedded
               checklist={resolvedChecklist}
@@ -310,7 +324,7 @@ export function ParentChildRecordWorkspace({
             />
           ) : null}
 
-          {activeTab === 'teachers' && hasTeachersTab ? (
+          {activeSection === 'teachers' && hasTeachersTab ? (
             assignedTeachers.length === 0 ? (
               <Text style={[styles.emptyTeachers, { color: theme.muted }]}>
                 No teachers assigned yet.
@@ -338,6 +352,36 @@ export function ParentChildRecordWorkspace({
                 ))}
               </View>
             )
+          ) : null}
+
+          {activeSection === 'health' && hasHealthTab && application.studentId ? (
+            <ParentChildHealthTab
+              organizationId={organizationId}
+              studentId={application.studentId}
+              studentFirstName={studentFirstName}
+              onSaved={handleRecordSaved}
+            />
+          ) : null}
+
+          {activeSection === 'health' && !hasHealthTab ? (
+            <Text style={[styles.missingStudentCopy, { color: theme.muted }]}>
+              Health information will be available once your child&apos;s student record is linked.
+            </Text>
+          ) : null}
+
+          {activeSection === 'pickup' && hasPickupTab && application.studentId ? (
+            <ParentChildPickupTab
+              organizationId={organizationId}
+              studentId={application.studentId}
+              studentFirstName={studentFirstName}
+              onSaved={handleRecordSaved}
+            />
+          ) : null}
+
+          {activeSection === 'pickup' && !hasPickupTab ? (
+            <Text style={[styles.missingStudentCopy, { color: theme.muted }]}>
+              Authorized pickup will be available once your child&apos;s student record is linked.
+            </Text>
           ) : null}
         </View>
       </View>
@@ -456,5 +500,12 @@ const styles = StyleSheet.create({
     fontFamily: StoryFonts.body,
     fontSize: 11,
     lineHeight: 15,
+  },
+  missingStudentCopy: {
+    fontFamily: StoryFonts.body,
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
+    paddingVertical: Spacing.three,
   },
 });

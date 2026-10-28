@@ -1,6 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatShortDate } from "@/lib/admissions/application-submissions";
 import { STUDENT_GRADE_OPTIONS } from "@/lib/admissions/apply-system-fields";
+import {
+  parsePhotoMediaConsent,
+  photoMediaConsentLabel,
+  type PhotoMediaConsent,
+} from "@/lib/students/photo-media-consent";
 
 export type AssignedTeacher = {
   id: string;
@@ -53,6 +58,8 @@ export type EnrolledStudentDetail = {
   assignedTeachers: AssignedTeacher[];
   assignedTeacherNames: string;
   profilePhotoUrl: string | null;
+  photoMediaConsent: PhotoMediaConsent | null;
+  photoMediaConsentLabel: string;
 };
 
 const ENROLLED_ENROLLMENT_SELECT = `
@@ -832,6 +839,8 @@ export async function loadEnrolledStudentDetail(
       status,
       family_id,
       profile_photo_url,
+      photo_media_consent,
+      photo_media_consent_updated_at,
       families (
         name,
         primary_email,
@@ -936,6 +945,9 @@ export async function loadEnrolledStudentDetail(
 
   const latestApplication = applicationRows?.[0];
   const assignedTeachers = teachersByStudentId.get(studentId) ?? [];
+  const photoMediaConsent = parsePhotoMediaConsent(
+    studentRow.photo_media_consent as string | null | undefined,
+  );
 
   return {
     id: String(studentRow.id),
@@ -970,6 +982,8 @@ export async function loadEnrolledStudentDetail(
       studentRow.profile_photo_url.trim() !== ""
         ? studentRow.profile_photo_url.trim()
         : null,
+    photoMediaConsent,
+    photoMediaConsentLabel: photoMediaConsentLabel(photoMediaConsent),
   };
 }
 

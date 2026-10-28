@@ -68,3 +68,14 @@ export function photoMediaConsentDescription(
   if (!consent) return null;
   return PHOTO_MEDIA_CONSENT_OPTIONS.find((option) => option.value === consent)?.description ?? null;
 }
+
+export type PhotoMediaConsentAdminChipTone = "success" | "warning" | "alert" | "info";
+
+export function photoMediaConsentAdminChipTone(
+  consent: PhotoMediaConsent | null,
+): PhotoMediaConsentAdminChipTone {
+  if (consent === "full") return "success";
+  if (consent === "limited") return "warning";
+  if (consent === "none") return "alert";
+  return "info";
+}

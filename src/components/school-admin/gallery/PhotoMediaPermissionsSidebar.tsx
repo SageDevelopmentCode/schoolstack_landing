@@ -5,10 +5,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import AdminChip, { type AdminChipTone } from "@/components/school-admin/ui/story/AdminChip";
+import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
 import { SchoolAdminTableSkeleton } from "@/components/school-admin/skeletons";
 import type { OrgPhotoMediaConsentRosterRow } from "@/lib/students/load-org-photo-media-consent-roster";
+import { photoMediaConsentAdminChipTone } from "@/lib/students/photo-media-consent";
 
 type PhotoMediaPermissionsSidebarProps = {
   organizationId: string;
@@ -25,15 +26,6 @@ function formatUpdatedAt(value: string | null): string {
     day: "numeric",
     year: "numeric",
   });
-}
-
-function consentChipTone(
-  consent: OrgPhotoMediaConsentRosterRow["consent"],
-): AdminChipTone {
-  if (consent === "full") return "success";
-  if (consent === "limited") return "warning";
-  if (consent === "none") return "alert";
-  return "info";
 }
 
 export default function PhotoMediaPermissionsSidebar({
@@ -185,7 +177,7 @@ export default function PhotoMediaPermissionsSidebar({
                           <td className="py-2.5 pr-3">
                             <AdminChip
                               theme={theme}
-                              tone={consentChipTone(row.consent)}
+                              tone={photoMediaConsentAdminChipTone(row.consent)}
                               className="normal-case font-semibold !text-[11px]"
                             >
                               {row.consentLabel}

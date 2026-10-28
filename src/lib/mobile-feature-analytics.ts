@@ -34,6 +34,39 @@ export type MobileFeatureAnalyticsResult = {
   truncated: boolean;
 };
 
+export type MobileFeatureAnalyticsUserRow = {
+  userId: string;
+  email: string | null;
+  name: string | null;
+  visits: number;
+  firstVisitAt: string;
+  lastVisitAt: string;
+};
+
+export type MobileFeatureAnalyticsUsersResult = {
+  surface: MobileFeatureAnalyticsSurface;
+  featureKey: string;
+  label: string;
+  rows: MobileFeatureAnalyticsUserRow[];
+  computedAt: string;
+  truncated: boolean;
+};
+
+export type MobileFeatureAnalyticsUsersFilters = MobileFeatureAnalyticsFilters & {
+  surface: MobileFeatureAnalyticsSurface;
+  featureKey: string;
+};
+
+export type MobileFeatureVisitEventRow = {
+  surface: string;
+  entity_id: string | null;
+  metadata: unknown;
+  actor_user_id: string | null;
+  actor_email: string | null;
+  actor_name: string | null;
+  created_at: string;
+};
+
 const PAGE_SIZE = 2000;
 const MAX_ROWS = 100_000;
 
@@ -135,6 +168,169 @@ function isTrackedSurface(
     surface === "teacher_portal" ||
     surface === "school_admin"
   );
+}
+
+type MobileFeatureUserBucket = MobileFeatureAnalyticsUserRow;
+
+function applyMobileFeatureUserVisitEvent(
+  buckets: Map<string, MobileFeatureUserBucket>,
+  row: MobileFeatureVisitEventRow,
+  targetSurface: MobileFeatureAnalyticsSurface,
+  targetFeatureKey: string,
+): void {
+  const surface = String(row.surface ?? "");
+  if (surface !== targetSurface) {
+    return;
+  }
+
+  const featureKey = mobileFeatureKeyFromActivityRow({
+    entity_id: row.entity_id,
+    metadata: row.metadata,
+  });
+  if (featureKey !== targetFeatureKey) {
+    return;
+  }
+
+  const actorId = row.actor_user_id ? String(row.actor_user_id) : "";
+  if (!actorId) {
+    return;
+  }
+
+  const createdAt = String(row.created_at);
+  const email = row.actor_email ? String(row.actor_email) : null;
+  const name = row.actor_name?.trim() ? String(row.actor_name).trim() : null;
+
+  const bucket = buckets.get(actorId);
+  if (!bucket) {
+    buckets.set(actorId, {
+      userId: actorId,
+      email,
+      name,
+      visits: 1,
+      firstVisitAt: createdAt,
+      lastVisitAt: createdAt,
+    });
+    return;
+  }
+
+  bucket.visits += 1;
+  if (createdAt < bucket.firstVisitAt) {
+    bucket.firstVisitAt = createdAt;
+  }
+  if (createdAt > bucket.lastVisitAt) {
+    bucket.lastVisitAt = createdAt;
+    if (email) {
+      bucket.email = email;
+    }
+    if (name) {
+      bucket.name = name;
+    }
+  }
+}
+
+export function aggregateMobileFeatureUserRows(
+  events: MobileFeatureVisitEventRow[],
+  targetSurface: MobileFeatureAnalyticsSurface,
+  targetFeatureKey: string,
+): MobileFeatureAnalyticsUserRow[] {
+  const normalizedKey = targetFeatureKey.trim();
+  const buckets = new Map<string, MobileFeatureUserBucket>();
+  for (const event of events) {
+    applyMobileFeatureUserVisitEvent(buckets, event, targetSurface, normalizedKey);
+  }
+
+  return [...buckets.values()].sort((a, b) =>
+    b.lastVisitAt.localeCompare(a.lastVisitAt),
+  );
+}
+
+export async function fetchMobileFeatureAnalyticsUsers(
+  admin: SupabaseClient,
+  filters: MobileFeatureAnalyticsUsersFilters,
+): Promise<MobileFeatureAnalyticsUsersResult> {
+  const datePreset = filters.datePreset ?? "7d";
+  const rangeStart = getActivityDateRangeStart(datePreset);
+  const targetFeatureKey = filters.featureKey.trim();
+  const targetSurface = filters.surface;
+
+  const buckets = new Map<string, MobileFeatureUserBucket>();
+
+  let offset = 0;
+  let fetched = 0;
+  let truncated = false;
+
+  while (fetched < MAX_ROWS) {
+    let query = admin
+      .from("activity_events")
+      .select(
+        "surface, entity_id, metadata, actor_user_id, actor_email, actor_name, created_at",
+      )
+      .eq("action", ACTIVITY_ACTIONS.MOBILE_FEATURE_VISITED)
+      .in("actor_type", ["parent", "teacher", "school_admin"])
+      .order("created_at", { ascending: true })
+      .range(offset, offset + PAGE_SIZE - 1);
+
+    if (rangeStart) {
+      query = query.gte("created_at", rangeStart);
+    }
+
+    if (filters.organizationId) {
+      query = query.eq("organization_id", filters.organizationId);
+    }
+
+    query = query.eq("surface", targetSurface);
+
+    const { data, error } = await query;
+    if (error) {
+      throw error;
+    }
+
+    const batch = data ?? [];
+    if (batch.length === 0) {
+      break;
+    }
+
+    for (const row of batch) {
+      applyMobileFeatureUserVisitEvent(
+        buckets,
+        {
+          surface: String(row.surface ?? ""),
+          entity_id: row.entity_id as string | null,
+          metadata: row.metadata,
+          actor_user_id: row.actor_user_id as string | null,
+          actor_email: row.actor_email as string | null,
+          actor_name: row.actor_name as string | null,
+          created_at: String(row.created_at),
+        },
+        targetSurface,
+        targetFeatureKey,
+      );
+    }
+
+    fetched += batch.length;
+    if (batch.length < PAGE_SIZE) {
+      break;
+    }
+
+    offset += PAGE_SIZE;
+    if (fetched >= MAX_ROWS) {
+      truncated = true;
+      break;
+    }
+  }
+
+  const rows = [...buckets.values()].sort((a, b) =>
+    b.lastVisitAt.localeCompare(a.lastVisitAt),
+  );
+
+  return {
+    surface: targetSurface,
+    featureKey: targetFeatureKey,
+    label: mobileFeatureLabel(targetFeatureKey),
+    rows,
+    computedAt: new Date().toISOString(),
+    truncated,
+  };
 }
 
 export async function fetchMobileFeatureAnalytics(
