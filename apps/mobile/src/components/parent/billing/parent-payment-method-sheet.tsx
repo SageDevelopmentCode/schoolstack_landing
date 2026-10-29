@@ -1,17 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Keyboard,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
+import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { Story, StoryFonts, StoryRadius } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
@@ -60,7 +52,7 @@ export function ParentPaymentMethodSheet({
   const wasVisibleRef = useRef(false);
   const [localMode, setLocalMode] = useState<TuitionPayAmountMode>(amountMode);
   const [localDraft, setLocalDraft] = useState(customDraft);
-  const [keyboardInset, setKeyboardInset] = useState(0);
+  const keyboardInset = useKeyboardHeight();
 
   useEffect(() => {
     onDismissedRef.current = onDismissed;
@@ -82,21 +74,6 @@ export function ParentPaymentMethodSheet({
       return () => clearTimeout(timer);
     }
   }, [visible, amountMode, customDraft]);
-
-  useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const showSubscription = Keyboard.addListener(showEvent, (event) => {
-      setKeyboardInset(event.endCoordinates.height);
-    });
-    const hideSubscription = Keyboard.addListener(hideEvent, () => {
-      setKeyboardInset(0);
-    });
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, []);
 
   const payResolution = useMemo(
     () =>

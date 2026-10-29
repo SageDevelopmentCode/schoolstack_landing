@@ -24,6 +24,7 @@ type NewsletterPreviewPanelProps = {
 };
 
 export default function NewsletterPreviewPanel({
+  theme,
   edition,
   school,
   branding,
@@ -43,6 +44,7 @@ export default function NewsletterPreviewPanel({
             branding={branding}
             staffMembers={staffMembers}
             template={template}
+            primaryColor={theme.primary}
           />
         </div>
       </div>

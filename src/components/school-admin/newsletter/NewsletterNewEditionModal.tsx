@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { plusDays, weekLabel } from "@/lib/school-admin/newsletter/newsletter-dates";
-import { createEditionFromTemplate } from "@/lib/school-admin/newsletter/newsletter-template";
 import {
   createNewsletterId,
   type NewsletterEdition,
@@ -17,20 +16,26 @@ type NewsletterNewEditionModalProps = {
   open: boolean;
   workspace: NewsletterWorkspaceState;
   sourceEdition: NewsletterEdition | null;
+  creating?: boolean;
   onClose: () => void;
-  onCreated: (edition: NewsletterEdition) => void;
+  onCreate: (input: {
+    week: string;
+    cloneFromEditionId?: string;
+    patchAfterCreate?: (edition: NewsletterEdition) => NewsletterEdition;
+  }) => void | Promise<void>;
 };
 
 export default function NewsletterNewEditionModal({
   open,
   workspace,
   sourceEdition,
+  creating = false,
   onClose,
-  onCreated,
+  onCreate,
 }: NewsletterNewEditionModalProps) {
   const { theme, C } = useSchoolAdminStoryTheme();
   const reference = sourceEdition ?? workspace.editions[0] ?? null;
-  const defaultWeek = plusDays(reference?.week || "2026-10-26", 7);
+  const defaultWeek = plusDays(reference?.week || new Date().toISOString().slice(0, 10), 7);
   const [week, setWeek] = useState(defaultWeek);
   const [carryReminders, setCarryReminders] = useState(true);
   const [carryEvents, setCarryEvents] = useState(true);
@@ -38,26 +43,27 @@ export default function NewsletterNewEditionModal({
   if (!open) return null;
 
   const create = () => {
-    if (!week) return;
-    const edition = createEditionFromTemplate(workspace.template, {
+    if (!week || creating) return;
+
+    void onCreate({
       week,
-      layout: reference?.layout ?? "storybook",
-      title: "This week at our school",
+      cloneFromEditionId: reference?.id,
+      patchAfterCreate: reference
+        ? (edition) => ({
+            ...edition,
+            reminders: carryReminders
+              ? reference.reminders
+                  .filter((r) => r.keep && r.text.trim())
+                  .map((r) => ({ ...r, id: createNewsletterId() }))
+              : [],
+            events: carryEvents
+              ? reference.events
+                  .filter((x) => x.date >= week)
+                  .map((x) => ({ ...x, id: createNewsletterId() }))
+              : [],
+          })
+        : undefined,
     });
-    if (reference) {
-      edition.reminders = carryReminders
-        ? reference.reminders
-            .filter((r) => r.keep && r.text.trim())
-            .map((r) => ({ ...r, id: createNewsletterId() }))
-        : [];
-      edition.events = carryEvents
-        ? reference.events
-            .filter((x) => x.date >= week)
-            .map((x) => ({ ...x, id: createNewsletterId() }))
-        : [];
-    }
-    onCreated(edition);
-    onClose();
   };
 
   return (
@@ -122,11 +128,11 @@ export default function NewsletterNewEditionModal({
           </>
         ) : null}
         <div className={styles.modalActions}>
-          <AdminButton theme={theme} variant="outline" onClick={onClose}>
+          <AdminButton theme={theme} variant="outline" onClick={onClose} disabled={creating}>
             Cancel
           </AdminButton>
-          <AdminButton theme={theme} variant="primary" onClick={create}>
-            Create draft
+          <AdminButton theme={theme} variant="primary" onClick={create} disabled={creating}>
+            {creating ? "Creating…" : "Create draft"}
           </AdminButton>
         </div>
       </section>

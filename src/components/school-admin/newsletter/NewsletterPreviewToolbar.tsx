@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Download, Eye, EyeOff, History, Monitor, Smartphone } from "lucide-react";
+import { Check, Download, Eye, EyeOff, History, Monitor, Save, Smartphone } from "lucide-react";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import SchoolAdminSegmentedControl from "@/components/school-admin/ui/SchoolAdminSegmentedControl";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
@@ -23,6 +23,9 @@ type NewsletterPreviewToolbarProps = {
   onDeviceChange: (device: PreviewDevice) => void;
   onExport: () => void;
   onVersionHistory: () => void;
+  onSave: () => void;
+  saveDisabled?: boolean;
+  saving?: boolean;
   onPublish: () => void;
 };
 
@@ -38,6 +41,9 @@ export default function NewsletterPreviewToolbar({
   onDeviceChange,
   onExport,
   onVersionHistory,
+  onSave,
+  saveDisabled = false,
+  saving = false,
   onPublish,
 }: NewsletterPreviewToolbarProps) {
   const previewToggleLabel = previewVisible ? "Hide preview" : "Show preview";
@@ -80,6 +86,18 @@ export default function NewsletterPreviewToolbar({
         ) : (
           <Eye size={14} strokeWidth={1.65} aria-hidden />
         )}
+      </AdminButton>
+      <AdminButton
+        theme={theme}
+        variant="outline"
+        size="compact"
+        className={`${iconBtnClass} !text-[10px] !leading-none whitespace-nowrap`}
+        disabled={saveDisabled || saving || locked}
+        aria-label="Save"
+        onClick={onSave}
+      >
+        <Save size={14} strokeWidth={1.65} aria-hidden />
+        {saving ? "Saving…" : "Save"}
       </AdminButton>
       <AdminButton
         theme={theme}

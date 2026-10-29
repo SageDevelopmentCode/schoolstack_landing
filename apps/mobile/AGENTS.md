@@ -25,3 +25,20 @@ Unexpected failures in mobile UI should reach Discord via `POST /api/mobile/oper
 - `check-mobile-operational-errors.sh` enforces catch reporting under `components/school-admin/committees`, `components/school-admin/friday-branch`, and the full `components/parent` and `components/teacher` trees. Routes under `app/parent` and `app/teacher` are thin shells and are not scanned separately.
 
 Repo check: `npm run check:mobile-operational-errors` from the monorepo root.
+
+## Keyboard and TextInput
+
+Nested `KeyboardAvoidingView` inside portal `SafeAreaView` often **passes the simulator** and **covers bottom fields on a physical iPhone**. Route keyboard UI through approved layouts — do not add raw KAV on full screens without offset/lift.
+
+| Scenario | Use |
+|----------|-----|
+| Chat thread (header + list + bottom compose) | `MessageThreadKeyboardLayout` (`src/components/messages/message-thread-keyboard-layout.tsx`) |
+| Parent scroll form (floating tab bar) | `ParentKeyboardAwareScrollView` |
+| Parent modal sheet with fields | `ParentBottomSheet` (keyboard avoiding + scroll inset) |
+| Admin/story modal sheet with fields | `BottomSheetShell` with `keyboardAvoiding` or `StoryBottomSheet` (keyboard-enabled) |
+| Pre-auth login / choose school | `SafeAreaView` + KAV with `keyboardVerticalOffset={insets.top}` |
+| Explicit lift math | `useKeyboardHeight` (`src/hooks/use-keyboard-height.ts`) |
+
+**Device test:** When adding or changing `TextInput` near the **bottom** of the screen or in a sheet, verify on a **physical iPhone** (type 2–3 lines). Simulator alone is not sufficient.
+
+Repo check: `npm run check:mobile-keyboard-patterns` from the monorepo root.

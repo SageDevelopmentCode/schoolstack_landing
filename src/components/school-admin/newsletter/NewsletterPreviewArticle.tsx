@@ -1,7 +1,7 @@
 "use client";
 
 import { Sprout } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, type CSSProperties } from "react";
 import { weekLabel } from "@/lib/school-admin/newsletter/newsletter-dates";
 import {
   MUDKITCHEN_FOOTER_LABEL,
@@ -10,6 +10,10 @@ import {
   NEWSLETTER_MASTHEAD_TAGLINE,
   type NewsletterVisualBranding,
 } from "@/lib/school-admin/newsletter/newsletter-branding";
+import {
+  getNewsletterHeroCoverSrc,
+  newsletterHeroCoverCssVars,
+} from "@/lib/school-admin/newsletter/newsletter-hero-cover";
 import {
   buildPreviewSections,
   previewHasWelcome,
@@ -22,6 +26,7 @@ import type {
   NewsletterSchoolTemplate,
 } from "@/lib/school-admin/newsletter/newsletter-types";
 import type { StaffMemberRecord } from "@/lib/staff/staff-members";
+import NewsletterMediaImage from "./NewsletterMediaImage";
 import styles from "./newsletter-workspace.module.css";
 
 type NewsletterPreviewArticleProps = {
@@ -30,6 +35,7 @@ type NewsletterPreviewArticleProps = {
   branding: NewsletterVisualBranding;
   staffMembers?: StaffMemberRecord[];
   template?: NewsletterSchoolTemplate;
+  primaryColor?: string;
   className?: string;
 };
 
@@ -39,6 +45,7 @@ export default function NewsletterPreviewArticle({
   branding,
   staffMembers = [],
   template,
+  primaryColor,
   className = "",
 }: NewsletterPreviewArticleProps) {
   const previewStyles = useMemo(
@@ -53,18 +60,47 @@ export default function NewsletterPreviewArticle({
     }),
     [],
   );
+  const renderMediaImage = useMemo(() => {
+    function renderPreviewMediaImage(props: {
+      src: string;
+      alt: string;
+      className?: string;
+      imageClassName?: string;
+    }) {
+      return <NewsletterMediaImage {...props} />;
+    }
+    return renderPreviewMediaImage;
+  }, []);
   const sections = useMemo(
     () =>
       buildPreviewSections(edition, previewStyles, {
         staff: staffMembers,
         template,
+        renderMediaImage,
       }),
-    [edition, previewStyles, staffMembers, template],
+    [edition, previewStyles, renderMediaImage, staffMembers, template],
   );
   const title = previewHeroTitle(edition);
   const welcome = getWelcomeValue(edition);
   const signatureLines = school.signature.split("\n");
   const schoolLogoSrc = branding.schoolLogoSrc?.trim();
+  const coverSrc = getNewsletterHeroCoverSrc(edition);
+  const heroCoverStyle = useMemo((): CSSProperties | undefined => {
+    if (!coverSrc) return undefined;
+    const vars = newsletterHeroCoverCssVars(coverSrc, primaryColor);
+    return {
+      "--n-hero-overlay-bottom": vars["--n-hero-overlay-bottom"],
+      "--n-hero-overlay-mid": vars["--n-hero-overlay-mid"],
+    } as CSSProperties;
+  }, [coverSrc, primaryColor]);
+
+  const heroInner = (
+    <>
+      <div className={styles.nEyebrow}>{weekLabel(edition)}</div>
+      <h2>{title}</h2>
+      {welcome.trim() ? <p>{welcome}</p> : null}
+    </>
+  );
 
   return (
     <article className={`${styles.newsletter} ${className}`.trim()}>
@@ -75,12 +111,14 @@ export default function NewsletterPreviewArticle({
               <img
                 className={styles.nLogoSchool}
                 src={schoolLogoSrc}
-                alt={branding.schoolLogoAlt ?? "School logo"}
+                alt={branding.schoolLogoAlt?.trim() || school.name}
               />
             ) : (
-              <Sprout size={15} strokeWidth={1.65} aria-hidden />
+              <>
+                <Sprout size={15} strokeWidth={1.65} aria-hidden />
+                {school.name}
+              </>
             )}
-            {school.name}
           </div>
         </div>
         <div className={styles.nMastheadMk}>
@@ -92,11 +130,24 @@ export default function NewsletterPreviewArticle({
           <span className={styles.nMastheadTagline}>{NEWSLETTER_MASTHEAD_TAGLINE}</span>
         </div>
       </div>
-      <header className={styles.nHero}>
-        <div className={styles.nEyebrow}>{weekLabel(edition)}</div>
-        <h2>{title}</h2>
-        {welcome.trim() ? <p>{welcome}</p> : null}
-      </header>
+      {coverSrc ? (
+        <header
+          className={`${styles.nHero} ${styles.nHeroCover}`.trim()}
+          style={heroCoverStyle}
+        >
+          <NewsletterMediaImage
+            className={styles.nHeroMedia}
+            imageClassName="h-full w-full object-cover"
+            src={coverSrc}
+            alt=""
+            decoding="async"
+          />
+          <div className={styles.nHeroOverlay} aria-hidden />
+          <div className={styles.nHeroInner}>{heroInner}</div>
+        </header>
+      ) : (
+        <header className={styles.nHero}>{heroInner}</header>
+      )}
       <div className={styles.nContent}>
         {sections.length === 0 && !previewHasWelcome(edition) ? (
           <p className={styles.newsEmpty}>Your weekly story will appear here.</p>

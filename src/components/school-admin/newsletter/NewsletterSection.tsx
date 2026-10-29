@@ -2,18 +2,37 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import AdminPageSkeleton from "@/components/school-admin/AdminPageSkeleton";
+import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import {
-  createInitialNewsletterWorkspace,
-  loadNewsletterWorkspace,
-  saveNewsletterWorkspace,
+  importNewsletterWorkspaceApi,
+  saveNewsletterEditionWithVersionApi,
+} from "@/lib/school-admin/newsletter/newsletter-api-client";
+import { createSampleEdition } from "@/lib/school-admin/newsletter/newsletter-sample";
+import { templateFromEdition } from "@/lib/school-admin/newsletter/newsletter-template";
+import type {
+  NewsletterEdition,
+  NewsletterWorkspaceState,
+} from "@/lib/school-admin/newsletter/newsletter-types";
+import {
+  clearBrowserNewsletterWorkspace,
+  loadBrowserNewsletterWorkspaceForImport,
+  markNewsletterImportPrompted,
+  wasNewsletterImportPrompted,
 } from "@/lib/school-admin/newsletter/newsletter-workspace-storage";
-import type { NewsletterWorkspaceState } from "@/lib/school-admin/newsletter/newsletter-types";
 import { useHydrated } from "@/hooks/useHydrated";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import NewsletterOverviewPage from "./NewsletterOverviewPage";
+import NewsletterOverviewSkeleton from "./NewsletterOverviewSkeleton";
+import NewsletterEditorPageSkeleton from "./NewsletterEditorPageSkeleton";
 import NewsletterWorkspace from "./NewsletterWorkspace";
+
+export type NewsletterSaveState = "idle" | "saving" | "saved" | "error";
+
+function cloneNewsletterWorkspace(state: NewsletterWorkspaceState): NewsletterWorkspaceState {
+  return structuredClone(state);
+}
 
 type NewsletterSectionProps = {
   organizationId: string;
@@ -22,6 +41,7 @@ type NewsletterSectionProps = {
   branding: OrganizationBranding;
   galleryEnabled: boolean;
   initialEditionId?: string | null;
+  initialWorkspace: NewsletterWorkspaceState;
 };
 
 export default function NewsletterSection({
@@ -31,59 +51,146 @@ export default function NewsletterSection({
   branding,
   galleryEnabled,
   initialEditionId = null,
+  initialWorkspace,
 }: NewsletterSectionProps) {
-  const { theme } = useSchoolAdminStoryTheme();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const editionId = searchParams.get("edition") ?? initialEditionId;
-  const workspaceSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { theme, C } = useSchoolAdminStoryTheme();
 
   const hydrated = useHydrated();
-  const storageSynced = hydrated;
+  const [workspace, setWorkspace] = useState<NewsletterWorkspaceState>(initialWorkspace);
+  const [saveState, setSaveState] = useState<NewsletterSaveState>("saved");
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
 
-  const [workspace, setWorkspace] = useState<NewsletterWorkspaceState>(() =>
-    createInitialNewsletterWorkspace(organizationId, schoolName, theme.primary),
-  );
-  const appliedStoredWorkspaceRef = useRef(false);
-
-  useEffect(() => {
-    if (!hydrated || appliedStoredWorkspaceRef.current) {
-      return;
-    }
-    appliedStoredWorkspaceRef.current = true;
-    queueMicrotask(() => {
-      const stored = loadNewsletterWorkspace(organizationId);
-      if (stored) {
-        setWorkspace(stored);
-      }
-    });
-  }, [hydrated, organizationId]);
-
-  const persistWorkspace = useCallback(
-    (next: NewsletterWorkspaceState) => {
-      setWorkspace(next);
-      if (workspaceSaveTimer.current) clearTimeout(workspaceSaveTimer.current);
-      workspaceSaveTimer.current = setTimeout(() => {
-        saveNewsletterWorkspace(organizationId, next);
-      }, 200);
-    },
-    [organizationId],
-  );
+  const importCheckedRef = useRef(false);
+  const workspaceRef = useRef(workspace);
+  const savedWorkspaceRef = useRef(cloneNewsletterWorkspace(initialWorkspace));
 
   useEffect(() => {
-    return () => {
-      if (workspaceSaveTimer.current) clearTimeout(workspaceSaveTimer.current);
-    };
+    workspaceRef.current = workspace;
+  }, [workspace]);
+
+  const syncSavedBaseline = useCallback((next: NewsletterWorkspaceState) => {
+    savedWorkspaceRef.current = cloneNewsletterWorkspace(next);
   }, []);
 
+  const revertUnsavedChanges = useCallback(() => {
+    setWorkspace(cloneNewsletterWorkspace(savedWorkspaceRef.current));
+    setIsDirty(false);
+  }, []);
+
+  const {
+    dialogOpen: leaveDialogOpen,
+    requestAction,
+    confirmLeave,
+    cancelLeave,
+  } = useUnsavedChangesGuard({
+    isDirty,
+    enabled: hydrated,
+  });
+
+  const handleConfirmLeave = useCallback(() => {
+    revertUnsavedChanges();
+    confirmLeave();
+  }, [confirmLeave, revertUnsavedChanges]);
+
   useEffect(() => {
-    if (!storageSynced || !editionId) return;
+    if (!hydrated || importCheckedRef.current) return;
+    importCheckedRef.current = true;
+
+    if (initialWorkspace.editions.length > 0) return;
+    if (wasNewsletterImportPrompted(organizationId)) return;
+
+    const browserWorkspace = loadBrowserNewsletterWorkspaceForImport(organizationId);
+    if (!browserWorkspace?.editions.length) return;
+
+    markNewsletterImportPrompted(organizationId);
+    const shouldImport = window.confirm(
+      "You have newsletter drafts saved only in this browser. Import them into MudKitchen now?",
+    );
+    if (!shouldImport) return;
+
+    void importNewsletterWorkspaceApi(slug, browserWorkspace)
+      .then((imported) => {
+        clearBrowserNewsletterWorkspace(organizationId);
+        setWorkspace(imported);
+        syncSavedBaseline(imported);
+        setSaveState("saved");
+        setSaveError(null);
+        setIsDirty(false);
+      })
+      .catch((err: unknown) => {
+        setSaveState("error");
+        setSaveError(err instanceof Error ? err.message : "Import failed.");
+      });
+  }, [hydrated, initialWorkspace.editions.length, organizationId, slug, syncSavedBaseline]);
+
+  const applyWorkspaceChange = useCallback((next: NewsletterWorkspaceState) => {
+    setWorkspace(next);
+    setIsDirty(true);
+  }, []);
+
+  const syncWorkspace = useCallback((next: NewsletterWorkspaceState) => {
+    setWorkspace(next);
+  }, []);
+
+  const saveNow = useCallback(async () => {
+    if (!editionId) return;
+    const current = workspaceRef.current;
+    const edition = current.editions.find((e) => e.id === editionId);
+    if (!edition) return;
+
+    setSaveState("saving");
+    setSaveError(null);
+
+    try {
+      const result = await saveNewsletterEditionWithVersionApi(
+        slug,
+        editionId,
+        edition,
+        current.template,
+      );
+      const next: NewsletterWorkspaceState = {
+        ...current,
+        template: result.template,
+        editions: current.editions.map((e) => (e.id === result.edition.id ? result.edition : e)),
+      };
+      setWorkspace(next);
+      syncSavedBaseline(next);
+      setSaveState("saved");
+      setIsDirty(false);
+    } catch (err: unknown) {
+      setSaveState("error");
+      setSaveError(err instanceof Error ? err.message : "Could not save newsletter.");
+    }
+  }, [editionId, slug, syncSavedBaseline]);
+
+  const replaceWorkspaceEdition = useCallback(
+    (edition: NewsletterEdition) => {
+      setWorkspace((prev) => {
+        const next: NewsletterWorkspaceState = {
+          ...prev,
+          template: templateFromEdition(edition, prev.template),
+          editions: prev.editions.map((e) => (e.id === edition.id ? edition : e)),
+        };
+        syncSavedBaseline(next);
+        return next;
+      });
+      setIsDirty(false);
+    },
+    [syncSavedBaseline],
+  );
+
+  useEffect(() => {
+    if (!hydrated || !editionId) return;
     const exists = workspace.editions.some((e) => e.id === editionId);
     if (!exists) {
       router.replace(pathname);
     }
-  }, [storageSynced, editionId, workspace.editions, pathname, router]);
+  }, [hydrated, editionId, workspace.editions, pathname, router]);
 
   const openEdition = useCallback(
     (id: string) => {
@@ -98,35 +205,93 @@ export default function NewsletterSection({
     router.push(pathname);
   }, [pathname, router]);
 
-  if (editionId && !storageSynced) {
-    return <AdminPageSkeleton label="Loading newsletter" />;
+  const guardedBackToOverview = useCallback(() => {
+    requestAction(backToOverview);
+  }, [backToOverview, requestAction]);
+
+  const guardedOpenEdition = useCallback(
+    (id: string) => {
+      requestAction(() => openEdition(id));
+    },
+    [openEdition, requestAction],
+  );
+
+  const resetSampleAndLeave = useCallback(() => {
+    requestAction(() => {
+      const current = workspaceRef.current;
+      const sample = createSampleEdition(schoolName, theme.primary, current.template);
+      applyWorkspaceChange(sample);
+      backToOverview();
+    });
+  }, [applyWorkspaceChange, backToOverview, requestAction, schoolName, theme.primary]);
+
+  const leaveDialog = (
+    <ConfirmDialog
+      C={C}
+      open={leaveDialogOpen}
+      title="Unsaved changes"
+      description="You have unsaved changes. If you leave now, your changes will be lost."
+      confirmLabel="Leave without saving"
+      cancelLabel="Keep editing"
+      variant="destructive"
+      onConfirm={handleConfirmLeave}
+      onClose={cancelLeave}
+    />
+  );
+
+  if (editionId && !hydrated) {
+    return (
+      <>
+        <NewsletterEditorPageSkeleton />
+        {leaveDialog}
+      </>
+    );
   }
 
-  if (
-    storageSynced &&
-    editionId &&
-    workspace.editions.some((e) => e.id === editionId)
-  ) {
+  if (!hydrated) {
     return (
-      <NewsletterWorkspace
-        organizationId={organizationId}
-        slug={slug}
-        schoolName={schoolName}
-        branding={branding}
-        editionId={editionId}
-        workspace={workspace}
-        onWorkspaceChange={persistWorkspace}
-        onBack={backToOverview}
-        galleryEnabled={galleryEnabled}
-      />
+      <>
+        <NewsletterOverviewSkeleton />
+        {leaveDialog}
+      </>
+    );
+  }
+
+  if (hydrated && editionId && workspace.editions.some((e) => e.id === editionId)) {
+    return (
+      <>
+        <NewsletterWorkspace
+          organizationId={organizationId}
+          slug={slug}
+          schoolName={schoolName}
+          branding={branding}
+          editionId={editionId}
+          workspace={workspace}
+          onWorkspaceChange={applyWorkspaceChange}
+          onWorkspaceSync={syncWorkspace}
+          onEditionSaved={replaceWorkspaceEdition}
+          onBack={guardedBackToOverview}
+          onResetSample={resetSampleAndLeave}
+          galleryEnabled={galleryEnabled}
+          saveState={saveState}
+          saveError={saveError}
+          isDirty={isDirty}
+          onSaveNow={saveNow}
+        />
+        {leaveDialog}
+      </>
     );
   }
 
   return (
-    <NewsletterOverviewPage
-      workspace={workspace}
-      onWorkspaceChange={persistWorkspace}
-      onOpenEdition={openEdition}
-    />
+    <>
+      <NewsletterOverviewPage
+        slug={slug}
+        workspace={workspace}
+        onWorkspaceChange={setWorkspace}
+        onOpenEdition={guardedOpenEdition}
+      />
+      {leaveDialog}
+    </>
   );
 }

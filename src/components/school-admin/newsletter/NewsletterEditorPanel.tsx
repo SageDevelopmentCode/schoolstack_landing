@@ -2,7 +2,7 @@
 
 import { Calendar, ImageIcon, Images, Pencil, Trash2 } from "lucide-react";
 import { useRef } from "react";
-import { resizeImageFileToDataUrl } from "@/lib/school-admin/newsletter/newsletter-photos";
+import { prepareNewsletterImageFileForUpload } from "@/lib/school-admin/newsletter/newsletter-photos";
 import SchoolAdminDatePicker, {
   schoolAdminDateRangeBounds,
 } from "@/components/school-admin/ui/SchoolAdminDatePicker";
@@ -32,6 +32,7 @@ import {
 } from "@/lib/school-admin/newsletter/newsletter-types";
 import { staffDisplayName } from "@/lib/staff/staff-display";
 import type { StaffMemberRecord } from "@/lib/staff/staff-members";
+import NewsletterMediaImage from "./NewsletterMediaImage";
 import styles from "./newsletter-workspace.module.css";
 
 export type NewsletterEditorTab = "story" | "teachers" | "details" | "photos";
@@ -52,6 +53,7 @@ type NewsletterEditorPanelProps = {
   onEditEvent: (index: number) => void;
   onUploadPhotos: () => void;
   onOpenGalleryPicker: () => void;
+  onOpenCoverGalleryPicker?: () => void;
   galleryEnabled: boolean;
   slug: string;
   onToast?: (message: string) => void;
@@ -73,6 +75,7 @@ export default function NewsletterEditorPanel({
   onEditEvent,
   onUploadPhotos,
   onOpenGalleryPicker,
+  onOpenCoverGalleryPicker,
   galleryEnabled,
   slug,
   onToast,
@@ -141,11 +144,13 @@ export default function NewsletterEditorPanel({
             locked={locked}
             theme={theme}
             C={C}
+            galleryEnabled={galleryEnabled}
             onPatch={patch}
             onEditionChange={onEditionChange}
             onTemplateChange={onTemplateChange}
             onUpdateBlock={updateBlock}
             onUpdateBlockHeading={updateBlockHeading}
+            onOpenCoverGalleryPicker={onOpenCoverGalleryPicker}
             onToast={onToast}
           />
         ) : null}
@@ -197,11 +202,13 @@ function StoryTab({
   locked,
   theme,
   C,
+  galleryEnabled,
   onPatch,
   onEditionChange,
   onTemplateChange,
   onUpdateBlock,
   onUpdateBlockHeading,
+  onOpenCoverGalleryPicker,
   onToast,
 }: {
   edition: NewsletterEdition;
@@ -209,6 +216,7 @@ function StoryTab({
   locked: boolean;
   theme: ReturnType<typeof useSchoolAdminStoryTheme>["theme"];
   C: ReturnType<typeof useSchoolAdminStoryTheme>["C"];
+  galleryEnabled: boolean;
   onPatch: (partial: Partial<NewsletterEdition>) => void;
   onEditionChange: (edition: NewsletterEdition) => void;
   onTemplateChange: (template: NewsletterSchoolTemplate) => void;
@@ -217,6 +225,7 @@ function StoryTab({
     updater: (block: NewsletterStoryBlock) => NewsletterStoryBlock,
   ) => void;
   onUpdateBlockHeading: (blockId: string, heading: string) => void;
+  onOpenCoverGalleryPicker?: () => void;
   onToast?: (message: string) => void;
 }) {
   const contentBlocks = edition.storyBlocks.filter((b) => b.enabled);
@@ -296,8 +305,8 @@ function StoryTab({
       return;
     }
     try {
-      const src = await resizeImageFileToDataUrl(file);
-      onPatch({ coverImage: src });
+      const src = await prepareNewsletterImageFileForUpload(file);
+      onPatch({ coverImage: src, coverGalleryPhotoId: undefined });
     } catch {
       onToast?.("Could not load that image. Try JPG or PNG.");
     }
@@ -320,7 +329,12 @@ function StoryTab({
             {edition.coverImage ? (
               <>
                 <div className={styles.coverPreview}>
-                  <img src={edition.coverImage} alt="" />
+                  <NewsletterMediaImage
+                    src={edition.coverImage}
+                    alt=""
+                    className="h-full w-full"
+                    imageClassName="h-full w-full object-cover"
+                  />
                 </div>
                 <div className={styles.coverActions}>
                   <AdminButton
@@ -337,22 +351,38 @@ function StoryTab({
                     variant="outline"
                     size="compact"
                     disabled={locked}
-                    onClick={() => onPatch({ coverImage: undefined })}
+                    onClick={() =>
+                      onPatch({ coverImage: undefined, coverGalleryPhotoId: undefined })
+                    }
                   >
                     Remove
                   </AdminButton>
                 </div>
               </>
             ) : (
-              <button
-                type="button"
-                className={styles.coverUploadBtn}
-                disabled={locked}
-                onClick={() => coverInputRef.current?.click()}
-              >
-                <ImageIcon size={22} strokeWidth={1.65} aria-hidden />
-                Add cover image
-              </button>
+              <div className={styles.coverActions}>
+                <button
+                  type="button"
+                  className={styles.coverUploadBtn}
+                  disabled={locked}
+                  onClick={() => coverInputRef.current?.click()}
+                >
+                  <ImageIcon size={22} strokeWidth={1.65} aria-hidden />
+                  Upload cover
+                </button>
+                {galleryEnabled && onOpenCoverGalleryPicker ? (
+                  <AdminButton
+                    theme={theme}
+                    variant="outline"
+                    size="compact"
+                    disabled={locked}
+                    onClick={onOpenCoverGalleryPicker}
+                  >
+                    <Images size={14} strokeWidth={1.65} aria-hidden />
+                    From library
+                  </AdminButton>
+                ) : null}
+              </div>
             )}
           </Field>
           <input
@@ -362,7 +392,10 @@ function StoryTab({
             hidden
             onChange={(e) => void handleCoverFile(e)}
           />
-          <p className={styles.helper}>Shown on the newsletters list in this browser.</p>
+          <p className={styles.helper}>
+            Background for the newsletter hero and the newsletters list. Uploads are optimized
+            before saving; you can also pick from the photo library.
+          </p>
         </div>
         <div className={`${styles.twoFields} mt-4`}>
           <Field label="Week beginning">
@@ -778,8 +811,12 @@ function PhotosTab({
       ) : (
         edition.photos.map((photo, index) => (
           <div key={photo.id} className={styles.photoItem}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={photo.src} alt={photo.caption || "Newsletter photo"} />
+            <NewsletterMediaImage
+              src={photo.src}
+              alt={photo.caption || "Newsletter photo"}
+              className={styles.photoItemMedia}
+              imageClassName="h-full w-full object-cover"
+            />
             <div className={styles.photoMeta}>
               <input
                 className={styles.input}

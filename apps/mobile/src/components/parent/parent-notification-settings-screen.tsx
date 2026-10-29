@@ -4,18 +4,15 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { PARENT_FLOATING_TAB_BAR_HEIGHT } from '@/components/parent/parent-floating-tab-bar';
+import { ParentKeyboardAwareScrollView } from '@/components/parent/parent-keyboard-aware-scroll-view';
 import { ParentNotificationSettingsSkeleton } from '@/components/parent/parent-notification-settings-skeleton';
 import { ParentNotificationSettingsStoryHeader } from '@/components/parent/notifications/parent-notification-settings-story-header';
 import { StoryButton } from '@/components/story/story-button';
@@ -346,22 +343,17 @@ export function ParentNotificationSettingsScreen() {
           <StoryTextLink label="Try again" onPress={() => void loadSettings()} />
         </View>
       ) : settings ? (
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.flex}>
-          <ScrollView
-            contentContainerStyle={[
-              styles.scrollContent,
-              { paddingBottom: PARENT_FLOATING_TAB_BAR_HEIGHT + Spacing.six },
-            ]}
-            keyboardShouldPersistTaps="handled"
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={() => void loadSettings(true)}
-                tintColor={theme.primary}
-              />
-            }>
+        <ParentKeyboardAwareScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => void loadSettings(true)}
+              tintColor={theme.primary}
+            />
+          }>
             <View style={styles.headerBlock}>
               <Pressable
                 accessibilityRole="button"
@@ -495,8 +487,7 @@ export function ParentNotificationSettingsScreen() {
                 ) : null}
               </View>
             </SettingsCard>
-          </ScrollView>
-        </KeyboardAvoidingView>
+        </ParentKeyboardAwareScrollView>
       ) : null}
 
       {saving ? (

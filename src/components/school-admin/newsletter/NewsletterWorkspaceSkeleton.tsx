@@ -42,7 +42,19 @@ export default function NewsletterWorkspaceSkeleton({
         </div>
         {previewVisible ? (
           <div className={styles.previewColumnWrap}>
-            <SkeletonBlock C={C} className="h-[min(560px,70vh)] w-full rounded-2xl" />
+            <div className={styles.previewShell}>
+              <div className={styles.newsletterWrap}>
+                <div className={`${styles.newsletter} overflow-hidden rounded-xl border border-[var(--line)]`}>
+                  <SkeletonBlock C={C} className="mx-6 mt-4 h-8 w-full max-w-none !rounded-md" />
+                  <SkeletonBlock C={C} className="mt-4 h-[220px] w-full !rounded-none" />
+                  <div className="space-y-3 px-6 py-5">
+                    <SkeletonBlock C={C} className="h-4 w-2/3" />
+                    <SkeletonBlock C={C} className="h-3 w-full" />
+                    <SkeletonBlock C={C} className="h-3 w-5/6" />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         ) : null}
       </div>

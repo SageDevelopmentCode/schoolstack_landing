@@ -7,25 +7,32 @@ import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
-import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
 import { weekLabel } from "@/lib/school-admin/newsletter/newsletter-dates";
+import {
+  createNewsletterEditionApi,
+  updateNewsletterEditionApi,
+} from "@/lib/school-admin/newsletter/newsletter-api-client";
 import type { NewsletterEdition, NewsletterWorkspaceState } from "@/lib/school-admin/newsletter/newsletter-types";
+import NewsletterMediaImage from "./NewsletterMediaImage";
 import NewsletterNewEditionModal from "./NewsletterNewEditionModal";
 import styles from "./newsletter-workspace.module.css";
 
 type NewsletterOverviewPageProps = {
+  slug: string;
   workspace: NewsletterWorkspaceState;
   onWorkspaceChange: (next: NewsletterWorkspaceState) => void;
   onOpenEdition: (editionId: string) => void;
 };
 
 export default function NewsletterOverviewPage({
+  slug,
   workspace,
   onWorkspaceChange,
   onOpenEdition,
 }: NewsletterOverviewPageProps) {
   const { theme } = useSchoolAdminStoryTheme();
   const [newModalOpen, setNewModalOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   const editions = useMemo(
     () =>
@@ -44,29 +51,52 @@ export default function NewsletterOverviewPage({
     onOpenEdition(edition.id);
   };
 
+  const handleEditionCreated = async (input: {
+    week: string;
+    cloneFromEditionId?: string;
+    patchAfterCreate?: (edition: NewsletterEdition) => NewsletterEdition;
+  }) => {
+    setCreating(true);
+    try {
+      let edition = await createNewsletterEditionApi(slug, {
+        week: input.week,
+        cloneFromEditionId: input.cloneFromEditionId,
+      });
+      if (input.patchAfterCreate) {
+        edition = input.patchAfterCreate(edition);
+        edition = await updateNewsletterEditionApi(slug, edition.id, edition);
+      }
+      appendEdition(edition);
+      setNewModalOpen(false);
+    } finally {
+      setCreating(false);
+    }
+  };
+
   return (
     <main className={styles.workspace}>
       <header className={styles.pagehead}>
-        <div>
-          <AdminSectionKicker theme={theme}>Communications</AdminSectionKicker>
-          <AdminDisplayHeading theme={theme} as="h1" size="display" className="mt-2">
-            Newsletters
-          </AdminDisplayHeading>
-          <p className="mt-2 text-[11px] leading-relaxed" style={{ color: theme.muted }}>
-            Draft newsletters in this browser only — nothing is saved to MudKitchen or sent to
-            families yet.
-          </p>
-        </div>
-        <div className={styles.headingActions}>
-          <AdminButton
-            theme={theme}
-            variant="primary"
-            size="compact"
-            onClick={() => setNewModalOpen(true)}
-          >
-            <Plus size={14} strokeWidth={1.65} aria-hidden />
-            New newsletter
-          </AdminButton>
+        <div className={styles.pageheadMain}>
+          <div className={styles.pageheadTitle}>
+            <AdminDisplayHeading theme={theme} as="h1" size="display">
+              Newsletters
+            </AdminDisplayHeading>
+            <p className="mt-2 text-[11px] leading-relaxed" style={{ color: theme.muted }}>
+              Drafts are stored in MudKitchen when you click Save in the editor. Publishing records the edition here only — it
+              does not email families or appear in the parent portal yet.
+            </p>
+          </div>
+          <div className={styles.headingActions}>
+            <AdminButton
+              theme={theme}
+              variant="primary"
+              size="compact"
+              onClick={() => setNewModalOpen(true)}
+            >
+              <Plus size={14} strokeWidth={1.65} aria-hidden />
+              New newsletter
+            </AdminButton>
+          </div>
         </div>
       </header>
 
@@ -112,7 +142,12 @@ export default function NewsletterOverviewPage({
                 >
                   {edition.coverImage ? (
                     <>
-                      <img src={edition.coverImage} alt="" />
+                      <NewsletterMediaImage
+                        src={edition.coverImage}
+                        alt=""
+                        className="absolute inset-0 h-full w-full"
+                        imageClassName="h-full w-full object-cover"
+                      />
                       <div className={styles.overviewCardBannerGradient} aria-hidden />
                     </>
                   ) : (
@@ -155,8 +190,9 @@ export default function NewsletterOverviewPage({
         open={newModalOpen}
         workspace={workspace}
         sourceEdition={sourceEdition}
+        creating={creating}
         onClose={() => setNewModalOpen(false)}
-        onCreated={appendEdition}
+        onCreate={handleEditionCreated}
       />
     </main>
   );

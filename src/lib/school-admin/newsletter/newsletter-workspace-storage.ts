@@ -1,8 +1,25 @@
-import { loadSchoolTemplate } from "./newsletter-template";
-import { createSampleEdition } from "./newsletter-sample";
+import { defaultSchoolTemplate, loadSchoolTemplate } from "./newsletter-template";
 import type { NewsletterWorkspaceState } from "./newsletter-types";
 
 const WORKSPACE_STORAGE_PREFIX = "mudkitchen-newsletter-workspace-";
+const IMPORT_PROMPT_KEY_PREFIX = "mudkitchen-newsletter-import-prompted-";
+
+export function createEmptyNewsletterWorkspace(
+  schoolName: string,
+  primaryColor: string,
+  template = defaultSchoolTemplate(),
+): NewsletterWorkspaceState {
+  return {
+    school: {
+      name: schoolName,
+      signature: "With warmth,\nYour school team",
+      primary: primaryColor,
+    },
+    template,
+    editions: [],
+    activeEditionId: "",
+  };
+}
 
 export function createInitialNewsletterWorkspace(
   organizationId: string,
@@ -10,7 +27,7 @@ export function createInitialNewsletterWorkspace(
   primaryColor: string,
 ): NewsletterWorkspaceState {
   const stored = loadSchoolTemplate(organizationId);
-  return createSampleEdition(schoolName, primaryColor, stored ?? undefined);
+  return createEmptyNewsletterWorkspace(schoolName, primaryColor, stored ?? undefined);
 }
 
 export function loadNewsletterWorkspace(
@@ -49,6 +66,41 @@ export function saveNewsletterWorkspace(
     );
   } catch {
     // ignore quota
+  }
+}
+
+export function loadBrowserNewsletterWorkspaceForImport(
+  organizationId: string,
+): NewsletterWorkspaceState | null {
+  return loadNewsletterWorkspace(organizationId);
+}
+
+export function markNewsletterImportPrompted(organizationId: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(`${IMPORT_PROMPT_KEY_PREFIX}${organizationId}`, "1");
+  } catch {
+    // ignore
+  }
+}
+
+export function wasNewsletterImportPrompted(organizationId: string): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    return (
+      window.sessionStorage.getItem(`${IMPORT_PROMPT_KEY_PREFIX}${organizationId}`) === "1"
+    );
+  } catch {
+    return true;
+  }
+}
+
+export function clearBrowserNewsletterWorkspace(organizationId: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.removeItem(`${WORKSPACE_STORAGE_PREFIX}${organizationId}`);
+  } catch {
+    // ignore
   }
 }
 

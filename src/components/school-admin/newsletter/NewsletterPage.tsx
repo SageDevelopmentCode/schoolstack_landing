@@ -1,9 +1,10 @@
 "use client";
 
 import { Suspense } from "react";
-import AdminPageSkeleton from "@/components/school-admin/AdminPageSkeleton";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import type { NewsletterWorkspaceState } from "@/lib/school-admin/newsletter/newsletter-types";
 import NewsletterSection from "./NewsletterSection";
+import NewsletterOverviewSkeleton from "./NewsletterOverviewSkeleton";
 
 type NewsletterPageProps = {
   organizationId: string;
@@ -12,11 +13,12 @@ type NewsletterPageProps = {
   branding: OrganizationBranding;
   galleryEnabled: boolean;
   initialEditionId?: string | null;
+  initialWorkspace: NewsletterWorkspaceState;
 };
 
 export default function NewsletterPage(props: NewsletterPageProps) {
   return (
-    <Suspense fallback={<AdminPageSkeleton label="Loading newsletters" />}>
+    <Suspense fallback={<NewsletterOverviewSkeleton />}>
       <NewsletterSection {...props} />
     </Suspense>
   );

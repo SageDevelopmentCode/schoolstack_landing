@@ -23,6 +23,12 @@ export type PreviewSection = {
 export type BuildPreviewSectionsOptions = {
   staff?: StaffMemberRecord[];
   template?: NewsletterSchoolTemplate;
+  renderMediaImage?: (props: {
+    src: string;
+    alt: string;
+    className?: string;
+    imageClassName?: string;
+  }) => ReactNode;
 };
 
 function sentence(prefix: string, value: string): string {
@@ -147,14 +153,22 @@ export function buildPreviewSections(
   }
 
   if (edition.sections.photos && edition.photos.length) {
+    const renderImage = options.renderMediaImage;
     sections.push({
       title: "Moments from our days",
       body: (
         <div className={s.nPhotos}>
           {edition.photos.map((photo) => (
             <figure key={photo.id}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={photo.src} alt={photo.caption || "School-day photo"} />
+              {renderImage ? (
+                renderImage({
+                  src: photo.src,
+                  alt: photo.caption || "School-day photo",
+                })
+              ) : (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={photo.src} alt={photo.caption || "School-day photo"} />
+              )}
               {photo.caption ? <figcaption>{photo.caption}</figcaption> : null}
             </figure>
           ))}

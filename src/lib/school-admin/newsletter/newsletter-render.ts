@@ -17,6 +17,10 @@ import type {
   NewsletterStoryBlock,
 } from "./newsletter-types";
 import { weekLabel } from "./newsletter-dates";
+import {
+  getNewsletterHeroCoverSrc,
+  newsletterHeroCoverInlineStyle,
+} from "./newsletter-hero-cover";
 
 function escapeHtml(value: string): string {
   return value
@@ -74,6 +78,7 @@ export type BuildContentOptions = {
   staff?: StaffMemberRecord[];
   template?: NewsletterSchoolTemplate;
   branding?: NewsletterVisualBranding;
+  primaryColor?: string;
 };
 
 function newsletterMastheadHtml(
@@ -83,8 +88,9 @@ function newsletterMastheadHtml(
   const mkSrc = branding?.mudkitchenLogoSrc ?? mudkitchenLogoUrlForExport();
   const schoolName = escapeHtml(school.name);
   const schoolLogo = branding?.schoolLogoSrc?.trim();
+  const logoAlt = escapeHtml(branding?.schoolLogoAlt?.trim() || school.name);
   const schoolInner = schoolLogo
-    ? `<img class="n-logo n-logo-school" src="${escapeHtml(schoolLogo)}" alt="${escapeHtml(branding?.schoolLogoAlt ?? "School logo")}">${schoolName}`
+    ? `<img class="n-logo n-logo-school" src="${escapeHtml(schoolLogo)}" alt="${logoAlt}">`
     : schoolName;
 
   return `<div class="n-masthead"><div class="n-masthead-school"><div class="n-school">${schoolInner}</div></div><div class="n-masthead-mk"><img class="n-logo n-logo-mk" src="${escapeHtml(mkSrc)}" alt="${escapeHtml(MUDKITCHEN_LOGO_ALT)}"><span class="n-masthead-tagline">${escapeHtml(NEWSLETTER_MASTHEAD_TAGLINE)}</span></div></div>`;
@@ -166,6 +172,29 @@ export function buildNewsletterContentHtml(
   return out;
 }
 
+function newsletterHeroInnerHtml(
+  edition: NewsletterEdition,
+  title: string,
+  welcome: string,
+): string {
+  return `<div class="n-eyebrow">${escapeHtml(weekLabel(edition))}</div><h2>${escapeHtml(title)}</h2>${welcome}`;
+}
+
+export function newsletterHeroHtml(
+  edition: NewsletterEdition,
+  options: BuildContentOptions,
+  title: string,
+  welcome: string,
+): string {
+  const inner = newsletterHeroInnerHtml(edition, title, welcome);
+  const coverSrc = getNewsletterHeroCoverSrc(edition);
+  if (!coverSrc) {
+    return `<header class="n-hero">${inner}</header>`;
+  }
+  const style = newsletterHeroCoverInlineStyle(coverSrc, options.primaryColor);
+  return `<header class="n-hero n-hero--cover" style="${style}"><div class="n-hero-media" aria-hidden="true"></div><div class="n-hero-overlay" aria-hidden="true"></div><div class="n-hero-inner">${inner}</div></header>`;
+}
+
 export function buildNewsletterArticleHtml(
   edition: NewsletterEdition,
   school: NewsletterSchoolMeta,
@@ -181,8 +210,9 @@ export function buildNewsletterArticleHtml(
 
   const masthead = newsletterMastheadHtml(school, options.branding);
   const footer = newsletterFooterHtml(signature, options.branding);
+  const hero = newsletterHeroHtml(edition, options, title, welcome);
 
-  return `<article class="newsletter storybook">${masthead}<header class="n-hero"><div class="n-eyebrow">${escapeHtml(weekLabel(edition))}</div><h2>${escapeHtml(title)}</h2>${welcome}</header><div class="n-content">${contentBlock}</div>${footer}</article>`;
+  return `<article class="newsletter storybook">${masthead}${hero}<div class="n-content">${contentBlock}</div>${footer}</article>`;
 }
 
 export function editionHasContent(edition: NewsletterEdition): boolean {

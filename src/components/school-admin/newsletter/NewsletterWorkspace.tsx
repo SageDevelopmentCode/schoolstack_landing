@@ -19,14 +19,14 @@ import {
   newsletterVisualBrandingForPreview,
 } from "@/lib/school-admin/newsletter/newsletter-branding";
 import { buildNewsletterArticleHtml } from "@/lib/school-admin/newsletter/newsletter-render";
-import { resizeImageFileToDataUrl } from "@/lib/school-admin/newsletter/newsletter-photos";
+import { prepareNewsletterImageFileForUpload } from "@/lib/school-admin/newsletter/newsletter-photos";
 import {
-  saveSchoolTemplate,
   templateFromEdition,
 } from "@/lib/school-admin/newsletter/newsletter-template";
+import { publishNewsletterEditionApi } from "@/lib/school-admin/newsletter/newsletter-api-client";
 import { MAX_NEWSLETTER_EVENTS, MAX_NEWSLETTER_PHOTOS } from "@/lib/school-admin/newsletter/newsletter-limits";
-import { refreshNewsletterGalleryPhotoUrls } from "@/lib/school-admin/newsletter/refresh-newsletter-gallery-photo-urls";
-import { createInitialNewsletterWorkspace } from "@/lib/school-admin/newsletter/newsletter-workspace-storage";
+import { refreshNewsletterEditionGalleryUrls } from "@/lib/school-admin/newsletter/refresh-newsletter-gallery-photo-urls";
+import { newsletterEditionGalleryMediaChanged } from "@/lib/school-admin/newsletter/newsletter-image-url";
 import {
   createNewsletterId,
   type NewsletterEdition,
@@ -41,8 +41,10 @@ import NewsletterModals, { type NewsletterModalState } from "./NewsletterModals"
 import NewsletterPreviewPanel, { type PreviewDevice } from "./NewsletterPreviewPanel";
 import NewsletterPreviewToolbar from "./NewsletterPreviewToolbar";
 import NewsletterGalleryPickerSheet from "./NewsletterGalleryPickerSheet";
-import NewsletterWorkspaceSkeleton from "./NewsletterWorkspaceSkeleton";
+import NewsletterVersionHistorySheet from "./NewsletterVersionHistorySheet";
+import NewsletterEditorPageSkeleton from "./NewsletterEditorPageSkeleton";
 import styles from "./newsletter-workspace.module.css";
+import type { NewsletterSaveState } from "./NewsletterSection";
 
 type NewsletterWorkspaceProps = {
   organizationId: string;
@@ -52,8 +54,15 @@ type NewsletterWorkspaceProps = {
   editionId: string;
   workspace: NewsletterWorkspaceState;
   onWorkspaceChange: (next: NewsletterWorkspaceState) => void;
+  onWorkspaceSync: (next: NewsletterWorkspaceState) => void;
+  onEditionSaved: (edition: NewsletterEdition) => void;
   onBack: () => void;
+  onResetSample: () => void;
   galleryEnabled: boolean;
+  saveState: NewsletterSaveState;
+  saveError: string | null;
+  isDirty: boolean;
+  onSaveNow: () => Promise<void>;
 };
 
 export default function NewsletterWorkspace({
@@ -64,8 +73,15 @@ export default function NewsletterWorkspace({
   editionId,
   workspace,
   onWorkspaceChange,
+  onWorkspaceSync,
+  onEditionSaved,
   onBack,
+  onResetSample,
   galleryEnabled,
+  saveState,
+  saveError,
+  isDirty,
+  onSaveNow,
 }: NewsletterWorkspaceProps) {
   const { theme, C } = useSchoolAdminStoryTheme();
   const [previewVisible, setPreviewVisible] = useState(true);
@@ -74,12 +90,20 @@ export default function NewsletterWorkspace({
   const [modal, setModal] = useState<NewsletterModalState | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [galleryPickerOpen, setGalleryPickerOpen] = useState(false);
+  const [coverGalleryPickerOpen, setCoverGalleryPickerOpen] = useState(false);
+  const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
+  const [galleryUrlsRefreshing, setGalleryUrlsRefreshing] = useState(false);
   const [staffMembers, setStaffMembers] = useState<StaffMemberRecord[]>([]);
   const [staffLoading, setStaffLoading] = useState(true);
   const [staffError, setStaffError] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const previewColumnRef = useRef<HTMLDivElement>(null);
-  const templateSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const workspaceRef = useRef(workspace);
+  const galleryRefreshDoneRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    workspaceRef.current = workspace;
+  }, [workspace]);
 
   const activeEdition = useMemo(
     () =>
@@ -89,33 +113,52 @@ export default function NewsletterWorkspace({
 
   const locked = activeEdition?.status === "published";
 
-  const galleryRefreshKey = activeEdition?.photos
-    .filter((p) => p.galleryPhotoId)
-    .map((p) => p.galleryPhotoId)
-    .join(",");
+  const saveStatusLabel =
+    saveState === "saving"
+      ? "Saving…"
+      : saveState === "error"
+        ? saveError ?? "Couldn't save"
+        : isDirty
+          ? "Unsaved changes"
+          : "Saved to MudKitchen";
+
+  const galleryRefreshKey = [
+    activeEdition?.coverGalleryPhotoId ?? "",
+    ...(activeEdition?.photos.filter((p) => p.galleryPhotoId).map((p) => p.galleryPhotoId) ??
+      []),
+  ].join(",");
 
   useEffect(() => {
     if (!galleryRefreshKey) return;
-    const edition = workspace.editions.find((e) => e.id === editionId);
+    const attemptKey = `${editionId}:${galleryRefreshKey}`;
+    if (galleryRefreshDoneRef.current === attemptKey) return;
+
+    const edition = workspaceRef.current.editions.find((e) => e.id === editionId);
     if (!edition) return;
-    const prior = edition.photos;
+
     let cancelled = false;
-    void refreshNewsletterGalleryPhotoUrls(slug, prior).then((photos) => {
-      if (cancelled) return;
-      if (!photos.some((p, i) => p.src !== prior[i]?.src)) return;
-      onWorkspaceChange({
-        ...workspace,
-        editions: workspace.editions.map((e) =>
-          e.id === editionId ? { ...e, photos } : e,
-        ),
+    setGalleryUrlsRefreshing(true);
+    void refreshNewsletterEditionGalleryUrls(slug, edition)
+      .then((refreshed) => {
+        if (cancelled) return;
+        galleryRefreshDoneRef.current = attemptKey;
+        if (!newsletterEditionGalleryMediaChanged(edition, refreshed)) return;
+        const current = workspaceRef.current;
+        onWorkspaceSync({
+          ...current,
+          editions: current.editions.map((e) => (e.id === editionId ? refreshed : e)),
+        });
+      })
+      .finally(() => {
+        if (!cancelled) setGalleryUrlsRefreshing(false);
       });
-    });
     return () => {
       cancelled = true;
+      setGalleryUrlsRefreshing(false);
     };
-  }, [editionId, slug, galleryRefreshKey, onWorkspaceChange, workspace.editions]);
-  const showBuilderSkeleton =
-    staffLoading && staffMembers.length === 0 && !staffError;
+  }, [editionId, galleryRefreshKey, onWorkspaceSync, slug]);
+  const pageContentLoading =
+    (staffLoading && staffMembers.length === 0 && !staffError) || galleryUrlsRefreshing;
 
   const previewBranding = useMemo(
     () => newsletterVisualBrandingForPreview(branding),
@@ -127,19 +170,10 @@ export default function NewsletterWorkspace({
       staff: staffMembers,
       template: workspace.template,
       branding: newsletterVisualBrandingForExport(branding),
+      primaryColor: theme.primary,
     }),
-    [branding, staffMembers, workspace.template],
+    [branding, staffMembers, theme.primary, workspace.template],
   );
-
-  useEffect(() => {
-    if (templateSaveTimer.current) clearTimeout(templateSaveTimer.current);
-    templateSaveTimer.current = setTimeout(() => {
-      saveSchoolTemplate(organizationId, workspace.template);
-    }, 400);
-    return () => {
-      if (templateSaveTimer.current) clearTimeout(templateSaveTimer.current);
-    };
-  }, [organizationId, workspace.template]);
 
   const loadStaff = useCallback(() => {
     setStaffLoading(true);
@@ -242,14 +276,6 @@ export default function NewsletterWorkspace({
     setPreviewVisible((prev) => !prev);
   }, []);
 
-  const resetSample = useCallback(() => {
-    onWorkspaceChange(
-      createInitialNewsletterWorkspace(organizationId, schoolName, theme.primary),
-    );
-    setEditorTab("story");
-    onBack();
-  }, [organizationId, onBack, onWorkspaceChange, schoolName, theme.primary]);
-
   const handlePhotoInput = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
       if (locked) return;
@@ -264,7 +290,7 @@ export default function NewsletterWorkspace({
       for (const file of files) {
         if (!file.type.startsWith("image/")) continue;
         try {
-          const src = await resizeImageFileToDataUrl(file);
+          const src = await prepareNewsletterImageFileForUpload(file);
           newPhotos.push({ id: createNewsletterId(), src, caption: "" });
         } catch {
           showToast("Could not load an image. Try JPG or PNG.");
@@ -314,6 +340,11 @@ export default function NewsletterWorkspace({
     setModal({ type: "publish" });
   }, [locked, showPreview]);
 
+  const handlePublish = useCallback(async () => {
+    const published = await publishNewsletterEditionApi(slug, activeEdition.id);
+    onEditionSaved(published);
+  }, [activeEdition.id, onEditionSaved, slug]);
+
   const workspaceStyle = useMemo(
     () =>
       ({
@@ -331,9 +362,16 @@ export default function NewsletterWorkspace({
     onTogglePreview: togglePreview,
     onDeviceChange: setDevice,
     onExport: () => setModal({ type: "export" }),
-    onVersionHistory: () => showToast("Version history is coming soon."),
+    onVersionHistory: () => setVersionHistoryOpen(true),
+    onSave: () => void onSaveNow(),
+    saveDisabled: !isDirty,
+    saving: saveState === "saving",
     onPublish: openPublish,
   };
+
+  if (pageContentLoading) {
+    return <NewsletterEditorPageSkeleton previewVisible={previewVisible} />;
+  }
 
   return (
     <main className={styles.workspace} style={workspaceStyle}>
@@ -358,7 +396,9 @@ export default function NewsletterWorkspace({
               <AdminChip theme={theme} tone={locked ? "success" : "warning"}>
                 {locked ? "Published" : "Draft"}
               </AdminChip>
-              <span>Not saved to MudKitchen yet</span>
+              <span style={saveState === "error" ? { color: C.textSecondary } : undefined}>
+                {saveStatusLabel}
+              </span>
             </div>
           </div>
           <NewsletterPreviewToolbar
@@ -381,7 +421,11 @@ export default function NewsletterWorkspace({
                 body: "Reopen this edition for editing. Nothing is sent to families.",
                 confirmLabel: "Return to draft",
                 onConfirm: () => {
-                  updateActiveEdition({ ...activeEdition, status: "draft" });
+                  updateActiveEdition({
+                    ...activeEdition,
+                    status: "draft",
+                    publishedAt: undefined,
+                  });
                 },
               })
             }
@@ -392,9 +436,6 @@ export default function NewsletterWorkspace({
       ) : null}
 
       <div className={styles.builderShell}>
-        {showBuilderSkeleton ? (
-          <NewsletterWorkspaceSkeleton previewVisible={previewVisible} />
-        ) : (
           <div
             className={`${styles.builder} ${previewVisible ? "" : styles.builderPreviewHidden}`.trim()}
           >
@@ -422,6 +463,9 @@ export default function NewsletterWorkspace({
                     setModal({ type: "event" });
                   }}
                   onOpenGalleryPicker={() => setGalleryPickerOpen(true)}
+                  onOpenCoverGalleryPicker={
+                    galleryEnabled ? () => setCoverGalleryPickerOpen(true) : undefined
+                  }
                   galleryEnabled={galleryEnabled}
                   slug={slug}
                   onEditEvent={(index) => setModal({ type: "event", index })}
@@ -444,11 +488,10 @@ export default function NewsletterWorkspace({
                 </div>
               ) : null}
             </div>
-        )}
       </div>
 
       <footer className={styles.bottomNote}>
-        <span>Draft only — nothing is sent to families yet.</span>
+        <span>Click Save to store edits in MudKitchen. Publishing does not email families yet.</span>
         <AdminTextLink
           theme={theme}
           className="!text-[9px] !font-normal underline"
@@ -456,9 +499,12 @@ export default function NewsletterWorkspace({
             setModal({
               type: "confirm",
               title: "Reset to sample content?",
-              body: "This replaces your in-browser edits with the sample newsletter.",
+              body: "This replaces the current edition in this browser with sample text. Saving will write it to MudKitchen.",
               confirmLabel: "Reset sample",
-              onConfirm: resetSample,
+              onConfirm: () => {
+                setEditorTab("story");
+                onResetSample();
+              },
             })
           }
         >
@@ -488,12 +534,14 @@ export default function NewsletterWorkspace({
         onExportHtml={exportHtml}
         onExportText={() => void exportText()}
         onCopyText={() => void copyText()}
+        onPublish={handlePublish}
       />
 
       <NewsletterGalleryPickerSheet
         open={galleryPickerOpen}
         slug={slug}
         edition={activeEdition}
+        mode="photos"
         onClose={() => setGalleryPickerOpen(false)}
         onAddPhotos={(newPhotos) => {
           const merged = [...activeEdition.photos, ...newPhotos].slice(
@@ -502,6 +550,36 @@ export default function NewsletterWorkspace({
           );
           updateActiveEdition({ ...activeEdition, photos: merged });
         }}
+      />
+
+      <NewsletterGalleryPickerSheet
+        open={coverGalleryPickerOpen}
+        slug={slug}
+        edition={activeEdition}
+        mode="cover"
+        onClose={() => setCoverGalleryPickerOpen(false)}
+        onPickCover={({ galleryPhotoId, src }) => {
+          updateActiveEdition({
+            ...activeEdition,
+            coverGalleryPhotoId: galleryPhotoId,
+            coverImage: src,
+          });
+        }}
+      />
+
+      <NewsletterVersionHistorySheet
+        open={versionHistoryOpen}
+        slug={slug}
+        edition={activeEdition}
+        school={workspace.school}
+        template={workspace.template}
+        branding={branding}
+        staffMembers={staffMembers}
+        onClose={() => setVersionHistoryOpen(false)}
+        onRestored={(edition) => {
+          onEditionSaved(edition);
+        }}
+        onToast={showToast}
       />
 
       {toast ? (

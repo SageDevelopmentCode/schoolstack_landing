@@ -43,6 +43,7 @@ type NewsletterModalsProps = {
   onExportHtml: () => void;
   onExportText: () => void;
   onCopyText: () => void;
+  onPublish: () => Promise<void>;
 };
 
 export default function NewsletterModals(props: NewsletterModalsProps) {
@@ -247,8 +248,8 @@ function PublishBody({
   activeEdition,
   onClose,
   onShowPreview,
-  onActiveEditionChange,
   onToast,
+  onPublish,
 }: NewsletterModalsProps) {
   const { theme } = useSchoolAdminStoryTheme();
   const checks = useMemo(
@@ -272,6 +273,7 @@ function PublishBody({
   );
   const ready = checks.every((c) => c.ok);
   const [ack, setAck] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   return (
     <>
@@ -290,7 +292,8 @@ function PublishBody({
       ))}
       <label className={styles.checkLabel} style={{ fontSize: 11, marginTop: 18 }}>
         <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} />
-        I understand this preview does not email families or update the parent portal.
+        I understand this saves as published in MudKitchen but does not email families or update
+        the parent portal.
       </label>
       <div className={styles.modalActions}>
         <AdminButton
@@ -306,19 +309,26 @@ function PublishBody({
         <AdminButton
           theme={theme}
           variant="primary"
-          disabled={!ready || !ack}
+          disabled={!ready || !ack || publishing}
           onClick={() => {
-            onActiveEditionChange({
-              ...activeEdition,
-              status: "published",
-              publishedAt: new Date().toISOString(),
-            });
-            onClose();
-            onShowPreview();
-            onToast("Marked as published in this preview. Nothing was sent.");
+            setPublishing(true);
+            void onPublish()
+              .then(() => {
+                onClose();
+                onShowPreview();
+                onToast("Published and saved in MudKitchen. Nothing was sent to families.");
+              })
+              .catch((err: unknown) => {
+                onToast(
+                  err instanceof Error ? err.message : "Could not publish this newsletter.",
+                );
+              })
+              .finally(() => {
+                setPublishing(false);
+              });
           }}
         >
-          Mark published (preview)
+          {publishing ? "Publishing…" : "Publish"}
         </AdminButton>
       </div>
     </>

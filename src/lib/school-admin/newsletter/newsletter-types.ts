@@ -58,6 +58,8 @@ export type NewsletterPhoto = {
   caption: string;
   /** When picked from the school photo library. */
   galleryPhotoId?: string;
+  /** Uploaded image in school-newsletter-files (server persistence). */
+  storagePath?: string;
 };
 
 export type NewsletterEdition = {
@@ -74,8 +76,10 @@ export type NewsletterEdition = {
   events: NewsletterEvent[];
   reminders: NewsletterReminder[];
   photos: NewsletterPhoto[];
-  /** Data URL for overview grid banner (browser-only draft). */
+  /** Data URL or signed URL for overview grid banner. */
   coverImage?: string;
+  /** Cover picked from the school photo library. */
+  coverGalleryPhotoId?: string;
 };
 
 export type NewsletterSchoolMeta = {
@@ -95,7 +99,7 @@ export const DEFAULT_NEWSLETTER_SECTIONS: NewsletterSections = {
   events: true,
   reminders: true,
   photos: true,
-  teacherUpdates: false,
+  teacherUpdates: true,
 };
 
 export function createNewsletterId(): string {

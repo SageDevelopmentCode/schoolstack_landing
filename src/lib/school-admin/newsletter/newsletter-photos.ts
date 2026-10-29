@@ -1,27 +1,46 @@
-export async function resizeImageFileToDataUrl(file: File): Promise<string> {
-  const dataUrl = await new Promise<string>((resolve, reject) => {
+import {
+  compressImageForUpload,
+  type CompressImageOptions,
+} from "@/lib/images/compress-image";
+
+export const NEWSLETTER_UPLOAD_COMPRESS_OPTIONS: CompressImageOptions = {
+  maxWidth: 2048,
+  maxHeight: 2048,
+  quality: 0.85,
+  skipBelowBytes: 300 * 1024,
+};
+
+const MAX_NEWSLETTER_INLINE_IMAGE_BYTES = 10 * 1024 * 1024;
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error("read failed"));
     reader.onload = () => resolve(String(reader.result));
     reader.readAsDataURL(file);
   });
+}
 
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onerror = () => reject(new Error("image load failed"));
-    image.onload = () => {
-      const scale = Math.min(1, 1200 / Math.max(image.width, image.height));
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.round(image.width * scale);
-      canvas.height = Math.round(image.height * scale);
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        reject(new Error("canvas unavailable"));
-        return;
-      }
-      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-      resolve(canvas.toDataURL("image/jpeg", 0.78));
-    };
-    image.src = dataUrl;
-  });
+/** @deprecated Use prepareNewsletterImageFileForUpload */
+export async function resizeImageFileToDataUrl(file: File): Promise<string> {
+  return prepareNewsletterImageFileForUpload(file);
+}
+
+export async function prepareNewsletterImageFileForUpload(file: File): Promise<string> {
+  if (file.size > MAX_NEWSLETTER_INLINE_IMAGE_BYTES) {
+    throw new Error("Image exceeds the 10 MB limit.");
+  }
+
+  let prepared = file;
+  try {
+    prepared = await compressImageForUpload(file, NEWSLETTER_UPLOAD_COMPRESS_OPTIONS);
+  } catch {
+    prepared = file;
+  }
+
+  if (prepared.size > MAX_NEWSLETTER_INLINE_IMAGE_BYTES) {
+    throw new Error("Image exceeds the 10 MB limit.");
+  }
+
+  return fileToDataUrl(prepared);
 }

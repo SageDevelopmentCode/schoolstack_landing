@@ -19,6 +19,9 @@ import StudentsPageShell from "@/components/school-admin/students/StudentsPageSh
 import StudentsTableLoader from "@/components/school-admin/students/StudentsTableLoader";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { isSchoolGalleryEnabled } from "@/lib/school-gallery/gallery-enabled";
+import { loadNewsletterWorkspaceForAdmin } from "@/lib/school-admin/newsletter/newsletter-db";
+import { newsletterPrimaryFromBranding } from "@/lib/school-admin/newsletter/newsletter-branding-meta";
+import { createEmptyNewsletterWorkspace } from "@/lib/school-admin/newsletter/newsletter-workspace-storage";
 import { parseProgramParentPortalOrgConfig } from "@/lib/admissions/program-parent-portal-governance";
 import { parseAdmissionsOrgSettings } from "@/lib/admissions/admissions-org-settings";
 import { ParentThemeProvider } from "@/components/school-parent/ParentThemeContext";
@@ -341,6 +344,18 @@ export default async function SchoolAdminSubtabPage({
   }
 
   if (feature === "my_school" && subtab === "newsletters") {
+    const admin = createAdminClient();
+    const primaryColor = newsletterPrimaryFromBranding(org.branding);
+    let initialWorkspace = createEmptyNewsletterWorkspace(org.name, primaryColor);
+    try {
+      initialWorkspace = await loadNewsletterWorkspaceForAdmin(admin, org.id, {
+        schoolName: org.name,
+        primaryColor,
+      });
+    } catch {
+      // Local dev may be behind migrations; empty workspace still renders.
+    }
+
     return (
       <NewsletterPage
         organizationId={org.id}
@@ -349,6 +364,7 @@ export default async function SchoolAdminSubtabPage({
         branding={org.branding}
         galleryEnabled={isSchoolGalleryEnabled(org.features)}
         initialEditionId={initialEditionId}
+        initialWorkspace={initialWorkspace}
       />
     );
   }

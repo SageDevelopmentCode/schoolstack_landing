@@ -1,4 +1,4 @@
-import type { NewsletterPhoto } from "./newsletter-types";
+import type { NewsletterEdition, NewsletterPhoto } from "./newsletter-types";
 
 const MAX_GALLERY_PAGES = 20;
 const PAGE_LIMIT = 100;
@@ -9,16 +9,13 @@ type GalleryListResponse = {
   nextOffset?: number;
 };
 
-export async function refreshNewsletterGalleryPhotoUrls(
+async function fetchGalleryUrlMap(
   slug: string,
-  photos: NewsletterPhoto[],
-): Promise<NewsletterPhoto[]> {
-  const ids = new Set(
-    photos.filter((p) => p.galleryPhotoId).map((p) => p.galleryPhotoId as string),
-  );
-  if (ids.size === 0) return photos;
-
+  ids: Set<string>,
+): Promise<Map<string, string>> {
   const urlById = new Map<string, string>();
+  if (ids.size === 0) return urlById;
+
   let offset = 0;
   let pages = 0;
 
@@ -38,6 +35,19 @@ export async function refreshNewsletterGalleryPhotoUrls(
     pages += 1;
   }
 
+  return urlById;
+}
+
+export async function refreshNewsletterGalleryPhotoUrls(
+  slug: string,
+  photos: NewsletterPhoto[],
+): Promise<NewsletterPhoto[]> {
+  const ids = new Set(
+    photos.filter((p) => p.galleryPhotoId).map((p) => p.galleryPhotoId as string),
+  );
+  if (ids.size === 0) return photos;
+
+  const urlById = await fetchGalleryUrlMap(slug, ids);
   if (urlById.size === 0) return photos;
 
   return photos.map((p) => {
@@ -45,4 +55,34 @@ export async function refreshNewsletterGalleryPhotoUrls(
     const fresh = urlById.get(p.galleryPhotoId);
     return fresh ? { ...p, src: fresh } : p;
   });
+}
+
+export async function refreshNewsletterEditionGalleryUrls(
+  slug: string,
+  edition: NewsletterEdition,
+): Promise<NewsletterEdition> {
+  const ids = new Set<string>();
+  if (edition.coverGalleryPhotoId) {
+    ids.add(edition.coverGalleryPhotoId);
+  }
+  for (const photo of edition.photos) {
+    if (photo.galleryPhotoId) ids.add(photo.galleryPhotoId);
+  }
+  if (ids.size === 0) return edition;
+
+  const urlById = await fetchGalleryUrlMap(slug, ids);
+  if (urlById.size === 0) return edition;
+
+  const photos = edition.photos.map((p) => {
+    if (!p.galleryPhotoId) return p;
+    const fresh = urlById.get(p.galleryPhotoId);
+    return fresh ? { ...p, src: fresh } : p;
+  });
+
+  let coverImage = edition.coverImage;
+  if (edition.coverGalleryPhotoId) {
+    coverImage = urlById.get(edition.coverGalleryPhotoId) ?? coverImage;
+  }
+
+  return { ...edition, photos, coverImage };
 }
