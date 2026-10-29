@@ -326,6 +326,11 @@
   min-width: 0;
 }
 
+.pageheadBack {
+  flex-shrink: 0;
+  margin-bottom: 8px;
+}
+
 .pageheadToolbarRoot,
 .pageheadToolbar {
   margin-bottom: 0;

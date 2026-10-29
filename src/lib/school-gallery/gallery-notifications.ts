@@ -12,6 +12,7 @@ import { schoolParentPath } from "@/lib/organization-settings/parent-routes";
 import { reportOperationalError } from "@/lib/operational-errors";
 import { listAllEnrolledParentFamilyIds } from "@/lib/school-bulletin/bulletin-notification-audience";
 import { getRuntimeSiteUrl } from "@/lib/site";
+import { sendGalleryPhotosUploadedExpoPush } from "./gallery-expo-push";
 import type { GalleryUploadSurface } from "./gallery-activity";
 import { formatGalleryDateLabel } from "./format-gallery-date";
 import { isSchoolGalleryEnabled } from "./gallery-enabled";
@@ -182,6 +183,31 @@ export async function sendGalleryPhotosUploadedParentEmails(
   }
 
   const familyIds = await listEnrolledFamilyIds(admin, input.organizationId);
+
+  void sendGalleryPhotosUploadedExpoPush(admin, {
+    organizationId: input.organizationId,
+    organizationName: org.schoolName,
+    organizationSlug: org.schoolSlug,
+    uploadBatchId: input.uploadBatchId,
+    photoCount: input.photoCount,
+    uploaderName: input.uploaderName,
+  }).catch((err) => {
+    void reportOperationalError({
+      supabase: admin,
+      surface: "system",
+      organizationId: input.organizationId,
+      operation: "gallery.photos_uploaded.expo_push",
+      error:
+        err instanceof Error
+          ? err.message
+          : "Failed to send gallery photos uploaded push notifications.",
+      entityType: "school_gallery_upload_batch",
+      entityId: input.uploadBatchId,
+      actor: { type: "system" },
+      cause: err,
+    });
+  });
+
   if (familyIds.length === 0) {
     return { emailsAttempted: 0, emailsSucceeded: 0 };
   }

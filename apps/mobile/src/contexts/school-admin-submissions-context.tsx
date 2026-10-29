@@ -23,6 +23,11 @@ import {
   submissionsPageHasMore,
   type SubmissionPageMeta,
 } from '@/lib/school-admin/submissions-page-meta';
+import { fetchSchoolAdminApi } from '@/lib/school-admin-api';
+import {
+  getActivePreviewSession,
+  isPreviewSessionActive,
+} from '@/lib/platform-admin/preview-session-store';
 import { getSupabaseClient } from '@/lib/supabase';
 import { createSchoolAdminErrorReporter } from '@/lib/mobile-error-reporter';
 
@@ -53,10 +58,27 @@ function cacheKey(organizationId: string): string {
   return organizationId;
 }
 
+function shouldUseSchoolAdminPreviewApi(): boolean {
+  const session = getActivePreviewSession();
+  return isPreviewSessionActive() && session?.portal === 'school_admin';
+}
+
 async function fetchSubmissionsPage(
   organizationId: string,
   offset: number,
 ): Promise<AdminApplicationSubmission[]> {
+  if (shouldUseSchoolAdminPreviewApi()) {
+    const params = new URLSearchParams({
+      organizationId,
+      offset: String(offset),
+      limit: String(ORG_SUBMISSIONS_INITIAL_PAGE_SIZE),
+    });
+    const payload = await fetchSchoolAdminApi<{
+      submissions?: AdminApplicationSubmission[];
+    }>(`/api/school-admin/admissions/submissions?${params.toString()}`);
+    return payload.submissions ?? [];
+  }
+
   const supabase = getSupabaseClient();
   return listOrgApplicationSubmissions(supabase, organizationId, {
     limit: ORG_SUBMISSIONS_INITIAL_PAGE_SIZE,
@@ -65,6 +87,25 @@ async function fetchSubmissionsPage(
 }
 
 async function fetchSubmissionsData(organizationId: string): Promise<SchoolAdminSubmissionsData> {
+  if (shouldUseSchoolAdminPreviewApi()) {
+    const params = new URLSearchParams({
+      organizationId,
+      offset: '0',
+      limit: String(ORG_SUBMISSIONS_INITIAL_PAGE_SIZE),
+      includeMeta: '1',
+    });
+    const payload = await fetchSchoolAdminApi<{
+      submissions?: AdminApplicationSubmission[];
+      meta?: SubmissionPageMeta;
+    }>(`/api/school-admin/admissions/submissions?${params.toString()}`);
+    const submissions = payload.submissions ?? [];
+    return {
+      submissions,
+      meta: payload.meta ?? null,
+      hasMore: submissionsPageHasMore(submissions.length, ORG_SUBMISSIONS_INITIAL_PAGE_SIZE),
+    };
+  }
+
   const supabase = getSupabaseClient();
   const [meta, submissions] = await Promise.all([
     fetchSubmissionPageMeta(supabase, organizationId),

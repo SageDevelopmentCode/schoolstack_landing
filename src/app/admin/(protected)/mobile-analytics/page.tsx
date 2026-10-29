@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import MobileFeatureAnalyticsPanel from "@/components/admin/MobileFeatureAnalyticsPanel";
+import MobilePushNotificationsCatalogPanel from "@/components/admin/MobilePushNotificationsCatalogPanel";
 import { AdminSelect } from "@/components/admin/ui/AdminSelect";
 import type { ActivityDatePreset } from "@/lib/activity-log";
 import type {
@@ -18,6 +19,8 @@ type OrganizationOption = {
 
 type SurfaceFilter = "" | MobileFeatureAnalyticsSurface;
 
+type MobileAnalyticsTab = "feature_usage" | "push_notifications";
+
 const DATE_PRESETS: { value: ActivityDatePreset; label: string }[] = [
   { value: "today", label: "Today" },
   { value: "7d", label: "Last 7 days" },
@@ -32,7 +35,13 @@ const SURFACE_FILTERS: { value: SurfaceFilter; label: string }[] = [
   { value: "school_admin", label: "School admin" },
 ];
 
+const TABS: { id: MobileAnalyticsTab; label: string }[] = [
+  { id: "feature_usage", label: "Feature usage" },
+  { id: "push_notifications", label: "Push notifications" },
+];
+
 export default function AdminMobileAnalyticsPage() {
+  const [tab, setTab] = useState<MobileAnalyticsTab>("feature_usage");
   const [datePreset, setDatePreset] = useState<ActivityDatePreset>("7d");
   const [organizationId, setOrganizationId] = useState("");
   const [surfaceFilter, setSurfaceFilter] = useState<SurfaceFilter>("");
@@ -115,6 +124,23 @@ export default function AdminMobileAnalyticsPage() {
 
         <div className="rounded-admin-md border border-admin-border bg-admin-bg p-3 space-y-3">
           <div className="flex gap-1 flex-wrap">
+            {TABS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setTab(item.id)}
+                className={`text-xs px-3 py-1.5 rounded-admin-md border transition-colors ${
+                  tab === item.id
+                    ? "bg-admin-accent-soft text-admin-accent border-admin-accent/20"
+                    : "bg-admin-surface text-admin-muted border-admin-border hover:bg-admin-neutral-bg"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex gap-1 flex-wrap">
             {DATE_PRESETS.map((preset) => (
               <button
                 key={preset.value}
@@ -165,14 +191,22 @@ export default function AdminMobileAnalyticsPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
-        <MobileFeatureAnalyticsPanel
-          data={data}
-          loading={loading}
-          error={error}
-          datePreset={datePreset}
-          organizationId={organizationId}
-          organizations={organizations}
-        />
+        {tab === "feature_usage" ? (
+          <MobileFeatureAnalyticsPanel
+            data={data}
+            loading={loading}
+            error={error}
+            datePreset={datePreset}
+            organizationId={organizationId}
+            organizations={organizations}
+          />
+        ) : (
+          <MobilePushNotificationsCatalogPanel
+            datePreset={datePreset}
+            organizationId={organizationId}
+            surfaceFilter={surfaceFilter}
+          />
+        )}
       </div>
     </div>
   );

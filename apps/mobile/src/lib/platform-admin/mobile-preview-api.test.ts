@@ -1,7 +1,9 @@
 import {
   mapParentPortalPathToPreview,
+  mapSchoolAdminPathToPreview,
   mapTeacherPortalPathToPreview,
   resolveParentPreviewPath,
+  resolveSchoolAdminPreviewPath,
   resolveTeacherPreviewPath,
 } from '@/lib/platform-admin/mobile-preview-api';
 import {
@@ -23,6 +25,14 @@ const teacherSession: PortalPreviewSession = {
   slug: 'rooted-meadows',
   subjectLabel: 'Jane Teacher',
   staffMemberId: 'staff-789',
+};
+
+const schoolAdminSession: PortalPreviewSession = {
+  portal: 'school_admin',
+  organizationId: 'org-123',
+  slug: 'rooted-meadows',
+  subjectLabel: 'admin@rootedmeadowswaldorf.org',
+  membershipId: 'mem-456',
 };
 
 describe('resolveParentPreviewPath', () => {
@@ -133,6 +143,53 @@ describe('mapParentPortalPathToPreview', () => {
 
     expect(mapped).toContain('programId=prog-coop');
     expect(mapped).toContain('familyId=family-456');
+  });
+});
+
+describe('resolveSchoolAdminPreviewPath', () => {
+  afterEach(() => {
+    setActivePreviewSession(null);
+  });
+
+  it('maps school-admin dashboard-summary to mobile preview route with membershipId', () => {
+    setActivePreviewSession(schoolAdminSession);
+
+    const path = resolveSchoolAdminPreviewPath(
+      '/api/school-admin/dashboard-summary?organizationId=org-123&slug=rooted-meadows',
+    );
+
+    expect(path).toBe(
+      '/api/admin/mobile-preview/school-admin/dashboard-summary?organizationId=org-123&slug=rooted-meadows&membershipId=mem-456',
+    );
+  });
+
+  it('returns null for non school-admin paths', () => {
+    setActivePreviewSession(schoolAdminSession);
+
+    expect(
+      resolveSchoolAdminPreviewPath('/api/school/rooted-meadows/students/stu-1'),
+    ).toBeNull();
+  });
+
+  it('returns null when session is teacher portal', () => {
+    setActivePreviewSession(teacherSession);
+
+    expect(
+      resolveSchoolAdminPreviewPath('/api/school-admin/dashboard-summary?organizationId=org-123'),
+    ).toBeNull();
+  });
+});
+
+describe('mapSchoolAdminPathToPreview', () => {
+  it('preserves nested path segments and query params', () => {
+    const mapped = mapSchoolAdminPathToPreview(
+      '/api/school-admin/messages/threads?organizationId=org-123&schoolName=Rooted',
+      schoolAdminSession,
+    );
+
+    expect(mapped).toBe(
+      '/api/admin/mobile-preview/school-admin/messages/threads?organizationId=org-123&schoolName=Rooted&slug=rooted-meadows&membershipId=mem-456',
+    );
   });
 });
 

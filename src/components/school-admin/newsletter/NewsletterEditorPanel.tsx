@@ -3,6 +3,9 @@
 import { Calendar, ImageIcon, Images, Pencil, Trash2 } from "lucide-react";
 import { useRef } from "react";
 import { resizeImageFileToDataUrl } from "@/lib/school-admin/newsletter/newsletter-photos";
+import SchoolAdminDatePicker, {
+  schoolAdminDateRangeBounds,
+} from "@/components/school-admin/ui/SchoolAdminDatePicker";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
@@ -137,6 +140,7 @@ export default function NewsletterEditorPanel({
             template={template}
             locked={locked}
             theme={theme}
+            C={C}
             onPatch={patch}
             onEditionChange={onEditionChange}
             onTemplateChange={onTemplateChange}
@@ -192,6 +196,7 @@ function StoryTab({
   template,
   locked,
   theme,
+  C,
   onPatch,
   onEditionChange,
   onTemplateChange,
@@ -203,6 +208,7 @@ function StoryTab({
   template: NewsletterSchoolTemplate;
   locked: boolean;
   theme: ReturnType<typeof useSchoolAdminStoryTheme>["theme"];
+  C: ReturnType<typeof useSchoolAdminStoryTheme>["C"];
   onPatch: (partial: Partial<NewsletterEdition>) => void;
   onEditionChange: (edition: NewsletterEdition) => void;
   onTemplateChange: (template: NewsletterSchoolTemplate) => void;
@@ -215,6 +221,7 @@ function StoryTab({
 }) {
   const contentBlocks = edition.storyBlocks.filter((b) => b.enabled);
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const dateBounds = schoolAdminDateRangeBounds();
 
   const removeSection = (block: NewsletterStoryBlock) => {
     if (locked) return;
@@ -359,23 +366,25 @@ function StoryTab({
         </div>
         <div className={`${styles.twoFields} mt-4`}>
           <Field label="Week beginning">
-            <input
-              className={styles.input}
-              type="date"
+            <SchoolAdminDatePicker
+              id={`newsletter-week-begin-${edition.id}`}
+              C={C}
               value={edition.week}
-              readOnly={locked}
-              onChange={(e) => onPatch({ week: e.target.value })}
+              disabled={locked}
+              onChange={(value) => onPatch({ week: value })}
+              maxDate={edition.weekEnd || dateBounds.maxDate}
+              placeholder="Select start date"
             />
           </Field>
           <Field label="Week ending" optional>
-            <input
-              className={styles.input}
-              type="date"
+            <SchoolAdminDatePicker
+              id={`newsletter-week-end-${edition.id}`}
+              C={C}
               value={edition.weekEnd ?? ""}
-              readOnly={locked}
-              onChange={(e) =>
-                onPatch({ weekEnd: e.target.value || undefined })
-              }
+              disabled={locked}
+              onChange={(value) => onPatch({ weekEnd: value || undefined })}
+              minDate={edition.week || dateBounds.minDate}
+              placeholder="Select end date"
             />
           </Field>
         </div>

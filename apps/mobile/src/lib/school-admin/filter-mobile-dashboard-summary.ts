@@ -57,5 +57,6 @@ export function filterMobileDashboardSummary(
     featureAnnouncements: summary.featureAnnouncements,
     messagesUnreadCount: summary.messagesUnreadCount,
     setupComplete: summary.setupComplete,
+    viewerProfile: summary.viewerProfile,
   };
 }

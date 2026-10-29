@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { logSettledNotificationFailures } from "@/lib/admissions/notification-logging";
 import { listOrganizationMemberships } from "@/lib/admin/organization-memberships";
 import type { CommitteeWorkspaceSection } from "@/lib/committees/types";
+import type { MobilePushNotificationKind } from "@/lib/notifications/mobile-push-catalog";
 import {
   sendExpoPushToUsers,
   type ExpoPushPortal,
@@ -134,6 +135,7 @@ export async function sendCommitteeInstantPushToMembers(
     excludeMemberIds?: string[];
     excludeUserIds?: string[];
     failureOperation: string;
+    notificationKind: MobilePushNotificationKind;
   },
 ): Promise<void> {
   const recipients = await resolveInstantPushRecipients(admin, input.members, {
@@ -157,6 +159,7 @@ export async function sendCommitteeInstantPushToMembers(
         recipientPortal: recipient.portal,
         recipientEmail: recipient.email ?? null,
         failureOperation: input.failureOperation,
+        notificationKind: input.notificationKind,
         data: {
           kind: "committee",
           portal: recipient.portal,
@@ -196,6 +199,7 @@ export async function sendCommitteeInstantPushToUser(
     section?: CommitteeWorkspaceSection;
     intent?: "join_request";
     failureOperation: string;
+    notificationKind: MobilePushNotificationKind;
   },
 ): Promise<void> {
   const result = await Promise.allSettled([
@@ -209,6 +213,7 @@ export async function sendCommitteeInstantPushToUser(
       recipientPortal: input.portal,
       recipientEmail: input.recipientEmail ?? null,
       failureOperation: input.failureOperation,
+      notificationKind: input.notificationKind,
       data: {
         kind: "committee",
         portal: input.portal,
@@ -265,6 +270,7 @@ export async function sendCommitteeJoinRequestAdminPush(
         recipientPortal: "admin",
         recipientEmail: recipient.email,
         failureOperation: "committee.join_request.expo_push",
+        notificationKind: "committee.join_request_admin",
         data: {
           kind: "committee",
           portal: "admin",

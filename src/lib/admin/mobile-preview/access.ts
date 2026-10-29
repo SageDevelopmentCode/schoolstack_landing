@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { requirePlatformAdminUser } from "@/lib/admin/require-platform-admin-api";
 import { assertStaffMemberBelongsToOrg } from "@/lib/staff/staff-preview-access";
+import { assertMembershipBelongsToOrg } from "@/lib/school-admin/membership-preview-access";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 
 export type MobilePreviewQuery = {
@@ -63,6 +64,14 @@ export async function validateStaffInOrganization(
   staffMemberId: string,
 ): Promise<void> {
   await assertStaffMemberBelongsToOrg(admin, organizationId, staffMemberId);
+}
+
+export async function validateMembershipInOrganization(
+  admin: SupabaseClient,
+  organizationId: string,
+  membershipId: string,
+): Promise<void> {
+  await assertMembershipBelongsToOrg(admin, organizationId, membershipId);
 }
 
 export function readOnlyPreviewResponse(): Response {

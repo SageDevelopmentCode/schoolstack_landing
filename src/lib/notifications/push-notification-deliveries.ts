@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { notifyMobilePushNotificationDelivered } from "@/lib/discord";
+import type { MobilePushNotificationKind } from "@/lib/notifications/mobile-push-catalog";
 import { reportOperationalError } from "@/lib/operational-errors";
 
 export type PushDeliveryStatus = "sent" | "failed" | "skipped_no_token";
@@ -16,6 +17,7 @@ export type PushDeliveryInput = {
   title: string;
   body: string;
   threadId?: string | null;
+  notificationKind?: MobilePushNotificationKind | null;
   status: PushDeliveryStatus;
   expoTicketId?: string | null;
   errorMessage?: string | null;
@@ -59,6 +61,7 @@ export async function logPushNotificationDelivery(
       title: input.title,
       body: input.body,
       thread_id: input.threadId ?? null,
+      notification_kind: input.notificationKind ?? null,
       expo_ticket_id: input.expoTicketId ?? null,
       error_message: input.errorMessage ?? null,
     });

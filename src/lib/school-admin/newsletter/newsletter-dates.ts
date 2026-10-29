@@ -19,6 +19,26 @@ export function weekLabel(edition: { week: string; weekEnd?: string }): string {
   return `Week of ${start}`;
 }
 
+const headerDateOpts: Intl.DateTimeFormatOptions = {
+  month: "long",
+  day: "numeric",
+  year: "numeric",
+};
+
+/** Prominent date range for the editor page title (includes year). */
+export function newsletterEditionDateRange(edition: {
+  week: string;
+  weekEnd?: string;
+}): string {
+  if (!edition.week) return "Choose dates";
+  const start = shortDate(edition.week, headerDateOpts);
+  if (edition.weekEnd && edition.weekEnd !== edition.week) {
+    const end = shortDate(edition.weekEnd, headerDateOpts);
+    return `${start} – ${end}`;
+  }
+  return start;
+}
+
 export function plusDays(key: string, days: number): string {
   const d = new Date(`${key}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);

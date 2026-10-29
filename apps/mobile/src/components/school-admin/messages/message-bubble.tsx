@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { LinkifiedText } from '@/components/text/linkified-text';
 import { StoryFonts } from '@/constants/story-theme';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { useOptionalParentTheme } from '@/contexts/parent-theme-context';
@@ -154,13 +155,14 @@ export function MessageBubble({
                     </Text>
                   ) : null}
                   {message.body ? (
-                    <Text
+                    <LinkifiedText
+                      text={message.body}
                       style={[
                         styles.storyBody,
                         { color: isOwn ? '#FFFFFF' : parentTheme.ink },
-                      ]}>
-                      {message.body}
-                    </Text>
+                      ]}
+                      linkColor={isOwn ? '#FFFFFF' : parentTheme.primary}
+                    />
                   ) : null}
                   {message.attachments.length > 0 ? (
                     <View style={styles.attachments}>
@@ -250,9 +252,11 @@ export function MessageBubble({
                 </ThemedText>
               ) : null}
               {message.body ? (
-                <ThemedText type="default" color={bodyColor} style={styles.body}>
-                  {message.body}
-                </ThemedText>
+                <LinkifiedText
+                  text={message.body}
+                  style={[styles.body, { color: bodyColor }]}
+                  linkColor={isOwn ? '#FFFFFF' : theme.accent}
+                />
               ) : null}
               {message.attachments.length > 0 ? (
                 <View style={styles.attachments}>

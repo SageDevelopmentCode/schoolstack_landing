@@ -65,5 +65,9 @@ describe("school visit email details", () => {
       ],
     );
     assert.equal(rows.find((r) => r.label === "Phone")?.value, "Admissions: 555-1000");
+    const location = rows.find((r) => r.label === "Location");
+    assert.equal(location?.value, "1 School Rd");
+    assert.ok(location?.valueHtml?.includes("google.com/maps"));
+    assert.ok(location?.valueHtml?.includes("maps.apple.com"));
   });
 });

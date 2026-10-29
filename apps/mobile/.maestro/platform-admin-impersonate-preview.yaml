@@ -9,6 +9,28 @@ env:
 - extendedWaitUntil:
     visible: 'Back to schools'
     timeout: 15000
+- tapOn: 'School admin'
+- tapOn: 'Preview'
+- extendedWaitUntil:
+    visible: 'Read-only'
+    timeout: 30000
+- assertVisible: 'Previewing as'
+- assertNotVisible: 'julius@trymudkitchen.com'
+- tapOn: 'More'
+- extendedWaitUntil:
+    visible: 'Account'
+    timeout: 20000
+- tapOn: 'Account'
+- assertVisible: 'Parent portal'
+- tapOn: 'Close more menu'
+- tapOn: 'Exit preview'
+- extendedWaitUntil:
+    visible: 'Impersonate'
+    timeout: 15000
+- tapOn: 'Rooted Meadows Waldorf School'
+- extendedWaitUntil:
+    visible: 'Back to schools'
+    timeout: 15000
 - tapOn: 'Parent'
 - tapOn: 'Preview'
 - extendedWaitUntil:

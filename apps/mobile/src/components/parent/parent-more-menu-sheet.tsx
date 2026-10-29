@@ -5,8 +5,11 @@ import { Ionicons } from '@expo/vector-icons';
 
 import {
   AccountPortalSwitcherPanel,
-  useAccountPortalSwitcherVisibility,
 } from '@/components/account-portal-switcher-panel';
+import {
+  PreviewAccountPortalSwitcherPanel,
+} from '@/components/platform-admin/preview-account-portal-switcher-panel';
+import { StoryMoreMenuSectionTabsSkeleton } from '@/components/story/more/story-more-menu-section-tabs-skeleton';
 import { ProgramSwitcherPanel } from '@/components/program-switcher-panel';
 import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
 import { StoryCard } from '@/components/story/story-card';
@@ -21,6 +24,7 @@ import { StoryMoreMenuSheetShell } from '@/components/story/more/story-more-menu
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { useAuth } from '@/contexts/auth-context';
 import { portalTypeToAccountPortalId } from '@/lib/auth/school-portal-options-types';
+import { useMoreMenuAccountPortalTab } from '@/lib/more-menu-account-portal-tab';
 import { prefetchSchoolPortalOptions } from '@/lib/auth/use-school-portal-options';
 import { useParentHome } from '@/contexts/parent-home-context';
 import { useParentPortalContext } from '@/contexts/parent-portal-context';
@@ -71,7 +75,7 @@ export function ParentMoreMenuSheet({
   onSelectAccount,
 }: ParentMoreMenuSheetProps) {
   const theme = useParentTheme();
-  const { user, portalType } = useAuth();
+  const { user, portalType, previewSession } = useAuth();
   const { data: homeData, ensureLoaded, hasLoaded: homeHasLoaded, isLoading: homeIsLoading } =
     useParentHome();
   const [activeTab, setActiveTab] = useState<MoreMenuTabId>('menu');
@@ -88,11 +92,11 @@ export function ParentMoreMenuSheet({
     organizationId,
   } = useParentPortalContext();
 
-  const { showAccountPortalSection } = useAccountPortalSwitcherVisibility(
-    organizationId,
-    slug,
-    visible,
-  );
+  const {
+    accountPortalTabLoading,
+    showAccountPortalTab,
+    showAccountPortalSwitcher,
+  } = useMoreMenuAccountPortalTab(organizationId, slug, visible);
 
   const showProgramSection = useProgramSwitcherVisibility({
     loading: portalContextsLoading,
@@ -103,13 +107,14 @@ export function ParentMoreMenuSheet({
   const tabs = useMemo(
     () =>
       buildMoreMenuTabs({
-        showAccountPortal: showAccountPortalSection,
+        showAccountPortal: showAccountPortalTab,
         showProgram: showProgramSection,
       }),
-    [showAccountPortalSection, showProgramSection],
+    [showAccountPortalTab, showProgramSection],
   );
 
   const useSectionTabs = shouldShowMoreMenuSectionTabs(tabs);
+  const showSectionTabsSkeleton = accountPortalTabLoading && showAccountPortalTab;
 
   useEffect(() => {
     if (visible && organizationId && slug) {
@@ -245,7 +250,11 @@ export function ParentMoreMenuSheet({
       />
 
       {useSectionTabs ? (
-        <StoryMoreMenuSectionTabs tabs={tabs} activeId={activeTab} onChange={setActiveTab} />
+        showSectionTabsSkeleton ? (
+          <StoryMoreMenuSectionTabsSkeleton tabCount={tabs.length} />
+        ) : (
+          <StoryMoreMenuSectionTabs tabs={tabs} activeId={activeTab} onChange={setActiveTab} />
+        )
       ) : null}
 
       <StoryMoreMenuTabPanel visible={showProgramPanel}>
@@ -263,13 +272,18 @@ export function ParentMoreMenuSheet({
         />
       </StoryMoreMenuTabPanel>
 
-      <StoryMoreMenuTabPanel visible={showAccountPortalPanel && Boolean(organizationId && slug)}>
-        {organizationId && slug ? (
+      <StoryMoreMenuTabPanel visible={showAccountPortalPanel && showAccountPortalTab}>
+        {previewSession ? (
+          <PreviewAccountPortalSwitcherPanel
+            enabled={visible && (showAccountPortalSwitcher || accountPortalTabLoading)}
+            onAfterSelect={onClose}
+          />
+        ) : organizationId && slug ? (
           <AccountPortalSwitcherPanel
             organizationId={organizationId}
             slug={slug}
             currentPortalId={currentPortalId}
-            enabled={visible}
+            enabled={visible && (showAccountPortalSwitcher || accountPortalTabLoading)}
             onAfterSelect={onClose}
           />
         ) : null}

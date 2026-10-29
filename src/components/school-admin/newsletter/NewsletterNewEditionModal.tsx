@@ -10,6 +10,7 @@ import {
 } from "@/lib/school-admin/newsletter/newsletter-types";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import SchoolAdminDatePicker from "@/components/school-admin/ui/SchoolAdminDatePicker";
 import styles from "./newsletter-workspace.module.css";
 
 type NewsletterNewEditionModalProps = {
@@ -27,7 +28,7 @@ export default function NewsletterNewEditionModal({
   onClose,
   onCreated,
 }: NewsletterNewEditionModalProps) {
-  const { theme } = useSchoolAdminStoryTheme();
+  const { theme, C } = useSchoolAdminStoryTheme();
   const reference = sourceEdition ?? workspace.editions[0] ?? null;
   const defaultWeek = plusDays(reference?.week || "2026-10-26", 7);
   const [week, setWeek] = useState(defaultWeek);
@@ -91,12 +92,13 @@ export default function NewsletterNewEditionModal({
           </p>
         ) : null}
         <div className={styles.field}>
-          <label>Week beginning</label>
-          <input
-            className={styles.input}
-            type="date"
+          <label htmlFor="newsletter-new-edition-week">Week beginning</label>
+          <SchoolAdminDatePicker
+            id="newsletter-new-edition-week"
+            C={C}
             value={week}
-            onChange={(e) => setWeek(e.target.value)}
+            onChange={setWeek}
+            placeholder="Select start date"
           />
         </div>
         {reference ? (

@@ -41,6 +41,10 @@ import type {
   PortalPreviewSession,
   StartPortalPreviewInput,
 } from '@/lib/platform-admin/preview-session-types';
+import {
+  prefetchPreviewPortalOptions,
+  type PreviewPortalSwitchTarget,
+} from '@/lib/platform-admin/preview-portal-switch';
 import { setActivePreviewSession } from '@/lib/platform-admin/preview-session-store';
 import { getCachedAccessToken, setCachedAccessToken } from '@/lib/auth/auth-session';
 import {
@@ -68,6 +72,7 @@ type AuthContextValue = {
   setResolvedPortal: (portal: ResolvedPortal, forUserId?: string) => Promise<void>;
   enterSchoolAsPlatformAdmin: (school: LiveOrganization) => Promise<void>;
   startPortalPreview: (input: StartPortalPreviewInput) => Promise<void>;
+  switchPortalPreview: (target: PreviewPortalSwitchTarget) => Promise<ResolvedPortal>;
   exitPortalPreview: () => Promise<void>;
   exitSchoolAdmin: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -441,6 +446,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsPlatformAdminSession(true);
     setPreviewSession(session);
 
+    prefetchPreviewPortalOptions(session);
+
     const userId = user?.id;
     if (!userId) {
       throw new Error('You must be signed in to start a preview.');
@@ -455,6 +462,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       prefetchTeacherPortalData(input.school);
     }
   }, [user?.id]);
+
+  const switchPortalPreview = useCallback(
+    async (target: PreviewPortalSwitchTarget) => {
+      const school = selectedSchool;
+      if (!school || !previewSession) {
+        throw new Error('Preview mode is not active for this school.');
+      }
+
+      await clearAllPersistedPortalCaches();
+
+      const input: StartPortalPreviewInput = {
+        portal: target.portal,
+        organizationId: school.id,
+        slug: school.slug,
+        subjectLabel: target.subjectLabel,
+        school,
+        membershipId: target.membershipId ?? previewSession.membershipId,
+        staffMemberId: target.staffMemberId ?? previewSession.staffMemberId,
+        familyId: target.familyId ?? previewSession.familyId,
+      };
+
+      await startPortalPreview(input);
+
+      return {
+        portalType: target.portal,
+        school,
+      };
+    },
+    [previewSession, selectedSchool, startPortalPreview],
+  );
 
   const exitPortalPreview = useCallback(async () => {
     const portal: ResolvedPortal = {
@@ -578,6 +615,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setResolvedPortal,
       enterSchoolAsPlatformAdmin,
       startPortalPreview,
+      switchPortalPreview,
       exitPortalPreview,
       exitSchoolAdmin,
       signOut,
@@ -599,6 +637,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setResolvedPortal,
       enterSchoolAsPlatformAdmin,
       startPortalPreview,
+      switchPortalPreview,
       exitPortalPreview,
       exitSchoolAdmin,
       signOut,

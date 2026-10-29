@@ -1,3 +1,7 @@
+import {
+  buildAppleMapsAddressUrl,
+  buildGoogleMapsSearchUrl,
+} from "@/lib/maps/navigation-links";
 import { getRuntimeSiteUrl, SITE_NAME } from "@/lib/site";
 
 const COLORS = {
@@ -144,7 +148,24 @@ export function emailOtpCode(tokenHtml: string): string {
 </table>`;
 }
 
-export function emailDetailCard(rows: { label: string; value: string }[]): string {
+export type EmailDetailRow = {
+  label: string;
+  value: string;
+  /** Server-generated HTML only — never pass user content. */
+  valueHtml?: string;
+};
+
+const EMAIL_LINK_STYLE = `color:${COLORS.accent};text-decoration:none;`;
+
+/** Mailing address plus Google Maps / Apple Maps text links for visit emails. */
+export function emailLocationWithMapsLinks(address: string): string {
+  const trimmed = address.trim();
+  const googleUrl = buildGoogleMapsSearchUrl(trimmed);
+  const appleUrl = buildAppleMapsAddressUrl(trimmed);
+  return `${escapeHtml(trimmed)}<br><span style="margin-top:8px;display:inline-block;font-size:14px;"><a class="email-link" href="${googleUrl}" style="${EMAIL_LINK_STYLE}">${escapeHtml("Google Maps")}</a> · <a class="email-link" href="${appleUrl}" style="${EMAIL_LINK_STYLE}">${escapeHtml("Apple Maps")}</a></span>`;
+}
+
+export function emailDetailCard(rows: EmailDetailRow[]): string {
   const rowHtml = rows
     .map(
       (row, index) => `<tr>
@@ -154,7 +175,7 @@ export function emailDetailCard(rows: { label: string; value: string }[]): strin
   </tr>
   <tr>
     <td style="padding:2px 0 0;font-family:${FONT_BODY};font-size:15px;line-height:1.5;">
-      ${escapeHtml(row.value)}
+      ${row.valueHtml ?? escapeHtml(row.value)}
     </td>
   </tr>`
     )

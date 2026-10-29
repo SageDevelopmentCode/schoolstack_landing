@@ -3,11 +3,17 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { logSettledNotificationFailures } from "@/lib/admissions/notification-logging";
 import type { CommitteeWorkspaceSection } from "@/lib/committees/types";
+import type { MobilePushNotificationKind } from "@/lib/notifications/mobile-push-catalog";
 import { logPushNotificationDelivery } from "@/lib/notifications/push-notification-deliveries";
 
 export type ExpoPushPortal = "parent" | "teacher" | "admin";
 
-export type ExpoPushChannelId = "messages" | "committees";
+export type ExpoPushChannelId =
+  | "messages"
+  | "committees"
+  | "bulletin"
+  | "gallery"
+  | "attendance";
 
 export type MessageExpoPushData = {
   kind: "message";
@@ -26,7 +32,34 @@ export type CommitteeExpoPushData = {
   intent?: "join_request";
 };
 
-export type ExpoPushData = MessageExpoPushData | CommitteeExpoPushData;
+export type BulletinExpoPushData = {
+  kind: "bulletin";
+  portal: ExpoPushPortal;
+  organizationSlug: string;
+  postId: string;
+};
+
+export type GalleryExpoPushData = {
+  kind: "gallery";
+  portal: "parent";
+  organizationSlug: string;
+  uploadBatchId?: string;
+};
+
+export type AttendanceExpoPushData = {
+  kind: "attendance";
+  portal: "parent";
+  organizationSlug: string;
+  studentId: string;
+  intent: "present" | "pickup";
+};
+
+export type ExpoPushData =
+  | MessageExpoPushData
+  | CommitteeExpoPushData
+  | BulletinExpoPushData
+  | GalleryExpoPushData
+  | AttendanceExpoPushData;
 
 export type ExpoPushPayload = {
   organizationId: string;
@@ -38,6 +71,7 @@ export type ExpoPushPayload = {
   recipientPortal?: ExpoPushPortal;
   recipientEmail?: string | null;
   data: ExpoPushData;
+  notificationKind: MobilePushNotificationKind;
   /** Overrides default operation name for failure logging */
   failureOperation?: string;
 };
@@ -82,7 +116,19 @@ function isStaleExpoTokenError(ticket: ExpoPushTicket): boolean {
 
 function resolveChannelId(payload: ExpoPushPayload): ExpoPushChannelId {
   if (payload.channelId) return payload.channelId;
-  return payload.data.kind === "committee" ? "committees" : "messages";
+  switch (payload.data.kind) {
+    case "committee":
+      return "committees";
+    case "bulletin":
+      return "bulletin";
+    case "gallery":
+      return "gallery";
+    case "attendance":
+      return "attendance";
+    case "message":
+    default:
+      return "messages";
+  }
 }
 
 function resolveRecipientPortal(payload: ExpoPushPayload): ExpoPushPortal {
@@ -105,14 +151,25 @@ function buildDeliveryBase(payload: ExpoPushPayload, recipientUserId: string) {
     title: payload.title,
     body: payload.body,
     threadId: resolveDeliveryThreadId(payload.data),
+    notificationKind: payload.notificationKind,
   };
 }
 
 function resolveFailureOperation(payload: ExpoPushPayload): string {
   if (payload.failureOperation) return payload.failureOperation;
-  return payload.data.kind === "committee"
-    ? "committees.expo_push_delivery"
-    : "messages.expo_push_delivery";
+  switch (payload.data.kind) {
+    case "committee":
+      return "committees.expo_push_delivery";
+    case "bulletin":
+      return "bulletin.expo_push_delivery";
+    case "gallery":
+      return "gallery.expo_push_delivery";
+    case "attendance":
+      return "attendance.expo_push_delivery";
+    case "message":
+    default:
+      return "messages.expo_push_delivery";
+  }
 }
 
 export async function sendExpoPushToUsers(

@@ -21,6 +21,11 @@ import {
   createPortalCache,
   resolvePortalProviderInit,
 } from '@/lib/portal-cache';
+import { fetchSchoolAdminApi } from '@/lib/school-admin-api';
+import {
+  getActivePreviewSession,
+  isPreviewSessionActive,
+} from '@/lib/platform-admin/preview-session-store';
 import { getSupabaseClient } from '@/lib/supabase';
 import { createSchoolAdminErrorReporter } from '@/lib/mobile-error-reporter';
 
@@ -48,7 +53,88 @@ function cacheKey(organizationId: string): string {
   return organizationId;
 }
 
+function shouldUseSchoolAdminPreviewApi(): boolean {
+  const session = getActivePreviewSession();
+  return isPreviewSessionActive() && session?.portal === 'school_admin';
+}
+
+async function fetchStudentsPageFromPreviewApi(
+  organizationId: string,
+  offset: number,
+  includeStaff: boolean,
+): Promise<{
+  students: AdminEnrolledStudentSummary[];
+  staffMembers: OrgStaffMemberRecord[];
+  hasMore: boolean;
+}> {
+  const params = new URLSearchParams({
+    organizationId,
+    offset: String(offset),
+    limit: '100',
+  });
+  if (includeStaff) {
+    params.set('includeStaff', '1');
+  }
+  const payload = await fetchSchoolAdminApi<{
+    students?: AdminEnrolledStudentSummary[];
+    staffMembers?: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      employmentStatus: OrgStaffMemberRecord['employmentStatus'];
+    }[];
+    hasMore?: boolean;
+  }>(`/api/school-admin/students?${params.toString()}`);
+
+  return {
+    students: payload.students ?? [],
+    staffMembers: (payload.staffMembers ?? []).map((row) => ({
+      id: row.id,
+      firstName: row.firstName,
+      lastName: row.lastName,
+      employmentStatus: row.employmentStatus,
+    })),
+    hasMore: payload.hasMore ?? false,
+  };
+}
+
 async function fetchStudentsData(organizationId: string): Promise<SchoolAdminStudentsData> {
+  if (shouldUseSchoolAdminPreviewApi()) {
+    const allStudents: AdminEnrolledStudentSummary[] = [];
+    let staffMembers: OrgStaffMemberRecord[] = [];
+    let offset = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const page = await fetchStudentsPageFromPreviewApi(
+        organizationId,
+        offset,
+        offset === 0,
+      );
+      if (offset === 0) {
+        staffMembers = page.staffMembers;
+      }
+      allStudents.push(...page.students);
+      hasMore = page.hasMore && page.students.length > 0;
+      offset += page.students.length;
+      if (page.students.length === 0) {
+        break;
+      }
+    }
+
+    const normalizedStudents = normalizeEnrolledStudentSummaries(allStudents);
+    const supabase = getSupabaseClient();
+    const studentsWithHealth = await mergeStudentStandingHealthFlags(
+      supabase,
+      organizationId,
+      normalizedStudents,
+    );
+    return {
+      students: studentsWithHealth,
+      staffMembers,
+    };
+  }
+
   const supabase = getSupabaseClient();
   const [students, staffMembers] = await Promise.all([
     listOrgEnrolledStudents(supabase, organizationId),
@@ -142,39 +228,7 @@ export function SchoolAdminStudentsProvider({
         setStaffError(null);
 
         try {
-          const supabase = getSupabaseClient();
-          const [studentsResult, staffResult] = await Promise.allSettled([
-            listOrgEnrolledStudents(supabase, organizationId),
-            listOrgStaffMembers(supabase, organizationId),
-          ]);
-
-          if (studentsResult.status === 'rejected') {
-            reportError('school_admin_students_load', studentsResult.reason);
-            setError(
-              studentsResult.reason instanceof Error
-                ? studentsResult.reason.message
-                : 'Failed to load students.',
-            );
-            setStudents([]);
-            return;
-          }
-
-          const nextStaff =
-            staffResult.status === 'fulfilled' ? staffResult.value : [];
-          if (staffResult.status === 'rejected') {
-            reportError('school_admin_students_staff_load', staffResult.reason);
-            setStaffError(
-              staffResult.reason instanceof Error
-                ? staffResult.reason.message
-                : 'Failed to load staff for teacher assignment.',
-            );
-          }
-
-          const nextData: SchoolAdminStudentsData = {
-            students: normalizeEnrolledStudentSummaries(studentsResult.value),
-            staffMembers: nextStaff,
-          };
-          await studentsCache.fetchAndCache(key, async () => nextData, { refresh: isRefresh });
+          const nextData = await fetchAndCacheStudents(organizationId, { refresh: isRefresh });
           applyData(nextData);
           setHasLoaded(true);
         } catch (loadError) {

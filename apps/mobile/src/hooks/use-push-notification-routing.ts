@@ -4,17 +4,29 @@ import { useEffect, useRef } from 'react';
 
 import {
   parsePushNotificationData,
+  type AttendancePushNotificationData,
+  type BulletinPushNotificationData,
   type CommitteePushNotificationData,
+  type GalleryPushNotificationData,
   type MessagePushNotificationData,
   type PushNotificationData,
 } from '@/lib/push-notifications';
-import { parentCommitteeWorkspaceRoute, parentMessageThreadRoute } from '@/lib/parent/parent-nav';
+import {
+  parentBulletinDetailRoute,
+  parentMoreRoute,
+  parentCommitteeWorkspaceRoute,
+  parentMessageThreadRoute,
+} from '@/lib/parent/parent-nav';
 import {
   schoolAdminCommitteesRoute,
   schoolAdminCommitteeWorkspaceRoute,
   schoolAdminMessageThreadRoute,
 } from '@/lib/school-admin/school-admin-nav';
-import { teacherCommitteeWorkspaceRoute, teacherMessageThreadRoute } from '@/lib/teacher/teacher-nav';
+import {
+  teacherBulletinDetailRoute,
+  teacherCommitteeWorkspaceRoute,
+  teacherMessageThreadRoute,
+} from '@/lib/teacher/teacher-nav';
 
 function messageThreadRoute(data: MessagePushNotificationData): Href | null {
   if (data.portal === 'parent') {
@@ -54,12 +66,41 @@ function committeeRoute(data: CommitteePushNotificationData): Href | null {
   return null;
 }
 
-function pushNotificationRoute(data: PushNotificationData): Href | null {
-  if (data.kind === 'message') {
-    return messageThreadRoute(data);
+function bulletinRoute(data: BulletinPushNotificationData): Href | null {
+  if (data.portal === 'parent') {
+    return parentBulletinDetailRoute(data.organizationSlug, data.postId);
   }
 
-  return committeeRoute(data);
+  if (data.portal === 'teacher') {
+    return teacherBulletinDetailRoute(data.organizationSlug, data.postId);
+  }
+
+  return null;
+}
+
+function galleryRoute(data: GalleryPushNotificationData): Href | null {
+  return parentMoreRoute(data.organizationSlug, 'photos');
+}
+
+function attendanceRoute(_data: AttendancePushNotificationData): Href | null {
+  return parentMoreRoute(_data.organizationSlug, 'attendance');
+}
+
+function pushNotificationRoute(data: PushNotificationData): Href | null {
+  switch (data.kind) {
+    case 'message':
+      return messageThreadRoute(data);
+    case 'committee':
+      return committeeRoute(data);
+    case 'bulletin':
+      return bulletinRoute(data);
+    case 'gallery':
+      return galleryRoute(data);
+    case 'attendance':
+      return attendanceRoute(data);
+    default:
+      return null;
+  }
 }
 
 function navigateToPushNotification(

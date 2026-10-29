@@ -8,7 +8,7 @@ import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
 import AdminTextLink from "@/components/school-admin/ui/story/AdminTextLink";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import { weekLabel } from "@/lib/school-admin/newsletter/newsletter-dates";
+import { newsletterEditionDateRange } from "@/lib/school-admin/newsletter/newsletter-dates";
 import {
   buildExportHtmlDocument,
   downloadFile,
@@ -338,26 +338,26 @@ export default function NewsletterWorkspace({
   return (
     <main className={styles.workspace} style={workspaceStyle}>
       <header className={styles.pagehead}>
-        <AdminButton
-          theme={theme}
-          variant="outline"
-          size="compact"
-          className="mb-3"
-          onClick={onBack}
-        >
-          <ArrowLeft size={14} strokeWidth={1.65} aria-hidden />
-          Back to newsletters
-        </AdminButton>
         <div className={styles.pageheadMain}>
           <div className={styles.pageheadTitle}>
+            <AdminButton
+              theme={theme}
+              variant="outline"
+              size="compact"
+              className={`${styles.pageheadBack} !text-[9px] !px-2 !py-1`}
+              aria-label="Back to newsletters"
+              onClick={onBack}
+            >
+              <ArrowLeft size={12} strokeWidth={1.65} aria-hidden />
+              Back to newsletters
+            </AdminButton>
             <AdminDisplayHeading theme={theme} as="h1" size="display">
-              Weekly newsletter
+              Weekly newsletter: {newsletterEditionDateRange(activeEdition)}
             </AdminDisplayHeading>
             <div className={styles.editionMeta}>
               <AdminChip theme={theme} tone={locked ? "success" : "warning"}>
                 {locked ? "Published" : "Draft"}
               </AdminChip>
-              <span>{weekLabel(activeEdition)}</span>
               <span>Not saved to MudKitchen yet</span>
             </div>
           </div>

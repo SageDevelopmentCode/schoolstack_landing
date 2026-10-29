@@ -27,13 +27,45 @@ export type CommitteePushNotificationData = {
   intent?: 'join_request';
 };
 
-export type PushNotificationData = MessagePushNotificationData | CommitteePushNotificationData;
+export type BulletinPushNotificationData = {
+  kind: 'bulletin';
+  portal: PushPortal;
+  organizationSlug: string;
+  postId: string;
+};
+
+export type GalleryPushNotificationData = {
+  kind: 'gallery';
+  portal: 'parent';
+  organizationSlug: string;
+  uploadBatchId?: string;
+};
+
+export type AttendancePushNotificationData = {
+  kind: 'attendance';
+  portal: 'parent';
+  organizationSlug: string;
+  studentId: string;
+  intent: 'present' | 'pickup';
+};
+
+export type PushNotificationData =
+  | MessagePushNotificationData
+  | CommitteePushNotificationData
+  | BulletinPushNotificationData
+  | GalleryPushNotificationData
+  | AttendancePushNotificationData;
 
 function parsePushPortal(value: unknown): PushPortal | null {
   if (value === 'parent' || value === 'teacher' || value === 'admin') {
     return value;
   }
   return null;
+}
+
+function parseOrganizationSlug(value: unknown): string | null {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  return value.trim();
 }
 
 function parseCommitteeSection(value: unknown): CommitteePushSection | undefined {
@@ -51,6 +83,11 @@ function parseCommitteeSection(value: unknown): CommitteePushSection | undefined
     return value;
   }
   return undefined;
+}
+
+function parseAttendanceIntent(value: unknown): 'present' | 'pickup' | null {
+  if (value === 'present' || value === 'pickup') return value;
+  return null;
 }
 
 export function parseMessagePushNotificationData(
@@ -74,17 +111,54 @@ export function parsePushNotificationData(
 ): PushNotificationData | null {
   if (!data) return null;
 
-  const portal = parsePushPortal(data.portal);
-  const organizationSlug = data.organizationSlug;
-  if (
-    !portal ||
-    typeof organizationSlug !== 'string' ||
-    !organizationSlug.trim()
-  ) {
-    return null;
-  }
+  const organizationSlug = parseOrganizationSlug(data.organizationSlug);
+  if (!organizationSlug) return null;
 
   const kind = data.kind;
+
+  if (kind === 'bulletin') {
+    const portal = parsePushPortal(data.portal);
+    const postId = data.postId;
+    if (!portal || typeof postId !== 'string' || !postId.trim()) return null;
+    return {
+      kind: 'bulletin',
+      portal,
+      organizationSlug,
+      postId: postId.trim(),
+    };
+  }
+
+  if (kind === 'gallery') {
+    if (data.portal !== 'parent') return null;
+    const uploadBatchId =
+      typeof data.uploadBatchId === 'string' && data.uploadBatchId.trim()
+        ? data.uploadBatchId.trim()
+        : undefined;
+    return {
+      kind: 'gallery',
+      portal: 'parent',
+      organizationSlug,
+      uploadBatchId,
+    };
+  }
+
+  if (kind === 'attendance') {
+    if (data.portal !== 'parent') return null;
+    const studentId = data.studentId;
+    const intent = parseAttendanceIntent(data.intent);
+    if (typeof studentId !== 'string' || !studentId.trim() || !intent) return null;
+    return {
+      kind: 'attendance',
+      portal: 'parent',
+      organizationSlug,
+      studentId: studentId.trim(),
+      intent,
+    };
+  }
+
+  const portal = parsePushPortal(data.portal);
+  if (!portal) return null;
+
   const committeeId = data.committeeId;
   const threadId = data.threadId;
 
@@ -96,7 +170,7 @@ export function parsePushNotificationData(
     return {
       kind: 'committee',
       portal,
-      organizationSlug: organizationSlug.trim(),
+      organizationSlug,
       committeeId: committeeId.trim(),
       section: parseCommitteeSection(data.section),
       intent,
@@ -109,7 +183,7 @@ export function parsePushNotificationData(
     return {
       kind: 'message',
       portal,
-      organizationSlug: organizationSlug.trim(),
+      organizationSlug,
       threadId: threadId.trim(),
     };
   }

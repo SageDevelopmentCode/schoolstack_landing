@@ -28,17 +28,22 @@ describe("logPushNotificationDelivery", () => {
   it("records delivery and notifies Discord after insert", async () => {
     const notified: PushDeliveryInput[] = [];
 
+    let inserted: Record<string, unknown> | undefined;
+
     const admin = {
       from() {
         return {
-          insert: async () => ({ error: null }),
+          insert: async (row: Record<string, unknown>) => {
+            inserted = row;
+            return { error: null };
+          },
         };
       },
     };
 
     await logPushNotificationDelivery(
       admin as never,
-      buildInput(),
+      buildInput({ notificationKind: "message.new" }),
       {
         notifyDelivered: async (input) => {
           notified.push(input);
@@ -50,6 +55,7 @@ describe("logPushNotificationDelivery", () => {
     assert.equal(notified[0]?.status, "sent");
     assert.equal(notified[0]?.organizationSlug, "river-oak-academy");
     assert.equal(notified[0]?.recipientEmail, "parent@example.com");
+    assert.equal(inserted?.notification_kind, "message.new");
   });
 
   it("skips Discord when org name or slug is missing", async () => {

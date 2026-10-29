@@ -65,18 +65,25 @@ const cardShellClass =
 type PushNotificationDeliveryRowProps = {
   delivery: AdminPushNotificationDelivery;
   showRecipient?: boolean;
+  showOrganization?: boolean;
   previewMode?: PushNotificationPreviewMode;
 };
 
 export default function PushNotificationDeliveryRow({
   delivery,
   showRecipient = true,
+  showOrganization = false,
   previewMode = "both",
 }: PushNotificationDeliveryRowProps) {
   const timeLabel = formatRelativeTime(delivery.createdAt);
 
   const content = (
     <div className="min-w-0 space-y-2.5">
+      {showOrganization && delivery.organizationName ? (
+        <p className="text-[11px] font-medium text-admin-muted truncate">
+          {delivery.organizationName}
+        </p>
+      ) : null}
       {showRecipient ? (
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">

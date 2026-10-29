@@ -16,6 +16,13 @@ import {
 } from "@/lib/school-teacher/attendance/require-teacher-attendance-access";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
+import {
+  fireAttendanceParentExpoPush,
+  sendAttendancePickupParentExpoPush,
+  sendAttendancePresentParentExpoPush,
+  shouldSendAttendancePickupPush,
+  shouldSendAttendancePresentPush,
+} from "@/lib/school-admin/attendance/attendance-parent-expo-push";
 
 const ROUTE = "/api/teacher-portal/attendance/records";
 
@@ -97,6 +104,39 @@ export async function POST(request: Request) {
       },
       currentStatus,
     );
+
+    if (action === "present" && shouldSendAttendancePresentPush(currentStatus)) {
+      fireAttendanceParentExpoPush(
+        admin,
+        sendAttendancePresentParentExpoPush(admin, {
+          organizationId,
+          familyId,
+          studentId,
+        }),
+        {
+          organizationId,
+          studentId,
+          operation: "attendance.present.expo_push",
+        },
+      );
+    }
+
+    if (shouldSendAttendancePickupPush(action)) {
+      fireAttendanceParentExpoPush(
+        admin,
+        sendAttendancePickupParentExpoPush(admin, {
+          organizationId,
+          familyId,
+          studentId,
+          pickedUpByName: result.pickedUpByName,
+        }),
+        {
+          organizationId,
+          studentId,
+          operation: "attendance.pickup.expo_push",
+        },
+      );
+    }
 
     return NextResponse.json(result);
   } catch (err) {

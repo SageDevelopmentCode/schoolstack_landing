@@ -41,7 +41,7 @@ import {
   refreshStripeConnectStatus,
 } from '@/lib/school-admin/fetch-dashboard-summary';
 import { filterMobileDashboardSummary } from '@/lib/school-admin/filter-mobile-dashboard-summary';
-import { userFirstNameFromMetadata } from '@/lib/school-admin/greeting';
+import { useSchoolAdminViewerProfile } from '@/lib/school-admin/viewer-profile';
 import {
   resolveSchoolAdminNativeRoute,
   schoolAdminSubmissionsRoute,
@@ -77,6 +77,7 @@ export function SchoolDashboardScreen({
   const { reportError } = useMobileErrorReporter(organizationId);
   const [homeTab, setHomeTab] = useState<SchoolDashboardTab>('overview');
   const [summary, setSummary] = useState<MobileAdminDashboardSummary | null>(null);
+  const viewer = useSchoolAdminViewerProfile(summary?.viewerProfile ?? null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -236,11 +237,11 @@ export function SchoolDashboardScreen({
 
   const header = (
     <AdminDashboardHeader
-      userFirstName={userFirstNameFromMetadata(user ?? null)}
+      userFirstName={viewer.firstName}
       unreadCount={activityUnreadCount}
       onPressBulletin={() => router.push(`/school-admin/${slug}/more/bulletin` as Href)}
-      displayName={userFirstNameFromMetadata(user ?? null)}
-      profilePhotoUrl={heroProfilePhotoUrl}
+      displayName={viewer.displayName}
+      profilePhotoUrl={viewer.profilePhotoUrl ?? heroProfilePhotoUrl}
       onPressProfile={() => setAccountSheetOpen(true)}
       onPressNotifications={() => setActivitySheetOpen(true)}
     />
@@ -324,8 +325,9 @@ export function SchoolDashboardScreen({
       <PortalAccountSheet
         visible={accountSheetOpen}
         onClose={() => setAccountSheetOpen(false)}
-        displayName={userFirstNameFromMetadata(user ?? null)}
-        photoUrl={heroProfilePhotoUrl}
+        displayName={viewer.displayName}
+        emailSubtitle={viewer.isPreview ? viewer.email : undefined}
+        photoUrl={viewer.profilePhotoUrl ?? heroProfilePhotoUrl}
         organizationId={organizationId}
         slug={slug}
         onProfilePhotoUpdated={(url) => setHeroProfilePhotoUrl(url)}
