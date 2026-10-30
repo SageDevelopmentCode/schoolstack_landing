@@ -15,6 +15,7 @@ import { ExternalLink, Loader2 } from "lucide-react";
 import { SchoolAdminTableSkeleton } from "@/components/school-admin/skeletons";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminStoryFilterPill from "@/components/school-admin/ui/story/AdminStoryFilterPill";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
@@ -61,46 +62,6 @@ type ApplicationSubmissionsPageShellProps = {
 
 type StatusFilter = "all" | string;
 type FormFilter = "all" | string;
-
-function StoryFilterPill({
-  active,
-  label,
-  count,
-  onClick,
-  theme,
-}: {
-  active: boolean;
-  label: string;
-  count?: number;
-  onClick: () => void;
-  theme: ReturnType<typeof useSchoolAdminStoryTheme>["theme"];
-}) {
-  const displayLabel = count != null ? `${label} · ${count}` : label;
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="cursor-pointer rounded-[9px] border px-2.5 py-2 text-[11px] font-medium transition-colors"
-      style={
-        active
-          ? {
-              backgroundColor: "#E9F2EA",
-              color: theme.primary,
-              borderColor: "#BCD4C1",
-              fontWeight: 700,
-            }
-          : {
-              backgroundColor: theme.white,
-              color: "#5D6D73",
-              borderColor: "#DCE4DC",
-            }
-      }
-    >
-      {displayLabel}
-    </button>
-  );
-}
 
 function mergeEnrichment(
   submissions: AdminApplicationSubmission[],
@@ -837,7 +798,7 @@ export default function ApplicationSubmissionsPageShell({
                     aria-label="Updating submissions"
                   />
                 ) : null}
-                <StoryFilterPill
+                <AdminStoryFilterPill
                   active={statusFilter === "all"}
                   label="All"
                   count={activeSubmissionsCount}
@@ -846,7 +807,7 @@ export default function ApplicationSubmissionsPageShell({
                 />
                 {APPLICATION_STATUS_FILTER_ORDER.filter((status) => statusCounts[status]).map(
                   (status) => (
-                    <StoryFilterPill
+                    <AdminStoryFilterPill
                       key={status}
                       active={statusFilter === status}
                       label={adminApplicationStatusLabel(status)}
@@ -874,14 +835,14 @@ export default function ApplicationSubmissionsPageShell({
 
             {formOptions.length > 1 ? (
               <div className="mb-[15px] flex flex-wrap items-center gap-2">
-                <StoryFilterPill
+                <AdminStoryFilterPill
                   active={formFilter === "all"}
                   label="All forms"
                   onClick={() => changeFormFilter("all")}
                   theme={theme}
                 />
                 {formOptions.map((option) => (
-                  <StoryFilterPill
+                  <AdminStoryFilterPill
                     key={option.key}
                     active={formFilter === option.key}
                     label={option.title}

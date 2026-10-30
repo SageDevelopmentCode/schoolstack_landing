@@ -16,6 +16,7 @@ import {
   isBulletinPostActive,
 } from "./bulletin-audience";
 import { resolveBulletinEmailRecipients } from "./bulletin-notification-audience";
+import { sendBulletinPublishedExpoPushForPost } from "./bulletin-expo-push";
 import {
   mapBulletinAttachmentRow,
   mapBulletinPostRow,
@@ -249,6 +250,28 @@ export async function sendBulletinPublishedEmailNotifications(
   if (!claimed) {
     return { emailsAttempted: 0, emailsSucceeded: 0 };
   }
+
+  void sendBulletinPublishedExpoPushForPost(admin, {
+    organizationId: input.organizationId,
+    organizationName: org.schoolName,
+    organizationSlug: org.schoolSlug,
+    post: input.post,
+  }).catch((err) => {
+    void reportOperationalError({
+      supabase: admin,
+      surface: "system",
+      organizationId: input.organizationId,
+      operation: "bulletin.published.expo_push",
+      error:
+        err instanceof Error
+          ? err.message
+          : "Failed to send bulletin published push notifications.",
+      entityType: "school_bulletin_post",
+      entityId: input.post.id,
+      actor: { type: "system" },
+      cause: err,
+    });
+  });
 
   if (recipients.length === 0) {
     return { emailsAttempted: 0, emailsSucceeded: 0 };

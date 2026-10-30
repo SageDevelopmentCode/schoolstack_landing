@@ -13,7 +13,7 @@ import type { ParentCommitteeSectionProps } from '@/lib/parent/committees/sectio
 import { fetchAdminCommitteeActivity } from '@/lib/school-admin-api';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Radius, Spacing } from '@/constants/theme';
-import { createSchoolAdminErrorReporter } from '@/lib/mobile-error-reporter';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 export function SchoolAdminCommitteeHomeSection({
   committee,
@@ -22,7 +22,7 @@ export function SchoolAdminCommitteeHomeSection({
   onNavigate,
 }: ParentCommitteeSectionProps) {
   const theme = useParentTheme();
-  const reportError = createSchoolAdminErrorReporter(organizationId);
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const [activityItems, setActivityItems] = useState<CommitteeActivityItem[]>([]);
   const [loadingActivity, setLoadingActivity] = useState(false);

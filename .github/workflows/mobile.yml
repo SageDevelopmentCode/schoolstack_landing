@@ -36,6 +36,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check mobile operational error reporting
+        run: npm run check:mobile-operational-errors
+
       - name: Lint mobile app
         run: npm run lint:errors --workspace @schoolstack/mobile
 

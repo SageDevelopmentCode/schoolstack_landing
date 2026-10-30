@@ -7,7 +7,7 @@ import { StoryButton } from '@/components/story/story-button';
 import { AdmissionsFilterPill } from '@/components/school-admin/admissions/admissions-filter-pill';
 import { StoryTextField } from '@/components/story/story-text-field';
 import { useParentTheme } from '@/contexts/parent-theme-context';
-import { createSchoolAdminErrorReporter } from '@/lib/mobile-error-reporter';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import {
   fetchFridayBranchRosterEmailPreview,
   MAX_ROSTER_RECIPIENTS,
@@ -37,7 +37,7 @@ export function SchoolAdminFridayBranchSendRosterSheet({
   onClose,
 }: SchoolAdminFridayBranchSendRosterSheetProps) {
   const theme = useParentTheme();
-  const reportError = createSchoolAdminErrorReporter(organizationId);
+  const { reportError } = useMobileErrorReporter(organizationId);
   const [emailDraft, setEmailDraft] = useState('');
   const [recipients, setRecipients] = useState<string[]>([]);
   const [emailError, setEmailError] = useState<string | null>(null);

@@ -6,17 +6,14 @@ import { SchoolAdminCommitteeActivityFeedSkeleton } from '@/components/school-ad
 import type { CommitteeActivityItem } from '@/lib/parent/parent-committees-types';
 import type { ParentCommitteeSectionProps } from '@/lib/parent/committees/section-props';
 import { fetchAdminCommitteeActivity } from '@/lib/school-admin-api';
-import { createSchoolAdminErrorReporter } from '@/lib/mobile-error-reporter';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 export function SchoolAdminCommitteeActivitySection({
   committee,
   organizationId,
   schoolSlug,
 }: ParentCommitteeSectionProps) {
-  const reportError = useMemo(
-    () => createSchoolAdminErrorReporter(organizationId),
-    [organizationId],
-  );
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const [items, setItems] = useState<CommitteeActivityItem[]>([]);
   const [loading, setLoading] = useState(true);

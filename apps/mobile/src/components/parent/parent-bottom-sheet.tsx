@@ -1,8 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { Keyboard, Platform, StyleSheet, View } from 'react-native';
+import { type ReactNode } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
+import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { Spacing } from '@/constants/theme';
@@ -26,22 +27,7 @@ export function ParentBottomSheet({
 }: ParentBottomSheetProps) {
   const theme = useAdminTheme();
   const insets = useSafeAreaInsets();
-  const [keyboardInset, setKeyboardInset] = useState(0);
-
-  useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const showSubscription = Keyboard.addListener(showEvent, (event) => {
-      setKeyboardInset(event.endCoordinates.height);
-    });
-    const hideSubscription = Keyboard.addListener(hideEvent, () => {
-      setKeyboardInset(0);
-    });
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, []);
+  const keyboardInset = useKeyboardHeight();
 
   return (
     <BottomSheetShell

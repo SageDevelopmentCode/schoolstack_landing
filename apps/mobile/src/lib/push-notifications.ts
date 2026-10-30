@@ -6,8 +6,11 @@ import { Platform } from 'react-native';
 import { fetchWithAuth } from '@/lib/auth/auth-session';
 
 export type {
+  AttendancePushNotificationData,
+  BulletinPushNotificationData,
   CommitteePushNotificationData,
   CommitteePushSection,
+  GalleryPushNotificationData,
   MessagePushNotificationData,
   PushNotificationData,
   PushPortal,
@@ -22,6 +25,9 @@ const siteUrl = process.env.EXPO_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https:/
 
 const MESSAGES_CHANNEL_ID = 'messages';
 const COMMITTEES_CHANNEL_ID = 'committees';
+const BULLETIN_CHANNEL_ID = 'bulletin';
+const GALLERY_CHANNEL_ID = 'gallery';
+const ATTENDANCE_CHANNEL_ID = 'attendance';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -55,6 +61,27 @@ async function ensureAndroidNotificationChannels(): Promise<void> {
 
   await Notifications.setNotificationChannelAsync(COMMITTEES_CHANNEL_ID, {
     name: 'Committees',
+    importance: Notifications.AndroidImportance.DEFAULT,
+    sound: 'default',
+    vibrationPattern: [0, 250, 250, 250],
+  });
+
+  await Notifications.setNotificationChannelAsync(BULLETIN_CHANNEL_ID, {
+    name: 'Bulletin',
+    importance: Notifications.AndroidImportance.DEFAULT,
+    sound: 'default',
+    vibrationPattern: [0, 250, 250, 250],
+  });
+
+  await Notifications.setNotificationChannelAsync(GALLERY_CHANNEL_ID, {
+    name: 'Photos',
+    importance: Notifications.AndroidImportance.DEFAULT,
+    sound: 'default',
+    vibrationPattern: [0, 250, 250, 250],
+  });
+
+  await Notifications.setNotificationChannelAsync(ATTENDANCE_CHANNEL_ID, {
+    name: 'Attendance',
     importance: Notifications.AndroidImportance.DEFAULT,
     sound: 'default',
     vibrationPattern: [0, 250, 250, 250],

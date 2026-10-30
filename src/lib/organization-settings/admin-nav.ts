@@ -99,11 +99,6 @@ export function adminNavItemMatchesPath(
   pathname: string,
   item: AdminNavItem,
 ): boolean {
-  const prefix = `/school/${slug}/admin/${item.key}`;
-  if (pathname === prefix || pathname.startsWith(`${prefix}/`)) {
-    return true;
-  }
-
   const visit = (parentFeature: string, children: AdminNavChildItem[]): boolean => {
     for (const child of children) {
       if (child.children?.length) {
@@ -118,11 +113,16 @@ export function adminNavItemMatchesPath(
     return false;
   };
 
+  const prefix = `/school/${slug}/admin/${item.key}`;
+  if (pathname === prefix) {
+    return true;
+  }
+
   if (item.children?.length) {
     return visit(item.key, item.children);
   }
 
-  return false;
+  return pathname.startsWith(`${prefix}/`);
 }
 
 export function getAdminPageLabel(

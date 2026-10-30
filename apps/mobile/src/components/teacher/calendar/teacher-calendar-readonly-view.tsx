@@ -19,6 +19,7 @@ import { Spacing } from '@/constants/theme';
 import { groupOrganizationEventsByDate } from '@/lib/school-events/events';
 import type { OrganizationEvent } from '@/lib/school-events/types';
 import { getSupabaseClient } from '@/lib/supabase';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type TeacherCalendarReadonlyViewProps = {
   organizationId: string;
@@ -37,6 +38,7 @@ export function TeacherCalendarReadonlyView({
 }: TeacherCalendarReadonlyViewProps) {
   const theme = useParentTheme();
   const supabase = useMemo(() => getSupabaseClient(), []);
+  const { reportError } = useMobileErrorReporter(organizationId);
   const { eventId, date: dateParam } = useLocalSearchParams<{
     eventId?: string;
     date?: string;
@@ -51,6 +53,8 @@ export function TeacherCalendarReadonlyView({
     supabase,
     timezoneProp: timezone,
     theme,
+    reportError,
+    timezoneResolveFailedOperation: 'teacher.calendar.timezone_resolve_failed',
   });
   const { goToDate, setSelectedDate } = calendar;
 

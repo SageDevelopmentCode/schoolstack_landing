@@ -36,7 +36,7 @@ type ParentChildDetailScreenProps = {
 };
 
 function resolveInitialSection(section: string | null | undefined): ParentChildRecordSection {
-  if (isParentChildRecordSection(section) && section !== 'health') {
+  if (isParentChildRecordSection(section)) {
     return section;
   }
   return 'application';

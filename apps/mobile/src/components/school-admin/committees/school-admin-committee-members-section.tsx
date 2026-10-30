@@ -20,7 +20,7 @@ import type { ParentCommitteeSectionProps } from '@/lib/parent/committees/sectio
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
-import { createSchoolAdminErrorReporter } from '@/lib/mobile-error-reporter';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 function roleTone(role: CommitteeRole) {
   if (role === 'lead') return 'success';
@@ -52,7 +52,7 @@ export function SchoolAdminCommitteeMembersSection({
   onJoinRequestsChanged,
 }: ParentCommitteeSectionProps) {
   const theme = useParentTheme();
-  const reportError = createSchoolAdminErrorReporter(organizationId);
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteForm, setInviteForm] = useState<InviteFormState>(EMPTY_INVITE_FORM);

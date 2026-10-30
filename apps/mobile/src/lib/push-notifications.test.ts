@@ -1,6 +1,7 @@
 import {
   parseCommitteePushNotificationData,
   parseMessagePushNotificationData,
+  parsePushNotificationData,
 } from '@/lib/push-notification-payload';
 
 describe('parseMessagePushNotificationData', () => {
@@ -82,6 +83,58 @@ describe('parseCommitteePushNotificationData', () => {
       organizationSlug: 'rooted-meadows',
       committeeId: 'committee-1',
       intent: 'join_request',
+    });
+  });
+});
+
+describe('parsePushNotificationData bulletin gallery attendance', () => {
+  it('parses bulletin payloads', () => {
+    expect(
+      parsePushNotificationData({
+        kind: 'bulletin',
+        portal: 'parent',
+        organizationSlug: 'rooted-meadows',
+        postId: 'post-1',
+      }),
+    ).toEqual({
+      kind: 'bulletin',
+      portal: 'parent',
+      organizationSlug: 'rooted-meadows',
+      postId: 'post-1',
+    });
+  });
+
+  it('parses gallery payloads', () => {
+    expect(
+      parsePushNotificationData({
+        kind: 'gallery',
+        portal: 'parent',
+        organizationSlug: 'rooted-meadows',
+        uploadBatchId: 'batch-1',
+      }),
+    ).toEqual({
+      kind: 'gallery',
+      portal: 'parent',
+      organizationSlug: 'rooted-meadows',
+      uploadBatchId: 'batch-1',
+    });
+  });
+
+  it('parses attendance payloads', () => {
+    expect(
+      parsePushNotificationData({
+        kind: 'attendance',
+        portal: 'parent',
+        organizationSlug: 'rooted-meadows',
+        studentId: 'student-1',
+        intent: 'pickup',
+      }),
+    ).toEqual({
+      kind: 'attendance',
+      portal: 'parent',
+      organizationSlug: 'rooted-meadows',
+      studentId: 'student-1',
+      intent: 'pickup',
     });
   });
 });

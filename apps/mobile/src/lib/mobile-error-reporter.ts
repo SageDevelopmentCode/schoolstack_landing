@@ -7,7 +7,11 @@ import {
 import { ParentPortalApiError } from '@/lib/parent/parent-portal-api';
 import { TeacherPortalApiError } from '@/lib/teacher/teacher-portal-api';
 
-const BENIGN_ERROR_CODES = new Set(['already_completed', 'already_paid']);
+const BENIGN_ERROR_CODES = new Set([
+  'already_completed',
+  'already_paid',
+  'friday_branch_paused',
+]);
 
 export function isBenignMobileErrorCode(code?: string): boolean {
   return code ? BENIGN_ERROR_CODES.has(code) : false;

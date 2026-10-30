@@ -8,6 +8,7 @@ type GalleryPhotoGridProps = {
   photos: GalleryPhoto[];
   selectionMode: boolean;
   selectedIds: Set<string>;
+  showUploaderOnTiles?: boolean;
   onPressPhoto: (photo: GalleryPhoto) => void;
   onLongPressPhoto: (photo: GalleryPhoto) => void;
 };
@@ -16,6 +17,7 @@ export function GalleryPhotoGrid({
   photos,
   selectionMode,
   selectedIds,
+  showUploaderOnTiles = true,
   onPressPhoto,
   onLongPressPhoto,
 }: GalleryPhotoGridProps) {
@@ -31,6 +33,7 @@ export function GalleryPhotoGrid({
           tileSize={tileSize}
           selectionMode={selectionMode}
           selected={selectedIds.has(photo.id)}
+          showUploaderBadge={showUploaderOnTiles}
           onPress={() => onPressPhoto(photo)}
           onLongPress={() => onLongPressPhoto(photo)}
         />

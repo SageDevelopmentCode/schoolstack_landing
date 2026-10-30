@@ -24,6 +24,8 @@ type SentryStatusResponse = {
   orgSlug: string | null;
   projectSlug: string | null;
   webBaseUrl: string | null;
+  web?: { configured: boolean; projectSlug: string | null };
+  mobile?: { configured: boolean; projectSlug: string | null };
 };
 
 export default function AdminObservabilityPage() {
@@ -33,6 +35,8 @@ export default function AdminObservabilityPage() {
     orgSlug: null,
     projectSlug: null,
     webBaseUrl: null,
+    web: { configured: false, projectSlug: null },
+    mobile: { configured: false, projectSlug: null },
   });
 
   useEffect(() => {
@@ -84,7 +88,20 @@ export default function AdminObservabilityPage() {
             />
           ) : null}
           {tab === "performance" ? (
-            <SentryPerformancePanel status={{ configured: sentryStatus.configured }} />
+            <SentryPerformancePanel
+              status={{
+                web: {
+                  configured:
+                    sentryStatus.web?.configured ?? sentryStatus.configured,
+                  projectSlug:
+                    sentryStatus.web?.projectSlug ?? sentryStatus.projectSlug,
+                },
+                mobile: {
+                  configured: sentryStatus.mobile?.configured ?? false,
+                  projectSlug: sentryStatus.mobile?.projectSlug ?? null,
+                },
+              }}
+            />
           ) : null}
           {tab === "errors" ? <OperationalErrorsPanel /> : null}
           {tab === "resources" ? (

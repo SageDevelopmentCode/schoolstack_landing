@@ -7,6 +7,7 @@ import { useParentTheme } from '@/contexts/parent-theme-context';
 import type { ParentFridayBranchFlyerTarget } from '@/lib/parent/parent-friday-branch-types';
 import { fetchParentFridayBranchFlyerDataUri } from '@/lib/parent/parent-portal-api';
 import { buildEmbeddedPdfViewerUrl } from '@/lib/school-bulletin/bulletin-format';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 
@@ -24,6 +25,7 @@ export function ParentFridayBranchFlyerSheet({
   onClose,
 }: ParentFridayBranchFlyerSheetProps) {
   const theme = useParentTheme();
+  const { reportError } = useMobileErrorReporter(organizationId);
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +48,10 @@ export function ParentFridayBranchFlyerSheet({
         }
       })
       .catch((loadError) => {
+        reportError('parent.friday_branch.flyer_load_failed', loadError, {
+          entityType: 'class',
+          entityId: target.classId,
+        });
         if (!cancelled) {
           setError(loadError instanceof Error ? loadError.message : 'Failed to load flyer.');
         }
@@ -59,7 +65,7 @@ export function ParentFridayBranchFlyerSheet({
     return () => {
       cancelled = true;
     };
-  }, [organizationId, target, visible]);
+  }, [organizationId, reportError, target, visible]);
 
   return (
     <ParentBottomSheet

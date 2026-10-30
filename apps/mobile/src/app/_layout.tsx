@@ -19,8 +19,9 @@ import * as SplashScreen from 'expo-splash-screen';
 import { LogBox, View } from 'react-native';
 
 import { AuthSessionGuard } from '@/components/auth-session-guard';
+import { SentryNavigationTracker } from '@/components/sentry-navigation-tracker';
 import { MobileGlobalErrorReportingBridge } from '@/components/mobile-global-error-reporting-bridge';
-import { MobileOperationalErrorBoundary } from '@/components/mobile-operational-error-boundary';
+import { MobileOperationalScreenLayout } from '@/components/mobile-operational-screen-layout';
 import { OtaUpdateManager } from '@/components/ota-update-manager';
 import { SupabaseAuthLifecycle } from '@/components/supabase-auth-lifecycle';
 import { PushNotificationManager } from '@/components/push-notification-manager';
@@ -29,6 +30,9 @@ import { AuthProvider } from '@/contexts/auth-context';
 import { PortalTransitionProvider } from '@/contexts/portal-transition-context';
 import { Brand } from '@/constants/theme';
 import { isMobileE2e } from '@/lib/e2e';
+import { initMobileSentry, Sentry } from '@/lib/sentry';
+
+initMobileSentry();
 
 SplashScreen.preventAutoHideAsync();
 
@@ -36,7 +40,7 @@ if (isMobileE2e) {
   LogBox.ignoreAllLogs();
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const [fontsLoaded] = useFonts({
     Fraunces_600SemiBold,
     DMSans_400Regular,
@@ -56,14 +60,15 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <PortalTransitionProvider>
+        <SentryNavigationTracker />
         <MobileGlobalErrorReportingBridge />
-        <MobileOperationalErrorBoundary>
         <AuthSessionGuard />
         <SupabaseAuthLifecycle />
         <OtaUpdateManager />
         <PushNotificationManager />
         <SplashOverlay />
         <Stack
+        screenLayout={MobileOperationalScreenLayout}
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: Brand.bg },
@@ -97,8 +102,9 @@ export default function RootLayout() {
         />
         <Stack.Screen name="stripe-checkout" options={{ animation: 'none' }} />
         </Stack>
-        </MobileOperationalErrorBoundary>
       </PortalTransitionProvider>
     </AuthProvider>
   );
 }
+
+export default Sentry.wrap(RootLayout);

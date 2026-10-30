@@ -39,6 +39,7 @@ import { fetchOrganizationBySlug } from '@/lib/school-admin/fetch-organization';
 import { toOrganizationBranding } from '@/lib/organizations';
 import { isPortalSessionAllowed } from '@/lib/platform-admin/portal-preview-layout';
 import { useExitPortalPreviewNavigation, usePortalPreview } from '@/lib/portal-preview-gating';
+import { useMobileFeatureVisitTracking } from '@/hooks/use-mobile-feature-visit-tracking';
 
 function getActiveTab(pathname: string): SchoolAdminTab | null {
   if (/\/submissions\/[^/]+$/.test(pathname)) return null;
@@ -89,6 +90,14 @@ function SchoolAdminLayoutContent() {
   const exitPreview = useExitPortalPreviewNavigation();
 
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
+  const organizationId =
+    selectedSchool?.slug === slug ? (selectedSchool?.id ?? '') : '';
+
+  useMobileFeatureVisitTracking({
+    surface: 'school_admin',
+    organizationId,
+    enabled: Boolean(organizationId && slug && user),
+  });
 
   useCompletePortalTransitionOnMount('school_admin');
   useReleaseAccountPortalSwitchOnBlur();

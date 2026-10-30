@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { createParentPortalErrorReporter } from '@/lib/mobile-error-reporter';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -74,10 +74,7 @@ export function ParentCoopTeachingScheduleScreen({
 }: ParentCoopTeachingScheduleScreenProps) {
   const theme = useParentTheme();
   const previewReadOnly = usePortalReadOnly();
-  const reportError = useMemo(
-    () => createParentPortalErrorReporter(organizationId),
-    [organizationId],
-  );
+  const { reportError } = useMobileErrorReporter(organizationId);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [weeks, setWeeks] = useState<ParentCoopTeachingScheduleWeek[]>([]);

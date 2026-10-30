@@ -208,12 +208,15 @@ export function SchoolAdminFridayBranchScreen({
       await saveSchedule();
       Alert.alert('Saved', 'Friday Branch schedule saved.');
     } catch (saveError) {
+      reportError('school_admin_friday_branch_schedule_save', saveError, {
+        metadata: { blockCount: blocks.length },
+      });
       Alert.alert(
         'Save failed',
         saveError instanceof Error ? saveError.message : 'Failed to save Friday Branch schedule.',
       );
     }
-  }, [saveSchedule]);
+  }, [blocks.length, reportError, saveSchedule]);
 
   const handleClassSaved = useCallback(
     async (nextBlock: Parameters<typeof updateBlock>[0]) => {
@@ -222,6 +225,11 @@ export function SchoolAdminFridayBranchScreen({
         await persistSchedule(nextBlocks);
         Alert.alert('Saved', 'Class saved.');
       } catch (saveError) {
+        reportError('school_admin_friday_branch_class_save', saveError, {
+          entityType: 'friday_branch_block',
+          entityId: nextBlock.id,
+          metadata: { blockId: nextBlock.id },
+        });
         Alert.alert(
           'Save failed',
           saveError instanceof Error ? saveError.message : 'Failed to save class.',
@@ -229,7 +237,7 @@ export function SchoolAdminFridayBranchScreen({
         throw saveError;
       }
     },
-    [blocks, persistSchedule],
+    [blocks, persistSchedule, reportError],
   );
 
   const handleReviewGaps = useCallback(() => {

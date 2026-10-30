@@ -19,6 +19,7 @@ import { StudentLeadTeacherCaption } from '@/components/school-admin/students/st
 import { StudentHealthTab } from '@/components/school-admin/students/student-health-tab';
 import { StudentStoryDetailHeader } from '@/components/school-admin/students/student-story-detail-header';
 import { StudentStorySheetHeader } from '@/components/school-admin/students/student-story-sheet-header';
+import { PhotoPermissionsDetailField } from '@/components/students/photo-media-consent-badge';
 import { SubmissionGuardiansSection } from '@/components/school-admin/submission-detail-sections';
 import { StoryErrorBanner } from '@/components/story/story-error-banner';
 import { StoryTextLink } from '@/components/story/story-text-link';
@@ -295,6 +296,10 @@ export function StudentDetailWorkspace({
                 <DetailField label="Student status" value={studentStatusLabel(detail.status)} />
                 <DetailField label="Family" value={detail.familyName ?? '—'} />
                 <DetailField label="Family email" value={detail.familyPrimaryEmail ?? '—'} />
+                <PhotoPermissionsDetailField
+                  consent={detail.photoMediaConsent}
+                  label={detail.photoMediaConsentLabel}
+                />
               </View>
             </StoryDetailSection>
 

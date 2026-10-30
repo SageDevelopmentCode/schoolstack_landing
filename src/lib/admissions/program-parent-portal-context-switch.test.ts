@@ -15,6 +15,7 @@ import {
   childLearnerSubtitleLine,
 } from "@/components/school-parent/children/parent-children-utils";
 import type { FamilyChildOverview } from "./parent-portal-access";
+import { familyPreviewProgramParentPath } from "./family-preview-access";
 import { needsParentPortalContextSwitcher } from "@/lib/organization-settings/resolve-program-parent-features";
 
 describe("program parent portal context switch", () => {
@@ -57,6 +58,25 @@ describe("program parent portal context switch", () => {
         "/admin/preview/rooted-meadows/family/fam-1/parent/p/kindergarten-co-op/portal",
       )?.feature,
       "portal",
+    );
+    assert.deepEqual(
+      parseParentPortalFeatureFromPathname(
+        "/admin/preview/rooted-meadows/family/fam-1/parent/p/kindergarten-co-op/messages/inbox",
+      ),
+      { feature: "messages", subtab: "inbox" },
+    );
+  });
+
+  it("builds admin family preview program parent subtab paths", () => {
+    assert.equal(
+      familyPreviewProgramParentPath(
+        "rooted-meadows",
+        "fam-1",
+        "kindergarten-co-op",
+        "messages",
+        "inbox",
+      ),
+      "/admin/preview/rooted-meadows/family/fam-1/parent/p/kindergarten-co-op/messages/inbox",
     );
   });
 

@@ -10,6 +10,8 @@ type AdminDrawerProps = {
   title: string;
   children: ReactNode;
   width?: "sm" | "md" | "lg";
+  /** When nested above other overlays (e.g. submission sidebars at z-[10000]). */
+  overlayClassName?: string;
 };
 
 const WIDTH_CLASSES = {
@@ -24,6 +26,7 @@ export function AdminDrawer({
   title,
   children,
   width = "md",
+  overlayClassName = "z-[300]",
 }: AdminDrawerProps) {
   useEffect(() => {
     if (!open) return;
@@ -37,7 +40,7 @@ export function AdminDrawer({
   return (
     <AnimatePresence>
       {open ? (
-        <div className="fixed inset-0 z-[300] flex justify-end">
+        <div className={`fixed inset-0 flex justify-end ${overlayClassName}`}>
           <motion.button
             type="button"
             aria-label="Close drawer"

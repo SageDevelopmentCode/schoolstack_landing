@@ -43,7 +43,6 @@ function DemoAdminDashboardContent({ copy }: DemoAdminDashboardPageProps) {
   return (
     <div className="pointer-events-none select-none">
       <AdminDashboardHeader
-        slug={DEMO_ADMIN_SLUG}
         schoolName={resolvedCopy.schoolName}
         userFirstName="Admin"
       />

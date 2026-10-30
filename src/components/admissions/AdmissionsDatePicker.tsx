@@ -19,6 +19,7 @@ type AdmissionsDatePickerProps = {
   organizationId?: string;
   applicationId: string;
   actionId: string;
+  availabilityEndpointBuilder?: (start: string, end: string) => string;
   timezone: string;
   timezoneLabel: string;
   maxVisitDays: number;
@@ -40,6 +41,7 @@ export default function AdmissionsDatePicker({
   organizationId,
   applicationId,
   actionId,
+  availabilityEndpointBuilder,
   timezone,
   timezoneLabel,
   maxVisitDays,
@@ -59,17 +61,19 @@ export default function AdmissionsDatePicker({
 
   const loadAvailability = useCallback(async () => {
     const { start, end } = monthDateRange(viewYear, viewMonth);
-    const params = new URLSearchParams({
-      actionId,
-      start,
-      end,
-    });
+    const endpoint =
+      availabilityEndpointBuilder?.(start, end) ??
+      `/api/admissions/applications/${applicationId}/post-submit/availability?${new URLSearchParams(
+        {
+          actionId,
+          start,
+          end,
+        },
+      ).toString()}`;
 
     let responseStatus: number | undefined;
     try {
-      const response = await fetch(
-        `/api/admissions/applications/${applicationId}/post-submit/availability?${params.toString()}`,
-      );
+      const response = await fetch(endpoint);
       responseStatus = response.status;
       const payload = (await response.json()) as BookableAvailabilityResult & {
         error?: string;
@@ -92,7 +96,14 @@ export default function AdmissionsDatePicker({
       });
       throw err;
     }
-  }, [actionId, applicationId, organizationId, viewMonth, viewYear]);
+  }, [
+    actionId,
+    applicationId,
+    availabilityEndpointBuilder,
+    organizationId,
+    viewMonth,
+    viewYear,
+  ]);
 
   useEffect(() => {
     let cancelled = false;

@@ -94,6 +94,11 @@ export type AdminDashboardSummary = {
   featureAnnouncements: ResolvedAdminFeatureAnnouncement[];
   messagesUnreadCount: number;
   setupComplete: boolean;
+  viewerProfile?: {
+    email: string;
+    displayName: string;
+    profilePhotoUrl: string | null;
+  };
 };
 
 export type MobileAdminDashboardSummary = Omit<

@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   BulletinAttachmentList,
 } from '@/components/bulletin/bulletin-attachment-list';
+import { LinkifiedText } from '@/components/text/linkified-text';
 import {
   BulletinAttachmentViewerModal,
   type BulletinAttachmentViewerState,
@@ -71,7 +72,7 @@ export function TeacherBulletinDetailScreen({ postId }: TeacherBulletinDetailScr
       {post ? (
         <ScrollView contentContainerStyle={styles.content}>
           {post.body.trim() ? (
-            <Text style={[styles.body, { color: theme.ink }]}>{post.body}</Text>
+            <LinkifiedText text={post.body} style={[styles.body, { color: theme.ink }]} linkColor={theme.primary} />
           ) : null}
 
           {post.attachments.length > 0 ? (

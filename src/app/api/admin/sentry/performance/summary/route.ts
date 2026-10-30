@@ -4,8 +4,10 @@ import { requirePlatformAdminUser } from "@/lib/admin/require-platform-admin-api
 import { AuthError } from "@/lib/admissions/application-auth";
 import { apiError } from "@/lib/api/route-errors";
 import {
-  getSentryAdminConfig,
+  getSentryAdminConfigForTarget,
   isSentryAdminConfigured,
+  isSentryMobileAdminConfigured,
+  type SentryProjectTarget,
 } from "@/lib/sentry/admin-config";
 import {
   buildSentryPerformanceExploreUrl,
@@ -20,19 +22,41 @@ import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/admin/sentry/performance/summary";
 
-const PRESETS = new Set<SentryPerformancePreset>([
+const WEB_PRESETS = new Set<SentryPerformancePreset>([
   "parent_committees",
   "api_routes",
   "parent_portal",
   "custom",
 ]);
 
+const MOBILE_PRESETS = new Set<SentryPerformancePreset>([
+  "mobile_all_screens",
+  "mobile_parent_portal",
+  "mobile_teacher_portal",
+  "mobile_school_admin",
+  "mobile_api_client",
+  "custom",
+]);
+
+const DEFAULT_PRESET: Record<SentryProjectTarget, SentryPerformancePreset> = {
+  web: "parent_committees",
+  mobile: "mobile_all_screens",
+};
+
+function parseProjectTarget(value: string | null): SentryProjectTarget {
+  return value === "mobile" ? "mobile" : "web";
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const presetParam = searchParams.get("preset") ?? "parent_committees";
-  const preset = PRESETS.has(presetParam as SentryPerformancePreset)
-    ? (presetParam as SentryPerformancePreset)
-    : "parent_committees";
+  const project = parseProjectTarget(searchParams.get("project"));
+  const presetParam = searchParams.get("preset");
+  const defaultPreset = DEFAULT_PRESET[project];
+  const allowedPresets = project === "mobile" ? MOBILE_PRESETS : WEB_PRESETS;
+  const preset =
+    presetParam && allowedPresets.has(presetParam as SentryPerformancePreset)
+      ? (presetParam as SentryPerformancePreset)
+      : defaultPreset;
   const customQuery = searchParams.get("query") ?? undefined;
   const statsPeriod = searchParams.get("statsPeriod") ?? undefined;
   const environment = parseSentryPerformanceEnvironment(
@@ -46,14 +70,24 @@ export async function GET(request: Request) {
     const supabase = createClient(cookieStore);
     await requirePlatformAdminUser(supabase, request);
 
-    if (!isSentryAdminConfigured()) {
+    const configured =
+      project === "mobile"
+        ? isSentryMobileAdminConfigured()
+        : isSentryAdminConfigured();
+
+    if (!configured) {
       return NextResponse.json(
-        { error: "Sentry is not configured on this deployment." },
+        {
+          error:
+            project === "mobile"
+              ? "Mobile Sentry is not configured. Set SENTRY_MOBILE_PROJECT on this deployment."
+              : "Sentry is not configured on this deployment.",
+        },
         { status: 503 },
       );
     }
 
-    const config = getSentryAdminConfig();
+    const config = getSentryAdminConfigForTarget(project);
     const projectId = await getSentryProjectId(config);
     const exploreUrl = buildSentryPerformanceExploreUrl(
       config,
@@ -63,6 +97,7 @@ export async function GET(request: Request) {
     );
 
     const rows = await queryDiscoverPerformance({
+      project,
       preset,
       customQuery,
       statsPeriod,
@@ -70,6 +105,7 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json({
+      project,
       preset,
       query,
       statsPeriod: period,
@@ -83,9 +119,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: err.message }, { status: err.status });
     }
     let exploreUrl: string | undefined;
-    if (isSentryAdminConfigured()) {
+    const configured =
+      project === "mobile"
+        ? isSentryMobileAdminConfigured()
+        : isSentryAdminConfigured();
+    if (configured) {
       try {
-        const config = getSentryAdminConfig();
+        const config = getSentryAdminConfigForTarget(project);
         const projectId = await getSentryProjectId(config);
         exploreUrl = buildSentryPerformanceExploreUrl(
           config,
@@ -98,6 +138,7 @@ export async function GET(request: Request) {
       }
     }
     const sentryResponse = sentryApiErrorResponse(err, {
+      project,
       preset,
       query,
       statsPeriod: period,

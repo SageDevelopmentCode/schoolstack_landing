@@ -1,6 +1,6 @@
 import type { User } from "@supabase/supabase-js";
 import AdminDashboardContent from "@/components/school-admin/AdminDashboardContent";
-import { fetchAdminDashboardSummary } from "@/lib/school-admin/dashboard-summary";
+import { fetchAdminDashboardToday } from "@/lib/school-admin/dashboard-summary";
 import type { OrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -10,17 +10,19 @@ type AdminDashboardSummaryLoaderProps = {
   org: OrganizationWithSettings;
   slug: string;
   user: User | null;
+  userFirstName?: string | null;
 };
 
 export default async function AdminDashboardSummaryLoader({
   org,
   slug,
   user,
+  userFirstName,
 }: AdminDashboardSummaryLoaderProps) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   const admin = createAdminClient();
-  const initialSummary = await fetchAdminDashboardSummary(
+  const initialToday = await fetchAdminDashboardToday(
     supabase,
     admin,
     org.id,
@@ -37,7 +39,9 @@ export default async function AdminDashboardSummaryLoader({
       organizationId={org.id}
       slug={slug}
       features={org.features}
-      initialSummary={initialSummary}
+      schoolName={org.name}
+      userFirstName={userFirstName}
+      initialToday={initialToday}
     />
   );
 }

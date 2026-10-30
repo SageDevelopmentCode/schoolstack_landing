@@ -1,4 +1,3 @@
-import type { User } from '@supabase/supabase-js';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -6,8 +5,11 @@ import { Ionicons } from '@expo/vector-icons';
 
 import {
   AccountPortalSwitcherPanel,
-  useAccountPortalSwitcherVisibility,
 } from '@/components/account-portal-switcher-panel';
+import {
+  PreviewAccountPortalSwitcherPanel,
+} from '@/components/platform-admin/preview-account-portal-switcher-panel';
+import { StoryMoreMenuSectionTabsSkeleton } from '@/components/story/more/story-more-menu-section-tabs-skeleton';
 import { AccountDeletionRequest } from '@/components/account-deletion-request';
 import { AccountLegalLinks } from '@/components/account-legal-links';
 import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
@@ -25,6 +27,7 @@ import {
   shouldShowMoreMenuSectionTabs,
   type MoreMenuTabId,
 } from '@/lib/more-menu-tab-ids';
+import { useMoreMenuAccountPortalTab } from '@/lib/more-menu-account-portal-tab';
 import { prefetchSchoolPortalOptions } from '@/lib/auth/use-school-portal-options';
 import { StoryTextLink } from '@/components/story/story-text-link';
 import { useParentTheme } from '@/contexts/parent-theme-context';
@@ -33,6 +36,7 @@ import { useCanSwitchSchool } from '@/lib/auth/use-can-switch-school';
 import { useSchoolAdminFeatures } from '@/contexts/school-admin-features-context';
 import { getAccountRoleLabel } from '@/lib/auth/resolve-portal';
 import { portalTypeToAccountPortalId } from '@/lib/auth/school-portal-options-types';
+import { useSchoolAdminViewerProfile } from '@/lib/school-admin/viewer-profile';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 
@@ -135,18 +139,6 @@ const MENU_ITEMS: {
   },
 ];
 
-function getDisplayName(user: User): string {
-  const fullName = user.user_metadata?.full_name;
-  if (typeof fullName === 'string' && fullName.trim()) {
-    return fullName.trim();
-  }
-  const emailLocalPart = user.email?.split('@')[0]?.trim();
-  if (emailLocalPart) {
-    return emailLocalPart;
-  }
-  return 'Account';
-}
-
 export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps) {
   const router = useRouter();
   const theme = useParentTheme();
@@ -162,7 +154,9 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
   } = useAuth();
   const canSwitchSchool = useCanSwitchSchool(user?.id);
   const { fridayBranchEnabled, photosEnabled } = useSchoolAdminFeatures();
-  const displayName = useMemo(() => (user ? getDisplayName(user) : ''), [user]);
+  const viewer = useSchoolAdminViewerProfile();
+  const displayName = viewer.displayName;
+  const accountEmail = viewer.isPreview ? viewer.email : user?.email?.trim() ?? '';
   const roleLabel = useMemo(
     () => getAccountRoleLabel(portalType, isPlatformAdminSession),
     [portalType, isPlatformAdminSession],
@@ -196,16 +190,17 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
   };
 
   const [activeTab, setActiveTab] = useState<MoreMenuTabId>('menu');
-  const { showAccountPortalSection } = useAccountPortalSwitcherVisibility(
-    selectedSchool?.id,
-    selectedSchool?.slug,
-    visible,
-  );
+  const {
+    accountPortalTabLoading,
+    showAccountPortalTab,
+    showAccountPortalSwitcher,
+  } = useMoreMenuAccountPortalTab(selectedSchool?.id, selectedSchool?.slug, visible);
   const tabs = useMemo(
-    () => buildMoreMenuTabs({ showAccountPortal: showAccountPortalSection, showProgram: false }),
-    [showAccountPortalSection],
+    () => buildMoreMenuTabs({ showAccountPortal: showAccountPortalTab, showProgram: false }),
+    [showAccountPortalTab],
   );
   const useSectionTabs = shouldShowMoreMenuSectionTabs(tabs);
+  const showSectionTabsSkeleton = accountPortalTabLoading && showAccountPortalTab;
 
   useEffect(() => {
     if (visible && selectedSchool?.id && selectedSchool.slug) {
@@ -231,16 +226,25 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
       />
 
       {useSectionTabs ? (
-        <StoryMoreMenuSectionTabs tabs={tabs} activeId={activeTab} onChange={setActiveTab} />
+        showSectionTabsSkeleton ? (
+          <StoryMoreMenuSectionTabsSkeleton tabCount={tabs.length} />
+        ) : (
+          <StoryMoreMenuSectionTabs tabs={tabs} activeId={activeTab} onChange={setActiveTab} />
+        )
       ) : null}
 
-      <StoryMoreMenuTabPanel visible={showAccountPortalPanel && Boolean(selectedSchool)}>
-        {selectedSchool ? (
+      <StoryMoreMenuTabPanel visible={showAccountPortalPanel && showAccountPortalTab}>
+        {previewSession ? (
+          <PreviewAccountPortalSwitcherPanel
+            enabled={visible && (showAccountPortalSwitcher || accountPortalTabLoading)}
+            onAfterSelect={onClose}
+          />
+        ) : selectedSchool ? (
           <AccountPortalSwitcherPanel
             organizationId={selectedSchool.id}
             slug={selectedSchool.slug}
             currentPortalId={portalTypeToAccountPortalId(portalType)}
-            enabled={visible}
+            enabled={visible && (showAccountPortalSwitcher || accountPortalTabLoading)}
             onAfterSelect={onClose}
           />
         ) : null}
@@ -295,9 +299,9 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
               {roleLabel ? (
                 <Text style={[styles.accountMeta, { color: theme.muted }]}>{roleLabel}</Text>
               ) : null}
-              {user.email ? (
+              {accountEmail ? (
                 <Text style={[styles.accountMeta, { color: theme.muted }]} numberOfLines={1}>
-                  {user.email}
+                  {accountEmail}
                 </Text>
               ) : null}
             </View>

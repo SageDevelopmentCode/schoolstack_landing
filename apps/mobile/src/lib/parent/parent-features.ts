@@ -41,3 +41,31 @@ export function isParentNavFridayBranchEnabled(
     !fridayBranchSettings?.parent_portal_paused
   );
 }
+
+export type ParentHomeFridayBranchPauseInput = {
+  features?: ParentPortalFeatures;
+  fridayBranchParentPortalPaused?: boolean;
+};
+
+/** Treat pause as unknown until parent home has loaded — hide nav/card until then. */
+export function resolveFridayBranchSettingsFromHome(
+  homeData: ParentHomeFridayBranchPauseInput | null | undefined,
+): ParentFridayBranchSettingsPayload {
+  if (!homeData) {
+    return { parent_portal_paused: true };
+  }
+  return { parent_portal_paused: Boolean(homeData.fridayBranchParentPortalPaused) };
+}
+
+export function isParentFridayBranchScheduleLoadEnabled(
+  homeData: ParentHomeFridayBranchPauseInput | null | undefined,
+  homeHasLoaded: boolean,
+): boolean {
+  if (!homeHasLoaded || !homeData) {
+    return false;
+  }
+  return isParentNavFridayBranchEnabled(
+    homeData.features,
+    resolveFridayBranchSettingsFromHome(homeData),
+  );
+}

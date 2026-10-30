@@ -6,7 +6,7 @@ import { StoryBottomSheet } from '@/components/story/story-bottom-sheet';
 import { StoryButton } from '@/components/story/story-button';
 import { StoryCard } from '@/components/story/story-card';
 import { useParentTheme } from '@/contexts/parent-theme-context';
-import { createSchoolAdminErrorReporter } from '@/lib/mobile-error-reporter';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { fetchFridayBranchClassDetail } from '@/lib/school-admin/friday-branch/friday-branch-api';
 import type {
   FridayBranchClass,
@@ -59,7 +59,7 @@ export function SchoolAdminFridayBranchClassDetailSheet({
   const theme = useParentTheme();
   const [detail, setDetail] = useState<FridayBranchClassDetail | null>(null);
   const [loading, setLoading] = useState(false);
-  const reportError = createSchoolAdminErrorReporter(organizationId);
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   useEffect(() => {
     if (!visible || !classId) {

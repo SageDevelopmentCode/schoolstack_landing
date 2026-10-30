@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Megaphone, X } from "lucide-react";
 import BulletinAttachmentViewer from "@/components/bulletin/BulletinAttachmentViewer";
+import LinkifiedText from "@/components/text/LinkifiedText";
 import type { BulletinAttachment, BulletinPost } from "@/lib/school-bulletin/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
@@ -108,12 +109,13 @@ export default function BulletinPostDetailDialog({
 
             <div className="flex-1 overflow-y-auto px-5 py-5">
               {post.body.trim() ? (
-                <p
+                <LinkifiedText
+                  as="p"
+                  text={post.body}
                   className="whitespace-pre-wrap text-sm leading-relaxed"
                   style={{ color: "#65747A" }}
-                >
-                  {post.body}
-                </p>
+                  linkColor={theme.primary}
+                />
               ) : null}
 
               {post.attachments.length > 0 ? (

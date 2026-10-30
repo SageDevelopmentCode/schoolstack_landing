@@ -8,8 +8,11 @@ import { Ionicons } from '@expo/vector-icons';
 
 import {
   AccountPortalSwitcherPanel,
-  useAccountPortalSwitcherVisibility,
 } from '@/components/account-portal-switcher-panel';
+import {
+  PreviewAccountPortalSwitcherPanel,
+} from '@/components/platform-admin/preview-account-portal-switcher-panel';
+import { StoryMoreMenuSectionTabsSkeleton } from '@/components/story/more/story-more-menu-section-tabs-skeleton';
 import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
 import { StoryCard } from '@/components/story/story-card';
 import { StoryMoreMenuHeader } from '@/components/story/more/story-more-menu-header';
@@ -24,6 +27,7 @@ import {
   shouldShowMoreMenuSectionTabs,
   type MoreMenuTabId,
 } from '@/lib/more-menu-tab-ids';
+import { useMoreMenuAccountPortalTab } from '@/lib/more-menu-account-portal-tab';
 import { prefetchSchoolPortalOptions } from '@/lib/auth/use-school-portal-options';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { useLocalSearchParams } from 'expo-router';
@@ -110,7 +114,7 @@ export function TeacherMoreMenuSheet({
 }: TeacherMoreMenuSheetProps) {
   const theme = useParentTheme();
   const { slug } = useLocalSearchParams<{ slug: string }>();
-  const { user, portalType, selectedSchool } = useAuth();
+  const { user, portalType, selectedSchool, previewSession } = useAuth();
   const { data } = useTeacherHome();
   const displayName = useMemo(() => (user ? getDisplayName(user) : ''), [user]);
   const attendanceEnabled = isTeacherFeatureEnabled(data?.features, 'attendance');
@@ -129,16 +133,17 @@ export function TeacherMoreMenuSheet({
 
   const [activeTab, setActiveTab] = useState<MoreMenuTabId>('menu');
   const organizationId = selectedSchool?.id;
-  const { showAccountPortalSection } = useAccountPortalSwitcherVisibility(
-    organizationId,
-    slug,
-    visible,
-  );
+  const {
+    accountPortalTabLoading,
+    showAccountPortalTab,
+    showAccountPortalSwitcher,
+  } = useMoreMenuAccountPortalTab(organizationId, slug, visible);
   const tabs = useMemo(
-    () => buildMoreMenuTabs({ showAccountPortal: showAccountPortalSection, showProgram: false }),
-    [showAccountPortalSection],
+    () => buildMoreMenuTabs({ showAccountPortal: showAccountPortalTab, showProgram: false }),
+    [showAccountPortalTab],
   );
   const useSectionTabs = shouldShowMoreMenuSectionTabs(tabs);
+  const showSectionTabsSkeleton = accountPortalTabLoading && showAccountPortalTab;
 
   useEffect(() => {
     if (visible && organizationId && slug) {
@@ -164,16 +169,25 @@ export function TeacherMoreMenuSheet({
       />
 
       {useSectionTabs ? (
-        <StoryMoreMenuSectionTabs tabs={tabs} activeId={activeTab} onChange={setActiveTab} />
+        showSectionTabsSkeleton ? (
+          <StoryMoreMenuSectionTabsSkeleton tabCount={tabs.length} />
+        ) : (
+          <StoryMoreMenuSectionTabs tabs={tabs} activeId={activeTab} onChange={setActiveTab} />
+        )
       ) : null}
 
-      <StoryMoreMenuTabPanel visible={showAccountPortalPanel && Boolean(organizationId && slug)}>
-        {organizationId && slug ? (
+      <StoryMoreMenuTabPanel visible={showAccountPortalPanel && showAccountPortalTab}>
+        {previewSession ? (
+          <PreviewAccountPortalSwitcherPanel
+            enabled={visible && (showAccountPortalSwitcher || accountPortalTabLoading)}
+            onAfterSelect={onClose}
+          />
+        ) : organizationId && slug ? (
           <AccountPortalSwitcherPanel
             organizationId={organizationId}
             slug={slug}
             currentPortalId={portalTypeToAccountPortalId(portalType)}
-            enabled={visible}
+            enabled={visible && (showAccountPortalSwitcher || accountPortalTabLoading)}
             onAfterSelect={onClose}
           />
         ) : null}

@@ -1,13 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 
+import { MessageThreadKeyboardLayout } from '@/components/messages/message-thread-keyboard-layout';
 import { MessageBubble } from '@/components/school-admin/messages/message-bubble';
 import { MessageComposeBar } from '@/components/school-admin/messages/message-compose-bar';
 import { StoryErrorBanner } from '@/components/story/story-error-banner';
@@ -42,6 +36,9 @@ export function ParentCommitteeMessagesSection({
   const theme = useParentTheme();
   const { reportError } = useMobileErrorReporter(organizationId);
   const listRef = useRef<FlatList<RenderMessageItem>>(null);
+  const scrollMessagesToEnd = useCallback(() => {
+    listRef.current?.scrollToEnd({ animated: true });
+  }, []);
   const optimisticSendRef = useRef(createOptimisticSendTracker());
 
   const [input, setInput] = useState('');
@@ -155,10 +152,9 @@ export function ParentCommitteeMessagesSection({
   const hasMessages = localMessages.length > 0;
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: theme.white }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}>
+    <MessageThreadKeyboardLayout
+      backgroundColor={theme.white}
+      onKeyboardShow={scrollMessagesToEnd}>
       {error ? (
         <View style={styles.errorWrap}>
           <StoryErrorBanner message={error} />
@@ -216,7 +212,7 @@ export function ParentCommitteeMessagesSection({
           variant="parent-story"
         />
       ) : null}
-    </KeyboardAvoidingView>
+    </MessageThreadKeyboardLayout>
   );
 }
 

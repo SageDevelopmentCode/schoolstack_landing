@@ -17,6 +17,7 @@ import {
   sendCommitteeTaskAssignedNotification,
   sendCommitteeWorkspaceUpdateNotification,
 } from "@/lib/emails";
+import type { MobilePushNotificationKind } from "@/lib/notifications/mobile-push-catalog";
 import {
   sendCommitteeInstantPushToMembers,
   sendCommitteeInstantPushToUser,
@@ -255,6 +256,7 @@ export async function sendCommitteeJoinApprovedNotifications(
     body: "You're in — open your committee workspace",
     section: "home",
     failureOperation: "committee.join_approved.expo_push",
+    notificationKind: "committee.join_approved",
   });
 }
 
@@ -459,6 +461,7 @@ export async function sendCommitteeTaskAssignedNotifications(
     body: `"${input.taskTitle}" assigned by ${input.assignerName}`,
     section: "tasks",
     failureOperation: "committee.task.assigned.expo_push",
+    notificationKind: "committee.task_assigned",
   });
 }
 
@@ -603,24 +606,32 @@ export async function sendCommitteeMessagePostedNotifications(
     excludeMemberIds: input.senderMemberId ? [input.senderMemberId] : undefined,
     excludeUserIds: [input.actorUserId],
     failureOperation: "committee.message.posted.expo_push",
+    notificationKind: "committee.message_posted",
   });
 }
 
 const WORKSPACE_UPDATE_ACTIONS: Record<
   string,
-  { section: CommitteeWorkspaceSection; title: string }
+  {
+    section: CommitteeWorkspaceSection;
+    title: string;
+    notificationKind: MobilePushNotificationKind;
+  }
 > = {
   [ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_CREATED]: {
     section: "resources",
     title: "New resource added",
+    notificationKind: "committee.workspace_resource",
   },
   [ACTIVITY_ACTIONS.COMMITTEE_EVENT_CREATED]: {
     section: "calendar",
     title: "New calendar event",
+    notificationKind: "committee.workspace_event",
   },
   [ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED]: {
     section: "tasks",
     title: "New task added",
+    notificationKind: "committee.workspace_task",
   },
 };
 
@@ -716,5 +727,6 @@ export async function sendCommitteeWorkspaceUpdateNotifications(
     members: recipients,
     excludeMemberIds: input.senderMemberId ? [input.senderMemberId] : undefined,
     failureOperation: "committee.workspace_update.expo_push",
+    notificationKind: config.notificationKind,
   });
 }

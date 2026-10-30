@@ -31,6 +31,7 @@ import {
 import {
   recordAdminBypassEnrollmentPayment,
 } from "@/lib/stripe/application-payments";
+import { syncPhotoMediaConsentAfterAgreementComplete } from "@/lib/students/sync-student-photo-media-consent";
 import { getItemVariantConfig } from "./enrollment-checklist-schema";
 import { getPublishedEnrollmentChecklistForProgram } from "./enrollment-checklist-templates";
 import {
@@ -2060,6 +2061,16 @@ export async function saveAgreementSectionSignature(
 
   if (updateError) throw updateError;
 
+  if (isComplete && trimmedConsentValue) {
+    await syncPhotoMediaConsentAfterAgreementComplete(supabase, {
+      organizationId,
+      applicationId: checklistRow?.application_id ?? null,
+      consentValue: trimmedConsentValue,
+      consentOptionsCount: consentOptions.length,
+      isComplete,
+    });
+  }
+
   const newlyCompletedEnrollment = await recomputeChecklistStatus(supabase, checklistId);
 
   if (isComplete) {
@@ -2291,6 +2302,16 @@ export async function acknowledgeAgreementAmendmentReview(
     .eq("id", instanceId);
 
   if (updateError) throw updateError;
+
+  if (isComplete && consentValue) {
+    await syncPhotoMediaConsentAfterAgreementComplete(supabase, {
+      organizationId,
+      applicationId: checklistRow?.application_id ?? null,
+      consentValue,
+      consentOptionsCount: consentOptions.length,
+      isComplete,
+    });
+  }
 
   const newlyCompletedEnrollment = await recomputeChecklistStatus(supabase, checklistId);
 

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useState } from 'react';
 
-import { createParentPortalErrorReporter } from '@/lib/mobile-error-reporter';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ParentBottomSheet } from '@/components/parent/parent-bottom-sheet';
@@ -82,10 +82,7 @@ export function ParentFridayBranchClassSheet({
   onViewFlyer,
 }: ParentFridayBranchClassSheetProps) {
   const theme = useParentTheme();
-  const reportError = useMemo(
-    () => createParentPortalErrorReporter(organizationId),
-    [organizationId],
-  );
+  const { reportError } = useMobileErrorReporter(organizationId);
   const [detail, setDetail] = useState<ParentFridayBranchClassDetailBundle | null>(null);
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);

@@ -4,8 +4,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   AccountPortalSwitcherPanel,
-  useAccountPortalSwitcherVisibility,
 } from '@/components/account-portal-switcher-panel';
+import {
+  PreviewAccountPortalSwitcherPanel,
+} from '@/components/platform-admin/preview-account-portal-switcher-panel';
+import { useMoreMenuAccountPortalTab } from '@/lib/more-menu-account-portal-tab';
 import { EditableProfilePhoto } from '@/components/parent/children/editable-profile-photo';
 import { ProgramSwitcherPanel, type ProgramSwitcherContext } from '@/components/program-switcher-panel';
 import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
@@ -22,6 +25,8 @@ type PortalAccountSheetProps = {
   visible: boolean;
   onClose: () => void;
   displayName: string;
+  /** When set (e.g. preview mode), shown instead of the signed-in auth user email. */
+  emailSubtitle?: string;
   photoUrl?: string | null;
   organizationId: string | null | undefined;
   slug: string | null | undefined;
@@ -38,6 +43,7 @@ export function PortalAccountSheet({
   visible,
   onClose,
   displayName,
+  emailSubtitle,
   photoUrl,
   organizationId,
   slug,
@@ -46,7 +52,7 @@ export function PortalAccountSheet({
 }: PortalAccountSheetProps) {
   const theme = useParentTheme();
   const insets = useSafeAreaInsets();
-  const { signOut, portalType, user } = useAuth();
+  const { signOut, portalType, user, previewSession } = useAuth();
 
   const { photoUrl: livePhotoUrl, uploading, editable, handlePhotoSelected } =
     usePortalProfilePhotoUpload({
@@ -56,18 +62,18 @@ export function PortalAccountSheet({
       onSuccess: onProfilePhotoUpdated,
     });
 
-  const { showAccountPortalSection } = useAccountPortalSwitcherVisibility(
-    organizationId,
-    slug,
-    visible,
-  );
+  const {
+    accountPortalTabLoading,
+    showAccountPortalTab,
+    showAccountPortalSwitcher,
+  } = useMoreMenuAccountPortalTab(organizationId, slug, visible);
 
   const showProgramSection = Boolean(
     programSwitcher &&
       (programSwitcher.loading || programSwitcher.contexts.length >= 2),
   );
 
-  const hasSwitcherContent = showAccountPortalSection || showProgramSection;
+  const hasSwitcherContent = showAccountPortalTab || showProgramSection;
 
   const handleSignOut = async () => {
     onClose();
@@ -85,8 +91,8 @@ export function PortalAccountSheet({
         return active.label;
       }
     }
-    return user?.email?.trim() ?? '';
-  }, [programSwitcher, user?.email]);
+    return emailSubtitle?.trim() || user?.email?.trim() || '';
+  }, [emailSubtitle, programSwitcher, user?.email]);
 
   return (
     <BottomSheetShell
@@ -136,12 +142,18 @@ export function PortalAccountSheet({
             />
           ) : null}
 
-          {showAccountPortalSection && organizationId && slug ? (
+          {showAccountPortalTab && previewSession ? (
+            <PreviewAccountPortalSwitcherPanel
+              enabled={visible && (showAccountPortalSwitcher || accountPortalTabLoading)}
+              onAfterSelect={onClose}
+            />
+          ) : null}
+          {showAccountPortalTab && !previewSession && organizationId && slug ? (
             <AccountPortalSwitcherPanel
               organizationId={organizationId}
               slug={slug}
               currentPortalId={currentPortalId}
-              enabled={visible}
+              enabled={visible && (showAccountPortalSwitcher || accountPortalTabLoading)}
               onAfterSelect={onClose}
             />
           ) : null}

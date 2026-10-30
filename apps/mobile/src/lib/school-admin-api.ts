@@ -1,5 +1,12 @@
 import { assertApiAuthenticated, getApiAuthHeaders } from '@/lib/auth/auth-session';
-import { assertPreviewWriteAllowed } from '@/lib/platform-admin/preview-session-store';
+import {
+  assertPreviewWriteAllowed,
+  isPreviewSessionActive,
+} from '@/lib/platform-admin/preview-session-store';
+import {
+  fetchMobilePreviewApi,
+  resolveSchoolAdminPreviewPath,
+} from '@/lib/platform-admin/mobile-preview-api';
 import type {
   ClassroomDetail,
   ClassroomStatus,
@@ -30,6 +37,24 @@ export async function fetchSchoolAdminApi<T>(
 ): Promise<T> {
   assertPreviewWriteAllowed(options.method);
 
+  const previewPath = resolveSchoolAdminPreviewPath(path);
+  if (previewPath) {
+    const previewMethod =
+      options.method === 'GET' ||
+      options.method === 'POST' ||
+      options.method === 'PATCH' ||
+      options.method === 'DELETE'
+        ? options.method
+        : undefined;
+    return fetchMobilePreviewApi<T>(previewPath, {
+      method: previewMethod,
+      body: options.body,
+    });
+  }
+  if (isPreviewSessionActive()) {
+    throw new Error('Preview mode could not load this screen.');
+  }
+
   const response = await fetch(`${siteUrl}${path}`, {
     method: options.method ?? 'GET',
     headers: await getApiAuthHeaders(options.body !== undefined),
@@ -51,6 +76,14 @@ export async function fetchSchoolAdminApiFormData<T>(
   method: 'POST' | 'PATCH' = 'POST',
 ): Promise<T> {
   assertPreviewWriteAllowed(method);
+
+  const previewPath = resolveSchoolAdminPreviewPath(path);
+  if (previewPath) {
+    throw new Error('Preview mode is read-only.');
+  }
+  if (isPreviewSessionActive()) {
+    throw new Error('Preview mode could not load this screen.');
+  }
 
   const response = await fetch(`${siteUrl}${path}`, {
     method,

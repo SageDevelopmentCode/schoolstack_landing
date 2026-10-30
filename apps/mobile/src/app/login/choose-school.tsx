@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { ChooseSchoolExperience } from '@/components/choose-school-experience';
@@ -15,12 +15,14 @@ export default function ChooseSchoolScreen() {
     source?: string;
   }>();
   const switchingSchool = mode === 'switch';
+  const insets = useSafeAreaInsets();
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={insets.top}
         style={styles.keyboardView}>
         <ChooseSchoolExperience
           initialSlugs={parseChooseSchoolSlugsParam(slugs)}

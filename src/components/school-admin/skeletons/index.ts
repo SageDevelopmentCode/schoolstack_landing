@@ -10,3 +10,4 @@ export { default as SchoolAdminModalListSkeleton } from "./SchoolAdminModalListS
 export { default as SchoolAdminCanvasSkeleton } from "./SchoolAdminCanvasSkeleton";
 export { default as SchoolAdminEnrollmentStatusSkeleton } from "./SchoolAdminEnrollmentStatusSkeleton";
 export { default as FridayBranchPageSkeleton } from "./FridayBranchPageSkeleton";
+export { default as NewsletterWorkspaceSkeleton } from "../newsletter/NewsletterWorkspaceSkeleton";

@@ -49,12 +49,18 @@ import {
   SUPABASE_MAGIC_LINK_SUBJECT,
 } from "../src/lib/supabase-auth-emails";
 import { appendUnsubscribeFooter } from "../src/lib/outbound-email-unsubscribe";
+import { emailLocationWithMapsLinks } from "../src/lib/email-layout";
 import { PRODUCTION_SITE_URL } from "../src/lib/site";
 
 const PREVIEW_RECIPIENT_EMAIL = "preview@example.com";
 
+const sampleVisitAddress = "742 Evergreen Terrace, Springfield, IL 62701";
 const sampleVisitLocationDetails = [
-  { label: "Location", value: "742 Evergreen Terrace, Springfield, IL 62701" },
+  {
+    label: "Location",
+    value: sampleVisitAddress,
+    valueHtml: emailLocationWithMapsLinks(sampleVisitAddress),
+  },
   { label: "Phone", value: "Admissions: (555) 123-4567" },
   { label: "Email", value: "hello@rootedmeadows.org" },
 ];
@@ -804,6 +810,8 @@ const previews = [
       "Visit Confirmed",
       "shadow / observation days",
       "742 Evergreen Terrace",
+      "Google Maps",
+      "maps.apple.com",
       "View apply dashboard",
     ],
   },
@@ -824,6 +832,8 @@ const previews = [
       "45 minutes",
       "contact details above",
       "742 Evergreen Terrace",
+      "google.com/maps",
+      "Apple Maps",
     ],
   },
   {
@@ -847,6 +857,8 @@ const previews = [
       "Campus tour",
       "View apply dashboard",
       "742 Evergreen Terrace",
+      "Google Maps",
+      "maps.apple.com",
     ],
   },
   {
@@ -869,6 +881,8 @@ const previews = [
       "See you today",
       "Campus tour",
       "742 Evergreen Terrace",
+      "google.com/maps",
+      "Apple Maps",
     ],
   },
   {

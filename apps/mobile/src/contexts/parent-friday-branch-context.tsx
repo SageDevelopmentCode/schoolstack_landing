@@ -9,17 +9,24 @@ import {
   type ReactNode,
 } from 'react';
 
+import { useParentHome } from '@/contexts/parent-home-context';
 import { createParentPortalErrorReporter } from '@/lib/mobile-error-reporter';
 import type {
   ParentFridayBranchClassDetailBundle,
   ParentFridayBranchPageBundle,
 } from '@/lib/parent/parent-friday-branch-types';
 import { applyFridayBranchClassDetailToBundle } from '@/lib/parent/parent-friday-branch-utils';
+import { isParentFridayBranchScheduleLoadEnabled } from '@/lib/parent/parent-features';
 import {
   createParentPortalCache,
   resolveParentPortalProviderInit,
 } from '@/lib/parent/parent-portal-cache';
-import { fetchParentFridayBranchSchedule } from '@/lib/parent/parent-portal-api';
+import {
+  fetchParentFridayBranchSchedule,
+  isFridayBranchParentPortalPausedError,
+} from '@/lib/parent/parent-portal-api';
+
+const FRIDAY_BRANCH_PAUSED_MESSAGE = 'Friday Branch signup is paused.';
 
 type ParentFridayBranchContextValue = {
   bundle: ParentFridayBranchPageBundle | null;
@@ -76,6 +83,12 @@ export function ParentFridayBranchProvider({
   slug,
   authReady = true,
 }: ParentFridayBranchProviderProps) {
+  const { data: homeData, hasLoaded: homeHasLoaded } = useParentHome();
+  const scheduleLoadEnabled = useMemo(
+    () => isParentFridayBranchScheduleLoadEnabled(homeData, homeHasLoaded),
+    [homeData, homeHasLoaded],
+  );
+
   const key = cacheKey(organizationId, slug);
   const cached = fridayBranchCache.get(key);
 
@@ -94,8 +107,28 @@ export function ParentFridayBranchProvider({
     setBundleState(nextBundle);
   }, []);
 
+  const handleLoadFailure = useCallback(
+    (loadError: unknown) => {
+      if (isFridayBranchParentPortalPausedError(loadError)) {
+        setBundleState(null);
+        setError(FRIDAY_BRANCH_PAUSED_MESSAGE);
+        return;
+      }
+
+      reportError('friday_branch.load', loadError);
+      setError(
+        loadError instanceof Error ? loadError.message : 'Failed to load Friday Branch.',
+      );
+    },
+    [reportError],
+  );
+
   const load = useCallback(
     async (options?: { refresh?: boolean }) => {
+      if (!scheduleLoadEnabled) {
+        return;
+      }
+
       const isRefresh = options?.refresh ?? false;
 
       if (fetchPromiseRef.current && !isRefresh) {
@@ -119,10 +152,7 @@ export function ParentFridayBranchProvider({
           setBundleState(nextBundle);
           setHasLoaded(true);
         } catch (loadError) {
-          reportError('friday_branch.load', loadError);
-          setError(
-            loadError instanceof Error ? loadError.message : 'Failed to load Friday Branch.',
-          );
+          handleLoadFailure(loadError);
         } finally {
           setIsLoading(false);
           setIsRefreshing(false);
@@ -136,13 +166,15 @@ export function ParentFridayBranchProvider({
       }
       await promise;
     },
-    [key, organizationId, reportError, slug],
+    [handleLoadFailure, key, organizationId, scheduleLoadEnabled, slug],
   );
 
   const ensureLoaded = useCallback(() => {
-    if (hasLoaded || fetchPromiseRef.current) return;
+    if (!scheduleLoadEnabled || hasLoaded || fetchPromiseRef.current) {
+      return;
+    }
     void load();
-  }, [hasLoaded, load]);
+  }, [hasLoaded, load, scheduleLoadEnabled]);
 
   const refresh = useCallback(async () => {
     await load({ refresh: true });
@@ -160,6 +192,22 @@ export function ParentFridayBranchProvider({
 
   useEffect(() => {
     if (!authReady) {
+      return;
+    }
+
+    if (!scheduleLoadEnabled) {
+      if (!homeHasLoaded) {
+        setIsLoading(true);
+        return;
+      }
+
+      setBundleState(null);
+      setHasLoaded(true);
+      setIsLoading(false);
+      setIsRefreshing(false);
+      setError(
+        homeData?.fridayBranchParentPortalPaused ? FRIDAY_BRANCH_PAUSED_MESSAGE : null,
+      );
       return;
     }
 
@@ -194,11 +242,16 @@ export function ParentFridayBranchProvider({
         setHasLoaded(Boolean(fridayBranchCache.get(key)));
         setError(null);
       } catch (loadError) {
-        reportError('friday_branch.load', loadError);
-        if (!cancelled && !fridayBranchCache.get(key)) {
-          setError(
-            loadError instanceof Error ? loadError.message : 'Failed to load Friday Branch.',
-          );
+        if (cancelled) {
+          return;
+        }
+        if (isFridayBranchParentPortalPausedError(loadError)) {
+          setBundleState(null);
+          setError(FRIDAY_BRANCH_PAUSED_MESSAGE);
+        } else if (!fridayBranchCache.get(key)) {
+          handleLoadFailure(loadError);
+        } else {
+          reportError('friday_branch.load', loadError);
         }
       } finally {
         if (!cancelled) {
@@ -213,7 +266,17 @@ export function ParentFridayBranchProvider({
     return () => {
       cancelled = true;
     };
-  }, [authReady, key, organizationId, reportError, slug]);
+  }, [
+    authReady,
+    handleLoadFailure,
+    homeData?.fridayBranchParentPortalPaused,
+    homeHasLoaded,
+    key,
+    organizationId,
+    reportError,
+    scheduleLoadEnabled,
+    slug,
+  ]);
 
   const value = useMemo(
     () => ({

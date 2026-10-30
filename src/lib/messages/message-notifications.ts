@@ -390,6 +390,7 @@ export async function dispatchMessageNotifications(
         body: preview,
         recipientPortal: recipient.portal,
         recipientEmail: recipient.email,
+        notificationKind: "message.new",
         data: {
           kind: "message",
           portal: recipient.portal,

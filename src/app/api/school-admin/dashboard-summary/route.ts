@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
-import { fetchAdminDashboardSummary } from "@/lib/school-admin/dashboard-summary";
+import {
+  fetchAdminDashboardActivity,
+  fetchAdminDashboardGuides,
+  fetchAdminDashboardSummary,
+  fetchAdminDashboardToday,
+  parseAdminDashboardSection,
+} from "@/lib/school-admin/dashboard-summary";
 import { requireSchoolAdminUser, SchoolAdminAuthError } from "@/lib/school-admin/access";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
@@ -36,13 +42,51 @@ export async function GET(request: Request) {
     }
 
     const admin = createAdminClient();
+    const section = parseAdminDashboardSection(
+      url.searchParams.get("section"),
+    );
+    const fetchOptions = { userId: user.id, schoolName: org.name };
+
+    if (section === "today") {
+      const today = await fetchAdminDashboardToday(
+        supabase,
+        admin,
+        organizationId,
+        slug,
+        org.features.admin,
+        fetchOptions,
+      );
+      return NextResponse.json(today);
+    }
+
+    if (section === "activity") {
+      const activity = await fetchAdminDashboardActivity(
+        supabase,
+        admin,
+        organizationId,
+        slug,
+        org.features.admin,
+      );
+      return NextResponse.json(activity);
+    }
+
+    if (section === "guides") {
+      const guides = await fetchAdminDashboardGuides(
+        admin,
+        organizationId,
+        slug,
+        org.features.admin,
+      );
+      return NextResponse.json(guides);
+    }
+
     const summary = await fetchAdminDashboardSummary(
       supabase,
       admin,
       organizationId,
       slug,
       org.features.admin,
-      { userId: user.id, schoolName: org.name },
+      fetchOptions,
     );
 
     return NextResponse.json(summary);

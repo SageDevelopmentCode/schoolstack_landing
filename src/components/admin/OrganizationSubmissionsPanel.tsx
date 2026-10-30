@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Bell, Eye, Loader2, Mail } from "lucide-react";
+import { Bell, Eye, Loader2, Mail, ScrollText } from "lucide-react";
+import OrganizationContactActivityPanel from "@/components/admin/OrganizationContactActivityPanel";
 import OrganizationContactEmailHistoryPanel from "@/components/admin/OrganizationContactEmailHistoryPanel";
 import ParentPortalLoginBadge from "@/components/admissions/ParentPortalLoginBadge";
 import OrganizationFamilyNotificationsPanel from "@/components/admin/OrganizationFamilyNotificationsPanel";
@@ -97,6 +98,11 @@ export default function OrganizationSubmissionsPanel({
   const [emailHistoryPreview, setEmailHistoryPreview] = useState<{
     contactEmail: string;
     contactLabel: string;
+  } | null>(null);
+  const [activityPreview, setActivityPreview] = useState<{
+    contactEmail: string;
+    contactLabel: string;
+    actorUserId: string | null;
   } | null>(null);
 
   const previewMetaRequestIdRef = useRef(0);
@@ -458,6 +464,39 @@ export default function OrganizationSubmissionsPanel({
                                 Email history
                               </span>
                             )}
+                            {submission.contactEmail ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setActivityPreview({
+                                    contactEmail: submission.contactEmail!,
+                                    contactLabel:
+                                      submission.guardianName ??
+                                      submission.contactEmail ??
+                                      "Contact",
+                                    actorUserId:
+                                      submission.primaryGuardianId
+                                        ? (loginStatusByGuardianId[
+                                            submission.primaryGuardianId
+                                          ]?.userId ?? null)
+                                        : null,
+                                  })
+                                }
+                                className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs font-medium text-admin-accent hover:bg-admin-bg transition-colors"
+                                title="View MudKitchen activity for this contact"
+                              >
+                                <ScrollText className="h-3.5 w-3.5" />
+                                Activity
+                              </button>
+                            ) : (
+                              <span
+                                className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs text-admin-faint opacity-60 cursor-not-allowed"
+                                title="No contact email on submission"
+                              >
+                                <ScrollText className="h-3.5 w-3.5" />
+                                Activity
+                              </span>
+                            )}
                           </div>
                         )}
                       </td>
@@ -519,6 +558,17 @@ export default function OrganizationSubmissionsPanel({
           contactLabel={emailHistoryPreview.contactLabel}
           open
           onClose={() => setEmailHistoryPreview(null)}
+        />
+      ) : null}
+
+      {activityPreview ? (
+        <OrganizationContactActivityPanel
+          organizationId={organizationId}
+          contactEmail={activityPreview.contactEmail}
+          contactLabel={activityPreview.contactLabel}
+          actorUserId={activityPreview.actorUserId}
+          open
+          onClose={() => setActivityPreview(null)}
         />
       ) : null}
     </div>

@@ -8,6 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
 import { NewConversationContactFilters } from '@/components/school-admin/messages/new-conversation-contact-filters';
@@ -34,6 +35,7 @@ import {
   isStoryMessagesVariant,
 } from '@/lib/messages/messages-layout-variant';
 import type { MessageContact } from '@/lib/messages/types';
+import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 
 type NewConversationSheetProps = {
   visible: boolean;
@@ -58,6 +60,9 @@ export function NewConversationSheet({
   const adminStory = isAdminStoryMessagesVariant(variant);
   const [searchQuery, setSearchQuery] = useState('');
   const [audienceFilter, setAudienceFilter] = useState<MessageContactAudienceFilter>('all');
+  const insets = useSafeAreaInsets();
+  const keyboardHeight = useKeyboardHeight();
+  const keyboardLift = Math.max(0, keyboardHeight - insets.bottom);
 
   useEffect(() => {
     if (!visible) {
@@ -98,7 +103,9 @@ export function NewConversationSheet({
       visible={visible}
       onClose={onClose}
       scrollable={false}
+      keyboardAvoiding
       keyboardShouldPersistTaps="handled"
+      bottomInset={insets.bottom + Spacing.two}
       backgroundColor={backgroundColor}
       borderColor={borderColor}
       handleColor={handleColor}
@@ -168,7 +175,10 @@ export function NewConversationSheet({
         <FlatList
           data={filteredContacts}
           keyExtractor={(item) => item.key}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[
+            styles.listContent,
+            keyboardLift > 0 ? { paddingBottom: keyboardLift + Spacing.six } : null,
+          ]}
           keyboardShouldPersistTaps="handled"
           style={[styles.list, { backgroundColor: surfaceColor }]}
           ListEmptyComponent={

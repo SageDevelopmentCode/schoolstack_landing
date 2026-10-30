@@ -1,5 +1,5 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Alert,
   RefreshControl,
@@ -42,6 +42,9 @@ type GalleryPhotosScreenBaseProps = {
   enableBulkDelete: boolean;
   listPage: (offset: number) => Promise<GalleryPhotosPage>;
   errorOperationPrefix: string;
+  listPrefix?: ReactNode;
+  showUploaderOnTiles?: boolean;
+  extraHeaderActions?: ReactNode;
 };
 
 export type GalleryPhotosScreenProps =
@@ -69,11 +72,25 @@ export function GalleryPhotosScreen(props: GalleryPhotosScreenProps) {
     enableBulkDelete,
     listPage,
     errorOperationPrefix,
+    listPrefix,
+    showUploaderOnTiles = true,
+    extraHeaderActions,
   } = props;
   const theme = useParentTheme();
   const { reportError } = useMobileErrorReporter();
 
   const listPageStable = useCallback((offset: number) => listPage(offset), [listPage]);
+
+  const onGalleryLoadError = useCallback(
+    (error: unknown, phase: 'initial' | 'load_more') => {
+      const operation =
+        phase === 'initial'
+          ? `${errorOperationPrefix}_list`
+          : `${errorOperationPrefix}_load_more`;
+      reportError(operation, error);
+    },
+    [errorOperationPrefix, reportError],
+  );
 
   const {
     photos,
@@ -89,6 +106,7 @@ export function GalleryPhotosScreen(props: GalleryPhotosScreenProps) {
     reload,
   } = useGalleryPhotosFeed({
     listPage: listPageStable,
+    onLoadError: onGalleryLoadError,
   });
 
   const [refreshing, setRefreshing] = useState(false);
@@ -298,6 +316,7 @@ export function GalleryPhotosScreen(props: GalleryPhotosScreenProps) {
   if (loading && photos.length === 0) {
     return (
       <View style={[styles.container, { backgroundColor: Story.paper }]} testID={testId}>
+        {listPrefix ? <View style={styles.listPrefix}>{listPrefix}</View> : null}
         {readOnly ? (
           <View style={styles.readOnlySkeleton}>
             <GalleryPhotoGridSkeleton tileCount={12} />
@@ -323,10 +342,12 @@ export function GalleryPhotosScreen(props: GalleryPhotosScreenProps) {
           }
         }}
         scrollEventThrottle={200}>
+        {listPrefix ? <View style={styles.listPrefix}>{listPrefix}</View> : null}
         {!readOnly || initialError ? (
           <Animated.View entering={FadeInDown.duration(350)} style={styles.headerBlock}>
             {!readOnly ? (
               <View style={styles.actionsRow}>
+                {extraHeaderActions}
                 {enableBulkDelete ? (
                   selectionMode ? (
                     <>
@@ -379,6 +400,7 @@ export function GalleryPhotosScreen(props: GalleryPhotosScreenProps) {
                   photos={group.photos}
                   selectionMode={enableBulkDelete && selectionMode}
                   selectedIds={selectedIds}
+                  showUploaderOnTiles={showUploaderOnTiles}
                   onPressPhoto={openPhoto}
                   onLongPressPhoto={readOnly ? openPhoto : showPhotoActions}
                 />
@@ -442,6 +464,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingTop: Spacing.two,
     paddingBottom: Spacing.six,
+  },
+  listPrefix: {
+    marginBottom: Spacing.one,
   },
   readOnlySkeleton: {
     paddingTop: Spacing.two,

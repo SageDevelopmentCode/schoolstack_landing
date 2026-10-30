@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { EyeOff, Loader2, Save, Send } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft, EyeOff, Loader2, Save, Send } from "lucide-react";
 import {
   ApplicationFormConflictError,
   canonicalApplyFormPublicPath,
@@ -14,7 +14,6 @@ import {
   isApplyFormVersion,
   isPublicSlugAvailable,
   listApplicationFormSummaries,
-  listPrograms,
   listProgramsWithoutApplyForm,
   publicApplicationFormPath,
   publishForm,
@@ -83,11 +82,18 @@ import EnrollmentFlowsStoryShell from "./EnrollmentFlowsStoryShell";
 import EnrollmentFlowsStoryHeader from "./EnrollmentFlowsStoryHeader";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
-import EnrollmentFlowsSidebar from "./EnrollmentFlowsSidebar";
 import EnrollmentFlowsEmptyState from "./EnrollmentFlowsEmptyState";
+import EnrollmentFlowsOverview from "./EnrollmentFlowsOverview";
 import CreateApplyFormProgramDialog from "./CreateApplyFormProgramDialog";
 import CreateEnrollmentChecklistProgramDialog from "./CreateEnrollmentChecklistProgramDialog";
-import type { FlowListSelection } from "./enrollment-flow-selection";
+import {
+  flowSelectionToSearchParams,
+  resolveFlowSelection,
+  shouldStartInEditor,
+  type FlowListSelection,
+} from "./enrollment-flow-selection";
+import { listProgramsDetailed } from "@/lib/admissions/programs";
+import type { EnrollmentFlowProgramSummary } from "@/lib/school-admin/load-enrollment-flows-list-data";
 import ApplicationFormOutline from "./ApplicationFormOutline";
 import ApplicationFormPreview from "./ApplicationFormPreview";
 import ChecklistPreviewMenuButton from "./ChecklistPreviewMenuButton";
@@ -124,6 +130,7 @@ type ApplicationFormsPageProps = {
   listDeferred?: boolean;
   previewMode?: boolean;
   initialFlowSelection?: FlowListSelection;
+  startOnOverview?: boolean;
   previewChecklistItemsByTemplateId?: Record<string, EnrollmentChecklistItem[]>;
 };
 
@@ -358,44 +365,6 @@ function EnrollmentChecklistProgramGate({
   );
 }
 
-function resolveFlowSelection(
-  formRows: ApplicationFormVersion[],
-  checklistRows: EnrollmentChecklistTemplate[],
-  flowParam: string | null,
-  previous: FlowListSelection,
-): FlowListSelection {
-  const applyForm = formRows.find(
-    (form) => isApplyFormVersion(form) && form.status !== "archived",
-  );
-  const checklist = checklistRows.find((row) => row.status !== "archived");
-
-  if (flowParam === "checklist" && checklist) {
-    return { kind: "checklist", id: checklist.id };
-  }
-  if (flowParam === "apply" && applyForm) {
-    return { kind: "apply", id: applyForm.id };
-  }
-
-  if (
-    previous?.kind === "apply" &&
-    formRows.some((form) => form.id === previous.id)
-  ) {
-    return previous;
-  }
-  if (
-    previous?.kind === "checklist" &&
-    checklistRows.some((row) => row.id === previous.id)
-  ) {
-    return previous;
-  }
-
-  if (applyForm) return { kind: "apply", id: applyForm.id };
-  if (checklist) return { kind: "checklist", id: checklist.id };
-  if (formRows[0]) return { kind: "apply", id: formRows[0].id };
-  if (checklistRows[0]) return { kind: "checklist", id: checklistRows[0].id };
-  return null;
-}
-
 export default function ApplicationFormsPage({
   organizationId,
   branding,
@@ -405,14 +374,36 @@ export default function ApplicationFormsPage({
   listDeferred = false,
   previewMode = false,
   initialFlowSelection,
+  startOnOverview,
   previewChecklistItemsByTemplateId,
 }: ApplicationFormsPageProps) {
   const theme = useMemo(() => buildParentThemeTokens(branding), [branding]);
   const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
   const supabase = useMemo(() => createClient(), []);
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const flowParam = searchParams.get("flow");
+  const applyIdParam = searchParams.get("apply");
+  const checklistIdParam = searchParams.get("checklist");
   const hasInitialList = initialListData !== undefined;
+  const openEditorInitially = useMemo(
+    () =>
+      shouldStartInEditor({
+        flowParam,
+        applyIdParam,
+        checklistIdParam,
+        initialFlowSelection,
+        startOnOverview,
+      }),
+    [
+      applyIdParam,
+      checklistIdParam,
+      flowParam,
+      initialFlowSelection,
+      startOnOverview,
+    ],
+  );
 
   const [forms, setForms] = useState<ApplicationFormVersion[]>(
     initialListData?.forms ?? [],
@@ -420,16 +411,20 @@ export default function ApplicationFormsPage({
   const [checklists, setChecklists] = useState<EnrollmentChecklistTemplate[]>(
     initialListData?.checklists ?? [],
   );
-  const [programs, setPrograms] = useState<ProgramOption[]>(
+  const [programs, setPrograms] = useState<EnrollmentFlowProgramSummary[]>(
     initialListData?.programs ?? [],
   );
+  const [showOverview, setShowOverview] = useState(() => !openEditorInitially);
   const [selection, setSelection] = useState<FlowListSelection>(() => {
+    if (!openEditorInitially) return null;
     if (initialFlowSelection) return initialFlowSelection;
     if (initialListData) {
       return resolveFlowSelection(
         initialListData.forms,
         initialListData.checklists,
         flowParam,
+        applyIdParam,
+        checklistIdParam,
         null,
       );
     }
@@ -469,7 +464,6 @@ export default function ApplicationFormsPage({
   const [pendingDocumentChanges, setPendingDocumentChanges] = useState<
     EnrollmentDocumentChange[]
   >([]);
-  const [flowsSidebarOpen, setFlowsSidebarOpen] = useState(false);
   const [createApplyDialogOpen, setCreateApplyDialogOpen] = useState(false);
   const [createChecklistDialogOpen, setCreateChecklistDialogOpen] = useState(false);
   const [selectedApplyFormHydrated, setSelectedApplyFormHydrated] = useState(false);
@@ -637,16 +631,32 @@ export default function ApplicationFormsPage({
       const [formRows, checklistRows, programRows, paymentsReady] = await Promise.all([
         listApplicationFormSummaries(supabase, organizationId),
         listEnrollmentChecklistTemplates(supabase, organizationId),
-        listPrograms(supabase, organizationId),
+        listProgramsDetailed(supabase, organizationId),
         orgPaymentsReadyForFees(supabase, organizationId),
       ]);
       resetLoadedFormIds();
       setForms(formRows);
       setChecklists(checklistRows);
-      setPrograms(programRows);
+      setPrograms(
+        programRows.map((program) => ({
+          id: program.id,
+          name: program.name,
+          type: program.type,
+          status: program.status,
+          start_date: program.start_date,
+          end_date: program.end_date,
+        })),
+      );
       setStripePaymentsReady(paymentsReady);
       setSelection((prev) =>
-        resolveFlowSelection(formRows, checklistRows, flowParam, prev),
+        resolveFlowSelection(
+          formRows,
+          checklistRows,
+          flowParam,
+          applyIdParam,
+          checklistIdParam,
+          prev,
+        ),
       );
     } catch (err) {
       void reportPortalOperationalError("school_admin", {
@@ -658,7 +668,47 @@ export default function ApplicationFormsPage({
     } finally {
       setLoading(false);
     }
-  }, [flowParam, organizationId, resetLoadedFormIds, supabase]);
+  }, [
+    applyIdParam,
+    checklistIdParam,
+    flowParam,
+    organizationId,
+    resetLoadedFormIds,
+    supabase,
+  ]);
+
+  const syncEditorUrl = useCallback(
+    (nextSelection: FlowListSelection) => {
+      if (!nextSelection) {
+        router.replace(pathname);
+        return;
+      }
+      const query = flowSelectionToSearchParams(nextSelection);
+      router.replace(query ? `${pathname}?${query}` : pathname);
+    },
+    [pathname, router],
+  );
+
+  const enterEditor = useCallback(
+    (
+      nextSelection: FlowListSelection,
+      options?: { focus?: BuilderFocus },
+    ) => {
+      if (!nextSelection) return;
+      setSelection(nextSelection);
+      setShowOverview(false);
+      syncEditorUrl(nextSelection);
+      setFocus(options?.focus ?? DEFAULT_BUILDER_FOCUS);
+    },
+    [syncEditorUrl],
+  );
+
+  const handleGoToOverview = () => {
+    requestAction(() => {
+      setShowOverview(true);
+      router.replace(pathname);
+    });
+  };
 
   const ensureFormsLoaded = useCallback(
     async (formIds: string[]) => {
@@ -949,10 +999,9 @@ export default function ApplicationFormsPage({
       });
       markFormsLoaded([created.id]);
       setForms((prev) => [created, ...prev]);
-      setSelection({ kind: "apply", id: created.id });
+      enterEditor({ kind: "apply", id: created.id });
       setSelectedApplyFormHydrated(true);
       setFocus(DEFAULT_BUILDER_FOCUS);
-      setFlowsSidebarOpen(false);
       setCreateApplyDialogOpen(false);
       adminToast.success("Application form created");
     } catch (err) {
@@ -992,8 +1041,7 @@ export default function ApplicationFormsPage({
         programName,
       });
       setChecklists((prev) => [created, ...prev]);
-      setSelection({ kind: "checklist", id: created.id });
-      setFlowsSidebarOpen(false);
+      enterEditor({ kind: "checklist", id: created.id });
       setCreateChecklistDialogOpen(false);
       adminToast.success("Enrollment checklist created");
     } catch (err) {
@@ -1023,15 +1071,14 @@ export default function ApplicationFormsPage({
     });
   };
 
-  const performDuplicate = async () => {
-    if (!selectedForm) return;
+  const performDuplicateForm = async (formId: string) => {
     setCreating(true);
     setError(null);
     try {
-      const copy = await duplicateForm(supabase, selectedForm.id);
+      const copy = await duplicateForm(supabase, formId);
       markFormsLoaded([copy.id]);
       setForms((prev) => [copy, ...prev]);
-      setSelection({ kind: "apply", id: copy.id });
+      enterEditor({ kind: "apply", id: copy.id });
       setSelectedApplyFormHydrated(true);
       setFocus(DEFAULT_BUILDER_FOCUS);
       adminToast.success("Form duplicated");
@@ -1049,21 +1096,61 @@ export default function ApplicationFormsPage({
     }
   };
 
+  const performDuplicate = async () => {
+    if (!selectedForm) return;
+    await performDuplicateForm(selectedForm.id);
+  };
+
   const handleDuplicate = () => {
     requestAction(() => {
       void performDuplicate();
     });
   };
 
-  const handleSelect = (nextSelection: FlowListSelection) => {
+  const handleDuplicateFormFromOverview = (formId: string) => {
     requestAction(() => {
-      setSelection(nextSelection);
-      setFlowsSidebarOpen(false);
+      void performDuplicateForm(formId);
     });
   };
 
-  const toggleFlowsSidebar = () => {
-    setFlowsSidebarOpen((open) => !open);
+  const handleSelect = (nextSelection: FlowListSelection) => {
+    requestAction(() => {
+      enterEditor(nextSelection);
+    });
+  };
+
+  const handleCreateApplyForProgram = (programId: string) => {
+    if (programsWithApplyForm.has(programId)) {
+      const form = applyForms.find((row) => row.program_id === programId);
+      if (form) {
+        handleSelect({ kind: "apply", id: form.id });
+      }
+      return;
+    }
+    if (!canCreateApplyForm) return;
+    requestAction(() => {
+      void performCreateApply(programId);
+    });
+  };
+
+  const handleCreateChecklistForProgram = (programId: string) => {
+    if (programsWithEnrollmentChecklist.has(programId)) {
+      const checklist = activeChecklists.find((row) => row.programId === programId);
+      if (checklist) {
+        handleSelect({ kind: "checklist", id: checklist.id });
+      }
+      return;
+    }
+    if (!canCreateChecklist) return;
+    requestAction(() => {
+      void performCreateChecklist(programId);
+    });
+  };
+
+  const handleOpenPostSubmit = (applyFormId: string) => {
+    requestAction(() => {
+      enterEditor({ kind: "apply", id: applyFormId }, { focus: { kind: "postSubmit" } });
+    });
   };
 
   const handleSave = async () => {
@@ -1194,7 +1281,7 @@ export default function ApplicationFormsPage({
       setEditable(nextEditable);
       setApplySavedSnapshot(serializeEditableFormState(nextEditable));
       await loadForms();
-      setSelection({ kind: "apply", id: published.id });
+      enterEditor({ kind: "apply", id: published.id });
       setSetupHighlight(null);
       adminToast.success("Form published");
     } catch (err) {
@@ -1441,7 +1528,7 @@ export default function ApplicationFormsPage({
         setChecklistSavedSnapshot(serializeChecklistEditableState(nextChecklist));
       }
       await loadForms();
-      setSelection({ kind: "checklist", id: published.id });
+      enterEditor({ kind: "checklist", id: published.id });
       adminToast.success(
         options?.requireResign
           ? "Checklist published and families notified to re-sign"
@@ -1623,24 +1710,6 @@ export default function ApplicationFormsPage({
 
   const hasFlows = forms.length > 0 || checklists.length > 0;
 
-  const flowsSidebarProps = {
-    C,
-    theme,
-    open: flowsSidebarOpen,
-    forms,
-    checklists,
-    programs,
-    selected: selection,
-    creating,
-    canCreateApplyForm,
-    canCreateChecklist,
-    programNameById,
-    onClose: () => setFlowsSidebarOpen(false),
-    onSelect: handleSelect,
-    onCreateApply: handleCreateApply,
-    onCreateChecklist: handleCreateChecklist,
-  };
-
   const createApplyDialog = (
     <CreateApplyFormProgramDialog
       C={C}
@@ -1667,9 +1736,10 @@ export default function ApplicationFormsPage({
     />
   );
 
-  const flowsSidebarToggle = (
-    <AdminButton theme={theme} variant="outline" size="compact" onClick={toggleFlowsSidebar}>
-      Switch form
+  const allFlowsBackControl = (
+    <AdminButton theme={theme} variant="soft" size="compact" onClick={handleGoToOverview}>
+      <ArrowLeft className="h-3.5 w-3.5" />
+      All flows
     </AdminButton>
   );
 
@@ -1679,6 +1749,8 @@ export default function ApplicationFormsPage({
         <EnrollmentFlowsEmptyState
           C={C}
           theme={theme}
+          slug={slug}
+          hasPrograms={programs.length > 0}
           creating={creating}
           canCreateApplyForm={canCreateApplyForm}
           canCreateChecklist={canCreateChecklist}
@@ -1691,6 +1763,32 @@ export default function ApplicationFormsPage({
     );
   }
 
+  if (showOverview) {
+    return (
+      <EnrollmentFlowsStoryShell branding={branding}>
+        <EnrollmentFlowsOverview
+          C={C}
+          theme={theme}
+          slug={slug}
+          forms={forms}
+          checklists={checklists}
+          programs={programs}
+          creating={creating}
+          canCreateApplyForm={canCreateApplyForm}
+          canCreateChecklist={canCreateChecklist}
+          onSelect={handleSelect}
+          onCreateApply={handleCreateApply}
+          onCreateChecklist={handleCreateChecklist}
+          onCreateApplyForProgram={handleCreateApplyForProgram}
+          onCreateChecklistForProgram={handleCreateChecklistForProgram}
+          onDuplicateForm={handleDuplicateFormFromOverview}
+          onOpenPostSubmit={handleOpenPostSubmit}
+        />
+        {createApplyDialog}
+        {createChecklistDialog}
+      </EnrollmentFlowsStoryShell>
+    );
+  }
 
   return (
     <EnrollmentFlowsStoryShell branding={branding}>
@@ -1713,7 +1811,7 @@ export default function ApplicationFormsPage({
               />
             }
             status={selectedChecklist.status}
-            flowSwitcher={flowsSidebarToggle}
+            flowSwitcher={allFlowsBackControl}
             actions={
               <>
                 <AdmissionsFamilyAccessGuideButton
@@ -1796,7 +1894,7 @@ export default function ApplicationFormsPage({
             </div>
           ) : null}
 
-          <div className="min-h-0 flex-1 overflow-hidden">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             {checklistEditable.programId || checklistReadOnly ? (
               <EnrollmentChecklistBuilder
                 branding={branding}
@@ -1842,7 +1940,7 @@ export default function ApplicationFormsPage({
               </AdminDisplayHeading>
             }
             status={selectedForm.status}
-            flowSwitcher={flowsSidebarToggle}
+            flowSwitcher={allFlowsBackControl}
             actions={
               <ApplicationFormEditorToolbar
                 C={C}
@@ -1919,7 +2017,7 @@ export default function ApplicationFormsPage({
               onReuseDialogOpen={hydrateSourceFormsForReuse}
               programEnrollmentChecklist={selectedProgramEnrollmentChecklist}
               onOpenEnrollmentChecklist={(checklistId) => {
-                setSelection({ kind: "checklist", id: checklistId });
+                enterEditor({ kind: "checklist", id: checklistId });
                 setFocus(DEFAULT_BUILDER_FOCUS);
               }}
             />
@@ -2029,7 +2127,6 @@ export default function ApplicationFormsPage({
         onClose={cancelLeave}
       />
 
-      <EnrollmentFlowsSidebar {...flowsSidebarProps} />
       {createApplyDialog}
       {createChecklistDialog}
     </div>

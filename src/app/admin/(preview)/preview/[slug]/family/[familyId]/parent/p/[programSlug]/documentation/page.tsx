@@ -15,6 +15,7 @@ import {
   parentDocumentationPath,
 } from "@/lib/organization-settings/parent-routes";
 import { programParentPortalHasEnabledFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -80,7 +81,7 @@ export default async function FamilyPreviewProgramParentDocumentationPage({
   }
 
   const hasProgramAccess = await familyHasEnrolledAccessInProgram(
-    supabase,
+    createAdminClient(),
     org.id,
     familyId,
     programContext.programId,

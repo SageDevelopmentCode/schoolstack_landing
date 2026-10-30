@@ -23,6 +23,7 @@ import { adminCardShadow, buildPlatformAdminTheme } from '@/lib/organization-set
 import { toOrganizationBranding, type LiveOrganization } from '@/lib/organizations';
 import { resolveOrganizationAssetUrl } from '@/lib/resolve-asset-url';
 import { getSupabaseClient } from '@/lib/supabase';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 const DEFAULT_GATE_COPY: ParentMobileGateCopy = {
   title: 'Continue on the web',
@@ -128,6 +129,7 @@ export function ParentApplyWebGateScreen() {
   const router = useRouter();
   const supabase = useMemo(() => getSupabaseClient(), []);
   const { user, portalType, selectedSchool, isLoading, signOut } = useAuth();
+  const { reportError } = useMobileErrorReporter(selectedSchool?.id);
   const [gateCopy, setGateCopy] = useState<ParentMobileGateCopy>(DEFAULT_GATE_COPY);
   const [copyLoading, setCopyLoading] = useState(true);
   const loadingTheme = useMemo(() => buildPlatformAdminTheme(), []);
@@ -164,7 +166,8 @@ export function ParentApplyWebGateScreen() {
         if (!cancelled) {
           setGateCopy(copy);
         }
-      } catch {
+      } catch (err) {
+        reportError('parent.apply_gate.copy_load_failed', err);
         if (!cancelled) {
           setGateCopy({
             ...DEFAULT_GATE_COPY,
@@ -183,7 +186,7 @@ export function ParentApplyWebGateScreen() {
     return () => {
       cancelled = true;
     };
-  }, [portalType, selectedSchool, supabase, user]);
+  }, [portalType, reportError, selectedSchool, supabase, user]);
 
   const handleOpenApply = useCallback(async () => {
     if (!selectedSchool) return;

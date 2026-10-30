@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Camera, Plus, Trash2 } from "lucide-react";
 import GalleryPhotoCard from "@/components/school-admin/gallery/GalleryPhotoCard";
 import GalleryUploadSheet from "@/components/school-admin/gallery/GalleryUploadSheet";
+import PhotoMediaPermissionsSidebar from "@/components/school-admin/gallery/PhotoMediaPermissionsSidebar";
 import GalleryLoadMoreFooter from "@/components/school-gallery/GalleryLoadMoreFooter";
 import GalleryPhotoViewer from "@/components/school-gallery/GalleryPhotoViewer";
 import GalleryPhotoGridSkeleton, {
@@ -34,6 +35,7 @@ export default function PhotosPage({
 }: PhotosPageProps) {
   const { theme, C } = useSchoolAdminStoryTheme();
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [permissionsOpen, setPermissionsOpen] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
@@ -147,30 +149,55 @@ export default function PhotosPage({
     }
   };
 
+  const permissionsSidebar = (
+    <PhotoMediaPermissionsSidebar
+      organizationId={organizationId}
+      open={permissionsOpen}
+      onClose={() => setPermissionsOpen(false)}
+    />
+  );
+
   if (loading) {
     return (
-      <div
-        className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14"
-        style={{ color: theme.ink }}
-      >
-        <GalleryPhotoGridSkeleton />
-      </div>
+      <>
+        <div
+          className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14"
+          style={{ color: theme.ink }}
+        >
+          <GalleryPhotoGridSkeleton />
+        </div>
+        {permissionsSidebar}
+      </>
     );
   }
 
   if (initialError && photos.length === 0) {
     return (
-      <div
-        className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14"
-        style={{ color: theme.ink }}
-      >
-        <div className="space-y-4 rounded-2xl border border-dashed border-[#D8DEDF] bg-white/60 px-6 py-12 text-center">
-          <p className="text-sm text-[#65747A]">{initialError}</p>
-          <AdminButton theme={theme} variant="outline" onClick={() => void reload()}>
-            Try again
-          </AdminButton>
+      <>
+        <div
+          className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14"
+          style={{ color: theme.ink }}
+        >
+          <div className="mb-6 flex flex-wrap items-end justify-end gap-2">
+            <AdminButton
+              type="button"
+              theme={theme}
+              variant="outline"
+              onClick={() => setPermissionsOpen(true)}
+            >
+              <Camera className="h-4 w-4" />
+              Photo permissions
+            </AdminButton>
+          </div>
+          <div className="space-y-4 rounded-2xl border border-dashed border-[#D8DEDF] bg-white/60 px-6 py-12 text-center">
+            <p className="text-sm text-[#65747A]">{initialError}</p>
+            <AdminButton theme={theme} variant="outline" onClick={() => void reload()}>
+              Try again
+            </AdminButton>
+          </div>
         </div>
-      </div>
+        {permissionsSidebar}
+      </>
     );
   }
 
@@ -192,6 +219,15 @@ export default function PhotosPage({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <AdminButton
+              type="button"
+              theme={theme}
+              variant="outline"
+              onClick={() => setPermissionsOpen(true)}
+            >
+              <Camera className="h-4 w-4" />
+              Photo permissions
+            </AdminButton>
             {selectionMode ? (
               <>
                 <AdminButton
@@ -300,6 +336,8 @@ export default function PhotosPage({
           showStaffDetails
         />
       ) : null}
+
+      {permissionsSidebar}
     </>
   );
 }

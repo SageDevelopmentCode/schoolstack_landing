@@ -1,6 +1,11 @@
+import { emailLocationWithMapsLinks } from "@/lib/email-layout";
 import type { SchoolProfileBundle } from "./school-profile";
 
-export type SchoolVisitEmailDetailRow = { label: string; value: string };
+export type SchoolVisitEmailDetailRow = {
+  label: string;
+  value: string;
+  valueHtml?: string;
+};
 
 function pickPrimaryPhone(bundle: SchoolProfileBundle): { label: string; number: string } | null {
   const phones = bundle.primaryCampus.phones;
@@ -61,7 +66,11 @@ export function buildSchoolVisitEmailDetailRows(
 
   const address = formatCampusMailingAddress(bundle);
   if (address) {
-    rows.push({ label: "Location", value: address });
+    rows.push({
+      label: "Location",
+      value: address,
+      valueHtml: emailLocationWithMapsLinks(address),
+    });
   }
 
   const phone = pickPrimaryPhone(bundle);

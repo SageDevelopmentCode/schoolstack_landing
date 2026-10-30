@@ -30,6 +30,13 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "mudkitchen",
+          "project": "mudkitchen-mobile"
+        }
+      ],
       "expo-router",
       [
         "expo-splash-screen",

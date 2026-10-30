@@ -21,7 +21,10 @@ import {
   type BuilderFocus,
 } from "./builder-focus";
 import ApplicationFormStepsReorderDialog from "./ApplicationFormStepsReorderDialog";
-import { outlineActiveRowStyle } from "./outline-item-styles";
+import {
+  outlineActiveRowStyle,
+  outlineRowInteractiveClassName,
+} from "./outline-item-styles";
 
 type ApplicationFormOutlineProps = {
   C: AdminThemeTokens;
@@ -61,7 +64,7 @@ function StepOutlineRow({
     <button
       type="button"
       onClick={onSelect}
-      className="mb-1 w-full rounded-[11px] border px-3 py-3 text-left transition-colors"
+      className={`mb-1 w-full rounded-[11px] border px-3 py-3 text-left ${outlineRowInteractiveClassName(active)}`}
       style={outlineActiveRowStyle(active, theme)}
     >
       <span className="flex items-start gap-2">
@@ -120,7 +123,7 @@ function NavRow({
     <button
       type="button"
       onClick={onClick}
-      className="mb-1 flex w-full items-center gap-2 rounded-[11px] border px-3 py-2.5 text-left text-xs transition-colors"
+      className={`mb-1 flex w-full items-center gap-2 rounded-[11px] border px-3 py-2.5 text-left text-xs ${outlineRowInteractiveClassName(active)}`}
       style={{
         ...outlineActiveRowStyle(active, theme),
         color: active ? (theme?.primary ?? C.accent) : C.textSecondary,
@@ -235,7 +238,7 @@ export default function ApplicationFormOutline({
           <button
             type="button"
             onClick={onAddStep}
-            className="mx-1 mb-2 flex w-[calc(100%-8px)] items-center justify-center gap-1.5 rounded-[11px] border border-dashed py-2 text-[11px] font-semibold"
+            className="mx-1 mb-2 flex w-[calc(100%-8px)] cursor-pointer items-center justify-center gap-1.5 rounded-[11px] border border-dashed py-2 text-[11px] font-semibold transition-colors hover:bg-[#F3F8F4]"
             style={{
               borderColor: "#DCE4DC",
               color: theme.primary,
@@ -291,7 +294,7 @@ export default function ApplicationFormOutline({
         <button
           type="button"
           onClick={onPreview}
-          className="flex w-full items-center justify-center gap-1.5 rounded-[10px] border py-2 text-xs font-semibold"
+          className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border py-2 text-xs font-semibold transition-colors hover:bg-[#F3F8F4]"
           style={{
             borderColor: "#DCE4DC",
             color: C.textSecondary,

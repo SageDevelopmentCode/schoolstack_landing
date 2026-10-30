@@ -4,8 +4,10 @@ import { requirePlatformAdminUser } from "@/lib/admin/require-platform-admin-api
 import { AuthError } from "@/lib/admissions/application-auth";
 import { apiError } from "@/lib/api/route-errors";
 import {
-  getSentryAdminConfig,
+  getSentryMobileAdminConfig,
+  getSentryWebAdminConfig,
   isSentryAdminConfigured,
+  isSentryMobileAdminConfigured,
 } from "@/lib/sentry/admin-config";
 import { createClient } from "@/utils/supabase/server";
 
@@ -17,26 +19,56 @@ export async function GET(request: Request) {
     const supabase = createClient(cookieStore);
     await requirePlatformAdminUser(supabase, request);
 
-    if (!isSentryAdminConfigured()) {
+    const webConfigured = isSentryAdminConfigured();
+    const mobileConfigured = isSentryMobileAdminConfigured();
+
+    if (!webConfigured && !mobileConfigured) {
       return NextResponse.json({
         configured: false,
         orgSlug: null,
         projectSlug: null,
         webBaseUrl: null,
+        web: { configured: false, projectSlug: null },
+        mobile: { configured: false, projectSlug: null },
       });
     }
 
-    const config = getSentryAdminConfig();
+    const orgSlug = process.env.SENTRY_ORG?.trim() ?? null;
+    const webBaseUrl = orgSlug ? `https://${orgSlug}.sentry.io` : null;
+
+    let webProjectSlug: string | null = null;
+    let mobileProjectSlug: string | null = null;
+
+    if (webConfigured) {
+      webProjectSlug = getSentryWebAdminConfig().projectSlug;
+    }
+    if (mobileConfigured) {
+      mobileProjectSlug = getSentryMobileAdminConfig().projectSlug;
+    }
+
     return NextResponse.json({
-      configured: true,
-      orgSlug: config.orgSlug,
-      projectSlug: config.projectSlug,
-      webBaseUrl: config.webBaseUrl,
+      configured: webConfigured,
+      orgSlug,
+      projectSlug: webProjectSlug,
+      webBaseUrl,
+      web: {
+        configured: webConfigured,
+        projectSlug: webProjectSlug,
+      },
+      mobile: {
+        configured: mobileConfigured,
+        projectSlug: mobileProjectSlug,
+      },
     });
   } catch (err) {
     if (err instanceof AuthError) {
       return NextResponse.json({ error: err.message }, { status: err.status });
     }
-    return apiError(ROUTE, { request, status: 500, error: "Failed to load Sentry status.", cause: err });
+    return apiError(ROUTE, {
+      request,
+      status: 500,
+      error: "Failed to load Sentry status.",
+      cause: err,
+    });
   }
 }

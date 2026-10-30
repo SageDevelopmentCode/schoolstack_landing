@@ -148,6 +148,7 @@ First submit may prompt for Apple App Store Connect API key or Google service ac
 | Build succeeds but app can't reach API | Confirm Vercel prod deployed; verify `EXPO_PUBLIC_SITE_URL` in build logs |
 | Auth fails in production build | Re-check EAS `production` env vars match **production** Supabase, not local |
 | Missing Supabase env in build or OTA | Run `eas env:list production` or `npm run assert:production-eas-env` |
+| `could not list EAS production environment` / `expo/config-plugins` / `env:list command failed` | npm workspace hoisting — use `npm run assert:production-eas-env` / `update:production` (wraps [`with-mobile-node-path.sh`](../../apps/mobile/scripts/with-mobile-node-path.sh)); raw `eas`: `NODE_PATH=./node_modules:../../node_modules` |
 | `eas build` asks to configure project | Run from `apps/mobile`; complete `eas build:configure` / link flow |
 | API 404 on new feature | Web not deployed yet — ship Next.js production first |
 

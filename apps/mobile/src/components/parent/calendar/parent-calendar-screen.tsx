@@ -23,6 +23,7 @@ import { Spacing } from '@/constants/theme';
 import { groupOrganizationEventsByDate } from '@/lib/school-events/events';
 import type { OrganizationEvent } from '@/lib/school-events/types';
 import { getSupabaseClient } from '@/lib/supabase';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type ParentCalendarScreenProps = {
   organizationId: string;
@@ -31,6 +32,7 @@ type ParentCalendarScreenProps = {
 export function ParentCalendarScreen({ organizationId }: ParentCalendarScreenProps) {
   const theme = useParentTheme();
   const supabase = useMemo(() => getSupabaseClient(), []);
+  const { reportError } = useMobileErrorReporter(organizationId);
   const { data, isLoading, isRefreshing, error, refresh } = useParentCalendar();
   const { eventId, date: dateParam } = useLocalSearchParams<{
     eventId?: string;
@@ -46,6 +48,7 @@ export function ParentCalendarScreen({ organizationId }: ParentCalendarScreenPro
     supabase,
     timezoneProp: data?.timezone,
     theme,
+    reportError,
   });
   const { goToDate, setSelectedDate } = calendar;
 

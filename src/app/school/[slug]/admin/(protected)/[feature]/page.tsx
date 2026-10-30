@@ -13,7 +13,6 @@ import {
 } from "@/lib/organization-settings/feature-nav";
 import { Suspense } from "react";
 import AdminDashboardContentSkeleton from "@/components/school-admin/AdminDashboardContentSkeleton";
-import AdminDashboardHeader from "@/components/school-admin/AdminDashboardHeader";
 import AdminDashboardSummaryLoader from "@/components/school-admin/AdminDashboardSummaryLoader";
 import AdminPageSkeleton from "@/components/school-admin/AdminPageSkeleton";
 import AdminMessagesPageShell from "@/components/school-admin/messages/AdminMessagesPageShell";
@@ -131,13 +130,13 @@ export default async function SchoolAdminFeaturePage({ params }: PageProps) {
 
     return (
       <div className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14">
-        <AdminDashboardHeader
-          slug={slug}
-          schoolName={org.name}
-          userFirstName={userFirstName}
-        />
         <Suspense fallback={<AdminDashboardContentSkeleton />}>
-          <AdminDashboardSummaryLoader org={org} slug={slug} user={user} />
+          <AdminDashboardSummaryLoader
+            org={org}
+            slug={slug}
+            user={user}
+            userFirstName={userFirstName}
+          />
         </Suspense>
       </div>
     );

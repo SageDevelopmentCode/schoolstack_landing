@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   composeEmail,
+  emailDetailCard,
   emailDigestActivityCard,
   emailDigestSectionHeader,
 } from "./email-layout";
@@ -44,6 +45,27 @@ describe("committee digest email dark mode", () => {
     assert.match(html, /\.email-digest-badge \{/);
     assert.match(html, /prefers-color-scheme: dark/);
     assert.match(html, /#F3F4F6/);
+  });
+});
+
+describe("emailDetailCard", () => {
+  it("renders valueHtml without escaping links while escaping labels", () => {
+    const html = emailDetailCard([
+      {
+        label: "Location<script>",
+        value: "plain fallback",
+        valueHtml:
+          '<a href="https://www.google.com/maps/search/?api=1&query=test">Google Maps</a>',
+      },
+    ]);
+    assert.match(html, /Location&lt;script&gt;/);
+    assert.match(html, /href="https:\/\/www\.google\.com\/maps/);
+    assert.doesNotMatch(html, /plain fallback/);
+  });
+
+  it("escapes plain value when valueHtml is omitted", () => {
+    const html = emailDetailCard([{ label: "Note", value: "A & B" }]);
+    assert.match(html, /A &amp; B/);
   });
 });
 

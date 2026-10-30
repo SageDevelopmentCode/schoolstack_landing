@@ -11,6 +11,7 @@ import { SchoolAdminFridayBranchStatusTag } from '@/components/school-admin/frid
 import { StoryButton } from '@/components/story/story-button';
 import { StoryCard } from '@/components/story/story-card';
 import { useParentTheme } from '@/contexts/parent-theme-context';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { fetchFridayBranchEnrollmentCounts } from '@/lib/school-admin/friday-branch/friday-branch-api';
 import { mergeFridayBranchClassIntoBlock } from '@/lib/school-admin/friday-branch/friday-branch-class-save';
 import type {
@@ -104,6 +105,7 @@ export function SchoolAdminFridayBranchSchedule({
   onClassSaved,
 }: SchoolAdminFridayBranchScheduleProps) {
   const theme = useParentTheme();
+  const { reportError } = useMobileErrorReporter(organizationId);
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
   const [detailTarget, setDetailTarget] = useState<DetailTarget | null>(null);
   const [sendRosterTarget, setSendRosterTarget] = useState<SendRosterTarget | null>(null);
@@ -136,7 +138,11 @@ export function SchoolAdminFridayBranchSchedule({
         if (!cancelled) {
           setEnrollmentCounts(counts);
         }
-      } catch {
+      } catch (loadError) {
+        reportError('school_admin_friday_branch_enrollment_counts_load', loadError, {
+          entityType: 'friday_branch_block',
+          entityId: block.id,
+        });
         if (!cancelled) {
           setEnrollmentCounts({});
         }
@@ -146,7 +152,7 @@ export function SchoolAdminFridayBranchSchedule({
     return () => {
       cancelled = true;
     };
-  }, [block, organizationId]);
+  }, [block, organizationId, reportError]);
 
   useEffect(() => {
     if (!requestedDetailTarget) return;
@@ -339,6 +345,7 @@ export function SchoolAdminFridayBranchSchedule({
 
       <SchoolAdminFridayBranchAddTimeSlotSheet
         visible={addSlotOpen}
+        organizationId={organizationId}
         slots={block.slots}
         saving={saving}
         onClose={() => onAddSlotOpenChange(false)}

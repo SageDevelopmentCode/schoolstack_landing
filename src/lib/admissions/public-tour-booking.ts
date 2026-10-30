@@ -64,13 +64,14 @@ export async function assertPublicTourBookingEnabled(
   }
 }
 
-export async function bookPublicCampusTour(
+export async function bookPublicStyleCampusTour(
   supabase: SupabaseClient,
   params: {
     organizationId: string;
     scheduledDate: string;
     startTimeSlot: string;
     answers: Record<string, unknown>;
+    requirePublicPageEnabled?: boolean;
   },
 ): Promise<{
   visitId: string;
@@ -79,7 +80,9 @@ export async function bookPublicCampusTour(
   durationMinutes: number;
   registrant: PublicTourRegistrant;
 }> {
-  await assertPublicTourBookingEnabled(supabase, params.organizationId);
+  if (params.requirePublicPageEnabled !== false) {
+    await assertPublicTourBookingEnabled(supabase, params.organizationId);
+  }
 
   const admissionsSettings = await getAdmissionsOrgSettings(
     supabase,
@@ -158,6 +161,27 @@ export async function bookPublicCampusTour(
     durationMinutes,
     registrant: validation.registrant,
   };
+}
+
+export async function bookPublicCampusTour(
+  supabase: SupabaseClient,
+  params: {
+    organizationId: string;
+    scheduledDate: string;
+    startTimeSlot: string;
+    answers: Record<string, unknown>;
+  },
+): Promise<{
+  visitId: string;
+  scheduledDate: string;
+  startTimeSlot: string;
+  durationMinutes: number;
+  registrant: PublicTourRegistrant;
+}> {
+  return bookPublicStyleCampusTour(supabase, {
+    ...params,
+    requirePublicPageEnabled: true,
+  });
 }
 
 export async function updatePublicTourPageSettingsForOrg(

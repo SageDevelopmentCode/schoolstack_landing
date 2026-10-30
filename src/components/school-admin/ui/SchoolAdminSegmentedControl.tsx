@@ -16,6 +16,7 @@ type SchoolAdminSegmentedControlProps = {
   options: SegmentedControlOption[];
   ariaLabel: string;
   className?: string;
+  iconOnly?: boolean;
 };
 
 export default function SchoolAdminSegmentedControl({
@@ -25,6 +26,7 @@ export default function SchoolAdminSegmentedControl({
   options,
   ariaLabel,
   className = "",
+  iconOnly = false,
 }: SchoolAdminSegmentedControlProps) {
   return (
     <div
@@ -42,15 +44,22 @@ export default function SchoolAdminSegmentedControl({
             type="button"
             role="tab"
             aria-selected={isActive}
+            aria-label={iconOnly ? option.label : undefined}
             onClick={() => onChange(option.value)}
-            className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+            className={`inline-flex items-center rounded-md font-medium transition-colors ${
+              iconOnly ? "gap-0 px-2 py-1" : "gap-1.5 px-3 py-1.5 text-sm"
+            }`}
             style={{
               backgroundColor: isActive ? C.accentLight : "transparent",
               color: isActive ? C.accent : C.textSecondary,
             }}
           >
             {Icon ? <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden /> : null}
-            {option.label}
+            {iconOnly ? (
+              <span className="sr-only">{option.label}</span>
+            ) : (
+              option.label
+            )}
           </button>
         );
       })}

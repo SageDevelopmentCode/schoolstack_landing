@@ -1,15 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { MessageThreadKeyboardLayout } from '@/components/messages/message-thread-keyboard-layout';
 import { AdminMessageThreadSkeleton } from '@/components/school-admin/messages/admin-message-thread-skeleton';
 import { MessageBubble } from '@/components/school-admin/messages/message-bubble';
 import { MessageComposeBar } from '@/components/school-admin/messages/message-compose-bar';
@@ -94,6 +87,9 @@ export function MessageThreadScreen({
   const [sending, setSending] = useState(false);
   const listRef = useRef<FlatList<RenderMessageItem>>(null);
   const composeInputRef = useRef<TextInput>(null);
+  const scrollMessagesToEnd = useCallback(() => {
+    listRef.current?.scrollToEnd({ animated: true });
+  }, []);
   const optimisticSendRef = useRef(createOptimisticSendTracker());
   const loadGenerationRef = useRef(createLoadGenerationGuard());
 
@@ -352,10 +348,9 @@ export function MessageThreadScreen({
   const hasMessages = thread.messages.length > 0;
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: theme.paper }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={0}>
+    <MessageThreadKeyboardLayout
+      backgroundColor={theme.paper}
+      onKeyboardShow={scrollMessagesToEnd}>
       <MessageThreadHeader thread={thread} variant="admin-story" />
 
       {composeState.banner ? (
@@ -395,6 +390,7 @@ export function MessageThreadScreen({
             renderItem={renderChatItem}
             contentContainerStyle={styles.messagesContent}
             style={styles.messagesList}
+            keyboardShouldPersistTaps="handled"
             onContentSizeChange={() => {
               listRef.current?.scrollToEnd({ animated: false });
             }}
@@ -434,7 +430,7 @@ export function MessageThreadScreen({
       />
 
       <MessageThreadMutationOverlays {...messageMutations} />
-    </KeyboardAvoidingView>
+    </MessageThreadKeyboardLayout>
   );
 }
 

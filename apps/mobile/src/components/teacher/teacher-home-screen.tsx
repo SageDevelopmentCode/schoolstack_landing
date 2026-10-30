@@ -50,6 +50,7 @@ import { submitTeacherSupportRequest } from '@/lib/teacher/teacher-portal-api';
 import { isTeacherFeatureEnabled } from '@/lib/teacher/teacher-features';
 import type { StaffClassroomOption, TeacherDashboardFocusItem } from '@/lib/teacher/teacher-portal-api';
 import { usePortalPreview } from '@/lib/portal-preview-gating';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 const MAX_STUDENT_CARDS = 6;
 
@@ -62,6 +63,7 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
   const router = useRouter();
   const { isPreview } = usePortalPreview();
   const { data, isLoading, isRefreshing, error, refresh, ensureLoaded } = useTeacherHome();
+  const { reportError } = useMobileErrorReporter(data?.organizationId);
   const [heroProfilePhotoUrl, setHeroProfilePhotoUrl] = useState<string | null>(null);
 
   const [homeTab, setHomeTab] = useState<TeacherHomeSubTabId>('overview');
@@ -93,10 +95,10 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
         slug,
       );
       setNotificationUnreadCount(count);
-    } catch {
-      // Keep the last known count on transient errors.
+    } catch (err) {
+      reportError('teacher.activity_notifications.unread_count_failed', err);
     }
-  }, [data?.organizationId, slug]);
+  }, [data?.organizationId, reportError, slug]);
 
   useFocusEffect(
     useCallback(() => {

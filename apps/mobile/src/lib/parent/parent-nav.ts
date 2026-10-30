@@ -411,6 +411,30 @@ export function resolveParentWebParentHrefToMobileRoute(
     return parentFormDetailRoute(slug, formId);
   }
 
+  if (featureKey === 'children' && query) {
+    const applicationMatch = query.match(/(?:^|&)applicationId=([^&]+)/);
+    const applicationId = applicationMatch?.[1]
+      ? decodeURIComponent(applicationMatch[1])
+      : null;
+    if (applicationId) {
+      const sectionMatch = query.match(/(?:^|&)section=([^&]+)/);
+      const sectionParam = sectionMatch?.[1] ? decodeURIComponent(sectionMatch[1]) : null;
+      const section =
+        sectionParam === 'health' ||
+        sectionParam === 'pickup' ||
+        sectionParam === 'application' ||
+        sectionParam === 'checklist' ||
+        sectionParam === 'teachers'
+          ? (sectionParam as ParentChildRecordSection)
+          : undefined;
+      if (programSlug) {
+        const base = `${parentProgramMoreRoute(slug, programSlug, 'children')}/${encodeURIComponent(applicationId)}`;
+        return section ? (`${base}?section=${section}` as Href) : (base as Href);
+      }
+      return parentChildDetailRoute(slug, applicationId, section);
+    }
+  }
+
   return getParentFeatureRoute(slug, featureKey, programSlug);
 }
 

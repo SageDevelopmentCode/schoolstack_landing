@@ -23,6 +23,7 @@ import {
   uploadGuardianProfilePhotoFromParent,
 } from '@/lib/parent/upload-guardian-profile-photo';
 import { MOBILE_PROFILE_PHOTO_UPLOAD_ENABLED } from '@/lib/profile-photo/mobile-profile-photo-upload-enabled';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 function getDisplayName(user: User): string {
   const fullName = user.user_metadata?.full_name;
@@ -40,6 +41,7 @@ export function ParentAccountScreen() {
   const router = useRouter();
   const theme = useAdminTheme();
   const { user, signOut, selectedSchool } = useAuth();
+  const { reportError } = useMobileErrorReporter(selectedSchool?.id);
   const { data: homeData, refresh } = useParentHome();
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
@@ -75,6 +77,7 @@ export function ParentAccountScreen() {
         setProfilePhotoUrl(nextUrl);
         void refresh();
       } catch (error) {
+        reportError('parent.guardian_profile_photo.upload_failed', error);
         const message =
           error instanceof GuardianProfilePhotoUploadError
             ? error.message
@@ -86,7 +89,7 @@ export function ParentAccountScreen() {
         setPhotoUploading(false);
       }
     },
-    [refresh, selectedSchool?.id],
+    [refresh, reportError, selectedSchool?.id],
   );
 
   const handleSignOut = async () => {

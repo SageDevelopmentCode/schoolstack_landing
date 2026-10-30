@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { SchoolAdminFridayBranchStatusTag } from '@/components/school-admin/friday-branch/school-admin-friday-branch-status-tag';
 import { StoryCard } from '@/components/story/story-card';
 import { useParentTheme } from '@/contexts/parent-theme-context';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { fetchFridayBranchRecentActivity } from '@/lib/school-admin/friday-branch/friday-branch-api';
 import type { FridayBranchRecentSignupRow } from '@/lib/school-admin/friday-branch/friday-branch-types';
 import { formatRelativeTime } from '@/lib/school-admin/format-relative-time';
@@ -20,6 +21,7 @@ export function SchoolAdminFridayBranchRecentActivity({
   onOpenClass,
 }: SchoolAdminFridayBranchRecentActivityProps) {
   const theme = useParentTheme();
+  const { reportError } = useMobileErrorReporter(organizationId);
   const [signups, setSignups] = useState<FridayBranchRecentSignupRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,12 +30,13 @@ export function SchoolAdminFridayBranchRecentActivity({
     try {
       const rows = await fetchFridayBranchRecentActivity(organizationId);
       setSignups(rows);
-    } catch {
+    } catch (loadError) {
+      reportError('school_admin_friday_branch_recent_activity_load', loadError);
       setSignups([]);
     } finally {
       setLoading(false);
     }
-  }, [organizationId]);
+  }, [organizationId, reportError]);
 
   useEffect(() => {
     void loadSignups();

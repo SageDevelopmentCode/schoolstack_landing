@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { PortalMessage } from "@/lib/messages/types";
+import LinkifiedText from "@/components/text/LinkifiedText";
 import MessageAttachments from "./MessageAttachments";
 
 function MessageTimestamp({
@@ -91,6 +92,11 @@ export default function MessageBubbleBody({
     }
   };
 
+  const linkColor =
+    bodyColor === "#ffffff" || bodyColor === "#FFFFFF"
+      ? "rgba(255,255,255,0.92)"
+      : theme?.primary ?? C.accent;
+
   if (editing) {
     const editOnFilledBubble = message.isOwn && (ownBubble || Boolean(theme));
     const editFieldTextColor = theme?.ink ?? C.textPrimary;
@@ -148,9 +154,13 @@ export default function MessageBubbleBody({
   return (
     <>
       {message.body ? (
-        <p className="whitespace-pre-wrap text-sm" style={{ color: bodyColor }}>
-          {message.body}
-        </p>
+        <LinkifiedText
+          as="p"
+          text={message.body}
+          className="whitespace-pre-wrap text-sm"
+          style={{ color: bodyColor }}
+          linkColor={linkColor}
+        />
       ) : null}
       <MessageAttachments
         attachments={message.attachments}

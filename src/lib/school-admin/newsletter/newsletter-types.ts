@@ -1,0 +1,107 @@
+/** Single storybook layout; legacy values are normalized on workspace load. */
+export type NewsletterLayout = "storybook";
+
+export type NewsletterEditionStatus = "draft" | "published";
+
+export type NewsletterStoryBlockKind =
+  | "welcome"
+  | "learning"
+  | "moment"
+  | "next"
+  | "family"
+  | "quote"
+  | "custom";
+
+export type NewsletterSections = {
+  events: boolean;
+  reminders: boolean;
+  photos: boolean;
+  teacherUpdates: boolean;
+};
+
+export type NewsletterStoryBlock = {
+  id: string;
+  kind: NewsletterStoryBlockKind;
+  heading: string;
+  prompt: string;
+  starter?: string;
+  optional?: boolean;
+  enabled: boolean;
+  value: string;
+};
+
+export type NewsletterStoryBlockTemplate = Omit<NewsletterStoryBlock, "value">;
+
+export type NewsletterSchoolTemplate = {
+  storyBlocks: NewsletterStoryBlockTemplate[];
+  sections: NewsletterSections;
+  teacherUpdatesHeading: string;
+};
+
+export type NewsletterEvent = {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  note: string;
+};
+
+export type NewsletterReminder = {
+  id: string;
+  text: string;
+  keep: boolean;
+};
+
+export type NewsletterPhoto = {
+  id: string;
+  src: string;
+  caption: string;
+  /** When picked from the school photo library. */
+  galleryPhotoId?: string;
+  /** Uploaded image in school-newsletter-files (server persistence). */
+  storagePath?: string;
+};
+
+export type NewsletterEdition = {
+  id: string;
+  title: string;
+  week: string;
+  weekEnd?: string;
+  layout: NewsletterLayout;
+  status: NewsletterEditionStatus;
+  publishedAt?: string;
+  sections: NewsletterSections;
+  storyBlocks: NewsletterStoryBlock[];
+  teacherUpdates: Record<string, string>;
+  events: NewsletterEvent[];
+  reminders: NewsletterReminder[];
+  photos: NewsletterPhoto[];
+  /** Data URL or signed URL for overview grid banner. */
+  coverImage?: string;
+  /** Cover picked from the school photo library. */
+  coverGalleryPhotoId?: string;
+};
+
+export type NewsletterSchoolMeta = {
+  name: string;
+  signature: string;
+  primary: string;
+};
+
+export type NewsletterWorkspaceState = {
+  school: NewsletterSchoolMeta;
+  template: NewsletterSchoolTemplate;
+  editions: NewsletterEdition[];
+  activeEditionId: string;
+};
+
+export const DEFAULT_NEWSLETTER_SECTIONS: NewsletterSections = {
+  events: true,
+  reminders: true,
+  photos: true,
+  teacherUpdates: true,
+};
+
+export function createNewsletterId(): string {
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+}

@@ -463,6 +463,10 @@ export function buildDemoEnrollmentFlowsListData(): EnrollmentFlowsListData {
   const programs = buildDemoPrograms().map((program) => ({
     id: program.id,
     name: program.name,
+    type: program.type,
+    status: program.status,
+    start_date: program.start_date,
+    end_date: program.end_date,
   }));
 
   return {

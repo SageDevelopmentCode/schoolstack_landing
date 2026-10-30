@@ -6,6 +6,7 @@ import { StoryButton } from '@/components/story/story-button';
 import { AdmissionsFilterPill } from '@/components/school-admin/admissions/admissions-filter-pill';
 import { StoryTextField } from '@/components/story/story-text-field';
 import { useParentTheme } from '@/contexts/parent-theme-context';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { buildFridayBranchClassSavePayload } from '@/lib/school-admin/friday-branch/friday-branch-class-save';
 import type { FridayBranchTimeSlot } from '@/lib/school-admin/friday-branch/friday-branch-types';
 import {
@@ -26,6 +27,7 @@ export type FridayBranchAddTimeSlotPayload = {
 
 type SchoolAdminFridayBranchAddTimeSlotSheetProps = {
   visible: boolean;
+  organizationId: string;
   slots: FridayBranchTimeSlot[];
   saving?: boolean;
   onClose: () => void;
@@ -34,12 +36,14 @@ type SchoolAdminFridayBranchAddTimeSlotSheetProps = {
 
 export function SchoolAdminFridayBranchAddTimeSlotSheet({
   visible,
+  organizationId,
   slots,
   saving = false,
   onClose,
   onSave,
 }: SchoolAdminFridayBranchAddTimeSlotSheetProps) {
   const theme = useParentTheme();
+  const { reportError } = useMobileErrorReporter(organizationId);
   const [time, setTime] = useState('9:00');
   const [className, setClassName] = useState('');
   const [location, setLocation] = useState('');
@@ -111,8 +115,8 @@ export function SchoolAdminFridayBranchAddTimeSlotSheet({
     try {
       await onSave({ time: trimmedTime, firstClass });
       onClose();
-    } catch {
-      // Parent surfaces the error.
+    } catch (saveError) {
+      reportError('school_admin_friday_branch_time_slot_save', saveError);
     } finally {
       setIsSaving(false);
     }

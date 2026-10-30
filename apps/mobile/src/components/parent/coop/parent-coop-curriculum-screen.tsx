@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { createParentPortalErrorReporter } from '@/lib/mobile-error-reporter';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import {
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
+  type ScrollView,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ParentCoopCurriculumSkeleton } from '@/components/parent/coop/parent-coop-curriculum-skeleton';
 import { ParentCoopCurriculumStoryHeader } from '@/components/parent/coop/parent-coop-curriculum-story-header';
+import { ParentKeyboardAwareScrollView } from '@/components/parent/parent-keyboard-aware-scroll-view';
 import { ParentEmbeddedPdfPreview } from '@/components/parent/shared/parent-embedded-pdf-preview';
 import { StoryButton } from '@/components/story/story-button';
 import { StoryCard } from '@/components/story/story-card';
@@ -54,10 +55,7 @@ export function ParentCoopCurriculumScreen({
 }: ParentCoopCurriculumScreenProps) {
   const theme = useParentTheme();
   const previewReadOnly = usePortalReadOnly();
-  const reportError = useMemo(
-    () => createParentPortalErrorReporter(organizationId),
-    [organizationId],
-  );
+  const { reportError } = useMobileErrorReporter(organizationId);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [curricula, setCurricula] = useState<ParentCoopCurriculumRecord[]>([]);
@@ -80,6 +78,13 @@ export function ParentCoopCurriculumScreen({
 
   const activeCurriculumIdRef = useRef<string | null>(null);
   activeCurriculumIdRef.current = activeCurriculum?.id ?? null;
+  const scrollRef = useRef<ScrollView>(null);
+
+  const scrollDiscussionIntoView = useCallback(() => {
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    });
+  }, []);
 
   const guidePills = useMemo(
     () =>
@@ -272,7 +277,8 @@ export function ParentCoopCurriculumScreen({
   const pdfTitle = activeCurriculum?.displayName ?? activeCurriculum?.fileName ?? 'Curriculum';
 
   return (
-    <ScrollView
+    <ParentKeyboardAwareScrollView
+      ref={scrollRef}
       testID="parent-coop-curriculum-ready"
       style={{ flex: 1, backgroundColor: Story.paper }}
       contentContainerStyle={styles.content}
@@ -358,6 +364,7 @@ export function ParentCoopCurriculumScreen({
                         onChangeText={setDraft}
                         placeholder="Write a message…"
                         placeholderTextColor={theme.muted}
+                        onFocus={scrollDiscussionIntoView}
                         style={[
                           styles.composeInput,
                           { borderColor: theme.line, color: theme.ink, backgroundColor: theme.white },
@@ -377,7 +384,7 @@ export function ParentCoopCurriculumScreen({
           </Animated.View>
         </>
       )}
-    </ScrollView>
+    </ParentKeyboardAwareScrollView>
   );
 }
 

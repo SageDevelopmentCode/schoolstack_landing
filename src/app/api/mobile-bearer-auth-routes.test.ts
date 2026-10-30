@@ -259,7 +259,10 @@ describe("mobile bearer auth route wiring", () => {
     "app/api/teacher-portal/operational-errors/route.ts",
     "app/api/teacher-portal/profile-photo/route.ts",
     "app/api/school-admin/profile-photo/route.ts",
+    "app/api/school-admin/photo-media-consents/route.ts",
     "app/api/parent-portal/students/[studentId]/health/route.ts",
+    "app/api/parent-portal/photo-media-consents/route.ts",
+    "app/api/parent-portal/students/[studentId]/photo-media-consent/route.ts",
     "app/api/teacher-portal/forms-documents/route.ts",
     "app/api/parent-portal/committees/[committeeId]/mark-read/route.ts",
     "app/api/teacher-portal/committees/[committeeId]/mark-read/route.ts",
@@ -274,4 +277,20 @@ describe("mobile bearer auth route wiring", () => {
       assert.doesNotMatch(source, /from "@\/utils\/supabase\/server"/);
     });
   }
+
+  it("school admin admissions visit book route scopes application booking to organizationId", () => {
+    const source = readRoute("app/api/school-admin/admissions/visits/book/route.ts");
+    const bookCallIndex = source.indexOf("bookAdmissionsVisit(");
+    const contextLoadIndex = source.indexOf("loadPostSubmitActionForApplication(");
+    const orgGuardIndex = source.indexOf(
+      "schedulingContext.organizationId !== organizationId",
+    );
+
+    assert.ok(contextLoadIndex >= 0, "expected loadPostSubmitActionForApplication");
+    assert.ok(orgGuardIndex >= 0, "expected organizationId mismatch guard");
+    assert.ok(
+      contextLoadIndex < bookCallIndex && orgGuardIndex < bookCallIndex,
+      "org boundary check should run before bookAdmissionsVisit",
+    );
+  });
 });
