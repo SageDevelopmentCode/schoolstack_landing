@@ -3,8 +3,10 @@ import { describe, it } from "node:test";
 import type { AdminPostSubmitStep } from "./admin-post-submit-steps";
 import {
   actionTypeMatchesManualBookingContext,
-  buildApplicationManualVisitBookingSearchOrFilter,
+  buildApplicationManualVisitBookingFkOrFilter,
   buildFamilyManualVisitBookingSearchOrFilter,
+  buildGuardianManualVisitBookingSearchOrFilter,
+  buildStudentManualVisitBookingSearchOrFilter,
   escapeIlikePatternTerm,
   filterPendingStepsForContext,
   isFamilyEligibleForPreAppCampusTour,
@@ -37,11 +39,52 @@ describe("manual visit booking search filters", () => {
     );
   });
 
-  it("builds application search or filters across related tables", () => {
-    const filter = buildApplicationManualVisitBookingSearchOrFilter("smith");
-    assert.match(filter, /students\.first_name\.ilike\.%smith%/);
-    assert.match(filter, /guardians\.email\.ilike\.%smith%/);
-    assert.match(filter, /families\.primary_email\.ilike\.%smith%/);
+  it("builds student name ilike or filters", () => {
+    assert.equal(
+      buildStudentManualVisitBookingSearchOrFilter("smith"),
+      "first_name.ilike.%smith%,last_name.ilike.%smith%",
+    );
+  });
+
+  it("builds guardian name and email ilike or filters", () => {
+    assert.equal(
+      buildGuardianManualVisitBookingSearchOrFilter("smith"),
+      "first_name.ilike.%smith%,last_name.ilike.%smith%,email.ilike.%smith%",
+    );
+  });
+
+  it("builds application FK or filters from subsidiary matches", () => {
+    const studentId = "11111111-1111-1111-1111-111111111111";
+    const guardianId = "22222222-2222-2222-2222-222222222222";
+    const familyFromGuardian = "33333333-3333-3333-3333-333333333333";
+    const familyFromSearch = "44444444-4444-4444-4444-444444444444";
+
+    assert.equal(
+      buildApplicationManualVisitBookingFkOrFilter({
+        studentIds: [studentId],
+        guardianIds: [],
+        familyIds: [],
+      }),
+      `student_id.in.(${studentId})`,
+    );
+
+    assert.equal(
+      buildApplicationManualVisitBookingFkOrFilter({
+        studentIds: [],
+        guardianIds: [guardianId],
+        familyIds: [familyFromGuardian, familyFromSearch],
+      }),
+      `primary_guardian_id.in.(${guardianId}),family_id.in.(${familyFromGuardian},${familyFromSearch})`,
+    );
+
+    assert.equal(
+      buildApplicationManualVisitBookingFkOrFilter({
+        studentIds: [],
+        guardianIds: [],
+        familyIds: [],
+      }),
+      null,
+    );
   });
 
   it("quotes family filter values when the pattern contains commas", () => {

@@ -59,6 +59,7 @@ const SHADOW_ACTION_TYPES: ReadonlySet<PostSubmitActionType> = new Set([
 const APPLICATION_SEARCH_PAGE_SIZE = 100;
 const APPLICATION_SEARCH_MAX_SCANNED = 500;
 const FAMILY_SEARCH_PAGE_SIZE = 50;
+const SUBSIDIARY_SEARCH_MATCH_LIMIT = 100;
 
 /** Escape `%`, `_`, and `\` for use inside a PostgREST `ilike` pattern. */
 export function escapeIlikePatternTerm(term: string): string {
@@ -82,19 +83,81 @@ export function buildFamilyManualVisitBookingSearchOrFilter(query: string): stri
   return postgrestOrIlikeClauses(["name", "primary_email"], query);
 }
 
-export function buildApplicationManualVisitBookingSearchOrFilter(query: string): string {
-  return postgrestOrIlikeClauses(
-    [
-      "students.first_name",
-      "students.last_name",
-      "guardians.first_name",
-      "guardians.last_name",
-      "guardians.email",
-      "families.name",
-      "families.primary_email",
-    ],
-    query,
-  );
+export function buildStudentManualVisitBookingSearchOrFilter(query: string): string {
+  return postgrestOrIlikeClauses(["first_name", "last_name"], query);
+}
+
+export function buildGuardianManualVisitBookingSearchOrFilter(query: string): string {
+  return postgrestOrIlikeClauses(["first_name", "last_name", "email"], query);
+}
+
+export function buildApplicationManualVisitBookingFkOrFilter(params: {
+  studentIds: string[];
+  guardianIds: string[];
+  familyIds: string[];
+}): string | null {
+  const parts: string[] = [];
+  if (params.studentIds.length > 0) {
+    parts.push(`student_id.in.(${params.studentIds.join(",")})`);
+  }
+  if (params.guardianIds.length > 0) {
+    parts.push(`primary_guardian_id.in.(${params.guardianIds.join(",")})`);
+  }
+  if (params.familyIds.length > 0) {
+    parts.push(`family_id.in.(${params.familyIds.join(",")})`);
+  }
+  if (parts.length === 0) return null;
+  return parts.join(",");
+}
+
+export async function resolveApplicationManualVisitBookingSearchOrFilter(
+  supabase: SupabaseClient,
+  organizationId: string,
+  query: string,
+): Promise<string | null> {
+  const studentOr = buildStudentManualVisitBookingSearchOrFilter(query);
+  const guardianOr = buildGuardianManualVisitBookingSearchOrFilter(query);
+  const familyOr = buildFamilyManualVisitBookingSearchOrFilter(query);
+
+  const [studentsResult, guardiansResult, familiesResult] = await Promise.all([
+    supabase
+      .from("students")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .or(studentOr)
+      .limit(SUBSIDIARY_SEARCH_MATCH_LIMIT),
+    supabase
+      .from("guardians")
+      .select("id, family_id")
+      .eq("organization_id", organizationId)
+      .or(guardianOr)
+      .limit(SUBSIDIARY_SEARCH_MATCH_LIMIT),
+    supabase
+      .from("families")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .or(familyOr)
+      .limit(SUBSIDIARY_SEARCH_MATCH_LIMIT),
+  ]);
+
+  if (studentsResult.error) throw studentsResult.error;
+  if (guardiansResult.error) throw guardiansResult.error;
+  if (familiesResult.error) throw familiesResult.error;
+
+  const studentIds = (studentsResult.data ?? []).map((row) => String(row.id));
+  const guardianIds = (guardiansResult.data ?? []).map((row) => String(row.id));
+  const familyIds = [
+    ...new Set([
+      ...(guardiansResult.data ?? []).map((row) => String(row.family_id)),
+      ...(familiesResult.data ?? []).map((row) => String(row.id)),
+    ]),
+  ];
+
+  return buildApplicationManualVisitBookingFkOrFilter({
+    studentIds,
+    guardianIds,
+    familyIds,
+  });
 }
 
 export function actionTypeMatchesManualBookingContext(
@@ -218,87 +281,94 @@ export async function searchAdminManualVisitBookingTargets(
     return { applications: [], families: [] };
   }
 
-  const applicationSearchOr = buildApplicationManualVisitBookingSearchOrFilter(query);
+  const applicationSearchOr = await resolveApplicationManualVisitBookingSearchOrFilter(
+    supabase,
+    organizationId,
+    query,
+  );
   const applications: AdminManualBookingApplicationTarget[] = [];
-  let applicationOffset = 0;
-  let applicationsScanned = 0;
 
-  while (
-    applications.length < limit &&
-    applicationsScanned < APPLICATION_SEARCH_MAX_SCANNED
-  ) {
-    const pageEnd = applicationOffset + APPLICATION_SEARCH_PAGE_SIZE - 1;
-    const { data: applicationRows, error: applicationsError } = await supabase
-      .from("applications")
-      .select(APPLICATION_SEARCH_SELECT)
-      .eq("organization_id", organizationId)
-      .neq("status", "draft")
-      .or(applicationSearchOr)
-      .order("updated_at", { ascending: false })
-      .range(applicationOffset, pageEnd);
+  if (applicationSearchOr) {
+    let applicationOffset = 0;
+    let applicationsScanned = 0;
 
-    if (applicationsError) throw applicationsError;
+    while (
+      applications.length < limit &&
+      applicationsScanned < APPLICATION_SEARCH_MAX_SCANNED
+    ) {
+      const pageEnd = applicationOffset + APPLICATION_SEARCH_PAGE_SIZE - 1;
+      const { data: applicationRows, error: applicationsError } = await supabase
+        .from("applications")
+        .select(APPLICATION_SEARCH_SELECT)
+        .eq("organization_id", organizationId)
+        .neq("status", "draft")
+        .or(applicationSearchOr)
+        .order("updated_at", { ascending: false })
+        .range(applicationOffset, pageEnd);
 
-    const page = applicationRows ?? [];
-    if (page.length === 0) break;
+      if (applicationsError) throw applicationsError;
 
-    applicationsScanned += page.length;
-    applicationOffset += APPLICATION_SEARCH_PAGE_SIZE;
+      const page = applicationRows ?? [];
+      if (page.length === 0) break;
 
-    const matchingRows = page.filter((row) =>
-      applicationSearchHaystack(row as Record<string, unknown>).includes(query),
-    );
+      applicationsScanned += page.length;
+      applicationOffset += APPLICATION_SEARCH_PAGE_SIZE;
 
-    const applicationIds = matchingRows.map((row) => String(row.id));
-    const visits = await listScheduledVisitsForApplications(supabase, applicationIds);
-    const visitsByApplicationId = new Map<string, typeof visits>();
-    for (const visit of visits) {
-      const bucket = visitsByApplicationId.get(visit.applicationId) ?? [];
-      bucket.push(visit);
-      visitsByApplicationId.set(visit.applicationId, bucket);
-    }
-
-    for (const row of matchingRows) {
-      const record = row as Record<string, unknown>;
-      const formVersion = record.application_form_versions as
-        | { post_submit_config?: unknown }
-        | { post_submit_config?: unknown }[]
-        | null;
-      const form = Array.isArray(formVersion) ? formVersion[0] : formVersion;
-      const applicationId = String(record.id);
-      const postSubmitConfig = parseApplicationFormPostSubmitConfig(form?.post_submit_config);
-      const steps = buildAdminPostSubmitSteps(
-        postSubmitConfig,
-        visitsByApplicationId.get(applicationId) ?? [],
-        String(record.status),
+      const matchingRows = page.filter((row) =>
+        applicationSearchHaystack(row as Record<string, unknown>).includes(query),
       );
-      const pendingSteps = filterPendingStepsForContext(steps, context);
-      if (pendingSteps.length === 0) continue;
 
-      const family = record.families as
-        | { name?: string; primary_email?: string | null }
-        | { name?: string; primary_email?: string | null }[]
-        | null;
-      const familyRow = Array.isArray(family) ? family[0] : family;
-      const guardian = record.guardians as
-        | { email?: string | null }
-        | { email?: string | null }[]
-        | null;
-      const guardianRow = Array.isArray(guardian) ? guardian[0] : guardian;
+      const applicationIds = matchingRows.map((row) => String(row.id));
+      const visits = await listScheduledVisitsForApplications(supabase, applicationIds);
+      const visitsByApplicationId = new Map<string, typeof visits>();
+      for (const visit of visits) {
+        const bucket = visitsByApplicationId.get(visit.applicationId) ?? [];
+        bucket.push(visit);
+        visitsByApplicationId.set(visit.applicationId, bucket);
+      }
 
-      applications.push({
-        id: applicationId,
-        studentLabel: studentLabelFromRow(record),
-        familyName: familyRow?.name ? String(familyRow.name) : null,
-        guardianEmail: guardianRow?.email ? String(guardianRow.email) : null,
-        pendingSteps,
-      });
+      for (const row of matchingRows) {
+        const record = row as Record<string, unknown>;
+        const formVersion = record.application_form_versions as
+          | { post_submit_config?: unknown }
+          | { post_submit_config?: unknown }[]
+          | null;
+        const form = Array.isArray(formVersion) ? formVersion[0] : formVersion;
+        const applicationId = String(record.id);
+        const postSubmitConfig = parseApplicationFormPostSubmitConfig(form?.post_submit_config);
+        const steps = buildAdminPostSubmitSteps(
+          postSubmitConfig,
+          visitsByApplicationId.get(applicationId) ?? [],
+          String(record.status),
+        );
+        const pendingSteps = filterPendingStepsForContext(steps, context);
+        if (pendingSteps.length === 0) continue;
+
+        const family = record.families as
+          | { name?: string; primary_email?: string | null }
+          | { name?: string; primary_email?: string | null }[]
+          | null;
+        const familyRow = Array.isArray(family) ? family[0] : family;
+        const guardian = record.guardians as
+          | { email?: string | null }
+          | { email?: string | null }[]
+          | null;
+        const guardianRow = Array.isArray(guardian) ? guardian[0] : guardian;
+
+        applications.push({
+          id: applicationId,
+          studentLabel: studentLabelFromRow(record),
+          familyName: familyRow?.name ? String(familyRow.name) : null,
+          guardianEmail: guardianRow?.email ? String(guardianRow.email) : null,
+          pendingSteps,
+        });
+
+        if (applications.length >= limit) break;
+      }
 
       if (applications.length >= limit) break;
+      if (page.length < APPLICATION_SEARCH_PAGE_SIZE) break;
     }
-
-    if (applications.length >= limit) break;
-    if (page.length < APPLICATION_SEARCH_PAGE_SIZE) break;
   }
 
   let families: AdminManualBookingFamilyTarget[] = [];

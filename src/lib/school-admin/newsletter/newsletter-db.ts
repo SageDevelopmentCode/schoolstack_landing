@@ -612,13 +612,10 @@ export async function deleteNewsletterEdition(
     throw new NewsletterError("Newsletter not found.", "not_found", 404);
   }
 
-  const row = existingRow as EditionRow;
-  const paths: string[] = [];
-  if (row.cover_storage_path) paths.push(row.cover_storage_path);
-  for (const photo of row.content?.photos ?? []) {
-    if (photo.storagePath) paths.push(photo.storagePath);
-  }
-  const ownedPaths = paths.filter((path) =>
+  const retainedPaths = await loadRetainedNewsletterAssetPaths(admin, editionId, {
+    includeLiveEdition: true,
+  });
+  const ownedPaths = [...retainedPaths].filter((path) =>
     isNewsletterEditionAssetStoragePath(organizationId, editionId, path),
   );
 

@@ -56,13 +56,21 @@ export function buildSavedBaselineAfterNewsletterSave(
   resultEdition: NewsletterEdition,
   resultTemplate: NewsletterSchoolTemplate,
 ): NewsletterWorkspaceState {
+  const baselineHasSavedEdition = previousBaseline.editions.some(
+    (edition) => edition.id === savedEditionId,
+  );
+  let editions = previousBaseline.editions.map((edition) =>
+    edition.id === savedEditionId ? resultEdition : edition,
+  );
+  if (!baselineHasSavedEdition) {
+    editions = [...editions, resultEdition];
+  }
+
   return {
     ...previousBaseline,
     school: live.school,
     activeEditionId: live.activeEditionId,
     template: resultTemplate,
-    editions: previousBaseline.editions.map((edition) =>
-      edition.id === savedEditionId ? resultEdition : edition,
-    ),
+    editions,
   };
 }

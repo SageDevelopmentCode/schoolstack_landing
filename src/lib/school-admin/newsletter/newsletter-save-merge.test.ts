@@ -150,4 +150,38 @@ describe("buildSavedBaselineAfterNewsletterSave and workspaceStatesEqual", () =>
 
     assert.equal(workspaceStatesEqual(display, baseline), false);
   });
+
+  it("adds newly saved edition to baseline when it was only in live workspace", () => {
+    const template = defaultSchoolTemplate();
+    const submittedSnapshot = createBlankEdition(template);
+    submittedSnapshot.storyBlocks[0]!.value = "Saved content";
+    const previousBaseline: NewsletterWorkspaceState = {
+      school: { name: "Test School", signature: "Team", primary: "#336699" },
+      template: structuredClone(template),
+      editions: [],
+      activeEditionId: submittedSnapshot.id,
+    };
+    const live = workspaceWithEdition(submittedSnapshot, template);
+    const resultEdition = structuredClone(submittedSnapshot);
+
+    const baseline = buildSavedBaselineAfterNewsletterSave(
+      previousBaseline,
+      live,
+      submittedSnapshot.id,
+      resultEdition,
+      template,
+    );
+    const display = applyNewsletterSaveResultToLiveWorkspace({
+      live,
+      submittedEdition: submittedSnapshot,
+      submittedTemplate: template,
+      savedEditionId: submittedSnapshot.id,
+      resultEdition,
+      resultTemplate: template,
+    });
+
+    assert.equal(baseline.editions.length, 1);
+    assert.equal(baseline.editions[0]?.id, submittedSnapshot.id);
+    assert.equal(workspaceStatesEqual(display, baseline), true);
+  });
 });
