@@ -53,7 +53,7 @@ export function reportMobileFeatureVisit(input: ReportMobileFeatureVisitInput): 
     return;
   }
 
-  const dedupKey = mobileFeatureVisitSessionKey(input.surface, featureKey);
+  const dedupKey = mobileFeatureVisitSessionKey(organizationId, input.surface, featureKey);
   if (hasRecordedMobileFeatureVisit(dedupKey)) {
     return;
   }

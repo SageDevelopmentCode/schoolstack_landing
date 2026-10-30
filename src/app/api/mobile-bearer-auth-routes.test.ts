@@ -277,4 +277,20 @@ describe("mobile bearer auth route wiring", () => {
       assert.doesNotMatch(source, /from "@\/utils\/supabase\/server"/);
     });
   }
+
+  it("school admin admissions visit book route scopes application booking to organizationId", () => {
+    const source = readRoute("app/api/school-admin/admissions/visits/book/route.ts");
+    const bookCallIndex = source.indexOf("bookAdmissionsVisit(");
+    const contextLoadIndex = source.indexOf("loadPostSubmitActionForApplication(");
+    const orgGuardIndex = source.indexOf(
+      "schedulingContext.organizationId !== organizationId",
+    );
+
+    assert.ok(contextLoadIndex >= 0, "expected loadPostSubmitActionForApplication");
+    assert.ok(orgGuardIndex >= 0, "expected organizationId mismatch guard");
+    assert.ok(
+      contextLoadIndex < bookCallIndex && orgGuardIndex < bookCallIndex,
+      "org boundary check should run before bookAdmissionsVisit",
+    );
+  });
 });

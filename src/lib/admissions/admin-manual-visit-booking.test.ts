@@ -3,6 +3,9 @@ import { describe, it } from "node:test";
 import type { AdminPostSubmitStep } from "./admin-post-submit-steps";
 import {
   actionTypeMatchesManualBookingContext,
+  buildApplicationManualVisitBookingSearchOrFilter,
+  buildFamilyManualVisitBookingSearchOrFilter,
+  escapeIlikePatternTerm,
   filterPendingStepsForContext,
   isFamilyEligibleForPreAppCampusTour,
 } from "./admin-manual-visit-booking";
@@ -19,6 +22,35 @@ function step(
     ...overrides,
   };
 }
+
+describe("manual visit booking search filters", () => {
+  it("escapes ilike metacharacters in the search term", () => {
+    assert.equal(escapeIlikePatternTerm("100%"), "100\\%");
+    assert.equal(escapeIlikePatternTerm("a_b"), "a\\_b");
+    assert.equal(escapeIlikePatternTerm("a\\b"), "a\\\\b");
+  });
+
+  it("builds family name and email ilike or filters", () => {
+    assert.equal(
+      buildFamilyManualVisitBookingSearchOrFilter("rivera"),
+      "name.ilike.%rivera%,primary_email.ilike.%rivera%",
+    );
+  });
+
+  it("builds application search or filters across related tables", () => {
+    const filter = buildApplicationManualVisitBookingSearchOrFilter("smith");
+    assert.match(filter, /students\.first_name\.ilike\.%smith%/);
+    assert.match(filter, /guardians\.email\.ilike\.%smith%/);
+    assert.match(filter, /families\.primary_email\.ilike\.%smith%/);
+  });
+
+  it("quotes family filter values when the pattern contains commas", () => {
+    assert.equal(
+      buildFamilyManualVisitBookingSearchOrFilter("a,b"),
+      'name.ilike."%a,b%",primary_email.ilike."%a,b%"',
+    );
+  });
+});
 
 describe("actionTypeMatchesManualBookingContext", () => {
   it("matches tours context", () => {

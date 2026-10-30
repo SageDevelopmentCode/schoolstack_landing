@@ -47,6 +47,7 @@ import {
 } from "@/lib/school-admin/students-roster-page";
 import { fetchStudentsPageMeta } from "@/lib/school-admin/students-page-meta";
 import { listStaffMembers } from "@/lib/staff/staff-members";
+import { loadOrgPhotoMediaConsentRoster } from "@/lib/students/load-org-photo-media-consent-roster";
 import {
   buildMobilePreviewPortalOptions,
   PreviewPortalOptionsError,
@@ -426,6 +427,11 @@ export async function handleSchoolAdminMobilePreviewGet(
         ...(meta ? { meta } : {}),
         ...(staffMembers ? { staffMembers } : {}),
       });
+    }
+
+    if (segment === "photo-media-consents") {
+      const students = await loadOrgPhotoMediaConsentRoster(admin, organizationId);
+      return NextResponse.json({ students });
     }
 
     return apiError(route, {

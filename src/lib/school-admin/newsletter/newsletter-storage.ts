@@ -1,6 +1,16 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { compressImageForUpload } from "@/lib/images/compress-image";
+import { reportOperationalError } from "@/lib/operational-errors";
 import { NEWSLETTER_UPLOAD_COMPRESS_OPTIONS } from "./newsletter-photos";
+
+export type NewsletterAssetFailureContext = {
+  organizationId: string;
+  editionId: string;
+  storagePath?: string;
+  storagePaths?: string[];
+  photoId?: string;
+  assetKind?: "cover" | "photo";
+};
 
 export const SCHOOL_NEWSLETTER_FILES_BUCKET = "school-newsletter-files";
 
@@ -16,6 +26,40 @@ export function buildNewsletterAssetStoragePath(
 ): string {
   const safeName = fileName.replace(/[/\\]/g, "_");
   return `${organizationId}/editions/${editionId}/${assetId}_${safeName}`;
+}
+
+export function newsletterEditionAssetStoragePathPrefix(
+  organizationId: string,
+  editionId: string,
+): string {
+  return `${organizationId}/editions/${editionId}/`;
+}
+
+function hasUnsafeStoragePathSegments(storagePath: string): boolean {
+  return (
+    storagePath.startsWith("/") || storagePath.includes("\\") || storagePath.includes("..")
+  );
+}
+
+export function isNewsletterEditionAssetStoragePath(
+  organizationId: string,
+  editionId: string,
+  storagePath: string,
+): boolean {
+  if (!storagePath || hasUnsafeStoragePathSegments(storagePath)) {
+    return false;
+  }
+  return storagePath.startsWith(newsletterEditionAssetStoragePathPrefix(organizationId, editionId));
+}
+
+export function assertNewsletterEditionAssetStoragePath(
+  organizationId: string,
+  editionId: string,
+  storagePath: string,
+): void {
+  if (!isNewsletterEditionAssetStoragePath(organizationId, editionId, storagePath)) {
+    throw new Error("Newsletter asset storage path does not match this edition.");
+  }
 }
 
 export function parseNewsletterDataUrl(
@@ -102,4 +146,73 @@ export async function getNewsletterAssetSignedUrl(
     throw new Error("Failed to create a download link for this image.");
   }
   return data.signedUrl;
+}
+
+export function reportNewsletterAssetSignedUrlFailure(
+  supabase: SupabaseClient,
+  ctx: NewsletterAssetFailureContext,
+  cause: unknown,
+): void {
+  void reportOperationalError({
+    supabase,
+    surface: "school_admin",
+    organizationId: ctx.organizationId,
+    operation: "newsletter_asset.signed_url",
+    error:
+      cause instanceof Error
+        ? cause.message
+        : "Failed to create a signed URL for a newsletter image.",
+    entityType: "school_newsletter_edition",
+    entityId: ctx.editionId,
+    metadata: {
+      bucket: SCHOOL_NEWSLETTER_FILES_BUCKET,
+      storagePath: ctx.storagePath,
+      photoId: ctx.photoId,
+      assetKind: ctx.assetKind,
+    },
+    severity: "warning",
+    notify: true,
+    actor: { type: "system" },
+    cause,
+  });
+}
+
+export function reportNewsletterAssetDeleteFailure(
+  supabase: SupabaseClient,
+  ctx: NewsletterAssetFailureContext,
+  cause: unknown,
+): void {
+  void reportOperationalError({
+    supabase,
+    surface: "school_admin",
+    organizationId: ctx.organizationId,
+    operation: "newsletter_asset.storage_delete",
+    error:
+      cause instanceof Error
+        ? cause.message
+        : "Failed to delete newsletter image files from storage.",
+    entityType: "school_newsletter_edition",
+    entityId: ctx.editionId,
+    metadata: {
+      bucket: SCHOOL_NEWSLETTER_FILES_BUCKET,
+      storagePath: ctx.storagePath,
+      storagePaths: ctx.storagePaths,
+    },
+    notify: true,
+    actor: { type: "system" },
+    cause,
+  });
+}
+
+export async function getNewsletterAssetSignedUrlWithReport(
+  supabase: SupabaseClient,
+  ctx: NewsletterAssetFailureContext,
+  expiresIn = 60 * 60,
+): Promise<string | undefined> {
+  const storagePath = ctx.storagePath;
+  if (!storagePath) return undefined;
+  return getNewsletterAssetSignedUrl(supabase, storagePath, expiresIn).catch((cause) => {
+    reportNewsletterAssetSignedUrlFailure(supabase, ctx, cause);
+    return undefined;
+  });
 }

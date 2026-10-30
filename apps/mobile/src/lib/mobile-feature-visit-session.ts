@@ -1,10 +1,11 @@
 const visitedThisSession = new Set<string>();
 
 export function mobileFeatureVisitSessionKey(
+  organizationId: string,
   surface: string,
   featureKey: string,
 ): string {
-  return `${surface}:${featureKey}`;
+  return `${organizationId}:${surface}:${featureKey}`;
 }
 
 export function hasRecordedMobileFeatureVisit(sessionKey: string): boolean {

@@ -4,6 +4,7 @@ import {
   getActivityDateRangeStart,
   type ActivityDatePreset,
 } from "@/lib/activity-log";
+import { POSTGREST_DEFAULT_MAX_ROWS } from "@/lib/supabase/fetch-all-rows";
 
 export type MobileFeatureAnalyticsSurface =
   | "parent_portal"
@@ -67,7 +68,6 @@ export type MobileFeatureVisitEventRow = {
   created_at: string;
 };
 
-const PAGE_SIZE = 2000;
 const MAX_ROWS = 100_000;
 
 const MOBILE_FEATURE_LABELS: Record<string, string> = {
@@ -268,7 +268,7 @@ export async function fetchMobileFeatureAnalyticsUsers(
       .eq("action", ACTIVITY_ACTIONS.MOBILE_FEATURE_VISITED)
       .in("actor_type", ["parent", "teacher", "school_admin"])
       .order("created_at", { ascending: true })
-      .range(offset, offset + PAGE_SIZE - 1);
+      .range(offset, offset + POSTGREST_DEFAULT_MAX_ROWS - 1);
 
     if (rangeStart) {
       query = query.gte("created_at", rangeStart);
@@ -308,11 +308,11 @@ export async function fetchMobileFeatureAnalyticsUsers(
     }
 
     fetched += batch.length;
-    if (batch.length < PAGE_SIZE) {
+    if (batch.length < POSTGREST_DEFAULT_MAX_ROWS) {
       break;
     }
 
-    offset += PAGE_SIZE;
+    offset += batch.length;
     if (fetched >= MAX_ROWS) {
       truncated = true;
       break;
@@ -356,7 +356,7 @@ export async function fetchMobileFeatureAnalytics(
       .eq("action", ACTIVITY_ACTIONS.MOBILE_FEATURE_VISITED)
       .in("actor_type", ["parent", "teacher", "school_admin"])
       .order("created_at", { ascending: true })
-      .range(offset, offset + PAGE_SIZE - 1);
+      .range(offset, offset + POSTGREST_DEFAULT_MAX_ROWS - 1);
 
     if (rangeStart) {
       query = query.gte("created_at", rangeStart);
@@ -405,11 +405,11 @@ export async function fetchMobileFeatureAnalytics(
     }
 
     fetched += batch.length;
-    if (batch.length < PAGE_SIZE) {
+    if (batch.length < POSTGREST_DEFAULT_MAX_ROWS) {
       break;
     }
 
-    offset += PAGE_SIZE;
+    offset += batch.length;
     if (fetched >= MAX_ROWS) {
       truncated = true;
       break;

@@ -91,12 +91,16 @@ export function ParentChildHealthTab({
     try {
       await refreshProfile();
     } catch (loadError) {
+      reportError('parent_student_health_load', loadError, {
+        entityType: 'student',
+        entityId: studentId,
+      });
       setError(loadError instanceof Error ? loadError.message : 'Failed to load health profile.');
       setProfile(emptyStudentHealthProfile());
     } finally {
       setLoading(false);
     }
-  }, [refreshProfile]);
+  }, [refreshProfile, reportError, studentId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -111,6 +115,10 @@ export function ParentChildHealthTab({
         onProfileChangeRef.current?.(nextProfile);
       } catch (loadError) {
         if (cancelled) return;
+        reportError('parent_student_health_load', loadError, {
+          entityType: 'student',
+          entityId: studentId,
+        });
         setError(loadError instanceof Error ? loadError.message : 'Failed to load health profile.');
         setProfile(emptyStudentHealthProfile());
       } finally {
@@ -121,7 +129,7 @@ export function ParentChildHealthTab({
     return () => {
       cancelled = true;
     };
-  }, [organizationId, studentId]);
+  }, [organizationId, reportError, studentId]);
 
   const handleSave = async (values: HealthFormValues) => {
     setSaving(true);

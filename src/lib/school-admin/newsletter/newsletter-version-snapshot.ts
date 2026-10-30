@@ -35,6 +35,20 @@ export type NewsletterEditionVersion = {
   snapshot: NewsletterEditionSnapshot;
 };
 
+/** Storage paths referenced by an edition version snapshot (cover + uploaded photos). */
+export function collectAssetStoragePathsFromSnapshot(snapshot: NewsletterEditionSnapshot): string[] {
+  const paths: string[] = [];
+  if (snapshot.cover_storage_path) {
+    paths.push(snapshot.cover_storage_path);
+  }
+  for (const photo of snapshot.content?.photos ?? []) {
+    if (photo.storagePath) {
+      paths.push(photo.storagePath);
+    }
+  }
+  return paths;
+}
+
 export function editionFromVersionSnapshot(
   editionId: string,
   snapshot: NewsletterEditionSnapshot,

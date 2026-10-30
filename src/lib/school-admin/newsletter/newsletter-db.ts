@@ -16,8 +16,10 @@ import {
 import {
   compressNewsletterImageBytes,
   deleteNewsletterAssetFiles,
-  getNewsletterAssetSignedUrl,
+  getNewsletterAssetSignedUrlWithReport,
+  isNewsletterEditionAssetStoragePath,
   parseNewsletterDataUrl,
+  reportNewsletterAssetDeleteFailure,
   uploadNewsletterAsset,
 } from "./newsletter-storage";
 import type {
@@ -27,10 +29,11 @@ import type {
   NewsletterSchoolTemplate,
   NewsletterWorkspaceState,
 } from "./newsletter-types";
-import type {
-  NewsletterEditionSnapshot,
-  NewsletterEditionVersion,
-  NewsletterEditionVersionKind,
+import {
+  collectAssetStoragePathsFromSnapshot,
+  type NewsletterEditionSnapshot,
+  type NewsletterEditionVersion,
+  type NewsletterEditionVersionKind,
 } from "./newsletter-version-snapshot";
 import { DEFAULT_NEWSLETTER_SECTIONS } from "./newsletter-types";
 
@@ -171,6 +174,17 @@ async function uploadPhotoFromDataUrl(
   );
 }
 
+async function deleteOwnedEditionAssetFile(
+  admin: SupabaseClient,
+  organizationId: string,
+  editionId: string,
+  storagePath: string | null,
+): Promise<void> {
+  if (!storagePath) return;
+  if (!isNewsletterEditionAssetStoragePath(organizationId, editionId, storagePath)) return;
+  await deleteNewsletterAssetsIfUnreferenced(admin, organizationId, editionId, [storagePath]);
+}
+
 async function resolveCoverStoragePath(
   admin: SupabaseClient,
   organizationId: string,
@@ -180,25 +194,27 @@ async function resolveCoverStoragePath(
   coverGalleryPhotoId: string | undefined,
 ): Promise<string | null> {
   if (coverGalleryPhotoId) {
-    if (existingPath) {
-      await deleteNewsletterAssetFiles(admin, [existingPath]).catch(() => undefined);
-    }
+    await deleteOwnedEditionAssetFile(admin, organizationId, editionId, existingPath);
     return null;
   }
   if (!coverImage?.trim()) {
-    if (existingPath) {
-      await deleteNewsletterAssetFiles(admin, [existingPath]).catch(() => undefined);
-    }
+    await deleteOwnedEditionAssetFile(admin, organizationId, editionId, existingPath);
     return null;
   }
   if (coverImage.startsWith("data:")) {
     const nextPath = await uploadCoverFromDataUrl(admin, organizationId, editionId, coverImage);
     if (existingPath && existingPath !== nextPath) {
-      await deleteNewsletterAssetFiles(admin, [existingPath]).catch(() => undefined);
+      await deleteOwnedEditionAssetFile(admin, organizationId, editionId, existingPath);
     }
     return nextPath;
   }
-  return existingPath;
+  if (
+    existingPath &&
+    isNewsletterEditionAssetStoragePath(organizationId, editionId, existingPath)
+  ) {
+    return existingPath;
+  }
+  return null;
 }
 
 async function processPhotosForSave(
@@ -244,6 +260,13 @@ async function processPhotosForSave(
     }
 
     if (photo.storagePath) {
+      if (!isNewsletterEditionAssetStoragePath(organizationId, editionId, photo.storagePath)) {
+        throw new NewsletterError(
+          "Photo storage path is not valid for this newsletter.",
+          "invalid_photo",
+          400,
+        );
+      }
       keptPaths.add(photo.storagePath);
       nextPhotos.push({
         id: photo.id,
@@ -261,9 +284,11 @@ async function processPhotosForSave(
     });
   }
 
-  const removedPaths = oldPaths.filter((path) => !keptPaths.has(path));
+  const removedPaths = oldPaths
+    .filter((path) => !keptPaths.has(path))
+    .filter((path) => isNewsletterEditionAssetStoragePath(organizationId, editionId, path));
   if (removedPaths.length > 0) {
-    await deleteNewsletterAssetFiles(admin, removedPaths).catch(() => undefined);
+    await deleteNewsletterAssetsIfUnreferenced(admin, organizationId, editionId, removedPaths);
   }
 
   return nextPhotos;
@@ -272,10 +297,16 @@ async function processPhotosForSave(
 async function rowToEdition(admin: SupabaseClient, row: EditionRow): Promise<NewsletterEdition> {
   const content = row.content ?? {};
   let coverImage: string | undefined;
-  if (row.cover_storage_path) {
-    coverImage = await getNewsletterAssetSignedUrl(admin, row.cover_storage_path).catch(
-      () => undefined,
-    );
+  if (
+    row.cover_storage_path &&
+    isNewsletterEditionAssetStoragePath(row.organization_id, row.id, row.cover_storage_path)
+  ) {
+    coverImage = await getNewsletterAssetSignedUrlWithReport(admin, {
+      organizationId: row.organization_id,
+      editionId: row.id,
+      storagePath: row.cover_storage_path,
+      assetKind: "cover",
+    });
   }
 
   const photos: NewsletterPhoto[] = await Promise.all(
@@ -283,11 +314,19 @@ async function rowToEdition(admin: SupabaseClient, row: EditionRow): Promise<New
       if (photo.galleryPhotoId) {
         return { ...photo, src: photo.src ?? "" };
       }
-      if (photo.storagePath) {
-        const src = await getNewsletterAssetSignedUrl(admin, photo.storagePath).catch(
-          () => photo.src ?? "",
-        );
-        return { ...photo, src };
+      if (
+        photo.storagePath &&
+        isNewsletterEditionAssetStoragePath(row.organization_id, row.id, photo.storagePath)
+      ) {
+        const signed =
+          (await getNewsletterAssetSignedUrlWithReport(admin, {
+            organizationId: row.organization_id,
+            editionId: row.id,
+            storagePath: photo.storagePath,
+            photoId: photo.id,
+            assetKind: "photo",
+          })) ?? photo.src ?? "";
+        return { ...photo, src: signed };
       }
       return photo;
     }),
@@ -579,6 +618,9 @@ export async function deleteNewsletterEdition(
   for (const photo of row.content?.photos ?? []) {
     if (photo.storagePath) paths.push(photo.storagePath);
   }
+  const ownedPaths = paths.filter((path) =>
+    isNewsletterEditionAssetStoragePath(organizationId, editionId, path),
+  );
 
   const { error } = await admin
     .from("school_newsletter_editions")
@@ -588,8 +630,14 @@ export async function deleteNewsletterEdition(
 
   if (error) throw error;
 
-  if (paths.length > 0) {
-    await deleteNewsletterAssetFiles(admin, paths).catch(() => undefined);
+  if (ownedPaths.length > 0) {
+    await deleteNewsletterAssetFiles(admin, ownedPaths).catch((cause) => {
+      reportNewsletterAssetDeleteFailure(
+        admin,
+        { organizationId, editionId, storagePaths: ownedPaths },
+        cause,
+      );
+    });
   }
 }
 
@@ -666,13 +714,79 @@ function mapVersionRow(row: VersionRow): NewsletterEditionVersion {
   };
 }
 
+type LoadRetainedNewsletterAssetPathsOptions = {
+  includeLiveEdition?: boolean;
+};
+
+async function loadRetainedNewsletterAssetPaths(
+  admin: SupabaseClient,
+  editionId: string,
+  options?: LoadRetainedNewsletterAssetPathsOptions,
+): Promise<Set<string>> {
+  const retained = new Set<string>();
+
+  const { data: versionRows, error: versionError } = await admin
+    .from("school_newsletter_edition_versions")
+    .select("snapshot")
+    .eq("edition_id", editionId);
+
+  if (versionError) throw versionError;
+  for (const row of versionRows ?? []) {
+    for (const path of collectAssetStoragePathsFromSnapshot(row.snapshot as NewsletterEditionSnapshot)) {
+      retained.add(path);
+    }
+  }
+
+  if (options?.includeLiveEdition) {
+    const { data: editionRow, error: editionError } = await admin
+      .from("school_newsletter_editions")
+      .select(EDITION_SELECT)
+      .eq("id", editionId)
+      .maybeSingle();
+
+    if (editionError) throw editionError;
+    if (editionRow) {
+      for (const path of collectAssetStoragePathsFromSnapshot(
+        snapshotFromEditionRow(editionRow as EditionRow),
+      )) {
+        retained.add(path);
+      }
+    }
+  }
+
+  return retained;
+}
+
+async function deleteNewsletterAssetsIfUnreferenced(
+  admin: SupabaseClient,
+  organizationId: string,
+  editionId: string,
+  storagePaths: string[],
+): Promise<void> {
+  const candidates = storagePaths.filter(Boolean);
+  if (candidates.length === 0) return;
+
+  const retained = await loadRetainedNewsletterAssetPaths(admin, editionId);
+  const toDelete = candidates.filter((path) => !retained.has(path));
+  if (toDelete.length > 0) {
+    await deleteNewsletterAssetFiles(admin, toDelete).catch((cause) => {
+      reportNewsletterAssetDeleteFailure(
+        admin,
+        { organizationId, editionId, storagePaths: toDelete },
+        cause,
+      );
+    });
+  }
+}
+
 async function pruneEditionVersions(
   admin: SupabaseClient,
+  organizationId: string,
   editionId: string,
 ): Promise<void> {
   const { data, error } = await admin
     .from("school_newsletter_edition_versions")
-    .select("id")
+    .select("id, snapshot")
     .eq("edition_id", editionId)
     .order("created_at", { ascending: false });
 
@@ -680,12 +794,36 @@ async function pruneEditionVersions(
   const rows = data ?? [];
   if (rows.length <= MAX_NEWSLETTER_EDITION_VERSIONS) return;
 
-  const excess = rows.slice(MAX_NEWSLETTER_EDITION_VERSIONS).map((row) => row.id);
+  const excessRows = rows.slice(MAX_NEWSLETTER_EDITION_VERSIONS);
+  const prunedPaths = new Set<string>();
+  for (const row of excessRows) {
+    for (const path of collectAssetStoragePathsFromSnapshot(row.snapshot as NewsletterEditionSnapshot)) {
+      prunedPaths.add(path);
+    }
+  }
+
+  const excessIds = excessRows.map((row) => row.id);
   const { error: deleteError } = await admin
     .from("school_newsletter_edition_versions")
     .delete()
-    .in("id", excess);
+    .in("id", excessIds);
   if (deleteError) throw deleteError;
+
+  if (prunedPaths.size === 0) return;
+
+  const retained = await loadRetainedNewsletterAssetPaths(admin, editionId, {
+    includeLiveEdition: true,
+  });
+  const toDelete = [...prunedPaths].filter((path) => !retained.has(path));
+  if (toDelete.length > 0) {
+    await deleteNewsletterAssetFiles(admin, toDelete).catch((cause) => {
+      reportNewsletterAssetDeleteFailure(
+        admin,
+        { organizationId, editionId, storagePaths: toDelete },
+        cause,
+      );
+    });
+  }
 }
 
 async function insertEditionVersion(
@@ -711,7 +849,7 @@ async function insertEditionVersion(
     .single();
 
   if (error) throw error;
-  await pruneEditionVersions(admin, editionId);
+  await pruneEditionVersions(admin, organizationId, editionId);
   return mapVersionRow(data as VersionRow);
 }
 

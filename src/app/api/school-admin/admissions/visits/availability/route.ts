@@ -64,22 +64,48 @@ export async function GET(request: Request) {
     }
 
     if (error instanceof AdmissionsBookingError) {
+      const status = error.code === "not_found" ? 404 : 400;
       return apiError(ROUTE, {
         request,
-        status: 400,
+        status,
         error: error.message,
         code: error.code,
       });
     }
 
-    const message = error instanceof Error ? error.message : "Failed to load availability.";
-    const status = message.includes("not found") ? 404 : 400;
+    if (error instanceof Error) {
+      switch (error.message) {
+        case "Application not found.":
+        case "Scheduling step not found.":
+          return apiError(ROUTE, {
+            request,
+            status: 404,
+            error: error.message,
+            code: "not_found",
+          });
+        case "Submit the application before scheduling visits.":
+          return apiError(ROUTE, {
+            request,
+            status: 400,
+            error: error.message,
+            code: "application_not_submitted",
+          });
+        case "applicationId and actionId are required.":
+          return apiError(ROUTE, {
+            request,
+            status: 400,
+            error: error.message,
+            code: "invalid_request",
+          });
+      }
+    }
 
     return apiError(ROUTE, {
       request,
-      status,
-      error: message,
-      code: status === 404 ? "not_found" : "invalid_request",
+      status: 500,
+      error: "Failed to load availability.",
+      cause: error,
+      code: "load_failed",
     });
   }
 }

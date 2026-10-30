@@ -16,6 +16,11 @@ import type {
   NewsletterWorkspaceState,
 } from "@/lib/school-admin/newsletter/newsletter-types";
 import {
+  applyNewsletterSaveResultToLiveWorkspace,
+  buildSavedBaselineAfterNewsletterSave,
+  workspaceStatesEqual,
+} from "@/lib/school-admin/newsletter/newsletter-save-merge";
+import {
   clearBrowserNewsletterWorkspace,
   loadBrowserNewsletterWorkspaceForImport,
   markNewsletterImportPrompted,
@@ -68,6 +73,7 @@ export default function NewsletterSection({
   const importCheckedRef = useRef(false);
   const workspaceRef = useRef(workspace);
   const savedWorkspaceRef = useRef(cloneNewsletterWorkspace(initialWorkspace));
+  const saveGenerationRef = useRef(0);
 
   useEffect(() => {
     workspaceRef.current = workspace;
@@ -143,6 +149,10 @@ export default function NewsletterSection({
     const edition = current.editions.find((e) => e.id === editionId);
     if (!edition) return;
 
+    const submittedEdition = structuredClone(edition);
+    const submittedTemplate = structuredClone(current.template);
+    const generation = ++saveGenerationRef.current;
+
     setSaveState("saving");
     setSaveError(null);
 
@@ -150,19 +160,34 @@ export default function NewsletterSection({
       const result = await saveNewsletterEditionWithVersionApi(
         slug,
         editionId,
-        edition,
-        current.template,
+        submittedEdition,
+        submittedTemplate,
       );
-      const next: NewsletterWorkspaceState = {
-        ...current,
-        template: result.template,
-        editions: current.editions.map((e) => (e.id === result.edition.id ? result.edition : e)),
-      };
-      setWorkspace(next);
-      syncSavedBaseline(next);
+      if (generation !== saveGenerationRef.current) return;
+
+      const live = workspaceRef.current;
+      const displayWorkspace = applyNewsletterSaveResultToLiveWorkspace({
+        live,
+        submittedEdition,
+        submittedTemplate,
+        savedEditionId: editionId,
+        resultEdition: result.edition,
+        resultTemplate: result.template,
+      });
+      syncSavedBaseline(
+        buildSavedBaselineAfterNewsletterSave(
+          savedWorkspaceRef.current,
+          live,
+          editionId,
+          result.edition,
+          result.template,
+        ),
+      );
+      setWorkspace(displayWorkspace);
       setSaveState("saved");
-      setIsDirty(false);
+      setIsDirty(!workspaceStatesEqual(displayWorkspace, savedWorkspaceRef.current));
     } catch (err: unknown) {
+      if (generation !== saveGenerationRef.current) return;
       setSaveState("error");
       setSaveError(err instanceof Error ? err.message : "Could not save newsletter.");
     }

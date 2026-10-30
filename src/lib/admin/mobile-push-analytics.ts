@@ -8,6 +8,7 @@ import {
   isMobilePushNotificationKind,
 } from "@/lib/notifications/mobile-push-catalog";
 import type { PushDeliveryStatus } from "@/lib/notifications/push-notification-deliveries";
+import { POSTGREST_DEFAULT_MAX_ROWS } from "@/lib/supabase/fetch-all-rows";
 
 export type MobilePushAnalyticsKindSummary = {
   kind: MobilePushNotificationKind;
@@ -41,7 +42,6 @@ export type PushDeliveryGroupRow = {
 
 type StatusCountMap = Record<PushDeliveryStatus, number>;
 
-const GROUP_PAGE_SIZE = 5000;
 const MAX_GROUP_ROWS = 100_000;
 
 function emptyStatusCounts(): StatusCountMap {
@@ -128,7 +128,7 @@ async function fetchPushDeliveryGroupRows(
       .not("notification_kind", "is", null)
       .order("created_at", { ascending: false })
       .order("id", { ascending: false })
-      .range(offset, offset + GROUP_PAGE_SIZE - 1);
+      .range(offset, offset + POSTGREST_DEFAULT_MAX_ROWS - 1);
 
     if (filters.organizationId) {
       query = query.eq("organization_id", filters.organizationId);
@@ -148,11 +148,11 @@ async function fetchPushDeliveryGroupRows(
     const page = (data ?? []) as PushDeliveryGroupRow[];
     rows.push(...page);
 
-    if (page.length < GROUP_PAGE_SIZE) {
+    if (page.length < POSTGREST_DEFAULT_MAX_ROWS) {
       break;
     }
 
-    offset += GROUP_PAGE_SIZE;
+    offset += page.length;
     if (rows.length >= MAX_GROUP_ROWS) {
       truncated = true;
       break;

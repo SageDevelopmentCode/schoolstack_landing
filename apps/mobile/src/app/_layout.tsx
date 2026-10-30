@@ -21,7 +21,7 @@ import { LogBox, View } from 'react-native';
 import { AuthSessionGuard } from '@/components/auth-session-guard';
 import { SentryNavigationTracker } from '@/components/sentry-navigation-tracker';
 import { MobileGlobalErrorReportingBridge } from '@/components/mobile-global-error-reporting-bridge';
-import { MobileOperationalErrorBoundaryShell } from '@/components/mobile-operational-error-boundary-shell';
+import { MobileOperationalScreenLayout } from '@/components/mobile-operational-screen-layout';
 import { OtaUpdateManager } from '@/components/ota-update-manager';
 import { SupabaseAuthLifecycle } from '@/components/supabase-auth-lifecycle';
 import { PushNotificationManager } from '@/components/push-notification-manager';
@@ -62,13 +62,13 @@ function RootLayout() {
       <PortalTransitionProvider>
         <SentryNavigationTracker />
         <MobileGlobalErrorReportingBridge />
-        <MobileOperationalErrorBoundaryShell>
         <AuthSessionGuard />
         <SupabaseAuthLifecycle />
         <OtaUpdateManager />
         <PushNotificationManager />
         <SplashOverlay />
         <Stack
+        screenLayout={MobileOperationalScreenLayout}
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: Brand.bg },
@@ -102,7 +102,6 @@ function RootLayout() {
         />
         <Stack.Screen name="stripe-checkout" options={{ animation: 'none' }} />
         </Stack>
-        </MobileOperationalErrorBoundaryShell>
       </PortalTransitionProvider>
     </AuthProvider>
   );

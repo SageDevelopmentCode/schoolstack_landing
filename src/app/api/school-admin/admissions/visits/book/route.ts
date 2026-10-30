@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   AdmissionsBookingError,
   bookAdmissionsVisit,
+  loadPostSubmitActionForApplication,
   normalizeScheduledDates,
   normalizeScheduledSlotIds,
 } from "@/lib/admissions/admissions-booking";
@@ -302,11 +303,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, visitId: visit.id, booking: visit });
     }
 
+    const schedulingContext = await loadPostSubmitActionForApplication(
+      admin,
+      applicationId!,
+      actionId!,
+    );
+    if (
+      !schedulingContext ||
+      schedulingContext.organizationId !== organizationId
+    ) {
+      return apiError(ROUTE, {
+        request,
+        status: 404,
+        error: "Application not found.",
+        code: "not_found",
+      });
+    }
+
     if (sendConfirmationEmail) {
       const { data: application } = await admin
         .from("applications")
         .select("primary_guardian_id, guardians:primary_guardian_id (email)")
         .eq("id", applicationId!)
+        .eq("organization_id", organizationId)
         .maybeSingle();
       const guardian = application?.guardians as
         | { email?: string | null }
