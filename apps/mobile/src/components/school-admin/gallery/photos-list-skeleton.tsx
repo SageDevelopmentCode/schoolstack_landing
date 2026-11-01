@@ -1,7 +1,7 @@
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { GalleryPhotoGridSkeleton } from '@/components/school-admin/gallery/gallery-photo-grid-skeleton';
-import { SkeletonPulse } from '@/components/parent/messages/skeleton-pulse';
+import { StaticSkeletonPulse } from '@/components/story/static-skeleton-pulse';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Story } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
@@ -13,12 +13,12 @@ export function PhotosListSkeleton() {
   return (
     <View style={styles.container} testID="photos-list-skeleton">
       <View style={styles.toolbar}>
-        <SkeletonPulse
-          style={[styles.toolbarButton, { width: toolbarButtonWidth }]}
+        <StaticSkeletonPulse
+          style={{ ...styles.toolbarButton, width: toolbarButtonWidth }}
           backgroundColor={Story.line}
         />
-        <SkeletonPulse
-          style={[styles.toolbarButton, { width: toolbarButtonWidth }]}
+        <StaticSkeletonPulse
+          style={{ ...styles.toolbarButton, width: toolbarButtonWidth }}
           backgroundColor={Story.line}
         />
       </View>

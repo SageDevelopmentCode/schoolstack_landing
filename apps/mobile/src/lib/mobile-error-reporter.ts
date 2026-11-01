@@ -1,3 +1,4 @@
+import { MobileApiFormDataError } from '@/lib/api-form-data-error';
 import type { PortalType } from '@/lib/auth/resolve-portal';
 import {
   parseMobileOperationalError,
@@ -30,6 +31,10 @@ function resolveResponseStatus(err: unknown, explicit?: number): number | undefi
     return err.status;
   }
 
+  if (err instanceof MobileApiFormDataError) {
+    return err.status;
+  }
+
   return undefined;
 }
 
@@ -38,6 +43,9 @@ function resolveApiErrorCode(err: unknown): string | undefined {
     return err.code;
   }
   if (err instanceof TeacherPortalApiError) {
+    return err.code;
+  }
+  if (err instanceof MobileApiFormDataError) {
     return err.code;
   }
   return undefined;

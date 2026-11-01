@@ -2,13 +2,21 @@ import {
   fetchSchoolAdminApi,
   fetchSchoolAdminApiFormData,
 } from '@/lib/school-admin-api';
-import { appendLocalFileToFormData } from '@/lib/upload/append-local-file-to-form-data';
+import {
+  loadGalleryUploadBlobParts,
+  postGalleryFormDataChunks,
+  type GalleryUploadChunkProgress,
+} from '@/lib/school-gallery/gallery-chunked-upload';
 import type { GalleryPhoto, GalleryPhotosPage } from '@/lib/school-gallery/types';
 
 export type PreparedGalleryUploadFile = {
   uri: string;
   name: string;
   type: string;
+};
+
+export type GalleryBatchUploadOptions = {
+  onChunkProgress?: (progress: GalleryUploadChunkProgress) => void;
 };
 
 export function formatGalleryApiError(error: unknown, fallback: string): string {
@@ -38,27 +46,19 @@ export async function uploadGalleryBatch(
   slug: string,
   photoDate: string,
   files: PreparedGalleryUploadFile[],
+  options?: GalleryBatchUploadOptions,
 ): Promise<GalleryPhoto[]> {
-  const formData = new FormData();
-  formData.append('photoDate', photoDate);
-  for (const file of files) {
-    await appendLocalFileToFormData(formData, 'files', {
-      uri: file.uri,
-      name: file.name,
-      type: file.type,
-    });
-  }
+  const parts = await loadGalleryUploadBlobParts(files);
+  const path = `/api/school/${encodeURIComponent(slug)}/gallery`;
 
-  const payload = await fetchSchoolAdminApiFormData<{ photos?: GalleryPhoto[] }>(
-    `/api/school/${encodeURIComponent(slug)}/gallery`,
-    formData,
-  );
-
-  if (!payload.photos?.length) {
-    throw new Error('Upload failed.');
-  }
-
-  return payload.photos;
+  return postGalleryFormDataChunks({
+    path,
+    photoDate,
+    parts,
+    onChunkProgress: options?.onChunkProgress,
+    postFormData: (uploadPath, formData) =>
+      fetchSchoolAdminApiFormData<{ photos?: GalleryPhoto[] }>(uploadPath, formData),
+  });
 }
 
 export async function patchGalleryPhotoDate(

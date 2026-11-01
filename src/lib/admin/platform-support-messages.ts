@@ -289,6 +289,7 @@ export async function getPlatformSupportThread(
   thread: MessageThreadDetail;
 }> {
   const organization = await assertPlatformSupportThread(admin, threadId);
+  const readCutoffAt = new Date().toISOString();
   const thread = await getThreadDetail(
     admin,
     organization.organizationId,
@@ -302,7 +303,7 @@ export async function getPlatformSupportThread(
     throw new PortalRouteError("Support conversation not found.", 404, "not_found");
   }
 
-  await markThreadRead(admin, threadId, userId);
+  await markThreadRead(admin, threadId, userId, { lastReadAt: readCutoffAt });
   return {
     organizationName: organization.organizationName,
     organizationSlug: organization.organizationSlug,

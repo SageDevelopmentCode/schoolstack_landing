@@ -31,7 +31,9 @@ Families share one checklist, but admins choose the correct enrollment agreement
 1. Open **Admissions → Submissions** and select an **Accepted** application.
 2. Click **Start enrollment**.
 3. Choose **Standard Enrollment Agreement** or **Conditional Support Agreement**.
-4. Confirm — the family’s status becomes **Enrolling** and they see only the selected agreement plus shared steps.
+4. Confirm — the family’s status becomes **Enrolling** and they see the selected agreement plus shared steps.
+   - **Standard:** families complete only the Standard Enrollment Agreement, then shared steps.
+   - **Conditional Support:** families complete the **Standard Enrollment Agreement first**, then the **Conditional Support Agreement**, then shared steps (both agreements are required).
 
 ## Content reference
 

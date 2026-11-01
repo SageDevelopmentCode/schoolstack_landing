@@ -14,6 +14,7 @@ type PreviewVariant = {
   id: string;
   label: string;
   isDefault: boolean;
+  variantKey: string;
   sectionCount: number;
 };
 
@@ -259,6 +260,11 @@ export default function StartEnrollmentModal({
                                     : "Agreement"}
                                   {variant.isDefault ? " · default" : ""}
                                 </p>
+                                {selected && variant.variantKey === "conditional_support" ? (
+                                  <p className="mt-1 text-xs leading-snug" style={{ color: C.textSecondary }}>
+                                    Families will also complete the Standard Enrollment Agreement first.
+                                  </p>
+                                ) : null}
                               </div>
                               {selected ? (
                                 <div

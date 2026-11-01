@@ -1,4 +1,5 @@
-import * as ImageManipulator from 'expo-image-manipulator';
+import { requireOptionalNativeModule } from 'expo';
+import type { Action as ImageManipulatorAction } from 'expo-image-manipulator';
 
 import {
   computeScaledDimensions,
@@ -31,6 +32,17 @@ export type CompressedImageResult = {
 
 const RASTER_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
+type ImageManipulatorModule = typeof import('expo-image-manipulator');
+
+// expo-image-manipulator throws at import time when the installed binary predates it,
+// which breaks every route that imports this file (OTA bundles can outpace native builds).
+function loadImageManipulator(): ImageManipulatorModule | null {
+  if (!requireOptionalNativeModule('ExpoImageManipulator')) {
+    return null;
+  }
+  return require('expo-image-manipulator') as ImageManipulatorModule;
+}
+
 function extensionForMimeType(mimeType: string): string {
   switch (mimeType) {
     case 'image/png':
@@ -55,6 +67,10 @@ function resolveMimeType(mimeType: string | null | undefined): string {
   return 'image/jpeg';
 }
 
+export function isGalleryImageCompressionAvailable(): boolean {
+  return loadImageManipulator() != null;
+}
+
 export async function compressImageForUpload(
   asset: PickerImageAsset,
   options: CompressImageOptions,
@@ -72,7 +88,11 @@ export async function compressImageForUpload(
     };
   }
 
-  if (shouldSkipImageCompression(asset.fileSize, options.skipBelowBytes)) {
+  const ImageManipulator = shouldSkipImageCompression(asset.fileSize, options.skipBelowBytes)
+    ? null
+    : loadImageManipulator();
+
+  if (!ImageManipulator) {
     return {
       uri: asset.uri,
       width: asset.width ?? 0,
@@ -91,7 +111,7 @@ export async function compressImageForUpload(
     options.maxHeight,
   );
 
-  const actions: ImageManipulator.Action[] = [];
+  const actions: ImageManipulatorAction[] = [];
   if (width !== sourceWidth || height !== sourceHeight) {
     actions.push({ resize: { width, height } });
   }

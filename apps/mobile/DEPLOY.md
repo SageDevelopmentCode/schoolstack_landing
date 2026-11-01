@@ -188,6 +188,8 @@ Production builds include **`expo-updates`** and listen on the **`production`** 
 | Most navigation / screen changes | `app.json` permission or push config changes |
 | Change `EXPO_PUBLIC_*` (update EAS `production` env, then publish OTA — values are re-inlined in the JS bundle) | Bump `expo.version` (new runtime — pair with a new native build) |
 
+**Adding a native dependency** (any `expo-*` module with native code, Sentry, React Native bumps): bump `expo.version` in the same change and ship a new store build. The `appVersion` runtime policy does not detect native changes — without the bump, OTAs reach older binaries and any route importing the new module crashes on load.
+
 API-only fixes: deploy **Vercel production** only — no OTA.
 
 ### Publish a JS-only update
@@ -258,6 +260,8 @@ Set these URLs in App Store Connect and Google Play Console:
 | OTA published but app crashes / missing Supabase after restart | EAS `production` env missing `EXPO_PUBLIC_SUPABASE_*` or vars use `secret` visibility — fix env, republish OTA |
 | OTA published but env wrong in bundle | Use `update:production` (assert + `--environment production`); ensure EAS `production` env matches store build |
 | `eas update` / export fails: `Unable to resolve module @expo/metro-runtime` | Default `eas update` bundles **web** too; [`app.json`](app.json) `web.output: static` needs that package. Use `npm run update:production` (`--platform ios`) or install `@expo/metro-runtime` in the mobile workspace |
+| One screen crashes after OTA with `Cannot read property 'ErrorBoundary' of undefined` (or `Lazy element type must resolve to a class or function`) | The route imports a native module the installed store build does not contain (e.g. `expo-image-manipulator` added after the build). Compare `package.json` against the last build's commit (`eas build:list`). Ship a new store build and bump `expo.version`; for an immediate OTA hotfix, guard the import with `requireOptionalNativeModule` (see [`compress-image-for-upload.ts`](src/lib/images/compress-image-for-upload.ts)) |
+| `eas update` / Hermes: `Invalid expression encountered` at `await import(/*webpackIgnore` | Ensure `min.mjs` is in Metro `assetExts` **after** `getSentryExpoConfig` in [`metro.config.js`](metro.config.js); pdfjs must stay out of the Hermes bundle |
 | `could not list EAS production environment` / `Cannot find module 'expo/config-plugins'` / `env:list` or `env:set` command failed | npm workspace hoisting — use [`with-mobile-node-path.sh`](scripts/with-mobile-node-path.sh). Prefer `npm run eas:env:set -- --environment production --name VAR --value …` or `npm run eas:env:list -- --environment production`. Raw `eas` without `NODE_PATH` breaks `expo config` (Sentry plugin). |
 | Keeps returning to intro / welcome (logged out) on iOS | Ship a build with `SupabaseAuthLifecycle` (AppState refresh). After TestFlight install: login → background 30+ min → foreground (stay signed in); force-quit → reopen (stay signed in). If still failing, check `activity_events` for `auth.session_cleared` vs `pendingAuthDiagnostics` on next `auth.signed_in` |
 

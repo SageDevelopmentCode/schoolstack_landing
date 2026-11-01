@@ -171,6 +171,24 @@ describe('resolveSchoolAdminPreviewPath', () => {
     ).toBeNull();
   });
 
+  it('maps school gallery list to mobile preview route with membershipId', () => {
+    setActivePreviewSession(schoolAdminSession);
+
+    const path = resolveSchoolAdminPreviewPath('/api/school/rooted-meadows/gallery?offset=24');
+
+    expect(path).toBe(
+      '/api/admin/mobile-preview/school-admin/gallery?offset=24&organizationId=org-123&slug=rooted-meadows&membershipId=mem-456',
+    );
+  });
+
+  it('returns null for school gallery photo paths', () => {
+    setActivePreviewSession(schoolAdminSession);
+
+    expect(
+      resolveSchoolAdminPreviewPath('/api/school/rooted-meadows/gallery/photo-1'),
+    ).toBeNull();
+  });
+
   it('returns null when session is teacher portal', () => {
     setActivePreviewSession(teacherSession);
 

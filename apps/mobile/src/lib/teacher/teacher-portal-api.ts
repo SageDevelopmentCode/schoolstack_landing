@@ -1,3 +1,4 @@
+import { throwMobileApiFormDataError } from '@/lib/api-form-data-error';
 import {
   assertApiAuthenticated,
   getApiAuthHeaders,
@@ -113,10 +114,19 @@ export async function fetchTeacherApiFormData<T>(
     body: formData,
   });
 
-  const payload = (await response.json().catch(() => ({}))) as T & TeacherApiErrorPayload;
+  const rawText = await response.text();
+  let payload = {} as T & TeacherApiErrorPayload;
+  if (rawText.trim()) {
+    try {
+      payload = JSON.parse(rawText) as T & TeacherApiErrorPayload;
+    } catch {
+      payload = {} as T & TeacherApiErrorPayload;
+    }
+  }
+
   await assertApiAuthenticated(response);
   if (!response.ok) {
-    throwTeacherApiError(payload, response.status);
+    throwMobileApiFormDataError(response.status, payload, rawText);
   }
 
   return payload;

@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { SkeletonPulse } from '@/components/parent/messages/skeleton-pulse';
+import { StaticSkeletonPulse } from '@/components/story/static-skeleton-pulse';
 import { StoryFonts } from '@/constants/story-theme';
 import { Radius } from '@/constants/theme';
 import type { GalleryPhoto } from '@/lib/school-gallery/types';
@@ -51,7 +51,7 @@ export function GalleryPhotoTile({
         pressed && styles.pressed,
       ]}>
       {showSkeleton ? (
-        <SkeletonPulse
+        <StaticSkeletonPulse
           style={StyleSheet.absoluteFill}
           backgroundColor="#E8ECEE"
         />

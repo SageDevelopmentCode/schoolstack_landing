@@ -3,6 +3,8 @@ import { describe, it } from "node:test";
 import {
   buildChecklistPreviewSidebarItems,
   getAlternateVariantItems,
+  isVariantItemSelected,
+  resolveVisibleTemplateItems,
 } from "./enrollment-checklist-variants";
 import type { EnrollmentChecklistItem } from "./enrollment-checklist-schema";
 import { setItemVariantConfig } from "./enrollment-checklist-schema";
@@ -60,6 +62,104 @@ describe("getAlternateVariantItems", () => {
   });
 });
 
+describe("isVariantItemSelected stacked conditional_support", () => {
+  const groupId = "group-enrollment";
+
+  const standard = setItemVariantConfig(agreementItem("standard", "Standard Enrollment Agreement"), {
+    groupId,
+    groupLabel: "Enrollment Agreement",
+    variantKey: "standard",
+    isDefault: true,
+  });
+
+  const conditional = setItemVariantConfig(
+    agreementItem("conditional", "Conditional Support Agreement"),
+    {
+      groupId,
+      groupLabel: "Enrollment Agreement",
+      variantKey: "conditional_support",
+    },
+  );
+
+  const form = agreementItem("form", "Health Form");
+  const allItems = [standard, conditional, form];
+
+  const standardResolution = {
+    [groupId]: {
+      templateItemId: "standard",
+      variantKey: "standard",
+      resolvedBy: "admin" as const,
+      resolvedAt: "2026-01-01T00:00:00.000Z",
+    },
+  };
+
+  const conditionalResolution = {
+    [groupId]: {
+      templateItemId: "conditional",
+      variantKey: "conditional_support",
+      resolvedBy: "admin" as const,
+      resolvedAt: "2026-01-01T00:00:00.000Z",
+    },
+  };
+
+  it("shows only standard when standard is selected", () => {
+    assert.equal(
+      isVariantItemSelected(standard, standardResolution, allItems),
+      true,
+    );
+    assert.equal(
+      isVariantItemSelected(conditional, standardResolution, allItems),
+      false,
+    );
+    assert.deepEqual(
+      resolveVisibleTemplateItems(allItems, standardResolution).map((item) => item.id),
+      ["standard", "form"],
+    );
+  });
+
+  it("shows standard and conditional when conditional_support is selected", () => {
+    assert.equal(
+      isVariantItemSelected(standard, conditionalResolution, allItems),
+      true,
+    );
+    assert.equal(
+      isVariantItemSelected(conditional, conditionalResolution, allItems),
+      true,
+    );
+    assert.deepEqual(
+      resolveVisibleTemplateItems(allItems, conditionalResolution).map((item) => item.id),
+      ["standard", "conditional", "form"],
+    );
+  });
+
+  it("keeps unrelated variant keys mutually exclusive", () => {
+    const mudGroupId = "vg_mud";
+    const kobe = setItemVariantConfig(agreementItem("kobe", "Kobe"), {
+      groupId: mudGroupId,
+      groupLabel: "Assumption of Risk",
+      variantKey: "kobe_144dafbf",
+      isDefault: true,
+    });
+    const lebron = setItemVariantConfig(agreementItem("lebron", "Lebron"), {
+      groupId: mudGroupId,
+      groupLabel: "Assumption of Risk",
+      variantKey: "lebron_7df6bea2",
+    });
+    const mudItems = [kobe, lebron];
+    const lebronResolution = {
+      [mudGroupId]: {
+        templateItemId: "lebron",
+        variantKey: "lebron_7df6bea2",
+        resolvedBy: "admin" as const,
+        resolvedAt: "2026-01-01T00:00:00.000Z",
+      },
+    };
+
+    assert.equal(isVariantItemSelected(kobe, lebronResolution, mudItems), false);
+    assert.equal(isVariantItemSelected(lebron, lebronResolution, mudItems), true);
+  });
+});
+
 describe("buildChecklistPreviewSidebarItems", () => {
   const groupId = "group-enrollment";
 
@@ -113,6 +213,60 @@ describe("buildChecklistPreviewSidebarItems", () => {
     assert.deepEqual(
       result.alternateItems.map((item) => item.id),
       ["standard"],
+    );
+  });
+
+  it("keeps standard first when conditional_support stacks with default (two variants only)", () => {
+    const stackedConditional = setItemVariantConfig(
+      agreementItem("conditional", "Conditional Support Agreement"),
+      {
+        groupId,
+        groupLabel: "Enrollment Agreement",
+        variantKey: "conditional_support",
+      },
+    );
+    const stackedItems = [standard, stackedConditional, form, payment];
+
+    const result = buildChecklistPreviewSidebarItems(stackedItems, "conditional");
+    assert.deepEqual(
+      result.primaryItems.map((item) => item.id),
+      ["standard", "conditional", "form", "payment"],
+    );
+    assert.deepEqual(result.alternateItems.map((item) => item.id), []);
+    assert.deepEqual(
+      result.sidebarItems.map((item) => item.id),
+      ["standard", "conditional", "form", "payment"],
+    );
+  });
+
+  it("includes non-primary siblings in sidebar when conditional_support stacks with default", () => {
+    const stackedConditional = setItemVariantConfig(
+      agreementItem("conditional", "Conditional Support Agreement"),
+      {
+        groupId,
+        groupLabel: "Enrollment Agreement",
+        variantKey: "conditional_support",
+      },
+    );
+    const legacy = setItemVariantConfig(
+      agreementItem("legacy", "Legacy Enrollment Agreement"),
+      {
+        groupId,
+        groupLabel: "Enrollment Agreement",
+        variantKey: "legacy",
+      },
+    );
+    const stackedItems = [standard, stackedConditional, legacy, form, payment];
+
+    const result = buildChecklistPreviewSidebarItems(stackedItems, "conditional");
+    assert.deepEqual(
+      result.primaryItems.map((item) => item.id),
+      ["standard", "conditional", "form", "payment"],
+    );
+    assert.deepEqual(result.alternateItems.map((item) => item.id), ["legacy"]);
+    assert.deepEqual(
+      result.sidebarItems.map((item) => item.id),
+      ["standard", "conditional", "legacy", "form", "payment"],
     );
   });
 });

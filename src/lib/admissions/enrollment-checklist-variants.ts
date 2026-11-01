@@ -190,21 +190,38 @@ export function validateResolutionMap(
   return errors;
 }
 
+/** Admin picks this variant at kickoff; the default variant in the same group stays required too. */
+export const STACKED_WITH_DEFAULT_VARIANT_KEYS = new Set(["conditional_support"]);
+
 export function isVariantItemSelected(
   item: EnrollmentChecklistItem,
   resolutions: Record<string, ChecklistVariantResolution>,
+  allTemplateItems?: EnrollmentChecklistItem[],
 ): boolean {
   const draft = readItemVariantDraft(item);
   if (!draft) return true;
   const resolution = resolutions[draft.groupId];
-  return resolution?.templateItemId === item.id;
+  if (!resolution) return false;
+  if (resolution.templateItemId === item.id) return true;
+
+  if (
+    allTemplateItems &&
+    STACKED_WITH_DEFAULT_VARIANT_KEYS.has(resolution.variantKey)
+  ) {
+    const config = getItemVariantConfig(item);
+    if (config?.isDefault && config.groupId === draft.groupId) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export function resolveVisibleTemplateItems(
   items: EnrollmentChecklistItem[],
   resolutions: Record<string, ChecklistVariantResolution>,
 ): EnrollmentChecklistItem[] {
-  return items.filter((item) => isVariantItemSelected(item, resolutions));
+  return items.filter((item) => isVariantItemSelected(item, resolutions, items));
 }
 
 /** Resolve variant groups for admin preview (optionally focusing a specific variant item). */
@@ -254,6 +271,13 @@ export function buildChecklistPreviewSidebarItems(
     }
   }
 
+  const primaryIds = new Set(primaryItems.map((row) => row.id));
+  const resolutions = buildVariantResolutions(
+    allItems,
+    resolutionMap,
+    new Date().toISOString(),
+  );
+
   const alternateItems: EnrollmentChecklistItem[] = [];
   const sidebarItems: EnrollmentChecklistItem[] = [];
   const seenGroups = new Set<string>();
@@ -270,10 +294,25 @@ export function buildChecklistPreviewSidebarItems(
       const selectedId = resolutionMap[draft.groupId];
       const selected =
         group.variants.find((variant) => variant.id === selectedId) ?? group.variants[0];
-      const alternates = group.variants.filter((variant) => variant.id !== selected?.id);
+      const alternates = group.variants.filter((variant) => !primaryIds.has(variant.id));
+      const resolution = resolutions[draft.groupId];
+      const isStacked =
+        resolution?.variantKey != null &&
+        STACKED_WITH_DEFAULT_VARIANT_KEYS.has(resolution.variantKey);
 
-      if (selected) sidebarItems.push(selected);
-      sidebarItems.push(...alternates);
+      if (isStacked) {
+        for (const variant of allItems) {
+          const variantDraft = readItemVariantDraft(variant);
+          if (variantDraft?.groupId === draft.groupId && primaryIds.has(variant.id)) {
+            sidebarItems.push(variant);
+          }
+        }
+        sidebarItems.push(...alternates);
+      } else {
+        if (selected) sidebarItems.push(selected);
+        sidebarItems.push(...alternates);
+      }
+
       alternateItems.push(...alternates);
       continue;
     }
