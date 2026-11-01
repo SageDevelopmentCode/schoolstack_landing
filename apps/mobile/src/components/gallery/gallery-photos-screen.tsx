@@ -19,7 +19,10 @@ import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Story, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 import { formatGalleryApiError } from '@/lib/school-gallery/gallery-api';
-import type { PreparedGalleryUploadFile } from '@/lib/school-gallery/gallery-api';
+import type {
+  GalleryBatchUploadOptions,
+  PreparedGalleryUploadFile,
+} from '@/lib/school-gallery/gallery-api';
 import { formatGalleryDateLabel } from '@/lib/school-gallery/format-gallery-date';
 import { groupGalleryPhotosByDate } from '@/lib/school-gallery/group-gallery-photos';
 import { useGalleryPhotosFeed } from '@/lib/school-gallery/use-gallery-photos-feed';
@@ -46,6 +49,7 @@ export type GalleryPhotosScreenProps =
       uploadBatch: (
         photoDate: string,
         files: PreparedGalleryUploadFile[],
+        options?: GalleryBatchUploadOptions,
       ) => Promise<GalleryPhoto[]>;
       patchDate: (photoId: string, photoDate: string) => Promise<GalleryPhoto>;
       deletePhotoById: (photoId: string) => Promise<void>;

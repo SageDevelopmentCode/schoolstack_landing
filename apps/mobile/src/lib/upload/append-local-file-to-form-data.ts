@@ -11,6 +11,15 @@ export class LocalFileReadError extends Error {
   }
 }
 
+export async function readLocalFileBlob(uri: string): Promise<Blob> {
+  const response = await fetch(uri);
+  if (!response.ok) {
+    throw new LocalFileReadError();
+  }
+
+  return response.blob();
+}
+
 /**
  * Expo Winter `fetch` cannot serialize React Native `{ uri, name, type }` FormData parts.
  * Read the local file into a Blob before append.
@@ -20,11 +29,6 @@ export async function appendLocalFileToFormData(
   fieldName: string,
   file: LocalUploadFile,
 ): Promise<void> {
-  const response = await fetch(file.uri);
-  if (!response.ok) {
-    throw new LocalFileReadError();
-  }
-
-  const blob = await response.blob();
+  const blob = await readLocalFileBlob(file.uri);
   formData.append(fieldName, blob, file.name);
 }

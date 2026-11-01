@@ -943,19 +943,42 @@ export async function getThreadDetail(
   return { ...summary, messages };
 }
 
+function isTransientMarkThreadReadError(message: string): boolean {
+  return /fetch failed/i.test(message);
+}
+
 export async function markThreadRead(
   admin: SupabaseClient,
   threadId: string,
   userId: string,
 ): Promise<void> {
-  const { error } = await admin.from("message_thread_reads").upsert(
-    {
-      thread_id: threadId,
-      user_id: userId,
-      last_read_at: new Date().toISOString(),
-    },
-    { onConflict: "thread_id,user_id" },
-  );
+  const maxAttempts = 3;
+  let lastError: Error | undefined;
 
-  if (error) throw new Error(error.message);
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const { error } = await admin.from("message_thread_reads").upsert(
+      {
+        thread_id: threadId,
+        user_id: userId,
+        last_read_at: new Date().toISOString(),
+      },
+      { onConflict: "thread_id,user_id" },
+    );
+
+    if (!error) {
+      return;
+    }
+
+    lastError = new Error(error.message);
+    if (
+      !isTransientMarkThreadReadError(lastError.message) ||
+      attempt === maxAttempts
+    ) {
+      throw lastError;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 100 * attempt));
+  }
+
+  throw lastError ?? new Error("Failed to mark thread read.");
 }

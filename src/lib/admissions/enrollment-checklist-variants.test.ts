@@ -215,4 +215,27 @@ describe("buildChecklistPreviewSidebarItems", () => {
       ["standard"],
     );
   });
+
+  it("keeps standard first and omits alternates when conditional_support stacks with default", () => {
+    const stackedConditional = setItemVariantConfig(
+      agreementItem("conditional", "Conditional Support Agreement"),
+      {
+        groupId,
+        groupLabel: "Enrollment Agreement",
+        variantKey: "conditional_support",
+      },
+    );
+    const stackedItems = [standard, stackedConditional, form, payment];
+
+    const result = buildChecklistPreviewSidebarItems(stackedItems, "conditional");
+    assert.deepEqual(
+      result.primaryItems.map((item) => item.id),
+      ["standard", "conditional", "form", "payment"],
+    );
+    assert.deepEqual(result.alternateItems.map((item) => item.id), []);
+    assert.deepEqual(
+      result.sidebarItems.map((item) => item.id),
+      ["standard", "conditional", "form", "payment"],
+    );
+  });
 });

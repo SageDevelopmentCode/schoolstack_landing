@@ -67,6 +67,10 @@ function resolveMimeType(mimeType: string | null | undefined): string {
   return 'image/jpeg';
 }
 
+export function isGalleryImageCompressionAvailable(): boolean {
+  return loadImageManipulator() != null;
+}
+
 export async function compressImageForUpload(
   asset: PickerImageAsset,
   options: CompressImageOptions,

@@ -579,10 +579,110 @@ async function resolveActorFieldsFromSession(
 
 let activityWriteClientOverride: SupabaseClient | null = null;
 
+/** Enables server-style insert retry in unit tests (see activity-log-server-write.test.ts). */
+let activityLogInsertRetryInTests = false;
+
+export const ACTIVITY_LOG_INSERT_TIMEOUT_MS = 30_000;
+export const ACTIVITY_LOG_INSERT_MAX_ATTEMPTS = 2;
+
 export function setActivityWriteClientForTests(
   client: SupabaseClient | null,
 ): void {
   activityWriteClientOverride = client;
+}
+
+export function setActivityLogInsertRetryInTests(enabled: boolean): void {
+  activityLogInsertRetryInTests = enabled;
+}
+
+function createActivityLogBoundedFetch(timeoutMs: number): typeof fetch {
+  return (input, init) => {
+    const timeoutSignal = AbortSignal.timeout(timeoutMs);
+    const signal =
+      init?.signal != null
+        ? AbortSignal.any([init.signal, timeoutSignal])
+        : timeoutSignal;
+    return fetch(input, { ...init, signal });
+  };
+}
+
+function shouldUseServerActivityLogInsertPolicy(): boolean {
+  if (activityWriteClientOverride) {
+    return activityLogInsertRetryInTests;
+  }
+  if (typeof window !== "undefined") {
+    return false;
+  }
+  if (process.env.NODE_ENV === "test") {
+    return activityLogInsertRetryInTests;
+  }
+  return true;
+}
+
+function isRetryableActivityLogInsertFailure(error: unknown): boolean {
+  if (error && typeof error === "object" && "code" in error) {
+    const code = (error as { code?: string | null }).code;
+    if (typeof code === "string" && code.length > 0) {
+      return false;
+    }
+  }
+
+  const message = messageFromCause(error) ?? "";
+  if (error instanceof TypeError && message.includes("fetch failed")) {
+    return true;
+  }
+  if (
+    message.includes("HeadersTimeoutError") ||
+    message.includes("BodyTimeoutError") ||
+    message.includes("AbortError") ||
+    message.includes("The operation was aborted")
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+type ActivityEventInsertRow = {
+  organization_id: string | null;
+  actor_type: ActivityEventInput["actorType"];
+  actor_user_id: string | null;
+  actor_email: string | null;
+  actor_name: string | null;
+  surface: ActivityEventInput["surface"];
+  action: string;
+  entity_type: string | null;
+  entity_id: string | null;
+  summary: string;
+  metadata: Record<string, unknown>;
+  severity: ActivitySeverity;
+};
+
+async function insertActivityEventRow(
+  writeClient: SupabaseClient,
+  row: ActivityEventInsertRow,
+): Promise<{ data: { id: string } | null; error: unknown }> {
+  const { data, error } = await writeClient
+    .from("activity_events")
+    .insert(row)
+    .select("id")
+    .single();
+
+  return { data: data?.id ? { id: String(data.id) } : null, error: error ?? null };
+}
+
+async function getActivityLogWriteClient(): Promise<SupabaseClient> {
+  if (process.env.NODE_ENV === "test") {
+    if (activityWriteClientOverride) {
+      return activityWriteClientOverride;
+    }
+    return getActivityLogAdminClient();
+  }
+
+  const { createAdminClient } = await import("@/utils/supabase/admin");
+  return createAdminClient({
+    fetch: createActivityLogBoundedFetch(ACTIVITY_LOG_INSERT_TIMEOUT_MS),
+  });
 }
 
 async function getActivityLogAdminClient(): Promise<SupabaseClient> {
@@ -646,32 +746,64 @@ export async function logActivityEvent(
       actorName = resolved.actorName;
     }
 
-    const writeClient = await resolveActivityWriteClient(supabase);
-    const { data, error } = await writeClient
-      .from("activity_events")
-      .insert({
-        organization_id: event.organizationId ?? null,
-        actor_type: event.actorType,
-        actor_user_id: actorUserId,
-        actor_email: actorEmail,
-        actor_name: actorName,
-        surface: event.surface,
-        action: event.action,
-        entity_type: event.entityType ?? null,
-        entity_id: event.entityId ?? null,
-        summary: event.summary,
-        metadata: event.metadata ?? {},
-        severity: event.severity ?? "info",
-      })
-      .select("id")
-      .single();
+    const row: ActivityEventInsertRow = {
+      organization_id: event.organizationId ?? null,
+      actor_type: event.actorType,
+      actor_user_id: actorUserId,
+      actor_email: actorEmail,
+      actor_name: actorName,
+      surface: event.surface,
+      action: event.action,
+      entity_type: event.entityType ?? null,
+      entity_id: event.entityId ?? null,
+      summary: event.summary,
+      metadata: event.metadata ?? {},
+      severity: event.severity ?? "info",
+    };
 
-    if (error) {
-      await safeReportActivityLogInsertFailure(error, event);
-      return null;
+    const useServerInsertPolicy = shouldUseServerActivityLogInsertPolicy();
+    const maxAttempts = useServerInsertPolicy
+      ? ACTIVITY_LOG_INSERT_MAX_ATTEMPTS
+      : 1;
+
+    let lastFailure: unknown = null;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        const writeClient = useServerInsertPolicy
+          ? await getActivityLogWriteClient()
+          : await resolveActivityWriteClient(supabase);
+
+        const { data, error } = await insertActivityEventRow(writeClient, row);
+
+        if (error) {
+          lastFailure = error;
+          if (
+            attempt < maxAttempts &&
+            isRetryableActivityLogInsertFailure(error)
+          ) {
+            continue;
+          }
+          await safeReportActivityLogInsertFailure(error, event);
+          return null;
+        }
+
+        return data?.id ?? null;
+      } catch (error) {
+        lastFailure = error;
+        if (
+          attempt < maxAttempts &&
+          isRetryableActivityLogInsertFailure(error)
+        ) {
+          continue;
+        }
+        await safeReportActivityLogInsertFailure(error, event);
+        return null;
+      }
     }
 
-    return data?.id ? String(data.id) : null;
+    await safeReportActivityLogInsertFailure(lastFailure, event);
+    return null;
   } catch (error) {
     await safeReportActivityLogInsertFailure(error, event);
     return null;

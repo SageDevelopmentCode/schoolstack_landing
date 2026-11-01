@@ -1,4 +1,8 @@
 import { prepareGalleryPhotoForUpload } from "@/lib/school-gallery/storage";
+import {
+  chunkGalleryUploadByByteBudget,
+  type SizedGalleryUploadItem,
+} from "@/lib/school-gallery/gallery-upload-chunks";
 import type { GalleryPhoto } from "@/lib/school-gallery/types";
 
 export type GalleryUploadPrepareProgress = {
@@ -18,6 +22,7 @@ export type UploadGalleryBatchInput = {
   uploadUrl: string;
   onPrepareProgress?: (progress: GalleryUploadPrepareProgress) => void;
   onUploadProgress?: (progress: GalleryUploadHttpProgress) => void;
+  onUploadChunk?: (chunkIndex: number, chunkCount: number) => void;
 };
 
 export type UploadGalleryBatchResult = {
@@ -45,28 +50,42 @@ export async function uploadGalleryBatch(
     });
   }
 
-  const formData = new FormData();
-  formData.set("photoDate", photoDate);
-  for (const file of prepared) {
-    formData.append("files", file);
+  const sized: SizedGalleryUploadItem<File>[] = prepared.map((file) => ({
+    item: file,
+    sizeBytes: file.size,
+  }));
+  const chunks = chunkGalleryUploadByByteBudget(sized);
+
+  const allPhotos: GalleryPhoto[] = [];
+
+  for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
+    input.onUploadChunk?.(chunkIndex + 1, chunks.length);
+
+    const formData = new FormData();
+    formData.set("photoDate", photoDate);
+    for (const file of chunks[chunkIndex]) {
+      formData.append("files", file);
+    }
+
+    const responseBody = await postFormDataWithProgress(
+      uploadUrl,
+      formData,
+      input.onUploadProgress,
+    );
+
+    const data = JSON.parse(responseBody) as {
+      photos?: GalleryPhoto[];
+      error?: string;
+    };
+
+    if (!data.photos?.length) {
+      throw new Error(data.error ?? "Upload failed.");
+    }
+
+    allPhotos.push(...data.photos);
   }
 
-  const responseBody = await postFormDataWithProgress(
-    uploadUrl,
-    formData,
-    input.onUploadProgress,
-  );
-
-  const data = JSON.parse(responseBody) as {
-    photos?: GalleryPhoto[];
-    error?: string;
-  };
-
-  if (!data.photos) {
-    throw new Error(data.error ?? "Upload failed.");
-  }
-
-  return { photos: data.photos };
+  return { photos: allPhotos };
 }
 
 function postFormDataWithProgress(
@@ -97,6 +116,14 @@ function postFormDataWithProgress(
         const parsed = JSON.parse(body) as { error?: string };
         reject(new Error(parsed.error ?? "Upload failed."));
       } catch {
+        if (xhr.status === 413) {
+          reject(
+            new Error(
+              "Too many photos at once — try fewer or upload again in smaller groups.",
+            ),
+          );
+          return;
+        }
         reject(new Error("Upload failed."));
       }
     };

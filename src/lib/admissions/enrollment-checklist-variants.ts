@@ -271,6 +271,13 @@ export function buildChecklistPreviewSidebarItems(
     }
   }
 
+  const primaryIds = new Set(primaryItems.map((row) => row.id));
+  const resolutions = buildVariantResolutions(
+    allItems,
+    resolutionMap,
+    new Date().toISOString(),
+  );
+
   const alternateItems: EnrollmentChecklistItem[] = [];
   const sidebarItems: EnrollmentChecklistItem[] = [];
   const seenGroups = new Set<string>();
@@ -287,10 +294,24 @@ export function buildChecklistPreviewSidebarItems(
       const selectedId = resolutionMap[draft.groupId];
       const selected =
         group.variants.find((variant) => variant.id === selectedId) ?? group.variants[0];
-      const alternates = group.variants.filter((variant) => variant.id !== selected?.id);
+      const alternates = group.variants.filter((variant) => !primaryIds.has(variant.id));
+      const resolution = resolutions[draft.groupId];
+      const isStacked =
+        resolution?.variantKey != null &&
+        STACKED_WITH_DEFAULT_VARIANT_KEYS.has(resolution.variantKey);
 
-      if (selected) sidebarItems.push(selected);
-      sidebarItems.push(...alternates);
+      if (isStacked) {
+        for (const variant of allItems) {
+          const variantDraft = readItemVariantDraft(variant);
+          if (variantDraft?.groupId === draft.groupId && primaryIds.has(variant.id)) {
+            sidebarItems.push(variant);
+          }
+        }
+      } else {
+        if (selected) sidebarItems.push(selected);
+        sidebarItems.push(...alternates);
+      }
+
       alternateItems.push(...alternates);
       continue;
     }

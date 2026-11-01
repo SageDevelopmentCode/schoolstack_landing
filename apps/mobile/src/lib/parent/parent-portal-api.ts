@@ -1,3 +1,4 @@
+import { throwMobileApiFormDataError } from '@/lib/api-form-data-error';
 import {
   assertApiAuthenticated,
   fetchWithAuth,
@@ -191,10 +192,19 @@ export async function fetchParentApiFormData<T>(
     body: formData,
   });
 
-  const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
+  const rawText = await response.text();
+  let payload = {} as T & { error?: string; code?: string };
+  if (rawText.trim()) {
+    try {
+      payload = JSON.parse(rawText) as T & { error?: string; code?: string };
+    } catch {
+      payload = {} as T & { error?: string; code?: string };
+    }
+  }
+
   await assertApiAuthenticated(response);
   if (!response.ok) {
-    throw new Error(typeof payload.error === 'string' ? payload.error : 'Request failed.');
+    throwMobileApiFormDataError(response.status, payload, rawText);
   }
 
   return payload;

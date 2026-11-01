@@ -9,9 +9,14 @@ import { ThemedText } from '@/components/themed-text';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
+import { MobileApiFormDataError } from '@/lib/api-form-data-error';
 import { reportMobileOperationalError } from '@/lib/mobile-activity';
 import { MAX_GALLERY_PHOTOS_PER_UPLOAD } from '@/lib/school-gallery/constants';
-import { formatGalleryApiError, type PreparedGalleryUploadFile } from '@/lib/school-gallery/gallery-api';
+import {
+  formatGalleryApiError,
+  type GalleryBatchUploadOptions,
+  type PreparedGalleryUploadFile,
+} from '@/lib/school-gallery/gallery-api';
 import {
   GalleryPhotoPrepareError,
   prepareGalleryPhotoForUpload,
@@ -28,6 +33,7 @@ type GalleryUploadSheetProps = {
   uploadBatch: (
     photoDate: string,
     files: PreparedGalleryUploadFile[],
+    options?: GalleryBatchUploadOptions,
   ) => Promise<GalleryPhoto[]>;
   uploadOperation: string;
   uploadSurface: 'school_admin' | 'teacher_portal';
@@ -125,7 +131,15 @@ export function GalleryUploadSheet({
 
       setPhase('uploading');
       setStatusLine('Uploading photos…');
-      const photos = await uploadBatch(trimmedDate, prepared);
+      const photos = await uploadBatch(trimmedDate, prepared, {
+        onChunkProgress: ({ chunkIndex, chunkCount }) => {
+          setStatusLine(
+            chunkCount > 1
+              ? `Uploading batch ${chunkIndex} of ${chunkCount}…`
+              : 'Uploading photos…',
+          );
+        },
+      });
       onUploaded(photos);
       resetProgress();
       onClose();
@@ -134,6 +148,8 @@ export function GalleryUploadSheet({
       setError(message);
       setPhase('idle');
       if (!(uploadError instanceof GalleryPhotoPrepareError)) {
+        const responseStatus =
+          uploadError instanceof MobileApiFormDataError ? uploadError.status : undefined;
         void reportMobileOperationalError(
           {
             organizationId,
@@ -141,8 +157,20 @@ export function GalleryUploadSheet({
             operation: uploadOperation,
             error: message,
             code: 'upload_failed',
+            details:
+              uploadError instanceof MobileApiFormDataError
+                ? uploadError.responsePreview
+                : undefined,
+            metadata:
+              uploadError instanceof MobileApiFormDataError
+                ? {
+                    httpStatus: uploadError.status,
+                    ...(uploadError.code ? { apiCode: uploadError.code } : {}),
+                  }
+                : undefined,
           },
           uploadError,
+          responseStatus,
         );
       }
     }
