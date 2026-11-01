@@ -22,6 +22,8 @@ export type UploadGalleryBatchInput = {
   files: File[];
   photoDate: string;
   uploadUrl: string;
+  /** When true, `files` were already passed through `prepareGalleryPhotoForUpload`. */
+  alreadyPrepared?: boolean;
   onPrepareProgress?: (progress: GalleryUploadPrepareProgress) => void;
   onUploadProgress?: (progress: GalleryUploadHttpProgress) => void;
   onUploadChunk?: (chunkIndex: number, chunkCount: number) => void;
@@ -31,12 +33,15 @@ export type UploadGalleryBatchResult = {
   photos: GalleryPhoto[];
 };
 
-export async function uploadGalleryBatch(
-  input: UploadGalleryBatchInput,
-): Promise<UploadGalleryBatchResult> {
-  const { files, photoDate, uploadUrl } = input;
-  if (files.length === 0) {
-    throw new Error("No files selected.");
+export async function prepareGalleryBatchFiles(
+  files: File[],
+  options: Pick<
+    UploadGalleryBatchInput,
+    "alreadyPrepared" | "onPrepareProgress"
+  >,
+): Promise<File[]> {
+  if (options.alreadyPrepared) {
+    return files;
   }
 
   const prepared: File[] = [];
@@ -45,12 +50,30 @@ export async function uploadGalleryBatch(
   for (let index = 0; index < files.length; index++) {
     const file = files[index];
     prepared.push(await prepareGalleryPhotoForUpload(file));
-    input.onPrepareProgress?.({
+    options.onPrepareProgress?.({
       index: index + 1,
       total,
       fileName: file.name,
     });
   }
+
+  return prepared;
+}
+
+export async function uploadGalleryBatch(
+  input: UploadGalleryBatchInput,
+): Promise<UploadGalleryBatchResult> {
+  const { files, photoDate, uploadUrl } = input;
+  if (files.length === 0) {
+    throw new Error("No files selected.");
+  }
+
+  let prepared: File[];
+
+  prepared = await prepareGalleryBatchFiles(files, {
+    alreadyPrepared: input.alreadyPrepared,
+    onPrepareProgress: input.onPrepareProgress,
+  });
 
   const sized: SizedGalleryUploadItem<File>[] = prepared.map((file) => ({
     item: file,

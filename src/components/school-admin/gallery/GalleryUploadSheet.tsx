@@ -67,6 +67,9 @@ export default function GalleryUploadSheet({
   const [photoDate, setPhotoDate] = useState(todayIsoDate());
   const [uploading, setUploading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [pendingPreparedRetry, setPendingPreparedRetry] = useState<File[] | null>(
+    null,
+  );
   const [phase, setPhase] = useState<UploadPhase>("idle");
   const [prepareIndex, setPrepareIndex] = useState(0);
   const [prepareTotal, setPrepareTotal] = useState(0);
@@ -95,12 +98,18 @@ export default function GalleryUploadSheet({
   const handleUpload = async (files: File[]) => {
     if (files.length === 0) return;
 
-    const fileArray = files;
+    const fileArray = pendingPreparedRetry ?? files;
+    const alreadyPrepared = pendingPreparedRetry !== null;
     setUploading(true);
     resetProgress();
-    setPhase("preparing");
-    setPrepareTotal(fileArray.length);
-    setStatusLine(`Compressing 0 of ${fileArray.length}…`);
+    if (alreadyPrepared) {
+      setPhase("uploading");
+      setStatusLine("Uploading…");
+    } else {
+      setPhase("preparing");
+      setPrepareTotal(fileArray.length);
+      setStatusLine(`Compressing 0 of ${fileArray.length}…`);
+    }
 
     try {
       const targetUrl = uploadUrl ?? `/api/school/${slug}/gallery`;
@@ -108,6 +117,7 @@ export default function GalleryUploadSheet({
         files: fileArray,
         photoDate,
         uploadUrl: targetUrl,
+        alreadyPrepared,
         onPrepareProgress: ({ index, total, fileName }) => {
           setPrepareIndex(index);
           setPrepareTotal(total);
@@ -135,13 +145,26 @@ export default function GalleryUploadSheet({
       adminToast.success(`Uploaded ${photos.length} photo(s).`);
       onClose();
       setSelectedFiles([]);
+      setPendingPreparedRetry(null);
       resetProgress();
       if (inputRef.current) inputRef.current.value = "";
     } catch (error) {
       resetProgress();
       if (isGalleryUploadPartialFailure(error)) {
+        if (error.cause !== undefined) {
+          void reportPortalOperationalError(
+            operationalErrorSurface,
+            {
+              organizationId,
+              operation: "gallery.upload",
+              error: "",
+            },
+            error.cause,
+          );
+        }
         onUploaded(error.uploadedPhotos);
         setSelectedFiles(error.remainingFiles);
+        setPendingPreparedRetry(error.remainingFiles);
         if (inputRef.current) inputRef.current.value = "";
         adminToast.info(
           `Uploaded ${error.uploadedPhotos.length} photo(s). ${error.remainingFiles.length} left — tap Upload to retry.`,
@@ -235,6 +258,7 @@ export default function GalleryUploadSheet({
                 ? Array.from(event.target.files)
                 : [];
               setSelectedFiles(files);
+              setPendingPreparedRetry(null);
               resetProgress();
             }}
           />

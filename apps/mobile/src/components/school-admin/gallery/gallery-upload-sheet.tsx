@@ -119,6 +119,12 @@ export function GalleryUploadSheet({
   const handleUploadFailure = useCallback(
     (uploadError: unknown, uploadPhotoDate: string) => {
       if (isGalleryUploadPartialFailure(uploadError)) {
+        if (uploadError.cause !== undefined) {
+          reportUploadFailure(
+            uploadError.cause,
+            formatGalleryApiError(uploadError, 'Could not upload photos.'),
+          );
+        }
         onUploaded(uploadError.uploadedPhotos);
         setPendingRetry({
           photoDate: uploadPhotoDate,
@@ -180,8 +186,6 @@ export function GalleryUploadSheet({
   };
 
   const handlePickAndUpload = async () => {
-    setError(null);
-    setPendingRetry(null);
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       setError('Photo library access is required to upload photos.');
@@ -198,6 +202,9 @@ export function GalleryUploadSheet({
     if (result.canceled || result.assets.length === 0) {
       return;
     }
+
+    setError(null);
+    setPendingRetry(null);
 
     const trimmedDate = photoDate.trim();
     if (!trimmedDate) {
