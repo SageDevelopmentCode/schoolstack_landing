@@ -274,6 +274,7 @@ export const DEFAULT_COMMITTEE_SECTIONS: CommitteeWorkspaceSection[] = [
   'resources',
   'calendar',
   'tasks',
+  'projects',
   'messages',
   'members',
 ];

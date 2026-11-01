@@ -9,14 +9,15 @@ import { ParentCommitteeMembersSection } from '@/components/parent/committees/se
 import { ParentCommitteeMessagesSection } from '@/components/parent/committees/sections/parent-committee-messages-section';
 import { ParentCommitteeResourcesSection } from '@/components/parent/committees/sections/parent-committee-resources-section';
 import { ParentCommitteeTasksSection } from '@/components/parent/committees/sections/parent-committee-tasks-section';
+import { CommitteeProjectsSection } from '@/components/committees/projects/committee-projects-section';
 import { useCommitteeUnreadRefresh } from '@/contexts/committee-unread-refresh-context';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { sectionUnreadForCommittee } from '@/lib/committees/committee-unread-section-labels';
 import type { CommitteesPortal } from '@/lib/committees/committees-portal-config';
 import { useCommitteeUnreadSummary } from '@/lib/committees/use-committee-unread-summary';
-import { PARENT_VISIBLE_SECTIONS } from '@/lib/parent/committees/constants';
 import type { ParentCommitteeSectionProps } from '@/lib/parent/committees/section-props';
 import type { CommitteePortalApiNamespace } from '@/lib/committees/notify-committee-task-assignment';
+import { resolveParentTeacherCommitteeNavSections } from '@/lib/committees/committee-workspace-nav-sections';
 import {
   fetchParentCommitteeWorkspace,
   markParentCommitteeSectionRead,
@@ -50,13 +51,15 @@ type CommitteeWorkspaceScreenProps = {
   initialEventId?: string | null;
   initialResourceId?: string | null;
   initialTaskId?: string | null;
+  initialProjectId?: string | null;
+  schoolSlug: string;
 };
 
 function resolveVisibleSection(
-  sections: CommitteeWorkspaceSection[],
+  configSections: CommitteeWorkspaceSection[],
   current: CommitteeWorkspaceSection,
 ): CommitteeWorkspaceSection {
-  const visible = sections.filter((section) => PARENT_VISIBLE_SECTIONS.includes(section));
+  const visible = resolveParentTeacherCommitteeNavSections(configSections);
   if (visible.includes(current)) return current;
   return visible[0] ?? 'home';
 }
@@ -76,6 +79,8 @@ function CommitteeWorkspaceScreen({
   initialEventId,
   initialResourceId,
   initialTaskId,
+  initialProjectId,
+  schoolSlug,
 }: CommitteeWorkspaceScreenProps) {
   const theme = useParentTheme();
   const { isPreview } = usePortalPreview();
@@ -217,6 +222,7 @@ function CommitteeWorkspaceScreen({
         initialEventId,
         initialResourceId,
         initialTaskId,
+        initialProjectId,
       }
     : null;
 
@@ -251,6 +257,10 @@ function CommitteeWorkspaceScreen({
         return <ParentCommitteeCalendarSection {...sectionProps} />;
       case 'tasks':
         return <ParentCommitteeTasksSection {...sectionProps} />;
+      case 'projects':
+        return (
+          <CommitteeProjectsSection {...sectionProps} schoolSlug={schoolSlug} />
+        );
       case 'members':
         return <ParentCommitteeMembersSection {...sectionProps} />;
       default:
@@ -287,6 +297,8 @@ type ParentCommitteeWorkspaceScreenProps = {
   initialEventId?: string | null;
   initialResourceId?: string | null;
   initialTaskId?: string | null;
+  initialProjectId?: string | null;
+  schoolSlug: string;
 };
 
 export function ParentCommitteeWorkspaceScreen({
@@ -296,6 +308,8 @@ export function ParentCommitteeWorkspaceScreen({
   initialEventId,
   initialResourceId,
   initialTaskId,
+  initialProjectId,
+  schoolSlug,
 }: ParentCommitteeWorkspaceScreenProps) {
   return (
     <CommitteeWorkspaceScreen
@@ -306,6 +320,8 @@ export function ParentCommitteeWorkspaceScreen({
       initialEventId={initialEventId}
       initialResourceId={initialResourceId}
       initialTaskId={initialTaskId}
+      initialProjectId={initialProjectId}
+      schoolSlug={schoolSlug}
     />
   );
 }

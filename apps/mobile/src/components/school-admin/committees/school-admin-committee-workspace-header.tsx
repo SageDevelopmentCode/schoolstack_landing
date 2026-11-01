@@ -7,9 +7,9 @@ import { ParentCommitteeDescriptionSheet } from '@/components/parent/committees/
 import { StoryChip } from '@/components/story/story-chip';
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { StoryPillNav } from '@/components/story/story-pill-nav';
+import { resolveSchoolAdminCommitteeNavSections } from '@/lib/committees/committee-workspace-nav-sections';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import {
-  ADMIN_VISIBLE_SECTIONS,
   COMMITTEE_SECTION_LABELS,
   type Committee,
   type CommitteeWorkspaceSection,
@@ -34,12 +34,14 @@ const SECTION_ICONS: Partial<Record<CommitteeWorkspaceSection, keyof typeof Ioni
 type SchoolAdminCommitteeWorkspaceHeaderProps = {
   committee: Committee;
   activeSection: CommitteeWorkspaceSection;
+  preview?: boolean;
   onSectionChange: (section: CommitteeWorkspaceSection) => void;
 };
 
 export function SchoolAdminCommitteeWorkspaceHeader({
   committee,
   activeSection,
+  preview = false,
   onSectionChange,
 }: SchoolAdminCommitteeWorkspaceHeaderProps) {
   const theme = useParentTheme();
@@ -52,10 +54,8 @@ export function SchoolAdminCommitteeWorkspaceHeader({
 
   const sections = useMemo(
     () =>
-      committee.config.sections.filter((section): section is CommitteeWorkspaceSection =>
-        ADMIN_VISIBLE_SECTIONS.includes(section as CommitteeWorkspaceSection),
-      ),
-    [committee.config.sections],
+      resolveSchoolAdminCommitteeNavSections(committee.config.sections, { preview }),
+    [committee.config.sections, preview],
   );
 
   const navItems = sections.map((section) => ({

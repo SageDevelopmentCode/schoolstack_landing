@@ -9,8 +9,8 @@ import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { StoryCountBadge } from '@/components/story/story-count-badge';
 import { StoryPillNav } from '@/components/story/story-pill-nav';
 import type { CommitteeSectionUnreadCounts } from '@/lib/committees/committee-unread-types';
+import { resolveParentTeacherCommitteeNavSections } from '@/lib/committees/committee-workspace-nav-sections';
 import { useParentTheme } from '@/contexts/parent-theme-context';
-import { PARENT_VISIBLE_SECTIONS } from '@/lib/parent/committees/constants';
 import type { Committee, CommitteeWorkspaceSection } from '@/lib/parent/parent-committees-types';
 import { COMMITTEE_SECTION_LABELS } from '@/lib/parent/parent-committees-types';
 import { StoryFonts } from '@/constants/story-theme';
@@ -61,10 +61,7 @@ export function ParentCommitteeWorkspaceHeader({
     leaders.length > 0 ? `Led by ${leaders.map((leader) => leader.name).join(', ')}` : null;
 
   const sections = useMemo(
-    () =>
-      committee.config.sections.filter((section): section is CommitteeWorkspaceSection =>
-        PARENT_VISIBLE_SECTIONS.includes(section as CommitteeWorkspaceSection),
-      ),
+    () => resolveParentTeacherCommitteeNavSections(committee.config.sections),
     [committee.config.sections],
   );
 

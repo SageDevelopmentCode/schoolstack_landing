@@ -5,6 +5,14 @@ export const ACTIVITY_ACTIONS = {
   COMMITTEE_TASK_UPDATED: 'committee.task.updated',
   COMMITTEE_TASK_DELETED: 'committee.task.deleted',
   COMMITTEE_TASK_ASSIGNED: 'committee.task.assigned',
+  COMMITTEE_RESOURCE_CREATED: 'committee.resource.created',
+  COMMITTEE_EVENT_CREATED: 'committee.event.created',
+  COMMITTEE_PROJECT_CREATED: 'committee.project.created',
+  COMMITTEE_PROJECT_UPDATED: 'committee.project.updated',
+  COMMITTEE_PROJECT_DELETED: 'committee.project.deleted',
+  COMMITTEE_PROJECT_SUPPLY_CREATED: 'committee.project_supply.created',
+  COMMITTEE_PROJECT_SUPPLY_UPDATED: 'committee.project_supply.updated',
+  COMMITTEE_PROJECT_SUPPLY_DELETED: 'committee.project_supply.deleted',
 } as const;
 
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[keyof typeof ACTIVITY_ACTIONS];
