@@ -68,9 +68,7 @@ export async function uploadGalleryBatch(
     throw new Error("No files selected.");
   }
 
-  let prepared: File[];
-
-  prepared = await prepareGalleryBatchFiles(files, {
+  const prepared = await prepareGalleryBatchFiles(files, {
     alreadyPrepared: input.alreadyPrepared,
     onPrepareProgress: input.onPrepareProgress,
   });
