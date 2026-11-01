@@ -12,6 +12,7 @@ export type CopyableApplication = {
   id: string;
   submittedAt: string | null;
   label: string;
+  responses: Record<string, string>;
 };
 
 function parseStringRecord(value: unknown): Record<string, string> {
@@ -87,8 +88,10 @@ export async function listCopyableApplications(
   formVersionId: string,
   userId: string,
   excludeApplicationId?: string,
+  familyIds?: string[],
 ): Promise<CopyableApplication[]> {
-  const familyIds = await getFamilyIdsForUser(supabase, userId, organizationId);
+  const resolvedFamilyIds =
+    familyIds ?? (await getFamilyIdsForUser(supabase, userId, organizationId));
 
   let query = supabase
     .from("applications")
@@ -96,7 +99,7 @@ export async function listCopyableApplications(
     .eq("organization_id", organizationId)
     .eq("form_version_id", formVersionId)
     .neq("status", "draft")
-    .or(applicationOwnershipFilter(userId, familyIds))
+    .or(applicationOwnershipFilter(userId, resolvedFamilyIds))
     .order("submitted_at", { ascending: false });
 
   if (excludeApplicationId) {
@@ -115,6 +118,7 @@ export async function listCopyableApplications(
         row.submitted_at ? String(row.submitted_at) : null,
         responses,
       ),
+      responses,
     };
   });
 }
@@ -164,12 +168,7 @@ export async function loadPriorResponsesByField(
   );
 
   for (const application of copyable) {
-    const responses = await getApplicationResponsesForCopy(
-      supabase,
-      application.id,
-      userId,
-    );
-    const value = responses[fieldId];
+    const value = application.responses[fieldId];
     if (value) {
       return { applicationId: application.id, value };
     }

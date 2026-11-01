@@ -21,7 +21,7 @@ import {
   shouldRedirectAwayFromMainParentPortal,
 } from "./program-parent-portal-context-switch";
 
-async function getStudentIdsForFamilies(
+export async function getStudentIdsForFamilies(
   supabase: SupabaseClient,
   organizationId: string,
   familyIds: string[],
@@ -96,7 +96,7 @@ export type EnrolledProgramPortalSummary = {
   parent_portal_settings: ProgramParentPortalSettings;
 };
 
-async function listEnrolledProgramsForStudentIds(
+export async function listEnrolledProgramsForStudentIds(
   supabase: SupabaseClient,
   organizationId: string,
   studentIds: string[],
@@ -411,6 +411,29 @@ function enrichParentPortalContextsWithEntryHrefs(input: {
   });
 }
 
+export function parentPortalNavContextsFromPrograms(input: {
+  schoolSlug: string;
+  schoolName: string;
+  orgFeatures: OrganizationFeatures;
+  enrolledPrograms: EnrolledProgramPortalSummary[];
+}): ParentPortalContextOption[] {
+  const contexts = buildParentPortalContextOptions(
+    input.schoolName,
+    input.enrolledPrograms,
+  );
+  const isolatedPrograms = input.enrolledPrograms.filter((program) =>
+    isProgramParentPortalIsolated(program.parent_portal_settings),
+  );
+
+  return enrichParentPortalContextsWithEntryHrefs({
+    slug: input.schoolSlug,
+    schoolName: input.schoolName,
+    orgFeatures: input.orgFeatures,
+    contexts,
+    isolatedPrograms,
+  });
+}
+
 export async function loadParentPortalNavContextsForUser(input: {
   supabase: SupabaseClient;
   userId: string;
@@ -424,20 +447,11 @@ export async function loadParentPortalNavContextsForUser(input: {
     input.userId,
     input.organizationId,
   );
-  const contexts = buildParentPortalContextOptions(
-    input.schoolName,
-    enrolledPrograms,
-  );
-  const isolatedPrograms = enrolledPrograms.filter((program) =>
-    isProgramParentPortalIsolated(program.parent_portal_settings),
-  );
-
-  return enrichParentPortalContextsWithEntryHrefs({
-    slug: input.schoolSlug,
+  return parentPortalNavContextsFromPrograms({
+    schoolSlug: input.schoolSlug,
     schoolName: input.schoolName,
     orgFeatures: input.orgFeatures,
-    contexts,
-    isolatedPrograms,
+    enrolledPrograms,
   });
 }
 

@@ -24,6 +24,7 @@ const SECTION_ICONS: Partial<Record<CommitteeWorkspaceSection, keyof typeof Ioni
   resources: 'document-text-outline',
   calendar: 'calendar-outline',
   tasks: 'checkbox-outline',
+  projects: 'folder-outline',
   messages: 'chatbubble-outline',
   members: 'people-outline',
   activity: 'pulse-outline',

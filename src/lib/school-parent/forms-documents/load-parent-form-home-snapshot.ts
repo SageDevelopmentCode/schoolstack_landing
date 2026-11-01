@@ -53,19 +53,11 @@ function sortSnapshotItems(items: ParentFormListItem[]): ParentFormListItem[] {
   return [...needsAction, ...signed].slice(0, HOME_SNAPSHOT_LIMIT);
 }
 
-export async function loadParentFormHomeSnapshot(
-  admin: SupabaseClient,
-  organizationId: string,
-  familyId: string,
+export function buildParentFormHomeSnapshotFromBundle(
+  bundle: Awaited<ReturnType<typeof loadParentFormsDocumentsPageBundle>>,
   schoolSlug: string,
   previewBasePath?: string,
-): Promise<ParentFormHomeSnapshot | null> {
-  const bundle = await loadParentFormsDocumentsPageBundle(
-    admin,
-    organizationId,
-    familyId,
-  );
-
+): ParentFormHomeSnapshot | null {
   const counts = countParentFormsByStatus(bundle.items);
   if (counts.all === 0) return null;
 
@@ -93,4 +85,24 @@ export async function loadParentFormHomeSnapshot(
     })),
     formsPageHref: base,
   };
+}
+
+export async function loadParentFormHomeSnapshot(
+  admin: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+  schoolSlug: string,
+  previewBasePath?: string,
+): Promise<ParentFormHomeSnapshot | null> {
+  const bundle = await loadParentFormsDocumentsPageBundle(
+    admin,
+    organizationId,
+    familyId,
+  );
+
+  return buildParentFormHomeSnapshotFromBundle(
+    bundle,
+    schoolSlug,
+    previewBasePath,
+  );
 }

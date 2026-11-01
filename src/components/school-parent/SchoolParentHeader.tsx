@@ -249,11 +249,14 @@ export default function SchoolParentHeader({
     organizationId,
     schoolName,
     messagesEnabled && !previewMode,
+    { deferUntilIdle: true },
   );
   const { totalUnread: liveCommitteesUnreadCount } = useCommitteeUnreadSummary(
     "/api/parent-portal/committees",
     organizationId,
     committeesEnabled && !previewMode,
+    undefined,
+    { deferUntilIdle: true },
   );
   const committeesUnreadCount =
     previewMode && initialCommitteeUnreadSummary

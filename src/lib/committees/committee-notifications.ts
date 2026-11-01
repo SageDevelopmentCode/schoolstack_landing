@@ -633,6 +633,16 @@ const WORKSPACE_UPDATE_ACTIONS: Record<
     title: "New task added",
     notificationKind: "committee.workspace_task",
   },
+  [ACTIVITY_ACTIONS.COMMITTEE_PROJECT_CREATED]: {
+    section: "projects",
+    title: "New project added",
+    notificationKind: "committee.workspace_task",
+  },
+  [ACTIVITY_ACTIONS.COMMITTEE_PROJECT_SUPPLY_CREATED]: {
+    section: "projects",
+    title: "New supply list item",
+    notificationKind: "committee.workspace_task",
+  },
 };
 
 export async function sendCommitteeWorkspaceUpdateNotifications(
@@ -645,6 +655,7 @@ export async function sendCommitteeWorkspaceUpdateNotifications(
     entityId: string;
     summary: string;
     senderMemberId?: string | null;
+    projectId?: string | null;
   },
 ): Promise<void> {
   const config = WORKSPACE_UPDATE_ACTIONS[input.action];
@@ -677,7 +688,12 @@ export async function sendCommitteeWorkspaceUpdateNotifications(
             ? { resourceId: input.entityId }
             : input.action === ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED
               ? { taskId: input.entityId }
-              : undefined;
+              : input.action === ACTIVITY_ACTIONS.COMMITTEE_PROJECT_CREATED
+                ? { projectId: input.entityId }
+                : input.action === ACTIVITY_ACTIONS.COMMITTEE_PROJECT_SUPPLY_CREATED &&
+                    input.projectId
+                  ? { projectId: input.projectId }
+                  : undefined;
       const workspaceUrl = committeeMemberWorkspaceUrl(
         schoolSlug,
         input.committeeId,

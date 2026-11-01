@@ -59,6 +59,7 @@ export default function CommitteesPage({
 
   const committeeId = searchParams.get("committee");
   const activeSection = parseCommitteeSection(searchParams.get("section"));
+  const initialProjectId = searchParams.get("project");
 
   const [loading, setLoading] = useState(true);
   const [committees, setCommittees] = useState<CommitteeListItem[]>([]);
@@ -364,6 +365,7 @@ export default function CommitteesPage({
           onCommitteeChange={setActiveCommittee}
           onArchive={() => setShowArchive(true)}
           onJoinRequestsChanged={loadPendingRequestCount}
+          initialProjectId={initialProjectId}
         />
         <AnimatePresence>
           {showArchive && (

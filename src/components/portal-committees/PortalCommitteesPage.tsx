@@ -110,6 +110,7 @@ function PortalCommitteesPageContent({
   const initialCommitteeEventDate = searchParams.get("date");
   const initialCommitteeResourceId = searchParams.get("resource");
   const initialCommitteeTaskId = searchParams.get("task");
+  const initialCommitteeProjectId = searchParams.get("project");
 
   const [browseCommittees, setBrowseCommittees] = useState<ParentCommitteeBrowseItem[]>(
     initialData?.browseCommittees ?? [],
@@ -325,6 +326,7 @@ function PortalCommitteesPageContent({
         initialCommitteeEventDate={initialCommitteeEventDate}
         initialCommitteeResourceId={initialCommitteeResourceId}
         initialCommitteeTaskId={initialCommitteeTaskId}
+        initialCommitteeProjectId={initialCommitteeProjectId}
         onSectionChange={(section) =>
           setUrl({ committee: memberWorkspaceId, section, tab: "mine", explore: null })
         }

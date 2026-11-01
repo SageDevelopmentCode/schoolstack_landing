@@ -222,6 +222,40 @@ function buildMemberDetails(
   return details;
 }
 
+function projectStatusLabel(status: string | null | undefined): string | null {
+  if (!status?.trim()) return null;
+  const normalized = status.trim().toLowerCase();
+  if (normalized === "active") return "Active";
+  if (normalized === "draft") return "Draft";
+  return status
+    .trim()
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function buildProjectDetails(
+  metadata: Record<string, unknown> | null | undefined,
+  action: string,
+): string[] {
+  const details: string[] = [];
+  const changes = metadataRecord(metadata, "changes");
+
+  if (action.startsWith("committee.project_supply.")) {
+    appendDetail(details, "Project", metadataString(metadata, "projectName"));
+    return details;
+  }
+
+  appendDetail(
+    details,
+    "Status",
+    projectStatusLabel(
+      metadataString(changes, "status") ?? metadataString(metadata, "projectStatus"),
+    ),
+  );
+
+  return details;
+}
+
 export function mapDigestActivityItem(
   event: CommitteeActivityEventRow,
   referenceDate = new Date(),
@@ -252,6 +286,19 @@ export function mapDigestActivityItem(
       metadataString(metadata, "memberName") ??
       title;
     details.push(...buildMemberDetails(metadata));
+  } else if (action.startsWith("committee.project_supply.")) {
+    title =
+      metadataString(metadata, "supplyItemName") ??
+      title;
+    details.push(...buildProjectDetails(metadata, action));
+  } else if (
+    action.startsWith("committee.project.") &&
+    !action.startsWith("committee.project_supply.")
+  ) {
+    title =
+      metadataString(metadata, "projectName") ??
+      title;
+    details.push(...buildProjectDetails(metadata, action));
   } else if (action === ACTIVITY_ACTIONS.COMMITTEE_MESSAGE_POSTED) {
     const preview = metadataString(metadata, "messagePreview");
     if (preview) {

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
+import { supplyItemDisplayName, type CoopSupplyListItem } from "@/lib/admissions/program-coop-supply-list-mock";
 
 /** Max age of a workspace entity eligible for post-create activity + email via record-activity. */
 export const COMMITTEE_WORKSPACE_CREATE_MAX_AGE_MS = 10 * 60 * 1000;
@@ -9,6 +10,8 @@ export const RECORD_COMMITTEE_WORKSPACE_CREATE_ACTIONS: ReadonlySet<string> =
     ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED,
     ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_CREATED,
     ACTIVITY_ACTIONS.COMMITTEE_EVENT_CREATED,
+    ACTIVITY_ACTIONS.COMMITTEE_PROJECT_CREATED,
+    ACTIVITY_ACTIONS.COMMITTEE_PROJECT_SUPPLY_CREATED,
   ]);
 
 export type ResolvedCommitteeWorkspaceCreateActivity = {
@@ -133,6 +136,82 @@ export async function resolveCommitteeWorkspaceCreateActivity(
         metadata: {
           eventTitle: title,
           eventDate: data.event_date ?? null,
+        },
+      },
+    };
+  }
+
+  if (action === ACTIVITY_ACTIONS.COMMITTEE_PROJECT_CREATED) {
+    const { data, error } = await supabase
+      .from("committee_projects")
+      .select("id, name, status, created_at")
+      .eq("id", entityId)
+      .eq("committee_id", committeeId)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) return { ok: false, code: "invalid_entity" };
+    if (!isCreatedWithinWindow(data.created_at)) {
+      return { ok: false, code: "entity_too_old" };
+    }
+
+    const name = String(data.name ?? "Untitled");
+    return {
+      ok: true,
+      activity: {
+        action,
+        entityType: "committee_project",
+        entityId,
+        summary: `Project "${name}" was created`,
+        metadata: {
+          projectName: name,
+          projectStatus: data.status ?? null,
+          projectId: entityId,
+        },
+      },
+    };
+  }
+
+  if (action === ACTIVITY_ACTIONS.COMMITTEE_PROJECT_SUPPLY_CREATED) {
+    const { data, error } = await supabase
+      .from("committee_project_supply_items")
+      .select("id, name, project_id, created_at")
+      .eq("id", entityId)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) return { ok: false, code: "invalid_entity" };
+
+    const projectId = String(data.project_id);
+    const { data: project, error: projectError } = await supabase
+      .from("committee_projects")
+      .select("committee_id, name")
+      .eq("id", projectId)
+      .maybeSingle();
+
+    if (projectError) throw projectError;
+    if (!project || String(project.committee_id) !== committeeId) {
+      return { ok: false, code: "invalid_entity" };
+    }
+    if (!isCreatedWithinWindow(data.created_at)) {
+      return { ok: false, code: "entity_too_old" };
+    }
+
+    const itemName = supplyItemDisplayName({
+      name: String(data.name ?? ""),
+    } as CoopSupplyListItem);
+    const projectName = String(project.name ?? "Untitled");
+    return {
+      ok: true,
+      activity: {
+        action,
+        entityType: "committee_project_supply_item",
+        entityId,
+        summary: `Supply item "${itemName}" was added`,
+        metadata: {
+          projectId,
+          projectName,
+          supplyItemName: itemName,
         },
       },
     };

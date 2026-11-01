@@ -332,6 +332,24 @@ export async function listApplicationFormSummaries(
   );
 }
 
+/** Public apply pages need schema and fees, not notification or post-submit config. */
+const APPLICATION_FORM_PUBLIC_SELECT = `
+  id,
+  organization_id,
+  program_id,
+  form_kind,
+  version,
+  status,
+  title,
+  intro,
+  public_slug,
+  schema,
+  fee_config,
+  published_at,
+  created_at,
+  updated_at
+`;
+
 export async function getApplicationForm(
   supabase: SupabaseClient,
   id: string,
@@ -340,6 +358,22 @@ export async function getApplicationForm(
     .from("application_form_versions")
     .select("*")
     .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+  return applicationFormFromRow(data as Record<string, unknown>);
+}
+
+export async function getPublishedApplicationFormById(
+  supabase: SupabaseClient,
+  id: string,
+): Promise<ApplicationFormVersion | null> {
+  const { data, error } = await supabase
+    .from("application_form_versions")
+    .select(APPLICATION_FORM_PUBLIC_SELECT)
+    .eq("id", id)
+    .eq("status", "published")
     .maybeSingle();
 
   if (error) throw error;
@@ -357,7 +391,7 @@ export async function getPublishedApplicationFormBySlug(
 
   const { data, error } = await supabase
     .from("application_form_versions")
-    .select("*")
+    .select(APPLICATION_FORM_PUBLIC_SELECT)
     .eq("organization_id", organizationId)
     .eq("public_slug", normalizedSlug)
     .eq("status", "published")

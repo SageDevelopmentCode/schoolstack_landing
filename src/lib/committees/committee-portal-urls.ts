@@ -15,6 +15,7 @@ export type CommitteeWorkspaceLinkFocus = {
   eventDate?: string | null;
   resourceId?: string | null;
   taskId?: string | null;
+  projectId?: string | null;
 };
 
 function committeeSectionQuery(
@@ -41,6 +42,10 @@ function committeeSectionQuery(
   const taskId = focus?.taskId?.trim();
   if (taskId) {
     params.set("task", taskId);
+  }
+  const projectId = focus?.projectId?.trim();
+  if (projectId) {
+    params.set("project", projectId);
   }
   return params.toString();
 }

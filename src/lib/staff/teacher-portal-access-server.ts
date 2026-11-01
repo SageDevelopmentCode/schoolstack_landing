@@ -6,6 +6,7 @@ import {
   TeacherPortalAuthError,
   userHasTeacherPortalAccess,
 } from "@/lib/staff/teacher-portal-access";
+import { getCachedUserHasTeacherPortalAccess } from "@/lib/staff/teacher-portal-access-request";
 import { getUserFromRequest } from "@/lib/supabase/get-user-from-request";
 import { signedInErrorForRequest } from "@/lib/supabase/resolve-request-access-token";
 
@@ -31,11 +32,9 @@ export async function requireTeacherPortalUser(
     );
   }
 
-  const allowed = await userHasTeacherPortalAccess(
-    supabase,
-    user.id,
-    organizationId,
-  );
+  const allowed = request
+    ? await userHasTeacherPortalAccess(supabase, user.id, organizationId)
+    : await getCachedUserHasTeacherPortalAccess(user.id, organizationId);
 
   if (!allowed) {
     throw new TeacherPortalAuthError(

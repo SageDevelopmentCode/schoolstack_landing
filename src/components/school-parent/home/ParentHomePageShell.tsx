@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import type { FamilyUserProfile } from "@/lib/admissions/parent-portal-access";
 import type { ParentHomeContentData } from "@/lib/parent-portal/load-parent-home-content-data";
+import type { ParentHomeHydration } from "./parent-home-page-context";
 import type { ParentPortalHomeMeta } from "@/lib/parent-portal/parent-portal-home-meta";
 import type { ParentQuickAction } from "@/lib/organization-settings/parent-home";
 import type {
@@ -69,10 +70,23 @@ export default function ParentHomePageShell({
 }: ParentHomePageShellProps) {
   const [homeContent, setHomeContent] = useState<ParentHomeContentData | null>(null);
   const [contentHydrated, setContentHydrated] = useState(!familyId);
+  const [streamedBulletinPosts, setStreamedBulletinPosts] = useState<
+    BulletinPost[] | null
+  >(null);
+  const [streamedFeatureAnnouncements, setStreamedFeatureAnnouncements] =
+    useState<ResolvedParentFeatureAnnouncement[] | null>(null);
 
-  const hydrateHomeContent = useCallback((data: ParentHomeContentData) => {
-    setHomeContent(data);
-    setContentHydrated(true);
+  const hydrateHomeContent = useCallback((data: ParentHomeHydration) => {
+    if (data.contentData) {
+      setHomeContent(data.contentData);
+      setContentHydrated(true);
+    }
+    if (data.bulletinPosts !== undefined) {
+      setStreamedBulletinPosts(data.bulletinPosts);
+    }
+    if (data.featureAnnouncements !== undefined) {
+      setStreamedFeatureAnnouncements(data.featureAnnouncements);
+    }
   }, []);
 
   const contextValue = useMemo(() => ({ hydrateHomeContent }), [hydrateHomeContent]);
@@ -106,11 +120,13 @@ export default function ParentHomePageShell({
         coopFamilies={homeContent?.coopFamilies ?? []}
         fridayBranchHome={homeContent?.fridayBranchHome ?? null}
         bulletinEnabled={bulletinEnabled}
-        bulletinPosts={bulletinPosts}
+        bulletinPosts={streamedBulletinPosts ?? bulletinPosts}
         features={features}
         programSlug={programSlug}
         parentNavBasePath={parentNavBasePath}
-        featureAnnouncements={featureAnnouncements}
+        featureAnnouncements={
+          streamedFeatureAnnouncements ?? featureAnnouncements
+        }
         fridayBranchSettings={fridayBranchSettings}
       />
       {children}

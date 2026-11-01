@@ -17,6 +17,7 @@ export async function loadTeacherDashboardInitialData(input: {
   features: OrganizationFeatures;
   userId: string;
   schoolName: string;
+  staffMemberId?: string | null;
 }): Promise<TeacherDashboardSummary> {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
@@ -31,6 +32,7 @@ export async function loadTeacherDashboardInitialData(input: {
     {
       schoolName: input.schoolName,
       userId: input.userId,
+      staffMemberId: input.staffMemberId,
     },
   );
 }

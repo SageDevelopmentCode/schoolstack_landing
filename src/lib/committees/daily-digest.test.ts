@@ -30,6 +30,8 @@ function event(
       committeeId: "committee-1",
       committeeName: "Farm Committee",
     },
+    entity_type: overrides.entity_type ?? null,
+    entity_id: overrides.entity_id ?? null,
     created_at: overrides.created_at ?? "2026-09-22T12:00:00.000Z",
   };
 }
@@ -116,6 +118,48 @@ describe("mapDigestActivityItem", () => {
     assert.equal(item.title, "Can someone cover setup?");
     assert.equal(item.actionLabel, "Posted");
     assert.deepEqual(item.details, []);
+  });
+
+  it("maps project create with name and status", () => {
+    const item = mapDigestActivityItem(
+      event({
+        action: ACTIVITY_ACTIONS.COMMITTEE_PROJECT_CREATED,
+        summary: 'Project "Spring fair" was created',
+        metadata: {
+          committeeId: "committee-1",
+          committeeName: "Farm Committee",
+          projectName: "Spring fair",
+          projectStatus: "active",
+          projectId: "project-1",
+        },
+      }),
+      REFERENCE_DATE,
+    );
+
+    assert.equal(item.title, "Spring fair");
+    assert.equal(item.actionLabel, "Added");
+    assert.deepEqual(item.details, ["Status: Active"]);
+  });
+
+  it("maps supply item create with name and project detail", () => {
+    const item = mapDigestActivityItem(
+      event({
+        action: ACTIVITY_ACTIONS.COMMITTEE_PROJECT_SUPPLY_CREATED,
+        summary: 'Supply item "Compost bins" was added',
+        metadata: {
+          committeeId: "committee-1",
+          committeeName: "Farm Committee",
+          supplyItemName: "Compost bins",
+          projectId: "project-1",
+          projectName: "Spring fair",
+        },
+      }),
+      REFERENCE_DATE,
+    );
+
+    assert.equal(item.title, "Compost bins");
+    assert.equal(item.actionLabel, "Added");
+    assert.deepEqual(item.details, ["Project: Spring fair"]);
   });
 
   it("falls back to summary when metadata is sparse", () => {

@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import {
   bootstrapApplicant,
   BootstrapApplicantError,
@@ -164,59 +164,68 @@ export async function POST(request: Request) {
       });
     }
 
-    let parentApplicationStartedDiscordSent = false;
-
-    if (
+    const schoolName = body.schoolName?.trim() ?? "";
+    const applicationId = result.applicationId;
+    const notifyApplicationStarted =
       result.action === "resume" &&
       result.createdNewApplication &&
-      body.schoolName?.trim() &&
-      body.mode &&
-      isApplyAuthMode(body.mode) &&
-      result.applicationId
-    ) {
-      try {
-        await notifyRootedMeadowsParentApplicationStarted({
-          schoolName: body.schoolName.trim(),
-          email,
-          mode: body.mode,
-          applicationId: result.applicationId,
-          formTitle: body.formTitle,
-          firstName: firstName ?? body.firstName,
-          lastName: lastName ?? body.lastName,
-        });
-        parentApplicationStartedDiscordSent = true;
-      } catch (discordError) {
-        await logNotificationFailure(admin, {
-          organizationId,
-          operation: "parent_application_started_discord",
-          entityType: "application",
-          entityId: result.applicationId,
-          error: discordError,
-        });
-      }
-    }
+      Boolean(schoolName) &&
+      Boolean(body.mode && isApplyAuthMode(body.mode)) &&
+      Boolean(applicationId);
 
-    if (!parentApplicationStartedDiscordSent && body.schoolName?.trim()) {
-      try {
-        await notifyRootedMeadowsPortalSignedIn({
-          email,
-          client: "web",
-          surface: "public_apply",
-          actorType: "parent",
-          schoolName: body.schoolName.trim(),
-          method: "otp",
-          page: "/forms/apply",
-        });
-      } catch (discordError) {
-        await logNotificationFailure(admin, {
-          organizationId,
-          operation: "apply_sign_in_discord",
-          entityType: "application",
-          entityId: result.applicationId ?? undefined,
-          error: discordError,
-        });
+    after(async () => {
+      let parentApplicationStartedDiscordSent = false;
+
+      if (
+        notifyApplicationStarted &&
+        applicationId &&
+        body.mode &&
+        isApplyAuthMode(body.mode)
+      ) {
+        try {
+          await notifyRootedMeadowsParentApplicationStarted({
+            schoolName,
+            email,
+            mode: body.mode,
+            applicationId,
+            formTitle: body.formTitle,
+            firstName: firstName ?? body.firstName,
+            lastName: lastName ?? body.lastName,
+          });
+          parentApplicationStartedDiscordSent = true;
+        } catch (discordError) {
+          await logNotificationFailure(admin, {
+            organizationId,
+            operation: "parent_application_started_discord",
+            entityType: "application",
+            entityId: applicationId,
+            error: discordError,
+          });
+        }
       }
-    }
+
+      if (!parentApplicationStartedDiscordSent && schoolName) {
+        try {
+          await notifyRootedMeadowsPortalSignedIn({
+            email,
+            client: "web",
+            surface: "public_apply",
+            actorType: "parent",
+            schoolName,
+            method: "otp",
+            page: "/forms/apply",
+          });
+        } catch (discordError) {
+          await logNotificationFailure(admin, {
+            organizationId,
+            operation: "apply_sign_in_discord",
+            entityType: "application",
+            entityId: applicationId ?? undefined,
+            error: discordError,
+          });
+        }
+      }
+    });
 
     return NextResponse.json(result);
   } catch (error) {

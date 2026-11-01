@@ -66,6 +66,23 @@ type SchoolParentBaselineProps = {
   fridayBranchSettings?: import("@/lib/school-admin/friday-branch/friday-branch-org-settings").OrganizationFridayBranchSettings | null;
 };
 
+function CommitteeWorkspaceSearchParamSync({
+  pathname,
+  onOpenChange,
+}: {
+  pathname: string;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const searchParams = useSearchParams();
+  const open = isParentCommitteeWorkspaceOpen(pathname, searchParams);
+
+  useEffect(() => {
+    onOpenChange(open);
+  }, [onOpenChange, open]);
+
+  return null;
+}
+
 function isParentHelpPage(pathname: string, slug: string): boolean {
   return (
     pathname.startsWith(`/school/${slug}/parent/`) ||
@@ -97,14 +114,13 @@ function SchoolParentBaselineInner({
   notificationContext,
   embeddedPreview,
   fridayBranchSettings,
-  searchParams,
-}: SchoolParentBaselineProps & {
-  searchParams: ReturnType<typeof useSearchParams>;
-}) {
+}: SchoolParentBaselineProps) {
   const routerPathname = usePathname();
   const pathname = embeddedPreview?.pathname ?? routerPathname;
   const { theme, adminCompat: C } = useParentTheme();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationsMounted, setNotificationsMounted] = useState(false);
+  const [committeeWorkspaceOpen, setCommitteeWorkspaceOpen] = useState(false);
   const [activityUnreadCount, setActivityUnreadCount] = useState(
     initialActivityUnreadCount ?? 0,
   );
@@ -127,21 +143,17 @@ function SchoolParentBaselineInner({
   const skipInitialUnreadFetch =
     !previewMode && initialActivityUnreadCount != null;
   const isMessagesPage = isParentMessagesPath(pathname);
-  const isCommitteeWorkspaceOpen = isParentCommitteeWorkspaceOpen(
-    pathname,
-    searchParams,
-  );
   const isFixedLayoutPage =
     isMessagesPage ||
     isParentBillingPath(pathname) ||
     isParentCurriculumPath(pathname) ||
-    isCommitteeWorkspaceOpen;
+    committeeWorkspaceOpen;
   const messagesEnabled = Boolean(features.parent?.messages);
   const showHelpButton =
     isParentHelpPage(pathname, slug) &&
     !isMessagesPage &&
     !isParentHomePath(pathname) &&
-    !isParentCommitteeWorkspaceOpen(pathname, searchParams);
+    !committeeWorkspaceOpen;
   const documentationHref = parentDocumentationPath(slug, {
     previewBasePath,
     parentNavBasePath,
@@ -201,6 +213,7 @@ function SchoolParentBaselineInner({
   }, [fetchActivityUnreadCount, previewMode]);
 
   const openNotifications = useCallback(() => {
+    setNotificationsMounted(true);
     setNotificationsOpen(true);
   }, []);
 
@@ -274,19 +287,28 @@ function SchoolParentBaselineInner({
 
         <ParentToaster C={C} helpButtonVisible={showHelpButton} />
 
-        <ParentActivityNotificationsPanel
-          open={notificationsOpen}
-          onClose={() => setNotificationsOpen(false)}
-          organizationId={organizationId}
-          slug={slug}
-          notificationContext={resolvedNotificationContext}
-          parentNavBasePath={resolvedNavBasePath}
-          applyBasePath={resolvedApplyBasePath}
-          previewMode={previewMode}
-          previewFamilyId={previewFamilyId}
-          onMarkedRead={() => setActivityUnreadCount(0)}
-          onNavigate={embeddedPreview?.onNavigate}
-        />
+        <Suspense fallback={null}>
+          <CommitteeWorkspaceSearchParamSync
+            pathname={pathname}
+            onOpenChange={setCommitteeWorkspaceOpen}
+          />
+        </Suspense>
+
+        {notificationsMounted ? (
+          <ParentActivityNotificationsPanel
+            open={notificationsOpen}
+            onClose={() => setNotificationsOpen(false)}
+            organizationId={organizationId}
+            slug={slug}
+            notificationContext={resolvedNotificationContext}
+            parentNavBasePath={resolvedNavBasePath}
+            applyBasePath={resolvedApplyBasePath}
+            previewMode={previewMode}
+            previewFamilyId={previewFamilyId}
+            onMarkedRead={() => setActivityUnreadCount(0)}
+            onNavigate={embeddedPreview?.onNavigate}
+          />
+        ) : null}
       </div>
     </ParentPortalContextProvider>
   );
@@ -309,17 +331,10 @@ function SchoolParentBaselineInner({
   return <NavigationLoadingProvider>{wrappedShell}</NavigationLoadingProvider>;
 }
 
-function SchoolParentBaselineWithSearchParams(props: SchoolParentBaselineProps) {
-  const searchParams = useSearchParams();
-  return <SchoolParentBaselineInner {...props} searchParams={searchParams} />;
-}
-
 export default function SchoolParentBaseline(props: SchoolParentBaselineProps) {
   return (
     <ParentThemeProvider branding={props.branding}>
-      <Suspense fallback={null}>
-        <SchoolParentBaselineWithSearchParams {...props} />
-      </Suspense>
+      <SchoolParentBaselineInner {...props} />
     </ParentThemeProvider>
   );
 }

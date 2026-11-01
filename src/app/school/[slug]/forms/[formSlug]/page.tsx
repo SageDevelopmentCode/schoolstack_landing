@@ -6,11 +6,11 @@ import CanonicalApplyEntryClient from "@/components/admissions/CanonicalApplyEnt
 import { loadProgramsByIdForApplyForms } from "@/components/admissions/ApplyProgramPicker";
 import PublicApplicationFormClient from "@/components/admissions/PublicApplicationFormClient";
 import { getEnabledTourAuthEntryOption } from "@/lib/organization-settings/apply-auth-entry";
-import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import {
-  isApplyProgramPicker,
+  fetchPublicApplyOrganization,
   resolvePublishedApplyEntryCached,
-} from "@/lib/admissions/resolve-published-apply-entry";
+} from "@/lib/admissions/public-apply-cache";
+import { isApplyProgramPicker } from "@/lib/admissions/resolve-published-apply-entry";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -40,9 +40,7 @@ async function userHasGuardianForOrg(
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug, formSlug } = await params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchPublicApplyOrganization(slug);
 
   if (!org) {
     return { title: "School Not Found" };
@@ -72,7 +70,9 @@ export default async function PublicApplicationFormPage({ params }: PageProps) {
   const { slug, formSlug } = await params;
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const userPromise = supabase.auth.getUser();
+  void userPromise.catch(() => undefined);
+  const org = await fetchPublicApplyOrganization(slug);
 
   if (!org) {
     notFound();
@@ -85,13 +85,15 @@ export default async function PublicApplicationFormPage({ params }: PageProps) {
   }
 
   if (isApplyProgramPicker(resolved)) {
-    const [{ data: { user } }, programsById] = await Promise.all([
-      supabase.auth.getUser(),
+    const {
+      data: { user },
+    } = await userPromise;
+    const [programsById, hasGuardianForOrg] = await Promise.all([
       loadProgramsByIdForApplyForms(supabase, org.id, resolved.forms),
+      user
+        ? userHasGuardianForOrg(supabase, user.id, org.id)
+        : Promise.resolve(false),
     ]);
-    const hasGuardianForOrg = user
-      ? await userHasGuardianForOrg(supabase, user.id, org.id)
-      : false;
     const tourEntryOption = getEnabledTourAuthEntryOption(org.features);
 
     return (
@@ -123,7 +125,7 @@ export default async function PublicApplicationFormPage({ params }: PageProps) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await userPromise;
 
   const tourEntryOption = getEnabledTourAuthEntryOption(org.features);
 

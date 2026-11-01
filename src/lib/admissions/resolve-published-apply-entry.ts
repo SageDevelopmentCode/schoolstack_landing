@@ -1,16 +1,13 @@
-import { cache } from "react";
-import { cookies } from "next/headers";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ApplicationFormVersion } from "@/lib/admissions/application-form-schema";
 import {
-  getApplicationForm,
+  getPublishedApplicationFormById,
   getPublishedApplicationFormBySlug,
   isApplyFormVersion,
   isCanonicalApplyEntrySlug,
   listPublishedApplyFormSummaries,
 } from "@/lib/admissions/application-forms";
 import { ensureApplySystemSchema } from "@/lib/admissions/apply-system-fields";
-import { createClient } from "@/utils/supabase/server";
 
 export type ResolvedApplyEntry =
   | ApplicationFormVersion
@@ -40,7 +37,7 @@ export async function resolvePublishedApplyEntry(
     return null;
   }
   if (summaries.length === 1) {
-    const full = await getApplicationForm(supabase, summaries[0].id);
+    const full = await getPublishedApplicationFormById(supabase, summaries[0].id);
     if (!full) {
       return null;
     }
@@ -51,19 +48,4 @@ export async function resolvePublishedApplyEntry(
   }
 
   return { kind: "picker" as const, forms: summaries };
-}
-
-const resolvePublishedApplyEntryForRequest = cache(
-  async (organizationId: string, formSlug: string) => {
-    const cookieStore = await cookies();
-    const supabase = createClient(cookieStore);
-    return resolvePublishedApplyEntry(supabase, organizationId, formSlug);
-  },
-);
-
-export async function resolvePublishedApplyEntryCached(
-  organizationId: string,
-  formSlug: string,
-): Promise<ResolvedApplyEntry> {
-  return resolvePublishedApplyEntryForRequest(organizationId, formSlug);
 }

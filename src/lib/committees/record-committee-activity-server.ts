@@ -23,6 +23,16 @@ export type RecordCommitteeActivityInput = {
   surface: ActivitySurface;
 };
 
+export function shouldSendCommitteeWorkspaceInstantNotification(action: string): boolean {
+  return (
+    action === ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_CREATED ||
+    action === ACTIVITY_ACTIONS.COMMITTEE_EVENT_CREATED ||
+    action === ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED ||
+    action === ACTIVITY_ACTIONS.COMMITTEE_PROJECT_CREATED ||
+    action === ACTIVITY_ACTIONS.COMMITTEE_PROJECT_SUPPLY_CREATED
+  );
+}
+
 export async function recordCommitteeActivityServer(
   supabase: SupabaseClient,
   input: RecordCommitteeActivityInput,
@@ -46,11 +56,7 @@ export async function recordCommitteeActivityServer(
     },
   });
 
-  if (
-    input.action === ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_CREATED ||
-    input.action === ACTIVITY_ACTIONS.COMMITTEE_EVENT_CREATED ||
-    input.action === ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED
-  ) {
+  if (shouldSendCommitteeWorkspaceInstantNotification(input.action)) {
     await sendCommitteeWorkspaceUpdateNotifications(supabase, {
       organizationId: input.organizationId,
       committeeId: input.committeeId,
@@ -59,6 +65,8 @@ export async function recordCommitteeActivityServer(
       entityId: input.entityId,
       summary: input.summary,
       senderMemberId: input.actorMemberId ?? null,
+      projectId:
+        typeof input.metadata?.projectId === "string" ? input.metadata.projectId : null,
     });
   }
 }

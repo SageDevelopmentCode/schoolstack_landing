@@ -23,10 +23,11 @@ import { isParentHomeFridayBranchEnabled } from "@/lib/organization-settings/par
 import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
 import { loadParentFridayBranchPageBundle } from "@/lib/parent-portal/friday-branch/load-parent-friday-branch";
 import type { ParentFridayBranchPageBundle } from "@/lib/parent-portal/friday-branch/types";
-import { loadParentFormAttentionItems } from "@/lib/school-parent/forms-documents/load-parent-form-attention-items";
+import { buildParentFormAttentionItemsFromBundle } from "@/lib/school-parent/forms-documents/load-parent-form-attention-items";
 import type { ParentFormAttentionItem } from "@/lib/school-parent/forms-documents/load-parent-form-attention-items";
-import { loadParentFormHomeSnapshot } from "@/lib/school-parent/forms-documents/load-parent-form-home-snapshot";
+import { buildParentFormHomeSnapshotFromBundle } from "@/lib/school-parent/forms-documents/load-parent-form-home-snapshot";
 import type { ParentFormHomeSnapshot } from "@/lib/school-parent/forms-documents/load-parent-form-home-snapshot";
+import { loadParentFormsDocumentsPageBundle } from "@/lib/school-parent/forms-documents/load-parent-forms";
 import { getRequestUser } from "@/lib/auth/session";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -142,14 +143,18 @@ export async function loadParentHomeContentDataForAuthUser(input: {
   programId?: string;
   coopModeEnabled?: boolean;
   fridayBranchSettings?: import("@/lib/school-admin/friday-branch/friday-branch-org-settings").OrganizationFridayBranchSettings | null;
+  /** When true, skips re-querying program enrollment (caller already verified). */
+  programAccessVerified?: boolean;
 }): Promise<ParentHomeContentData> {
   const hasProgramAccess = input.programId
-    ? await userHasEnrolledAccessInProgram(
-        input.supabase,
-        input.userId,
-        input.organizationId,
-        input.programId,
-      )
+    ? input.programAccessVerified === true
+      ? true
+      : await userHasEnrolledAccessInProgram(
+          input.supabase,
+          input.userId,
+          input.organizationId,
+          input.programId,
+        )
     : false;
 
   const familyChildren = input.programId
@@ -181,12 +186,16 @@ export async function loadParentHomeContentDataForAuthUser(input: {
   const applicationIds = familyChildren.map((child) => child.applicationId);
   const admin = createAdminClient();
   const formsFeatureEnabled = isParentFeatureEnabled(input.features, "forms_documents");
+
+  const formsBundlePromise = formsFeatureEnabled
+    ? loadParentFormsDocumentsPageBundle(admin, input.organizationId, input.familyId)
+    : Promise.resolve(null);
+
   const [
     amendmentsByApplicationId,
     incompleteByApplicationId,
     coopFamilies,
-    formAttentionItems,
-    formSnapshot,
+    formsBundle,
     fridayBranchHome,
   ] = await Promise.all([
     listEnrollmentAgreementAmendmentsForApplications(
@@ -206,24 +215,7 @@ export async function loadParentHomeContentDataForAuthUser(input: {
       coopModeEnabled: input.coopModeEnabled,
       hasProgramAccess,
     }),
-    formsFeatureEnabled
-      ? loadParentFormAttentionItems(
-          admin,
-          input.organizationId,
-          input.familyId,
-          input.slug,
-          input.previewBasePath,
-        )
-      : Promise.resolve([]),
-    formsFeatureEnabled
-      ? loadParentFormHomeSnapshot(
-          admin,
-          input.organizationId,
-          input.familyId,
-          input.slug,
-          input.previewBasePath,
-        )
-      : Promise.resolve(null),
+    formsBundlePromise,
     loadFridayBranchHomeBundle({
       organizationId: input.organizationId,
       familyId: input.familyId,
@@ -232,6 +224,23 @@ export async function loadParentHomeContentDataForAuthUser(input: {
       fridayBranchSettings: input.fridayBranchSettings,
     }),
   ]);
+
+  const formAttentionItems =
+    formsBundle && formsFeatureEnabled
+      ? buildParentFormAttentionItemsFromBundle(
+          formsBundle,
+          input.slug,
+          input.previewBasePath,
+        )
+      : [];
+  const formSnapshot =
+    formsBundle && formsFeatureEnabled
+      ? buildParentFormHomeSnapshotFromBundle(
+          formsBundle,
+          input.slug,
+          input.previewBasePath,
+        )
+      : null;
 
   return {
     familyChildren,
@@ -309,12 +318,16 @@ export async function loadParentHomePreviewContentData(input: {
   const applicationIds = familyChildren.map((child) => child.applicationId);
   const admin = createAdminClient();
   const formsFeatureEnabled = isParentFeatureEnabled(input.features, "forms_documents");
+
+  const formsBundlePromise = formsFeatureEnabled
+    ? loadParentFormsDocumentsPageBundle(admin, input.organizationId, input.familyId)
+    : Promise.resolve(null);
+
   const [
     amendmentsByApplicationId,
     incompleteByApplicationId,
     coopFamilies,
-    formAttentionItems,
-    formSnapshot,
+    formsBundle,
     fridayBranchHome,
   ] = await Promise.all([
     listEnrollmentAgreementAmendmentsForApplications(
@@ -334,24 +347,7 @@ export async function loadParentHomePreviewContentData(input: {
       coopModeEnabled: input.coopModeEnabled,
       hasProgramAccess,
     }),
-    formsFeatureEnabled
-      ? loadParentFormAttentionItems(
-          admin,
-          input.organizationId,
-          input.familyId,
-          input.slug,
-          input.previewBasePath,
-        )
-      : Promise.resolve([]),
-    formsFeatureEnabled
-      ? loadParentFormHomeSnapshot(
-          admin,
-          input.organizationId,
-          input.familyId,
-          input.slug,
-          input.previewBasePath,
-        )
-      : Promise.resolve(null),
+    formsBundlePromise,
     loadFridayBranchHomeBundle({
       organizationId: input.organizationId,
       familyId: input.familyId,
@@ -360,6 +356,23 @@ export async function loadParentHomePreviewContentData(input: {
       fridayBranchSettings: input.fridayBranchSettings,
     }),
   ]);
+
+  const formAttentionItems =
+    formsBundle && formsFeatureEnabled
+      ? buildParentFormAttentionItemsFromBundle(
+          formsBundle,
+          input.slug,
+          input.previewBasePath,
+        )
+      : [];
+  const formSnapshot =
+    formsBundle && formsFeatureEnabled
+      ? buildParentFormHomeSnapshotFromBundle(
+          formsBundle,
+          input.slug,
+          input.previewBasePath,
+        )
+      : null;
 
   return {
     familyChildren,

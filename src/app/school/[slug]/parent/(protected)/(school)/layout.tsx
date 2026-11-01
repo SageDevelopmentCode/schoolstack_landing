@@ -2,16 +2,14 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import SchoolParentBaseline from "@/components/school-parent/SchoolParentBaseline";
-import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
 import { getRequestUser } from "@/lib/auth/session";
+import { shouldRedirectAwayFromMainParentPortal } from "@/lib/admissions/program-parent-portal-access";
 import {
-  loadParentPortalNavContextsForUser,
-  shouldRedirectAwayFromMainParentPortal,
-} from "@/lib/admissions/program-parent-portal-access";
-import { getParentPortalUserProfile } from "@/lib/parent-portal/parent-portal-server-cache";
-import { getParentPortalActivityUnreadCount } from "@/lib/parent-portal/parent-activity-notifications-server";
+  getCachedParentPortalNavContexts,
+  getCachedPortalAccountLinkContext,
+  getParentPortalUserProfile,
+} from "@/lib/parent-portal/parent-portal-server-cache";
 import { buildMainParentNotificationContext } from "@/lib/parent-portal/parent-notification-context";
-import { getPortalAccountLinkContext } from "@/lib/auth/portal-account-link-context";
 import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-server";
 import { portalAccountLinkOpensInNewTab } from "@/lib/auth/portal-switcher-types";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
@@ -47,15 +45,13 @@ export default async function SchoolParentMainLayout({
       hasEnrolledAccess: true,
       hasFamilyAccess: true,
     }),
-    loadParentPortalNavContextsForUser({
-      supabase,
-      userId: user.id,
+    getCachedParentPortalNavContexts({
       organizationId: org.id,
       schoolSlug: slug,
       schoolName: org.name,
       orgFeatures: org.features,
     }),
-    getPortalAccountLinkContext(supabase, org.id, user.id),
+    getCachedPortalAccountLinkContext(org.id),
   ]);
 
   const openPortalLinksInNewTab = portalAccountLinkOpensInNewTab(
@@ -69,18 +65,7 @@ export default async function SchoolParentMainLayout({
     }
   }
 
-  const familyIds = await getFamilyIdsForUser(supabase, user.id, org.id);
-  const familyId = familyIds[0];
   const notificationContext = buildMainParentNotificationContext(slug);
-  const initialActivityUnreadCount = familyId
-    ? await getParentPortalActivityUnreadCount(supabase, {
-        organizationId: org.id,
-        slug,
-        familyId,
-        userId: user.id,
-        notificationContext,
-      })
-    : 0;
 
   return (
     <SchoolParentBaseline
@@ -93,7 +78,6 @@ export default async function SchoolParentMainLayout({
       portalOptions={portalOptions}
       openPortalLinksInNewTab={openPortalLinksInNewTab}
       parentPortalContexts={parentPortalContexts}
-      initialActivityUnreadCount={initialActivityUnreadCount}
       notificationContext={notificationContext}
       fridayBranchSettings={org.fridayBranchSettings}
     >

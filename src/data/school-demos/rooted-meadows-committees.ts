@@ -14,6 +14,7 @@ export type CommitteeWorkspaceSection =
   | "resources"
   | "calendar"
   | "tasks"
+  | "projects"
   | "messages"
   | "members"
   | "settings";
@@ -810,6 +811,7 @@ export const COMMITTEE_SECTION_LABELS: Record<CommitteeWorkspaceSection, string>
   resources: "Resources",
   calendar: "Calendar",
   tasks: "Tasks",
+  projects: "Projects",
   messages: "Messages",
   members: "Members",
   settings: "Settings",

@@ -72,7 +72,9 @@ function SchoolTeacherBaselineInner({
     searchParams,
   );
   const isFixedLayoutPage = isMessagesPage || isCommitteeWorkspaceOpen;
-  const messagesEnabled = Boolean(features.teacher?.messages) && !previewMode;
+  const messagesFeatureEnabled =
+    Boolean(features.teacher?.messages) && !previewMode;
+  const messagesRealtimeEnabled = messagesFeatureEnabled && isMessagesPage;
   const { theme, adminCompat: C } = useParentTheme();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [activityUnreadCount, setActivityUnreadCount] = useState(
@@ -128,7 +130,7 @@ function SchoolTeacherBaselineInner({
     <CommitteeUnreadRefreshProvider>
     <MessagesRefreshProvider
       organizationId={organizationId}
-      enabled={messagesEnabled}
+      enabled={messagesRealtimeEnabled}
     >
       <div
         className={`flex h-dvh w-full flex-col overflow-hidden ${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)]`}
@@ -164,15 +166,17 @@ function SchoolTeacherBaselineInner({
         </main>
         <ParentToaster C={C} />
 
-        <TeacherActivityNotificationsPanel
-          open={notificationsOpen}
-          onClose={() => setNotificationsOpen(false)}
-          organizationId={organizationId}
-          slug={slug}
-          previewMode={previewMode}
-          previewStaffMemberId={previewStaffMemberId ?? staffMemberId}
-          onMarkedRead={() => setActivityUnreadCount(0)}
-        />
+        {notificationsOpen ? (
+          <TeacherActivityNotificationsPanel
+            open={notificationsOpen}
+            onClose={() => setNotificationsOpen(false)}
+            organizationId={organizationId}
+            slug={slug}
+            previewMode={previewMode}
+            previewStaffMemberId={previewStaffMemberId ?? staffMemberId}
+            onMarkedRead={() => setActivityUnreadCount(0)}
+          />
+        ) : null}
       </div>
     </MessagesRefreshProvider>
     </CommitteeUnreadRefreshProvider>

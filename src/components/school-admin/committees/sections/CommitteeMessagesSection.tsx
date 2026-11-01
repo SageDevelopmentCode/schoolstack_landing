@@ -8,6 +8,7 @@ import CommitteeWorkspaceSectionFrame from "@/components/school-admin/committees
 import MessagesAvatar from "@/components/messages/MessagesAvatar";
 import MessageAttachments from "@/components/messages/MessageAttachments";
 import MessagesComposeBar from "@/components/messages/MessagesComposeBar";
+import LinkifiedText from "@/components/text/LinkifiedText";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import type { Committee, CommitteeMessage } from "@/lib/committees/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
@@ -66,6 +67,11 @@ function CommitteeMessageBubble({
   const label = senderLabel(msg);
   const avatarKey = msg.senderId || msg.senderName;
   const attachments = msg.attachments ?? [];
+  const bodyColor = own ? "#ffffff" : theme.ink;
+  const linkColor =
+    bodyColor === "#ffffff" || bodyColor === "#FFFFFF"
+      ? "rgba(255,255,255,0.92)"
+      : theme.primary;
 
   return (
     <div
@@ -92,12 +98,13 @@ function CommitteeMessageBubble({
           </p>
         ) : null}
         {msg.text ? (
-          <p
+          <LinkifiedText
+            as="p"
+            text={msg.text}
             className="whitespace-pre-wrap text-xs leading-snug"
-            style={{ color: own ? "#ffffff" : theme.ink }}
-          >
-            {msg.text}
-          </p>
+            style={{ color: bodyColor }}
+            linkColor={linkColor}
+          />
         ) : null}
         {attachments.length > 0 ? (
           <MessageAttachments

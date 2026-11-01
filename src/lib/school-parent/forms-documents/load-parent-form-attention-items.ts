@@ -11,19 +11,11 @@ export type ParentFormAttentionItem = {
   formsHref: string;
 };
 
-export async function loadParentFormAttentionItems(
-  admin: SupabaseClient,
-  organizationId: string,
-  familyId: string,
+export function buildParentFormAttentionItemsFromBundle(
+  bundle: Awaited<ReturnType<typeof loadParentFormsDocumentsPageBundle>>,
   schoolSlug: string,
   previewBasePath?: string,
-): Promise<ParentFormAttentionItem[]> {
-  const bundle = await loadParentFormsDocumentsPageBundle(
-    admin,
-    organizationId,
-    familyId,
-  );
-
+): ParentFormAttentionItem[] {
   const formsBase = previewBasePath
     ? `${previewBasePath}/parent/forms_documents`
     : schoolParentPath(schoolSlug, "forms_documents");
@@ -43,4 +35,24 @@ export async function loadParentFormAttentionItems(
         billingBase,
       }),
     }));
+}
+
+export async function loadParentFormAttentionItems(
+  admin: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+  schoolSlug: string,
+  previewBasePath?: string,
+): Promise<ParentFormAttentionItem[]> {
+  const bundle = await loadParentFormsDocumentsPageBundle(
+    admin,
+    organizationId,
+    familyId,
+  );
+
+  return buildParentFormAttentionItemsFromBundle(
+    bundle,
+    schoolSlug,
+    previewBasePath,
+  );
 }

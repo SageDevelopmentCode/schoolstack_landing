@@ -6,6 +6,7 @@ const VALID_SECTIONS: CommitteeWorkspaceSection[] = [
   "resources",
   "calendar",
   "tasks",
+  "projects",
   "messages",
   "members",
   "activity",

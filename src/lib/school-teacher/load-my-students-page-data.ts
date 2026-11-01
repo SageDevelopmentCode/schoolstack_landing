@@ -7,7 +7,7 @@ import {
   type StaffClassroomOption,
 } from "@/lib/school-admin/classrooms";
 import { mergeStudentStandingHealthFlags } from "@/lib/school-admin/merge-student-standing-health-flags";
-import { getStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access";
+import { getCachedStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access-request";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 
@@ -24,8 +24,7 @@ export async function loadTeacherMyStudentsPageData(
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
-  const staffMemberId = await getStaffMemberIdForUser(
-    supabase,
+  const staffMemberId = await getCachedStaffMemberIdForUser(
     userId,
     organizationId,
   );

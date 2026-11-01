@@ -60,4 +60,30 @@ describe("appendCommitteeActivityFocusParams", () => {
     assert.equal(params.get("event"), "evt-1");
     assert.equal(params.get("date"), "2026-10-21");
   });
+
+  it("adds project id for committee project created", () => {
+    const params = new URLSearchParams({ committee: "c1", section: "projects" });
+    appendCommitteeActivityFocusParams(
+      params,
+      ACTIVITY_ACTIONS.COMMITTEE_PROJECT_CREATED,
+      { entity_type: "committee_project", entity_id: "proj-1" },
+      metadataString,
+    );
+    assert.equal(params.get("project"), "proj-1");
+  });
+
+  it("adds project id from metadata for supply created", () => {
+    const params = new URLSearchParams({ committee: "c1", section: "projects" });
+    appendCommitteeActivityFocusParams(
+      params,
+      ACTIVITY_ACTIONS.COMMITTEE_PROJECT_SUPPLY_CREATED,
+      {
+        entity_type: "committee_project_supply_item",
+        entity_id: "item-1",
+        metadata: { projectId: "proj-2" },
+      },
+      metadataString,
+    );
+    assert.equal(params.get("project"), "proj-2");
+  });
 });

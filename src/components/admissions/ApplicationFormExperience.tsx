@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -12,7 +13,6 @@ import PortalHelpFab from "@/components/school/shared/PortalHelpFab";
 import ApplicationFieldInput from "@/components/admissions/ApplicationFieldInput";
 import ApplicationCheckboxInput from "@/components/admissions/ApplicationCheckboxInput";
 import ApplicationStepNotice from "@/components/admissions/ApplicationStepNotice";
-import PaymentMethodSelectionModal from "@/components/admissions/PaymentMethodSelectionModal";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
@@ -37,6 +37,10 @@ import {
 } from "@/lib/operational-errors-client";
 import { createClient } from "@/utils/supabase/client";
 
+const PaymentMethodSelectionModal = dynamic(
+  () => import("@/components/admissions/PaymentMethodSelectionModal"),
+);
+
 type ExperienceStep =
   | { kind: "section"; sectionIndex: number }
   | { kind: "acknowledgments" }
@@ -59,7 +63,10 @@ export type ApplicationFormExperienceProps = {
   initialStatus?: string;
   paymentReturnPending?: boolean;
   schoolSlug?: string;
-  copyableApplications?: CopyableApplication[];
+  copyableApplications?: Pick<
+    CopyableApplication,
+    "id" | "submittedAt" | "label"
+  >[];
   priorFieldValues?: Record<string, string>;
   onImportResponses?: (
     sourceApplicationId: string,

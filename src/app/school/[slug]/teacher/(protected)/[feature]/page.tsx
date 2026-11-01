@@ -2,10 +2,9 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import nextDynamic from "next/dynamic";
+import type { ComponentType } from "react";
 import SchoolTeacherComingSoon from "@/components/school-teacher/SchoolTeacherComingSoon";
-import TeacherDashboardPage from "@/components/school-teacher/TeacherDashboardPage";
-import TeacherMyStudentsPage from "@/components/school-teacher/TeacherMyStudentsPage";
-import TeacherMessagesPage from "@/components/school-teacher/TeacherMessagesPage";
+import TeacherFeaturePageFallback from "@/components/school-teacher/TeacherFeaturePageFallback";
 import { getTeacherPageLabel } from "@/lib/organization-settings/teacher-nav";
 import { isTeacherFeatureEnabled } from "@/lib/organization-settings/teacher-routes";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
@@ -16,41 +15,60 @@ import { loadTeacherCalendarInitialData } from "@/lib/school-events/load-teacher
 import { loadTeacherCommitteesInitialData } from "@/lib/committees/load-teacher-committees-data";
 import { loadTeacherClassroomSignupsPageData } from "@/lib/classroom-signups/load-classroom-signups-page-data";
 import { loadTeacherFormsDocumentsPageData } from "@/lib/school-teacher/forms-documents/load-forms-documents-page-data";
+import { getStaffPortalRoleForUser } from "@/lib/staff/teacher-portal-access";
 import {
-  getStaffMemberIdForUser,
-  getStaffUserProfile,
-} from "@/lib/staff/teacher-portal-access";
-import { requireTeacherPortalUser } from "@/lib/staff/teacher-portal-access-server";
-import type { StaffPortalRole } from "@/lib/staff/staff-members";
+  getCachedStaffMemberIdForUser,
+  getCachedStaffUserProfile,
+  getTeacherPortalPageUser,
+} from "@/lib/staff/teacher-portal-access-request";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
-import SchoolGalleryPage from "@/components/school-gallery/SchoolGalleryPage";
 import { isSchoolGalleryEnabled } from "@/lib/school-gallery/gallery-enabled";
 import { isSchoolGalleryFeatureKey } from "@/lib/school-gallery/gallery-nav";
 
-const TeacherCalendarPage = nextDynamic(
+const dynamicFeaturePage = <P extends object>(
+  importer: () => Promise<{ default: ComponentType<P> }>,
+) => nextDynamic(importer, { loading: () => <TeacherFeaturePageFallback /> });
+
+const TeacherDashboardPage = dynamicFeaturePage(
+  () => import("@/components/school-teacher/TeacherDashboardPage"),
+);
+
+const TeacherMyStudentsPage = dynamicFeaturePage(
+  () => import("@/components/school-teacher/TeacherMyStudentsPage"),
+);
+
+const TeacherMessagesPage = dynamicFeaturePage(
+  () => import("@/components/school-teacher/TeacherMessagesPage"),
+);
+
+const SchoolGalleryPage = dynamicFeaturePage(
+  () => import("@/components/school-gallery/SchoolGalleryPage"),
+);
+
+const TeacherCalendarPage = dynamicFeaturePage(
   () => import("@/components/school-teacher/TeacherCalendarPage"),
 );
 
-const TeacherClassroomSignupsPage = nextDynamic(
+const TeacherClassroomSignupsPage = dynamicFeaturePage(
   () =>
     import(
       "@/components/classroom-signups/teacher/TeacherClassroomSignupsPage"
     ),
 );
 
-const TeacherFormsDocumentsPage = nextDynamic(
+const TeacherFormsDocumentsPage = dynamicFeaturePage(
   () =>
     import(
       "@/components/school-teacher/forms-documents/TeacherFormsDocumentsPage"
     ),
 );
 
-const TeacherAttendancePage = nextDynamic(
+const TeacherAttendancePage = dynamicFeaturePage(
   () => import("@/components/school-teacher/TeacherAttendancePage"),
 );
 
-const TeacherCommitteesPage = nextDynamic(
+const TeacherCommitteesPage = dynamicFeaturePage(
   () => import("@/components/school-teacher/committees/TeacherCommitteesPage"),
 );
 
@@ -114,7 +132,7 @@ export default async function SchoolTeacherFeaturePage({
     if (!isSchoolGalleryEnabled(org.features)) {
       notFound();
     }
-    const user = await requireTeacherPortalUser(supabase, org.id);
+    const user = await getTeacherPortalPageUser(org.id);
     return (
       <div className="mx-auto max-w-[1200px] px-[clamp(20px,4vw,48px)] py-8">
         <h1 className="mb-6 text-2xl font-semibold text-[#1F2A2E]">Photos</h1>
@@ -140,41 +158,31 @@ export default async function SchoolTeacherFeaturePage({
   );
 
   if (feature === "dashboard") {
-    const user = await requireTeacherPortalUser(supabase, org.id);
-    const userProfile = await getStaffUserProfile(
-      supabase,
-      user.id,
-      org.id,
-      user,
-    );
+    const user = await getTeacherPortalPageUser(org.id);
+    const staffMemberIdPromise = getCachedStaffMemberIdForUser(user.id, org.id);
 
-    const { data: staffMember } = await supabase
-      .from("staff_members")
-      .select("role_title")
-      .eq("organization_id", org.id)
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    const { data: membership } = await supabase
-      .from("organization_memberships")
-      .select("role")
-      .eq("organization_id", org.id)
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .maybeSingle();
-
-    const portalRole =
-      membership?.role === "teacher" || membership?.role === "staff"
-        ? (membership.role as StaffPortalRole)
-        : null;
-
-    const initialSummary = await loadTeacherDashboardInitialData({
-      organizationId: org.id,
-      slug,
-      features: org.features,
-      userId: user.id,
-      schoolName: org.name,
-    });
+    const [userProfile, staffMember, portalRole, staffMemberId, initialSummary] =
+      await Promise.all([
+        getCachedStaffUserProfile(user.id, org.id),
+        supabase
+          .from("staff_members")
+          .select("role_title")
+          .eq("organization_id", org.id)
+          .eq("user_id", user.id)
+          .maybeSingle(),
+        getStaffPortalRoleForUser(supabase, user.id, org.id),
+        staffMemberIdPromise,
+        staffMemberIdPromise.then((staffMemberId) =>
+          loadTeacherDashboardInitialData({
+            organizationId: org.id,
+            slug,
+            features: org.features,
+            userId: user.id,
+            schoolName: org.name,
+            staffMemberId,
+          }),
+        ),
+      ]);
 
     return (
       <TeacherDashboardPage
@@ -185,8 +193,8 @@ export default async function SchoolTeacherFeaturePage({
         features={org.features}
         userProfile={userProfile}
         roleTitle={
-          typeof staffMember?.role_title === "string"
-            ? staffMember.role_title
+          typeof staffMember.data?.role_title === "string"
+            ? staffMember.data.role_title
             : null
         }
         portalRole={portalRole}
@@ -196,7 +204,7 @@ export default async function SchoolTeacherFeaturePage({
   }
 
   if (feature === "my_students") {
-    const user = await requireTeacherPortalUser(supabase, org.id);
+    const user = await getTeacherPortalPageUser(org.id);
     const initialData = await loadTeacherMyStudentsPageData(org.id, user.id);
 
     return (
@@ -212,12 +220,8 @@ export default async function SchoolTeacherFeaturePage({
   }
 
   if (feature === "messages") {
-    const user = await requireTeacherPortalUser(supabase, org.id);
-    const staffMemberId = await getStaffMemberIdForUser(
-      supabase,
-      user.id,
-      org.id,
-    );
+    const user = await getTeacherPortalPageUser(org.id);
+    const staffMemberId = await getCachedStaffMemberIdForUser(user.id, org.id);
     const admin = createAdminClient();
     const initialInbox = staffMemberId
       ? await loadTeacherMessagesPageData(
@@ -242,7 +246,7 @@ export default async function SchoolTeacherFeaturePage({
   }
 
   if (feature === "calendar") {
-    const user = await requireTeacherPortalUser(supabase, org.id);
+    const user = await getTeacherPortalPageUser(org.id);
     const initialData = await loadTeacherCalendarInitialData({
       organizationId: org.id,
       userId: user.id,
@@ -258,12 +262,8 @@ export default async function SchoolTeacherFeaturePage({
   }
 
   if (feature === "forms_documents") {
-    const user = await requireTeacherPortalUser(supabase, org.id);
-    const staffMemberId = await getStaffMemberIdForUser(
-      supabase,
-      user.id,
-      org.id,
-    );
+    const user = await getTeacherPortalPageUser(org.id);
+    const staffMemberId = await getCachedStaffMemberIdForUser(user.id, org.id);
     const admin = createAdminClient();
     const pageData =
       staffMemberId != null
@@ -283,7 +283,7 @@ export default async function SchoolTeacherFeaturePage({
   }
 
   if (feature === "attendance") {
-    await requireTeacherPortalUser(supabase, org.id);
+    await getTeacherPortalPageUser(org.id);
 
     return (
       <TeacherAttendancePage
@@ -295,22 +295,19 @@ export default async function SchoolTeacherFeaturePage({
   }
 
   if (feature === "committees") {
-    const user = await requireTeacherPortalUser(supabase, org.id);
-    const userProfile = await getStaffUserProfile(
-      supabase,
-      user.id,
-      org.id,
-      user,
-    );
+    const user = await getTeacherPortalPageUser(org.id);
     const selectedCommitteeId =
       typeof resolvedSearchParams.committee === "string"
         ? resolvedSearchParams.committee
         : null;
-    const initialData = await loadTeacherCommitteesInitialData({
-      organizationId: org.id,
-      userId: user.id,
-      selectedCommitteeId,
-    });
+    const [userProfile, initialData] = await Promise.all([
+      getCachedStaffUserProfile(user.id, org.id),
+      loadTeacherCommitteesInitialData({
+        organizationId: org.id,
+        userId: user.id,
+        selectedCommitteeId,
+      }),
+    ]);
     const staffName = userProfile.displayName || user.email || "Staff member";
 
     return (
@@ -326,18 +323,11 @@ export default async function SchoolTeacherFeaturePage({
   }
 
   if (feature === "classroom_signups") {
-    const user = await requireTeacherPortalUser(supabase, org.id);
-    const userProfile = await getStaffUserProfile(
-      supabase,
-      user.id,
-      org.id,
-      user,
-    );
-    const staffMemberId = await getStaffMemberIdForUser(
-      supabase,
-      user.id,
-      org.id,
-    );
+    const user = await getTeacherPortalPageUser(org.id);
+    const [userProfile, staffMemberId] = await Promise.all([
+      getCachedStaffUserProfile(user.id, org.id),
+      getCachedStaffMemberIdForUser(user.id, org.id),
+    ]);
 
     const admin = createAdminClient();
     const pageData =

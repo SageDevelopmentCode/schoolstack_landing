@@ -10,10 +10,12 @@ import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch
 import { schoolTeacherLoginPath, isTeacherPortalEnabled } from "@/lib/organization-settings/teacher-routes";
 import { getTeacherPortalActivityUnreadCount } from "@/lib/school-teacher/activity-notifications-server";
 import {
-  getStaffMemberIdForUser,
-  getStaffUserProfile,
-  userHasTeacherPortalAccess,
-} from "@/lib/staff/teacher-portal-access";
+  getCachedStaffMemberIdForUser,
+  getCachedStaffUserProfile,
+  getCachedUserHasTeacherPortalAccess,
+  getTeacherPortalPageUser,
+} from "@/lib/staff/teacher-portal-access-request";
+import { getStaffPortalRoleForUser } from "@/lib/staff/teacher-portal-access";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +48,10 @@ export default async function SchoolTeacherProtectedLayout({
     redirect(schoolTeacherLoginPath(slug));
   }
 
-  const hasAccess = await userHasTeacherPortalAccess(supabase, user.id, org.id);
+  const hasAccess = await getCachedUserHasTeacherPortalAccess(
+    user.id,
+    org.id,
+  );
 
   if (!hasAccess) {
     return (
@@ -62,18 +67,10 @@ export default async function SchoolTeacherProtectedLayout({
     );
   }
 
-  const userProfile = await getStaffUserProfile(
-    supabase,
-    user.id,
-    org.id,
-    user,
-  );
-
-  const staffMemberId = await getStaffMemberIdForUser(
-    supabase,
-    user.id,
-    org.id,
-  );
+  const [userProfile, staffMemberId] = await Promise.all([
+    getCachedStaffUserProfile(user.id, org.id),
+    getCachedStaffMemberIdForUser(user.id, org.id),
+  ]);
 
   const initialActivityUnreadCount = staffMemberId
     ? await getTeacherPortalActivityUnreadCount(supabase, {

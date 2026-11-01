@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useCommitteeUnreadRefresh } from "@/lib/committees/committee-unread-refresh-context";
 import type { CommitteeUnreadSummary } from "@/lib/committees/committee-unread-types";
+import { scheduleAfterFirstPaint } from "@/lib/schedule-after-first-paint";
 
 const EMPTY_SUMMARY: CommitteeUnreadSummary = { totalUnread: 0, byCommittee: [] };
 
@@ -11,6 +12,7 @@ export function useCommitteeUnreadSummary(
   organizationId: string,
   enabled = true,
   initialSummary?: CommitteeUnreadSummary,
+  options?: { deferUntilIdle?: boolean },
 ) {
   const [fetchedSummary, setFetchedSummary] = useState<CommitteeUnreadSummary>(
     initialSummary ?? EMPTY_SUMMARY,
@@ -33,10 +35,16 @@ export function useCommitteeUnreadSummary(
   }, [apiBase, enabled, organizationId]);
 
   useEffect(() => {
+    if (!enabled) return;
+    if (options?.deferUntilIdle) {
+      return scheduleAfterFirstPaint(() => {
+        void refresh();
+      });
+    }
     queueMicrotask(() => {
       void refresh();
     });
-  }, [refresh]);
+  }, [enabled, options?.deferUntilIdle, refresh]);
 
   useEffect(() => {
     if (!enabled || !committeeUnreadRefresh) return undefined;

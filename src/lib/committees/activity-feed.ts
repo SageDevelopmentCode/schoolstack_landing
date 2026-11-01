@@ -23,6 +23,12 @@ export const COMMITTEE_ACTIVITY_ACTIONS: string[] = [
   ACTIVITY_ACTIONS.COMMITTEE_EVENT_CREATED,
   ACTIVITY_ACTIONS.COMMITTEE_EVENT_UPDATED,
   ACTIVITY_ACTIONS.COMMITTEE_EVENT_DELETED,
+  ACTIVITY_ACTIONS.COMMITTEE_PROJECT_CREATED,
+  ACTIVITY_ACTIONS.COMMITTEE_PROJECT_UPDATED,
+  ACTIVITY_ACTIONS.COMMITTEE_PROJECT_DELETED,
+  ACTIVITY_ACTIONS.COMMITTEE_PROJECT_SUPPLY_CREATED,
+  ACTIVITY_ACTIONS.COMMITTEE_PROJECT_SUPPLY_UPDATED,
+  ACTIVITY_ACTIONS.COMMITTEE_PROJECT_SUPPLY_DELETED,
   ACTIVITY_ACTIONS.COMMITTEE_MESSAGE_POSTED,
   ACTIVITY_ACTIONS.COMMITTEE_DUTY_ROLE_CREATED,
   ACTIVITY_ACTIONS.COMMITTEE_DUTY_ROLE_UPDATED,
@@ -39,6 +45,12 @@ export const COMMITTEE_PARENT_ACTIVITY_ACTIONS: string[] = [
   ACTIVITY_ACTIONS.COMMITTEE_EVENT_CREATED,
   ACTIVITY_ACTIONS.COMMITTEE_EVENT_UPDATED,
   ACTIVITY_ACTIONS.COMMITTEE_EVENT_DELETED,
+  ACTIVITY_ACTIONS.COMMITTEE_PROJECT_CREATED,
+  ACTIVITY_ACTIONS.COMMITTEE_PROJECT_UPDATED,
+  ACTIVITY_ACTIONS.COMMITTEE_PROJECT_DELETED,
+  ACTIVITY_ACTIONS.COMMITTEE_PROJECT_SUPPLY_CREATED,
+  ACTIVITY_ACTIONS.COMMITTEE_PROJECT_SUPPLY_UPDATED,
+  ACTIVITY_ACTIONS.COMMITTEE_PROJECT_SUPPLY_DELETED,
   ACTIVITY_ACTIONS.COMMITTEE_MESSAGE_POSTED,
 ];
 
@@ -51,6 +63,7 @@ export const COMMITTEE_DIGEST_ACTIONS: string[] = [
 const COMMITTEE_DIGEST_CATEGORY_ORDER: CommitteeActivityCategory[] = [
   "Members",
   "Tasks",
+  "Projects",
   "Resources",
   "Calendar",
   "Messages",
@@ -61,6 +74,7 @@ export type CommitteeActivityAudience = "admin" | "parent";
 export type CommitteeActivityCategory =
   | "Members"
   | "Tasks"
+  | "Projects"
   | "Resources"
   | "Calendar"
   | "Messages"
@@ -72,6 +86,8 @@ export type CommitteeActivityEventRow = {
   actor_name: string | null;
   action: string;
   summary: string;
+  entity_type: string | null;
+  entity_id: string | null;
   metadata: Record<string, unknown> | null;
   created_at: string;
 };
@@ -118,7 +134,7 @@ export async function fetchCommitteeActivityEvents(
 
   let query = admin
     .from("activity_events")
-    .select("id, organization_id, actor_name, action, summary, metadata, created_at")
+    .select("id, organization_id, actor_name, action, summary, entity_type, entity_id, metadata, created_at")
     .eq("organization_id", options.organizationId)
     .in("action", actions)
     .gte("created_at", rangeStart.toISOString())
@@ -137,6 +153,7 @@ export async function fetchCommitteeActivityEvents(
 export function categoryForAction(action: string): CommitteeActivityCategory {
   if (action.includes(".member.") || action.includes(".join_")) return "Members";
   if (action.includes(".task.")) return "Tasks";
+  if (action.includes(".project")) return "Projects";
   if (action.includes(".resource.")) return "Resources";
   if (action.includes(".event.")) return "Calendar";
   if (action.includes(".message.")) return "Messages";
@@ -147,6 +164,7 @@ export function categoryForAction(action: string): CommitteeActivityCategory {
 function sectionForAction(action: string): CommitteeWorkspaceSection {
   if (action.includes(".member.") || action.includes(".join_")) return "members";
   if (action.includes(".task.")) return "tasks";
+  if (action.includes(".project")) return "projects";
   if (action.includes(".resource.")) return "resources";
   if (action.includes(".event.")) return "calendar";
   if (action.includes(".message.")) return "messages";
@@ -154,21 +172,34 @@ function sectionForAction(action: string): CommitteeWorkspaceSection {
   return "home";
 }
 
+function projectIdFromMetadata(metadata: Record<string, unknown>): string | null {
+  if (typeof metadata.projectId === "string" && metadata.projectId.trim()) {
+    return metadata.projectId.trim();
+  }
+  return null;
+}
+
 function buildCommitteeActivityHref(
   slug: string,
   committeeId: string,
   section: CommitteeWorkspaceSection,
   surface: CommitteeActivityLinkSurface,
-  options?: { familyId?: string; staffMemberId?: string },
+  options?: { familyId?: string; staffMemberId?: string; projectId?: string | null },
 ): string | undefined {
   if (surface === "admin") {
-    return `/school/${slug}/admin/committees?committee=${encodeURIComponent(committeeId)}&section=${section}`;
+    const params = new URLSearchParams({
+      committee: committeeId,
+      section,
+    });
+    if (options?.projectId) params.set("project", options.projectId);
+    return `/school/${slug}/admin/committees?${params.toString()}`;
   }
   const params = new URLSearchParams({
     committee: committeeId,
     section,
     tab: "mine",
   });
+  if (options?.projectId) params.set("project", options.projectId);
   if (surface === "preview") {
     if (!options?.familyId) return undefined;
     return `${familyPreviewParentBasePath(slug, options.familyId)}/committees?${params.toString()}`;
@@ -204,6 +235,11 @@ export function mapCommitteeActivityItem(
   const section = sectionForAction(row.action);
   const linkSurface = options.linkSurface ?? "admin";
   const includeHref = options.includeHref ?? true;
+  const projectId =
+    projectIdFromMetadata(metadata) ??
+    (row.action.includes(".project.created") && row.entity_type === "committee_project"
+      ? row.entity_id
+      : null);
 
   return {
     id: row.id,
@@ -220,6 +256,7 @@ export function mapCommitteeActivityItem(
         ? buildCommitteeActivityHref(options.slug, resolvedCommitteeId, section, linkSurface, {
             familyId: options.familyId,
             staffMemberId: options.staffMemberId,
+            projectId,
           })
         : undefined,
   };

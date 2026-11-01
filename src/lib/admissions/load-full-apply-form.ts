@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import type { ApplicationFormVersion } from "@/lib/admissions/application-form-schema";
 import {
-  getApplicationForm,
+  getPublishedApplicationFormById,
   isApplyFormVersion,
 } from "@/lib/admissions/application-forms";
 import { ensureApplySystemSchema } from "@/lib/admissions/apply-system-fields";
@@ -15,12 +15,8 @@ export async function loadFullPublishedApplyForm(
 ): Promise<ApplicationFormVersion | null> {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const form = await getApplicationForm(supabase, formVersionId);
-  if (
-    !form ||
-    form.organization_id !== organizationId ||
-    form.status !== "published"
-  ) {
+  const form = await getPublishedApplicationFormById(supabase, formVersionId);
+  if (!form || form.organization_id !== organizationId) {
     return null;
   }
   if (!isApplyFormVersion(form)) {
