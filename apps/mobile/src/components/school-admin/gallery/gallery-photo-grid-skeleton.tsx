@@ -1,6 +1,6 @@
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
-import { SkeletonPulse } from '@/components/parent/messages/skeleton-pulse';
+import { StaticSkeletonPulse } from '@/components/story/static-skeleton-pulse';
 import { Story } from '@/constants/story-theme';
 import { galleryTileSize } from '@/lib/school-gallery/gallery-grid-layout';
 
@@ -19,7 +19,7 @@ export function GalleryPhotoGridSkeleton({ tileCount = 12 }: GalleryPhotoGridSke
       accessibilityLabel="Loading photos"
       testID="gallery-photo-grid-skeleton">
       {Array.from({ length: tileCount }, (_, index) => (
-        <SkeletonPulse
+        <StaticSkeletonPulse
           key={index}
           style={{ width: tileSize, height: tileSize }}
           backgroundColor={Story.line}

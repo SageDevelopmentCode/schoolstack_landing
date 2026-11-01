@@ -46,6 +46,10 @@ import {
   ORG_ENROLLED_STUDENTS_PAGE_MAX_LIMIT,
 } from "@/lib/school-admin/students-roster-page";
 import { fetchStudentsPageMeta } from "@/lib/school-admin/students-page-meta";
+import { isSchoolGalleryEnabled } from "@/lib/school-gallery/gallery-enabled";
+import { GalleryError } from "@/lib/school-gallery/gallery-errors";
+import { parseGalleryListQuery } from "@/lib/school-gallery/gallery-pagination";
+import { listGalleryPhotosPage } from "@/lib/school-gallery/photos";
 import { listStaffMembers } from "@/lib/staff/staff-members";
 import { loadOrgPhotoMediaConsentRoster } from "@/lib/students/load-org-photo-media-consent-roster";
 import {
@@ -434,6 +438,21 @@ export async function handleSchoolAdminMobilePreviewGet(
       return NextResponse.json({ students });
     }
 
+    if (segment === "gallery") {
+      if (!isSchoolGalleryEnabled(org.features)) {
+        return apiError(route, {
+          request: req,
+          status: 404,
+          error: "School not found.",
+          code: "not_found",
+        });
+      }
+
+      const { limit, offset } = parseGalleryListQuery(url.searchParams);
+      const page = await listGalleryPhotosPage(admin, organizationId, { limit, offset });
+      return NextResponse.json(page);
+    }
+
     return apiError(route, {
       request: req,
       status: 404,
@@ -441,7 +460,7 @@ export async function handleSchoolAdminMobilePreviewGet(
       code: "not_found",
     });
   } catch (err) {
-    if (err instanceof AttendanceMutationError) {
+    if (err instanceof AttendanceMutationError || err instanceof GalleryError) {
       return apiError(route, {
         request,
         status: err.status,

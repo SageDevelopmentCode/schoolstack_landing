@@ -1,24 +1,16 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import {
-  Alert,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { GalleryEditDateModal } from '@/components/school-admin/gallery/gallery-edit-date-modal';
 import { GalleryPhotoGrid } from '@/components/school-admin/gallery/gallery-photo-grid';
 import { GalleryPhotoGridSkeleton } from '@/components/school-admin/gallery/gallery-photo-grid-skeleton';
+import { GalleryEditDateModal } from '@/components/school-admin/gallery/gallery-edit-date-modal';
+import { GalleryUploadSheet } from '@/components/school-admin/gallery/gallery-upload-sheet';
+import { PhotosListSkeleton } from '@/components/school-admin/gallery/photos-list-skeleton';
 import {
   GalleryPhotoViewerModal,
   type GalleryPhotoViewerState,
 } from '@/components/school-admin/gallery/gallery-photo-viewer-modal';
-import { GalleryUploadSheet } from '@/components/school-admin/gallery/gallery-upload-sheet';
-import { PhotosListSkeleton } from '@/components/school-admin/gallery/photos-list-skeleton';
 import { StoryButton } from '@/components/story/story-button';
 import { StoryCard } from '@/components/story/story-card';
 import { StoryErrorBanner } from '@/components/story/story-error-banner';
@@ -344,7 +336,7 @@ export function GalleryPhotosScreen(props: GalleryPhotosScreenProps) {
         scrollEventThrottle={200}>
         {listPrefix ? <View style={styles.listPrefix}>{listPrefix}</View> : null}
         {!readOnly || initialError ? (
-          <Animated.View entering={FadeInDown.duration(350)} style={styles.headerBlock}>
+          <View style={styles.headerBlock}>
             {!readOnly ? (
               <View style={styles.actionsRow}>
                 {extraHeaderActions}
@@ -379,7 +371,7 @@ export function GalleryPhotosScreen(props: GalleryPhotosScreenProps) {
               </View>
             ) : null}
             {initialError ? <StoryErrorBanner message={initialError} /> : null}
-          </Animated.View>
+          </View>
         ) : null}
 
         {groups.length === 0 && !initialError ? (

@@ -127,14 +127,43 @@ function readItemVariantDraft(item: EnrollmentChecklistItem): { groupId: string 
   return { groupId };
 }
 
+function readItemVariantConfig(
+  item: EnrollmentChecklistItem,
+): { groupId: string; isDefault?: boolean } | null {
+  const raw = item.metadata[CHECKLIST_VARIANT_METADATA_KEY];
+  if (!isRecord(raw)) return null;
+  const groupId = typeof raw.groupId === 'string' ? raw.groupId : '';
+  if (!groupId.trim()) return null;
+  return {
+    groupId,
+    isDefault: raw.isDefault === true,
+  };
+}
+
+const STACKED_WITH_DEFAULT_VARIANT_KEYS = new Set(['conditional_support']);
+
 function isVariantItemSelected(
   item: EnrollmentChecklistItem,
   resolutions: Record<string, ChecklistVariantResolution>,
+  allTemplateItems?: EnrollmentChecklistItem[],
 ): boolean {
   const draft = readItemVariantDraft(item);
   if (!draft) return true;
   const resolution = resolutions[draft.groupId];
-  return resolution?.templateItemId === item.id;
+  if (!resolution) return false;
+  if (resolution.templateItemId === item.id) return true;
+
+  if (
+    allTemplateItems &&
+    STACKED_WITH_DEFAULT_VARIANT_KEYS.has(resolution.variantKey)
+  ) {
+    const config = readItemVariantConfig(item);
+    if (config?.isDefault && config.groupId === draft.groupId) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function paymentLineItemsFromMetadata(
@@ -492,11 +521,14 @@ export async function loadEnrollmentChecklistForApplication(
   );
 
   const resolutions = checklist.metadata.variantResolutions ?? {};
-  const items = allItems.filter((item) => isVariantItemSelected(item, resolutions));
+  const items = allItems.filter((item) => isVariantItemSelected(item, resolutions, allItems));
   const instances = allInstances.filter((instance) => {
     const templateItem = allItems.find((item) => item.id === instance.templateItemId);
     if (!templateItem) return false;
-    return isVariantItemSelected(templateItem, resolutions) && instance.status !== 'waived';
+    return (
+      isVariantItemSelected(templateItem, resolutions, allItems) &&
+      instance.status !== 'waived'
+    );
   });
 
   const progress = computeChecklistProgress(items, instances);

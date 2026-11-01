@@ -10,6 +10,7 @@ import {
   startEnrollmentFromApplication,
 } from "@/lib/admissions/enrollment-checklist-materialization";
 import type { VariantResolutionMap } from "@/lib/admissions/enrollment-checklist-variants";
+import { getItemVariantConfig } from "@/lib/admissions/enrollment-checklist-schema";
 import { apiError } from "@/lib/api/route-errors";
 import {
   requireSchoolAdminUser,
@@ -75,17 +76,19 @@ export async function GET(_request: Request, context: RouteContext) {
       groups: preview.groups.map((group) => ({
         groupId: group.groupId,
         groupLabel: group.groupLabel,
-        variants: group.variants.map((item) => ({
-          id: item.id,
-          label: item.label,
-          isDefault: item.metadata?.variant &&
-            typeof item.metadata.variant === "object" &&
-            (item.metadata.variant as { isDefault?: boolean }).isDefault === true,
-          sectionCount:
-            item.document?.kind === "inline_sections"
-              ? item.document.sections.length
-              : 0,
-        })),
+        variants: group.variants.map((item) => {
+          const variant = getItemVariantConfig(item);
+          return {
+            id: item.id,
+            label: item.label,
+            isDefault: variant?.isDefault === true,
+            variantKey: variant?.variantKey ?? "",
+            sectionCount:
+              item.document?.kind === "inline_sections"
+                ? item.document.sections.length
+                : 0,
+          };
+        }),
       })),
       sharedItems: preview.sharedItems.map((item) => ({
         id: item.id,

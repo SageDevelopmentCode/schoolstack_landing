@@ -44,9 +44,14 @@ export function mapTeacherPortalPathToPreview(path: string, session: PortalPrevi
   return appendPreviewParams(`/api/admin/mobile-preview/teacher/${withoutOrigin}`, session);
 }
 
+/** `/api/school/{slug}/...` features that have a school-admin preview handler. */
+const SCHOOL_SLUG_PREVIEW_PATH = /^\/api\/school\/[^/]+\/(gallery)(\?|$)/;
+
 export function mapSchoolAdminPathToPreview(path: string, session: PortalPreviewSession): string {
   const normalized = path.startsWith('http') ? new URL(path).pathname + new URL(path).search : path;
-  const withoutOrigin = normalized.replace(/^\/api\/school-admin\//, '');
+  const withoutOrigin = normalized
+    .replace(/^\/api\/school-admin\//, '')
+    .replace(/^\/api\/school\/[^/]+\//, '');
   return appendPreviewParams(`/api/admin/mobile-preview/school-admin/${withoutOrigin}`, session);
 }
 
@@ -89,6 +94,8 @@ export function resolveTeacherPreviewPath(path: string): string | null {
 export function resolveSchoolAdminPreviewPath(path: string): string | null {
   const session = getActivePreviewSession();
   if (!session || session.portal !== 'school_admin' || !session.membershipId) return null;
-  if (!path.startsWith('/api/school-admin/')) return null;
+  if (!path.startsWith('/api/school-admin/') && !SCHOOL_SLUG_PREVIEW_PATH.test(path)) {
+    return null;
+  }
   return mapSchoolAdminPathToPreview(path, session);
 }

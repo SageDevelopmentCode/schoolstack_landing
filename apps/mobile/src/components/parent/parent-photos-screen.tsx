@@ -2,7 +2,7 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { View } from 'react-native';
 
-import { GalleryPhotosScreen } from '@/components/gallery/gallery-photos-screen';
+import { GalleryPhotosReadonlyScreen } from '@/components/gallery/gallery-photos-readonly-screen';
 import { ParentPhotoPermissionsBanner } from '@/components/parent/photos/parent-photo-permissions-banner';
 import { ParentPhotoPermissionsSheet } from '@/components/parent/photos/parent-photo-permissions-sheet';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
@@ -58,13 +58,11 @@ export function ParentPhotosScreen({
 
   return (
     <>
-      <GalleryPhotosScreen
-        readOnly
+      <GalleryPhotosReadonlyScreen
         organizationId={organizationId}
         testId="parent-photos-screen"
         emptyTitle="No photos yet"
         emptyCopy="Your school has not shared any photos yet."
-        enableBulkDelete={false}
         listPage={listPage}
         errorOperationPrefix="parent_gallery"
         listPrefix={listPrefix}

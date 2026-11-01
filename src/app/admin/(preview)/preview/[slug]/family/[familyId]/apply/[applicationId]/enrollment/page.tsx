@@ -11,6 +11,7 @@ import {
 import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
 import { loadEnrollmentChecklistForApplication } from "@/lib/admissions/enrollment-checklist-materialization";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -44,8 +45,10 @@ export default async function FamilyPreviewEnrollmentPage({ params }: PageProps)
     notFound();
   }
 
+  const admin = createAdminClient();
+
   const belongs = await applicationBelongsToFamily(
-    supabase,
+    admin,
     org.id,
     familyId,
     applicationId,
@@ -54,7 +57,7 @@ export default async function FamilyPreviewEnrollmentPage({ params }: PageProps)
     notFound();
   }
 
-  const { data: application, error } = await supabase
+  const { data: application, error } = await admin
     .from("applications")
     .select("id, status, organization_id")
     .eq("id", applicationId)
@@ -71,9 +74,9 @@ export default async function FamilyPreviewEnrollmentPage({ params }: PageProps)
   }
 
   const [checklist, userProfile, guardianUserId] = await Promise.all([
-    loadEnrollmentChecklistForApplication(supabase, applicationId, org.id),
+    loadEnrollmentChecklistForApplication(admin, applicationId, org.id),
     getFamilyPreviewProfile(supabase, org.id, familyId),
-    getFamilyPreviewGuardianUserId(supabase, org.id, familyId),
+    getFamilyPreviewGuardianUserId(admin, org.id, familyId),
   ]);
 
   if (!checklist) {
@@ -81,7 +84,7 @@ export default async function FamilyPreviewEnrollmentPage({ params }: PageProps)
   }
 
   const combinedPaymentCandidates = guardianUserId
-    ? await listCombinedEnrollmentPaymentCandidates(supabase, {
+    ? await listCombinedEnrollmentPaymentCandidates(admin, {
         organizationId: org.id,
         userId: guardianUserId,
       })

@@ -274,7 +274,7 @@ export async function startEnrollmentFromApplication(
 
   const itemRows = items.map((item) => {
     const variant = getItemVariantConfig(item);
-    const isSelected = isVariantItemSelected(item, variantResolutionRecord);
+    const isSelected = isVariantItemSelected(item, variantResolutionRecord, items);
     const status: ChecklistItemInstanceStatus = variant && !isSelected ? "waived" : "not_started";
     const paymentStatus = item.type === "payment" && status !== "waived" ? "pending" : "not_required";
 
@@ -918,13 +918,13 @@ export async function loadEnrollmentChecklistForApplication(
 
   const resolutions = checklistRow.metadata.variantResolutions ?? {};
   const visibleItems = loaded.items.filter((item) =>
-    isVariantItemSelected(item, resolutions),
+    isVariantItemSelected(item, resolutions, loaded.items),
   );
 
   const visibleInstances = instances.filter((instance) => {
     const templateItem = loaded.items.find((item) => item.id === instance.templateItemId);
     if (!templateItem) return false;
-    return isVariantItemSelected(templateItem, resolutions) && instance.status !== "waived";
+    return isVariantItemSelected(templateItem, resolutions, loaded.items) && instance.status !== "waived";
   });
 
   return {
@@ -1007,7 +1007,7 @@ export async function loadEnrollmentChecklistsForApplications(
     const instances = instancesByChecklist.get(checklistRow.checklistId) ?? [];
     const resolutions = checklistRow.metadata.variantResolutions ?? {};
     const visibleItems = loaded.items.filter((item) =>
-      isVariantItemSelected(item, resolutions),
+      isVariantItemSelected(item, resolutions, loaded.items),
     );
     const visibleInstances = instances.filter((instance) => {
       const templateItem = loaded.items.find(
@@ -1015,7 +1015,7 @@ export async function loadEnrollmentChecklistsForApplications(
       );
       if (!templateItem) return false;
       return (
-        isVariantItemSelected(templateItem, resolutions) &&
+        isVariantItemSelected(templateItem, resolutions, loaded.items) &&
         instance.status !== "waived"
       );
     });
@@ -1144,7 +1144,7 @@ function filterVisibleChecklistItemsAndInstances(
   instances: EnrollmentChecklistItemInstance[];
 } {
   const visibleItems = templateItems.filter((item) =>
-    isVariantItemSelected(item, resolutions),
+    isVariantItemSelected(item, resolutions, templateItems),
   );
   const visibleInstances = instances.filter((instance) => {
     const templateItem = templateItems.find(
@@ -1152,7 +1152,7 @@ function filterVisibleChecklistItemsAndInstances(
     );
     if (!templateItem) return false;
     return (
-      isVariantItemSelected(templateItem, resolutions) &&
+      isVariantItemSelected(templateItem, resolutions, templateItems) &&
       instance.status !== "waived"
     );
   });
@@ -1280,7 +1280,7 @@ export async function recomputeChecklistStatus(
   const metadata = parseChecklistMetadata(checklist.metadata);
   const resolutions = metadata.variantResolutions ?? {};
   const visibleItems = loaded.items.filter((item) =>
-    isVariantItemSelected(item, resolutions),
+    isVariantItemSelected(item, resolutions, loaded.items),
   );
 
   const { data: instanceRows, error: instanceError } = await supabase

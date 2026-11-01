@@ -151,6 +151,7 @@ First submit may prompt for Apple App Store Connect API key or Google service ac
 | `could not list EAS production environment` / `expo/config-plugins` / `env:list command failed` | npm workspace hoisting — use `npm run assert:production-eas-env` / `update:production` (wraps [`with-mobile-node-path.sh`](../../apps/mobile/scripts/with-mobile-node-path.sh)); raw `eas`: `NODE_PATH=./node_modules:../../node_modules` |
 | `eas build` asks to configure project | Run from `apps/mobile`; complete `eas build:configure` / link flow |
 | API 404 on new feature | Web not deployed yet — ship Next.js production first |
+| `eas update` / Hermes: `Invalid expression encountered` at `await import(/*webpackIgnore` | Ensure `min.mjs` is in Metro `assetExts` **after** `getSentryExpoConfig` in [`metro.config.js`](../../apps/mobile/metro.config.js); pdfjs must stay out of the Hermes bundle |
 
 ## References
 

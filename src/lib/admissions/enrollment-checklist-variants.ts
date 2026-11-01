@@ -190,21 +190,38 @@ export function validateResolutionMap(
   return errors;
 }
 
+/** Admin picks this variant at kickoff; the default variant in the same group stays required too. */
+export const STACKED_WITH_DEFAULT_VARIANT_KEYS = new Set(["conditional_support"]);
+
 export function isVariantItemSelected(
   item: EnrollmentChecklistItem,
   resolutions: Record<string, ChecklistVariantResolution>,
+  allTemplateItems?: EnrollmentChecklistItem[],
 ): boolean {
   const draft = readItemVariantDraft(item);
   if (!draft) return true;
   const resolution = resolutions[draft.groupId];
-  return resolution?.templateItemId === item.id;
+  if (!resolution) return false;
+  if (resolution.templateItemId === item.id) return true;
+
+  if (
+    allTemplateItems &&
+    STACKED_WITH_DEFAULT_VARIANT_KEYS.has(resolution.variantKey)
+  ) {
+    const config = getItemVariantConfig(item);
+    if (config?.isDefault && config.groupId === draft.groupId) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export function resolveVisibleTemplateItems(
   items: EnrollmentChecklistItem[],
   resolutions: Record<string, ChecklistVariantResolution>,
 ): EnrollmentChecklistItem[] {
-  return items.filter((item) => isVariantItemSelected(item, resolutions));
+  return items.filter((item) => isVariantItemSelected(item, resolutions, items));
 }
 
 /** Resolve variant groups for admin preview (optionally focusing a specific variant item). */

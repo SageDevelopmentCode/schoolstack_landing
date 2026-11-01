@@ -1,0 +1,15 @@
+appId: com.mudkitchen.schoolstack.mobile
+tags:
+  - gallery
+---
+- runFlow: ../parent-logged-in.yaml
+- tapOn: 'More'
+- extendedWaitUntil:
+    visible: 'Photos'
+    timeout: 30000
+- tapOn: 'Photos'
+- extendedWaitUntil:
+    visible:
+      id: 'parent-photos-screen'
+    timeout: 30000
+- takeScreenshot: visual-parent-photos

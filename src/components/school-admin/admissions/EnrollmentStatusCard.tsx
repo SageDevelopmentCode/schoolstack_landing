@@ -21,7 +21,7 @@ import type {
   EnrollmentChecklistItem,
   EnrollmentChecklistItemInstance,
 } from "@/lib/admissions/enrollment-checklist-schema";
-import { isInlineAgreementItem } from "@/lib/admissions/enrollment-checklist-schema";
+import { isInlineAgreementItem, readItemVariantDraft } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { createClient } from "@/utils/supabase/client";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
@@ -114,14 +114,15 @@ export default function EnrollmentStatusCard({
         checklistData.items,
         checklistData.instances,
       );
-      const variantLabels = Object.values(
-        checklistData.metadata.variantResolutions ?? {},
-      ).map((resolution) => {
-        const item = checklistData.items.find(
-          (row) => row.id === resolution.templateItemId,
-        );
-        return item?.label ?? resolution.variantKey;
-      });
+      const resolutionGroupIds = new Set(
+        Object.keys(checklistData.metadata.variantResolutions ?? {}),
+      );
+      const variantLabels = checklistData.items
+        .filter((item) => {
+          const draft = readItemVariantDraft(item);
+          return draft && resolutionGroupIds.has(draft.groupId);
+        })
+        .map((item) => item.label);
 
       setLoaded({
         status: checklistData.status,
