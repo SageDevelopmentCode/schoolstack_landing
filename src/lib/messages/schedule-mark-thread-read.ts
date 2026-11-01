@@ -8,6 +8,7 @@ export function scheduleMarkThreadReadAfterResponse(input: {
   admin: SupabaseClient;
   threadId: string;
   userId: string;
+  lastReadAt: string;
   organizationId: string;
   organizationName?: string;
   organizationSlug?: string;
@@ -19,6 +20,7 @@ export function scheduleMarkThreadReadAfterResponse(input: {
     admin,
     threadId,
     userId,
+    lastReadAt,
     organizationId,
     organizationName,
     organizationSlug,
@@ -29,7 +31,7 @@ export function scheduleMarkThreadReadAfterResponse(input: {
 
   runAfterResponse(async () => {
     try {
-      await markThreadRead(admin, threadId, userId);
+      await markThreadRead(admin, threadId, userId, { lastReadAt });
     } catch (readErr) {
       await reportOperationalError({
         supabase: admin,

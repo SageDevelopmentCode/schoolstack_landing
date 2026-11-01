@@ -307,6 +307,7 @@ export function buildChecklistPreviewSidebarItems(
             sidebarItems.push(variant);
           }
         }
+        sidebarItems.push(...alternates);
       } else {
         if (selected) sidebarItems.push(selected);
         sidebarItems.push(...alternates);

@@ -1,4 +1,5 @@
 import { fetchWithAuth } from '@/lib/auth/auth-session';
+import { MobileApiFormDataError } from '@/lib/api-form-data-error';
 import {
   createParentPortalErrorReporter,
   createSchoolAdminErrorReporter,
@@ -62,6 +63,18 @@ describe('createParentPortalErrorReporter', () => {
       }),
     );
   });
+
+  it('skips posting operational errors for parent form-data 4xx', () => {
+    const err = new MobileApiFormDataError('Too many photos at once.', 413, {
+      code: 'payload_too_large',
+    });
+    expect(shouldReportMobileOperationalError(err, err.status)).toBe(false);
+
+    const reportError = createParentPortalErrorReporter('org-1');
+    reportError('parent_message_send', err);
+
+    expect(fetchWithAuth).not.toHaveBeenCalled();
+  });
 });
 
 describe('createSchoolAdminErrorReporter', () => {
@@ -82,6 +95,14 @@ describe('createSchoolAdminErrorReporter', () => {
       }),
     );
   });
+
+  it('skips posting operational errors for school admin form-data 413', () => {
+    const err = new MobileApiFormDataError('Too many photos at once.', 413);
+    const reportError = createSchoolAdminErrorReporter('org-1');
+    reportError('school_admin_gallery_upload', err);
+
+    expect(fetchWithAuth).not.toHaveBeenCalled();
+  });
 });
 
 describe('createTeacherPortalErrorReporter', () => {
@@ -101,5 +122,16 @@ describe('createTeacherPortalErrorReporter', () => {
         method: 'POST',
       }),
     );
+  });
+
+  it('skips posting operational errors for teacher form-data 400 and 413', () => {
+    const err413 = new MobileApiFormDataError('Too many photos at once.', 413);
+    const reportError = createTeacherPortalErrorReporter('org-1');
+    reportError('teacher_message_send', err413);
+    expect(fetchWithAuth).not.toHaveBeenCalled();
+
+    const err400 = new MobileApiFormDataError('Request failed.', 400, { code: 'validation_error' });
+    reportError('teacher_message_send', err400);
+    expect(fetchWithAuth).not.toHaveBeenCalled();
   });
 });

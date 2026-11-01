@@ -1,8 +1,10 @@
 import { prepareGalleryPhotoForUpload } from "@/lib/school-gallery/storage";
 import {
   chunkGalleryUploadByByteBudget,
+  remainingGalleryChunks,
   type SizedGalleryUploadItem,
 } from "@/lib/school-gallery/gallery-upload-chunks";
+import { GalleryUploadPartialFailureError } from "@/lib/school-gallery/gallery-upload-partial-error";
 import type { GalleryPhoto } from "@/lib/school-gallery/types";
 
 export type GalleryUploadPrepareProgress = {
@@ -67,25 +69,63 @@ export async function uploadGalleryBatch(
       formData.append("files", file);
     }
 
-    const responseBody = await postFormDataWithProgress(
-      uploadUrl,
-      formData,
-      input.onUploadProgress,
-    );
+    try {
+      const responseBody = await postFormDataWithProgress(
+        uploadUrl,
+        formData,
+        input.onUploadProgress,
+      );
 
-    const data = JSON.parse(responseBody) as {
-      photos?: GalleryPhoto[];
-      error?: string;
-    };
+      const data = JSON.parse(responseBody) as {
+        photos?: GalleryPhoto[];
+        error?: string;
+      };
 
-    if (!data.photos?.length) {
-      throw new Error(data.error ?? "Upload failed.");
+      if (!data.photos?.length) {
+        throw new Error(data.error ?? "Upload failed.");
+      }
+
+      allPhotos.push(...data.photos);
+    } catch (error) {
+      throwGalleryUploadChunkFailure(error, {
+        chunkIndex,
+        chunks,
+        uploadedPhotos: allPhotos,
+      });
     }
-
-    allPhotos.push(...data.photos);
   }
 
   return { photos: allPhotos };
+}
+
+function throwGalleryUploadChunkFailure(
+  error: unknown,
+  context: {
+    chunkIndex: number;
+    chunks: File[][];
+    uploadedPhotos: GalleryPhoto[];
+  },
+): never {
+  const message =
+    error instanceof Error ? error.message : "Upload failed.";
+  const hasPartialProgress =
+    context.chunkIndex > 0 || context.uploadedPhotos.length > 0;
+
+  if (hasPartialProgress) {
+    throw new GalleryUploadPartialFailureError(message, {
+      uploadedPhotos: context.uploadedPhotos,
+      remainingFiles: remainingGalleryChunks(
+        context.chunks,
+        context.chunkIndex,
+      ),
+      cause: error,
+    });
+  }
+
+  if (error instanceof Error) {
+    throw error;
+  }
+  throw new Error(message);
 }
 
 function postFormDataWithProgress(

@@ -38,6 +38,7 @@ export async function GET(request: Request, context: RouteContext) {
 
     await assertSchoolAdminCanAccessThread(admin, organizationId, threadId);
 
+    const readCutoffAt = new Date().toISOString();
     const thread = await getThreadDetail(
       admin,
       organizationId,
@@ -60,6 +61,7 @@ export async function GET(request: Request, context: RouteContext) {
       admin,
       threadId,
       userId: user.id,
+      lastReadAt: readCutoffAt,
       organizationId,
       organizationName: schoolName,
       organizationSlug: organizationSlug || undefined,

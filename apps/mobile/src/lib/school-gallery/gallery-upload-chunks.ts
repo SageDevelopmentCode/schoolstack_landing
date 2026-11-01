@@ -66,3 +66,13 @@ export function chunkGalleryUploadByByteBudget<T>(
 
   return chunks;
 }
+
+export function remainingGalleryChunks<T>(
+  chunks: T[][],
+  fromChunkIndex: number,
+): T[] {
+  if (fromChunkIndex <= 0) {
+    return chunks.flat();
+  }
+  return chunks.slice(fromChunkIndex).flat();
+}

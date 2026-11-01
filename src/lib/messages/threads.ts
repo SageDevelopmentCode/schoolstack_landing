@@ -951,16 +951,18 @@ export async function markThreadRead(
   admin: SupabaseClient,
   threadId: string,
   userId: string,
+  options?: { lastReadAt?: string },
 ): Promise<void> {
   const maxAttempts = 3;
   let lastError: Error | undefined;
+  const lastReadAt = options?.lastReadAt ?? new Date().toISOString();
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const { error } = await admin.from("message_thread_reads").upsert(
       {
         thread_id: threadId,
         user_id: userId,
-        last_read_at: new Date().toISOString(),
+        last_read_at: lastReadAt,
       },
       { onConflict: "thread_id,user_id" },
     );

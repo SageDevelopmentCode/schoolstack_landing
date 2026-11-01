@@ -7,6 +7,7 @@ import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { uploadGalleryBatch } from "@/lib/school-gallery/upload-gallery-batch";
+import { isGalleryUploadPartialFailure } from "@/lib/school-gallery/gallery-upload-partial-error";
 import type { GalleryPhoto } from "@/lib/school-gallery/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
@@ -91,10 +92,10 @@ export default function GalleryUploadSheet({
     onClose();
   };
 
-  const handleUpload = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
+  const handleUpload = async (files: File[]) => {
+    if (files.length === 0) return;
 
-    const fileArray = Array.from(files);
+    const fileArray = files;
     setUploading(true);
     resetProgress();
     setPhase("preparing");
@@ -138,6 +139,15 @@ export default function GalleryUploadSheet({
       if (inputRef.current) inputRef.current.value = "";
     } catch (error) {
       resetProgress();
+      if (isGalleryUploadPartialFailure(error)) {
+        onUploaded(error.uploadedPhotos);
+        setSelectedFiles(error.remainingFiles);
+        if (inputRef.current) inputRef.current.value = "";
+        adminToast.info(
+          `Uploaded ${error.uploadedPhotos.length} photo(s). ${error.remainingFiles.length} left — tap Upload to retry.`,
+        );
+        return;
+      }
       void reportPortalOperationalError(
         operationalErrorSurface,
         {
@@ -185,7 +195,7 @@ export default function GalleryUploadSheet({
             type="button"
             theme={theme}
             disabled={uploading || selectedFiles.length === 0}
-            onClick={() => void handleUpload(inputRef.current?.files ?? null)}
+            onClick={() => void handleUpload(selectedFiles)}
           >
             {uploading ? (
               <>

@@ -17,6 +17,7 @@ import {
   type GalleryBatchUploadOptions,
   type PreparedGalleryUploadFile,
 } from '@/lib/school-gallery/gallery-api';
+import { isGalleryUploadPartialFailure } from '@/lib/school-gallery/gallery-upload-partial-error';
 import {
   GalleryPhotoPrepareError,
   prepareGalleryPhotoForUpload,
@@ -24,6 +25,11 @@ import {
 import type { GalleryPhoto } from '@/lib/school-gallery/types';
 
 type UploadPhase = 'idle' | 'preparing' | 'uploading';
+
+type PendingGalleryRetry = {
+  photoDate: string;
+  files: PreparedGalleryUploadFile[];
+};
 
 type GalleryUploadSheetProps = {
   visible: boolean;
@@ -63,6 +69,7 @@ export function GalleryUploadSheet({
   const [prepareTotal, setPrepareTotal] = useState(0);
   const [statusLine, setStatusLine] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [pendingRetry, setPendingRetry] = useState<PendingGalleryRetry | null>(null);
   const busy = phase !== 'idle';
 
   const resetProgress = useCallback(() => {
@@ -73,14 +80,108 @@ export function GalleryUploadSheet({
     setError(null);
   }, []);
 
+  const reportUploadFailure = useCallback(
+    (uploadError: unknown, message: string) => {
+      if (uploadError instanceof GalleryPhotoPrepareError) {
+        return;
+      }
+      if (isGalleryUploadPartialFailure(uploadError)) {
+        return;
+      }
+      const responseStatus =
+        uploadError instanceof MobileApiFormDataError ? uploadError.status : undefined;
+      void reportMobileOperationalError(
+        {
+          organizationId,
+          surface: uploadSurface,
+          operation: uploadOperation,
+          error: message,
+          code: 'upload_failed',
+          details:
+            uploadError instanceof MobileApiFormDataError
+              ? uploadError.responsePreview
+              : undefined,
+          metadata:
+            uploadError instanceof MobileApiFormDataError
+              ? {
+                  httpStatus: uploadError.status,
+                  ...(uploadError.code ? { apiCode: uploadError.code } : {}),
+                }
+              : undefined,
+        },
+        uploadError,
+        responseStatus,
+      );
+    },
+    [organizationId, uploadOperation, uploadSurface],
+  );
+
+  const handleUploadFailure = useCallback(
+    (uploadError: unknown, uploadPhotoDate: string) => {
+      if (isGalleryUploadPartialFailure(uploadError)) {
+        onUploaded(uploadError.uploadedPhotos);
+        setPendingRetry({
+          photoDate: uploadPhotoDate,
+          files: uploadError.remainingFiles,
+        });
+        setError(
+          `${formatGalleryApiError(uploadError, 'Could not upload photos.')} ${uploadError.remainingFiles.length} photo(s) still need to upload.`,
+        );
+        setPhase('idle');
+        return;
+      }
+
+      const message = formatGalleryApiError(uploadError, 'Could not upload photos.');
+      setError(message);
+      setPhase('idle');
+      reportUploadFailure(uploadError, message);
+    },
+    [onUploaded, reportUploadFailure],
+  );
+
+  const uploadPrepared = useCallback(
+    async (trimmedDate: string, prepared: PreparedGalleryUploadFile[]) => {
+      setPhase('uploading');
+      setStatusLine('Uploading photos…');
+      try {
+        const photos = await uploadBatch(trimmedDate, prepared, {
+          onChunkProgress: ({ chunkIndex, chunkCount }) => {
+            setStatusLine(
+              chunkCount > 1
+                ? `Uploading batch ${chunkIndex} of ${chunkCount}…`
+                : 'Uploading photos…',
+            );
+          },
+        });
+        onUploaded(photos);
+        setPendingRetry(null);
+        resetProgress();
+        onClose();
+      } catch (uploadError) {
+        handleUploadFailure(uploadError, trimmedDate);
+      }
+    },
+    [handleUploadFailure, onClose, onUploaded, resetProgress, uploadBatch],
+  );
+
   const handleClose = () => {
     if (busy) return;
     resetProgress();
+    setPendingRetry(null);
     onClose();
+  };
+
+  const handleRetryRemaining = async () => {
+    if (!pendingRetry || pendingRetry.files.length === 0) {
+      return;
+    }
+    setError(null);
+    await uploadPrepared(pendingRetry.photoDate, pendingRetry.files);
   };
 
   const handlePickAndUpload = async () => {
     setError(null);
+    setPendingRetry(null);
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       setError('Photo library access is required to upload photos.');
@@ -129,50 +230,9 @@ export function GalleryUploadSheet({
         setPrepareIndex(index + 1);
       }
 
-      setPhase('uploading');
-      setStatusLine('Uploading photos…');
-      const photos = await uploadBatch(trimmedDate, prepared, {
-        onChunkProgress: ({ chunkIndex, chunkCount }) => {
-          setStatusLine(
-            chunkCount > 1
-              ? `Uploading batch ${chunkIndex} of ${chunkCount}…`
-              : 'Uploading photos…',
-          );
-        },
-      });
-      onUploaded(photos);
-      resetProgress();
-      onClose();
+      await uploadPrepared(trimmedDate, prepared);
     } catch (uploadError) {
-      const message = formatGalleryApiError(uploadError, 'Could not upload photos.');
-      setError(message);
-      setPhase('idle');
-      if (!(uploadError instanceof GalleryPhotoPrepareError)) {
-        const responseStatus =
-          uploadError instanceof MobileApiFormDataError ? uploadError.status : undefined;
-        void reportMobileOperationalError(
-          {
-            organizationId,
-            surface: uploadSurface,
-            operation: uploadOperation,
-            error: message,
-            code: 'upload_failed',
-            details:
-              uploadError instanceof MobileApiFormDataError
-                ? uploadError.responsePreview
-                : undefined,
-            metadata:
-              uploadError instanceof MobileApiFormDataError
-                ? {
-                    httpStatus: uploadError.status,
-                    ...(uploadError.code ? { apiCode: uploadError.code } : {}),
-                  }
-                : undefined,
-          },
-          uploadError,
-          responseStatus,
-        );
-      }
+      handleUploadFailure(uploadError, trimmedDate);
     }
   };
 
@@ -213,6 +273,14 @@ export function GalleryUploadSheet({
                   : 'Working…')}
             </Text>
           </View>
+        ) : null}
+
+        {pendingRetry && pendingRetry.files.length > 0 && !busy ? (
+          <StoryButton
+            label={`Retry remaining (${pendingRetry.files.length})`}
+            onPress={() => void handleRetryRemaining()}
+            disabled={busy}
+          />
         ) : null}
 
         <StoryButton

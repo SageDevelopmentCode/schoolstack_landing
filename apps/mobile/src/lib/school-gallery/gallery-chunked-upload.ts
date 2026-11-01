@@ -3,6 +3,10 @@ import {
   chunkGalleryUploadByByteBudget,
   type SizedGalleryUploadItem,
 } from '@/lib/school-gallery/gallery-upload-chunks';
+import {
+  GalleryUploadPartialFailureError,
+  remainingPreparedGalleryFilesFromParts,
+} from '@/lib/school-gallery/gallery-upload-partial-error';
 import type { GalleryPhoto } from '@/lib/school-gallery/types';
 import { readLocalFileBlob } from '@/lib/upload/append-local-file-to-form-data';
 
@@ -67,12 +71,50 @@ export async function postGalleryFormDataChunks<T extends { photos?: GalleryPhot
       formData.append('files', part.blob, part.name);
     }
 
-    const payload = await options.postFormData(options.path, formData);
-    if (!payload.photos?.length) {
-      throw new Error('Upload failed.');
+    try {
+      const payload = await options.postFormData(options.path, formData);
+      if (!payload.photos?.length) {
+        throw new Error('Upload failed.');
+      }
+      uploaded.push(...payload.photos);
+    } catch (error) {
+      throwGalleryUploadChunkFailure(error, {
+        chunkIndex: index,
+        chunks,
+        uploadedPhotos: uploaded,
+      });
     }
-    uploaded.push(...payload.photos);
   }
 
   return uploaded;
+}
+
+function throwGalleryUploadChunkFailure(
+  error: unknown,
+  context: {
+    chunkIndex: number;
+    chunks: GalleryBlobUploadPart[][];
+    uploadedPhotos: GalleryPhoto[];
+  },
+): never {
+  const message =
+    error instanceof Error ? error.message : 'Upload failed.';
+  const hasPartialProgress =
+    context.chunkIndex > 0 || context.uploadedPhotos.length > 0;
+
+  if (hasPartialProgress) {
+    throw new GalleryUploadPartialFailureError(message, {
+      uploadedPhotos: context.uploadedPhotos,
+      remainingFiles: remainingPreparedGalleryFilesFromParts(
+        context.chunkIndex,
+        context.chunks,
+      ),
+      cause: error,
+    });
+  }
+
+  if (error instanceof Error) {
+    throw error;
+  }
+  throw new Error(message);
 }

@@ -216,7 +216,7 @@ describe("buildChecklistPreviewSidebarItems", () => {
     );
   });
 
-  it("keeps standard first and omits alternates when conditional_support stacks with default", () => {
+  it("keeps standard first when conditional_support stacks with default (two variants only)", () => {
     const stackedConditional = setItemVariantConfig(
       agreementItem("conditional", "Conditional Support Agreement"),
       {
@@ -236,6 +236,37 @@ describe("buildChecklistPreviewSidebarItems", () => {
     assert.deepEqual(
       result.sidebarItems.map((item) => item.id),
       ["standard", "conditional", "form", "payment"],
+    );
+  });
+
+  it("includes non-primary siblings in sidebar when conditional_support stacks with default", () => {
+    const stackedConditional = setItemVariantConfig(
+      agreementItem("conditional", "Conditional Support Agreement"),
+      {
+        groupId,
+        groupLabel: "Enrollment Agreement",
+        variantKey: "conditional_support",
+      },
+    );
+    const legacy = setItemVariantConfig(
+      agreementItem("legacy", "Legacy Enrollment Agreement"),
+      {
+        groupId,
+        groupLabel: "Enrollment Agreement",
+        variantKey: "legacy",
+      },
+    );
+    const stackedItems = [standard, stackedConditional, legacy, form, payment];
+
+    const result = buildChecklistPreviewSidebarItems(stackedItems, "conditional");
+    assert.deepEqual(
+      result.primaryItems.map((item) => item.id),
+      ["standard", "conditional", "form", "payment"],
+    );
+    assert.deepEqual(result.alternateItems.map((item) => item.id), ["legacy"]);
+    assert.deepEqual(
+      result.sidebarItems.map((item) => item.id),
+      ["standard", "conditional", "legacy", "form", "payment"],
     );
   });
 });
