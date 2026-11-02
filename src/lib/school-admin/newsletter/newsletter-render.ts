@@ -23,7 +23,7 @@ import {
   newsletterHeroCoverOverlayInlineStyle,
 } from "./newsletter-hero-cover";
 
-function escapeHtml(value: string): string {
+export function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -76,7 +76,10 @@ function blockContentHtml(block: NewsletterStoryBlock): string {
 }
 
 export type BuildContentOptions = {
-  staff?: StaffMemberRecord[];
+  staff?: Array<
+    Pick<StaffMemberRecord, "id" | "firstName" | "lastName"> &
+      Partial<Pick<StaffMemberRecord, "email">>
+  >;
   template?: NewsletterSchoolTemplate;
   branding?: NewsletterVisualBranding;
   primaryColor?: string;

@@ -2,11 +2,14 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  BULLETIN_VIEWER_SCAN_CAP,
   listActiveBulletinPostsForViewer,
   mapBulletinRowsToPostsWithoutAttachments,
 } from "./posts-home";
-import { parentMainPortalBulletinScope } from "./bulletin-audience";
+import {
+  parentMainPortalBulletinScope,
+  postVisibleToViewer,
+  type BulletinViewerScope,
+} from "./bulletin-audience";
 import type { BulletinPostRow } from "./mappers";
 
 function buildRow(overrides: Partial<BulletinPostRow> & { id: string }): BulletinPostRow {
@@ -23,6 +26,76 @@ function buildRow(overrides: Partial<BulletinPostRow> & { id: string }): Bulleti
     created_by: overrides.created_by ?? "user-1",
     created_at: overrides.created_at ?? "2026-01-01T12:00:00.000Z",
     updated_at: overrides.updated_at ?? "2026-01-01T12:00:00.000Z",
+  };
+}
+
+function filterRowsForViewerScope(
+  rows: BulletinPostRow[],
+  scope: BulletinViewerScope,
+): BulletinPostRow[] {
+  return rows.filter((row) =>
+    postVisibleToViewer(
+      {
+        audiences: row.audiences ?? [],
+        programIds: row.program_ids ?? [],
+      },
+      scope,
+    ),
+  );
+}
+
+function createMockSupabaseForBulletinPosts(
+  rows: BulletinPostRow[],
+  scope: BulletinViewerScope,
+): { supabase: SupabaseClient; getRangeCalls: () => number } {
+  const audienceFiltered = filterRowsForViewerScope(rows, scope);
+  let rangeCalls = 0;
+
+  const supabase = {
+    from(table: string) {
+      if (table === "school_bulletin_attachments") {
+        return {
+          select() {
+            return this;
+          },
+          in() {
+            return this;
+          },
+          order() {
+            return Promise.resolve({ data: [], error: null });
+          },
+        };
+      }
+
+      assert.equal(table, "school_bulletin_posts");
+      const builder = {
+        select() {
+          return builder;
+        },
+        eq() {
+          return builder;
+        },
+        or() {
+          return builder;
+        },
+        order() {
+          return builder;
+        },
+        range(from: number, to: number) {
+          rangeCalls += 1;
+          return Promise.resolve({
+            data: audienceFiltered.slice(from, to + 1),
+            error: null,
+          });
+        },
+      };
+      return builder;
+    },
+  } as unknown as SupabaseClient;
+
+  return {
+    supabase,
+    getRangeCalls: () => rangeCalls,
   };
 }
 
@@ -46,59 +119,43 @@ describe("posts-home", () => {
       }),
     );
 
-    let rangeCalls = 0;
+    const scope = parentMainPortalBulletinScope();
+    const { supabase, getRangeCalls } = createMockSupabaseForBulletinPosts(rows, scope);
 
-    const supabase = {
-      from(table: string) {
-        if (table === "school_bulletin_attachments") {
-          return {
-            select() {
-              return this;
-            },
-            in() {
-              return this;
-            },
-            order() {
-              return Promise.resolve({ data: [], error: null });
-            },
-          };
-        }
-
-        assert.equal(table, "school_bulletin_posts");
-        const builder = {
-          select() {
-            return builder;
-          },
-          eq() {
-            return builder;
-          },
-          or() {
-            return builder;
-          },
-          order() {
-            return builder;
-          },
-          range(from: number, to: number) {
-            rangeCalls += 1;
-            return Promise.resolve({
-              data: rows.slice(from, to + 1),
-              error: null,
-            });
-          },
-        };
-        return builder;
-      },
-    } as unknown as SupabaseClient;
-
-    const posts = await listActiveBulletinPostsForViewer(
-      supabase,
-      "org-1",
-      parentMainPortalBulletinScope(),
-      3,
-    );
+    const posts = await listActiveBulletinPostsForViewer(supabase, "org-1", scope, 3);
 
     assert.equal(posts.length, 3);
-    assert.ok(rangeCalls >= 1);
-    assert.ok(rangeCalls * 25 <= BULLETIN_VIEWER_SCAN_CAP + 25);
+    assert.equal(getRangeCalls(), 1);
+  });
+
+  it("listActiveBulletinPostsForViewer finds older parent-visible posts after many teacher-only rows", async () => {
+    const teacherRows: BulletinPostRow[] = Array.from({ length: 100 }, (_, index) =>
+      buildRow({
+        id: `teacher-${index}`,
+        audiences: ["teachers"],
+        title: `Teacher ${index}`,
+        published_at: new Date(Date.UTC(2026, 0, 100 - index)).toISOString(),
+      }),
+    );
+    const parentRows: BulletinPostRow[] = Array.from({ length: 3 }, (_, index) =>
+      buildRow({
+        id: `school-wide-${index}`,
+        audiences: ["school_wide"],
+        title: `School wide ${index}`,
+        published_at: new Date(Date.UTC(2025, 11, 3 - index)).toISOString(),
+      }),
+    );
+    const rows = [...teacherRows, ...parentRows];
+    const scope = parentMainPortalBulletinScope();
+    const { supabase, getRangeCalls } = createMockSupabaseForBulletinPosts(rows, scope);
+
+    const posts = await listActiveBulletinPostsForViewer(supabase, "org-1", scope, 3);
+
+    assert.equal(posts.length, 3);
+    assert.deepEqual(
+      posts.map((post) => post.id),
+      ["school-wide-0", "school-wide-1", "school-wide-2"],
+    );
+    assert.equal(getRangeCalls(), 1);
   });
 });

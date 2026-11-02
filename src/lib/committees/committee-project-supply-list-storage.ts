@@ -127,7 +127,10 @@ function logSupplyActivity(
     supplyItemName: supplyItemDisplayName(item),
   };
 
-  if (ctx.committeesApiBase) {
+  if (
+    ctx.committeesApiBase &&
+    action === ACTIVITY_ACTIONS.COMMITTEE_PROJECT_SUPPLY_CREATED
+  ) {
     logCommitteeActivityForPortal(ctx.committeesApiBase, {
       organizationId: ctx.organizationId,
       committeeId: ctx.committeeId,
@@ -145,11 +148,15 @@ function logSupplyActivity(
 
   logCommitteeActivityEvent(supabase, {
     committeeId: ctx.committeeId,
+    organizationId: ctx.organizationId,
     action,
     entityType: "committee_project_supply_item",
     entityId: item.id,
     summary,
     metadata,
+    actor: ctx.createdByMemberId
+      ? { type: "parent", memberId: ctx.createdByMemberId }
+      : undefined,
   });
 }
 
@@ -240,18 +247,14 @@ export async function deleteCommitteeProjectSupplyItem(
   const projectName = await loadProjectNameForSupplyLog(supabase, ctx.projectId);
   const displayName = itemName?.trim() || "Item";
 
-  logCommitteeActivityEvent(supabase, {
-    committeeId: ctx.committeeId,
-    action: ACTIVITY_ACTIONS.COMMITTEE_PROJECT_SUPPLY_DELETED,
-    entityType: "committee_project_supply_item",
-    entityId: itemId,
-    summary: `Supply item "${displayName}" was removed`,
-    metadata: {
-      projectId: ctx.projectId,
-      ...(projectName ? { projectName } : {}),
-      supplyItemName: displayName,
-    },
-  });
+  logSupplyActivity(
+    supabase,
+    ctx,
+    ACTIVITY_ACTIONS.COMMITTEE_PROJECT_SUPPLY_DELETED,
+    { id: itemId, name: displayName } as CoopSupplyListItem,
+    `Supply item "${displayName}" was removed`,
+    projectName,
+  );
 }
 
 export async function replaceCommitteeProjectSupplyColorLegend(
@@ -259,29 +262,15 @@ export async function replaceCommitteeProjectSupplyColorLegend(
   ctx: CommitteeProjectSupplyListContext,
   legend: ReadonlyArray<CoopSupplyColorLegendEntry>,
 ): Promise<CoopSupplyColorLegendEntry[]> {
-  const { error: deleteError } = await supabase
-    .from("committee_project_supply_color_legend")
-    .delete()
-    .eq("project_id", ctx.projectId);
-
-  if (deleteError) throw deleteError;
-
-  if (legend.length === 0) return [];
-
-  const rows = legend.map((entry, index) => ({
-    project_id: ctx.projectId,
-    organization_id: ctx.organizationId,
-    color_id: entry.id,
-    hex: entry.hex,
-    label: entry.label,
-    sort_order: index,
-  }));
-
-  const { data, error } = await supabase
-    .from("committee_project_supply_color_legend")
-    .insert(rows)
-    .select(COMMITTEE_PROJECT_SUPPLY_COLOR_LEGEND_SELECT)
-    .order("sort_order", { ascending: true });
+  const { data, error } = await supabase.rpc("replace_committee_project_supply_color_legend", {
+    p_project_id: ctx.projectId,
+    p_organization_id: ctx.organizationId,
+    p_legend: legend.map((entry) => ({
+      id: entry.id,
+      hex: entry.hex,
+      label: entry.label,
+    })),
+  });
 
   if (error) throw error;
   return ((data ?? []) as CommitteeProjectSupplyColorLegendRow[]).map(mapSupplyColorLegendRow);

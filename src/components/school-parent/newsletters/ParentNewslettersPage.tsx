@@ -146,7 +146,6 @@ export default function ParentNewslettersPage({
                 edition={edition}
                 href={href}
                 theme={theme}
-                previewMode={previewMode}
               />
             );
           })}

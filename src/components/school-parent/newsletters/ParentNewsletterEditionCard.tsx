@@ -11,24 +11,21 @@ type ParentNewsletterEditionCardProps = {
   edition: PublishedNewsletterSummary;
   href: string;
   theme: ParentThemeTokens;
-  previewMode?: boolean;
 };
 
 export default function ParentNewsletterEditionCard({
   edition,
   href,
   theme,
-  previewMode = false,
 }: ParentNewsletterEditionCardProps) {
   const title = edition.title.trim() || weekLabel(edition);
   const week = weekLabel(edition);
 
   return (
     <Link
-      href={previewMode ? "#" : href}
+      href={href}
       className="block h-full overflow-hidden rounded-2xl border transition-colors hover:bg-black/[0.02]"
       style={{ borderColor: theme.line, backgroundColor: theme.white }}
-      onClick={previewMode ? (e) => e.preventDefault() : undefined}
     >
       <div
         className={adminStyles.overviewCardBanner}

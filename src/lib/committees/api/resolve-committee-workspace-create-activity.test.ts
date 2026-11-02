@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import {
   COMMITTEE_WORKSPACE_CREATE_MAX_AGE_MS,
+  RECORD_COMMITTEE_WORKSPACE_CREATE_ACTIONS,
   resolveCommitteeWorkspaceCreateActivity,
 } from "./resolve-committee-workspace-create-activity";
 
@@ -37,6 +38,21 @@ function mockSupabaseForTable(
 }
 
 describe("resolveCommitteeWorkspaceCreateActivity", () => {
+  it("record-activity allowlist excludes supply updates and project deletes", () => {
+    assert.equal(
+      RECORD_COMMITTEE_WORKSPACE_CREATE_ACTIONS.has(
+        ACTIVITY_ACTIONS.COMMITTEE_PROJECT_SUPPLY_UPDATED,
+      ),
+      false,
+    );
+    assert.equal(
+      RECORD_COMMITTEE_WORKSPACE_CREATE_ACTIONS.has(
+        ACTIVITY_ACTIONS.COMMITTEE_PROJECT_DELETED,
+      ),
+      false,
+    );
+  });
+
   it("rejects disallowed actions", async () => {
     const result = await resolveCommitteeWorkspaceCreateActivity(
       mockSupabaseForTable("committee_tasks", null) as never,

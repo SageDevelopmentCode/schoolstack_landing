@@ -21,7 +21,10 @@ export type PreviewSection = {
 };
 
 export type BuildPreviewSectionsOptions = {
-  staff?: StaffMemberRecord[];
+  staff?: Array<
+    Pick<StaffMemberRecord, "id" | "firstName" | "lastName"> &
+      Partial<Pick<StaffMemberRecord, "email">>
+  >;
   template?: NewsletterSchoolTemplate;
   renderMediaImage?: (props: {
     src: string;

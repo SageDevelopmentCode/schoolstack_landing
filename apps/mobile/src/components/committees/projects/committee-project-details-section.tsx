@@ -42,6 +42,7 @@ export function CommitteeProjectDetailsSection({
   const theme = useParentTheme();
   const { reportError } = useMobileErrorReporter(organizationId);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveGenerationRef = useRef(0);
 
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description);
@@ -52,13 +53,15 @@ export function CommitteeProjectDetailsSection({
     setName(project.name);
     setDescription(project.description);
     setActive(project.status === 'active');
-  }, [project.id, project.name, project.description, project.status]);
+  }, [project.id]);
 
   const persist = useCallback(
     async (patch: { name?: string; description?: string; status?: 'draft' | 'active' }) => {
       if (readOnly) return;
+      const generation = ++saveGenerationRef.current;
       try {
         const updated = await updateCommitteeProject(supabase, project.id, patch);
+        if (generation !== saveGenerationRef.current) return;
         onProjectChange({ ...project, ...updated, supplyItemCount: project.supplyItemCount });
       } catch (err) {
         reportError('committees.projects.update', err, {

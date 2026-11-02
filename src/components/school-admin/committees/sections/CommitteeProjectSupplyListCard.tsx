@@ -465,7 +465,7 @@ export default function CommitteeProjectSupplyListCard({
             onRemove={() => {
               if (selectedItem) void removeItem(selectedItem);
             }}
-            canRemove={!isCreateMode && items.length > 1}
+            canRemove={!isCreateMode}
           />
         ) : null}
       </AnimatePresence>

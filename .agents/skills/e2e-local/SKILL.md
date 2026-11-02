@@ -19,7 +19,7 @@ Run Playwright E2E tests against **local Supabase only**. Never use production S
 4. **No Stripe** — Playwright’s web server uses E2E env (not your `.env.local` Stripe keys). `STRIPE_*` keys are cleared in `e2e/web-server-env.ts`
 5. **No outbound email** — `DISABLE_OUTBOUND_EMAIL=1` is set for the Playwright web server; Zoho/SMTP keys are cleared so application-submit tests do not send mail
 6. **Admissions Discord** — set `DISCORD_E2E_ALERTS_WEBHOOK_URL` in `.env.e2e.local`; prod `ROOTED_MEADOWS_WEBSITE_NOTIFICATION_DISCORD_WEBHOOK_URL` is cleared in `playwright.config.ts` so submit/payment/visit alerts do not hit the school channel
-7. E2E uses **port 3100** by default — your `next dev` on **3000** can stay running: locally Playwright uses **`next start` on 3100** (after `npm run test:e2e:build`). CI uses `next dev` on 3100 only
+7. E2E uses **port 3100** by default — your `next dev` on **3000** can stay running: Playwright uses **`next start` on 3100** after `npm run test:e2e:build` (local and CI)
 
 ## Prerequisites
 
@@ -51,7 +51,7 @@ npm run test:e2e:install
 ```bash
 npm run test:e2e:setup   # optional: supabase db reset
 npm run test:e2e:build   # local: production build with E2E env (re-run after app changes)
-npm run test:e2e         # 47 tests; starts next start on 3100 locally (next dev on CI)
+npm run test:e2e         # 47 tests; starts next start on 3100 (after test:e2e:build)
 npm run test:e2e:ui      # interactive mode
 ```
 

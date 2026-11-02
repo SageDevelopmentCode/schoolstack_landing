@@ -101,6 +101,19 @@ as $$
   limit 1;
 $$;
 
+create or replace function public.committee_project_organization_id(p_project_id uuid)
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select public.committee_organization_id(p.committee_id)
+  from public.committee_projects p
+  where p.id = p_project_id
+  limit 1;
+$$;
+
 -- ── RLS: committee_projects ─────────────────────────────────────────────────
 
 alter table public.committee_projects enable row level security;
@@ -112,12 +125,18 @@ create policy "Platform admins manage committee_projects"
 
 create policy "Staff read committee_projects"
   on public.committee_projects for select to authenticated
-  using (public.user_is_staff_org_member(organization_id));
+  using (
+    public.user_is_staff_org_member(public.committee_organization_id(committee_id))
+  );
 
 create policy "Org admins manage committee_projects"
   on public.committee_projects for all to authenticated
-  using (public.user_is_org_admin(organization_id))
-  with check (public.user_is_org_admin(organization_id));
+  using (
+    public.user_is_org_admin(public.committee_organization_id(committee_id))
+  )
+  with check (
+    public.user_is_org_admin(public.committee_organization_id(committee_id))
+  );
 
 create policy "Committee members read committee_projects"
   on public.committee_projects for select to authenticated
@@ -127,6 +146,7 @@ create policy "Committee members create committee_projects"
   on public.committee_projects for insert to authenticated
   with check (
     public.user_is_committee_member(committee_id)
+    and organization_id = public.committee_organization_id(committee_id)
     and (
       created_by_member_id is null
       or created_by_member_id = public.user_committee_member_id(committee_id)
@@ -136,7 +156,10 @@ create policy "Committee members create committee_projects"
 create policy "Committee members update committee_projects"
   on public.committee_projects for update to authenticated
   using (public.user_is_committee_member(committee_id))
-  with check (public.user_is_committee_member(committee_id));
+  with check (
+    public.user_is_committee_member(committee_id)
+    and organization_id = public.committee_organization_id(committee_id)
+  );
 
 create policy "Committee members delete committee_projects"
   on public.committee_projects for delete to authenticated
@@ -153,12 +176,18 @@ create policy "Platform admins manage committee_project_supply_color_legend"
 
 create policy "Staff read committee_project_supply_color_legend"
   on public.committee_project_supply_color_legend for select to authenticated
-  using (public.user_is_staff_org_member(organization_id));
+  using (
+    public.user_is_staff_org_member(public.committee_project_organization_id(project_id))
+  );
 
 create policy "Org admins manage committee_project_supply_color_legend"
   on public.committee_project_supply_color_legend for all to authenticated
-  using (public.user_is_org_admin(organization_id))
-  with check (public.user_is_org_admin(organization_id));
+  using (
+    public.user_is_org_admin(public.committee_project_organization_id(project_id))
+  )
+  with check (
+    public.user_is_org_admin(public.committee_project_organization_id(project_id))
+  );
 
 create policy "Committee members read committee_project_supply_color_legend"
   on public.committee_project_supply_color_legend for select to authenticated
@@ -173,6 +202,7 @@ create policy "Committee members write committee_project_supply_color_legend"
   )
   with check (
     public.user_is_committee_member(public.committee_project_committee_id(project_id))
+    and organization_id = public.committee_project_organization_id(project_id)
   );
 
 -- ── RLS: supply items ───────────────────────────────────────────────────────
@@ -186,12 +216,18 @@ create policy "Platform admins manage committee_project_supply_items"
 
 create policy "Staff read committee_project_supply_items"
   on public.committee_project_supply_items for select to authenticated
-  using (public.user_is_staff_org_member(organization_id));
+  using (
+    public.user_is_staff_org_member(public.committee_project_organization_id(project_id))
+  );
 
 create policy "Org admins manage committee_project_supply_items"
   on public.committee_project_supply_items for all to authenticated
-  using (public.user_is_org_admin(organization_id))
-  with check (public.user_is_org_admin(organization_id));
+  using (
+    public.user_is_org_admin(public.committee_project_organization_id(project_id))
+  )
+  with check (
+    public.user_is_org_admin(public.committee_project_organization_id(project_id))
+  );
 
 create policy "Committee members read committee_project_supply_items"
   on public.committee_project_supply_items for select to authenticated
@@ -206,6 +242,7 @@ create policy "Committee members write committee_project_supply_items"
   )
   with check (
     public.user_is_committee_member(public.committee_project_committee_id(project_id))
+    and organization_id = public.committee_project_organization_id(project_id)
   );
 
 -- Optional backfill: append projects to committee config sections

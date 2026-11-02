@@ -25,6 +25,10 @@ import type { CommitteeMember } from '@/lib/parent/parent-committees-types';
 import { Story, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
+import {
+  isCommitteeWorkspaceLoadTimeoutError,
+  withCommitteeWorkspaceLoadTimeout,
+} from '@/lib/school-admin/committees/committee-workspace-load';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type DetailTab = 'supply_list' | 'details';
@@ -63,10 +67,15 @@ export function CommitteeProjectDetailScreen({
   const loadProject = useCallback(async () => {
     setLoading(true);
     try {
-      const row = await getCommitteeProject(supabase, projectId);
+      const row = await withCommitteeWorkspaceLoadTimeout(
+        getCommitteeProject(supabase, projectId),
+      );
       setProject(row);
     } catch (err) {
-      reportError('committees.projects.detail_load', err, {
+      const operation = isCommitteeWorkspaceLoadTimeoutError(err)
+        ? 'committees.projects.detail_load_timeout'
+        : 'committees.projects.detail_load';
+      reportError(operation, err, {
         entityType: 'committee_project',
         entityId: projectId,
       });

@@ -1,5 +1,6 @@
 import {
   buildNewsletterArticleHtml,
+  escapeHtml,
   type BuildContentOptions,
 } from "./newsletter-render";
 import type { NewsletterEdition, NewsletterSchoolMeta } from "./newsletter-types";
@@ -42,6 +43,10 @@ body{padding:0}
 }
 `;
 
+/** Static CSP for exported newsletter HTML (parent document API, downloads, WebView). */
+const EXPORT_CONTENT_SECURITY_POLICY =
+  "default-src 'self' https: data:; script-src 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src https: data:; base-uri 'self'; form-action 'none'";
+
 export function buildExportHtmlDocument(
   edition: NewsletterEdition,
   school: NewsletterSchoolMeta,
@@ -50,7 +55,9 @@ export function buildExportHtmlDocument(
   const article = buildNewsletterArticleHtml(edition, school, options);
   const title = edition.title.trim() || "Newsletter";
   const baseHref = `${getRuntimeSiteUrl()}/`;
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="${baseHref}"><title>${title}</title><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@500;600&display=swap" rel="stylesheet"><style>${EXPORT_STYLE_SNIPPET}</style></head><body>${article}</body></html>`;
+  const safeBaseHref = escapeHtml(baseHref);
+  const safeTitle = escapeHtml(title);
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="${EXPORT_CONTENT_SECURITY_POLICY}"><base href="${safeBaseHref}"><title>${safeTitle}</title><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@500;600&display=swap" rel="stylesheet"><style>${EXPORT_STYLE_SNIPPET}</style></head><body>${article}</body></html>`;
 }
 
 export function downloadFile(content: string, mime: string, filename: string) {

@@ -75,6 +75,39 @@ export function filterBulletinPostsForViewer(
   );
 }
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** PostgREST `or` filter matching {@link postVisibleToViewer} (for published-post queries). */
+export function bulletinViewerAudienceOrFilter(scope: BulletinViewerScope): string {
+  if (scope.viewer === "teacher") {
+    return "audiences.cs.{school_wide},audiences.cs.{teachers}";
+  }
+
+  if (scope.mode === "main_portal") {
+    return "audiences.cs.{school_wide},and(audiences.cs.{parents},program_ids.eq.{})";
+  }
+
+  const programId = scope.programId.trim();
+  if (!UUID_PATTERN.test(programId)) {
+    throw new Error("Invalid program id for bulletin audience filter.");
+  }
+
+  return [
+    "audiences.cs.{school_wide}",
+    `and(audiences.cs.{parents},program_ids.cs.{${programId}})`,
+    `and(audiences.cs.{program},program_ids.cs.{${programId}})`,
+  ].join(",");
+}
+
+export function applyBulletinViewerAudienceFilters<
+  T extends {
+    or(filter: string): T;
+  },
+>(query: T, scope: BulletinViewerScope): T {
+  return query.or(bulletinViewerAudienceOrFilter(scope));
+}
+
 export function parentMainPortalBulletinScope(): BulletinViewerScope {
   return { viewer: "parent", mode: "main_portal" };
 }

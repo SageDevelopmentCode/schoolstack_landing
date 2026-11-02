@@ -6,6 +6,10 @@ import { usePortalPreview } from '@/lib/portal-preview-gating';
 import type { CommitteePortalApiNamespace } from '@/lib/committees/notify-committee-task-assignment';
 import { mapMemberRow } from '@/lib/school-admin/committees/mappers';
 import type { CommitteeMember } from '@/lib/parent/parent-committees-types';
+import {
+  isCommitteeWorkspaceLoadTimeoutError,
+  withCommitteeWorkspaceLoadTimeout,
+} from '@/lib/school-admin/committees/committee-workspace-load';
 import { getSupabaseClient } from '@/lib/supabase';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
@@ -62,18 +66,25 @@ export function CommitteeProjectDetailLoader({
     (async () => {
       setLoadingMembers(true);
       try {
-        const { data, error } = await supabase
-          .from('committee_members')
-          .select('*')
-          .eq('committee_id', committeeId)
-          .order('display_name');
-        if (error) throw error;
-        const mapped = (data ?? []).map((row) => mapMemberRow(row));
+        const mapped = await withCommitteeWorkspaceLoadTimeout(
+          (async () => {
+            const { data, error } = await supabase
+              .from('committee_members')
+              .select('*')
+              .eq('committee_id', committeeId)
+              .order('display_name');
+            if (error) throw error;
+            return (data ?? []).map((row) => mapMemberRow(row));
+          })(),
+        );
         if (!cancelled) {
           setMembers(mapped);
         }
       } catch (err) {
-        reportError('committees.projects.members_load', err, {
+        const operation = isCommitteeWorkspaceLoadTimeoutError(err)
+          ? 'committees.projects.members_load_timeout'
+          : 'committees.projects.members_load';
+        reportError(operation, err, {
           entityType: 'committee',
           entityId: committeeId,
         });

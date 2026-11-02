@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { attachSignedUrlsToBulletinPosts } from "./attachment-storage";
 import {
+  applyBulletinViewerAudienceFilters,
   filterBulletinPostsForViewer,
   parentMainPortalBulletinScope,
   parentProgramPortalBulletinScope,
@@ -31,7 +32,7 @@ const POST_SELECT = `
   updated_at
 `;
 
-/** Max published rows scanned per home/feed request (after SQL time filters). */
+/** Legacy export: home feeds paginate until the limit is met or posts are exhausted. */
 export const BULLETIN_VIEWER_SCAN_CAP = 100;
 const BULLETIN_PAGE_SIZE = 25;
 
@@ -96,6 +97,7 @@ function applyPublishedBulletinTimeFilters<
 async function fetchPublishedBulletinPage(
   supabase: SupabaseClient,
   organizationId: string,
+  scope: BulletinViewerScope,
   offset: number,
   pageSize: number,
   now: Date,
@@ -111,6 +113,7 @@ async function fetchPublishedBulletinPage(
     .eq("status", "published");
 
   query = applyPublishedBulletinTimeFilters(query, nowIso);
+  query = applyBulletinViewerAudienceFilters(query, scope);
 
   const { data, error } = await query
     .order("published_at", { ascending: false, nullsFirst: false })
@@ -131,19 +134,18 @@ export async function listActiveBulletinPostsForViewer(
   const now = new Date();
   const accumulated: BulletinPost[] = [];
   let offset = 0;
-  let scanned = 0;
 
-  while (accumulated.length < limit && scanned < BULLETIN_VIEWER_SCAN_CAP) {
+  while (accumulated.length < limit) {
     const rows = await fetchPublishedBulletinPage(
       supabase,
       organizationId,
+      scope,
       offset,
       BULLETIN_PAGE_SIZE,
       now,
     );
     if (rows.length === 0) break;
 
-    scanned += rows.length;
     offset += rows.length;
 
     const visible = filterBulletinPostsForViewer(

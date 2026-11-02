@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import FreeToolsCompactRow from "@/components/marketing/free-tools/FreeToolsCompactRow";
+import { useFreeToolsStageFlowAnimate } from "@/components/marketing/free-tools/FreeToolsStageFlowConnector";
 import FreeToolsStageFlowNav from "@/components/marketing/free-tools/FreeToolsStageFlowNav";
 import FreeToolsStageIconTile from "@/components/marketing/free-tools/FreeToolsStageIconTile";
 import { FREE_TOOLS_STAGE_SURFACES } from "@/components/marketing/free-tools/free-tools-stage-surfaces";
@@ -20,6 +21,7 @@ const FULL_BLEED =
 
 export default function FreeToolsByStageView() {
   const byStage = toolsByStage();
+  const stageFlowAnimate = useFreeToolsStageFlowAnimate();
   const [activeStageId, setActiveStageId] = useState<FreeToolsHubStageId>(
     FREE_TOOLS_HUB_STAGES[0]?.id ?? "prospective_family",
   );
@@ -34,11 +36,14 @@ export default function FreeToolsByStageView() {
     }
     document
       .getElementById(freeToolsStageSectionId(stageId))
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      ?.scrollIntoView({
+        behavior: stageFlowAnimate ? "smooth" : "instant",
+        block: "start",
+      });
     scrollTimeoutRef.current = setTimeout(() => {
       scrollFromClickRef.current = false;
     }, 800);
-  }, []);
+  }, [stageFlowAnimate]);
 
   useEffect(() => {
     const sectionElements = FREE_TOOLS_HUB_STAGES.map((stage) =>

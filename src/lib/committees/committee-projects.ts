@@ -209,27 +209,16 @@ export async function deleteCommitteeProject(
   const summary = `Project "${String(projectName ?? "Untitled")}" was deleted`;
   const metadata = { projectName };
 
-  if (input?.committeesApiBase) {
-    logCommitteeActivityForPortal(input.committeesApiBase, {
-      organizationId: input.organizationId,
-      committeeId,
-      action: ACTIVITY_ACTIONS.COMMITTEE_PROJECT_DELETED,
-      entityType: "committee_project",
-      entityId: projectId,
-      summary,
-      metadata,
-      actor: input.createdByMemberId
-        ? { type: "parent", memberId: input.createdByMemberId }
-        : undefined,
-    });
-  } else {
-    logCommitteeActivityEvent(supabase, {
-      committeeId,
-      action: ACTIVITY_ACTIONS.COMMITTEE_PROJECT_DELETED,
-      entityType: "committee_project",
-      entityId: projectId,
-      summary,
-      metadata,
-    });
-  }
+  logCommitteeActivityEvent(supabase, {
+    committeeId,
+    organizationId: input?.organizationId,
+    action: ACTIVITY_ACTIONS.COMMITTEE_PROJECT_DELETED,
+    entityType: "committee_project",
+    entityId: projectId,
+    summary,
+    metadata,
+    actor: input?.createdByMemberId
+      ? { type: "parent", memberId: input.createdByMemberId }
+      : undefined,
+  });
 }

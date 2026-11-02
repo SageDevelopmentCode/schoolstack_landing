@@ -74,7 +74,6 @@ function SchoolTeacherBaselineInner({
   const isFixedLayoutPage = isMessagesPage || isCommitteeWorkspaceOpen;
   const messagesFeatureEnabled =
     Boolean(features.teacher?.messages) && !previewMode;
-  const messagesRealtimeEnabled = messagesFeatureEnabled && isMessagesPage;
   const { theme, adminCompat: C } = useParentTheme();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [activityUnreadCount, setActivityUnreadCount] = useState(
@@ -130,7 +129,7 @@ function SchoolTeacherBaselineInner({
     <CommitteeUnreadRefreshProvider>
     <MessagesRefreshProvider
       organizationId={organizationId}
-      enabled={messagesRealtimeEnabled}
+      enabled={messagesFeatureEnabled}
     >
       <div
         className={`flex h-dvh w-full flex-col overflow-hidden ${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)]`}

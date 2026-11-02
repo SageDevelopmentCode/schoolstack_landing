@@ -21,7 +21,11 @@ import { mapGalleryPhotoRow } from "@/lib/school-gallery/mappers";
 import { attachSignedUrlsToGalleryPhotos } from "@/lib/school-gallery/storage";
 import type { GalleryPhotoRow } from "@/lib/school-gallery/types";
 import { listStaffMembers } from "@/lib/staff/staff-members";
-import type { StaffMemberRecord } from "@/lib/staff/staff-members";
+import {
+  sanitizeNewsletterEditionForParent,
+  staffMembersForPublishedUpdates,
+  type ParentNewsletterStaffMember,
+} from "@/lib/parent-portal/newsletters/parent-newsletter-staff";
 
 const GALLERY_PHOTO_SELECT = `
   id,
@@ -158,7 +162,7 @@ export type ParentNewsletterDetailBundle = {
   edition: NewsletterEdition;
   template: NewsletterSchoolTemplate;
   school: NewsletterSchoolMeta;
-  staffMembers: StaffMemberRecord[];
+  staffMembers: ParentNewsletterStaffMember[];
   htmlDocument: string;
 };
 
@@ -172,11 +176,14 @@ export async function loadParentNewsletterDetailBundle(
   const raw = await loadPublishedNewsletterEdition(admin, organizationId, editionId);
   if (!raw) return null;
 
-  const [edition, template, staffMembers] = await Promise.all([
+  const [hydratedEdition, template, staffRoster] = await Promise.all([
     hydrateNewsletterEditionGalleryMedia(admin, organizationId, raw),
     loadNewsletterTemplateForOrganization(admin, organizationId),
     listStaffMembers(admin, organizationId),
   ]);
+
+  const staffMembers = staffMembersForPublishedUpdates(hydratedEdition, staffRoster);
+  const edition = sanitizeNewsletterEditionForParent(hydratedEdition);
 
   const schoolMeta: NewsletterSchoolMeta = {
     name: school.name,
@@ -184,7 +191,7 @@ export async function loadParentNewsletterDetailBundle(
     primary: school.primaryColor,
   };
   const exportBranding = newsletterVisualBrandingForExport(orgBranding);
-  const htmlDocument = buildExportHtmlDocument(edition, schoolMeta, {
+  const htmlDocument = buildExportHtmlDocument(hydratedEdition, schoolMeta, {
     staff: staffMembers,
     template,
     branding: exportBranding,

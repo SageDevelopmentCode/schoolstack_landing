@@ -28,6 +28,10 @@ import type { CommitteeMember } from '@/lib/parent/parent-committees-types';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Radius, Spacing } from '@/constants/theme';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import {
+  isCommitteeWorkspaceLoadTimeoutError,
+  withCommitteeWorkspaceLoadTimeout,
+} from '@/lib/school-admin/committees/committee-workspace-load';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type CommitteeProjectSupplyListSectionProps = {
@@ -73,10 +77,15 @@ export function CommitteeProjectSupplyListSection({
   const loadSupply = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await listCommitteeProjectSupplyList(supabase, project.id);
+      const result = await withCommitteeWorkspaceLoadTimeout(
+        listCommitteeProjectSupplyList(supabase, project.id),
+      );
       setItems(result.items);
     } catch (err) {
-      reportError('committees.projects.supply_load', err, {
+      const operation = isCommitteeWorkspaceLoadTimeoutError(err)
+        ? 'committees.projects.supply_load_timeout'
+        : 'committees.projects.supply_load';
+      reportError(operation, err, {
         entityType: 'committee_project',
         entityId: project.id,
       });

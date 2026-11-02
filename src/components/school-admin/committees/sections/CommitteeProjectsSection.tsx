@@ -16,6 +16,7 @@ import {
   listCommitteeProjects,
   updateCommitteeProject,
   type CommitteeProject,
+  type UpdateCommitteeProjectInput,
 } from "@/lib/committees/committee-projects";
 import {
   insertCommitteeProjectSupplyItem,
@@ -41,6 +42,30 @@ import CommitteeProjectDetailView, {
 import CommitteeProjectsOverview from "./CommitteeProjectsOverview";
 
 type ProjectsView = "overview" | "detail";
+
+type PendingProjectSave = {
+  projectId: string;
+  patch: UpdateCommitteeProjectInput;
+};
+
+function mergeProjectUpdatePatch(
+  base: UpdateCommitteeProjectInput,
+  patch: Partial<CommitteeProject>,
+): UpdateCommitteeProjectInput {
+  const next: UpdateCommitteeProjectInput = { ...base };
+  if (patch.name !== undefined) next.name = patch.name;
+  if (patch.description !== undefined) next.description = patch.description;
+  if (patch.status !== undefined) next.status = patch.status;
+  return next;
+}
+
+function hasProjectUpdateFields(patch: UpdateCommitteeProjectInput): boolean {
+  return (
+    patch.name !== undefined ||
+    patch.description !== undefined ||
+    patch.status !== undefined
+  );
+}
 
 type CommitteeProjectsSectionProps = {
   committee: Committee;
@@ -76,6 +101,7 @@ export default function CommitteeProjectsSection({
   const [deleteTarget, setDeleteTarget] = useState<CommitteeProject | null>(null);
   const [deleteSaving, setDeleteSaving] = useState(false);
   const saveProjectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingProjectSaveRef = useRef<PendingProjectSave | null>(null);
   const deepLinkHandledRef = useRef(false);
 
   const committeesApiBase =
@@ -198,12 +224,6 @@ export default function CommitteeProjectsSection({
     }
   };
 
-  const handleBackToOverview = () => {
-    setView("overview");
-    setSelectedId(null);
-    setDetailTab("supply_list");
-  };
-
   const persistProjectPatch = useCallback(
     (projectId: string, patch: Parameters<typeof updateCommitteeProject>[2]) => {
       if (readOnly) return;
@@ -219,6 +239,31 @@ export default function CommitteeProjectsSection({
     [organizationId, readOnly, supabase],
   );
 
+  const flushPendingProjectSave = useCallback(() => {
+    if (saveProjectTimeoutRef.current) {
+      clearTimeout(saveProjectTimeoutRef.current);
+      saveProjectTimeoutRef.current = null;
+    }
+    const pending = pendingProjectSaveRef.current;
+    if (!pending) return;
+    pendingProjectSaveRef.current = null;
+    if (!hasProjectUpdateFields(pending.patch)) return;
+    persistProjectPatch(pending.projectId, pending.patch);
+  }, [persistProjectPatch]);
+
+  useEffect(() => {
+    return () => {
+      flushPendingProjectSave();
+    };
+  }, [flushPendingProjectSave]);
+
+  const handleBackToOverview = () => {
+    flushPendingProjectSave();
+    setView("overview");
+    setSelectedId(null);
+    setDetailTab("supply_list");
+  };
+
   const handleUpdateProject = (projectId: string, patch: Partial<CommitteeProject>) => {
     setProjects((current) =>
       current.map((project) =>
@@ -226,15 +271,25 @@ export default function CommitteeProjectsSection({
       ),
     );
 
+    const pending = pendingProjectSaveRef.current;
+    if (pending && pending.projectId !== projectId) {
+      flushPendingProjectSave();
+    }
+
+    const basePatch =
+      pendingProjectSaveRef.current?.projectId === projectId
+        ? pendingProjectSaveRef.current.patch
+        : {};
+    pendingProjectSaveRef.current = {
+      projectId,
+      patch: mergeProjectUpdatePatch(basePatch, patch),
+    };
+
     if (saveProjectTimeoutRef.current) {
       clearTimeout(saveProjectTimeoutRef.current);
     }
     saveProjectTimeoutRef.current = setTimeout(() => {
-      persistProjectPatch(projectId, {
-        name: patch.name,
-        description: patch.description,
-        status: patch.status,
-      });
+      flushPendingProjectSave();
     }, 450);
   };
 

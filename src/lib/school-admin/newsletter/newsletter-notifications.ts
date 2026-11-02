@@ -73,7 +73,7 @@ export async function sendNewsletterPublishedNotifications(
     return { emailsAttempted: 0, emailsSucceeded: 0 };
   }
 
-  void sendNewsletterPublishedExpoPushForEdition(admin, {
+  const pushPromise = sendNewsletterPublishedExpoPushForEdition(admin, {
     organizationId: input.organizationId,
     organizationName: org.schoolName,
     organizationSlug: org.schoolSlug,
@@ -95,62 +95,66 @@ export async function sendNewsletterPublishedNotifications(
     });
   });
 
-  const familyIds = await listAllEnrolledParentFamilyIds(admin, input.organizationId);
-  if (familyIds.length === 0) {
-    return { emailsAttempted: 0, emailsSucceeded: 0 };
-  }
-
-  const week = weekLabel(input.edition);
-  const newsletterUrl = `${getRuntimeSiteUrl()}${schoolParentPath(org.schoolSlug, "newsletters")}?edition=${encodeURIComponent(input.edition.id)}`;
-  const emailNotificationContext = buildEmailNotificationContext({
-    organizationId: input.organizationId,
-    organizationSlug: org.schoolSlug,
-    surface: "web",
-    entityType: "school_newsletter_edition",
-    entityId: input.edition.id,
-  });
-
-  const emailSendPromises: Promise<{ ok: boolean }>[] = [];
-  const seenEmails = new Set<string>();
-
-  for (const familyId of familyIds) {
-    const emails = await loadFamilyNotificationEmails(admin, familyId);
-    for (const email of emails) {
-      const normalized = email.trim().toLowerCase();
-      if (!normalized || seenEmails.has(normalized)) continue;
-      seenEmails.add(normalized);
-      emailSendPromises.push(
-        sendNewsletterPublishedEmail({
-          to: normalized,
-          schoolName: org.schoolName,
-          editionTitle: input.edition.title.trim() || "Weekly newsletter",
-          weekLabel: week,
-          newsletterUrl,
-          notificationContext: emailNotificationContext,
-        }),
-      );
+  try {
+    const familyIds = await listAllEnrolledParentFamilyIds(admin, input.organizationId);
+    if (familyIds.length === 0) {
+      return { emailsAttempted: 0, emailsSucceeded: 0 };
     }
-  }
 
-  if (emailSendPromises.length === 0) {
-    return { emailsAttempted: 0, emailsSucceeded: 0 };
-  }
-
-  const emailResults = await Promise.allSettled(emailSendPromises);
-  await logSettledNotificationFailures(
-    admin,
-    {
+    const week = weekLabel(input.edition);
+    const newsletterUrl = `${getRuntimeSiteUrl()}${schoolParentPath(org.schoolSlug, "newsletters")}?edition=${encodeURIComponent(input.edition.id)}`;
+    const emailNotificationContext = buildEmailNotificationContext({
       organizationId: input.organizationId,
-      operation: "school_newsletter_published_email",
+      organizationSlug: org.schoolSlug,
+      surface: "web",
       entityType: "school_newsletter_edition",
       entityId: input.edition.id,
-    },
-    emailResults,
-  );
+    });
 
-  const emailsSucceeded = emailResults.filter(
-    (result) => result.status === "fulfilled" && result.value.ok,
-  ).length;
+    const emailSendPromises: Promise<{ ok: boolean }>[] = [];
+    const seenEmails = new Set<string>();
 
-  return { emailsAttempted: emailSendPromises.length, emailsSucceeded };
+    for (const familyId of familyIds) {
+      const emails = await loadFamilyNotificationEmails(admin, familyId);
+      for (const email of emails) {
+        const normalized = email.trim().toLowerCase();
+        if (!normalized || seenEmails.has(normalized)) continue;
+        seenEmails.add(normalized);
+        emailSendPromises.push(
+          sendNewsletterPublishedEmail({
+            to: normalized,
+            schoolName: org.schoolName,
+            editionTitle: input.edition.title.trim() || "Weekly newsletter",
+            weekLabel: week,
+            newsletterUrl,
+            notificationContext: emailNotificationContext,
+          }),
+        );
+      }
+    }
+
+    if (emailSendPromises.length === 0) {
+      return { emailsAttempted: 0, emailsSucceeded: 0 };
+    }
+
+    const emailResults = await Promise.allSettled(emailSendPromises);
+    await logSettledNotificationFailures(
+      admin,
+      {
+        organizationId: input.organizationId,
+        operation: "school_newsletter_published_email",
+        entityType: "school_newsletter_edition",
+        entityId: input.edition.id,
+      },
+      emailResults,
+    );
+
+    const emailsSucceeded = emailResults.filter(
+      (result) => result.status === "fulfilled" && result.value.ok,
+    ).length;
+
+    return { emailsAttempted: emailSendPromises.length, emailsSucceeded };
+  } finally {
+    await pushPromise;
+  }
 }

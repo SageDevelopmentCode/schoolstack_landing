@@ -29,11 +29,14 @@ import type { StaffMemberRecord } from "@/lib/staff/staff-members";
 import NewsletterMediaImage from "./NewsletterMediaImage";
 import styles from "./newsletter-workspace.module.css";
 
+type NewsletterPreviewStaffMember = Pick<StaffMemberRecord, "id" | "firstName" | "lastName"> &
+  Partial<Pick<StaffMemberRecord, "email">>;
+
 type NewsletterPreviewArticleProps = {
   edition: NewsletterEdition;
   school: NewsletterSchoolMeta;
   branding: NewsletterVisualBranding;
-  staffMembers?: StaffMemberRecord[];
+  staffMembers?: NewsletterPreviewStaffMember[];
   template?: NewsletterSchoolTemplate;
   primaryColor?: string;
   className?: string;

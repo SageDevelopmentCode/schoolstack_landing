@@ -52,6 +52,7 @@ export default async function ParentNewsletterReadPage({ params }: PageProps) {
       <iframe
         title={result.bundle.edition.title || "School newsletter"}
         src={documentSrc}
+        sandbox="allow-popups allow-popups-to-escape-sandbox"
         className="min-h-0 w-full flex-1 border-0"
       />
     </div>
