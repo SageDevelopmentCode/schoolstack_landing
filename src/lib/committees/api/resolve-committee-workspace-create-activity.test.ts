@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import {
   COMMITTEE_WORKSPACE_CREATE_MAX_AGE_MS,
+  RECORD_COMMITTEE_WORKSPACE_CREATE_ACTIONS,
   resolveCommitteeWorkspaceCreateActivity,
 } from "./resolve-committee-workspace-create-activity";
 
@@ -37,6 +38,21 @@ function mockSupabaseForTable(
 }
 
 describe("resolveCommitteeWorkspaceCreateActivity", () => {
+  it("record-activity allowlist excludes supply updates and project deletes", () => {
+    assert.equal(
+      RECORD_COMMITTEE_WORKSPACE_CREATE_ACTIONS.has(
+        ACTIVITY_ACTIONS.COMMITTEE_PROJECT_SUPPLY_UPDATED,
+      ),
+      false,
+    );
+    assert.equal(
+      RECORD_COMMITTEE_WORKSPACE_CREATE_ACTIONS.has(
+        ACTIVITY_ACTIONS.COMMITTEE_PROJECT_DELETED,
+      ),
+      false,
+    );
+  });
+
   it("rejects disallowed actions", async () => {
     const result = await resolveCommitteeWorkspaceCreateActivity(
       mockSupabaseForTable("committee_tasks", null) as never,
@@ -162,5 +178,145 @@ describe("resolveCommitteeWorkspaceCreateActivity", () => {
       'Calendar event "Planning meeting" was added',
     );
     assert.equal(result.activity.metadata.eventDate, "2026-10-01");
+  });
+
+  it("builds server summary for a recent project", async () => {
+    const result = await resolveCommitteeWorkspaceCreateActivity(
+      mockSupabaseForTable("committee_projects", {
+        id: "project-1",
+        name: "Spring fair",
+        status: "active",
+        created_at: recentCreatedAt(),
+      }) as never,
+      {
+        committeeId: "committee-1",
+        action: ACTIVITY_ACTIONS.COMMITTEE_PROJECT_CREATED,
+        entityId: "project-1",
+      },
+    );
+
+    assert.equal(result.ok, true);
+    if (!result.ok) throw new Error("expected success");
+    assert.equal(result.activity.entityType, "committee_project");
+    assert.equal(result.activity.summary, 'Project "Spring fair" was created');
+    assert.equal(result.activity.metadata.projectId, "project-1");
+  });
+
+  it("builds server summary for a recent supply item with project name", async () => {
+    const supabase = {
+      from: (name: string) => {
+        if (name === "committee_project_supply_items") {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: {
+                    id: "supply-1",
+                    name: "Compost bins",
+                    project_id: "project-1",
+                    created_at: recentCreatedAt(),
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (name === "committee_projects") {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: {
+                    committee_id: "committee-1",
+                    name: "Spring fair",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        throw new Error(`unexpected table ${name}`);
+      },
+    };
+
+    const result = await resolveCommitteeWorkspaceCreateActivity(
+      supabase as never,
+      {
+        committeeId: "committee-1",
+        action: ACTIVITY_ACTIONS.COMMITTEE_PROJECT_SUPPLY_CREATED,
+        entityId: "supply-1",
+      },
+    );
+
+    assert.equal(result.ok, true);
+    if (!result.ok) throw new Error("expected success");
+    assert.equal(result.activity.entityType, "committee_project_supply_item");
+    assert.equal(
+      result.activity.summary,
+      'Supply item "Compost bins" was added',
+    );
+    assert.deepEqual(result.activity.metadata, {
+      projectId: "project-1",
+      projectName: "Spring fair",
+      supplyItemName: "Compost bins",
+    });
+  });
+
+  it("uses display name when supply item name is empty", async () => {
+    const supabase = {
+      from: (name: string) => {
+        if (name === "committee_project_supply_items") {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: {
+                    id: "supply-1",
+                    name: "",
+                    project_id: "project-1",
+                    created_at: recentCreatedAt(),
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (name === "committee_projects") {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: {
+                    committee_id: "committee-1",
+                    name: "Spring fair",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        throw new Error(`unexpected table ${name}`);
+      },
+    };
+
+    const result = await resolveCommitteeWorkspaceCreateActivity(
+      supabase as never,
+      {
+        committeeId: "committee-1",
+        action: ACTIVITY_ACTIONS.COMMITTEE_PROJECT_SUPPLY_CREATED,
+        entityId: "supply-1",
+      },
+    );
+
+    assert.equal(result.ok, true);
+    if (!result.ok) throw new Error("expected success");
+    assert.equal(
+      result.activity.summary,
+      'Supply item "Untitled item" was added',
+    );
   });
 });

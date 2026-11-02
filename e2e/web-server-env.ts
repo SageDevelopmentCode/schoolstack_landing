@@ -63,11 +63,7 @@ export function shouldSkipPlaywrightWebServer(): boolean {
   return value === "1" || value === "true" || value === "yes";
 }
 
-/** CI: next dev (fast). Local: next start (coexists with next dev on 3000). */
+/** Production `next start` on the E2E port (requires `npm run test:e2e:build` first). */
 export function resolveE2eWebServerCommand(port: number): string {
-  if (process.env.CI) {
-    return `npm run dev:next -- -p ${port}`;
-  }
-
   return `node scripts/playwright-e2e-web-server.mjs ${port}`;
 }

@@ -16,6 +16,7 @@ export type CommitteeWorkspaceSection =
   | 'resources'
   | 'calendar'
   | 'tasks'
+  | 'projects'
   | 'messages'
   | 'members'
   | 'activity'
@@ -260,6 +261,7 @@ export const COMMITTEE_SECTION_LABELS: Record<CommitteeWorkspaceSection, string>
   resources: 'Resources',
   calendar: 'Calendar',
   tasks: 'Tasks',
+  projects: 'Projects',
   messages: 'Messages',
   members: 'Members',
   activity: 'Activity',
@@ -272,6 +274,7 @@ export const DEFAULT_COMMITTEE_SECTIONS: CommitteeWorkspaceSection[] = [
   'resources',
   'calendar',
   'tasks',
+  'projects',
   'messages',
   'members',
 ];
@@ -298,6 +301,7 @@ export function isCommitteeWorkspaceSection(value: string): value is CommitteeWo
     value === 'resources' ||
     value === 'calendar' ||
     value === 'tasks' ||
+    value === 'projects' ||
     value === 'messages' ||
     value === 'members' ||
     value === 'activity' ||

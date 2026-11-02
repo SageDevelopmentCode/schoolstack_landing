@@ -50,7 +50,17 @@ export async function POST(request: Request, context: RouteContext) {
 
     await requireSchoolAdminUser(supabase, organizationId, request);
 
-    const edition = await publishNewsletterEdition(admin, organizationId, editionId);
+    let notifyFamilies = false;
+    try {
+      const body = (await request.json()) as { notifyFamilies?: boolean };
+      notifyFamilies = body.notifyFamilies === true;
+    } catch {
+      notifyFamilies = false;
+    }
+
+    const edition = await publishNewsletterEdition(admin, organizationId, editionId, {
+      notifyFamilies,
+    });
 
     return NextResponse.json({ edition });
   } catch (err) {

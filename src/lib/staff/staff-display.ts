@@ -1,7 +1,10 @@
 import type { ParentPortalLoginDisplayStatus } from "@/components/admissions/ParentPortalLoginBadge";
 import type { StaffMemberRecord, StaffPortalRole } from "@/lib/staff/staff-members";
 
-export function staffDisplayName(member: Pick<StaffMemberRecord, "firstName" | "lastName" | "email">): string {
+export function staffDisplayName(
+  member: Pick<StaffMemberRecord, "firstName" | "lastName"> &
+    Partial<Pick<StaffMemberRecord, "email">>,
+): string {
   return (
     [member.firstName, member.lastName].filter(Boolean).join(" ") ||
     member.email ||

@@ -1,12 +1,76 @@
 import type { LucideIcon } from "lucide-react";
-import { Calculator, ChartColumn, ClipboardCheck } from "lucide-react";
+import {
+  BadgeCheck,
+  Briefcase,
+  Calculator,
+  ChartColumn,
+  ClipboardCheck,
+  ClipboardList,
+  GraduationCap,
+  Landmark,
+  Sparkles,
+} from "lucide-react";
 
 export type FreeToolsHubToolId = "enrollment" | "tuition" | "operations";
 
 export type FreeToolsHubAccent = "default" | "sky" | "gold";
 
+export type FreeToolsHubStageId =
+  | "prospective_family"
+  | "applying_family"
+  | "accepted_enrolling"
+  | "enrolled"
+  | "staff"
+  | "founder_admin";
+
+export type FreeToolsHubStage = {
+  id: FreeToolsHubStageId;
+  label: string;
+  flowLabel: string;
+  flowIcon: LucideIcon;
+};
+
+export const FREE_TOOLS_HUB_STAGES: FreeToolsHubStage[] = [
+  {
+    id: "prospective_family",
+    label: "Prospective family tools",
+    flowLabel: "Prospective",
+    flowIcon: Sparkles,
+  },
+  {
+    id: "applying_family",
+    label: "Applying family tools",
+    flowLabel: "Applying",
+    flowIcon: ClipboardList,
+  },
+  {
+    id: "accepted_enrolling",
+    label: "Accepted and enrolling family tools",
+    flowLabel: "Accepted",
+    flowIcon: BadgeCheck,
+  },
+  {
+    id: "enrolled",
+    label: "Enrolled family tools",
+    flowLabel: "Enrolled",
+    flowIcon: GraduationCap,
+  },
+  { id: "staff", label: "Staff tools", flowLabel: "Staff", flowIcon: Briefcase },
+  {
+    id: "founder_admin",
+    label: "Founder and admin tools",
+    flowLabel: "Founders",
+    flowIcon: Landmark,
+  },
+];
+
+export function freeToolsStageSectionId(stageId: FreeToolsHubStageId): string {
+  return `free-tools-stage-${stageId}`;
+}
+
 export type FreeToolsHubTool = {
   id: FreeToolsHubToolId;
+  stageId: FreeToolsHubStageId;
   href: string;
   kicker: string;
   title: string;
@@ -17,14 +81,10 @@ export type FreeToolsHubTool = {
   icon: LucideIcon;
 };
 
-export type FreeToolsHubFaq = {
-  question: string;
-  answer: string;
-};
-
 export const FREE_TOOLS_HUB_TOOLS: FreeToolsHubTool[] = [
   {
     id: "enrollment",
+    stageId: "founder_admin",
     href: "/how-many-students",
     kicker: "01 · Enrollment",
     title: "How many students do I need?",
@@ -37,6 +97,7 @@ export const FREE_TOOLS_HUB_TOOLS: FreeToolsHubTool[] = [
   },
   {
     id: "tuition",
+    stageId: "founder_admin",
     href: "/tuition-planner",
     kicker: "02 · Tuition",
     title: "What if I change tuition?",
@@ -49,6 +110,7 @@ export const FREE_TOOLS_HUB_TOOLS: FreeToolsHubTool[] = [
   },
   {
     id: "operations",
+    stageId: "founder_admin",
     href: "/microschool-ops-check",
     kicker: "03 · Operations",
     title: "What's holding your school back?",
@@ -61,25 +123,16 @@ export const FREE_TOOLS_HUB_TOOLS: FreeToolsHubTool[] = [
   },
 ];
 
-export const FREE_TOOLS_HUB_FAQS: FreeToolsHubFaq[] = [
-  {
-    question: "Do I need a MudKitchen account?",
-    answer:
-      "No. These tools open directly—no signup, contact details, or connecting your school’s accounts.",
-  },
-  {
-    question: "Will these numbers be saved?",
-    answer:
-      "The tuition planner and Ops Check can keep progress in your browser when storage is available. The enrollment calculator resets when you leave the page. Nothing you enter is sent to MudKitchen servers for these free tools.",
-  },
-  {
-    question: "Are the calculations a financial forecast?",
-    answer:
-      "No. They are planning estimates based on the numbers you enter. The enrollment calculator assumes full tuition is collected; the tuition planner estimates revenue, not profit. Review each tool’s assumptions before using its results.",
-  },
-  {
-    question: "What’s included in the Ops Check?",
-    answer:
-      "A short questionnaire about admissions, tuition, paperwork, and family communication, plus a personalized report with practical next steps. It takes about three minutes.",
-  },
-];
+export function toolsByStage(): Map<FreeToolsHubStageId, FreeToolsHubTool[]> {
+  const map = new Map<FreeToolsHubStageId, FreeToolsHubTool[]>();
+  for (const stage of FREE_TOOLS_HUB_STAGES) {
+    map.set(stage.id, []);
+  }
+  for (const tool of FREE_TOOLS_HUB_TOOLS) {
+    const list = map.get(tool.stageId);
+    if (list) {
+      list.push(tool);
+    }
+  }
+  return map;
+}

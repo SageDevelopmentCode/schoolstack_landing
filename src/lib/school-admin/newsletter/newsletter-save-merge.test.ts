@@ -5,6 +5,7 @@ import { defaultSchoolTemplate } from "./newsletter-template";
 import {
   applyNewsletterSaveResultToLiveWorkspace,
   buildSavedBaselineAfterNewsletterSave,
+  mergeNewsletterEditionDisplayAfterSave,
   workspaceStatesEqual,
 } from "./newsletter-save-merge";
 import type {
@@ -116,6 +117,107 @@ describe("applyNewsletterSaveResultToLiveWorkspace", () => {
     });
 
     assert.equal(merged.template.teacherUpdatesHeading, "Live heading");
+  });
+});
+
+describe("mergeNewsletterEditionDisplayAfterSave", () => {
+  it("preserves submitted photo src when server clears inline src after upload", () => {
+    const template = defaultSchoolTemplate();
+    const submitted = createBlankEdition(template);
+    submitted.photos = [
+      {
+        id: "photo-1",
+        src: "data:image/png;base64,abc",
+        caption: "Field trip",
+        storagePath: undefined,
+      },
+    ];
+    const result = {
+      ...structuredClone(submitted),
+      photos: [
+        {
+          id: "photo-1",
+          src: "",
+          caption: "Field trip",
+          storagePath: "org/edition/photo-1.png",
+        },
+      ],
+    };
+
+    const merged = mergeNewsletterEditionDisplayAfterSave(submitted, result);
+
+    assert.equal(merged.photos[0]?.src, "data:image/png;base64,abc");
+    assert.equal(merged.photos[0]?.storagePath, "org/edition/photo-1.png");
+  });
+
+  it("preserves gallery photo display src when server returns empty src", () => {
+    const template = defaultSchoolTemplate();
+    const submitted = createBlankEdition(template);
+    submitted.photos = [
+      {
+        id: "photo-2",
+        src: "https://cdn.example/gallery/1.jpg",
+        caption: "",
+        galleryPhotoId: "gallery-1",
+      },
+    ];
+    const result = {
+      ...structuredClone(submitted),
+      photos: [
+        {
+          id: "photo-2",
+          src: "",
+          caption: "",
+          galleryPhotoId: "gallery-1",
+        },
+      ],
+    };
+
+    const merged = mergeNewsletterEditionDisplayAfterSave(submitted, result);
+
+    assert.equal(merged.photos[0]?.src, "https://cdn.example/gallery/1.jpg");
+    assert.equal(merged.photos[0]?.galleryPhotoId, "gallery-1");
+  });
+
+  it("prefers server signed URL over submitted data URL when present", () => {
+    const template = defaultSchoolTemplate();
+    const submitted = createBlankEdition(template);
+    submitted.photos = [
+      {
+        id: "photo-3",
+        src: "data:image/png;base64,old",
+        caption: "",
+      },
+    ];
+    const result = {
+      ...structuredClone(submitted),
+      photos: [
+        {
+          id: "photo-3",
+          src: "https://signed.example/photo-3.jpg",
+          caption: "",
+          storagePath: "org/edition/photo-3.png",
+        },
+      ],
+    };
+
+    const merged = mergeNewsletterEditionDisplayAfterSave(submitted, result);
+
+    assert.equal(merged.photos[0]?.src, "https://signed.example/photo-3.jpg");
+  });
+
+  it("preserves submitted cover when server returns empty coverImage", () => {
+    const template = defaultSchoolTemplate();
+    const submitted = createBlankEdition(template);
+    submitted.coverImage = "data:image/png;base64,cover";
+    const result = {
+      ...structuredClone(submitted),
+      coverImage: undefined,
+    };
+
+    const merged = mergeNewsletterEditionDisplayAfterSave(submitted, result);
+
+    assert.equal(merged.coverImage, "data:image/png;base64,cover");
   });
 });
 

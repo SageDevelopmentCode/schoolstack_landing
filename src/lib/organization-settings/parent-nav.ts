@@ -43,6 +43,7 @@ const PARENT_MORE_NAV_KEYS = new Set([
   "enrollment_checklist",
   "classroom_signups",
   "forms_documents",
+  "newsletters",
   "friday_branch",
   "children",
   "photos",

@@ -6,6 +6,7 @@ import {
   CalendarDays,
   CheckSquare,
   FileText,
+  FolderKanban,
   Home,
   Loader2,
   MessageCircle,
@@ -26,6 +27,7 @@ import {
   type CommitteeWorkspaceSection,
 } from "@/lib/committees/types";
 import { MessagesNavBadge } from "@/components/messages/MessagesNavBadge";
+import ParentChip from "@/components/school-parent/ui/ParentChip";
 import { committeesApiBaseForPortal } from "@/lib/committees/committees-api-base";
 import type { CommitteeActivityItem } from "@/lib/committees/activity-feed";
 import type { CommitteeSectionUnreadCounts } from "@/lib/committees/committee-unread-types";
@@ -68,12 +70,18 @@ const CommitteeMembersSection = dynamic(
     import("@/components/school-admin/committees/sections/CommitteeMembersSection"),
   { loading: () => null },
 );
+const CommitteeProjectsSection = dynamic(
+  () =>
+    import("@/components/school-admin/committees/sections/CommitteeProjectsSection"),
+  { loading: () => <CommitteeSectionLoading section="projects" /> },
+);
 
 const PARENT_SECTION_ICONS: Partial<Record<CommitteeWorkspaceSection, LucideIcon>> = {
   home: Home,
   resources: FileText,
   calendar: CalendarDays,
   tasks: CheckSquare,
+  projects: FolderKanban,
   messages: MessageCircle,
   members: Users,
 };
@@ -85,6 +93,7 @@ const PARENT_VISIBLE_SECTIONS: CommitteeWorkspaceSection[] = [
   "resources",
   "calendar",
   "tasks",
+  "projects",
   "messages",
   "members",
 ];
@@ -112,6 +121,7 @@ function renderSectionContent(
     initialCommitteeEventDate?: string | null;
     initialCommitteeResourceId?: string | null;
     initialCommitteeTaskId?: string | null;
+    initialCommitteeProjectId?: string | null;
   },
 ) {
   const { committee, theme, canWrite, onNavigate, activitySurface, ...rest } = sectionProps;
@@ -164,6 +174,19 @@ function renderSectionContent(
       return <CommitteeMessagesSection {...rest} committee={committee} theme={theme} readOnly={!canWrite} />;
     case "members":
       return <CommitteeMembersSection {...rest} committee={committee} theme={theme} readOnly />;
+    case "projects":
+      return (
+        <CommitteeProjectsSection
+          committee={committee}
+          theme={theme}
+          supabase={sectionProps.supabase}
+          organizationId={sectionProps.organizationId}
+          readOnly={!canWrite}
+          currentMemberId={sectionProps.currentMemberId}
+          portalApiNamespace={sectionProps.portalApiNamespace}
+          initialProjectId={sectionProps.initialCommitteeProjectId}
+        />
+      );
     default:
       return null;
   }
@@ -193,6 +216,7 @@ export default function ParentCommitteeWorkspaceShell({
   initialCommitteeEventDate,
   initialCommitteeResourceId,
   initialCommitteeTaskId,
+  initialCommitteeProjectId,
   workspaceDataReady = true,
 }: {
   committee: Committee;
@@ -214,14 +238,17 @@ export default function ParentCommitteeWorkspaceShell({
   initialCommitteeEventDate?: string | null;
   initialCommitteeResourceId?: string | null;
   initialCommitteeTaskId?: string | null;
+  initialCommitteeProjectId?: string | null;
   workspaceDataReady?: boolean;
 }) {
   const { adminCompat: composeTokens } = useParentTheme();
   const activitySurface: "parent" | "teacher" =
     portalApiNamespace === "teacher-portal" ? "teacher" : "parent";
-  const sections = committee.config.sections.filter(
-    (section): section is CommitteeWorkspaceSection =>
-      PARENT_VISIBLE_SECTIONS.includes(section as CommitteeWorkspaceSection),
+  const sections = (
+    [...committee.config.sections, "projects"] as CommitteeWorkspaceSection[]
+  ).filter(
+    (section, index, arr) =>
+      PARENT_VISIBLE_SECTIONS.includes(section) && arr.indexOf(section) === index,
   );
   const canWrite = !previewMode;
   const resolvedSection = sections.includes(activeSection) ? activeSection : "home";
@@ -337,6 +364,10 @@ export default function ParentCommitteeWorkspaceShell({
             accentLight: composeTokens.accentLight,
           }}
         />
+      ) : section === "projects" ? (
+        <ParentChip theme={theme} tone="success" className="!px-1.5 !py-0 text-[9px] uppercase">
+          New!
+        </ParentChip>
       ) : undefined,
     };
   });
@@ -362,6 +393,7 @@ export default function ParentCommitteeWorkspaceShell({
     initialCommitteeEventDate,
     initialCommitteeResourceId,
     initialCommitteeTaskId,
+    initialCommitteeProjectId,
   };
 
   const visibleMountedSections = PARENT_VISIBLE_SECTIONS.filter(

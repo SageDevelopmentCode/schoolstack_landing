@@ -31,6 +31,7 @@ import {
 } from "@/lib/activity-auth-client";
 import SchoolPortalSwitcherMenuItems from "@/components/school/shared/SchoolPortalSwitcherMenuItems";
 import ParentPortalContextSwitcherMenuItems from "@/components/school-parent/ParentPortalContextSwitcherMenuItems";
+import ParentHeaderMoreMenuPanel from "@/components/school-parent/ParentHeaderMoreMenuPanel";
 import ParentPortalContextTopBar from "@/components/school-parent/ParentPortalContextTopBar";
 import { useParentPortalContext } from "@/components/school-parent/ParentPortalContextProvider";
 import { usePreviewPortalOptions } from "@/components/admin/PreviewPortalOptionsProvider";
@@ -249,11 +250,14 @@ export default function SchoolParentHeader({
     organizationId,
     schoolName,
     messagesEnabled && !previewMode,
+    { deferUntilIdle: true },
   );
   const { totalUnread: liveCommitteesUnreadCount } = useCommitteeUnreadSummary(
     "/api/parent-portal/committees",
     organizationId,
     committeesEnabled && !previewMode,
+    undefined,
+    { deferUntilIdle: true },
   );
   const committeesUnreadCount =
     previewMode && initialCommitteeUnreadSummary
@@ -473,77 +477,16 @@ export default function SchoolParentHeader({
                 />
               </button>
               {moreOpen ? (
-                <div
-                  className="absolute right-0 z-[100] mt-1.5 w-52 overflow-hidden rounded-lg py-1.5 shadow-lg"
-                  style={{
-                    border: `1px solid ${theme.line}`,
-                    backgroundColor: theme.white,
-                  }}
-                >
-                  {more.map((item) => {
-                    const Icon = item.icon;
-                    const active = isParentNavItemActive(pathname, item);
-                    const iconColorClass = getParentFeatureIconColor(item.iconSlug);
-                    const itemClassName = `flex w-full items-center gap-2 px-4 py-2 text-left transition-colors ${parentNavTextClass}`;
-                    const itemStyle = {
-                      color: active ? theme.primary : theme.ink,
-                      backgroundColor: active ? theme.primaryLight : "transparent",
-                    };
-                    const itemContent = (
-                      <>
-                        <Icon className={`h-4 w-4 shrink-0 ${iconColorClass}`} />
-                        <span>{item.name}</span>
-                        {item.key === "messages" ? (
-                          <MessagesNavBadge
-                            count={messagesUnreadCount}
-                            theme={{
-                              accent: C.accent,
-                              accentLight: C.accentLight,
-                            }}
-                          />
-                        ) : null}
-                        {item.key === "committees" ? (
-                          <MessagesNavBadge
-                            count={committeesUnreadCount}
-                            theme={{
-                              accent: C.accent,
-                              accentLight: C.accentLight,
-                            }}
-                          />
-                        ) : null}
-                      </>
-                    );
-
-                    if (onPreviewNavigate) {
-                      return (
-                        <button
-                          key={item.key}
-                          type="button"
-                          onClick={() => {
-                            onPreviewNavigate(item.href);
-                            setMoreOpen(false);
-                          }}
-                          className={itemClassName}
-                          style={itemStyle}
-                        >
-                          {itemContent}
-                        </button>
-                      );
-                    }
-
-                    return (
-                      <NavigationLink
-                        key={item.key}
-                        href={item.href}
-                        onClick={() => setMoreOpen(false)}
-                        className={itemClassName}
-                        style={itemStyle}
-                      >
-                        {itemContent}
-                      </NavigationLink>
-                    );
-                  })}
-                </div>
+                <ParentHeaderMoreMenuPanel
+                  items={more}
+                  pathname={pathname}
+                  theme={theme}
+                  adminCompat={C}
+                  messagesUnreadCount={messagesUnreadCount}
+                  committeesUnreadCount={committeesUnreadCount}
+                  onClose={() => setMoreOpen(false)}
+                  onNavigate={onPreviewNavigate}
+                />
               ) : null}
             </div>
           ) : null}
@@ -737,59 +680,16 @@ export default function SchoolParentHeader({
                 />
               </button>
               {mobileMoreOpen ? (
-                <div
-                  className="absolute right-0 z-[100] mt-1.5 w-52 overflow-hidden rounded-lg py-1.5 shadow-lg"
-                  style={{
-                    border: `1px solid ${theme.line}`,
-                    backgroundColor: theme.white,
-                  }}
-                >
-                  {more.map((item) => {
-                    const Icon = item.icon;
-                    const active = isParentNavItemActive(pathname, item);
-                    const iconColorClass = getParentFeatureIconColor(item.iconSlug);
-                    const itemClassName = `flex w-full items-center gap-2 px-4 py-2 text-left transition-colors ${parentNavTextClass}`;
-                    const itemStyle = {
-                      color: active ? theme.primary : theme.ink,
-                      backgroundColor: active ? theme.primaryLight : "transparent",
-                    };
-                    const itemContent = (
-                      <>
-                        <Icon className={`h-4 w-4 shrink-0 ${iconColorClass}`} />
-                        <span>{item.name}</span>
-                      </>
-                    );
-
-                    if (onPreviewNavigate) {
-                      return (
-                        <button
-                          key={item.key}
-                          type="button"
-                          onClick={() => {
-                            onPreviewNavigate(item.href);
-                            setMobileMoreOpen(false);
-                          }}
-                          className={itemClassName}
-                          style={itemStyle}
-                        >
-                          {itemContent}
-                        </button>
-                      );
-                    }
-
-                    return (
-                      <NavigationLink
-                        key={item.key}
-                        href={item.href}
-                        onClick={() => setMobileMoreOpen(false)}
-                        className={itemClassName}
-                        style={itemStyle}
-                      >
-                        {itemContent}
-                      </NavigationLink>
-                    );
-                  })}
-                </div>
+                <ParentHeaderMoreMenuPanel
+                  items={more}
+                  pathname={pathname}
+                  theme={theme}
+                  adminCompat={C}
+                  messagesUnreadCount={messagesUnreadCount}
+                  committeesUnreadCount={committeesUnreadCount}
+                  onClose={() => setMobileMoreOpen(false)}
+                  onNavigate={onPreviewNavigate}
+                />
               ) : null}
             </div>
           ) : null}

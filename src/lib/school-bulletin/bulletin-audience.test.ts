@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  bulletinViewerAudienceOrFilter,
   filterBulletinPostsForViewer,
   formatBulletinAudiencesLabel,
   isBulletinPostActive,
@@ -112,6 +113,23 @@ describe("bulletin audience helpers", () => {
       "program-a",
       "multi-program",
     ]);
+  });
+
+  it("builds PostgREST audience filters per viewer scope", () => {
+    assert.equal(
+      bulletinViewerAudienceOrFilter(teacherBulletinScope()),
+      "audiences.cs.{school_wide},audiences.cs.{teachers}",
+    );
+    assert.equal(
+      bulletinViewerAudienceOrFilter(parentMainPortalBulletinScope()),
+      "audiences.cs.{school_wide},and(audiences.cs.{parents},program_ids.eq.{})",
+    );
+    assert.equal(
+      bulletinViewerAudienceOrFilter(
+        parentProgramPortalBulletinScope("11111111-1111-4111-8111-111111111111"),
+      ),
+      "audiences.cs.{school_wide},and(audiences.cs.{parents},program_ids.cs.{11111111-1111-4111-8111-111111111111}),and(audiences.cs.{program},program_ids.cs.{11111111-1111-4111-8111-111111111111})",
+    );
   });
 
   it("filters teacher posts with multi-audience posts", () => {

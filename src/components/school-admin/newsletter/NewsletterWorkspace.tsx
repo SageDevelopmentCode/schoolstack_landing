@@ -340,10 +340,17 @@ export default function NewsletterWorkspace({
     setModal({ type: "publish" });
   }, [locked, showPreview]);
 
-  const handlePublish = useCallback(async () => {
-    const published = await publishNewsletterEditionApi(slug, activeEdition.id);
-    onEditionSaved(published);
-  }, [activeEdition.id, onEditionSaved, slug]);
+  const handlePublish = useCallback(
+    async (notifyFamilies: boolean) => {
+      const published = await publishNewsletterEditionApi(
+        slug,
+        activeEdition.id,
+        notifyFamilies,
+      );
+      onEditionSaved(published);
+    },
+    [activeEdition.id, onEditionSaved, slug],
+  );
 
   const workspaceStyle = useMemo(
     () =>
@@ -491,7 +498,7 @@ export default function NewsletterWorkspace({
       </div>
 
       <footer className={styles.bottomNote}>
-        <span>Click Save to store edits in MudKitchen. Publishing does not email families yet.</span>
+        <span>Click Save to store edits in MudKitchen. Publish when you are ready for families to read it.</span>
         <AdminTextLink
           theme={theme}
           className="!text-[9px] !font-normal underline"

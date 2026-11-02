@@ -5,13 +5,14 @@ import { useAuth } from '@/contexts/auth-context';
 import { isCommitteeWorkspaceSection } from '@/lib/parent/parent-committees-types';
 
 export default function TeacherCommitteeWorkspaceRoute() {
-  const { slug, committeeId, section, event, resource, task } = useLocalSearchParams<{
+  const { slug, committeeId, section, event, resource, task, project } = useLocalSearchParams<{
     slug: string;
     committeeId: string;
     section?: string;
     event?: string;
     resource?: string;
     task?: string;
+    project?: string;
   }>();
   const { selectedSchool } = useAuth();
 
@@ -24,10 +25,12 @@ export default function TeacherCommitteeWorkspaceRoute() {
     <TeacherCommitteeWorkspaceScreen
       organizationId={selectedSchool.id}
       committeeId={committeeId}
+      schoolSlug={slug}
       initialSection={initialSection}
       initialEventId={typeof event === 'string' ? event : undefined}
       initialResourceId={typeof resource === 'string' ? resource : undefined}
       initialTaskId={typeof task === 'string' ? task : undefined}
+      initialProjectId={typeof project === 'string' ? project : undefined}
     />
   );
 }

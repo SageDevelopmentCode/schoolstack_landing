@@ -2,10 +2,8 @@
 
 import { useState } from "react";
 import type { CSSProperties } from "react";
+import dynamic from "next/dynamic";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import ApplicationDatePicker from "@/components/admissions/ApplicationDatePicker";
-import ApplicationAddressInput from "@/components/admissions/ApplicationAddressInput";
-import ApplicationFileUploadField from "@/components/admissions/ApplicationFileUploadField";
 import ApplicationRadioInput from "@/components/admissions/ApplicationRadioInput";
 import ApplicationCheckboxInput from "@/components/admissions/ApplicationCheckboxInput";
 import ApplicationSelectInput from "@/components/admissions/ApplicationSelectInput";
@@ -25,6 +23,23 @@ import {
 import { formatPhoneNumberInput } from "@/lib/phone-format";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { reportApplyOperationalError } from "@/lib/operational-errors-client";
+
+function DeferredFieldFallback() {
+  return <div className="h-10 w-full rounded-md border bg-white" aria-hidden />;
+}
+
+const ApplicationDatePicker = dynamic(
+  () => import("@/components/admissions/ApplicationDatePicker"),
+  { loading: DeferredFieldFallback },
+);
+const ApplicationAddressInput = dynamic(
+  () => import("@/components/admissions/ApplicationAddressInput"),
+  { loading: DeferredFieldFallback },
+);
+const ApplicationFileUploadField = dynamic(
+  () => import("@/components/admissions/ApplicationFileUploadField"),
+  { loading: DeferredFieldFallback },
+);
 
 type ApplicationFieldInputProps = {
   field: ApplicationField;

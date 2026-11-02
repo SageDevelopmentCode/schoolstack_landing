@@ -3,17 +3,15 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import SchoolParentBaseline from "@/components/school-parent/SchoolParentBaseline";
 import { getRequestUser } from "@/lib/auth/session";
-import {
-  loadParentPortalNavContextsForUser,
-  loadProgramParentPortalContext,
-  userHasEnrolledAccessInProgram,
-} from "@/lib/admissions/program-parent-portal-access";
+import { loadProgramParentPortalContext } from "@/lib/admissions/program-parent-portal-access";
 import { programParentPortalHasEnabledFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
-import { getParentPortalUserProfile } from "@/lib/parent-portal/parent-portal-server-cache";
-import { getParentPortalActivityUnreadCount } from "@/lib/parent-portal/parent-activity-notifications-server";
+import {
+  getCachedParentPortalNavContexts,
+  getCachedParentPortalProgramAccess,
+  getCachedPortalAccountLinkContext,
+  getParentPortalUserProfile,
+} from "@/lib/parent-portal/parent-portal-server-cache";
 import { buildProgramParentNotificationContext } from "@/lib/parent-portal/parent-notification-context";
-import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
-import { getPortalAccountLinkContext } from "@/lib/auth/portal-account-link-context";
 import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-server";
 import { portalAccountLinkOpensInNewTab } from "@/lib/auth/portal-switcher-types";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
@@ -61,9 +59,7 @@ export default async function SchoolProgramParentLayout({
     notFound();
   }
 
-  const hasProgramAccess = await userHasEnrolledAccessInProgram(
-    supabase,
-    user.id,
+  const hasProgramAccess = await getCachedParentPortalProgramAccess(
     org.id,
     programContext.programId,
   );
@@ -80,23 +76,19 @@ export default async function SchoolProgramParentLayout({
       hasEnrolledAccess: true,
       hasFamilyAccess: true,
     }),
-    loadParentPortalNavContextsForUser({
-      supabase,
-      userId: user.id,
+    getCachedParentPortalNavContexts({
       organizationId: org.id,
       schoolSlug: slug,
       schoolName: org.name,
       orgFeatures: org.features,
     }),
-    getPortalAccountLinkContext(supabase, org.id, user.id),
+    getCachedPortalAccountLinkContext(org.id),
   ]);
 
   const openPortalLinksInNewTab = portalAccountLinkOpensInNewTab(
     linkContext.groupId,
   );
 
-  const familyIds = await getFamilyIdsForUser(supabase, user.id, org.id);
-  const familyId = familyIds[0];
   const notificationContext = buildProgramParentNotificationContext(
     slug,
     programContext.programId,
@@ -104,15 +96,6 @@ export default async function SchoolProgramParentLayout({
     programContext.coopMode,
     { parentNavBasePath: programContext.parentNavBasePath },
   );
-  const initialActivityUnreadCount = familyId
-    ? await getParentPortalActivityUnreadCount(supabase, {
-        organizationId: org.id,
-        slug,
-        familyId,
-        userId: user.id,
-        notificationContext,
-      })
-    : 0;
 
   return (
     <SchoolParentBaseline
@@ -128,7 +111,6 @@ export default async function SchoolProgramParentLayout({
       parentNavBasePath={programContext.parentNavBasePath}
       coopModeEnabled={programContext.coopMode}
       coopProgramLabel={programContext.displayLabel}
-      initialActivityUnreadCount={initialActivityUnreadCount}
       notificationContext={notificationContext}
       fridayBranchSettings={org.fridayBranchSettings}
     >

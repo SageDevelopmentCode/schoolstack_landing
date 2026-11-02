@@ -5,6 +5,7 @@ export const PARENT_VISIBLE_SECTIONS: CommitteeWorkspaceSection[] = [
   'resources',
   'calendar',
   'tasks',
+  'projects',
   'messages',
   'members',
 ];

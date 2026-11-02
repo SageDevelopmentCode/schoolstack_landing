@@ -1,0 +1,30 @@
+@keyframes free-tools-stage-flow-dash-offset {
+  to {
+    stroke-dashoffset: -14;
+  }
+}
+
+@keyframes free-tools-stage-flow-chevron-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.free-tools-stage-flow-dash-animate {
+  animation: free-tools-stage-flow-dash-offset 2.8s ease-in-out infinite;
+}
+
+.free-tools-stage-flow-chevron-animate {
+  animation: free-tools-stage-flow-chevron-pulse 2.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .free-tools-stage-flow-dash-animate,
+  .free-tools-stage-flow-chevron-animate {
+    animation: none;
+  }
+}

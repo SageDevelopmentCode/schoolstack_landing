@@ -6,7 +6,7 @@ For agent workflows, see [`.agents/skills/e2e-local/SKILL.md`](../.agents/skills
 
 `globalSetup` seeds the database; the `setup` project signs in test users and writes `e2e/.auth/` before authenticated tests run.
 
-**Important:** E2E targets **port 3100** (not 3000/3001). Locally, Playwright runs **`next start` on 3100** so it can coexist with `npm run dev` on 3000 (Next.js allows only one `next dev` per repo). CI still uses `next dev` on 3100. Playwright passes E2E env vars via `webServer.env` ([`e2e/web-server-env.ts`](web-server-env.ts)).
+**Important:** E2E targets **port 3100** (not 3000/3001). Playwright runs **`next start` on 3100** after **`npm run test:e2e:build`** (locally and in CI), so it can coexist with `npm run dev` on 3000. Playwright passes E2E env vars via `webServer.env` ([`e2e/web-server-env.ts`](web-server-env.ts)).
 
 ## Prerequisites
 

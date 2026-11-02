@@ -21,7 +21,10 @@ export type PreviewSection = {
 };
 
 export type BuildPreviewSectionsOptions = {
-  staff?: StaffMemberRecord[];
+  staff?: Array<
+    Pick<StaffMemberRecord, "id" | "firstName" | "lastName"> &
+      Partial<Pick<StaffMemberRecord, "email">>
+  >;
   template?: NewsletterSchoolTemplate;
   renderMediaImage?: (props: {
     src: string;
@@ -169,7 +172,9 @@ export function buildPreviewSections(
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img src={photo.src} alt={photo.caption || "School-day photo"} />
               )}
-              {photo.caption ? <figcaption>{photo.caption}</figcaption> : null}
+              {photo.caption ? (
+                <figcaption title={photo.caption}>{photo.caption}</figcaption>
+              ) : null}
             </figure>
           ))}
         </div>

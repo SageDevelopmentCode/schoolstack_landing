@@ -14,6 +14,7 @@ import {
 } from "@/lib/school-admin/newsletter/newsletter-types";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import { SettingToggleRow } from "@/components/school-admin/notifications/NotificationChannelCard";
 import NewsletterSectionsSheet from "./NewsletterSectionsSheet";
 import styles from "./newsletter-workspace.module.css";
 
@@ -43,7 +44,7 @@ type NewsletterModalsProps = {
   onExportHtml: () => void;
   onExportText: () => void;
   onCopyText: () => void;
-  onPublish: () => Promise<void>;
+  onPublish: (notifyFamilies: boolean) => Promise<void>;
 };
 
 export default function NewsletterModals(props: NewsletterModalsProps) {
@@ -251,7 +252,7 @@ function PublishBody({
   onToast,
   onPublish,
 }: NewsletterModalsProps) {
-  const { theme } = useSchoolAdminStoryTheme();
+  const { theme, C } = useSchoolAdminStoryTheme();
   const checks = useMemo(
     () => [
       {
@@ -272,7 +273,7 @@ function PublishBody({
     [activeEdition],
   );
   const ready = checks.every((c) => c.ok);
-  const [ack, setAck] = useState(false);
+  const [notifyFamilies, setNotifyFamilies] = useState(true);
   const [publishing, setPublishing] = useState(false);
 
   return (
@@ -290,11 +291,16 @@ function PublishBody({
           <span>{check.label}</span>
         </div>
       ))}
-      <label className={styles.checkLabel} style={{ fontSize: 11, marginTop: 18 }}>
-        <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} />
-        I understand this saves as published in MudKitchen but does not email families or update
-        the parent portal.
-      </label>
+      <div className="mt-[18px]">
+        <SettingToggleRow
+          C={C}
+          label="Notify families by email and mobile push"
+          description="Families can read this newsletter in the parent portal either way."
+          checked={notifyFamilies}
+          disabled={publishing}
+          onChange={setNotifyFamilies}
+        />
+      </div>
       <div className={styles.modalActions}>
         <AdminButton
           theme={theme}
@@ -309,14 +315,18 @@ function PublishBody({
         <AdminButton
           theme={theme}
           variant="primary"
-          disabled={!ready || !ack || publishing}
+          disabled={!ready || publishing}
           onClick={() => {
             setPublishing(true);
-            void onPublish()
+            void onPublish(notifyFamilies)
               .then(() => {
                 onClose();
                 onShowPreview();
-                onToast("Published and saved in MudKitchen. Nothing was sent to families.");
+                onToast(
+                  notifyFamilies
+                    ? "Published — families can read it in the parent portal and were notified."
+                    : "Published — families can read it in the parent portal.",
+                );
               })
               .catch((err: unknown) => {
                 onToast(

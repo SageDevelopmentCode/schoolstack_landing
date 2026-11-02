@@ -56,6 +56,7 @@ import { resolveMainParentOrganizationFeatures } from "@/lib/organization-settin
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import ParentPhotosPage from "@/components/school-parent/photos/ParentPhotosPage";
+import ParentNewslettersPage from "@/components/school-parent/newsletters/ParentNewslettersPage";
 import { isSchoolGalleryEnabled } from "@/lib/school-gallery/gallery-enabled";
 import { isSchoolGalleryFeatureKey } from "@/lib/school-gallery/gallery-nav";
 import { listGalleryPhotosPage } from "@/lib/school-gallery/photos";
@@ -64,6 +65,10 @@ import {
   buildInitialConsentsMap,
   loadStudentPhotoMediaConsents,
 } from "@/lib/students/load-student-photo-media-consents";
+import {
+  loadParentNewsletterDetailBundle,
+  loadParentNewslettersListBundle,
+} from "@/lib/parent-portal/newsletters/load-parent-newsletters";
 
 export const dynamic = "force-dynamic";
 
@@ -338,6 +343,41 @@ export default async function FamilyPreviewParentFeaturePage({
           readOnly
           initialFormId={initialFormId}
           uploadPreviewUrlsByFormId={uploadPreviewUrlsByFormId}
+        />
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (feature === "newsletters") {
+    const initialList = await loadParentNewslettersListBundle(admin, org.id);
+    const editionParam =
+      typeof resolvedSearchParams.edition === "string"
+        ? resolvedSearchParams.edition
+        : undefined;
+    let detailBundle = null;
+    if (editionParam) {
+      detailBundle = await loadParentNewsletterDetailBundle(
+        admin,
+        org.id,
+        editionParam,
+        {
+          name: org.name,
+          primaryColor: org.branding.colors.accent,
+        },
+        org.branding,
+      );
+    }
+
+    return (
+      <SchoolParentPageShell title={pageName}>
+        <ParentNewslettersPage
+          organizationId={org.id}
+          slug={slug}
+          parentBasePath={familyPreviewParentPath(slug, familyId, "newsletters")}
+          initialList={initialList}
+          detailBundle={detailBundle}
+          branding={org.branding}
+          previewMode
         />
       </SchoolParentPageShell>
     );

@@ -7,6 +7,7 @@ import {
   MUDKITCHEN_SITE_URL,
   NEWSLETTER_MASTHEAD_TAGLINE,
   mudkitchenLogoUrlForExport,
+  resolveNewsletterAbsoluteAssetUrl,
   type NewsletterVisualBranding,
 } from "./newsletter-branding";
 import { getWelcomeValue } from "./newsletter-template";
@@ -19,10 +20,10 @@ import type {
 import { weekLabel } from "./newsletter-dates";
 import {
   getNewsletterHeroCoverSrc,
-  newsletterHeroCoverInlineStyle,
+  newsletterHeroCoverOverlayInlineStyle,
 } from "./newsletter-hero-cover";
 
-function escapeHtml(value: string): string {
+export function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -75,7 +76,10 @@ function blockContentHtml(block: NewsletterStoryBlock): string {
 }
 
 export type BuildContentOptions = {
-  staff?: StaffMemberRecord[];
+  staff?: Array<
+    Pick<StaffMemberRecord, "id" | "firstName" | "lastName"> &
+      Partial<Pick<StaffMemberRecord, "email">>
+  >;
   template?: NewsletterSchoolTemplate;
   branding?: NewsletterVisualBranding;
   primaryColor?: string;
@@ -187,12 +191,14 @@ export function newsletterHeroHtml(
   welcome: string,
 ): string {
   const inner = newsletterHeroInnerHtml(edition, title, welcome);
-  const coverSrc = getNewsletterHeroCoverSrc(edition);
-  if (!coverSrc) {
+  const rawCoverSrc = getNewsletterHeroCoverSrc(edition);
+  if (!rawCoverSrc) {
     return `<header class="n-hero">${inner}</header>`;
   }
-  const style = newsletterHeroCoverInlineStyle(coverSrc, options.primaryColor);
-  return `<header class="n-hero n-hero--cover" style="${style}"><div class="n-hero-media" aria-hidden="true"></div><div class="n-hero-overlay" aria-hidden="true"></div><div class="n-hero-inner">${inner}</div></header>`;
+  const coverSrc = resolveNewsletterAbsoluteAssetUrl(rawCoverSrc) ?? rawCoverSrc;
+  const style = newsletterHeroCoverOverlayInlineStyle(options.primaryColor);
+  const coverImg = `<img class="n-hero-media" src="${escapeHtml(coverSrc)}" alt="">`;
+  return `<header class="n-hero n-hero--cover" style="${style}">${coverImg}<div class="n-hero-overlay" aria-hidden="true"></div><div class="n-hero-inner">${inner}</div></header>`;
 }
 
 export function buildNewsletterArticleHtml(

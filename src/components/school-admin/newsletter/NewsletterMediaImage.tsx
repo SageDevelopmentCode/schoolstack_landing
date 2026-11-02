@@ -1,16 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
-import SkeletonBlock from "@/components/school-admin/skeletons/SkeletonBlock";
 
 export type NewsletterMediaImageProps = {
   src: string;
   alt: string;
+  /** Stable id when src is empty or changes (e.g. photo.id). */
+  instanceKey?: string;
   className?: string;
   imageClassName?: string;
   decoding?: "async" | "auto" | "sync";
 };
+
+const SKELETON_CLASS = "absolute inset-0 h-full w-full animate-pulse rounded-none bg-[#E4E8E1]";
 
 function NewsletterMediaImageInner({
   src,
@@ -19,17 +21,23 @@ function NewsletterMediaImageInner({
   imageClassName = "",
   decoding = "async",
 }: NewsletterMediaImageProps) {
-  const { C } = useSchoolAdminStoryTheme();
   const [loaded, setLoaded] = useState(false);
+  const effectiveSrc = src.trim();
+
+  if (!effectiveSrc) {
+    return (
+      <div className={`relative overflow-hidden ${className}`.trim()}>
+        <div className={SKELETON_CLASS} aria-hidden />
+      </div>
+    );
+  }
 
   return (
     <div className={`relative overflow-hidden ${className}`.trim()}>
-      {!loaded ? (
-        <SkeletonBlock C={C} className="absolute inset-0 h-full w-full !rounded-none" />
-      ) : null}
+      {!loaded ? <div className={SKELETON_CLASS} aria-hidden /> : null}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={src}
+        src={effectiveSrc}
         alt={alt}
         decoding={decoding}
         className={imageClassName}
@@ -47,5 +55,6 @@ function NewsletterMediaImageInner({
 }
 
 export default function NewsletterMediaImage(props: NewsletterMediaImageProps) {
-  return <NewsletterMediaImageInner key={props.src} {...props} />;
+  const remountKey = `${props.instanceKey ?? props.alt}:${props.src}`;
+  return <NewsletterMediaImageInner key={remountKey} {...props} />;
 }

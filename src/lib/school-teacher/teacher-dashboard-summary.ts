@@ -174,8 +174,8 @@ export async function fetchTeacherDashboardSummary(
     ? `${options.teacherBasePath}/attendance`
     : schoolTeacherPath(slug, "attendance");
 
-  const attendanceToday = attendanceEnabled
-    ? await loadAttendanceRoster(admin, organizationId, todayKey)
+  const attendanceTodayPromise = attendanceEnabled
+    ? loadAttendanceRoster(admin, organizationId, todayKey)
         .then((roster) => ({
           date: roster.date,
           summary: roster.summary,
@@ -198,12 +198,23 @@ export async function fetchTeacherDashboardSummary(
           });
           return null;
         })
-    : null;
+    : Promise.resolve(null);
 
-  let signups: Awaited<ReturnType<typeof listTeacherClassroomSignups>> = [];
-  let responsesBySignupId: Record<string, import("@/lib/classroom-signups/types").ClassroomSignupResponse[]> = {};
-  if (signupsEnabled && staffMemberId) {
-    signups = await listTeacherClassroomSignups(admin, organizationId, staffMemberId);
+  const signupsPromise =
+    signupsEnabled && staffMemberId
+      ? listTeacherClassroomSignups(admin, organizationId, staffMemberId)
+      : Promise.resolve([] as Awaited<ReturnType<typeof listTeacherClassroomSignups>>);
+
+  const [attendanceToday, signups] = await Promise.all([
+    attendanceTodayPromise,
+    signupsPromise,
+  ]);
+
+  let responsesBySignupId: Record<
+    string,
+    import("@/lib/classroom-signups/types").ClassroomSignupResponse[]
+  > = {};
+  if (signups.length > 0) {
     responsesBySignupId = await listClassroomSignupResponsesBySignupIds(
       admin,
       organizationId,

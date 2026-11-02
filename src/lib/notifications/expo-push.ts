@@ -46,6 +46,13 @@ export type GalleryExpoPushData = {
   uploadBatchId?: string;
 };
 
+export type NewsletterExpoPushData = {
+  kind: "newsletter";
+  portal: "parent";
+  organizationSlug: string;
+  editionId: string;
+};
+
 export type AttendanceExpoPushData = {
   kind: "attendance";
   portal: "parent";
@@ -59,6 +66,7 @@ export type ExpoPushData =
   | CommitteeExpoPushData
   | BulletinExpoPushData
   | GalleryExpoPushData
+  | NewsletterExpoPushData
   | AttendanceExpoPushData;
 
 export type ExpoPushPayload = {
@@ -123,6 +131,8 @@ function resolveChannelId(payload: ExpoPushPayload): ExpoPushChannelId {
       return "bulletin";
     case "gallery":
       return "gallery";
+    case "newsletter":
+      return "bulletin";
     case "attendance":
       return "attendance";
     case "message":

@@ -12,6 +12,7 @@ export type {
   CommitteePushSection,
   GalleryPushNotificationData,
   MessagePushNotificationData,
+  NewsletterPushNotificationData,
   PushNotificationData,
   PushPortal,
 } from '@/lib/push-notification-payload';

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { attachSignedUrlsToBulletinPosts } from "./attachment-storage";
 import {
+  applyBulletinViewerAudienceFilters,
   filterBulletinPostsForViewer,
   parentMainPortalBulletinScope,
   parentProgramPortalBulletinScope,
@@ -31,6 +32,10 @@ const POST_SELECT = `
   updated_at
 `;
 
+/** Legacy export: home feeds paginate until the limit is met or posts are exhausted. */
+export const BULLETIN_VIEWER_SCAN_CAP = 100;
+const BULLETIN_PAGE_SIZE = 25;
+
 async function loadAttachmentsByPostIds(
   supabase: SupabaseClient,
   postIds: string[],
@@ -56,22 +61,67 @@ async function loadAttachmentsByPostIds(
   return map;
 }
 
-async function mapPostsWithAttachments(
-  supabase: SupabaseClient,
+export function mapBulletinRowsToPostsWithoutAttachments(
   rows: BulletinPostRow[],
+): BulletinPost[] {
+  return rows.map((row) => mapBulletinPostRow(row, [], []));
+}
+
+export async function attachAttachmentsToBulletinPosts(
+  supabase: SupabaseClient,
+  posts: BulletinPost[],
 ): Promise<BulletinPost[]> {
+  if (posts.length === 0) return [];
+
   const attachmentsByPostId = await loadAttachmentsByPostIds(
     supabase,
-    rows.map((row) => String(row.id)),
+    posts.map((post) => post.id),
   );
 
-  return rows.map((row) =>
-    mapBulletinPostRow(
-      row,
-      attachmentsByPostId.get(String(row.id)) ?? [],
-      [],
-    ),
-  );
+  return posts.map((post) => ({
+    ...post,
+    attachments: attachmentsByPostId.get(post.id) ?? [],
+  }));
+}
+
+function applyPublishedBulletinTimeFilters<
+  T extends {
+    or(filter: string): T;
+  },
+>(query: T, nowIso: string): T {
+  return query
+    .or(`published_at.is.null,published_at.lte.${nowIso}`)
+    .or(`expires_at.is.null,expires_at.gt.${nowIso}`);
+}
+
+async function fetchPublishedBulletinPage(
+  supabase: SupabaseClient,
+  organizationId: string,
+  scope: BulletinViewerScope,
+  offset: number,
+  pageSize: number,
+  now: Date,
+): Promise<BulletinPostRow[]> {
+  const nowIso = now.toISOString();
+  const from = offset;
+  const to = offset + pageSize - 1;
+
+  let query = supabase
+    .from("school_bulletin_posts")
+    .select(POST_SELECT)
+    .eq("organization_id", organizationId)
+    .eq("status", "published");
+
+  query = applyPublishedBulletinTimeFilters(query, nowIso);
+  query = applyBulletinViewerAudienceFilters(query, scope);
+
+  const { data, error } = await query
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  if (error) throw new BulletinError(error.message, "load_failed", 500);
+  return (data ?? []) as BulletinPostRow[];
 }
 
 export async function listActiveBulletinPostsForViewer(
@@ -81,27 +131,45 @@ export async function listActiveBulletinPostsForViewer(
   limit = 3,
   options?: { includeSignedUrls?: boolean; signedUrlClient?: SupabaseClient },
 ): Promise<BulletinPost[]> {
-  const { data, error } = await supabase
-    .from("school_bulletin_posts")
-    .select(POST_SELECT)
-    .eq("organization_id", organizationId)
-    .eq("status", "published")
-    .order("published_at", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false });
+  const now = new Date();
+  const accumulated: BulletinPost[] = [];
+  let offset = 0;
 
-  if (error) throw new BulletinError(error.message, "load_failed", 500);
+  while (accumulated.length < limit) {
+    const rows = await fetchPublishedBulletinPage(
+      supabase,
+      organizationId,
+      scope,
+      offset,
+      BULLETIN_PAGE_SIZE,
+      now,
+    );
+    if (rows.length === 0) break;
 
-  const posts = await mapPostsWithAttachments(
-    supabase,
-    (data ?? []) as BulletinPostRow[],
-  );
-  const filtered = filterBulletinPostsForViewer(posts, scope).slice(0, limit);
+    offset += rows.length;
 
-  if (options?.includeSignedUrls && options.signedUrlClient) {
-    return attachSignedUrlsToBulletinPosts(options.signedUrlClient, filtered);
+    const visible = filterBulletinPostsForViewer(
+      mapBulletinRowsToPostsWithoutAttachments(rows),
+      scope,
+      now,
+    );
+
+    for (const post of visible) {
+      accumulated.push(post);
+      if (accumulated.length >= limit) break;
+    }
+
+    if (rows.length < BULLETIN_PAGE_SIZE) break;
   }
 
-  return filtered;
+  const sliced = accumulated.slice(0, limit);
+  const withAttachments = await attachAttachmentsToBulletinPosts(supabase, sliced);
+
+  if (options?.includeSignedUrls && options.signedUrlClient) {
+    return attachSignedUrlsToBulletinPosts(options.signedUrlClient, withAttachments);
+  }
+
+  return withAttachments;
 }
 
 export function resolveBulletinViewerScope(input: {

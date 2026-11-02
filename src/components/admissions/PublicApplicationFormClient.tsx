@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import ApplyAuthShell from "@/components/admissions/ApplyAuthShell";
@@ -12,6 +12,7 @@ import ApplicationFormPageShell from "@/components/admissions/ApplicationFormPag
 import PortalHelpFab from "@/components/school/shared/PortalHelpFab";
 import { attemptPostSignInRedirect } from "@/lib/auth/resolve-post-sign-in-redirect";
 import type { BootstrapApplicantResult } from "@/lib/admissions/applicant-bootstrap";
+import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
 import {
   familyHasOtherApplications,
   loadApplicationDraft,
@@ -20,6 +21,11 @@ import {
   type SaveApplicationDraftInput,
 } from "@/lib/admissions/application-draft";
 import type { CopyableApplication } from "@/lib/admissions/application-copy";
+
+type CopyableApplicationOption = Pick<
+  CopyableApplication,
+  "id" | "submittedAt" | "label"
+>;
 import {
   getApplicationResponsesForCopy,
   listCopyableApplications,
@@ -161,8 +167,11 @@ function PublicApplicationFormClientContent({
     readPaymentReturnPending(searchParams),
   );
   const [submitted, setSubmitted] = useState(false);
-  const [copyableApplications, setCopyableApplications] = useState<CopyableApplication[]>(
-    [],
+  const [copyableApplications, setCopyableApplications] = useState<
+    CopyableApplicationOption[]
+  >([]);
+  const copyableResponsesRef = useRef(
+    new Map<string, Record<string, string>>(),
   );
   const [priorFieldValues, setPriorFieldValues] = useState<Record<string, string>>({});
   const [importGeneration, setImportGeneration] = useState(0);
@@ -175,6 +184,8 @@ function PublicApplicationFormClientContent({
       setPhase("loading_draft");
       setError(null);
 
+      let draftPromise: Promise<ApplicationDraft> | null = null;
+
       try {
         const {
           data: { user },
@@ -186,41 +197,55 @@ function PublicApplicationFormClientContent({
 
         setUserEmail(user.email?.trim() || null);
 
-        const loaded = await loadApplicationDraft(supabase, nextApplicationId);
-        const otherApplications = await familyHasOtherApplications(
+        draftPromise = loadApplicationDraft(supabase, nextApplicationId);
+        const familyIds = await getFamilyIdsForUser(
           supabase,
-          organizationId,
           user.id,
-          nextApplicationId,
+          organizationId,
         );
-        setHasOtherApplications(otherApplications);
-        setDraft(loaded);
-        if (loaded.status !== "draft") {
-          setSubmitted(true);
-        } else {
-          const copyable = await listCopyableApplications(
+        const [loaded, otherApplications, copyable] = await Promise.all([
+          draftPromise,
+          familyHasOtherApplications(
+            supabase,
+            organizationId,
+            user.id,
+            nextApplicationId,
+            familyIds,
+          ),
+          listCopyableApplications(
             supabase,
             organizationId,
             formVersionId,
             user.id,
             nextApplicationId,
+            familyIds,
+          ),
+        ]);
+        setHasOtherApplications(otherApplications);
+        setDraft(loaded);
+        if (loaded.status !== "draft") {
+          setSubmitted(true);
+        } else {
+          copyableResponsesRef.current = new Map(
+            copyable.map((application) => [application.id, application.responses]),
           );
-          setCopyableApplications(copyable);
-          if (copyable[0]) {
-            const priorResponses = await getApplicationResponsesForCopy(
-              supabase,
-              copyable[0].id,
-              user.id,
-            );
-            setPriorFieldValues(
-              pickResponsesForCopy(priorResponses, schema),
-            );
-          } else {
-            setPriorFieldValues({});
-          }
+          setCopyableApplications(
+            copyable.map(({ id, submittedAt, label }) => ({
+              id,
+              submittedAt,
+              label,
+            })),
+          );
+          const newest = copyable[0];
+          setPriorFieldValues(
+            newest
+              ? pickResponsesForCopy(newest.responses, schema)
+              : {},
+          );
         }
         setPhase("form");
       } catch (err) {
+        void draftPromise?.catch(() => undefined);
         if (
           err instanceof Error &&
           err.message.includes("already been submitted")
@@ -428,16 +453,20 @@ function PublicApplicationFormClientContent({
   ) => {
     if (!applicationId || !draft) return;
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+    const cachedResponses = copyableResponsesRef.current.get(sourceApplicationId);
+    let sourceResponses = cachedResponses;
+    if (!sourceResponses) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const sourceResponses = await getApplicationResponsesForCopy(
-      supabase,
-      sourceApplicationId,
-      user.id,
-    );
+      sourceResponses = await getApplicationResponsesForCopy(
+        supabase,
+        sourceApplicationId,
+        user.id,
+      );
+    }
     const imported = pickResponsesForCopy(sourceResponses, schema, fieldIds);
     const nextResponses = { ...draft.responses, ...imported };
 

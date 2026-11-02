@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, X } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { ProgramCoopFamily } from "@/lib/admissions/program-coop-directory";
@@ -49,6 +49,7 @@ type CoopSupplyListItemDetailPanelProps = {
   onRemove: () => void;
   onDirtyChange?: (dirty: boolean) => void;
   canRemove: boolean;
+  mode?: "create" | "edit";
 };
 
 function controlStyle(C: AdminThemeTokens): React.CSSProperties {
@@ -76,6 +77,7 @@ export default function CoopSupplyListItemDetailPanel({
   onRemove,
   onDirtyChange,
   canRemove,
+  mode = "edit",
 }: CoopSupplyListItemDetailPanelProps) {
   const [draftItem, setDraftItem] = useState<CoopSupplyListItem>(() => ({ ...item }));
   const [savedItem, setSavedItem] = useState<CoopSupplyListItem>(() => ({ ...item }));
@@ -182,13 +184,20 @@ export default function CoopSupplyListItemDetailPanel({
   };
 
   const handleSave = async () => {
+    if (mode === "create" && !draftItem.name.trim()) {
+      adminToast.error("Enter an item name before adding.");
+      return;
+    }
     setSaving(true);
     try {
       const persisted = await onSave(draftItem, { savedBaseline: savedItem });
       const nextItem = persisted ?? draftItem;
       setDraftItem({ ...nextItem });
       setSavedItem({ ...nextItem });
-      adminToast.success("Supply item saved");
+      adminToast.success(
+        mode === "create" ? "Supply item added" : "Supply item saved",
+      );
+      onClose();
     } catch {
       // Parent surfaces persistence errors. intentionally silent
     } finally {
@@ -675,10 +684,12 @@ export default function CoopSupplyListItemDetailPanel({
               theme={theme}
               variant="primary"
               size="compact"
-              onClick={handleSave}
+              className="inline-flex items-center gap-1.5"
+              onClick={() => void handleSave()}
               disabled={!isDirty || saving}
             >
-              Save changes
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              {mode === "create" ? "Add supply item" : "Save changes"}
             </AdminButton>
           </div>
         </motion.div>

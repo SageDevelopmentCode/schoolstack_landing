@@ -51,9 +51,14 @@ import ParentFridayBranchPausedState from "@/components/school-parent/friday-bra
 import { isFridayBranchParentPortalAvailable } from "@/lib/school-admin/friday-branch/friday-branch-org-settings";
 import { buildParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import ParentTeachingSchedulePage from "@/components/school-parent/teaching-schedule/ParentTeachingSchedulePage";
+import ParentNewslettersPage from "@/components/school-parent/newsletters/ParentNewslettersPage";
 import { loadParentAttendanceEligibleChildren } from "@/lib/parent-portal/attendance/load-parent-attendance-page-data";
 import { loadParentAttendancePreviewHistory } from "@/lib/parent-portal/attendance/load-parent-attendance-preview-data";
 import { loadParentFridayBranchPageBundle } from "@/lib/parent-portal/friday-branch/load-parent-friday-branch";
+import {
+  loadParentNewsletterDetailBundle,
+  loadParentNewslettersListBundle,
+} from "@/lib/parent-portal/newsletters/load-parent-newsletters";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -514,6 +519,46 @@ export default async function FamilyPreviewProgramParentFeaturePage({
             programSlug,
             "children",
           )}
+        />
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (feature === "newsletters") {
+    const initialList = await loadParentNewslettersListBundle(admin, org.id);
+    const editionParam =
+      typeof resolvedSearchParams.edition === "string"
+        ? resolvedSearchParams.edition
+        : undefined;
+    let detailBundle = null;
+    if (editionParam) {
+      detailBundle = await loadParentNewsletterDetailBundle(
+        admin,
+        org.id,
+        editionParam,
+        {
+          name: org.name,
+          primaryColor: org.branding.colors.accent,
+        },
+        org.branding,
+      );
+    }
+
+    return (
+      <SchoolParentPageShell title={pageName}>
+        <ParentNewslettersPage
+          organizationId={org.id}
+          slug={slug}
+          parentBasePath={familyPreviewProgramParentPath(
+            slug,
+            familyId,
+            programSlug,
+            "newsletters",
+          )}
+          initialList={initialList}
+          detailBundle={detailBundle}
+          branding={org.branding}
+          previewMode
         />
       </SchoolParentPageShell>
     );

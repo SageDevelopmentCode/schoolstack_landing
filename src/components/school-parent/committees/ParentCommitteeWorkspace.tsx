@@ -32,6 +32,7 @@ type ParentCommitteeWorkspaceProps = {
   initialCommitteeEventDate?: string | null;
   initialCommitteeResourceId?: string | null;
   initialCommitteeTaskId?: string | null;
+  initialCommitteeProjectId?: string | null;
   onSectionChange: (section: string) => void;
   onBack: () => void;
 };
@@ -53,6 +54,7 @@ export default function ParentCommitteeWorkspace({
   initialCommitteeEventDate,
   initialCommitteeResourceId,
   initialCommitteeTaskId,
+  initialCommitteeProjectId,
   onSectionChange,
   onBack,
 }: ParentCommitteeWorkspaceProps) {
@@ -262,6 +264,7 @@ export default function ParentCommitteeWorkspace({
       initialCommitteeEventDate={initialCommitteeEventDate}
       initialCommitteeResourceId={initialCommitteeResourceId}
       initialCommitteeTaskId={initialCommitteeTaskId}
+      initialCommitteeProjectId={initialCommitteeProjectId}
       workspaceDataReady={initialRefreshDone}
     />
     </div>

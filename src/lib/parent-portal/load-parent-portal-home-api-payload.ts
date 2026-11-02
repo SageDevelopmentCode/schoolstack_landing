@@ -1,15 +1,7 @@
+import * as Sentry from "@sentry/nextjs";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import type { ProgramCoopFamily } from "@/lib/admissions/program-coop-directory";
-import {
-  loadProgramParentPortalContext,
-  userHasEnrolledAccessInProgram,
-  userHasMainPortalEnrollment,
-} from "@/lib/admissions/program-parent-portal-access";
-import {
-  getFamilyUserProfile,
-  userHasEnrolledAccess,
-} from "@/lib/admissions/parent-portal-access";
-import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
+import { loadProgramParentPortalContext } from "@/lib/admissions/program-parent-portal-access";
 import { buildParentQuickActions } from "@/lib/organization-settings/parent-home";
 import type { OrganizationFeatures } from "@/lib/organization-settings/types";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
@@ -37,9 +29,14 @@ import type { EnrollmentAgreementAmendmentBannerItem } from "@/lib/admissions/en
 import type { EnrollmentAgreementIncompleteBannerItem } from "@/lib/admissions/enrollment-agreement-incomplete-banner";
 import type { FamilyChildOverview } from "@/lib/admissions/parent-portal-access";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import type { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { loadResolvedParentOnboardingItems } from "@/lib/admissions/parent-onboarding-status";
 import { isSchoolGalleryEnabled } from "@/lib/school-gallery/gallery-enabled";
+import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
+import {
+  resolveParentPortalHomeAccess,
+  userHasProgramEnrollment,
+} from "@/lib/parent-portal/resolve-parent-portal-home-access";
 
 type OrganizationWithSettings = NonNullable<Awaited<ReturnType<typeof fetchOrganizationWithSettings>>>;
 type ResolvedParentOnboardingItem = Awaited<
@@ -71,6 +68,7 @@ export type ParentPortalHomeApiPayload = {
   formSnapshot: ParentFormHomeSnapshot | null;
   bulletinEnabled: boolean;
   schoolGalleryEnabled: boolean;
+  parentNewslettersEnabled: boolean;
   bulletinPosts: BulletinPost[];
   fridayBranchHome: ParentFridayBranchPageBundle | null;
   fridayBranchParentPortalPaused: boolean;
@@ -91,6 +89,200 @@ function featuresPayload(features: OrganizationFeatures): ParentPortalHomeApiPay
   };
 }
 
+function parentHomeSpanAttributes(input: {
+  organizationId: string;
+  hasProgramSlug: boolean;
+  features: OrganizationFeatures;
+  bulletinEnabled: boolean;
+}) {
+  return {
+    organization_id: input.organizationId,
+    has_program_slug: input.hasProgramSlug,
+    forms_enabled: isParentFeatureEnabled(input.features, "forms_documents"),
+    bulletin_enabled: input.bulletinEnabled,
+  };
+}
+
+async function loadMainPortalHomeFeeds(input: {
+  supabase: SupabaseClient;
+  admin: SupabaseClient;
+  organizationId: string;
+  slug: string;
+  features: OrganizationFeatures;
+  bulletinEnabled: boolean;
+  familyId: string | undefined;
+  userId: string;
+  fridayBranchSettings: OrganizationWithSettings["fridayBranchSettings"];
+}) {
+  const bulletinLimit = resolveParentPortalHomeBulletinLimit(false);
+  const spanAttrs = parentHomeSpanAttributes({
+    organizationId: input.organizationId,
+    hasProgramSlug: false,
+    features: input.features,
+    bulletinEnabled: input.bulletinEnabled,
+  });
+
+  const contentPromise = input.familyId
+    ? Sentry.startSpan(
+        { name: "parent_home.content", op: "parent_home.content", attributes: spanAttrs },
+        () =>
+          loadParentHomeContentDataForAuthUser({
+            supabase: input.supabase,
+            userId: input.userId,
+            organizationId: input.organizationId,
+            familyId: input.familyId!,
+            slug: input.slug,
+            features: input.features,
+            fridayBranchSettings: input.fridayBranchSettings,
+          }),
+      )
+    : Promise.resolve(null);
+
+  const eventsPromise = Sentry.startSpan(
+    { name: "parent_home.events", op: "parent_home.events", attributes: spanAttrs },
+    () =>
+      listUpcomingEventsForOrg(
+        input.supabase,
+        input.organizationId,
+        3,
+        mainPortalAudienceScope(),
+      ),
+  );
+
+  const bulletinPromise = Sentry.startSpan(
+    { name: "parent_home.bulletin", op: "parent_home.bulletin", attributes: spanAttrs },
+    () =>
+      loadHomeBulletinPosts({
+        supabase: input.supabase,
+        signedUrlClient: input.admin,
+        organizationId: input.organizationId,
+        bulletinEnabled: input.bulletinEnabled,
+        viewer: "parent",
+        limit: bulletinLimit,
+      }),
+  );
+
+  const announcementsPromise = Sentry.startSpan(
+    {
+      name: "parent_home.announcements",
+      op: "parent_home.announcements",
+      attributes: spanAttrs,
+    },
+    () =>
+      fetchParentFeatureAnnouncements(input.admin, input.organizationId, {
+        slug: input.slug,
+        features: input.features,
+        coopModeEnabled: false,
+        bulletinEnabled: input.bulletinEnabled,
+      }),
+  );
+
+  const [contentData, upcomingEvents, bulletinPosts, featureAnnouncements] =
+    await Promise.all([
+      contentPromise,
+      eventsPromise,
+      bulletinPromise,
+      announcementsPromise,
+    ]);
+
+  return { contentData, upcomingEvents, bulletinPosts, featureAnnouncements };
+}
+
+async function loadProgramPortalHomeFeeds(input: {
+  supabase: SupabaseClient;
+  admin: SupabaseClient;
+  organizationId: string;
+  slug: string;
+  programSlug: string;
+  programId: string;
+  features: OrganizationFeatures;
+  bulletinEnabled: boolean;
+  coopModeEnabled: boolean;
+  parentNavBasePath: string;
+  familyId: string | undefined;
+  userId: string;
+  fridayBranchSettings: OrganizationWithSettings["fridayBranchSettings"];
+}) {
+  const bulletinLimit = resolveParentPortalHomeBulletinLimit(input.coopModeEnabled);
+  const spanAttrs = parentHomeSpanAttributes({
+    organizationId: input.organizationId,
+    hasProgramSlug: true,
+    features: input.features,
+    bulletinEnabled: input.bulletinEnabled,
+  });
+
+  const contentPromise = input.familyId
+    ? Sentry.startSpan(
+        { name: "parent_home.content", op: "parent_home.content", attributes: spanAttrs },
+        () =>
+          loadParentHomeContentDataForAuthUser({
+            supabase: input.supabase,
+            userId: input.userId,
+            organizationId: input.organizationId,
+            familyId: input.familyId!,
+            slug: input.slug,
+            features: input.features,
+            programId: input.programId,
+            coopModeEnabled: input.coopModeEnabled,
+            fridayBranchSettings: input.fridayBranchSettings,
+            programAccessVerified: true,
+          }),
+      )
+    : Promise.resolve(null);
+
+  const eventsPromise = Sentry.startSpan(
+    { name: "parent_home.events", op: "parent_home.events", attributes: spanAttrs },
+    () =>
+      listUpcomingEventsForOrg(
+        input.supabase,
+        input.organizationId,
+        3,
+        programPortalAudienceScope(input.programId),
+      ),
+  );
+
+  const bulletinPromise = Sentry.startSpan(
+    { name: "parent_home.bulletin", op: "parent_home.bulletin", attributes: spanAttrs },
+    () =>
+      loadHomeBulletinPosts({
+        supabase: input.supabase,
+        signedUrlClient: input.admin,
+        organizationId: input.organizationId,
+        bulletinEnabled: input.bulletinEnabled,
+        viewer: "parent",
+        programId: input.programId,
+        limit: bulletinLimit,
+      }),
+  );
+
+  const announcementsPromise = Sentry.startSpan(
+    {
+      name: "parent_home.announcements",
+      op: "parent_home.announcements",
+      attributes: spanAttrs,
+    },
+    () =>
+      fetchParentFeatureAnnouncements(input.admin, input.organizationId, {
+        slug: input.slug,
+        features: input.features,
+        coopModeEnabled: input.coopModeEnabled,
+        bulletinEnabled: input.bulletinEnabled,
+        programSlug: input.programSlug,
+        parentNavBasePath: input.parentNavBasePath,
+      }),
+  );
+
+  const [contentData, upcomingEvents, bulletinPosts, featureAnnouncements] =
+    await Promise.all([
+      contentPromise,
+      eventsPromise,
+      bulletinPromise,
+      announcementsPromise,
+    ]);
+
+  return { contentData, upcomingEvents, bulletinPosts, featureAnnouncements };
+}
+
 export async function loadParentPortalHomeApiPayload(input: {
   supabase: SupabaseClient;
   user: User;
@@ -103,63 +295,53 @@ export async function loadParentPortalHomeApiPayload(input: {
   const organizationId = org.id;
   const bulletinEnabled = Boolean(org.features.admin?.bulletin);
   const schoolGalleryEnabled = isSchoolGalleryEnabled(org.features);
+  const parentNewslettersEnabled = isParentFeatureEnabled(org.features, "newsletters");
   const admin = createAdminClient();
+  const hasProgramSlug = Boolean(input.programSlug?.trim());
 
-  const hasAccess = await userHasEnrolledAccess(supabase, userId, organizationId);
-  if (!hasAccess) {
+  const access = await Sentry.startSpan(
+    {
+      name: "parent_home.access",
+      op: "parent_home.access",
+      attributes: parentHomeSpanAttributes({
+        organizationId,
+        hasProgramSlug,
+        features: org.features,
+        bulletinEnabled,
+      }),
+    },
+    () =>
+      resolveParentPortalHomeAccess({
+        supabase,
+        userId,
+        organizationId,
+        user,
+      }),
+  );
+
+  if (!access.hasEnrolledAccess) {
     throw new Error("forbidden");
   }
 
-  const familyIds = await getFamilyIdsForUser(supabase, userId, organizationId);
-  const familyId = familyIds[0];
-
-  const userProfile = await getFamilyUserProfile(
-    supabase,
-    userId,
-    organizationId,
-    user,
-  );
+  const { familyId, userProfile } = access;
 
   if (!input.programSlug) {
-    // Same gate as calendar/messages when program scope is omitted (see program-parent-portal-scope-access.test.ts).
-    const hasMainPortalAccess = await userHasMainPortalEnrollment(
-      supabase,
-      userId,
-      organizationId,
-    );
-    if (!hasMainPortalAccess) {
+    if (!access.hasMainPortalEnrollment) {
       throw new Error("forbidden");
     }
 
-    const contentData = familyId
-      ? await loadParentHomeContentDataForAuthUser({
-          supabase,
-          userId,
-          organizationId,
-          familyId,
-          slug,
-          features: org.features,
-          fridayBranchSettings: org.fridayBranchSettings,
-        })
-      : null;
-
-    const [upcomingEvents, bulletinPosts, featureAnnouncements] = await Promise.all([
-      listUpcomingEventsForOrg(supabase, organizationId, 3, mainPortalAudienceScope()),
-      loadHomeBulletinPosts({
+    const { contentData, upcomingEvents, bulletinPosts, featureAnnouncements } =
+      await loadMainPortalHomeFeeds({
         supabase,
-        signedUrlClient: admin,
+        admin,
         organizationId,
-        bulletinEnabled,
-        viewer: "parent",
-        limit: resolveParentPortalHomeBulletinLimit(false),
-      }),
-      fetchParentFeatureAnnouncements(admin, organizationId, {
         slug,
         features: org.features,
-        coopModeEnabled: false,
         bulletinEnabled,
-      }),
-    ]);
+        familyId,
+        userId,
+        fridayBranchSettings: org.fridayBranchSettings,
+      });
 
     const documentationGuides = buildParentDocumentationGuides({
       slug,
@@ -185,6 +367,7 @@ export async function loadParentPortalHomeApiPayload(input: {
       formSnapshot: contentData?.formSnapshot ?? null,
       bulletinEnabled,
       schoolGalleryEnabled,
+      parentNewslettersEnabled,
       bulletinPosts,
       fridayBranchHome: contentData?.fridayBranchHome ?? null,
       fridayBranchParentPortalPaused: org.fridayBranchSettings.parent_portal_paused,
@@ -205,13 +388,7 @@ export async function loadParentPortalHomeApiPayload(input: {
     throw new Error("program_not_found");
   }
 
-  const hasProgramAccess = await userHasEnrolledAccessInProgram(
-    supabase,
-    userId,
-    organizationId,
-    programContext.programId,
-  );
-  if (!hasProgramAccess) {
+  if (!userHasProgramEnrollment(access.enrolledPrograms, programContext.programId)) {
     throw new Error("forbidden_program");
   }
 
@@ -219,45 +396,22 @@ export async function loadParentPortalHomeApiPayload(input: {
   const coopModeEnabled = programContext.coopMode;
   const programId = programContext.programId;
 
-  const contentData = familyId
-    ? await loadParentHomeContentDataForAuthUser({
-        supabase,
-        userId,
-        organizationId,
-        familyId,
-        slug,
-        features,
-        programId,
-        coopModeEnabled,
-        fridayBranchSettings: org.fridayBranchSettings,
-      })
-    : null;
-
-  const [upcomingEvents, bulletinPosts, featureAnnouncements] = await Promise.all([
-    listUpcomingEventsForOrg(
+  const { contentData, upcomingEvents, bulletinPosts, featureAnnouncements } =
+    await loadProgramPortalHomeFeeds({
       supabase,
+      admin,
       organizationId,
-      3,
-      programPortalAudienceScope(programId),
-    ),
-    loadHomeBulletinPosts({
-      supabase,
-      signedUrlClient: admin,
-      organizationId,
-      bulletinEnabled,
-      viewer: "parent",
-      programId,
-      limit: resolveParentPortalHomeBulletinLimit(coopModeEnabled),
-    }),
-    fetchParentFeatureAnnouncements(admin, organizationId, {
       slug,
-      features,
-      coopModeEnabled,
-      bulletinEnabled,
       programSlug: input.programSlug,
+      programId,
+      features,
+      bulletinEnabled,
+      coopModeEnabled,
       parentNavBasePath: programContext.parentNavBasePath,
-    }),
-  ]);
+      familyId,
+      userId,
+      fridayBranchSettings: org.fridayBranchSettings,
+    });
 
   const documentationGuides = buildParentDocumentationGuides({
     slug,
@@ -289,6 +443,7 @@ export async function loadParentPortalHomeApiPayload(input: {
     formSnapshot: contentData?.formSnapshot ?? null,
     bulletinEnabled,
     schoolGalleryEnabled,
+    parentNewslettersEnabled: isParentFeatureEnabled(features, "newsletters"),
     bulletinPosts,
     fridayBranchHome: contentData?.fridayBranchHome ?? null,
     fridayBranchParentPortalPaused: org.fridayBranchSettings.parent_portal_paused,

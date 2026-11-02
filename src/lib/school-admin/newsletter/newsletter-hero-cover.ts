@@ -54,6 +54,14 @@ export function newsletterHeroCoverCssVars(
   };
 }
 
+/** Inline style attribute for exported HTML hero cover (overlay gradients only; cover is an img). */
+export function newsletterHeroCoverOverlayInlineStyle(primaryColor?: string): string {
+  const primary = primaryColor?.trim() || DEFAULT_PRIMARY;
+  const bottom = rgbaFromHex(primary, 0.85);
+  const mid = rgbaFromHex(primary, 0.55);
+  return `--n-hero-overlay-bottom:${bottom};--n-hero-overlay-mid:${mid}`;
+}
+
 /** Inline style attribute for exported HTML hero cover. */
 export function newsletterHeroCoverInlineStyle(
   coverSrc: string,

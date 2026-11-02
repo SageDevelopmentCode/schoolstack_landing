@@ -36,6 +36,10 @@ import type {
   ParentFormsDocumentsPageBundle,
   SubmitParentFormInput,
 } from '@/lib/parent/parent-forms-documents-types';
+import type {
+  ParentNewsletterDetailBundle,
+  ParentNewslettersListBundle,
+} from '@/lib/parent/parent-newsletters-types';
 import type { AttendanceHistoryResponse } from '@/lib/attendance/attendance-types';
 import type { ParentPortalFeatures } from '@/lib/parent/parent-features';
 import type {
@@ -303,6 +307,7 @@ export type ParentHomeData = {
   formSnapshot?: ParentFormHomeSnapshot | null;
   bulletinEnabled: boolean;
   schoolGalleryEnabled?: boolean;
+  parentNewslettersEnabled?: boolean;
   bulletinPosts: BulletinPost[];
   fridayBranchHome?: ParentFridayBranchPageBundle | null;
   fridayBranchParentPortalPaused?: boolean;
@@ -372,6 +377,7 @@ export function normalizeParentHomeData(data: ParentHomeData): ParentHomeData {
     ...data,
     bulletinEnabled: data.bulletinEnabled ?? false,
     schoolGalleryEnabled: data.schoolGalleryEnabled ?? false,
+    parentNewslettersEnabled: data.parentNewslettersEnabled ?? false,
     bulletinPosts: data.bulletinPosts ?? [],
     fridayBranchHome: data.fridayBranchHome ?? null,
     featureAnnouncements: data.featureAnnouncements ?? [],
@@ -1048,6 +1054,59 @@ export async function fetchParentFormDownloadUrl(
   return fetchParentApi<ParentFormDownloadPayload>(
     `/api/parent-portal/forms-documents/${encodeURIComponent(formId)}/download?${query}`,
   );
+}
+
+export async function fetchParentNewslettersList(
+  organizationId: string,
+): Promise<ParentNewslettersListBundle> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchParentApi<ParentNewslettersListBundle>(
+    `/api/parent-portal/newsletters?${query}`,
+  );
+  return { editions: payload.editions ?? [] };
+}
+
+export async function fetchParentNewsletterDetail(
+  organizationId: string,
+  editionId: string,
+): Promise<ParentNewsletterDetailBundle> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  return fetchParentApi<ParentNewsletterDetailBundle>(
+    `/api/parent-portal/newsletters/${encodeURIComponent(editionId)}?${query}`,
+  );
+}
+
+export function buildParentNewsletterDocumentApiPath(
+  organizationId: string,
+  editionId: string,
+): string {
+  const query = new URLSearchParams({ organizationId }).toString();
+  return `/api/parent-portal/newsletters/${encodeURIComponent(editionId)}/document?${query}`;
+}
+
+export function buildParentNewsletterDocumentUrl(
+  organizationId: string,
+  editionId: string,
+): string {
+  return `${siteUrl}${buildParentNewsletterDocumentApiPath(organizationId, editionId)}`;
+}
+
+export async function getParentNewsletterDocumentWebViewSource(
+  organizationId: string,
+  editionId: string,
+): Promise<{ uri: string; headers: Record<string, string> }> {
+  const apiPath = buildParentNewsletterDocumentApiPath(organizationId, editionId);
+  const previewPath = resolveParentPreviewPath(apiPath);
+  const requestPath = previewPath ?? apiPath;
+  const headers = await getApiAuthHeaders();
+  if (previewPath) {
+    const { MOBILE_PREVIEW_HEADER } = await import('@/lib/platform-admin/preview-session-store');
+    headers[MOBILE_PREVIEW_HEADER] = '1';
+  }
+  return {
+    uri: `${siteUrl}${requestPath}`,
+    headers,
+  };
 }
 
 export async function fetchParentSignupAttentionItems(

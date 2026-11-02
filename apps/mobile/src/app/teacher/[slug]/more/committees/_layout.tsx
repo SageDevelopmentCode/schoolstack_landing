@@ -16,6 +16,7 @@ export default function TeacherCommitteesLayout() {
       <Stack.Screen name="index" />
       <Stack.Screen name="explore/[committeeId]" />
       <Stack.Screen name="workspace/[committeeId]" />
+      <Stack.Screen name="workspace/[committeeId]/project/[projectId]" />
     </Stack>
     </CommitteeUnreadRefreshProvider>
   );

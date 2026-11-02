@@ -65,14 +65,14 @@ export async function getFamilyIdsForUser(
     organizationId,
     userId,
   );
+  const batches = await Promise.all(
+    memberUserIds.map((memberUserId) =>
+      getFamilyIdsForAuthUser(supabase, memberUserId, organizationId),
+    ),
+  );
   const familyIds = new Set<string>();
 
-  for (const memberUserId of memberUserIds) {
-    const ids = await getFamilyIdsForAuthUser(
-      supabase,
-      memberUserId,
-      organizationId,
-    );
+  for (const ids of batches) {
     for (const familyId of ids) {
       familyIds.add(familyId);
     }

@@ -18,6 +18,7 @@ import CommitteeMessagesSection from "./sections/CommitteeMessagesSection";
 import CommitteeMembersSection from "./sections/CommitteeMembersSection";
 import CommitteeSettingsSection from "./sections/CommitteeSettingsSection";
 import CommitteeActivitySection from "./sections/CommitteeActivitySection";
+import CommitteeProjectsSection from "./sections/CommitteeProjectsSection";
 import CommitteeJoinRequestsPanel from "./CommitteeJoinRequestsPanel";
 import { CommitteeWorkspaceSidePanel } from "./CommitteeWorkspaceStoryHeader";
 import CommitteeWorkspaceLayout from "./CommitteeWorkspaceLayout";
@@ -39,6 +40,7 @@ export default function CommitteeWorkspaceShell({
   schoolSlug,
   onJoinRequestsChanged,
   composeTokens,
+  initialProjectId,
 }: {
   committee: Committee;
   theme: ParentThemeTokens;
@@ -54,12 +56,13 @@ export default function CommitteeWorkspaceShell({
   backLabel?: string;
   schoolSlug?: string;
   onJoinRequestsChanged?: () => void;
+  initialProjectId?: string | null;
 }) {
   const { C: shellComposeTokens } = useSchoolAdminStoryTheme();
   const resolvedComposeTokens = composeTokens ?? shellComposeTokens;
   const sections = (readOnly
     ? committee.config.sections
-    : [...committee.config.sections, "activity", "settings"]
+    : [...committee.config.sections, "projects", "activity", "settings"]
   ).filter((section, index, arr) => arr.indexOf(section) === index) as CommitteeWorkspaceSection[];
 
   const fillContent = activeSection === "messages";
@@ -140,6 +143,17 @@ export default function CommitteeWorkspaceShell({
               organizationId={organizationId}
               onCommitteeChange={onCommitteeChange}
               readOnly={readOnly}
+            />
+          )}
+          {!readOnly && activeSection === "projects" && (
+            <CommitteeProjectsSection
+              committee={committee}
+              theme={theme}
+              supabase={supabase}
+              organizationId={organizationId}
+              readOnly={readOnly}
+              portalApiNamespace="school-admin"
+              initialProjectId={initialProjectId}
             />
           )}
           {activeSection === "messages" && (

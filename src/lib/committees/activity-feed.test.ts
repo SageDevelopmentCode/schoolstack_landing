@@ -22,6 +22,8 @@ function event(
       committeeId: "committee-abc",
       committeeName: "Garden Committee",
     },
+    entity_type: overrides.entity_type ?? null,
+    entity_id: overrides.entity_id ?? null,
     created_at: overrides.created_at ?? "2026-09-22T12:00:00.000Z",
   };
 }
@@ -135,5 +137,30 @@ describe("mapCommitteeActivityItem preview hrefs", () => {
     );
 
     assert.equal(item.href, undefined);
+  });
+
+  it("builds parent projects URL with project query when metadata includes projectId", () => {
+    const item = mapCommitteeActivityItem(
+      event({
+        action: ACTIVITY_ACTIONS.COMMITTEE_PROJECT_SUPPLY_CREATED,
+        summary: "Supply added",
+        metadata: {
+          committeeId: "committee-abc",
+          committeeName: "Garden Committee",
+          projectId: "project-99",
+        },
+      }),
+      {
+        slug: "rooted-meadows",
+        committeeId: "committee-abc",
+        linkSurface: "parent",
+      },
+    );
+
+    assert.equal(item.category, "Projects");
+    assert.equal(
+      item.href,
+      "/school/rooted-meadows/parent/committees?committee=committee-abc&section=projects&tab=mine&project=project-99",
+    );
   });
 });

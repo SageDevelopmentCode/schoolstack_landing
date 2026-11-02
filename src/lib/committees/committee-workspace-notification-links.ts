@@ -52,5 +52,22 @@ export function appendCommitteeActivityFocusParams(
     event.entity_id
   ) {
     params.set("task", event.entity_id);
+    return;
+  }
+
+  if (
+    action === ACTIVITY_ACTIONS.COMMITTEE_PROJECT_CREATED &&
+    event.entity_type === "committee_project" &&
+    event.entity_id
+  ) {
+    params.set("project", event.entity_id);
+    return;
+  }
+
+  if (action === ACTIVITY_ACTIONS.COMMITTEE_PROJECT_SUPPLY_CREATED) {
+    const projectId = metadataString(activityMetadataRecord(event.metadata), "projectId");
+    if (projectId) {
+      params.set("project", projectId);
+    }
   }
 }

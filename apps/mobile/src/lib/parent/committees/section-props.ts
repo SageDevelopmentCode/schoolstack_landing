@@ -19,4 +19,5 @@ export type ParentCommitteeSectionProps = {
   initialEventId?: string | null;
   initialResourceId?: string | null;
   initialTaskId?: string | null;
+  initialProjectId?: string | null;
 };

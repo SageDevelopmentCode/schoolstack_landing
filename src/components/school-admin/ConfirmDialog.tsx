@@ -17,6 +17,7 @@ export type ConfirmDialogProps = {
   loading?: boolean;
   onConfirm: () => void;
   onClose: () => void;
+  confirmTestId?: string;
 };
 
 export default function ConfirmDialog({
@@ -30,6 +31,7 @@ export default function ConfirmDialog({
   loading = false,
   onConfirm,
   onClose,
+  confirmTestId,
 }: ConfirmDialogProps) {
   useEffect(() => {
     if (!open) return;
@@ -110,6 +112,7 @@ export default function ConfirmDialog({
                 disabled={loading}
                 className="flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-50"
                 style={confirmStyle}
+                data-testid={confirmTestId}
               >
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {confirmLabel}

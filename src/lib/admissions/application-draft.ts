@@ -143,15 +143,17 @@ export async function familyHasOtherApplications(
   organizationId: string,
   userId: string,
   excludeApplicationId: string,
+  familyIds?: string[],
 ): Promise<boolean> {
-  const familyIds = await getFamilyIdsForUser(supabase, userId, organizationId);
+  const resolvedFamilyIds =
+    familyIds ?? (await getFamilyIdsForUser(supabase, userId, organizationId));
 
   const { count, error } = await supabase
     .from("applications")
     .select("id", { count: "exact", head: true })
     .eq("organization_id", organizationId)
     .neq("id", excludeApplicationId)
-    .or(applicationOwnershipFilter(userId, familyIds));
+    .or(applicationOwnershipFilter(userId, resolvedFamilyIds));
 
   if (error) {
     throw new ApplicationDraftError(error.message, "load_failed");

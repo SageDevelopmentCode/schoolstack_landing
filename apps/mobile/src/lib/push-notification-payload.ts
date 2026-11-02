@@ -41,6 +41,13 @@ export type GalleryPushNotificationData = {
   uploadBatchId?: string;
 };
 
+export type NewsletterPushNotificationData = {
+  kind: 'newsletter';
+  portal: 'parent';
+  organizationSlug: string;
+  editionId: string;
+};
+
 export type AttendancePushNotificationData = {
   kind: 'attendance';
   portal: 'parent';
@@ -54,6 +61,7 @@ export type PushNotificationData =
   | CommitteePushNotificationData
   | BulletinPushNotificationData
   | GalleryPushNotificationData
+  | NewsletterPushNotificationData
   | AttendancePushNotificationData;
 
 function parsePushPortal(value: unknown): PushPortal | null {
@@ -139,6 +147,18 @@ export function parsePushNotificationData(
       portal: 'parent',
       organizationSlug,
       uploadBatchId,
+    };
+  }
+
+  if (kind === 'newsletter') {
+    if (data.portal !== 'parent') return null;
+    const editionId = data.editionId;
+    if (typeof editionId !== 'string' || !editionId.trim()) return null;
+    return {
+      kind: 'newsletter',
+      portal: 'parent',
+      organizationSlug,
+      editionId: editionId.trim(),
     };
   }
 

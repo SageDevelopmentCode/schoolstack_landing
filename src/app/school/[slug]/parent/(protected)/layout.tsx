@@ -3,9 +3,9 @@ import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import ParentAuthPage from "@/components/admissions/ParentAuthPage";
 import { getRequestUser } from "@/lib/auth/session";
-import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
+import { getCachedParentPortalEnrolledAccess } from "@/lib/parent-portal/parent-portal-server-cache";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -45,11 +45,7 @@ export default async function SchoolParentProtectedLayout({
     );
   }
 
-  const hasEnrolledAccess = await userHasEnrolledAccess(
-    supabase,
-    user.id,
-    org.id,
-  );
+  const hasEnrolledAccess = await getCachedParentPortalEnrolledAccess(org.id);
 
   if (!hasEnrolledAccess) {
     redirect(`/school/${slug}/apply`);

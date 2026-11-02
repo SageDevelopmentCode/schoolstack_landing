@@ -16,6 +16,7 @@ const CATEGORY_TONE: Record<CommitteeActivityItem["category"], AdminChipTone> = 
   Calendar: "warning",
   Messages: "info",
   Roles: "alert",
+  Projects: "success",
 };
 
 type CommitteeActivityFeedProps = {

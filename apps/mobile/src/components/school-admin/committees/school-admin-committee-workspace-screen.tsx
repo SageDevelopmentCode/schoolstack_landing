@@ -11,6 +11,7 @@ import { ParentCommitteeCalendarSection } from '@/components/parent/committees/s
 import { ParentCommitteeMessagesSection } from '@/components/parent/committees/sections/parent-committee-messages-section';
 import { ParentCommitteeResourcesSection } from '@/components/parent/committees/sections/parent-committee-resources-section';
 import { ParentCommitteeTasksSection } from '@/components/parent/committees/sections/parent-committee-tasks-section';
+import { CommitteeProjectsSection } from '@/components/committees/projects/committee-projects-section';
 import { SchoolAdminCommitteeAboutSection } from '@/components/school-admin/committees/school-admin-committee-about-section';
 import { SchoolAdminCommitteeActivitySection } from '@/components/school-admin/committees/school-admin-committee-activity-section';
 import { SchoolAdminCommitteeHomeSection } from '@/components/school-admin/committees/school-admin-committee-home-section';
@@ -27,12 +28,13 @@ import {
   isCommitteeWorkspaceLoadTimeoutError,
 } from '@/lib/school-admin/committees/committee-workspace-load';
 import { getCommittee } from '@/lib/school-admin/committees/queries';
+import { resolveSchoolAdminCommitteeNavSections } from '@/lib/committees/committee-workspace-nav-sections';
 import {
-  ADMIN_VISIBLE_SECTIONS,
   type Committee,
   type CommitteeWorkspaceSection,
 } from '@/lib/parent/parent-committees-types';
 import type { ParentCommitteeSectionProps } from '@/lib/parent/committees/section-props';
+import { usePortalPreview } from '@/lib/portal-preview-gating';
 import { Story, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
@@ -44,13 +46,15 @@ type SchoolAdminCommitteeWorkspaceScreenProps = {
   organizationId: string;
   committeeId: string;
   initialSection?: CommitteeWorkspaceSection;
+  initialProjectId?: string | null;
 };
 
 function resolveVisibleSection(
-  sections: CommitteeWorkspaceSection[],
+  configSections: CommitteeWorkspaceSection[],
   current: CommitteeWorkspaceSection,
+  preview: boolean,
 ): CommitteeWorkspaceSection {
-  const visible = sections.filter((section) => ADMIN_VISIBLE_SECTIONS.includes(section));
+  const visible = resolveSchoolAdminCommitteeNavSections(configSections, { preview });
   if (visible.includes(current)) return current;
   return visible[0] ?? 'home';
 }
@@ -60,8 +64,10 @@ export function SchoolAdminCommitteeWorkspaceScreen({
   organizationId,
   committeeId,
   initialSection = 'home',
+  initialProjectId,
 }: SchoolAdminCommitteeWorkspaceScreenProps) {
   const theme = useParentTheme();
+  const { isPreview } = usePortalPreview();
   const supabase = useMemo(() => getSupabaseClient(), []);
   const { reportError } = useMobileErrorReporter(organizationId);
   const { refresh: refreshCommitteesList } = useSchoolAdminCommittees();
@@ -89,10 +95,9 @@ export function SchoolAdminCommitteeWorkspaceScreen({
           );
           setCommittee(loaded);
           const sections = loaded.config.sections.filter(
-            (section): section is CommitteeWorkspaceSection =>
-              ADMIN_VISIBLE_SECTIONS.includes(section as CommitteeWorkspaceSection),
+            (section): section is CommitteeWorkspaceSection => section !== 'settings',
           );
-          setActiveSection((current) => resolveVisibleSection(sections, current));
+          setActiveSection((current) => resolveVisibleSection(sections, current, isPreview));
         } catch (loadError) {
           const operation = isCommitteeWorkspaceLoadTimeoutError(loadError)
             ? 'committees.load_workspace_timeout'
@@ -113,7 +118,7 @@ export function SchoolAdminCommitteeWorkspaceScreen({
         }
       });
     },
-    [committeeId, organizationId, reportError, slug, supabase],
+    [committeeId, isPreview, organizationId, reportError, slug, supabase],
   );
 
   useEffect(() => {
@@ -150,6 +155,7 @@ export function SchoolAdminCommitteeWorkspaceScreen({
         onRefresh,
         onNavigate: setActiveSection,
         onJoinRequestsChanged: handleJoinRequestsChanged,
+        initialProjectId,
       }
     : null;
 
@@ -183,6 +189,8 @@ export function SchoolAdminCommitteeWorkspaceScreen({
         return <ParentCommitteeCalendarSection {...sectionProps} />;
       case 'tasks':
         return <ParentCommitteeTasksSection {...sectionProps} />;
+      case 'projects':
+        return <CommitteeProjectsSection {...sectionProps} schoolSlug={slug} />;
       case 'members':
         return <SchoolAdminCommitteeMembersSection {...sectionProps} />;
       case 'activity':
@@ -199,6 +207,7 @@ export function SchoolAdminCommitteeWorkspaceScreen({
       <SchoolAdminCommitteeWorkspaceHeader
         committee={committee}
         activeSection={activeSection}
+        preview={isPreview}
         onSectionChange={setActiveSection}
       />
 

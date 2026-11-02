@@ -10,6 +10,7 @@ const MORE_MENU_FEATURE_TO_ITEM_ID: Record<MobileMoreMenuFeatureKey, ParentMoreM
   committees: 'committees',
   classroom_signups: 'classroom-signups',
   forms_documents: 'forms-documents',
+  newsletters: 'newsletters',
   friday_branch: 'friday-branch',
   notifications: 'notifications',
 };
@@ -64,6 +65,13 @@ export const PARENT_MORE_MENU_META: Record<
     icon: 'document-text-outline',
     iconBg: '#E2E8F0',
     iconColor: '#475569',
+  },
+  newsletters: {
+    label: 'Newsletters',
+    subtitle: 'Weekly school newsletters',
+    icon: 'newspaper-outline',
+    iconBg: '#E9F2EA',
+    iconColor: '#3D6B4F',
   },
   'friday-branch': {
     label: 'Friday Branch',

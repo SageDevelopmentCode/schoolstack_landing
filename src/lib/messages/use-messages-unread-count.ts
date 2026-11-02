@@ -2,13 +2,18 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useMessagesRefresh } from "@/lib/messages/messages-refresh-context";
+import { scheduleAfterFirstPaint } from "@/lib/schedule-after-first-paint";
 
 export function useMessagesUnreadCount(
   apiBasePath: string,
   organizationId: string,
   schoolName: string,
   enabled = true,
-  options?: { initialUnreadCount?: number; skipInitialFetch?: boolean },
+  options?: {
+    initialUnreadCount?: number;
+    skipInitialFetch?: boolean;
+    deferUntilIdle?: boolean;
+  },
 ) {
   const [unreadCount, setUnreadCount] = useState(options?.initialUnreadCount ?? 0);
   const messagesRefresh = useMessagesRefresh();
@@ -27,11 +32,21 @@ export function useMessagesUnreadCount(
   }, [apiBasePath, enabled, organizationId, schoolName]);
 
   useEffect(() => {
-    if (options?.skipInitialFetch) return;
+    if (options?.skipInitialFetch || !enabled) return;
+    if (options?.deferUntilIdle) {
+      return scheduleAfterFirstPaint(() => {
+        void fetchUnreadCount();
+      });
+    }
     queueMicrotask(() => {
       void fetchUnreadCount();
     });
-  }, [fetchUnreadCount, options?.skipInitialFetch]);
+  }, [
+    enabled,
+    fetchUnreadCount,
+    options?.deferUntilIdle,
+    options?.skipInitialFetch,
+  ]);
 
   useEffect(() => {
     if (!enabled || !messagesRefresh) return undefined;

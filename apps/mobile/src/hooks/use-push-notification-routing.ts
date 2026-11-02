@@ -9,11 +9,13 @@ import {
   type CommitteePushNotificationData,
   type GalleryPushNotificationData,
   type MessagePushNotificationData,
+  type NewsletterPushNotificationData,
   type PushNotificationData,
 } from '@/lib/push-notifications';
 import {
   parentBulletinDetailRoute,
   parentMoreRoute,
+  parentNewsletterEditionRoute,
   parentCommitteeWorkspaceRoute,
   parentMessageThreadRoute,
 } from '@/lib/parent/parent-nav';
@@ -82,6 +84,10 @@ function galleryRoute(data: GalleryPushNotificationData): Href | null {
   return parentMoreRoute(data.organizationSlug, 'photos');
 }
 
+function newsletterRoute(data: NewsletterPushNotificationData): Href | null {
+  return parentNewsletterEditionRoute(data.organizationSlug, data.editionId);
+}
+
 function attendanceRoute(_data: AttendancePushNotificationData): Href | null {
   return parentMoreRoute(_data.organizationSlug, 'attendance');
 }
@@ -96,6 +102,8 @@ function pushNotificationRoute(data: PushNotificationData): Href | null {
       return bulletinRoute(data);
     case 'gallery':
       return galleryRoute(data);
+    case 'newsletter':
+      return newsletterRoute(data);
     case 'attendance':
       return attendanceRoute(data);
     default:

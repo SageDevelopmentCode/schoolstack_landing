@@ -17,6 +17,15 @@ export function mudkitchenLogoUrlForExport(): string {
   return `${getRuntimeSiteUrl()}${MUDKITCHEN_LOGO_PATH}`;
 }
 
+/** Resolve branding or cover paths for exported HTML and WebView (about:blank base). */
+export function resolveNewsletterAbsoluteAssetUrl(src: string): string | undefined {
+  const trimmed = src.trim();
+  if (!trimmed) return undefined;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith("/")) return `${getRuntimeSiteUrl()}${trimmed}`;
+  return trimmed;
+}
+
 /** In-app preview: relative MudKitchen logo path is fine. */
 export function newsletterVisualBrandingForPreview(
   orgBranding: OrganizationBranding,
@@ -34,8 +43,12 @@ export function newsletterVisualBrandingForExport(
   orgBranding: OrganizationBranding,
 ): NewsletterVisualBranding {
   const preview = newsletterVisualBrandingForPreview(orgBranding);
+  const schoolLogoSrc = preview.schoolLogoSrc
+    ? resolveNewsletterAbsoluteAssetUrl(preview.schoolLogoSrc)
+    : undefined;
   return {
     ...preview,
+    schoolLogoSrc,
     mudkitchenLogoSrc: mudkitchenLogoUrlForExport(),
   };
 }

@@ -13,6 +13,7 @@ export default function SchoolAdminCommitteesLayout() {
       }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="[committeeId]" />
+      <Stack.Screen name="[committeeId]/project/[projectId]" />
     </Stack>
   );
 }

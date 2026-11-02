@@ -8,6 +8,7 @@ import {
   CalendarDays,
   CheckSquare,
   FileText,
+  FolderKanban,
   Home,
   MessageCircle,
   Settings,
@@ -38,6 +39,7 @@ const SECTION_ICONS: Record<CommitteeWorkspaceSection, LucideIcon> = {
   resources: FileText,
   calendar: CalendarDays,
   tasks: CheckSquare,
+  projects: FolderKanban,
   messages: MessageCircle,
   members: Users,
   activity: Activity,
@@ -45,6 +47,21 @@ const SECTION_ICONS: Record<CommitteeWorkspaceSection, LucideIcon> = {
 };
 
 const SECTION_ICON_CLASS = "h-3.5 w-3.5 shrink-0";
+
+function committeeProjectsNewBadge(theme: ParentThemeTokens, variant: "admin" | "parent") {
+  if (variant === "parent") {
+    return (
+      <ParentChip theme={theme} tone="success" className="!px-1.5 !py-0 text-[9px] uppercase">
+        New!
+      </ParentChip>
+    );
+  }
+  return (
+    <AdminChip theme={theme} tone="success" className="!px-1.5 !py-0 text-[9px] uppercase">
+      New!
+    </AdminChip>
+  );
+}
 
 type CommitteeWorkspaceSidePanelProps = {
   committee: Committee;
@@ -86,6 +103,8 @@ export function CommitteeWorkspaceSidePanel({
         key: section,
         label: COMMITTEE_SECTION_LABELS[section],
         icon: <Icon className={SECTION_ICON_CLASS} />,
+        suffix:
+          section === "projects" ? committeeProjectsNewBadge(theme, variant) : undefined,
       };
     });
 

@@ -21,6 +21,7 @@ import {
   updateApplicationForm,
   type ProgramOption,
 } from "@/lib/admissions/application-forms";
+import { revalidatePublishedApplyEntryCache } from "@/lib/admissions/revalidate-published-apply-entry";
 import {
   applySystemSchemaChanged,
   ensureApplySystemSchema,
@@ -261,6 +262,22 @@ function formatSupabaseError(err: unknown, fallback: string): string {
   if (sessionMessage) return sessionMessage;
   const parsed = parseOperationalError(err);
   return parsed.message === "Unknown error" ? fallback : parsed.message;
+}
+
+async function revalidatePublishedFormCache(
+  form: Pick<ApplicationFormVersion, "organization_id" | "public_slug" | "form_kind">,
+  previousPublicSlug?: string | null,
+) {
+  try {
+    await revalidatePublishedApplyEntryCache({
+      organizationId: form.organization_id,
+      publicSlug: form.public_slug,
+      previousPublicSlug,
+      formKind: form.form_kind,
+    });
+  } catch {
+    // The public page still refreshes when the short cache window expires.
+  }
 }
 
 function toEditableState(form: ApplicationFormVersion): EditableFormState {
@@ -1182,12 +1199,16 @@ export default function ApplicationFormsPage({
     setSaving(true);
     setError(null);
     try {
+      const previousSlug = selectedForm.public_slug;
       const updated = await updateApplicationForm(
         supabase,
         selectedForm.id,
         saveInput,
         { expectedUpdatedAt: selectedForm.updated_at },
       );
+      if (updated.status === "published") {
+        await revalidatePublishedFormCache(updated, previousSlug);
+      }
       setForms((prev) =>
         prev.map((f) => (f.id === updated.id ? updated : f)),
       );
@@ -1276,7 +1297,9 @@ export default function ApplicationFormsPage({
         );
         setForms((prev) => prev.map((f) => (f.id === saved.id ? saved : f)));
       }
+      const previousSlug = selectedForm.public_slug;
       const published = await publishForm(supabase, selectedForm.id);
+      await revalidatePublishedFormCache(published, previousSlug);
       const nextEditable = toEditableState(published);
       setEditable(nextEditable);
       setApplySavedSnapshot(serializeEditableFormState(nextEditable));
@@ -1313,7 +1336,9 @@ export default function ApplicationFormsPage({
     setUnpublishing(true);
     setError(null);
     try {
+      const previousSlug = selectedForm.public_slug;
       const unpublished = await unpublishForm(supabase, selectedForm.id);
+      await revalidatePublishedFormCache(unpublished, previousSlug);
       setForms((prev) =>
         prev.map((f) => (f.id === unpublished.id ? unpublished : f)),
       );

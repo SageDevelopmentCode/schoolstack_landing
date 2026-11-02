@@ -3,7 +3,7 @@
 import Link from "next/link";
 import StudentPhoto from "@/components/students/StudentPhoto";
 import { useCallback, useMemo, useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { ClipboardCheck, Sprout } from "lucide-react";
 import type { ParentSignupAttentionItem } from "@/lib/classroom-signups/types";
 import type { ParentPortalHomeMeta } from "@/lib/parent-portal/parent-portal-home-meta";
@@ -133,6 +133,18 @@ const fadeUp = {
   }),
 };
 
+function homeFadeProps(custom: number, reduceMotion: boolean) {
+  if (reduceMotion) {
+    return { initial: false as const, animate: "visible" as const };
+  }
+  return {
+    custom,
+    initial: "hidden" as const,
+    animate: "visible" as const,
+    variants: fadeUp,
+  };
+}
+
 function firstName(displayName: string): string {
   const part = displayName.trim().split(/\s+/).filter(Boolean)[0];
   return part ?? displayName;
@@ -232,13 +244,11 @@ function ChildStoryCard({
     previewBasePath ? `${previewBasePath}/parent` : undefined,
   );
   const isolatedPortalLabel = childIsolatedPortalLabel(child);
+  const reduceMotion = useReducedMotion() === true;
 
   return (
     <motion.div
-      custom={index + 4}
-      initial="hidden"
-      animate="visible"
-      variants={fadeUp}
+      {...homeFadeProps(index + 4, reduceMotion)}
       className="h-full"
     >
       <ParentCard theme={theme} className="relative flex h-full flex-col !p-6">
@@ -417,6 +427,7 @@ export default function ParentHomePage({
   }, []);
 
   const name = firstName(userProfile.displayName);
+  const reduceMotion = useReducedMotion() === true;
   const { prefix: greetingPrefix, emoji: greetingEmoji } = greetingParts();
   const calendarHref = previewBasePath
     ? `${previewBasePath}/parent/calendar`
@@ -476,13 +487,7 @@ export default function ParentHomePage({
 
   const homeMainContent = (
     <>
-        <motion.header
-          custom={0}
-          initial="hidden"
-          animate="visible"
-          variants={fadeUp}
-          className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end sm:gap-5"
-        >
+        <header className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end sm:gap-5">
           <div>
             <div className="mb-2 flex items-center gap-2">
               <ParentSectionKicker theme={theme} className="!mb-0">
@@ -516,10 +521,10 @@ export default function ParentHomePage({
               bulletinPosts={bulletinPosts}
             />
           </div>
-        </motion.header>
+        </header>
 
         <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-[1.45fr_0.85fr]">
-          <motion.div custom={1} initial="hidden" animate="visible" variants={fadeUp}>
+          <motion.div {...homeFadeProps(1, reduceMotion)}>
             <ParentCard theme={theme} variant="today" className="relative">
               <ParentSectionKicker theme={theme}>Start here</ParentSectionKicker>
               {contentDeferred ? (
@@ -595,7 +600,7 @@ export default function ParentHomePage({
             </ParentCard>
           </motion.div>
 
-          <motion.aside custom={2} initial="hidden" animate="visible" variants={fadeUp}>
+          <motion.aside {...homeFadeProps(2, reduceMotion)}>
             <ParentCard theme={theme} variant="primary" className="h-full">
               <ParentSectionKicker theme={theme} light>
                 Upcoming events
@@ -632,7 +637,7 @@ export default function ParentHomePage({
         </div>
 
         {previewShowCommunicationCards ? (
-          <motion.div custom={3} initial="hidden" animate="visible" variants={fadeUp}>
+          <motion.div {...homeFadeProps(3, reduceMotion)}>
             <PortalHomeSchoolUpdatesCard
               theme={theme}
               bulletinEnabled={bulletinEnabled}
@@ -642,7 +647,7 @@ export default function ParentHomePage({
             />
           </motion.div>
         ) : coopModeEnabled && !bulletinEnabled && messagesHref ? (
-          <motion.div custom={3} initial="hidden" animate="visible" variants={fadeUp}>
+          <motion.div {...homeFadeProps(3, reduceMotion)}>
             <PortalHomeSchoolUpdatesCard
               theme={theme}
               bulletinEnabled={false}
@@ -653,12 +658,7 @@ export default function ParentHomePage({
           </motion.div>
         ) : null}
 
-        <motion.section
-          custom={4}
-          initial="hidden"
-          animate="visible"
-          variants={fadeUp}
-        >
+        <motion.section {...homeFadeProps(4, reduceMotion)}>
           <h3
             className="mb-3.5 font-heading text-2xl font-semibold tracking-[-0.03em]"
             style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
@@ -706,12 +706,7 @@ export default function ParentHomePage({
         </motion.section>
 
         {formSnapshot ? (
-          <motion.section
-            custom={4}
-            initial="hidden"
-            animate="visible"
-            variants={fadeUp}
-          >
+          <motion.section {...homeFadeProps(4, reduceMotion)}>
             <ParentHomeFormsSnapshotSection theme={theme} snapshot={formSnapshot} />
           </motion.section>
         ) : contentDeferred && formsFeatureEnabled ? (
@@ -719,7 +714,7 @@ export default function ParentHomePage({
         ) : null}
 
         {fridayBranchHomeEnabled && organizationId ? (
-          <motion.div custom={5} initial="hidden" animate="visible" variants={fadeUp}>
+          <motion.div {...homeFadeProps(5, reduceMotion)}>
             {contentDeferred ? (
               <ParentHomeFridayBranchSkeleton theme={theme} />
             ) : fridayBranchHome && fridayBranchHome.blocks.length > 0 ? (
@@ -751,12 +746,7 @@ export default function ParentHomePage({
         ) : null}
 
         {featureAnnouncements.length > 0 ? (
-          <motion.section
-            custom={5}
-            initial="hidden"
-            animate="visible"
-            variants={fadeUp}
-          >
+          <motion.section {...homeFadeProps(5, reduceMotion)}>
             <ParentHomeFeatureAnnouncementsSection
               theme={theme}
               announcements={featureAnnouncements}
@@ -765,12 +755,7 @@ export default function ParentHomePage({
         ) : null}
 
         {howToGuides.length > 0 ? (
-          <motion.section
-            custom={6}
-            initial="hidden"
-            animate="visible"
-            variants={fadeUp}
-          >
+          <motion.section {...homeFadeProps(6, reduceMotion)}>
             <ParentHomeHowToGuidesSection
               theme={theme}
               documentationHref={documentationHref}
