@@ -8,7 +8,9 @@ import { editionHasContent } from "./newsletter-render";
 import { NewsletterError } from "./newsletter-errors";
 
 export { NewsletterError } from "./newsletter-errors";
+import { reportOperationalError } from "@/lib/operational-errors";
 import {
+  assertNewsletterPhotoCaptionLimits,
   MAX_NEWSLETTER_EVENTS,
   MAX_NEWSLETTER_PHOTOS,
   MAX_NEWSLETTER_REMINDERS,
@@ -120,6 +122,7 @@ function validateEditionPayload(edition: NewsletterEdition): void {
   if (edition.photos.length > MAX_NEWSLETTER_PHOTOS) {
     throw new NewsletterError("Too many photos for this newsletter.", "limit_photos", 400);
   }
+  assertNewsletterPhotoCaptionLimits(edition);
 }
 
 async function uploadCoverFromDataUrl(
@@ -546,10 +549,87 @@ export async function upsertNewsletterTemplate(
   return normalized;
 }
 
+export type PublishedNewsletterSummary = {
+  id: string;
+  title: string;
+  week: string;
+  weekEnd?: string;
+  publishedAt?: string;
+  coverImage?: string;
+  coverGalleryPhotoId?: string;
+};
+
+export async function listPublishedNewsletterEditions(
+  admin: SupabaseClient,
+  organizationId: string,
+): Promise<PublishedNewsletterSummary[]> {
+  const { data, error } = await admin
+    .from("school_newsletter_editions")
+    .select(EDITION_SELECT)
+    .eq("organization_id", organizationId)
+    .eq("status", "published")
+    .order("published_at", { ascending: false });
+
+  if (error) throw error;
+
+  const rows = (data ?? []) as EditionRow[];
+  return Promise.all(
+    rows.map(async (row) => {
+      const edition = await rowToEdition(admin, row);
+      return {
+        id: edition.id,
+        title: edition.title,
+        week: edition.week,
+        weekEnd: edition.weekEnd,
+        publishedAt: edition.publishedAt,
+        coverImage: edition.coverImage,
+        coverGalleryPhotoId: edition.coverGalleryPhotoId,
+      };
+    }),
+  );
+}
+
+export async function loadPublishedNewsletterEdition(
+  admin: SupabaseClient,
+  organizationId: string,
+  editionId: string,
+): Promise<NewsletterEdition | null> {
+  const { data, error } = await admin
+    .from("school_newsletter_editions")
+    .select(EDITION_SELECT)
+    .eq("organization_id", organizationId)
+    .eq("id", editionId)
+    .eq("status", "published")
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+  return rowToEdition(admin, data as EditionRow);
+}
+
+export async function loadNewsletterTemplateForOrganization(
+  admin: SupabaseClient,
+  organizationId: string,
+): Promise<NewsletterSchoolTemplate> {
+  const { data: templateRow, error } = await admin
+    .from("school_newsletter_templates")
+    .select("template")
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return normalizeTemplate(templateRow?.template);
+}
+
+export type PublishNewsletterEditionOptions = {
+  notifyFamilies?: boolean;
+};
+
 export async function publishNewsletterEdition(
   admin: SupabaseClient,
   organizationId: string,
   editionId: string,
+  options: PublishNewsletterEditionOptions = {},
 ): Promise<NewsletterEdition> {
   const { data: existingRow, error: loadError } = await admin
     .from("school_newsletter_editions")
@@ -592,7 +672,36 @@ export async function publishNewsletterEdition(
     .single();
 
   if (error) throw error;
-  return rowToEdition(admin, data as EditionRow);
+  const published = await rowToEdition(admin, data as EditionRow);
+
+  if (options.notifyFamilies) {
+    const { sendNewsletterPublishedNotifications } = await import(
+      "./newsletter-notifications"
+    );
+    try {
+      await sendNewsletterPublishedNotifications(admin, {
+        organizationId,
+        edition: published,
+      });
+    } catch (err) {
+      void reportOperationalError({
+        supabase: admin,
+        surface: "school_admin",
+        organizationId,
+        operation: "newsletter.published.notifications",
+        error:
+          err instanceof Error
+            ? err.message
+            : "Failed to send newsletter published notifications.",
+        entityType: "school_newsletter_edition",
+        entityId: editionId,
+        actor: { type: "system" },
+        cause: err,
+      });
+    }
+  }
+
+  return published;
 }
 
 export async function deleteNewsletterEdition(

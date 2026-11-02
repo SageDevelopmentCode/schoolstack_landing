@@ -68,6 +68,7 @@ export type ParentPortalHomeApiPayload = {
   formSnapshot: ParentFormHomeSnapshot | null;
   bulletinEnabled: boolean;
   schoolGalleryEnabled: boolean;
+  parentNewslettersEnabled: boolean;
   bulletinPosts: BulletinPost[];
   fridayBranchHome: ParentFridayBranchPageBundle | null;
   fridayBranchParentPortalPaused: boolean;
@@ -294,6 +295,7 @@ export async function loadParentPortalHomeApiPayload(input: {
   const organizationId = org.id;
   const bulletinEnabled = Boolean(org.features.admin?.bulletin);
   const schoolGalleryEnabled = isSchoolGalleryEnabled(org.features);
+  const parentNewslettersEnabled = isParentFeatureEnabled(org.features, "newsletters");
   const admin = createAdminClient();
   const hasProgramSlug = Boolean(input.programSlug?.trim());
 
@@ -365,6 +367,7 @@ export async function loadParentPortalHomeApiPayload(input: {
       formSnapshot: contentData?.formSnapshot ?? null,
       bulletinEnabled,
       schoolGalleryEnabled,
+      parentNewslettersEnabled,
       bulletinPosts,
       fridayBranchHome: contentData?.fridayBranchHome ?? null,
       fridayBranchParentPortalPaused: org.fridayBranchSettings.parent_portal_paused,
@@ -440,6 +443,7 @@ export async function loadParentPortalHomeApiPayload(input: {
     formSnapshot: contentData?.formSnapshot ?? null,
     bulletinEnabled,
     schoolGalleryEnabled,
+    parentNewslettersEnabled: isParentFeatureEnabled(features, "newsletters"),
     bulletinPosts,
     fridayBranchHome: contentData?.fridayBranchHome ?? null,
     fridayBranchParentPortalPaused: org.fridayBranchSettings.parent_portal_paused,

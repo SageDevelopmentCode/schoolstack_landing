@@ -82,8 +82,7 @@ export default function NewsletterOverviewPage({
               Newsletters
             </AdminDisplayHeading>
             <p className="mt-2 text-[11px] leading-relaxed" style={{ color: theme.muted }}>
-              Drafts are stored in MudKitchen when you click Save in the editor. Publishing records the edition here only — it
-              does not email families or appear in the parent portal yet.
+              Drafts are stored in MudKitchen when you click Save in the editor. Publishing makes the edition available in the parent portal; you can optionally notify families by email and push.
             </p>
           </div>
           <div className={styles.headingActions}>

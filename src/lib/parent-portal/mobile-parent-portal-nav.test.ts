@@ -125,7 +125,17 @@ describe("mobile-parent-portal-nav", () => {
     assert.equal(moreKeys.includes("children"), true);
     assert.equal(moreKeys.includes("committees"), true);
     assert.equal(moreKeys.includes("attendance"), true);
+    assert.equal(moreKeys.includes("newsletters"), true);
     assert.equal(moreKeys.includes("notifications"), true);
+  });
+
+  it("includes newsletters in More menu by default", () => {
+    assert.equal(DEFAULT_FEATURES.parent.newsletters, true);
+    const moreKeys = resolveMobileMoreMenuFeatureKeys({
+      mode: "main",
+      parentFeatures: DEFAULT_FEATURES.parent,
+    });
+    assert.equal(moreKeys.includes("newsletters"), true);
   });
 
   it("always includes notifications in More menu without a parent feature flag", () => {

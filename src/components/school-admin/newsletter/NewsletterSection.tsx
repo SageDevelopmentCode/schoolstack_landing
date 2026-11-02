@@ -18,6 +18,7 @@ import type {
 import {
   applyNewsletterSaveResultToLiveWorkspace,
   buildSavedBaselineAfterNewsletterSave,
+  mergeNewsletterEditionDisplayAfterSave,
   workspaceStatesEqual,
 } from "@/lib/school-admin/newsletter/newsletter-save-merge";
 import {
@@ -165,13 +166,18 @@ export default function NewsletterSection({
       );
       if (generation !== saveGenerationRef.current) return;
 
+      const mergedEdition = mergeNewsletterEditionDisplayAfterSave(
+        submittedEdition,
+        result.edition,
+      );
+
       const live = workspaceRef.current;
       const displayWorkspace = applyNewsletterSaveResultToLiveWorkspace({
         live,
         submittedEdition,
         submittedTemplate,
         savedEditionId: editionId,
-        resultEdition: result.edition,
+        resultEdition: mergedEdition,
         resultTemplate: result.template,
       });
       syncSavedBaseline(
@@ -179,7 +185,7 @@ export default function NewsletterSection({
           savedWorkspaceRef.current,
           live,
           editionId,
-          result.edition,
+          mergedEdition,
           result.template,
         ),
       );

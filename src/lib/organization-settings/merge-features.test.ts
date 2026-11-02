@@ -29,4 +29,12 @@ describe("mergeFeatures parent committees sync", () => {
 
     assert.equal(merged.parent.committees, false);
   });
+
+  it("defaults parent newsletters on when absent from stored settings", () => {
+    const merged = mergeFeatures({
+      parent: { portal: true },
+    });
+
+    assert.equal(merged.parent.newsletters, true);
+  });
 });

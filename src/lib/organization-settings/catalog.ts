@@ -88,6 +88,7 @@ export const DEFAULT_FEATURES: OrganizationFeatures = {
     committees: false,
     classroom_signups: true,
     forms_documents: true,
+    newsletters: true,
     curriculum: false,
     supply_list: false,
     teaching_schedule: false,
@@ -194,6 +195,7 @@ export const FEATURE_CATALOG: FeatureDef[] = [
   { portal: "parent", key: "children", label: "My children", description: "Child profiles and details" },
   { portal: "parent", key: "classroom_signups", label: "Classroom signups", description: "Respond to teacher volunteer requests" },
   { portal: "parent", key: "forms_documents", label: "Forms & Documents", description: "View and sign forms from your child's teachers" },
+  { portal: "parent", key: "newsletters", label: "Newsletters", description: "Weekly school newsletters from your admin" },
   { portal: "parent", key: "committees", label: "Committees", description: "Volunteer committee participation" },
   {
     portal: "parent",

@@ -22,6 +22,7 @@ const CATALOG_PAGE_LABELS: Record<string, string> = {
   classroom_signups: 'Classroom signups',
   forms_documents: 'Forms & Documents',
   committees: 'Committees',
+  newsletters: 'Newsletters',
   friday_branch: 'Friday Branch',
   curriculum: 'Curriculum',
   supply_list: 'Supply list',
@@ -40,6 +41,7 @@ const DEFAULT_PARENT_FEATURE_ORDER = [
   'children',
   'classroom_signups',
   'forms_documents',
+  'newsletters',
   'committees',
   'friday_branch',
   'curriculum',
@@ -66,6 +68,7 @@ export const MOBILE_MORE_MENU_FEATURE_KEYS = [
   'committees',
   'classroom_signups',
   'forms_documents',
+  'newsletters',
   'friday_branch',
   'notifications',
 ] as const;

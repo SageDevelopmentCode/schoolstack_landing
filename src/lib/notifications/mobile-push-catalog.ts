@@ -11,6 +11,7 @@ export const MOBILE_PUSH_NOTIFICATION_KINDS = [
   "committee.workspace_task",
   "bulletin.published",
   "gallery.photos_uploaded",
+  "newsletter.published",
   "attendance.present",
   "attendance.pickup",
 ] as const;
@@ -106,6 +107,14 @@ export const MOBILE_PUSH_CATALOG: MobilePushCatalogEntry[] = [
     description:
       "Sent to enrolled families when staff upload photos to the school gallery (web or mobile). Opens the Photos area in the parent mobile app (payload kind: gallery).",
     channel: "gallery",
+    recipientPortals: ["parent"],
+  },
+  {
+    kind: "newsletter.published",
+    label: "Newsletter published",
+    description:
+      "Sent to enrolled families when staff publish a weekly newsletter with notifications enabled. Opens the newsletter in the parent mobile app (payload kind: newsletter).",
+    channel: "bulletin",
     recipientPortals: ["parent"],
   },
   {

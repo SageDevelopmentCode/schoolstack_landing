@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
 
+import { CommitteeProjectDetailSkeleton } from '@/components/committees/projects/committee-project-detail-skeleton';
 import { CommitteeProjectDetailScreen } from '@/components/committees/projects/committee-project-detail-screen';
-import { useParentTheme } from '@/contexts/parent-theme-context';
 import { usePortalPreview } from '@/lib/portal-preview-gating';
 import type { CommitteePortalApiNamespace } from '@/lib/committees/notify-committee-task-assignment';
 import { mapMemberRow } from '@/lib/school-admin/committees/mappers';
 import type { CommitteeMember } from '@/lib/parent/parent-committees-types';
-import { Story } from '@/constants/story-theme';
 import { getSupabaseClient } from '@/lib/supabase';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
@@ -26,7 +24,6 @@ export function CommitteeProjectDetailLoader({
   portalApiNamespace,
   currentMemberId,
 }: CommitteeProjectDetailLoaderProps) {
-  const theme = useParentTheme();
   const { isPreview } = usePortalPreview();
   const { reportError } = useMobileErrorReporter(organizationId);
   const supabase = useMemo(() => getSupabaseClient(), []);
@@ -96,11 +93,7 @@ export function CommitteeProjectDetailLoader({
       : isPreview || !resolvedMemberId;
 
   if (loadingMembers) {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Story.paper }}>
-        <ActivityIndicator color={theme.primary} />
-      </View>
-    );
+    return <CommitteeProjectDetailSkeleton />;
   }
 
   return (

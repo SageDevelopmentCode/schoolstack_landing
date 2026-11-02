@@ -74,6 +74,7 @@ export type ParentMoreMenuItemId =
   | 'committees'
   | 'classroom-signups'
   | 'forms-documents'
+  | 'newsletters'
   | 'friday-branch'
   | 'notifications'
   | 'photos'
@@ -137,6 +138,14 @@ export function parentClassroomSignupDetailRoute(slug: string, signupId: string)
 
 export function parentFormsDocumentsRoute(slug: string): Href {
   return parentMoreRoute(slug, 'forms-documents');
+}
+
+export function parentNewslettersRoute(slug: string): Href {
+  return parentMoreRoute(slug, 'newsletters');
+}
+
+export function parentNewsletterEditionRoute(slug: string, editionId: string): Href {
+  return `/parent/${slug}/more/newsletters/${encodeURIComponent(editionId)}` as Href;
 }
 
 export function parentFridayBranchRoute(slug: string): Href {
@@ -271,6 +280,7 @@ const FEATURE_ROUTE_MAP: Record<string, (slug: string) => Href> = {
   committees: (slug) => parentMoreRoute(slug, 'committees'),
   classroom_signups: (slug) => parentMoreRoute(slug, 'classroom-signups'),
   forms_documents: (slug) => parentFormsDocumentsRoute(slug),
+  newsletters: (slug) => parentNewslettersRoute(slug),
   friday_branch: (slug) => parentMoreRoute(slug, 'friday-branch'),
   notifications: (slug) => parentMoreRoute(slug, 'notifications'),
   photos: (slug) => parentMoreRoute(slug, 'photos'),
@@ -282,6 +292,7 @@ const PARENT_MORE_FEATURE_TO_MENU_ITEM: Record<string, ParentMoreMenuItemId> = {
   committees: 'committees',
   classroom_signups: 'classroom-signups',
   forms_documents: 'forms-documents',
+  newsletters: 'newsletters',
   friday_branch: 'friday-branch',
   notifications: 'notifications',
   photos: 'photos',

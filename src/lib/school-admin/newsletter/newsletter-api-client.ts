@@ -102,12 +102,15 @@ export async function saveNewsletterTemplateApi(
 export async function publishNewsletterEditionApi(
   slug: string,
   editionId: string,
+  notifyFamilies: boolean,
 ): Promise<NewsletterEdition> {
   const response = await fetch(
     `/api/school/${slug}/newsletters/editions/${editionId}/publish`,
     {
       method: "POST",
       credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notifyFamilies }),
     },
   );
   const data = await readJson<{ edition: NewsletterEdition }>(response);

@@ -1,19 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+import { CommitteeProjectDetailSkeleton } from '@/components/committees/projects/committee-project-detail-skeleton';
 import { CommitteeProjectDetailsSection } from '@/components/committees/projects/committee-project-details-section';
 import { CommitteeProjectSupplyListSection } from '@/components/committees/projects/committee-project-supply-list-section';
+import { StoryPillNav } from '@/components/story/story-pill-nav';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import {
   committeeProjectDisplayName,
@@ -54,7 +54,6 @@ export function CommitteeProjectDetailScreen({
 }: CommitteeProjectDetailScreenProps) {
   const theme = useParentTheme();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { reportError } = useMobileErrorReporter(organizationId);
 
   const [project, setProject] = useState<CommitteeProject | null>(null);
@@ -81,21 +80,8 @@ export function CommitteeProjectDetailScreen({
     void loadProject();
   }, [loadProject]);
 
-  const tabs = useMemo(
-    () =>
-      [
-        { id: 'supply_list' as const, label: 'Supply list' },
-        { id: 'details' as const, label: 'Details' },
-      ] as const,
-    [],
-  );
-
   if (loading) {
-    return (
-      <View style={[styles.centered, { backgroundColor: Story.paper }]}>
-        <ActivityIndicator color={theme.primary} />
-      </View>
-    );
+    return <CommitteeProjectDetailSkeleton />;
   }
 
   if (!project) {
@@ -107,7 +93,7 @@ export function CommitteeProjectDetailScreen({
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: Story.paper, paddingTop: insets.top }]}>
+    <View style={[styles.container, { backgroundColor: Story.paper }]}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={8}>
           <Ionicons name="chevron-back" size={22} color={theme.muted} />
@@ -116,25 +102,17 @@ export function CommitteeProjectDetailScreen({
         <Text style={[styles.title, { color: theme.ink }]}>
           {committeeProjectDisplayName(project)}
         </Text>
-        <View style={styles.tabRow}>
-          {tabs.map((tab) => {
-            const selected = activeTab === tab.id;
-            return (
-              <Pressable
-                key={tab.id}
-                onPress={() => setActiveTab(tab.id)}
-                style={[
-                  styles.tab,
-                  {
-                    borderColor: selected ? theme.primary : theme.line,
-                    backgroundColor: selected ? theme.primarySoft : theme.white,
-                  },
-                ]}>
-                <Text style={[styles.tabLabel, { color: theme.ink }]}>{tab.label}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <StoryPillNav
+          fullWidth
+          size="compact"
+          items={[
+            { key: 'supply_list', label: 'Supply list' },
+            { key: 'details', label: 'Details' },
+          ]}
+          activeKey={activeTab}
+          onChange={(key) => setActiveTab(key as DetailTab)}
+          accessibilityLabel="Project sections"
+        />
       </View>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -178,6 +156,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    paddingTop: Spacing.two,
     paddingBottom: Spacing.three,
     gap: Spacing.two,
   },
@@ -193,21 +172,6 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: StoryFonts.display,
     fontSize: 22,
-    fontWeight: '600',
-  },
-  tabRow: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
-  tab: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.one,
-  },
-  tabLabel: {
-    fontFamily: StoryFonts.body,
-    fontSize: 13,
     fontWeight: '600',
   },
   scrollContent: {

@@ -3,6 +3,7 @@ import {
   type BuildContentOptions,
 } from "./newsletter-render";
 import type { NewsletterEdition, NewsletterSchoolMeta } from "./newsletter-types";
+import { getRuntimeSiteUrl } from "@/lib/site";
 
 const EXPORT_STYLE_SNIPPET = `
 body{padding:24px 14px;background:#F8F8F3;font-family:'DM Sans',sans-serif}
@@ -31,6 +32,14 @@ body{padding:24px 14px;background:#F8F8F3;font-family:'DM Sans',sans-serif}
 .n-footer-mk{margin-top:14px;padding-top:14px;border-top:1px solid #E4E8E1}
 .n-footer-mk a{display:inline-flex;align-items:center;gap:7px;color:#7B8D7A;text-decoration:none;font-size:9px;font-weight:600}
 .n-logo-mk-footer{height:20px;width:auto}
+.n-photos{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.n-photos figure{margin:0}
+.n-photos img{width:100%;height:175px;object-fit:cover;display:block;border-radius:11px}
+.n-photos figcaption{font-size:9px;color:#7B8D7A;line-height:1.8;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:640px){
+body{padding:0}
+.newsletter{max-width:100%;border-radius:0;border:none}
+}
 `;
 
 export function buildExportHtmlDocument(
@@ -40,7 +49,8 @@ export function buildExportHtmlDocument(
 ): string {
   const article = buildNewsletterArticleHtml(edition, school, options);
   const title = edition.title.trim() || "Newsletter";
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@500;600&display=swap" rel="stylesheet"><style>${EXPORT_STYLE_SNIPPET}</style></head><body>${article}</body></html>`;
+  const baseHref = `${getRuntimeSiteUrl()}/`;
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="${baseHref}"><title>${title}</title><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@500;600&display=swap" rel="stylesheet"><style>${EXPORT_STYLE_SNIPPET}</style></head><body>${article}</body></html>`;
 }
 
 export function downloadFile(content: string, mime: string, filename: string) {

@@ -4021,6 +4021,69 @@ export async function sendBulletinPublishedEmail(payload: {
   return { ok: true };
 }
 
+export function buildNewsletterPublishedEmailHtml(payload: {
+  schoolName: string;
+  editionTitle: string;
+  weekLabel: string;
+  newsletterUrl: string;
+}): string {
+  const absoluteUrl = payload.newsletterUrl.startsWith("http")
+    ? payload.newsletterUrl
+    : `${getRuntimeSiteUrl()}${payload.newsletterUrl}`;
+
+  const details: { label: string; value: string }[] = [
+    { label: "School", value: payload.schoolName },
+    { label: "Newsletter", value: payload.editionTitle },
+    { label: "Week", value: payload.weekLabel },
+  ];
+
+  return composeEmail({
+    preheader: `${payload.schoolName} published a newsletter for ${payload.weekLabel}`,
+    contentHtml: `
+      ${emailBadge("Newsletter")}
+      ${emailHeading(`New newsletter from ${escapeHtml(payload.schoolName)}`)}
+      ${emailParagraph(
+        `Your school published <strong>${escapeHtml(payload.editionTitle)}</strong> for ${escapeHtml(payload.weekLabel)}.`,
+      )}
+      ${emailDetailCard(details)}
+      ${emailCta({ label: "Read newsletter", href: absoluteUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendNewsletterPublishedEmail(payload: {
+  to: string;
+  schoolName: string;
+  editionTitle: string;
+  weekLabel: string;
+  newsletterUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
+
+  const html = buildNewsletterPublishedEmailHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.to,
+    subject: `New newsletter — ${payload.schoolName}`,
+    content: html,
+    discord: schoolOutboundDiscord(
+      "school_newsletter_published",
+      "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
+  });
+
+  if (!result.success) {
+    return { ok: false };
+  }
+
+  return { ok: true };
+}
+
 export function buildGalleryPhotosUploadedEmailHtml(payload: {
   schoolName: string;
   uploaderName: string;

@@ -363,6 +363,7 @@ const PARENT_ICON_DEFAULTS: Record<string, string> = {
   committees: "heart",
   classroom_signups: "clipboard-list",
   forms_documents: "file-text",
+  newsletters: "book-open",
   curriculum: "book-open",
   supply_list: "clipboard-list",
   teaching_schedule: "calendar-days",

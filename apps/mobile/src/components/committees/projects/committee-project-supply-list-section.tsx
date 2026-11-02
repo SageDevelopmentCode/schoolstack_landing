@@ -2,9 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CommitteeProjectSupplyItemSheet } from '@/components/committees/projects/committee-project-supply-item-sheet';
-import { StoryButton } from '@/components/story/story-button';
+import { CommitteeProjectSupplyListSkeleton } from '@/components/committees/projects/committee-project-supply-list-skeleton';
+import { StoryCard } from '@/components/story/story-card';
 import { StoryChip } from '@/components/story/story-chip';
-import { StoryDetailSection } from '@/components/school-admin/admissions/story-detail-section';
+import { StorySectionKicker } from '@/components/story/story-section-kicker';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { committeeMembersToProjectOptions } from '@/lib/committees/committee-project-members';
 import {
@@ -24,7 +25,7 @@ import {
   type CoopSupplyListItem,
 } from '@/lib/committees/committee-supply-types';
 import type { CommitteeMember } from '@/lib/parent/parent-committees-types';
-import { StoryFonts } from '@/constants/story-theme';
+import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Radius, Spacing } from '@/constants/theme';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
@@ -146,14 +147,25 @@ export function CommitteeProjectSupplyListSection({
 
   return (
     <>
-      <StoryDetailSection title="Supply list">
-        {!readOnly ? (
-          <View style={styles.addButton}>
-            <StoryButton label="Add supply item" onPress={openCreate} />
-          </View>
-        ) : null}
+      <StoryCard compact style={styles.card}>
+        <View style={styles.headerRow}>
+          <StorySectionKicker style={styles.kicker}>Supply list</StorySectionKicker>
+          {!readOnly ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Add supply item"
+              onPress={openCreate}
+              hitSlop={8}
+              style={({ pressed }) => [
+                styles.addAction,
+                pressed && { opacity: 0.7 },
+              ]}>
+              <Text style={[styles.addActionLabel, { color: theme.primary }]}>Add item</Text>
+            </Pressable>
+          ) : null}
+        </View>
         {loading ? (
-          <Text style={[styles.empty, { color: theme.muted }]}>Loading…</Text>
+          <CommitteeProjectSupplyListSkeleton showAddButton={false} />
         ) : items.length === 0 ? (
           <Text style={[styles.empty, { color: theme.muted }]}>No supply items yet.</Text>
         ) : (
@@ -183,7 +195,7 @@ export function CommitteeProjectSupplyListSection({
             ))}
           </View>
         )}
-      </StoryDetailSection>
+      </StoryCard>
 
       <CommitteeProjectSupplyItemSheet
         visible={sheetMode !== null && selectedItem !== null}
@@ -201,8 +213,30 @@ export function CommitteeProjectSupplyListSection({
 }
 
 const styles = StyleSheet.create({
-  addButton: {
-    marginBottom: Spacing.three,
+  card: {
+    padding: StoryCardPadding,
+    gap: Spacing.two,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+    minHeight: 44,
+  },
+  kicker: {
+    marginBottom: 0,
+    flex: 1,
+  },
+  addAction: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.one,
+  },
+  addActionLabel: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
+    fontWeight: '600',
   },
   empty: {
     fontFamily: StoryFonts.body,

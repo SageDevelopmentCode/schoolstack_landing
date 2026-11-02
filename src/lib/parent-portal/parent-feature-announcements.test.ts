@@ -54,6 +54,7 @@ const ALL_PARENT_FEATURES_ENABLED: OrganizationFeatures = {
     supply_list: true,
     teaching_schedule: true,
     friday_branch: true,
+    newsletters: true,
   },
 };
 

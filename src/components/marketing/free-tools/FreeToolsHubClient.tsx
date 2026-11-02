@@ -1,6 +1,5 @@
 import FreeToolsHero from "@/components/marketing/free-tools/FreeToolsHero";
-import FreeToolsGrid from "@/components/marketing/free-tools/FreeToolsGrid";
-import FreeToolsFaqSection from "@/components/marketing/free-tools/FreeToolsFaqSection";
+import FreeToolsHubToolsPanel from "@/components/marketing/free-tools/FreeToolsHubToolsPanel";
 import FreeToolsProductCta from "@/components/marketing/free-tools/FreeToolsProductCta";
 
 export default function FreeToolsHubClient() {
@@ -11,10 +10,9 @@ export default function FreeToolsHubClient() {
       </section>
 
       <section id="tools" className="scroll-mt-24">
-        <FreeToolsGrid />
+        <FreeToolsHubToolsPanel />
       </section>
 
-      <FreeToolsFaqSection />
       <FreeToolsProductCta />
     </>
   );

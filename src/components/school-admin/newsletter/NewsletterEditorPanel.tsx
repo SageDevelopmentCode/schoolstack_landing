@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, ImageIcon, Images, Pencil, Trash2 } from "lucide-react";
+import { Calendar, ImageIcon, Images, Pencil, Trash2, X } from "lucide-react";
 import { useRef } from "react";
 import { prepareNewsletterImageFileForUpload } from "@/lib/school-admin/newsletter/newsletter-photos";
 import SchoolAdminDatePicker, {
@@ -22,7 +22,10 @@ import {
   MAX_ENABLED_STORY_BLOCKS,
   MAX_NEWSLETTER_EVENTS,
   MAX_NEWSLETTER_PHOTOS,
+  MAX_NEWSLETTER_PHOTO_CAPTION_LENGTH,
   MAX_NEWSLETTER_REMINDERS,
+  NEWSLETTER_PHOTO_CAPTION_COUNT_SHOW_AT,
+  newsletterPhotoCaptionLimitMessage,
 } from "@/lib/school-admin/newsletter/newsletter-limits";
 import {
   createNewsletterId,
@@ -330,6 +333,7 @@ function StoryTab({
               <>
                 <div className={styles.coverPreview}>
                   <NewsletterMediaImage
+                    instanceKey="cover"
                     src={edition.coverImage}
                     alt=""
                     className="h-full w-full"
@@ -801,6 +805,7 @@ function PhotosTab({
       ) : (
         <p className={styles.helper}>JPG or PNG from your device, or pick from the school library.</p>
       )}
+      <p className={styles.helper}>{newsletterPhotoCaptionLimitMessage()}</p>
       {edition.photos.length === 0 ? (
         <div
           className="mt-4 flex min-h-[100px] items-center justify-center rounded-xl border border-dashed px-4 py-6 text-center text-[11px]"
@@ -811,30 +816,19 @@ function PhotosTab({
       ) : (
         edition.photos.map((photo, index) => (
           <div key={photo.id} className={styles.photoItem}>
-            <NewsletterMediaImage
-              src={photo.src}
-              alt={photo.caption || "Newsletter photo"}
-              className={styles.photoItemMedia}
-              imageClassName="h-full w-full object-cover"
-            />
-            <div className={styles.photoMeta}>
-              <input
-                className={styles.input}
-                value={photo.caption}
-                readOnly={locked}
-                placeholder="Caption (optional)"
-                maxLength={200}
-                onChange={(e) => {
-                  const photos = edition.photos.map((p, i) =>
-                    i === index ? { ...p, caption: e.target.value } : p,
-                  );
-                  onPatch({ ...edition, photos });
-                }}
+            <div className={styles.photoItemMediaWrap}>
+              <NewsletterMediaImage
+                instanceKey={photo.id}
+                src={photo.src}
+                alt={photo.caption || "Newsletter photo"}
+                className={styles.photoItemMedia}
+                imageClassName="h-full w-full object-cover"
               />
               <button
                 type="button"
-                className={styles.textAction}
+                className={styles.photoRemoveBtn}
                 disabled={locked}
+                aria-label="Remove photo"
                 onClick={() => {
                   onPatch({
                     ...edition,
@@ -842,8 +836,28 @@ function PhotosTab({
                   });
                 }}
               >
-                Remove photo
+                <X strokeWidth={2} aria-hidden />
               </button>
+            </div>
+            <div className={styles.photoMeta}>
+              <input
+                className={styles.input}
+                value={photo.caption}
+                readOnly={locked}
+                placeholder="Caption (optional)"
+                maxLength={MAX_NEWSLETTER_PHOTO_CAPTION_LENGTH}
+                onChange={(e) => {
+                  const photos = edition.photos.map((p, i) =>
+                    i === index ? { ...p, caption: e.target.value } : p,
+                  );
+                  onPatch({ ...edition, photos });
+                }}
+              />
+              {photo.caption.length >= NEWSLETTER_PHOTO_CAPTION_COUNT_SHOW_AT ? (
+                <p className={styles.photoCaptionCount} style={{ color: theme.muted }}>
+                  {photo.caption.length} / {MAX_NEWSLETTER_PHOTO_CAPTION_LENGTH}
+                </p>
+              ) : null}
             </div>
           </div>
         ))

@@ -1,8 +1,41 @@
 import type {
   NewsletterEdition,
+  NewsletterPhoto,
   NewsletterSchoolTemplate,
   NewsletterWorkspaceState,
 } from "./newsletter-types";
+
+function displaySrcFromSave(submittedSrc: string | undefined, resultSrc: string | undefined): string {
+  const result = resultSrc?.trim() ?? "";
+  if (result) return result;
+  return submittedSrc?.trim() ?? "";
+}
+
+function mergePhotoDisplayAfterSave(
+  submitted: NewsletterPhoto | undefined,
+  result: NewsletterPhoto,
+): NewsletterPhoto {
+  if (!submitted) return result;
+  return {
+    ...result,
+    src: displaySrcFromSave(submitted.src, result.src),
+  };
+}
+
+/** Keep in-editor image URLs when the server clears inline src after persistence. */
+export function mergeNewsletterEditionDisplayAfterSave(
+  submitted: NewsletterEdition,
+  result: NewsletterEdition,
+): NewsletterEdition {
+  const submittedById = new Map(submitted.photos.map((photo) => [photo.id, photo]));
+  const photos = result.photos.map((photo) =>
+    mergePhotoDisplayAfterSave(submittedById.get(photo.id), photo),
+  );
+
+  const coverImage = displaySrcFromSave(submitted.coverImage, result.coverImage) || undefined;
+
+  return { ...result, photos, coverImage };
+}
 
 export function newsletterJsonEqual<T>(a: T, b: T): boolean {
   return JSON.stringify(a) === JSON.stringify(b);

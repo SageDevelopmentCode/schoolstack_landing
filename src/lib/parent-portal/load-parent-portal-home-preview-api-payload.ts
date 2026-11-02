@@ -22,6 +22,7 @@ import {
 } from "@/lib/school-events/event-audience";
 import { listUpcomingEventsForOrg } from "@/lib/school-events/events";
 import { isSchoolGalleryEnabled } from "@/lib/school-gallery/gallery-enabled";
+import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 type PreviewOrg = {
@@ -55,6 +56,7 @@ export async function loadParentPortalHomePreviewApiPayload(input: {
   const programSlug = input.programSlug?.trim() || undefined;
   const bulletinEnabled = Boolean(org.features.admin?.bulletin);
   const schoolGalleryEnabled = isSchoolGalleryEnabled(org.features);
+  const parentNewslettersEnabled = isParentFeatureEnabled(org.features, "newsletters");
   const admin = createAdminClient();
 
   const userProfile = await getFamilyPreviewProfile(supabase, organizationId, familyId);
@@ -113,6 +115,7 @@ export async function loadParentPortalHomePreviewApiPayload(input: {
       formSnapshot: homeContent.formSnapshot,
       bulletinEnabled,
       schoolGalleryEnabled,
+      parentNewslettersEnabled,
       bulletinPosts,
       fridayBranchHome: homeContent.fridayBranchHome ?? null,
       fridayBranchParentPortalPaused: org.fridayBranchSettings.parent_portal_paused,
@@ -217,6 +220,7 @@ export async function loadParentPortalHomePreviewApiPayload(input: {
     formSnapshot: homeContent.formSnapshot,
     bulletinEnabled,
     schoolGalleryEnabled,
+    parentNewslettersEnabled: isParentFeatureEnabled(features, "newsletters"),
     bulletinPosts,
     fridayBranchHome: homeContent.fridayBranchHome ?? null,
     fridayBranchParentPortalPaused: org.fridayBranchSettings.parent_portal_paused,

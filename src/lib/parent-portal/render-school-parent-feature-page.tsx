@@ -22,6 +22,7 @@ import ParentMessagesPageShell from "@/components/school-parent/messages/ParentM
 import { getRequestUser } from "@/lib/auth/session";
 import ParentClassroomSignupsPage from "@/components/classroom-signups/parent/ParentClassroomSignupsPage";
 import ParentFormsDocumentsPage from "@/components/school-parent/forms-documents/ParentFormsDocumentsPage";
+import ParentNewslettersPage from "@/components/school-parent/newsletters/ParentNewslettersPage";
 import ParentFridayBranchPausedState from "@/components/school-parent/friday-branch/ParentFridayBranchPausedState";
 import ParentFridayBranchPage from "@/components/school-parent/friday-branch/ParentFridayBranchPage";
 import { loadParentCommitteesInitialData } from "@/lib/committees/load-parent-committees-data";
@@ -62,6 +63,10 @@ import { createClient } from "@/utils/supabase/server";
 import { filterFamilyChildrenForProgramPortal } from "@/components/school-parent/children/parent-children-utils";
 import { listFamilyChildrenForHome } from "@/lib/admissions/parent-portal-access";
 import { loadParentAttendanceEligibleChildren } from "@/lib/parent-portal/attendance/load-parent-attendance-page-data";
+import {
+  loadParentNewsletterDetailBundle,
+  loadParentNewslettersListBundle,
+} from "@/lib/parent-portal/newsletters/load-parent-newsletters";
 import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
 import { listProgramCoopCurriculumDiscussionMessages } from "@/lib/admissions/program-coop-curriculum-discussion";
 import { listProgramCoopCurriculum } from "@/lib/admissions/program-coop-curriculum-storage";
@@ -453,6 +458,45 @@ export async function renderSchoolParentFeaturePage(
           slug={context.slug}
           initialBundle={initialBundle}
           initialSignupId={initialSignupId}
+        />
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (context.feature === "newsletters") {
+    const admin = createAdminClient();
+    const initialList = await loadParentNewslettersListBundle(admin, org.id);
+    const editionParam =
+      typeof context.searchParams.edition === "string"
+        ? context.searchParams.edition
+        : undefined;
+    let detailBundle = null;
+    if (editionParam) {
+      detailBundle = await loadParentNewsletterDetailBundle(
+        admin,
+        org.id,
+        editionParam,
+        {
+          name: org.name,
+          primaryColor: org.branding.colors.accent,
+        },
+        org.branding,
+      );
+    }
+
+    return (
+      <SchoolParentPageShell title={pageName}>
+        <ParentNewslettersPage
+          organizationId={org.id}
+          slug={context.slug}
+          parentBasePath={
+            context.parentNavBasePath
+              ? `${context.parentNavBasePath}/newsletters`
+              : undefined
+          }
+          initialList={initialList}
+          detailBundle={detailBundle}
+          branding={org.branding}
         />
       </SchoolParentPageShell>
     );

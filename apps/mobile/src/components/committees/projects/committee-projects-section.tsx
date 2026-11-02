@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { CommitteeProjectCard } from '@/components/committees/projects/committee-project-card';
 import { CommitteeProjectCreateSheet } from '@/components/committees/projects/committee-project-create-sheet';
+import { CommitteeProjectsSectionSkeleton } from '@/components/committees/projects/committee-projects-section-skeleton';
 import { StoryButton } from '@/components/story/story-button';
 import { StoryDetailSection } from '@/components/school-admin/admissions/story-detail-section';
 import { useParentTheme } from '@/contexts/parent-theme-context';
@@ -121,11 +122,7 @@ export function CommitteeProjectsSection({
   };
 
   if (loading) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator color={theme.primary} />
-      </View>
-    );
+    return <CommitteeProjectsSectionSkeleton showCreateButton={!readOnly} />;
   }
 
   return (
@@ -165,10 +162,6 @@ export function CommitteeProjectsSection({
 }
 
 const styles = StyleSheet.create({
-  loading: {
-    paddingVertical: Spacing.six,
-    alignItems: 'center',
-  },
   subtitle: {
     fontFamily: StoryFonts.body,
     fontSize: 14,
