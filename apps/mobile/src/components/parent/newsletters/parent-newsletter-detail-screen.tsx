@@ -7,6 +7,10 @@ import { WebView } from 'react-native-webview';
 
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { getParentNewsletterDocumentWebViewSource } from '@/lib/parent/parent-portal-api';
+import {
+  isCommitteeWorkspaceLoadTimeoutError,
+  withCommitteeWorkspaceLoadTimeout,
+} from '@/lib/school-admin/committees/committee-workspace-load';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
@@ -37,11 +41,22 @@ export function ParentNewsletterDetailScreen({
     setLoadError(null);
     setWebSource(null);
     try {
-      const source = await getParentNewsletterDocumentWebViewSource(organizationId, editionId);
+      const source = await withCommitteeWorkspaceLoadTimeout(
+        getParentNewsletterDocumentWebViewSource(organizationId, editionId),
+      );
       setWebSource(source);
     } catch (err) {
-      reportError('parent_newsletter_detail_load', err);
-      setLoadError('This newsletter could not be loaded.');
+      const timedOut = isCommitteeWorkspaceLoadTimeoutError(err);
+      reportError(
+        timedOut ? 'parent_newsletter_detail_load_timeout' : 'parent_newsletter_detail_load',
+        err,
+        timedOut ? { entityId: editionId, metadata: { editionId } } : undefined,
+      );
+      setLoadError(
+        timedOut
+          ? 'Loading this newsletter is taking longer than expected. Check your connection and try again.'
+          : 'This newsletter could not be loaded.',
+      );
     } finally {
       setIsLoading(false);
     }
