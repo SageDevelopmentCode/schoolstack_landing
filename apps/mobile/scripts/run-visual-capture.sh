@@ -16,6 +16,7 @@ if [[ -z "$FEATURE" ]]; then
   echo "  school-admin-admissions-list" >&2
   echo "  school-admin-submission-detail" >&2
   echo "  school-admin-students" >&2
+  echo "  school-admin-messages" >&2
   echo "  parent-home" >&2
   echo "  parent-messages" >&2
   echo "  parent-billing" >&2
@@ -32,6 +33,7 @@ case "$FEATURE" in
   school-admin-admissions-list) FLOW="visual/school-admin-admissions-list.yaml" ;;
   school-admin-submission-detail) FLOW="visual/school-admin-submission-detail.yaml" ;;
   school-admin-students) FLOW="visual/school-admin-students.yaml" ;;
+  school-admin-messages) FLOW="visual/school-admin-messages.yaml" ;;
   parent-home) FLOW="visual/parent-home.yaml" ;;
   parent-messages) FLOW="visual/parent-messages.yaml" ;;
   parent-billing) FLOW="visual/parent-billing.yaml" ;;

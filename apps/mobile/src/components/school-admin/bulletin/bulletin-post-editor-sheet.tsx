@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -12,13 +12,15 @@ import {
 
 import { BulletinAttachmentList } from '@/components/school-admin/bulletin/bulletin-attachment-list';
 import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
-import { StoryButton } from '@/components/story/story-button';
+import { StoryButton, StoryIconButton } from '@/components/story/story-button';
 import { StoryChip } from '@/components/story/story-chip';
+import { StoryDateTimeField } from '@/components/story/story-datetime-field';
 import { StoryTextField } from '@/components/story/story-text-field';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Story, StoryFonts } from '@/constants/story-theme';
 import { Radius, Spacing } from '@/constants/theme';
+import { useBottomSheetKeyboardScrollStyle } from '@/hooks/use-bottom-sheet-keyboard-scroll-style';
 import { AUDIENCE_OPTIONS } from '@/lib/school-bulletin/bulletin-audience';
 import {
   BULLETIN_ATTACHMENT_MIME_TYPES,
@@ -84,6 +86,7 @@ export function BulletinPostEditorSheet({
   onDeleted,
 }: BulletinPostEditorSheetProps) {
   const theme = useParentTheme();
+  const { keyboardOpen, scrollContentStyle } = useBottomSheetKeyboardScrollStyle(styles.content);
   const editor = useBulletinPostEditor({
     slug,
     post,
@@ -116,6 +119,7 @@ export function BulletinPostEditorSheet({
     showProgramPicker,
     programRequired,
     editingExisting,
+    isDirty,
     canUploadAttachments,
     atAttachmentLimit,
     savePost,
@@ -124,15 +128,6 @@ export function BulletinPostEditorSheet({
     uploadFiles,
     handleRemoveAttachment,
   } = editor;
-
-  const isDirty = Boolean(
-    title.trim() ||
-      body.trim() ||
-      audiences.length > 1 ||
-      programIds.length > 0 ||
-      publishScheduleEnabled ||
-      expiryEnabled,
-  );
 
   const requestClose = useCallback(() => {
     requestCloseIfClean({ isDirty, onClose });
@@ -169,6 +164,7 @@ export function BulletinPostEditorSheet({
 
   const sheetTitle = bulletinEditorSheetTitle(isNew && !activePost, activePost ?? post);
   const sheetSubtitle = bulletinEditorSheetSubtitle(isNew);
+  const scheduleMinimumDate = useMemo(() => new Date(), []);
 
   return (
     <BottomSheetShell
@@ -180,7 +176,7 @@ export function BulletinPostEditorSheet({
       borderColor={Story.line}
       handleColor={Story.line}
       maxHeight="92%"
-      scrollContentStyle={styles.content}
+      scrollContentStyle={scrollContentStyle}
       header={
         <View style={[styles.header, { borderBottomColor: Story.line }]}>
           <Pressable accessibilityRole="button" onPress={requestClose}>
@@ -195,35 +191,47 @@ export function BulletinPostEditorSheet({
         </View>
       }
       footer={
+        keyboardOpen ? undefined : (
         <View style={[styles.footer, { borderTopColor: Story.line }]}>
-          <StoryButton
-            label="Save draft"
-            variant="soft"
-            disabled={saving}
-            onPress={() => void savePost('draft')}
-          />
-          <StoryButton
-            label="Publish"
-            disabled={saving}
-            onPress={() => void savePost('published')}
-          />
-          {editingExisting && activePost && activePost.status !== 'archived' ? (
+          <View style={styles.footerActions}>
+            <View style={styles.footerIconGroup}>
+              <StoryIconButton
+                icon="save-outline"
+                accessibilityLabel="Save draft"
+                variant="soft"
+                disabled={saving || !isDirty}
+                loading={saving}
+                onPress={() => void savePost('draft')}
+              />
+              {editingExisting && activePost && activePost.status !== 'archived' ? (
+                <StoryIconButton
+                  icon="archive-outline"
+                  accessibilityLabel="Archive"
+                  variant="outline"
+                  disabled={saving}
+                  onPress={() => void handleArchive()}
+                />
+              ) : null}
+              {editingExisting && activePost && onDeleted ? (
+                <StoryIconButton
+                  icon="trash-outline"
+                  accessibilityLabel="Delete"
+                  variant="outline"
+                  disabled={saving}
+                  onPress={handleDelete}
+                />
+              ) : null}
+            </View>
             <StoryButton
-              label="Archive"
-              variant="outline"
+              label="Publish"
+              fullWidth={false}
               disabled={saving}
-              onPress={() => void handleArchive()}
+              style={styles.publishButton}
+              onPress={() => void savePost('published')}
             />
-          ) : null}
-          {editingExisting && activePost && onDeleted ? (
-            <StoryButton
-              label="Delete"
-              variant="outline"
-              disabled={saving}
-              onPress={handleDelete}
-            />
-          ) : null}
+          </View>
         </View>
+        )
       }>
       <Text style={[styles.subtitle, { color: theme.muted }]}>{sheetSubtitle}</Text>
 
@@ -367,13 +375,12 @@ export function BulletinPostEditorSheet({
           onValueChange={togglePublishSchedule}
         />
         {publishScheduleEnabled ? (
-          <StoryTextField
+          <StoryDateTimeField
             label="Publish date and time"
             value={publishedAt}
-            onChangeText={setPublishedAt}
-            placeholder="YYYY-MM-DDTHH:mm"
-            autoCapitalize="none"
-            autoCorrect={false}
+            onChange={setPublishedAt}
+            placeholder="Select publish date and time"
+            minimumDate={scheduleMinimumDate}
           />
         ) : null}
       </View>
@@ -386,13 +393,12 @@ export function BulletinPostEditorSheet({
           onValueChange={toggleExpiry}
         />
         {expiryEnabled ? (
-          <StoryTextField
+          <StoryDateTimeField
             label="Expiry date and time"
             value={expiresAt}
-            onChangeText={setExpiresAt}
-            placeholder="YYYY-MM-DDTHH:mm"
-            autoCapitalize="none"
-            autoCorrect={false}
+            onChange={setExpiresAt}
+            placeholder="Select expiry date and time"
+            minimumDate={scheduleMinimumDate}
           />
         ) : null}
       </View>
@@ -526,7 +532,23 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.three,
+  },
+  footerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.two,
+    width: '100%',
+  },
+  footerIconGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    flexShrink: 0,
+  },
+  publishButton: {
+    flex: 1,
+    minWidth: 0,
+    alignSelf: 'stretch',
   },
   pressed: {
     opacity: 0.85,

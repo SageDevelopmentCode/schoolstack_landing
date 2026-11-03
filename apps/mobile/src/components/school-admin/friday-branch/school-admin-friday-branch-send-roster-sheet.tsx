@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 import { StoryBottomSheet } from '@/components/story/story-bottom-sheet';
@@ -18,6 +18,7 @@ import type { FridayBranchRosterEmailPreview } from '@/lib/school-admin/friday-b
 import { StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
+import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 
 type SchoolAdminFridayBranchSendRosterSheetProps = {
   visible: boolean;
@@ -38,6 +39,7 @@ export function SchoolAdminFridayBranchSendRosterSheet({
 }: SchoolAdminFridayBranchSendRosterSheetProps) {
   const theme = useParentTheme();
   const { reportError } = useMobileErrorReporter(organizationId);
+  const keyboardOpen = useKeyboardHeight() > 0;
   const [emailDraft, setEmailDraft] = useState('');
   const [recipients, setRecipients] = useState<string[]>([]);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -120,7 +122,7 @@ export function SchoolAdminFridayBranchSendRosterSheet({
 
   return (
     <StoryBottomSheet visible={visible} onClose={onClose} accessibilityLabel="Close send roster">
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <View style={styles.content}>
         <Text style={[styles.title, { color: theme.ink }]}>Send roster</Text>
         <Text style={[styles.subtitle, { color: theme.muted }]}>
           {className} · {slotTime}
@@ -154,33 +156,37 @@ export function SchoolAdminFridayBranchSendRosterSheet({
           </View>
         ) : null}
 
-        <StoryButton
-          label={previewLoading ? 'Loading preview…' : 'Preview email'}
-          variant="outline"
-          previewSafe
-          disabled={previewLoading || !classId}
-          onPress={() => void loadPreview()}
-        />
-
-        {showPreview && preview ? (
-          <View style={styles.previewCard}>
-            <Text style={[styles.previewSubject, { color: theme.ink }]}>{preview.subject}</Text>
-            <WebView
-              originWhitelist={['*']}
-              source={{ html: preview.html }}
-              style={styles.webview}
-              scrollEnabled
+        {!keyboardOpen ? (
+          <>
+            <StoryButton
+              label={previewLoading ? 'Loading preview…' : 'Preview email'}
+              variant="outline"
+              previewSafe
+              disabled={previewLoading || !classId}
+              onPress={() => void loadPreview()}
             />
-          </View>
-        ) : null}
 
-        <StoryButton
-          label={sending ? 'Sending…' : 'Send roster'}
-          previewSafe
-          disabled={sending || recipients.length === 0}
-          onPress={() => void handleSend()}
-        />
-      </ScrollView>
+            {showPreview && preview ? (
+              <View style={styles.previewCard}>
+                <Text style={[styles.previewSubject, { color: theme.ink }]}>{preview.subject}</Text>
+                <WebView
+                  originWhitelist={['*']}
+                  source={{ html: preview.html }}
+                  style={styles.webview}
+                  scrollEnabled
+                />
+              </View>
+            ) : null}
+
+            <StoryButton
+              label={sending ? 'Sending…' : 'Send roster'}
+              previewSafe
+              disabled={sending || recipients.length === 0}
+              onPress={() => void handleSend()}
+            />
+          </>
+        ) : null}
+      </View>
     </StoryBottomSheet>
   );
 }

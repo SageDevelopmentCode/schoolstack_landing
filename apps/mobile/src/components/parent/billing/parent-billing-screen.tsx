@@ -78,6 +78,7 @@ import {
   buildTuitionPaymentReceiptDetail,
   resolveRelatedTuitionPayments,
 } from '@/lib/tuition/payment-receipt';
+import { isPreviewSessionActive } from '@/lib/platform-admin/preview-session-store';
 import { resolveLastPaymentDaySummary } from '@/lib/tuition/payment-summary';
 import type { TuitionPayAmountMode } from '@/lib/tuition/tuition-pay-amount';
 
@@ -298,7 +299,10 @@ export function ParentBillingScreen({
   useFocusEffect(
     useCallback(() => {
       void trySettleFromReturnHandoff();
-    }, [trySettleFromReturnHandoff]),
+      if (isPreviewSessionActive()) {
+        void refresh();
+      }
+    }, [refresh, trySettleFromReturnHandoff]),
   );
 
   const finishCheckoutSession = useCallback(

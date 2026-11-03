@@ -1,5 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
+
+import { showStoryToast } from '@/components/story/story-toast';
 
 import {
   audiencesIncludeProgramTargeting,
@@ -26,6 +28,7 @@ import type {
   SaveBulletinPostInput,
   StagedBulletinFile,
 } from '@/lib/school-bulletin/types';
+import { isBulletinEditorDirty } from '@/lib/school-bulletin/bulletin-form-dirty';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type UseBulletinPostEditorOptions = {
@@ -106,6 +109,34 @@ export function useBulletinPostEditor({
   const showProgramPicker = audiencesIncludeProgramTargeting(normalizedAudiences);
   const programRequired = programSelectionRequired(normalizedAudiences);
   const editingExisting = Boolean(activePost);
+
+  const isDirty = useMemo(
+    () =>
+      isBulletinEditorDirty(
+        {
+          title,
+          body,
+          audiences,
+          programIds,
+          publishScheduleEnabled,
+          publishedAt,
+          expiryEnabled,
+          expiresAt,
+        },
+        activePost,
+      ),
+    [
+      activePost,
+      audiences,
+      body,
+      expiresAt,
+      expiryEnabled,
+      programIds,
+      publishScheduleEnabled,
+      publishedAt,
+      title,
+    ],
+  );
 
   const toggleAudience = useCallback((audience: BulletinAudience) => {
     setAudiences((current) => {
@@ -188,7 +219,13 @@ export function useBulletinPostEditor({
     async (status: BulletinPostStatus) => {
       setSaving(true);
       try {
-        await persistPost(status);
+        const saved = await persistPost(status);
+        if (saved) {
+          showStoryToast({
+            message: status === 'published' ? 'Bulletin published' : 'Draft saved',
+            variant: 'success',
+          });
+        }
       } catch (error) {
         reportError('school_admin_bulletin_save', error);
         Alert.alert('Save failed', error instanceof Error ? error.message : 'Could not save bulletin post.');
@@ -328,6 +365,7 @@ export function useBulletinPostEditor({
     showProgramPicker,
     programRequired,
     editingExisting,
+    isDirty,
     canUploadAttachments: Boolean(title.trim()),
     atAttachmentLimit: (activePost?.attachments.length ?? 0) >= MAX_BULLETIN_ATTACHMENTS,
     savePost,

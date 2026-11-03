@@ -23,6 +23,7 @@ import { SentryNavigationTracker } from '@/components/sentry-navigation-tracker'
 import { MobileGlobalErrorReportingBridge } from '@/components/mobile-global-error-reporting-bridge';
 import { MobileOperationalScreenLayout } from '@/components/mobile-operational-screen-layout';
 import { OtaUpdateManager } from '@/components/ota-update-manager';
+import { StoryToastProvider } from '@/components/story/story-toast';
 import { SupabaseAuthLifecycle } from '@/components/supabase-auth-lifecycle';
 import { PushNotificationManager } from '@/components/push-notification-manager';
 import { SplashOverlay } from '@/components/splash-overlay';
@@ -60,6 +61,7 @@ function RootLayout() {
   return (
     <AuthProvider>
       <PortalTransitionProvider>
+        <StoryToastProvider>
         <SentryNavigationTracker />
         <MobileGlobalErrorReportingBridge />
         <AuthSessionGuard />
@@ -102,6 +104,7 @@ function RootLayout() {
         />
         <Stack.Screen name="stripe-checkout" options={{ animation: 'none' }} />
         </Stack>
+        </StoryToastProvider>
       </PortalTransitionProvider>
     </AuthProvider>
   );

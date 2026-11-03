@@ -173,6 +173,7 @@ export async function handleSchoolAdminMobilePreviewGet(
         membershipId: previewQuery.membershipId,
         staffMemberId: previewQuery.staffMemberId,
         familyId: previewQuery.familyId,
+        guardianId: previewQuery.guardianId,
       });
       return NextResponse.json(payload);
     }

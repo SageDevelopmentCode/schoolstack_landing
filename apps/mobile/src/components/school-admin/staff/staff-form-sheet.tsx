@@ -16,6 +16,7 @@ import { useParentTheme } from '@/contexts/parent-theme-context';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Story, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
+import { useBottomSheetKeyboardScrollStyle } from '@/hooks/use-bottom-sheet-keyboard-scroll-style';
 import type { StaffPortalRole } from '@/lib/school-admin-api';
 import { createStaffMember } from '@/lib/school-admin-api';
 import { formatStaffApiError } from '@/lib/school-admin/staff-labels';
@@ -50,6 +51,7 @@ const PORTAL_ROLES: StaffPortalRole[] = ['teacher', 'staff'];
 export function StaffFormSheet({ visible, slug, onClose, onCreated }: StaffFormSheetProps) {
   const theme = useParentTheme();
   const { reportError } = useMobileErrorReporter();
+  const { scrollContentStyle } = useBottomSheetKeyboardScrollStyle(styles.content);
   const [form, setForm] = useState<StaffFormState>(EMPTY_STAFF_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -119,7 +121,7 @@ export function StaffFormSheet({ visible, slug, onClose, onCreated }: StaffFormS
       borderColor={Story.line}
       handleColor={Story.line}
       maxHeight="92%"
-      scrollContentStyle={styles.content}
+      scrollContentStyle={scrollContentStyle}
       header={
         <View style={[styles.header, { borderBottomColor: Story.line }]}>
           <Pressable accessibilityRole="button" onPress={requestClose}>

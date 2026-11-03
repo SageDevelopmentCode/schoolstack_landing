@@ -23,6 +23,7 @@ import { STUDENT_GRADE_OPTIONS } from '@/lib/admissions/apply-system-fields';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
+import { useBottomSheetKeyboardScrollStyle } from '@/hooks/use-bottom-sheet-keyboard-scroll-style';
 
 type ShadowDaySheetProps = {
   visible: boolean;
@@ -57,6 +58,7 @@ export function ShadowDaySheet({
 }: ShadowDaySheetProps) {
   const theme = useParentTheme();
   const { reportError } = useMobileErrorReporter(organizationId);
+  const { scrollContentStyle } = useBottomSheetKeyboardScrollStyle(styles.content);
   const presets = useMemo(() => getShadowDayTimeWindowPresets(), []);
 
   const [gradeValues, setGradeValues] = useState<string[]>([]);
@@ -137,7 +139,7 @@ export function ShadowDaySheet({
       borderColor={Story.line}
       handleColor={Story.line}
       maxHeight="92%"
-      scrollContentStyle={styles.content}
+      scrollContentStyle={scrollContentStyle}
       header={
         <View style={[styles.header, { borderBottomColor: theme.line }]}>
           <Pressable accessibilityRole="button" onPress={onClose}>

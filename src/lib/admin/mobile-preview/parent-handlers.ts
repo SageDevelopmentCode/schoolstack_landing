@@ -7,6 +7,7 @@ import {
   getFamilyPreviewGuardianId,
   getFamilyPreviewGuardianUserId,
   getFamilyPreviewProfile,
+  resolveFamilyPreviewGuardianId,
   listFamilyChildrenForHomeByFamilyId,
   loadApplicationDetailForFamily,
 } from "@/lib/admissions/family-preview-access";
@@ -22,6 +23,7 @@ import {
   parseMobilePreviewQuery,
   requireMobilePreviewPlatformAdmin,
   validateFamilyInOrganization,
+  validateGuardianInFamily,
 } from "@/lib/admin/mobile-preview/access";
 import { apiError } from "@/lib/api/route-errors";
 import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
@@ -104,6 +106,7 @@ type ParentPreviewContext = {
   organizationId: string;
   slug: string;
   familyId: string;
+  previewGuardianId: string | null;
   org: NonNullable<Awaited<ReturnType<typeof fetchOrganizationWithSettingsUncached>>>;
   previewParentBasePath: string;
 };
@@ -146,6 +149,15 @@ async function resolveParentPreviewContext(
 
   await validateFamilyInOrganization(admin, query.organizationId, query.familyId);
 
+  if (query.guardianId) {
+    await validateGuardianInFamily(
+      admin,
+      query.organizationId,
+      query.familyId,
+      query.guardianId,
+    );
+  }
+
   return {
     admin,
     request,
@@ -153,6 +165,7 @@ async function resolveParentPreviewContext(
     organizationId: query.organizationId,
     slug: query.slug,
     familyId: query.familyId,
+    previewGuardianId: query.guardianId,
     org,
     previewParentBasePath: familyPreviewParentBasePath(query.slug, query.familyId),
   };
@@ -236,12 +249,18 @@ async function assertStudentBelongsToFamily(
 
 async function loadBillingPreviewForMobile(
   admin: SupabaseClient,
-  input: { organizationId: string; familyId: string; slug: string },
+  input: {
+    organizationId: string;
+    familyId: string;
+    slug: string;
+    previewGuardianId?: string | null;
+  },
 ) {
-  const guardianId = await getFamilyPreviewGuardianId(
+  const guardianId = await resolveFamilyPreviewGuardianId(
     admin,
     input.organizationId,
     input.familyId,
+    input.previewGuardianId,
   );
   const billingSplits = await listBillingSplits(admin, input.familyId);
   const hasBillingSplit = billingSplits.length > 0;
@@ -340,6 +359,7 @@ export async function handleParentMobilePreviewGet(
       familyId,
       org,
       previewParentBasePath,
+      previewGuardianId,
     } = context;
     const url = new URL(request.url);
     const segment = pathSegments[0] ?? "";
@@ -418,6 +438,7 @@ export async function handleParentMobilePreviewGet(
         organizationId,
         familyId,
         slug,
+        previewGuardianId,
       });
 
       return NextResponse.json({

@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { StudentPhoto } from '@/components/school-admin/student-photo';
 import { StoryBottomSheet } from '@/components/story/story-bottom-sheet';
@@ -31,7 +31,7 @@ export function TeacherHomeClassroomRosterSheet({
 
   return (
     <StoryBottomSheet visible={visible} onClose={onClose} accessibilityLabel="Classroom students">
-      <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.content}>
         <StoryDisplayHeading size="section">{classroomName}</StoryDisplayHeading>
         <Text style={[styles.subtitle, { color: theme.muted }]}>
           {students.length} student{students.length === 1 ? '' : 's'}
@@ -67,7 +67,7 @@ export function TeacherHomeClassroomRosterSheet({
             </Pressable>
           ))
         )}
-      </ScrollView>
+      </View>
     </StoryBottomSheet>
   );
 }

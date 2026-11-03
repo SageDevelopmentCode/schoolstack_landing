@@ -118,17 +118,19 @@ export function TeacherMoreMenuSheet({
   const { data } = useTeacherHome();
   const displayName = useMemo(() => (user ? getDisplayName(user) : ''), [user]);
   const attendanceEnabled = isTeacherFeatureEnabled(data?.features, 'attendance');
+  const myHoursEnabled = isTeacherFeatureEnabled(data?.features, 'my_hours');
   const committeesEnabled = isTeacherFeatureEnabled(data?.features, 'committees');
   const photosEnabled = isSchoolGalleryEnabled(data?.features);
   const visibleMenuItems = useMemo(
     () =>
       MENU_ITEMS.filter((item) => {
         if (item.id === 'attendance') return attendanceEnabled;
+        if (item.id === 'my-hours') return myHoursEnabled;
         if (item.id === 'committees') return committeesEnabled;
         if (item.id === 'photos') return photosEnabled;
         return true;
       }),
-    [attendanceEnabled, committeesEnabled, photosEnabled],
+    [attendanceEnabled, myHoursEnabled, committeesEnabled, photosEnabled],
   );
 
   const [activeTab, setActiveTab] = useState<MoreMenuTabId>('menu');

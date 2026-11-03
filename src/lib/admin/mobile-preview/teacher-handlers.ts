@@ -30,6 +30,11 @@ import {
   fetchUnreadTeacherActivityNotificationCount,
 } from "@/lib/school-teacher/activity-notifications";
 import { loadTeacherDashboardPreviewData } from "@/lib/school-teacher/load-teacher-dashboard-data";
+import { loadTeacherMyHoursPageData } from "@/lib/school-teacher/my-hours/load-teacher-my-hours-data";
+import {
+  MyHoursMutationError,
+  parseMyHoursDateKey,
+} from "@/lib/school-teacher/my-hours/my-hours-mutations";
 import { loadTeacherCalendarPreviewData } from "@/lib/school-events/load-teacher-calendar-data";
 import { loadStudentAttendanceHistory } from "@/lib/school-admin/attendance/attendance-history";
 import {
@@ -309,6 +314,54 @@ export async function handleTeacherMobilePreviewGet(
 
       const profile = await loadStudentHealthProfile(admin, organizationId, studentId);
       return NextResponse.json({ profile });
+    }
+
+    if (segment === "my-hours") {
+      if (pathSegments.length !== 1) {
+        return apiError(route, {
+          request: req,
+          status: 404,
+          error: "Not found.",
+          code: "not_found",
+        });
+      }
+
+      if (!isTeacherFeatureEnabled(org.features, "my_hours")) {
+        return apiError(route, {
+          request: req,
+          status: 404,
+          error: "My Hours is not enabled for this school.",
+          code: "feature_disabled",
+        });
+      }
+
+      const fromParam = url.searchParams.get("from")?.trim();
+      const toParam = url.searchParams.get("to")?.trim();
+
+      try {
+        const from = fromParam ? parseMyHoursDateKey(fromParam) : undefined;
+        const to = toParam ? parseMyHoursDateKey(toParam) : undefined;
+
+        const pageData = await loadTeacherMyHoursPageData(
+          admin,
+          organizationId,
+          staffMemberId,
+          { from, to },
+        );
+
+        return NextResponse.json(pageData);
+      } catch (err) {
+        if (err instanceof MyHoursMutationError) {
+          return apiError(route, {
+            request: req,
+            status: err.status,
+            error: err.message,
+            code: err.code,
+            cause: err,
+          });
+        }
+        throw err;
+      }
     }
 
     if (segment === "attendance") {

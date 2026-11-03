@@ -3,6 +3,7 @@ import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { StoryButton } from '@/components/story/story-button';
 import { StoryCard } from '@/components/story/story-card';
+import { StoryDateField } from '@/components/story/story-date-field';
 import { StoryDetailSection } from '@/components/school-admin/admissions/story-detail-section';
 import { StoryTextLink } from '@/components/story/story-text-link';
 import { useParentTheme } from '@/contexts/parent-theme-context';
@@ -160,28 +161,22 @@ export function SchoolAdminCommitteeSettingsSection({
           placeholderTextColor={theme.muted}
         />
         <View style={styles.dateRow}>
-          <TextInput
-            value={termStart}
-            onChangeText={setTermStart}
-            placeholder="Start (YYYY-MM-DD)"
-            style={[
-              styles.input,
-              styles.dateInput,
-              { color: theme.ink, borderColor: theme.line, backgroundColor: theme.white },
-            ]}
-            placeholderTextColor={theme.muted}
-          />
-          <TextInput
-            value={termEnd}
-            onChangeText={setTermEnd}
-            placeholder="End (YYYY-MM-DD)"
-            style={[
-              styles.input,
-              styles.dateInput,
-              { color: theme.ink, borderColor: theme.line, backgroundColor: theme.white },
-            ]}
-            placeholderTextColor={theme.muted}
-          />
+          <View style={styles.dateField}>
+            <StoryDateField
+              label="Start"
+              value={termStart}
+              onChange={setTermStart}
+              placeholder="Select start"
+            />
+          </View>
+          <View style={styles.dateField}>
+            <StoryDateField
+              label="End"
+              value={termEnd}
+              onChange={setTermEnd}
+              placeholder="Select end"
+            />
+          </View>
         </View>
         <StoryButton
           label={savingTerm ? 'Saving…' : 'Save term'}
@@ -233,8 +228,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.two,
   },
-  dateInput: {
+  dateField: {
     flex: 1,
+    minWidth: 0,
   },
   archiveCard: {
     padding: StoryCardPadding,

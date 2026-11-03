@@ -160,7 +160,7 @@ export const DEFAULT_PARENT_ONBOARDING_ITEMS: ParentOnboardingItem[] = [
 export const FEATURE_CATALOG: FeatureDef[] = [
   { portal: "admin", key: "dashboard", label: "Dashboard", description: "Admin home overview" },
   { portal: "admin", key: "admissions", label: "Admissions", description: "Application pipeline and enrollment flows" },
-  { portal: "admin", key: "my_school", label: "My School", description: "School profile, students, attendance, programs, staff, classrooms, tuition" },
+  { portal: "admin", key: "my_school", label: "My School", description: "School profile, students, attendance, programs, staff, staff hours, classrooms, tuition" },
   {
     portal: "admin",
     key: "communication",

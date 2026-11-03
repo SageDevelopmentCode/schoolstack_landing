@@ -14,6 +14,7 @@ export type MobilePreviewPortalOptionsQuery = {
   membershipId: string | null;
   staffMemberId: string | null;
   familyId: string | null;
+  guardianId: string | null;
 };
 
 export type PreviewPortalSwitchTarget = {
@@ -21,6 +22,7 @@ export type PreviewPortalSwitchTarget = {
   membershipId?: string;
   staffMemberId?: string;
   familyId?: string;
+  guardianId?: string;
   subjectLabel: string;
 };
 
@@ -92,6 +94,7 @@ async function resolveSubjectUserId(
       admin,
       query.organizationId,
       query.familyId,
+      query.guardianId ?? undefined,
     );
     if (!userId) {
       throw new PreviewPortalOptionsError(
@@ -267,6 +270,7 @@ export async function buildMobilePreviewPortalOptions(
       targets.family_parent = {
         portal: "parent",
         familyId,
+        guardianId: query.guardianId ?? undefined,
         subjectLabel: await resolveUserEmail(admin, sessionUserId),
       };
     }

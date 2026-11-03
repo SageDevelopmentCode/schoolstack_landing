@@ -10,10 +10,19 @@ import {
 } from "./family-preview-access";
 
 const getFamilyPreviewProfileByFamily = cache(
-  async (organizationId: string, familyId: string) => {
+  async (
+    organizationId: string,
+    familyId: string,
+    overrideGuardianId: string | null,
+  ) => {
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
-    return getFamilyPreviewProfileImpl(supabase, organizationId, familyId);
+    return getFamilyPreviewProfileImpl(
+      supabase,
+      organizationId,
+      familyId,
+      overrideGuardianId ?? undefined,
+    );
   },
 );
 
@@ -29,8 +38,13 @@ export async function getFamilyPreviewProfile(
   _supabase: SupabaseClient,
   organizationId: string,
   familyId: string,
+  overrideGuardianId?: string | null,
 ) {
-  return getFamilyPreviewProfileByFamily(organizationId, familyId);
+  return getFamilyPreviewProfileByFamily(
+    organizationId,
+    familyId,
+    overrideGuardianId?.trim() || null,
+  );
 }
 
 export async function familyHasEnrolledAccess(

@@ -230,10 +230,15 @@ export default async function FamilyPreviewParentFeaturePage({
   }
 
   if (feature === "billing") {
+    const previewGuardianId =
+      typeof resolvedSearchParams.guardianId === "string"
+        ? resolvedSearchParams.guardianId
+        : null;
     const initialData = await loadParentBillingPreviewData({
       organizationId: org.id,
       familyId,
       slug,
+      previewGuardianId,
     });
 
     return (

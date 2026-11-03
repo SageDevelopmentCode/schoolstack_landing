@@ -1,0 +1,23 @@
+appId: com.mudkitchen.schoolstack.mobile
+---
+- runFlow: ../school-admin-logged-in.yaml
+- tapOn: 'Messages'
+- extendedWaitUntil:
+    visible:
+      id: admin-messages-inbox-header
+    timeout: 30000
+- takeScreenshot: visual-capture
+- tapOn:
+    id: admin-messages-new-button
+- extendedWaitUntil:
+    visible: 'Bulk message'
+    timeout: 15000
+- takeScreenshot: visual-capture-compose-menu
+- tapOn: 'Bulk message'
+- extendedWaitUntil:
+    visible: 'Bulk message'
+    timeout: 15000
+- extendedWaitUntil:
+    visible: 'PROGRAM'
+    timeout: 15000
+- takeScreenshot: visual-capture-bulk-recipients

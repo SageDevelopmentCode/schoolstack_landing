@@ -10,6 +10,8 @@ export type PortalPreviewSession = {
   membershipId?: string;
   staffMemberId?: string;
   familyId?: string;
+  /** When set, parent preview loads billing/autopay as this guardian. */
+  guardianId?: string;
 };
 
 export type StartPortalPreviewInput = PortalPreviewSession & {

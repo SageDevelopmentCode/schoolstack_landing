@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+
+import { ParentKeyboardAwareScrollView } from '@/components/parent/parent-keyboard-aware-scroll-view';
 
 import { ParentCommitteeCalendarSection } from '@/components/parent/committees/sections/parent-committee-calendar-section';
 import { ParentCommitteeMessagesSection } from '@/components/parent/committees/sections/parent-committee-messages-section';
@@ -214,11 +215,12 @@ export function SchoolAdminCommitteeWorkspaceScreen({
       {activeSection === 'messages' ? (
         <ParentCommitteeMessagesSection {...sectionProps} />
       ) : (
-        <ScrollView
+        <ParentKeyboardAwareScrollView
+          includeTabBarPadding={false}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled">
           {renderScrollSection()}
-        </ScrollView>
+        </ParentKeyboardAwareScrollView>
       )}
     </View>
   );

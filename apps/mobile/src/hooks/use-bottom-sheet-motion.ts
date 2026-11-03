@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Gesture } from 'react-native-gesture-handler';
 import {
   Easing,
@@ -20,15 +20,19 @@ const BACKDROP_FADE_DISTANCE = 300;
 type UseBottomSheetMotionOptions = {
   visible: boolean;
   onClose: () => void;
+  onDismissed?: () => void;
   enableDragToDismiss?: boolean;
 };
 
 export function useBottomSheetMotion({
   visible,
   onClose,
+  onDismissed,
   enableDragToDismiss = true,
 }: UseBottomSheetMotionOptions) {
   const [modalVisible, setModalVisible] = useState(false);
+  const onDismissedRef = useRef(onDismissed);
+  onDismissedRef.current = onDismissed;
   const backdropOpacity = useSharedValue(0);
   const sheetTranslateY = useSharedValue(SHEET_SLIDE_OFFSET);
   const scrollOffset = useSharedValue(0);
@@ -37,6 +41,10 @@ export function useBottomSheetMotion({
     setModalVisible(false);
     onClose();
   }, [onClose]);
+
+  const invokeDismissed = useCallback(() => {
+    onDismissedRef.current?.();
+  }, []);
 
   const animateClose = useCallback(
     (afterClose?: () => void) => {
@@ -72,9 +80,19 @@ export function useBottomSheetMotion({
     }
 
     if (!visible && modalVisible) {
-      animateClose();
+      animateClose(invokeDismissed);
     }
-  }, [visible, modalVisible, backdropOpacity, sheetTranslateY, animateClose, scrollOffset]);
+  }, [
+    visible,
+    modalVisible,
+    backdropOpacity,
+    sheetTranslateY,
+    animateClose,
+    scrollOffset,
+    invokeDismissed,
+  ]);
+
+  const isClosing = !visible && modalVisible;
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -159,6 +177,7 @@ export function useBottomSheetMotion({
 
   return {
     modalVisible,
+    isClosing,
     backdropAnimatedStyle,
     sheetAnimatedStyle,
     scrollHandler,

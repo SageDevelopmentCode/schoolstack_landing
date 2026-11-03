@@ -11,6 +11,7 @@ import {
 } from 'react';
 
 import { prefetchParentBilling } from '@/contexts/parent-billing-context';
+import { resolveParentBillingCacheScope } from '@/lib/parent/parent-billing-cache-key';
 import { prefetchParentCalendar } from '@/contexts/parent-calendar-context';
 import { prefetchParentHome } from '@/contexts/parent-home-context';
 import { prefetchParentMessagesInbox } from '@/contexts/parent-messages-inbox-context';
@@ -101,11 +102,12 @@ async function whenSessionReady(run: () => void): Promise<void> {
 }
 
 function prefetchParentPortalData(school: LiveOrganization): void {
+  const billingScope = resolveParentBillingCacheScope();
   void whenSessionReady(() => {
     void Promise.all([
       prefetchParentHome(school.id, school.slug),
       prefetchParentCalendar(school.id, school.slug),
-      prefetchParentBilling(school.id, school.slug),
+      prefetchParentBilling(school.id, school.slug, billingScope),
       prefetchParentMessagesInbox(school.id, school.name),
     ]);
   });
@@ -426,6 +428,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user?.id]);
 
   const startPortalPreview = useCallback(async (input: StartPortalPreviewInput) => {
+    await clearAllPersistedPortalCaches();
+
     const session: PortalPreviewSession = {
       portal: input.portal,
       organizationId: input.organizationId,
@@ -434,6 +438,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       membershipId: input.membershipId,
       staffMemberId: input.staffMemberId,
       familyId: input.familyId,
+      guardianId: input.guardianId,
     };
     const portal: ResolvedPortal = {
       portalType: input.portal,
@@ -481,6 +486,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         membershipId: target.membershipId ?? previewSession.membershipId,
         staffMemberId: target.staffMemberId ?? previewSession.staffMemberId,
         familyId: target.familyId ?? previewSession.familyId,
+        guardianId: target.guardianId ?? previewSession.guardianId,
       };
 
       await startPortalPreview(input);

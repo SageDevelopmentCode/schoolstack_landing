@@ -14,6 +14,9 @@ describe("admin communication nav defaults", () => {
     const keys = children.map((child) => child.key);
     assert.ok(!keys.includes("newsletters"));
     assert.ok(!keys.includes("communication"));
+    const staffHoursIndex = keys.indexOf("staff_hours");
+    const staffIndex = keys.indexOf("staff");
+    assert.ok(staffHoursIndex > staffIndex);
   });
 
   it("defines top-level communication children with cross-feature routes", () => {

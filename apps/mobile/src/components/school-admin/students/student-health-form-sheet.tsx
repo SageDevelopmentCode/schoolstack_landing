@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
+import { StoryDateField } from '@/components/story/story-date-field';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import type { HealthAllergySeverity, HealthItemType } from '@/lib/student-health/types';
 import { SEVERITY_LABELS } from '@/lib/student-health/types';
@@ -17,6 +18,7 @@ import { Story, StoryFonts } from '@/constants/story-theme';
 import { requestCloseIfClean } from '@/lib/unsaved-changes';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { DISABLED_BUTTON_OPACITY, Radius, Spacing } from '@/constants/theme';
+import { useBottomSheetKeyboardScrollStyle } from '@/hooks/use-bottom-sheet-keyboard-scroll-style';
 
 export type HealthFormValues =
   | {
@@ -78,6 +80,7 @@ export function StudentHealthFormSheet({
   onSave,
 }: StudentHealthFormSheetProps) {
   const theme = useParentTheme();
+  const { keyboardOpen, scrollContentStyle } = useBottomSheetKeyboardScrollStyle(styles.scrollContent);
   const [values, setValues] = useState<HealthFormValues>(defaultValues(itemType));
   const [baselineValues, setBaselineValues] = useState<HealthFormValues>(defaultValues(itemType));
 
@@ -120,7 +123,7 @@ export function StudentHealthFormSheet({
       handleColor={Story.line}
       maxHeight="88%"
       sheetStyle={styles.sheet}
-      scrollContentStyle={styles.scrollContent}
+      scrollContentStyle={scrollContentStyle}
       header={
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: theme.ink }]}>{title}</Text>
@@ -130,6 +133,7 @@ export function StudentHealthFormSheet({
         </View>
       }
       footer={
+        keyboardOpen ? undefined : (
         <View style={styles.footer}>
           <Pressable accessibilityRole="button" disabled={saving} onPress={requestClose}>
             <Text style={[styles.cancelLabel, { color: theme.muted }]}>Cancel</Text>
@@ -152,6 +156,7 @@ export function StudentHealthFormSheet({
             )}
           </Pressable>
         </View>
+        )
       }>
       {values.type === 'allergy' ? (
         <>
@@ -219,10 +224,11 @@ export function StudentHealthFormSheet({
             onChangeText={(text) => setValues({ ...values, instructions: text })}
             multiline
           />
-          <Field
-            label="Start date (YYYY-MM-DD)"
+          <StoryDateField
+            label="Start date"
             value={values.startDate}
-            onChangeText={(text) => setValues({ ...values, startDate: text })}
+            onChange={(startDate) => setValues({ ...values, startDate })}
+            disabled={saving}
           />
         </>
       ) : null}
@@ -240,10 +246,11 @@ export function StudentHealthFormSheet({
             onChangeText={(text) => setValues({ ...values, details: text })}
             multiline
           />
-          <Field
-            label="Start date (YYYY-MM-DD)"
+          <StoryDateField
+            label="Start date"
             value={values.startDate}
-            onChangeText={(text) => setValues({ ...values, startDate: text })}
+            onChange={(startDate) => setValues({ ...values, startDate })}
+            disabled={saving}
           />
         </>
       ) : null}

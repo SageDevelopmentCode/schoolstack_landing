@@ -108,6 +108,18 @@ describe('resolveTeacherPreviewPath', () => {
     );
   });
 
+  it('maps teacher my-hours to mobile preview route', () => {
+    setActivePreviewSession(teacherSession);
+
+    const path = resolveTeacherPreviewPath(
+      '/api/teacher-portal/my-hours?organizationId=org-123&slug=rooted-meadows',
+    );
+
+    expect(path).toBe(
+      '/api/admin/mobile-preview/teacher/my-hours?organizationId=org-123&slug=rooted-meadows&staffMemberId=staff-789',
+    );
+  });
+
   it('returns null when preview session is inactive', () => {
     expect(
       resolveTeacherPreviewPath('/api/teacher-portal/home?organizationId=org-123&slug=rooted-meadows'),

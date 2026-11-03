@@ -1,9 +1,9 @@
 import { type ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
-import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
+import { useBottomSheetKeyboardScrollStyle } from '@/hooks/use-bottom-sheet-keyboard-scroll-style';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { Spacing } from '@/constants/theme';
@@ -15,6 +15,7 @@ type ParentBottomSheetProps = {
   subtitle?: string;
   children: ReactNode;
   accessibilityLabel?: string;
+  scrollContentStyle?: StyleProp<ViewStyle>;
 };
 
 export function ParentBottomSheet({
@@ -24,10 +25,14 @@ export function ParentBottomSheet({
   subtitle,
   children,
   accessibilityLabel = 'Close',
+  scrollContentStyle: extraScrollContentStyle,
 }: ParentBottomSheetProps) {
   const theme = useAdminTheme();
   const insets = useSafeAreaInsets();
-  const keyboardInset = useKeyboardHeight();
+  const { scrollContentStyle } = useBottomSheetKeyboardScrollStyle([
+    styles.body,
+    extraScrollContentStyle,
+  ]);
 
   return (
     <BottomSheetShell
@@ -41,10 +46,7 @@ export function ParentBottomSheet({
       handleColor={theme.borderStrong}
       maxHeight="85%"
       bottomInset={insets.bottom + Spacing.four}
-      scrollContentStyle={[
-        styles.body,
-        keyboardInset > 0 ? { paddingBottom: keyboardInset + Spacing.four } : null,
-      ]}
+      scrollContentStyle={scrollContentStyle}
       header={
         <View style={[styles.header, { borderBottomColor: theme.border }]}>
           <ThemedText type="title" style={{ color: theme.textPrimary }}>
