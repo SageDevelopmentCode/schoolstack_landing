@@ -41,9 +41,8 @@ import type {
 } from "@/lib/school-admin/staff-hours/staff-hours-types";
 import {
   formatHoursMinutes,
-  formatLiveElapsed,
 } from "@/lib/school-teacher/my-hours/format-duration";
-import { useLiveElapsed } from "@/lib/school-teacher/my-hours/use-live-elapsed";
+import { StaffHoursLiveElapsed } from "@/components/school-admin/staff-hours/StaffHoursLiveElapsed";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
@@ -65,16 +64,6 @@ function FilterLabel({ theme, children }: { theme: ParentThemeTokens; children: 
       style={{ color: theme.muted }}
     >
       {children}
-    </span>
-  );
-}
-
-function LiveElapsedCell({ clockInAt }: { clockInAt: string }) {
-  const startedAt = useMemo(() => new Date(clockInAt), [clockInAt]);
-  const elapsedSeconds = useLiveElapsed(startedAt);
-  return (
-    <span className="font-semibold tabular-nums">
-      {formatLiveElapsed(elapsedSeconds)}
     </span>
   );
 }
@@ -361,7 +350,7 @@ export default function StaffHoursPage({
                             </td>
                             <td className="px-5 py-3 tabular-nums">{row.clockInLabel}</td>
                             <td className="px-5 py-3 text-right" style={{ color: theme.primary }}>
-                              <LiveElapsedCell clockInAt={row.clockInAt} />
+                              <StaffHoursLiveElapsed clockInAt={row.clockInAt} />
                             </td>
                           </motion.tr>
                         ) : (
@@ -376,7 +365,7 @@ export default function StaffHoursPage({
                             </td>
                             <td className="px-5 py-3 tabular-nums">{row.clockInLabel}</td>
                             <td className="px-5 py-3 text-right" style={{ color: theme.primary }}>
-                              <LiveElapsedCell clockInAt={row.clockInAt} />
+                              <StaffHoursLiveElapsed clockInAt={row.clockInAt} />
                             </td>
                           </tr>
                         ),

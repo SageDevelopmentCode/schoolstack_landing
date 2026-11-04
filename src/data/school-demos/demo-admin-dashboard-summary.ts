@@ -333,6 +333,7 @@ export function buildDemoAdminDashboardSummary(
     ],
     messagesUnreadCount: 4,
     attendanceToday: buildAttendanceToday(),
+    staffHoursToday: null,
   };
 }
 

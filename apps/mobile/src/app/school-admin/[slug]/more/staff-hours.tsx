@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { SchoolAdminStaffHoursScreen } from '@/components/school-admin/staff-hours/school-admin-staff-hours-screen';
+import { SchoolAdminStaffHoursScreen } from '../../../../components/school-admin/staff-hours/school-admin-staff-hours-screen';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function SchoolAdminStaffHoursRoute() {

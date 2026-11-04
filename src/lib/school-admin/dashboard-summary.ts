@@ -7,7 +7,14 @@ import {
 import { countObservationDaysInMonth } from "@/lib/admissions/admissions-observation-availability";
 import { dateKey } from "@/lib/committees/calendar-utils";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
-import type { AdminFeatures } from "@/lib/organization-settings/types";
+import type {
+  AdminFeatures,
+  OrganizationFeatures,
+} from "@/lib/organization-settings/types";
+import {
+  loadAdminStaffHoursDashboardToday,
+  type AdminDashboardStaffHoursToday,
+} from "@/lib/school-admin/staff-hours/load-admin-staff-hours-dashboard-today";
 import { loadAttendanceRoster } from "@/lib/school-admin/attendance/attendance-roster";
 import type {
   AttendanceRosterStudent,
@@ -87,6 +94,7 @@ export type AdminDashboardToday = {
     summary: AttendanceRosterSummary;
     students: AttendanceRosterStudent[];
   } | null;
+  staffHoursToday: AdminDashboardStaffHoursToday | null;
 };
 
 export type AdminDashboardActivity = {
@@ -125,6 +133,7 @@ type DashboardFetchContext = {
   organizationId: string;
   slug: string;
   features: AdminFeatures;
+  organizationFeatures?: OrganizationFeatures;
   userId?: string;
   schoolName?: string;
 };
@@ -426,6 +435,35 @@ function buildQuickActions(
   return quickActions;
 }
 
+async function loadStaffHoursToday(
+  ctx: DashboardFetchContext,
+): Promise<AdminDashboardToday["staffHoursToday"]> {
+  if (!ctx.organizationFeatures) {
+    return null;
+  }
+  return loadAdminStaffHoursDashboardToday(
+    ctx.admin,
+    ctx.organizationId,
+    ctx.organizationFeatures,
+  ).catch((err) => {
+    void reportOperationalError({
+      supabase: ctx.admin,
+      surface: "school_admin",
+      organizationId: ctx.organizationId,
+      operation: "dashboard.load_staff_hours_today",
+      error:
+        err instanceof Error
+          ? err.message
+          : "Failed to load today's staff hours snapshot.",
+      severity: "warning",
+      notify: true,
+      actor: { type: "system" },
+      cause: err,
+    });
+    return null;
+  });
+}
+
 async function loadAttendanceToday(
   ctx: DashboardFetchContext,
 ): Promise<AdminDashboardToday["attendanceToday"]> {
@@ -464,7 +502,11 @@ export async function fetchAdminDashboardToday(
   organizationId: string,
   slug: string,
   features: AdminFeatures,
-  options?: { userId?: string; schoolName?: string },
+  options?: {
+    userId?: string;
+    schoolName?: string;
+    organizationFeatures?: OrganizationFeatures;
+  },
 ): Promise<AdminDashboardToday> {
   const ctx: DashboardFetchContext = {
     supabase,
@@ -472,6 +514,7 @@ export async function fetchAdminDashboardToday(
     organizationId,
     slug,
     features,
+    organizationFeatures: options?.organizationFeatures,
     userId: options?.userId,
     schoolName: options?.schoolName,
   };
@@ -482,6 +525,7 @@ export async function fetchAdminDashboardToday(
     latestSubmitted,
     scheduleStats,
     attendanceToday,
+    staffHoursToday,
   ] = await Promise.all([
     fetchAdmissionsSetupStatus(supabase, organizationId, slug),
     features.admissions || (options?.userId && features.messages)
@@ -494,6 +538,7 @@ export async function fetchAdminDashboardToday(
       ? loadScheduleStats(supabase, organizationId)
       : Promise.resolve({ shadowDaysThisMonth: null, openSlots: null }),
     loadAttendanceToday(ctx),
+    loadStaffHoursToday(ctx),
   ]);
 
   const setupComplete =
@@ -533,6 +578,7 @@ export async function fetchAdminDashboardToday(
     messagesUnreadCount,
     setupComplete,
     attendanceToday,
+    staffHoursToday,
   };
 }
 
@@ -606,7 +652,11 @@ export async function fetchAdminDashboardSummary(
   organizationId: string,
   slug: string,
   features: AdminFeatures,
-  options?: { userId?: string; schoolName?: string },
+  options?: {
+    userId?: string;
+    schoolName?: string;
+    organizationFeatures?: OrganizationFeatures;
+  },
 ): Promise<AdminDashboardSummary> {
   const [today, activity, guides] = await Promise.all([
     fetchAdminDashboardToday(

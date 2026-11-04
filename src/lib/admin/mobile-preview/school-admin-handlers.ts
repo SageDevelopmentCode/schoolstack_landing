@@ -201,7 +201,7 @@ export async function handleSchoolAdminMobilePreviewGet(
         organizationId,
         slug,
         org.features.admin,
-        { userId: previewUserId, schoolName: org.name },
+        { userId: previewUserId, schoolName: org.name, organizationFeatures: org.features },
       );
 
       return NextResponse.json({

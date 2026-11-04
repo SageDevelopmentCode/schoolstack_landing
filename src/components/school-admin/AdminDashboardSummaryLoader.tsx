@@ -31,6 +31,7 @@ export default async function AdminDashboardSummaryLoader({
     {
       userId: user?.id,
       schoolName: org.name,
+      organizationFeatures: org.features,
     },
   );
 

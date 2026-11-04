@@ -79,6 +79,34 @@ export type ResolvedAdminFeatureAnnouncement = {
   publishedAt: string;
 };
 
+export type AdminDashboardStaffHoursClockedInRow = {
+  staffMemberId: string;
+  staffName: string;
+  clockInAt: string;
+  clockInLabel: string;
+  elapsedLabel: string;
+};
+
+export type AdminDashboardStaffHoursCompletedRow = {
+  staffMemberId: string;
+  staffName: string;
+  clockInLabel: string;
+  clockOutLabel: string;
+  durationLabel: string;
+};
+
+export type AdminDashboardStaffHoursToday = {
+  referenceDateKey: string;
+  summaryLine: string;
+  clockedInCount: number;
+  completedSessionCount: number;
+  totalMinutesToday: number;
+  totalHoursLabel: string;
+  clockedIn: AdminDashboardStaffHoursClockedInRow[];
+  completedToday: AdminDashboardStaffHoursCompletedRow[];
+  hiddenCompletedCount: number;
+};
+
 export type AdminDashboardSummary = {
   setupStatus: AdmissionsSetupStatus;
   focusItems: DashboardFocusItem[];
@@ -94,6 +122,7 @@ export type AdminDashboardSummary = {
   featureAnnouncements: ResolvedAdminFeatureAnnouncement[];
   messagesUnreadCount: number;
   setupComplete: boolean;
+  staffHoursToday: AdminDashboardStaffHoursToday | null;
   viewerProfile?: {
     email: string;
     displayName: string;
