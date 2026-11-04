@@ -38,6 +38,11 @@ describe("parseOrganizationNotificationSettings", () => {
         include_org_admins: true,
         additional_emails: [],
       },
+      staff_hours: {
+        enabled: true,
+        include_org_admins: true,
+        additional_emails: [],
+      },
       parent_reminders: {
         incomplete_admissions: {
           enabled: false,
@@ -59,6 +64,7 @@ describe("parseOrganizationNotificationSettings", () => {
         },
       },
       scheduled_visit_reminders: {},
+      staff_hours_reminders: {},
     });
   });
 
@@ -113,6 +119,11 @@ describe("parseOrganizationNotificationSettings", () => {
           include_org_admins: true,
           additional_emails: ["programs@school.com"],
         },
+        staff_hours: {
+          enabled: true,
+          include_org_admins: true,
+          additional_emails: [],
+        },
         parent_reminders: {
           incomplete_admissions: {
             enabled: false,
@@ -134,6 +145,20 @@ describe("parseOrganizationNotificationSettings", () => {
           },
         },
         scheduled_visit_reminders: {},
+        staff_hours_reminders: {},
+      },
+    );
+  });
+
+  it("parses staff hours reminder state from stored json", () => {
+    assert.deepEqual(
+      parseOrganizationNotificationSettings({
+        staff_hours_reminders: {
+          last_weekly_digest_week_end: "2026-03-07",
+        },
+      }).staff_hours_reminders,
+      {
+        last_weekly_digest_week_end: "2026-03-07",
       },
     );
   });
@@ -215,6 +240,7 @@ describe("parseOrganizationNotificationSettings", () => {
     assert.equal(parsed.visits.enabled, true);
     assert.equal(parsed.committees.enabled, true);
     assert.equal(parsed.program_signups.enabled, true);
+    assert.equal(parsed.staff_hours.enabled, true);
   });
 });
 
@@ -315,12 +341,14 @@ describe("buildOrganizationNotificationRecipients", () => {
     assert.equal(recipients.payments.needsAction, false);
     assert.equal(recipients.committees.needsAction, false);
     assert.equal(recipients.program_signups.needsAction, false);
+    assert.equal(recipients.staff_hours.needsAction, false);
     assert.deepEqual(recipients.payments.allRecipients, [
       "admin@school.com",
       "billing@school.com",
     ]);
     assert.deepEqual(recipients.committees.allRecipients, ["admin@school.com"]);
     assert.deepEqual(recipients.program_signups.allRecipients, ["admin@school.com"]);
+    assert.deepEqual(recipients.staff_hours.allRecipients, ["admin@school.com"]);
   });
 });
 

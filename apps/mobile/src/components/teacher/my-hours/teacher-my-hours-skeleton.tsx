@@ -35,13 +35,9 @@ export function TeacherMyHoursSkeleton() {
 
   return (
     <View style={styles.container} testID="teacher-my-hours-skeleton">
-      <SkeletonBlock style={styles.titleBar} backgroundColor={skeletonColor} />
-      <SkeletonBlock style={styles.subtitleBar} backgroundColor={skeletonColor} />
-      <SkeletonBlock style={styles.dateNav} backgroundColor={skeletonColor} />
       <SkeletonBlock style={styles.pillNav} backgroundColor={skeletonColor} />
       <SkeletonBlock style={styles.heroCard} backgroundColor={skeletonColor} />
       <SkeletonBlock style={styles.summaryCard} backgroundColor={skeletonColor} />
-      <SkeletonBlock style={styles.listCard} backgroundColor={skeletonColor} />
     </View>
   );
 }
@@ -51,35 +47,16 @@ const styles = StyleSheet.create({
     gap: Spacing.four,
     paddingVertical: Spacing.two,
   },
-  titleBar: {
-    height: 28,
-    width: '55%',
-    borderRadius: 8,
-  },
-  subtitleBar: {
-    height: 16,
-    width: '85%',
-    borderRadius: 6,
-  },
-  dateNav: {
-    height: 40,
-    width: '60%',
-    borderRadius: 10,
-  },
   pillNav: {
     height: 44,
     borderRadius: 12,
   },
   heroCard: {
-    height: 160,
+    height: 200,
     borderRadius: StoryCardPadding,
   },
   summaryCard: {
     height: 120,
-    borderRadius: StoryCardPadding,
-  },
-  listCard: {
-    height: 200,
     borderRadius: StoryCardPadding,
   },
 });

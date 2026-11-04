@@ -403,6 +403,65 @@ export async function loadFridayBranchSchedule(
   );
 }
 
+/** Loads slots/classes for a single current or upcoming block (parent home card). */
+export async function loadFridayBranchParentHomeDisplayBlock(
+  supabase: SupabaseClient,
+  organizationId: string,
+): Promise<FridayBranchBlock | null> {
+  const { data: blockRows, error: blocksError } = await supabase
+    .from("friday_branch_blocks")
+    .select(
+      "id, organization_id, label, start_date, end_date, accent, description, status, sort_order",
+    )
+    .eq("organization_id", organizationId)
+    .in("status", ["current", "upcoming"])
+    .order("sort_order", { ascending: true });
+
+  if (blocksError) throw blocksError;
+
+  const rows = (blockRows ?? []) as FridayBranchBlockRow[];
+  if (rows.length === 0) return null;
+
+  const displayRow =
+    rows.find((row) => row.status === "current") ??
+    rows.find((row) => row.status === "upcoming") ??
+    rows[0];
+
+  const { data: slotRows, error: slotsError } = await supabase
+    .from("friday_branch_time_slots")
+    .select("id, block_id, organization_id, time, sort_order")
+    .eq("organization_id", organizationId)
+    .eq("block_id", displayRow.id)
+    .order("sort_order", { ascending: true });
+
+  if (slotsError) throw slotsError;
+
+  const slotIds = (slotRows ?? []).map((row) => String((row as FridayBranchTimeSlotRow).id));
+  let classRows: FridayBranchClassRow[] = [];
+
+  if (slotIds.length > 0) {
+    const { data, error: classesError } = await supabase
+      .from("friday_branch_classes")
+      .select(
+        "id, time_slot_id, organization_id, name, location, age_group, teacher, family_visible, capacity, price_cents, flyer_storage_path, flyer_file_name, flyer_file_size_bytes, sort_order",
+      )
+      .eq("organization_id", organizationId)
+      .in("time_slot_id", slotIds)
+      .order("sort_order", { ascending: true });
+
+    if (classesError) throw classesError;
+    classRows = (data ?? []) as FridayBranchClassRow[];
+  }
+
+  const [assembled] = assembleFridayBranchBlocks(
+    [displayRow],
+    (slotRows ?? []) as FridayBranchTimeSlotRow[],
+    classRows,
+  );
+
+  return assembled ?? null;
+}
+
 export async function saveFridayBranchSchedule(
   supabase: SupabaseClient,
   organizationId: string,

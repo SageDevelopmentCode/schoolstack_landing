@@ -44,6 +44,7 @@ export type MoreMenuItemId =
   | 'transactions'
   | 'schedule'
   | 'staff'
+  | 'staff-hours'
   | 'classrooms'
   | 'bulletin'
   | 'attendance'
@@ -106,6 +107,14 @@ const MENU_ITEMS: {
     iconColor: '#D97706',
   },
   {
+    id: 'staff-hours',
+    label: 'Staff hours',
+    subtitle: 'Who is clocked in and weekly totals',
+    icon: 'time-outline',
+    iconBg: '#E0F2FE',
+    iconColor: '#0284C7',
+  },
+  {
     id: 'bulletin',
     label: 'Bulletin',
     subtitle: 'Announcements and flyers',
@@ -153,7 +162,7 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
     previewSession,
   } = useAuth();
   const canSwitchSchool = useCanSwitchSchool(user?.id);
-  const { fridayBranchEnabled, photosEnabled } = useSchoolAdminFeatures();
+  const { fridayBranchEnabled, photosEnabled, staffHoursEnabled } = useSchoolAdminFeatures();
   const viewer = useSchoolAdminViewerProfile();
   const displayName = viewer.displayName;
   const accountEmail = viewer.isPreview ? viewer.email : user?.email?.trim() ?? '';
@@ -166,9 +175,10 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
       MENU_ITEMS.filter((item) => {
         if (item.id === 'friday-branch') return fridayBranchEnabled;
         if (item.id === 'photos') return photosEnabled;
+        if (item.id === 'staff-hours') return staffHoursEnabled;
         return true;
       }),
-    [fridayBranchEnabled, photosEnabled],
+    [fridayBranchEnabled, photosEnabled, staffHoursEnabled],
   );
 
   const handleSignOut = async () => {

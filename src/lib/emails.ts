@@ -1521,6 +1521,102 @@ export async function sendScheduledVisitAdminDigestEmail(payload: {
   }
 }
 
+export type StaffHoursWeeklyAdminDigestStaffRow = {
+  staffName: string;
+  totalLabel: string;
+};
+
+export type StaffHoursWeeklyAdminDigestSessionEntry = {
+  dateLabel: string;
+  timeLabel: string;
+  durationLabel: string;
+};
+
+export type StaffHoursWeeklyAdminDigestStaffSessions = {
+  staffName: string;
+  sessions: StaffHoursWeeklyAdminDigestSessionEntry[];
+};
+
+export function buildStaffHoursWeeklyAdminDigestSubject(payload: {
+  schoolName: string;
+}): string {
+  return `Staff hours last week — ${payload.schoolName}`;
+}
+
+function buildStaffHoursWeeklySessionGroupsHtml(
+  groups: StaffHoursWeeklyAdminDigestStaffSessions[],
+): string {
+  if (groups.length === 0) return "";
+
+  const blocks = groups.map((group) => {
+    const sessionLines = group.sessions.map(
+      (session) =>
+        `${escapeHtml(session.dateLabel)} — ${escapeHtml(session.timeLabel)} (${escapeHtml(session.durationLabel)})`,
+    );
+    return `${emailDigestSectionHeader(group.staffName)}${emailBulletList(sessionLines)}`;
+  });
+
+  return `${emailParagraph("Completed sessions")}${blocks.join("")}`;
+}
+
+export function buildStaffHoursWeeklyAdminDigestHtml(payload: {
+  schoolName: string;
+  weekLabel: string;
+  staffHoursAdminUrl: string;
+  staffRows: StaffHoursWeeklyAdminDigestStaffRow[];
+  staffSessionGroups: StaffHoursWeeklyAdminDigestStaffSessions[];
+}): string {
+  const staffLines = payload.staffRows.map(
+    (row) => `${escapeHtml(row.staffName)} — ${escapeHtml(row.totalLabel)}`,
+  );
+
+  return composeEmail({
+    preheader: `Staff hours for ${payload.weekLabel} at ${payload.schoolName}.`,
+    contentHtml: `
+      ${emailBadge("Staff hours")}
+      ${emailHeading(`Weekly staff hours — ${escapeHtml(payload.schoolName)}`)}
+      ${emailMutedParagraph(`Hours logged ${escapeHtml(payload.weekLabel)} (Monday–Saturday).`)}
+      ${emailParagraph("Hours by staff")}
+      ${emailBulletList(staffLines)}
+      ${buildStaffHoursWeeklySessionGroupsHtml(payload.staffSessionGroups)}
+      ${emailCta({ label: "Open Staff hours", href: payload.staffHoursAdminUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendStaffHoursWeeklyAdminDigestEmail(payload: {
+  email: string;
+  schoolName: string;
+  weekLabel: string;
+  staffHoursAdminUrl: string;
+  staffRows: StaffHoursWeeklyAdminDigestStaffRow[];
+  staffSessionGroups: StaffHoursWeeklyAdminDigestStaffSessions[];
+  notificationContext?: OutboundEmailNotificationContext;
+}): Promise<{ ok: boolean }> {
+  const content = buildStaffHoursWeeklyAdminDigestHtml(payload);
+  const subject = buildStaffHoursWeeklyAdminDigestSubject({
+    schoolName: payload.schoolName,
+  });
+  try {
+    await deliverZohoEmail({
+      channel: "Staff hours weekly digest",
+      toAddress: payload.email,
+      subject,
+      content,
+      discord: schoolOutboundDiscord(
+        "staff_hours_weekly_admin_digest",
+        "school_admin",
+        payload.schoolName,
+        payload.notificationContext,
+      ),
+    });
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
 export function buildPaymentReceiptConfirmationHtml(payload: {
   name: string;
   schoolName: string;

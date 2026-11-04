@@ -43,9 +43,9 @@ type ResolvedParentOnboardingItem = Awaited<
   ReturnType<typeof loadResolvedParentOnboardingItems>
 >[number];
 
-/** Bulletin feed cap on program portal home (matches web co-op portal). */
-export function resolveParentPortalHomeBulletinLimit(coopModeEnabled: boolean): number {
-  return coopModeEnabled ? 3 : 25;
+/** Bulletin feed cap on parent portal home (web/mobile mini-feed shows 3). */
+export function resolveParentPortalHomeBulletinLimit(_coopModeEnabled: boolean): number {
+  return 3;
 }
 
 export type ParentPortalHomeApiPayload = {

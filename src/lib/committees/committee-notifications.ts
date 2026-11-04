@@ -345,6 +345,62 @@ export async function resolveCommitteeMemberEmail(
   return null;
 }
 
+async function buildCommitteeMemberEmailsByMemberId(
+  supabase: SupabaseClient,
+  members: AssigneeMemberRow[],
+): Promise<Map<string, string>> {
+  const emailByMemberId = new Map<string, string>();
+  const guardianIds = new Set<string>();
+  const staffIds = new Set<string>();
+
+  for (const member of members) {
+    if (member.email?.trim()) {
+      emailByMemberId.set(member.id, member.email.trim());
+      continue;
+    }
+    if (member.guardian_id) guardianIds.add(member.guardian_id);
+    if (member.staff_member_id) staffIds.add(member.staff_member_id);
+  }
+
+  const guardianIdList = [...guardianIds];
+  const staffIdList = [...staffIds];
+
+  const [guardiansRes, staffRes] = await Promise.all([
+    guardianIdList.length > 0
+      ? supabase.from("guardians").select("id, email").in("id", guardianIdList)
+      : Promise.resolve({ data: [] as { id: string; email: string | null }[], error: null }),
+    staffIdList.length > 0
+      ? supabase.from("staff_members").select("id, email").in("id", staffIdList)
+      : Promise.resolve({ data: [] as { id: string; email: string | null }[], error: null }),
+  ]);
+
+  if (guardiansRes.error) throw new Error(guardiansRes.error.message);
+  if (staffRes.error) throw new Error(staffRes.error.message);
+
+  const guardianEmailById = new Map<string, string>();
+  for (const row of guardiansRes.data ?? []) {
+    if (row.email?.trim()) guardianEmailById.set(String(row.id), row.email.trim());
+  }
+
+  const staffEmailById = new Map<string, string>();
+  for (const row of staffRes.data ?? []) {
+    if (row.email?.trim()) staffEmailById.set(String(row.id), row.email.trim());
+  }
+
+  for (const member of members) {
+    if (emailByMemberId.has(member.id)) continue;
+    if (member.guardian_id) {
+      const email = guardianEmailById.get(member.guardian_id);
+      if (email) emailByMemberId.set(member.id, email);
+    } else if (member.staff_member_id) {
+      const email = staffEmailById.get(member.staff_member_id);
+      if (email) emailByMemberId.set(member.id, email);
+    }
+  }
+
+  return emailByMemberId;
+}
+
 function formatTaskDueDateLabel(dueDate: string | null | undefined): string | null {
   if (!dueDate?.trim()) return null;
   return new Date(`${dueDate.trim()}T12:00:00`).toLocaleDateString("en-US", {
@@ -552,9 +608,14 @@ export async function sendCommitteeMessagePostedNotifications(
     return true;
   });
 
+  const emailByMemberId = await buildCommitteeMemberEmailsByMemberId(
+    supabase,
+    recipients,
+  );
+
   const emailResults = await Promise.allSettled(
     recipients.map(async (member) => {
-      const email = await resolveCommitteeMemberEmail(supabase, member);
+      const email = emailByMemberId.get(member.id);
       if (!email) return;
 
       const messagesUrl = committeeMemberWorkspaceUrl(

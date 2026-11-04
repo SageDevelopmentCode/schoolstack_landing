@@ -198,6 +198,42 @@ export async function listParentCommitteeMemberships(
   });
 }
 
+export type ActiveCommitteeMemberForPost = {
+  id: string;
+  name: string;
+  userId: string | null;
+  status: string;
+};
+
+/** Lightweight membership check for POST message routes (avoids loading full workspace). */
+export async function resolveActiveCommitteeMemberForPost(
+  supabase: SupabaseClient,
+  organizationId: string,
+  userId: string,
+  committeeId: string,
+): Promise<ActiveCommitteeMemberForPost> {
+  const { data: member, error } = await supabase
+    .from("committee_members")
+    .select("id, display_name, user_id, status")
+    .eq("committee_id", committeeId)
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!member) {
+    throw new Error("You do not have access to this committee workspace.");
+  }
+
+  return {
+    id: String(member.id),
+    name: String(member.display_name ?? "").trim(),
+    userId: member.user_id ? String(member.user_id) : null,
+    status: String(member.status),
+  };
+}
+
 export async function getParentCommitteeWorkspace(
   supabase: SupabaseClient,
   organizationId: string,

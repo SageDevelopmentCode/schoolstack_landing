@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { StoryCard } from '@/components/story/story-card';
+import { MY_HOURS_CARD_BODY_PADDING } from '@/components/teacher/my-hours/teacher-my-hours-theme';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { formatHoursMinutes } from '@/lib/teacher/my-hours/format-duration';
 import type { MyHoursSidebarSummary } from '@/lib/teacher/my-hours/types';
@@ -109,6 +110,7 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   weekCard: {
+    padding: MY_HOURS_CARD_BODY_PADDING,
     gap: Spacing.two,
   },
   kicker: {
@@ -151,6 +153,7 @@ const styles = StyleSheet.create({
   },
   halfCard: {
     flex: 1,
+    padding: MY_HOURS_CARD_BODY_PADDING,
     gap: Spacing.one,
   },
   statValue: {
@@ -163,6 +166,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   recentCard: {
+    padding: MY_HOURS_CARD_BODY_PADDING,
     gap: Spacing.three,
   },
   recentRow: {

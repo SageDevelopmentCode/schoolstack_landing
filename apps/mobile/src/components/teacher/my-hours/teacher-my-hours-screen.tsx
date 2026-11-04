@@ -16,15 +16,15 @@ import { StoryCard } from '@/components/story/story-card';
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { StoryErrorBanner } from '@/components/story/story-error-banner';
 import { StorySectionKicker } from '@/components/story/story-section-kicker';
+import { MY_HOURS_CARD_BODY_PADDING } from '@/components/teacher/my-hours/teacher-my-hours-theme';
 import { TEACHER_FLOATING_TAB_BAR_HEIGHT } from '@/components/teacher/teacher-floating-tab-bar';
 import { TeacherMyHoursDayPanel } from '@/components/teacher/my-hours/teacher-my-hours-day-panel';
 import { TeacherMyHoursMonthPanel } from '@/components/teacher/my-hours/teacher-my-hours-month-panel';
 import { TeacherMyHoursSkeleton } from '@/components/teacher/my-hours/teacher-my-hours-skeleton';
-import { TeacherMyHoursStoryHeader } from '@/components/teacher/my-hours/teacher-my-hours-story-header';
+import { TeacherMyHoursViewNav } from '@/components/teacher/my-hours/teacher-my-hours-story-header';
 import { TeacherMyHoursSummaryCards } from '@/components/teacher/my-hours/teacher-my-hours-summary-cards';
 import { TeacherMyHoursWeekPanel } from '@/components/teacher/my-hours/teacher-my-hours-week-panel';
-import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
-import { Spacing } from '@/constants/theme';
+import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { useTeacherHome } from '@/contexts/teacher-home-context';
 import { goBackOrReplace } from '@/lib/navigation';
@@ -32,7 +32,9 @@ import { isPreviewSessionActive } from '@/lib/platform-admin/preview-session-sto
 import { usePortalReadOnly } from '@/lib/portal-preview-gating';
 import {
   addDays,
+  formatCompactNavDate,
   formatHoursMinutes,
+  formatMonthYear,
   formatWallClockTime,
   isSameDay,
   toDateKey,
@@ -56,6 +58,8 @@ import { isTeacherFeatureEnabled } from '@/lib/teacher/teacher-features';
 import { teacherTabRoute } from '@/lib/teacher/teacher-nav';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { Story, StoryFonts } from '@/constants/story-theme';
+
+const MY_HOURS_HORIZONTAL_PADDING = Spacing.four;
 
 type TeacherMyHoursScreenProps = {
   organizationId: string;
@@ -326,6 +330,15 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
 
   const showPreviewBanner = isPreviewSessionActive();
 
+  const dateNavLabel =
+    view === 'month' ? formatMonthYear(monthDate) : formatCompactNavDate(focusDate);
+
+  const dateNavProps = {
+    navLabel: dateNavLabel,
+    onPreviousDate: handlePreviousDate,
+    onNextDate: handleNextDate,
+  };
+
   return (
     <View style={[styles.root, { backgroundColor: Story.paper }]} testID="teacher-my-hours-page">
       <ScrollView
@@ -340,6 +353,7 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
             tintColor={theme.primary}
           />
         }>
+        <View style={styles.contentColumn}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back to More"
@@ -349,18 +363,14 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
           <Text style={[styles.backLabel, { color: theme.primary }]}>More</Text>
         </Pressable>
 
-        <TeacherMyHoursStoryHeader
+        <TeacherMyHoursViewNav
           view={view}
-          focusDate={focusDate}
-          monthDate={monthDate}
           onViewChange={(nextView) => {
             setView(nextView);
             if (nextView === 'month') {
               setMonthDate(new Date(focusDate.getFullYear(), focusDate.getMonth(), 1));
             }
           }}
-          onPreviousDate={handlePreviousDate}
-          onNextDate={handleNextDate}
         />
 
         {showPreviewBanner ? (
@@ -373,14 +383,9 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
 
         {error ? <StoryErrorBanner message={error} /> : null}
 
-        <TeacherMyHoursSummaryCards
-          summary={pageData.sidebar}
-          clockedIn={activeSessionStartedAt != null}
-          todayLiveMinutes={sidebarTodayMinutes}
-        />
-
         {view === 'day' ? (
           <TeacherMyHoursDayPanel
+            {...dateNavProps}
             focusDate={focusDate}
             referenceDate={referenceDate}
             dayLog={dayLog}
@@ -396,6 +401,7 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
 
         {view === 'week' ? (
           <TeacherMyHoursWeekPanel
+            {...dateNavProps}
             entriesByDateKey={pageData.entriesByDateKey}
             focusDate={focusDate}
             referenceDate={referenceDate}
@@ -405,12 +411,20 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
 
         {view === 'month' ? (
           <TeacherMyHoursMonthPanel
+            {...dateNavProps}
             entriesByDateKey={pageData.entriesByDateKey}
             monthDate={monthDate}
             referenceDate={referenceDate}
             onDaySelect={openDayDetail}
           />
         ) : null}
+
+        <TeacherMyHoursSummaryCards
+          summary={pageData.sidebar}
+          clockedIn={activeSessionStartedAt != null}
+          todayLiveMinutes={sidebarTodayMinutes}
+        />
+        </View>
       </ScrollView>
     </View>
   );
@@ -421,9 +435,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    paddingHorizontal: MY_HOURS_HORIZONTAL_PADDING,
     paddingTop: Spacing.three,
-    gap: Spacing.five,
+    gap: Spacing.four,
+  },
+  contentColumn: {
+    width: '100%',
+    maxWidth: MaxContentWidth,
+    alignSelf: 'center',
+    gap: Spacing.four,
   },
   backRow: {
     flexDirection: 'row',
@@ -453,9 +473,10 @@ const styles = StyleSheet.create({
   disabledWrap: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    paddingHorizontal: MY_HOURS_HORIZONTAL_PADDING,
   },
   disabledCard: {
+    padding: MY_HOURS_CARD_BODY_PADDING,
     gap: Spacing.two,
   },
   disabledCopy: {
@@ -466,7 +487,7 @@ const styles = StyleSheet.create({
   errorWrap: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    paddingHorizontal: MY_HOURS_HORIZONTAL_PADDING,
     gap: Spacing.four,
   },
   retryButton: {

@@ -46,6 +46,8 @@ import {
   ORG_ENROLLED_STUDENTS_PAGE_MAX_LIMIT,
 } from "@/lib/school-admin/students-roster-page";
 import { fetchStudentsPageMeta } from "@/lib/school-admin/students-page-meta";
+import { loadAdminStaffHoursPageData } from "@/lib/school-admin/staff-hours/load-admin-staff-hours-page-data";
+import type { AdminStaffHoursView } from "@/lib/school-admin/staff-hours/staff-hours-types";
 import { isSchoolGalleryEnabled } from "@/lib/school-gallery/gallery-enabled";
 import { GalleryError } from "@/lib/school-gallery/gallery-errors";
 import { parseGalleryListQuery } from "@/lib/school-gallery/gallery-pagination";
@@ -353,6 +355,26 @@ export async function handleSchoolAdminMobilePreviewGet(
 
         return NextResponse.json({ contacts });
       }
+    }
+
+    if (segment === "staff-hours") {
+      const fromParam = url.searchParams.get("from")?.trim() || undefined;
+      const toParam = url.searchParams.get("to")?.trim() || undefined;
+      const staffMemberId = url.searchParams.get("staffMemberId")?.trim() || null;
+      const viewRaw = url.searchParams.get("view")?.trim();
+      const view: AdminStaffHoursView =
+        viewRaw === "live" || viewRaw === "summary" || viewRaw === "all"
+          ? viewRaw
+          : "all";
+
+      const pageData = await loadAdminStaffHoursPageData(admin, organizationId, {
+        from: fromParam,
+        to: toParam,
+        staffMemberId,
+        view,
+      });
+
+      return NextResponse.json(pageData);
     }
 
     if (segment === "admissions" && pathSegments[1] === "submissions") {

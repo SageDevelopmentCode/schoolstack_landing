@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import * as Sentry from "@sentry/nextjs";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   listEnrollmentAgreementAmendmentsForApplications,
@@ -21,7 +22,7 @@ import {
 import type { OrganizationFeatures } from "@/lib/organization-settings/types";
 import { isParentHomeFridayBranchEnabled } from "@/lib/organization-settings/parent-home-features";
 import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
-import { loadParentFridayBranchPageBundle } from "@/lib/parent-portal/friday-branch/load-parent-friday-branch";
+import { loadParentFridayBranchHomePageBundle } from "@/lib/parent-portal/friday-branch/load-parent-friday-branch";
 import type { ParentFridayBranchPageBundle } from "@/lib/parent-portal/friday-branch/types";
 import { buildParentFormAttentionItemsFromBundle } from "@/lib/school-parent/forms-documents/load-parent-form-attention-items";
 import type { ParentFormAttentionItem } from "@/lib/school-parent/forms-documents/load-parent-form-attention-items";
@@ -67,7 +68,7 @@ async function loadFridayBranchHomeBundle(input: {
 
   const admin = createAdminClient();
   const studentOptions = buildFridayBranchStudentOptions(input.familyChildren);
-  return loadParentFridayBranchPageBundle(
+  return loadParentFridayBranchHomePageBundle(
     admin,
     input.organizationId,
     input.familyId,
@@ -146,68 +147,99 @@ export async function loadParentHomeContentDataForAuthUser(input: {
   /** When true, skips re-querying program enrollment (caller already verified). */
   programAccessVerified?: boolean;
 }): Promise<ParentHomeContentData> {
-  const hasProgramAccess = input.programId
+  const programAccessPromise = input.programId
     ? input.programAccessVerified === true
-      ? true
-      : await userHasEnrolledAccessInProgram(
+      ? Promise.resolve(true)
+      : userHasEnrolledAccessInProgram(
           input.supabase,
           input.userId,
           input.organizationId,
           input.programId,
         )
-    : false;
+    : Promise.resolve(false);
 
-  const familyChildren = input.programId
-    ? filterFamilyChildrenForProgramPortal(
-        await listFamilyChildrenForHome(
-          input.supabase,
-          input.organizationId,
-          input.userId,
-        ),
-        input.programId,
-      )
-    : await listFamilyChildrenForHome(
+  const familyChildrenPromise = Sentry.startSpan(
+    { name: "parent_home.content.children", op: "parent_home.content.children" },
+    async () => {
+      const children = await listFamilyChildrenForHome(
         input.supabase,
         input.organizationId,
         input.userId,
       );
+      return input.programId
+        ? filterFamilyChildrenForProgramPortal(children, input.programId)
+        : children;
+    },
+  );
 
-  const onboardingItems = await loadResolvedParentOnboardingItems({
-    supabase: input.supabase,
-    organizationId: input.organizationId,
-    familyId: input.familyId,
-    userId: input.userId,
-    slug: input.slug,
-    features: input.features,
-    previewBasePath: input.previewBasePath,
-    familyChildren,
-  });
+  const onboardingItemsPromise = Sentry.startSpan(
+    { name: "parent_home.content.onboarding", op: "parent_home.content.onboarding" },
+    () =>
+      loadResolvedParentOnboardingItems({
+        supabase: input.supabase,
+        organizationId: input.organizationId,
+        familyId: input.familyId,
+        userId: input.userId,
+        slug: input.slug,
+        features: input.features,
+        previewBasePath: input.previewBasePath,
+        familyChildrenPromise,
+      }),
+  );
+
+  const [hasProgramAccess, familyChildren, onboardingItems] = await Promise.all([
+    programAccessPromise,
+    familyChildrenPromise,
+    onboardingItemsPromise,
+  ]);
 
   const applicationIds = familyChildren.map((child) => child.applicationId);
   const admin = createAdminClient();
   const formsFeatureEnabled = isParentFeatureEnabled(input.features, "forms_documents");
 
   const formsBundlePromise = formsFeatureEnabled
-    ? loadParentFormsDocumentsPageBundle(admin, input.organizationId, input.familyId)
+    ? Sentry.startSpan(
+        { name: "parent_home.content.forms", op: "parent_home.content.forms" },
+        () => loadParentFormsDocumentsPageBundle(admin, input.organizationId, input.familyId),
+      )
     : Promise.resolve(null);
 
+  const enrollmentBannersPromise = Sentry.startSpan(
+    { name: "parent_home.content.enrollment_banners", op: "parent_home.content.enrollment_banners" },
+    () =>
+      Promise.all([
+        listEnrollmentAgreementAmendmentsForApplications(
+          input.supabase,
+          input.organizationId,
+          applicationIds,
+        ),
+        listIncompleteEnrollmentAgreementsForApplications(
+          input.supabase,
+          input.organizationId,
+          applicationIds,
+        ),
+      ]),
+  );
+
+  const fridayBranchPromise = Sentry.startSpan(
+    { name: "parent_home.content.friday_branch", op: "parent_home.content.friday_branch" },
+    () =>
+      loadFridayBranchHomeBundle({
+        organizationId: input.organizationId,
+        familyId: input.familyId,
+        features: input.features,
+        familyChildren,
+        fridayBranchSettings: input.fridayBranchSettings,
+      }),
+  );
+
   const [
-    amendmentsByApplicationId,
-    incompleteByApplicationId,
+    [amendmentsByApplicationId, incompleteByApplicationId],
     coopFamilies,
     formsBundle,
     fridayBranchHome,
   ] = await Promise.all([
-    listEnrollmentAgreementAmendmentsForApplications(
-      input.supabase,
-      input.organizationId,
-      applicationIds,
-    ),
-    listIncompleteEnrollmentAgreementsForApplications(
-      input.supabase,
-      input.organizationId,
-      applicationIds,
-    ),
+    enrollmentBannersPromise,
     loadCoopFamiliesForHome({
       organizationId: input.organizationId,
       familyId: input.familyId,
@@ -216,13 +248,7 @@ export async function loadParentHomeContentDataForAuthUser(input: {
       hasProgramAccess,
     }),
     formsBundlePromise,
-    loadFridayBranchHomeBundle({
-      organizationId: input.organizationId,
-      familyId: input.familyId,
-      features: input.features,
-      familyChildren,
-      fridayBranchSettings: input.fridayBranchSettings,
-    }),
+    fridayBranchPromise,
   ]);
 
   const formAttentionItems =

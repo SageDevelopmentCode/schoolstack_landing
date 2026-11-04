@@ -19,7 +19,16 @@ import {
   StaffHoursSummaryTableLoadingSkeleton,
 } from "@/components/school-admin/staff-hours/StaffHoursLoadingSkeleton";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
-import { reportClientOperationalError } from "@/lib/operational-errors-client";
+import {
+  parseOperationalError,
+  reportClientOperationalError,
+  shouldReportPortalClientError,
+} from "@/lib/operational-errors-client";
+import { isBenignPortalErrorCode } from "@/lib/portal-operational-errors";
+import {
+  portalJsonApiErrorCode,
+  portalJsonApiErrorStatus,
+} from "@/lib/portal-json-api-error";
 import { fetchAdminStaffHoursPageData } from "@/lib/school-admin/staff-hours/fetch-admin-staff-hours";
 import {
   staffHoursExpandRowMotion,
@@ -191,11 +200,18 @@ export default function StaffHoursPage({
     } catch (err) {
       const message = formatActionError(err, "Failed to load staff hours.");
       adminToast.error(message);
-      void reportClientOperationalError({
-        organizationId,
-        operation: "staff_hours.load",
-        error: message,
-      });
+      if (shouldReportPortalClientError(err, portalJsonApiErrorStatus(err))) {
+        const parsed = parseOperationalError(err);
+        const code = portalJsonApiErrorCode(err) ?? parsed.code;
+        if (!isBenignPortalErrorCode(code)) {
+          void reportClientOperationalError({
+            organizationId,
+            operation: "staff_hours.load",
+            error: message,
+            code,
+          });
+        }
+      }
     } finally {
       setLoading(false);
     }

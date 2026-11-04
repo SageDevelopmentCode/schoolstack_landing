@@ -1,4 +1,7 @@
+import { throwPortalJsonApiError } from "@/lib/portal-json-api-error";
 import type { TeacherMyHoursPageData } from "@/lib/school-teacher/my-hours/types";
+
+export { PortalJsonApiError as TeacherMyHoursApiError } from "@/lib/portal-json-api-error";
 
 export async function fetchTeacherMyHoursPageData(
   organizationId: string,
@@ -19,11 +22,7 @@ export async function fetchTeacherMyHoursPageData(
     | null;
 
   if (!response.ok) {
-    const message =
-      payload && "error" in payload && typeof payload.error === "string"
-        ? payload.error
-        : "Failed to load My Hours.";
-    throw new Error(message);
+    throwPortalJsonApiError(payload, response.status, "Failed to load My Hours.");
   }
 
   return payload as TeacherMyHoursPageData;
@@ -41,15 +40,11 @@ export async function postTeacherMyHoursClockIn(
 
   const payload = (await response.json().catch(() => null)) as
     | TeacherMyHoursPageData
-    | { error?: string }
+    | { error?: string; code?: string }
     | null;
 
   if (!response.ok) {
-    const message =
-      payload && "error" in payload && typeof payload.error === "string"
-        ? payload.error
-        : "Failed to clock in.";
-    throw new Error(message);
+    throwPortalJsonApiError(payload, response.status, "Failed to clock in.");
   }
 
   return payload as TeacherMyHoursPageData;
@@ -67,15 +62,11 @@ export async function postTeacherMyHoursClockOut(
 
   const payload = (await response.json().catch(() => null)) as
     | { pageData: TeacherMyHoursPageData; session?: { minutes: number } }
-    | { error?: string }
+    | { error?: string; code?: string }
     | null;
 
   if (!response.ok) {
-    const message =
-      payload && "error" in payload && typeof payload.error === "string"
-        ? payload.error
-        : "Failed to clock out.";
-    throw new Error(message);
+    throwPortalJsonApiError(payload, response.status, "Failed to clock out.");
   }
 
   const data = payload as {

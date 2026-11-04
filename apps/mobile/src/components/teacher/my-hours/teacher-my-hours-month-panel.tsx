@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { StoryCard } from '@/components/story/story-card';
+import { TeacherMyHoursDateNav } from '@/components/teacher/my-hours/teacher-my-hours-date-nav';
 import {
   MY_HOURS_CALENDAR_LINE,
   MY_HOURS_LOGGED_BG,
@@ -16,12 +17,15 @@ import {
   getMonthSummaryForMonthDate,
 } from '@/lib/teacher/my-hours/my-hours-page-utils';
 import type { MyHoursDayLog } from '@/lib/teacher/my-hours/types';
-import { StoryFonts } from '@/constants/story-theme';
+import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 type TeacherMyHoursMonthPanelProps = {
+  navLabel: string;
+  onPreviousDate: () => void;
+  onNextDate: () => void;
   entriesByDateKey: Record<string, MyHoursDayLog>;
   monthDate: Date;
   referenceDate: Date;
@@ -47,6 +51,9 @@ function buildMonthGrid(monthDate: Date): Array<Date | null> {
 }
 
 export function TeacherMyHoursMonthPanel({
+  navLabel,
+  onPreviousDate,
+  onNextDate,
   entriesByDateKey,
   monthDate,
   referenceDate,
@@ -59,7 +66,15 @@ export function TeacherMyHoursMonthPanel({
   const totalRows = grid.length / 7;
 
   return (
-    <StoryCard compact style={styles.card} testID="teacher-my-hours-month-panel">
+    <StoryCard compact style={styles.cardOuter} testID="teacher-my-hours-month-panel">
+      <TeacherMyHoursDateNav
+        label={navLabel}
+        onPrevious={onPreviousDate}
+        onNext={onNextDate}
+        fullWidth
+        embedded
+      />
+      <View style={styles.cardBody}>
       <View style={styles.summaryHeader}>
         <Text style={[styles.monthTitle, { color: theme.ink }]}>{summary.monthLabel}</Text>
         <Text style={[styles.monthMeta, { color: theme.muted }]}>
@@ -139,6 +154,7 @@ export function TeacherMyHoursMonthPanel({
         <LegendSwatch color={theme.primary} label="Today" round />
         <LegendSwatch color={theme.white} label="Not logged" border />
       </View>
+      </View>
     </StoryCard>
   );
 }
@@ -174,7 +190,13 @@ function LegendSwatch({
 }
 
 const styles = StyleSheet.create({
-  card: {
+  cardOuter: {
+    overflow: 'hidden',
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
+  cardBody: {
+    padding: StoryCardPadding,
     gap: Spacing.four,
   },
   summaryHeader: {

@@ -3,7 +3,7 @@ import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { handlePostCommitteeMessage } from "@/lib/committees/api/committee-message-route";
 import {
-  getParentCommitteeWorkspace,
+  resolveActiveCommitteeMemberForPost,
   resolveParentGuardianForOrg,
 } from "@/lib/committees/parent-committees";
 import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
@@ -75,25 +75,12 @@ export async function POST(request: Request, context: RouteContext) {
       user.email ?? "",
     );
 
-    const committee = await getParentCommitteeWorkspace(
+    const currentMember = await resolveActiveCommitteeMemberForPost(
       admin,
       resolvedOrganizationId,
       user.id,
       committeeId,
     );
-
-    const currentMember = committee.members.find(
-      (member) => member.userId === user.id && member.status === "active",
-    );
-
-    if (!currentMember) {
-      return apiError(ROUTE, {
-        request,
-        status: 403,
-        error: "You are not a member of this committee.",
-        code: "forbidden",
-      });
-    }
 
     return handlePostCommitteeMessage(request, ROUTE, {
       committeeId,

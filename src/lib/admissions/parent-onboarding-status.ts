@@ -92,12 +92,11 @@ async function checkChildrenPhotosComplete(
   supabase: SupabaseClient,
   organizationId: string,
   familyId: string,
+  familyChildren?: FamilyChildOverview[],
 ): Promise<boolean> {
-  const children = await listFamilyChildrenForHomeByFamilyId(
-    supabase,
-    organizationId,
-    familyId,
-  );
+  const children =
+    familyChildren ??
+    (await listFamilyChildrenForHomeByFamilyId(supabase, organizationId, familyId));
   const uploadableChildren = children.filter((child) => child.studentId);
 
   if (uploadableChildren.length === 0) return false;
@@ -152,6 +151,7 @@ export async function loadParentOnboardingStatus(input: {
   userId: string;
   items: ParentOnboardingItem[];
   familyChildren?: FamilyChildOverview[];
+  familyChildrenPromise?: Promise<FamilyChildOverview[]>;
 }): Promise<ParentOnboardingCompletionStatus> {
   const status: ParentOnboardingCompletionStatus = {
     billing: false,
@@ -161,6 +161,16 @@ export async function loadParentOnboardingStatus(input: {
     health: false,
     pickup: false,
   };
+
+  const familyChildrenPromise =
+    input.familyChildrenPromise ??
+    (input.familyChildren
+      ? Promise.resolve(input.familyChildren)
+      : listFamilyChildrenForHomeByFamilyId(
+          input.supabase,
+          input.organizationId,
+          input.familyId,
+        ));
 
   const checks: Promise<void>[] = [];
 
@@ -198,49 +208,45 @@ export async function loadParentOnboardingStatus(input: {
 
   if (needsChildrenCheck(input.items)) {
     checks.push(
-      checkChildrenPhotosComplete(
-        input.supabase,
-        input.organizationId,
-        input.familyId,
+      familyChildrenPromise.then((familyChildren) =>
+        checkChildrenPhotosComplete(
+          input.supabase,
+          input.organizationId,
+          input.familyId,
+          familyChildren,
+        ),
       ).then((complete) => {
         status.children = complete;
       }),
     );
   }
 
-  const needsFamilyChildren =
-    needsHealthCheck(input.items) || needsPickupCheck(input.items);
-  const familyChildren = needsFamilyChildren
-    ? (input.familyChildren ??
-      (await listFamilyChildrenForHomeByFamilyId(
-        input.supabase,
-        input.organizationId,
-        input.familyId,
-      )))
-    : undefined;
-
-  if (needsHealthCheck(input.items) && familyChildren) {
+  if (needsHealthCheck(input.items)) {
     checks.push(
-      checkHealthComplete(
-        input.supabase,
-        input.organizationId,
-        familyChildren,
-      ).then((complete) => {
-        status.health = complete;
-      }),
+      familyChildrenPromise
+        .then((familyChildren) =>
+          checkHealthComplete(input.supabase, input.organizationId, familyChildren),
+        )
+        .then((complete) => {
+          status.health = complete;
+        }),
     );
   }
 
-  if (needsPickupCheck(input.items) && familyChildren) {
+  if (needsPickupCheck(input.items)) {
     checks.push(
-      checkPickupComplete(
-        input.supabase,
-        input.organizationId,
-        input.familyId,
-        familyChildren,
-      ).then((complete) => {
-        status.pickup = complete;
-      }),
+      familyChildrenPromise
+        .then((familyChildren) =>
+          checkPickupComplete(
+            input.supabase,
+            input.organizationId,
+            input.familyId,
+            familyChildren,
+          ),
+        )
+        .then((complete) => {
+          status.pickup = complete;
+        }),
     );
   }
 
@@ -258,23 +264,30 @@ export async function loadResolvedParentOnboardingItems(input: {
   features: OrganizationFeatures;
   previewBasePath?: string;
   familyChildren?: FamilyChildOverview[];
+  familyChildrenPromise?: Promise<FamilyChildOverview[]>;
 }): Promise<ResolvedParentOnboardingItem[]> {
   const items = getParentOnboardingItems(input.features);
-  const familyChildren =
-    input.familyChildren ??
-    (await listFamilyChildrenForHomeByFamilyId(
-      input.supabase,
-      input.organizationId,
-      input.familyId,
-    ));
-  const completion = await loadParentOnboardingStatus({
-    supabase: input.supabase,
-    organizationId: input.organizationId,
-    familyId: input.familyId,
-    userId: input.userId,
-    items,
-    familyChildren,
-  });
+  const familyChildrenPromise =
+    input.familyChildrenPromise ??
+    (input.familyChildren
+      ? Promise.resolve(input.familyChildren)
+      : listFamilyChildrenForHomeByFamilyId(
+          input.supabase,
+          input.organizationId,
+          input.familyId,
+        ));
+
+  const [familyChildren, completion] = await Promise.all([
+    familyChildrenPromise,
+    loadParentOnboardingStatus({
+      supabase: input.supabase,
+      organizationId: input.organizationId,
+      familyId: input.familyId,
+      userId: input.userId,
+      items,
+      familyChildrenPromise,
+    }),
+  ]);
 
   return resolveParentOnboardingItems({
     slug: input.slug,

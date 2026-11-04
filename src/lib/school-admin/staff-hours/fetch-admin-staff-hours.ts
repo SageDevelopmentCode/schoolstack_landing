@@ -1,4 +1,7 @@
+import { throwPortalJsonApiError } from "@/lib/portal-json-api-error";
 import type { AdminStaffHoursPageData, AdminStaffHoursView } from "@/lib/school-admin/staff-hours/staff-hours-types";
+
+export { PortalJsonApiError as StaffHoursApiError } from "@/lib/portal-json-api-error";
 
 export async function fetchAdminStaffHoursPageData(
   organizationId: string,
@@ -24,15 +27,11 @@ export async function fetchAdminStaffHoursPageData(
 
   const payload = (await response.json().catch(() => null)) as
     | AdminStaffHoursPageData
-    | { error?: string }
+    | { error?: string; code?: string }
     | null;
 
   if (!response.ok) {
-    const message =
-      payload && "error" in payload && typeof payload.error === "string"
-        ? payload.error
-        : "Failed to load staff hours.";
-    throw new Error(message);
+    throwPortalJsonApiError(payload, response.status, "Failed to load staff hours.");
   }
 
   return payload as AdminStaffHoursPageData;

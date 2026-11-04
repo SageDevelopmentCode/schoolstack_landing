@@ -10,6 +10,10 @@ import TeacherMyHoursSummarySidebar from "@/components/school-teacher/my-hours/T
 import TeacherMyHoursWeekPanel from "@/components/school-teacher/my-hours/TeacherMyHoursWeekPanel";
 import { PORTAL_HOME_CONTAINER_CLASS } from "@/lib/portal-home/layout";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
+import {
+  portalJsonApiErrorCode,
+  portalJsonApiErrorStatus,
+} from "@/lib/portal-json-api-error";
 import { parentToast } from "@/lib/school-parent/parent-toast";
 import {
   addDays,
@@ -138,6 +142,8 @@ export default function TeacherMyHoursPage({
           error: "",
         },
         error,
+        portalJsonApiErrorStatus(error),
+        portalJsonApiErrorCode(error),
       );
     } finally {
       setClockActionPending(null);
@@ -171,6 +177,8 @@ export default function TeacherMyHoursPage({
           error: "",
         },
         error,
+        portalJsonApiErrorStatus(error),
+        portalJsonApiErrorCode(error),
       );
     } finally {
       setClockActionPending(null);

@@ -7,9 +7,9 @@ import {
 import { resolveParentPortalHomeBulletinLimit } from "./load-parent-portal-home-api-payload";
 
 describe("load-parent-portal-home-api-payload", () => {
-  it("scopes bulletin limits for co-op program home", () => {
+  it("caps bulletin posts on parent portal home", () => {
     assert.equal(resolveParentPortalHomeBulletinLimit(true), 3);
-    assert.equal(resolveParentPortalHomeBulletinLimit(false), 25);
+    assert.equal(resolveParentPortalHomeBulletinLimit(false), 3);
   });
 
   it("uses program-scoped event audience for program portal home", () => {

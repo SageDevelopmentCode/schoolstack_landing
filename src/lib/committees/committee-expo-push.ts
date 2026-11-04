@@ -105,10 +105,36 @@ async function resolveInstantPushRecipients(
   const excludeUserIds = new Set(options?.excludeUserIds ?? []);
   const byUserId = new Map<string, CommitteeInstantPushRecipient>();
 
+  const guardianIds = new Set<string>();
+  for (const member of members) {
+    if (excludeMemberIds.has(member.id)) continue;
+    if (!member.user_id?.trim() && member.guardian_id) {
+      guardianIds.add(member.guardian_id);
+    }
+  }
+
+  const guardianUserIdByGuardianId = new Map<string, string>();
+  const guardianIdList = [...guardianIds];
+  if (guardianIdList.length > 0) {
+    const { data, error } = await supabase
+      .from("guardians")
+      .select("id, user_id")
+      .in("id", guardianIdList);
+    if (error) throw new Error(error.message);
+    for (const row of data ?? []) {
+      if (row.user_id?.trim()) {
+        guardianUserIdByGuardianId.set(String(row.id), row.user_id.trim());
+      }
+    }
+  }
+
   for (const member of members) {
     if (excludeMemberIds.has(member.id)) continue;
 
-    const userId = await resolveCommitteeMemberPushUserId(supabase, member);
+    let userId = member.user_id?.trim() ?? null;
+    if (!userId && member.guardian_id) {
+      userId = guardianUserIdByGuardianId.get(member.guardian_id) ?? null;
+    }
     if (!userId || excludeUserIds.has(userId)) continue;
 
     byUserId.set(userId, {
@@ -147,22 +173,28 @@ export async function sendCommitteeInstantPushToMembers(
 
   const body = truncatePushBody(input.body);
 
+  const recipientsByPortal = new Map<ExpoPushPortal, CommitteeInstantPushRecipient[]>();
+  for (const recipient of recipients) {
+    const list = recipientsByPortal.get(recipient.portal) ?? [];
+    list.push(recipient);
+    recipientsByPortal.set(recipient.portal, list);
+  }
+
   const results = await Promise.allSettled(
-    recipients.map((recipient) =>
+    [...recipientsByPortal.entries()].map(([portal, portalRecipients]) =>
       sendExpoPushToUsers(admin, {
         organizationId: input.organizationId,
         organizationName: input.organizationName,
-        userIds: [recipient.userId],
+        userIds: portalRecipients.map((recipient) => recipient.userId),
         title: input.title,
         body,
         channelId: "committees",
-        recipientPortal: recipient.portal,
-        recipientEmail: recipient.email ?? null,
+        recipientPortal: portal,
         failureOperation: input.failureOperation,
         notificationKind: input.notificationKind,
         data: {
           kind: "committee",
-          portal: recipient.portal,
+          portal,
           organizationSlug: input.organizationSlug,
           committeeId: input.committeeId,
           section: input.section,

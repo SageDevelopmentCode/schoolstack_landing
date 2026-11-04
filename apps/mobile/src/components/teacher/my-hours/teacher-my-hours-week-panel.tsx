@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { StoryCard } from '@/components/story/story-card';
 import { StoryChip } from '@/components/story/story-chip';
+import { TeacherMyHoursDateNav } from '@/components/teacher/my-hours/teacher-my-hours-date-nav';
 import { MY_HOURS_CALENDAR_LINE } from '@/components/teacher/my-hours/teacher-my-hours-theme';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import {
@@ -17,6 +18,9 @@ import { StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 
 type TeacherMyHoursWeekPanelProps = {
+  navLabel: string;
+  onPreviousDate: () => void;
+  onNextDate: () => void;
   entriesByDateKey: Record<string, MyHoursDayLog>;
   focusDate: Date;
   referenceDate: Date;
@@ -24,6 +28,9 @@ type TeacherMyHoursWeekPanelProps = {
 };
 
 export function TeacherMyHoursWeekPanel({
+  navLabel,
+  onPreviousDate,
+  onNextDate,
   entriesByDateKey,
   focusDate,
   referenceDate,
@@ -35,6 +42,13 @@ export function TeacherMyHoursWeekPanel({
 
   return (
     <StoryCard compact style={styles.card} testID="teacher-my-hours-week-panel">
+      <TeacherMyHoursDateNav
+        label={navLabel}
+        onPrevious={onPreviousDate}
+        onNext={onNextDate}
+        fullWidth
+        embedded
+      />
       <View style={[styles.header, { borderColor: MY_HOURS_CALENDAR_LINE }]}>
         <Text style={[styles.headerTitle, { color: theme.ink }]}>
           Week of {formatShortWeekdayDate(weekStart)}

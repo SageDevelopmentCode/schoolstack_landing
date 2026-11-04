@@ -6,7 +6,7 @@ import {
   type RecordCommitteeActivityBody,
 } from "@/lib/committees/api/committee-record-activity-route";
 import {
-  getParentCommitteeWorkspace,
+  resolveActiveCommitteeMemberForPost,
   resolveParentGuardianForOrg,
 } from "@/lib/committees/parent-committees";
 import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
@@ -80,21 +80,18 @@ export async function POST(request: Request, context: RouteContext) {
       user.email ?? "",
     );
 
-    await getParentCommitteeWorkspace(admin, organizationId, user.id, committeeId);
-
-    const { data: actorMember } = await admin
-      .from("committee_members")
-      .select("id")
-      .eq("committee_id", committeeId)
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .maybeSingle();
+    const currentMember = await resolveActiveCommitteeMemberForPost(
+      admin,
+      organizationId,
+      user.id,
+      committeeId,
+    );
 
     return handleRecordCommitteeActivity(request, ROUTE, committeeId, body, {
       userId: user.id,
       email: guardian.email || user.email,
       name: guardian.displayName,
-      memberId: actorMember?.id ? String(actorMember.id) : null,
+      memberId: currentMember.id,
       type: "parent",
       surface: "parent_portal",
     });

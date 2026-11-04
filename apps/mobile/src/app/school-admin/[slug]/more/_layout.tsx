@@ -20,6 +20,7 @@ export default function MoreLayout() {
       <Stack.Screen name="transactions" />
       <Stack.Screen name="schedule" />
       <Stack.Screen name="attendance" />
+      <Stack.Screen name="staff-hours" />
       <Stack.Screen name="staff" />
     </Stack>
   );

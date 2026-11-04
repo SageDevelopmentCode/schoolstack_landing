@@ -3,35 +3,22 @@ import { FREE_TOOLS_STAGE_SURFACES } from "@/components/marketing/free-tools/fre
 
 type FreeToolsStageIconTileProps = {
   stage: FreeToolsHubStage;
-  variant: "nav" | "heading";
-  isActive?: boolean;
 };
 
-export default function FreeToolsStageIconTile({
-  stage,
-  variant,
-  isActive = false,
-}: FreeToolsStageIconTileProps) {
+export default function FreeToolsStageIconTile({ stage }: FreeToolsStageIconTileProps) {
   const surface = FREE_TOOLS_STAGE_SURFACES[stage.id];
   const Icon = stage.flowIcon;
 
-  const sizeClass =
-    variant === "nav" ? "h-11 w-11 rounded-[14px] shadow-sm" : "h-10 w-10 rounded-[12px] shadow-sm";
-  const iconClass = variant === "nav" ? "h-[18px] w-[18px]" : "h-[17px] w-[17px]";
-
-  const activeNav = variant === "nav" && isActive;
-
   return (
     <span
-      className={`grid shrink-0 place-items-center ${sizeClass}`}
+      className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] shadow-sm"
       style={{
-        backgroundColor: activeNav ? surface.flowNodeAccent : "#EEF2EE",
-        color: activeNav ? "#FFFFFF" : surface.flowNodeAccent,
-        boxShadow: activeNav ? `0 4px 14px ${surface.flowNodeAccent}40` : undefined,
+        backgroundColor: "#EEF2EE",
+        color: surface.flowNodeAccent,
       }}
-      aria-hidden={variant === "heading"}
+      aria-hidden
     >
-      <Icon className={iconClass} strokeWidth={1.65} aria-hidden />
+      <Icon className="h-[17px] w-[17px]" strokeWidth={1.65} aria-hidden />
     </span>
   );
 }

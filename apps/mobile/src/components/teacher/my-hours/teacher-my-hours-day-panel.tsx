@@ -2,16 +2,16 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { StoryButton } from '@/components/story/story-button';
 import { StoryCard } from '@/components/story/story-card';
-import { StoryChip } from '@/components/story/story-chip';
+import { TeacherMyHoursDateNav } from '@/components/teacher/my-hours/teacher-my-hours-date-nav';
 import {
   MY_HOURS_CALENDAR_LINE,
+  MY_HOURS_CARD_BODY_PADDING,
   MY_HOURS_LOGGED_BG,
 } from '@/components/teacher/my-hours/teacher-my-hours-theme';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import {
   formatHoursMinutes,
   formatLiveElapsed,
-  formatLongWeekdayDate,
   formatWallClockTime,
   isSameDay,
 } from '@/lib/teacher/my-hours/format-duration';
@@ -20,6 +20,9 @@ import { StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 
 type TeacherMyHoursDayPanelProps = {
+  navLabel: string;
+  onPreviousDate: () => void;
+  onNextDate: () => void;
   focusDate: Date;
   referenceDate: Date;
   dayLog: MyHoursDayLog | null;
@@ -88,6 +91,9 @@ function SessionRows({
 }
 
 export function TeacherMyHoursDayPanel({
+  navLabel,
+  onPreviousDate,
+  onNextDate,
   focusDate,
   referenceDate,
   dayLog,
@@ -112,13 +118,15 @@ export function TeacherMyHoursDayPanel({
 
   return (
     <StoryCard compact style={styles.card} testID="teacher-my-hours-day-panel">
-      <View style={styles.titleRow}>
-        <Text style={[styles.dayTitle, { color: theme.ink }]}>
-          {formatLongWeekdayDate(focusDate)}
-        </Text>
-        {isToday ? <StoryChip label="Today" tone="info" /> : null}
-      </View>
-
+      <TeacherMyHoursDateNav
+        label={navLabel}
+        onPrevious={onPreviousDate}
+        onNext={onNextDate}
+        fullWidth
+        embedded
+        showTodayBadge={isToday}
+      />
+      <View style={styles.cardBody}>
       {dayLog && !isToday ? (
         <>
           <View style={[styles.loggedStrip, { backgroundColor: MY_HOURS_LOGGED_BG }]}>
@@ -190,26 +198,20 @@ export function TeacherMyHoursDayPanel({
           No hours logged for this day.
         </Text>
       ) : null}
+      </View>
     </StoryCard>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
+    overflow: 'hidden',
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
+  cardBody: {
+    padding: MY_HOURS_CARD_BODY_PADDING,
     gap: Spacing.four,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-  dayTitle: {
-    fontFamily: StoryFonts.display,
-    fontSize: 20,
-    fontWeight: '600',
-    flex: 1,
-    minWidth: 0,
   },
   loggedStrip: {
     borderRadius: 10,

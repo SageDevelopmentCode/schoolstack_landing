@@ -4,7 +4,7 @@ import {
   handleMarkCommitteeSectionRead,
   type MarkReadBody,
 } from "@/lib/committees/api/committee-mark-read-route";
-import { getTeacherCommitteeWorkspace } from "@/lib/committees/teacher-committees";
+import { resolveActiveCommitteeMemberForPost } from "@/lib/committees/parent-committees";
 import { TeacherPortalAuthError } from "@/lib/staff/teacher-portal-access";
 import { requireTeacherPortalUser } from "@/lib/staff/teacher-portal-access-server";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
@@ -43,31 +43,19 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const user = await requireTeacherPortalUser(supabase, organizationId, request);
     const admin = createAdminClient();
-    const committee = await getTeacherCommitteeWorkspace(
+    const currentMember = await resolveActiveCommitteeMemberForPost(
       admin,
       organizationId,
       user.id,
       committeeId,
     );
-    const member = committee.members.find(
-      (row) => row.userId === user.id && row.status === "active",
-    );
-
-    if (!member) {
-      return apiError(ROUTE, {
-        request,
-        status: 403,
-        error: "Forbidden.",
-        code: "forbidden",
-      });
-    }
 
     return handleMarkCommitteeSectionRead(
       request,
       ROUTE,
       committeeId,
       body,
-      member.id,
+      currentMember.id,
     );
   } catch (err) {
     if (err instanceof TeacherPortalAuthError) {

@@ -5,7 +5,7 @@ import {
   handleMarkCommitteeSectionRead,
   type MarkReadBody,
 } from "@/lib/committees/api/committee-mark-read-route";
-import { getParentCommitteeWorkspace } from "@/lib/committees/parent-committees";
+import { resolveActiveCommitteeMemberForPost } from "@/lib/committees/parent-committees";
 import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -70,31 +70,19 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     const admin = createAdminClient();
-    const committee = await getParentCommitteeWorkspace(
+    const currentMember = await resolveActiveCommitteeMemberForPost(
       admin,
       organizationId,
       user.id,
       committeeId,
     );
-    const member = committee.members.find(
-      (row) => row.userId === user.id && row.status === "active",
-    );
-
-    if (!member) {
-      return apiError(ROUTE, {
-        request,
-        status: 403,
-        error: "Forbidden.",
-        code: "forbidden",
-      });
-    }
 
     return handleMarkCommitteeSectionRead(
       request,
       ROUTE,
       committeeId,
       body,
-      member.id,
+      currentMember.id,
     );
   } catch (err) {
     const resolved = portalRouteErrorStatus(err, "Failed to mark section read.");
