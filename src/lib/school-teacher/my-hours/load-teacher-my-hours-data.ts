@@ -57,7 +57,6 @@ export function emptyTeacherMyHoursPageData(
   now: Date = new Date(),
 ): TeacherMyHoursPageData {
   const { from, to, referenceDateKey } = defaultMyHoursDateRange(timezone, now);
-  const referenceDate = parseDateKey(referenceDateKey);
   return {
     timezone,
     referenceDateKey,
@@ -66,7 +65,7 @@ export function emptyTeacherMyHoursPageData(
     activeSession: null,
     entriesByDateKey: {},
     sessionsByDateKey: {},
-    sidebar: buildSidebarSummary([], referenceDate, timezone),
+    sidebar: buildSidebarSummary([], referenceDateKey),
   };
 }
 
@@ -144,7 +143,6 @@ export async function loadTeacherMyHoursPageData(
       new Date(a.clock_in_at).getTime() - new Date(b.clock_in_at).getTime(),
   );
   const referenceDateKey = defaults.referenceDateKey;
-  const referenceDate = parseDateKey(referenceDateKey);
 
   const open = rows.find((row) => row.clock_out_at == null) ?? null;
   const activeSession = open
@@ -169,7 +167,7 @@ export async function loadTeacherMyHoursPageData(
     activeSession,
     entriesByDateKey,
     sessionsByDateKey,
-    sidebar: buildSidebarSummary(rows, referenceDate, timezone),
+    sidebar: buildSidebarSummary(rows, referenceDateKey),
   };
 }
 

@@ -34,7 +34,7 @@ describe("my-hours-summaries", () => {
   });
 
   it("aggregates weekday minutes for the current week", () => {
-    const referenceDate = new Date(2026, 10, 3);
+    const referenceDateKey = "2026-11-03";
     const monday = "2026-11-03";
     const tuesday = "2026-11-04";
     const rows = [
@@ -52,10 +52,32 @@ describe("my-hours-summaries", () => {
       }),
     ];
 
-    const sidebar = buildSidebarSummary(rows, referenceDate, "America/Denver");
+    const sidebar = buildSidebarSummary(rows, referenceDateKey);
     assert.equal(sidebar.week.goalMinutes, 40 * 60);
     assert.equal(sidebar.week.loggedMinutes, 180);
     assert.equal(sidebar.week.loggedWeekdays, 2);
     assert.equal(sidebar.week.totalWeekdays, 5);
+  });
+
+  it("uses referenceDateKey for today minutes without timezone re-shift (UTC server)", () => {
+    const priorTz = process.env.TZ;
+    process.env.TZ = "UTC";
+    try {
+      const rows = [
+        row({
+          work_date: "2026-11-03",
+          clock_in_at: "2026-11-03T14:00:00.000Z",
+          clock_out_at: "2026-11-03T15:00:00.000Z",
+        }),
+      ];
+      const sidebar = buildSidebarSummary(rows, "2026-11-03");
+      assert.equal(sidebar.todayMinutes, 60);
+    } finally {
+      if (priorTz === undefined) {
+        delete process.env.TZ;
+      } else {
+        process.env.TZ = priorTz;
+      }
+    }
   });
 });

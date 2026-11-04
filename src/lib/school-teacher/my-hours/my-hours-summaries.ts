@@ -1,7 +1,4 @@
-import {
-  displayDateKeyInTimezone,
-  formatDemoTimeLabelInTimezone,
-} from "@/lib/demo-scheduler-timezone";
+import { formatDemoTimeLabelInTimezone } from "@/lib/demo-scheduler-timezone";
 import {
   addDays,
   parseDateKey,
@@ -92,11 +89,10 @@ export function buildDayLogFromRows(
 
 export function buildSidebarSummary(
   rows: StaffWorkTimeEntryRow[],
-  referenceDate: Date,
-  timezone: string,
+  referenceDateKey: string,
 ): MyHoursSidebarSummary {
   const now = new Date();
-  const referenceDateKey = displayDateKeyInTimezone(referenceDate, timezone);
+  const referenceDate = parseDateKey(referenceDateKey);
   const weekStart = startOfWeekMonday(referenceDate);
   const weekKeys = Array.from({ length: 7 }, (_, i) =>
     toDateKey(addDays(weekStart, i)),

@@ -40,6 +40,7 @@ import {
   toDateKey,
 } from '@/lib/teacher/my-hours/format-duration';
 import {
+  activeSessionLoggedMinutesForFocusDay,
   activeSessionStartedAtForFocusDay,
   getDayLogForDateKey,
   referenceDateFromKey,
@@ -178,10 +179,12 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
       (session) => session.clockOutAt != null,
     );
     const completed = closed.reduce((sum, s) => sum + s.minutes, 0);
-    const active =
-      pageData.activeSession?.workDate === todayKey
-        ? Math.floor(elapsedSeconds / 60)
-        : 0;
+    const active = activeSessionLoggedMinutesForFocusDay(
+      pageData.activeSession,
+      todayKey,
+      todayKey,
+      elapsedSeconds,
+    );
     const total = completed + active;
     return total > 0 || pageData.activeSession ? total : pageData.sidebar.todayMinutes;
   }, [pageData, elapsedSeconds]);
@@ -402,6 +405,7 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
             referenceDate={referenceDate}
             dayLog={dayLog}
             closedSessions={closedSessionsForFocusDay}
+            activeSession={pageData.activeSession}
             activeSessionStartedAt={activeOnFocusDay}
             elapsedSeconds={elapsedSeconds}
             clockActionPending={clockActionPending}

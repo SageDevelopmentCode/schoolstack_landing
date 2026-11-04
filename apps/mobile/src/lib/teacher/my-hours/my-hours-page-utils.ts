@@ -24,6 +24,48 @@ export function activeSessionStartedAtForFocusDay(
   return new Date(activeSession.clockInAt);
 }
 
+function activeSessionVisibleOnFocusDay(
+  activeSession: TeacherMyHoursActiveSession | null,
+  focusDateKey: string,
+  referenceDateKey: string,
+): activeSession is TeacherMyHoursActiveSession {
+  if (!activeSession) return false;
+  if (
+    activeSession.workDate !== focusDateKey &&
+    focusDateKey !== referenceDateKey
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/** Live minutes attributed to the focus day's logged total (not the live timer). */
+export function activeSessionLoggedMinutesForFocusDay(
+  activeSession: TeacherMyHoursActiveSession | null,
+  focusDateKey: string,
+  referenceDateKey: string,
+  elapsedSeconds: number,
+): number {
+  if (!activeSessionVisibleOnFocusDay(activeSession, focusDateKey, referenceDateKey)) {
+    return 0;
+  }
+  if (activeSession.workDate !== focusDateKey) {
+    return 0;
+  }
+  return Math.floor(elapsedSeconds / 60);
+}
+
+export function activeSessionCountsInFocusDaySessionTotal(
+  activeSession: TeacherMyHoursActiveSession | null,
+  focusDateKey: string,
+  referenceDateKey: string,
+): boolean {
+  if (!activeSessionVisibleOnFocusDay(activeSession, focusDateKey, referenceDateKey)) {
+    return false;
+  }
+  return activeSession.workDate === focusDateKey;
+}
+
 export function getDayLogForDateKey(
   entriesByDateKey: Record<string, MyHoursDayLog>,
   date: Date,

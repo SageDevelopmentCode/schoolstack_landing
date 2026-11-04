@@ -14,8 +14,18 @@ import {
   formatLiveElapsed,
   formatWallClockTime,
   isSameDay,
+  toDateKey,
 } from '@/lib/teacher/my-hours/format-duration';
-import type { ClockActionPending, MyHoursDayLog, MyHoursSession } from '@/lib/teacher/my-hours/types';
+import {
+  activeSessionCountsInFocusDaySessionTotal,
+  activeSessionLoggedMinutesForFocusDay,
+} from '@/lib/teacher/my-hours/my-hours-page-utils';
+import type {
+  ClockActionPending,
+  MyHoursDayLog,
+  MyHoursSession,
+  TeacherMyHoursActiveSession,
+} from '@/lib/teacher/my-hours/types';
 import { StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 
@@ -27,6 +37,7 @@ type TeacherMyHoursDayPanelProps = {
   referenceDate: Date;
   dayLog: MyHoursDayLog | null;
   closedSessions: MyHoursSession[];
+  activeSession: TeacherMyHoursActiveSession | null;
   activeSessionStartedAt: Date | null;
   elapsedSeconds: number;
   clockActionPending: ClockActionPending;
@@ -98,6 +109,7 @@ export function TeacherMyHoursDayPanel({
   referenceDate,
   dayLog,
   closedSessions,
+  activeSession,
   activeSessionStartedAt,
   elapsedSeconds,
   clockActionPending,
@@ -111,11 +123,27 @@ export function TeacherMyHoursDayPanel({
   const showDayClockActions = isToday || isClockedIn;
   const isPending = clockActionPending != null;
 
+  const focusDateKey = toDateKey(focusDate);
+  const referenceDateKey = toDateKey(referenceDate);
+
+  const activeCountsInLoggedTotal = activeSessionCountsInFocusDaySessionTotal(
+    activeSession,
+    focusDateKey,
+    referenceDateKey,
+  );
+
   const todayTotalMinutes =
     closedSessions.reduce((sum, s) => sum + s.minutes, 0) +
-    (isClockedIn ? Math.floor(elapsedSeconds / 60) : 0);
-  const sessionCountToday = closedSessions.length + (isClockedIn ? 1 : 0);
-  const showTodayLoggedSummary = isToday && (closedSessions.length > 0 || isClockedIn);
+    activeSessionLoggedMinutesForFocusDay(
+      activeSession,
+      focusDateKey,
+      referenceDateKey,
+      elapsedSeconds,
+    );
+  const sessionCountToday =
+    closedSessions.length + (activeCountsInLoggedTotal ? 1 : 0);
+  const showTodayLoggedSummary =
+    isToday && (closedSessions.length > 0 || activeCountsInLoggedTotal);
 
   return (
     <StoryCard compact style={styles.card} testID="teacher-my-hours-day-panel">

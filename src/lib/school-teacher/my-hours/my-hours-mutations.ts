@@ -166,15 +166,41 @@ export async function clockOutStaffWorkTime(
     .from("staff_work_time_entries")
     .update({ clock_out_at: now.toISOString() })
     .eq("id", open.id)
+    .is("clock_out_at", null)
     .select(STAFF_WORK_TIME_ENTRY_COLUMNS)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
 
-  const entry = data as StaffWorkTimeEntryRow;
-  return {
-    entry,
-    session: rowToSession(entry, timezone),
-    timezone,
-  };
+  if (data) {
+    const entry = data as StaffWorkTimeEntryRow;
+    return {
+      entry,
+      session: rowToSession(entry, timezone),
+      timezone,
+    };
+  }
+
+  const { data: existing, error: fetchError } = await admin
+    .from("staff_work_time_entries")
+    .select(STAFF_WORK_TIME_ENTRY_COLUMNS)
+    .eq("id", open.id)
+    .maybeSingle();
+
+  if (fetchError) throw fetchError;
+
+  const closed = existing as StaffWorkTimeEntryRow | null;
+  if (closed?.clock_out_at) {
+    return {
+      entry: closed,
+      session: rowToSession(closed, timezone),
+      timezone,
+    };
+  }
+
+  throw new MyHoursMutationError(
+    "Could not clock out. Refresh and try again.",
+    "clock_out_conflict",
+    409,
+  );
 }

@@ -276,19 +276,16 @@ export function AdminMessagesAudiencePicker({
     [onAudienceChange],
   );
 
-  const renderListHeader = useCallback(
-    () => (
-      <AudienceListHeader
-        theme={theme}
-        audience={audience}
-        programs={programs}
-        classrooms={classrooms}
-        searchQuery={searchQuery}
-        onSearchQueryChange={setSearchQuery}
-        onAudienceChange={updateAudience}
-      />
-    ),
-    [audience, classrooms, programs, searchQuery, theme, updateAudience],
+  const listHeader = (
+    <AudienceListHeader
+      theme={theme}
+      audience={audience}
+      programs={programs}
+      classrooms={classrooms}
+      searchQuery={searchQuery}
+      onSearchQueryChange={setSearchQuery}
+      onAudienceChange={updateAudience}
+    />
   );
 
   const renderParentRow = useCallback(
@@ -326,7 +323,7 @@ export function AdminMessagesAudiencePicker({
     <FlatList
       data={filteredParents}
       keyExtractor={(contact) => contact.key}
-      ListHeaderComponent={renderListHeader}
+      ListHeaderComponent={listHeader}
       ListEmptyComponent={listEmpty}
       renderItem={renderParentRow}
       keyboardShouldPersistTaps="handled"

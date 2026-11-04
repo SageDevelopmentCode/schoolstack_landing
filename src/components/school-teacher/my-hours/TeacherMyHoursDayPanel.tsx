@@ -12,13 +12,22 @@ import {
   formatLongWeekdayDate,
   formatWallClockTime,
   isSameDay,
+  toDateKey,
 } from "@/lib/school-teacher/my-hours/format-duration";
 import { MY_HOURS_CALENDAR_LINE, MY_HOURS_LOGGED_BG } from "@/lib/school-teacher/my-hours/calendar-styles";
 import {
   myHoursFadeUpTransition,
   myHoursRowTransition,
 } from "@/lib/school-teacher/my-hours/my-hours-motion";
-import type { MyHoursDayLog, MyHoursSession } from "@/lib/school-teacher/my-hours/types";
+import {
+  activeSessionCountsInFocusDaySessionTotal,
+  activeSessionLoggedMinutesForFocusDay,
+} from "@/lib/school-teacher/my-hours/my-hours-page-utils";
+import type {
+  MyHoursDayLog,
+  MyHoursSession,
+  TeacherMyHoursActiveSession,
+} from "@/lib/school-teacher/my-hours/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type ClockActionPending = "in" | "out" | null;
@@ -29,6 +38,7 @@ type TeacherMyHoursDayPanelProps = {
   referenceDate: Date;
   dayLog: MyHoursDayLog | null;
   closedSessions: MyHoursSession[];
+  activeSession: TeacherMyHoursActiveSession | null;
   activeSessionStartedAt: Date | null;
   elapsedSeconds: number;
   previewMode?: boolean;
@@ -159,6 +169,7 @@ export default function TeacherMyHoursDayPanel({
   referenceDate,
   dayLog,
   closedSessions,
+  activeSession,
   activeSessionStartedAt,
   elapsedSeconds,
   previewMode = false,
@@ -173,16 +184,37 @@ export default function TeacherMyHoursDayPanel({
   const showDayClockActions = isToday || isClockedIn;
   const isPending = clockActionPending != null;
 
+  const focusDateKey = toDateKey(focusDate);
+  const referenceDateKey = toDateKey(referenceDate);
+
+  const activeCountsInLoggedTotal = activeSessionCountsInFocusDaySessionTotal(
+    activeSession,
+    focusDateKey,
+    referenceDateKey,
+  );
+
   const todayTotalMinutes = useMemo(() => {
     const completed = closedSessions.reduce((sum, s) => sum + s.minutes, 0);
-    const active = isClockedIn ? Math.floor(elapsedSeconds / 60) : 0;
+    const active = activeSessionLoggedMinutesForFocusDay(
+      activeSession,
+      focusDateKey,
+      referenceDateKey,
+      elapsedSeconds,
+    );
     return completed + active;
-  }, [closedSessions, isClockedIn, elapsedSeconds]);
+  }, [
+    activeSession,
+    closedSessions,
+    elapsedSeconds,
+    focusDateKey,
+    referenceDateKey,
+  ]);
 
   const showTodayLoggedSummary =
-    isToday && (closedSessions.length > 0 || isClockedIn);
+    isToday && (closedSessions.length > 0 || activeCountsInLoggedTotal);
 
-  const sessionCountToday = closedSessions.length + (isClockedIn ? 1 : 0);
+  const sessionCountToday =
+    closedSessions.length + (activeCountsInLoggedTotal ? 1 : 0);
 
   const pastDaySessions = !isToday ? closedSessions : [];
 

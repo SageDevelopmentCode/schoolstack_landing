@@ -27,6 +27,7 @@ import {
 } from "@/lib/school-teacher/my-hours/fetch-teacher-my-hours";
 import { myHoursViewTransition } from "@/lib/school-teacher/my-hours/my-hours-motion";
 import {
+  activeSessionLoggedMinutesForFocusDay,
   activeSessionStartedAtForFocusDay,
   getDayLogForDateKey,
   referenceDateFromKey,
@@ -105,10 +106,12 @@ export default function TeacherMyHoursPage({
       (session) => session.clockOutAt != null,
     );
     const completed = closed.reduce((sum, s) => sum + s.minutes, 0);
-    const active =
-      pageData.activeSession?.workDate === todayKey
-        ? Math.floor(elapsedSeconds / 60)
-        : 0;
+    const active = activeSessionLoggedMinutesForFocusDay(
+      pageData.activeSession,
+      todayKey,
+      todayKey,
+      elapsedSeconds,
+    );
     const total = completed + active;
     return total > 0 || pageData.activeSession ? total : pageData.sidebar.todayMinutes;
   }, [
@@ -257,6 +260,7 @@ export default function TeacherMyHoursPage({
                 referenceDate={referenceDate}
                 dayLog={dayLog}
                 closedSessions={closedSessionsForFocusDay}
+                activeSession={pageData.activeSession}
                 activeSessionStartedAt={activeOnFocusDay}
                 elapsedSeconds={elapsedSeconds}
                 previewMode={previewMode}
