@@ -45,7 +45,11 @@ export async function GET(request: Request) {
     const section = parseAdminDashboardSection(
       url.searchParams.get("section"),
     );
-    const fetchOptions = { userId: user.id, schoolName: org.name };
+    const fetchOptions = {
+      userId: user.id,
+      schoolName: org.name,
+      organizationFeatures: org.features,
+    };
 
     if (section === "today") {
       const today = await fetchAdminDashboardToday(

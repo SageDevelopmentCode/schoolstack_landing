@@ -7,6 +7,7 @@ import {
   getFamilyPreviewGuardianId,
   getFamilyPreviewGuardianUserId,
   getFamilyPreviewProfile,
+  resolveFamilyPreviewGuardianId,
   listFamilyChildrenForHomeByFamilyId,
   loadApplicationDetailForFamily,
 } from "@/lib/admissions/family-preview-access";
@@ -22,6 +23,7 @@ import {
   parseMobilePreviewQuery,
   requireMobilePreviewPlatformAdmin,
   validateFamilyInOrganization,
+  validateGuardianInFamily,
 } from "@/lib/admin/mobile-preview/access";
 import { apiError } from "@/lib/api/route-errors";
 import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
@@ -104,6 +106,7 @@ type ParentPreviewContext = {
   organizationId: string;
   slug: string;
   familyId: string;
+  previewGuardianId: string | null;
   org: NonNullable<Awaited<ReturnType<typeof fetchOrganizationWithSettingsUncached>>>;
   previewParentBasePath: string;
 };
@@ -113,6 +116,46 @@ function parseActivityLimit(value: string | null): number {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed) || parsed < 1) return DEFAULT_ACTIVITY_LIMIT;
   return Math.min(parsed, MAX_ACTIVITY_LIMIT);
+}
+
+async function resolvePreviewGuardianUserId(
+  admin: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+  previewGuardianId: string | null,
+): Promise<string | null> {
+  return getFamilyPreviewGuardianUserId(
+    admin,
+    organizationId,
+    familyId,
+    previewGuardianId,
+  );
+}
+
+async function resolvePreviewGuardianIdsForMessages(
+  admin: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+  previewGuardianId: string | null,
+): Promise<string[]> {
+  if (previewGuardianId) {
+    const guardianId = await resolveFamilyPreviewGuardianId(
+      admin,
+      organizationId,
+      familyId,
+      previewGuardianId,
+    );
+    return guardianId ? [guardianId] : [];
+  }
+
+  const { data: guardianRows, error: guardianError } = await admin
+    .from("guardians")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("family_id", familyId);
+
+  if (guardianError) throw new Error(guardianError.message);
+  return (guardianRows ?? []).map((row) => String(row.id));
 }
 
 async function resolveParentPreviewContext(
@@ -146,6 +189,15 @@ async function resolveParentPreviewContext(
 
   await validateFamilyInOrganization(admin, query.organizationId, query.familyId);
 
+  if (query.guardianId) {
+    await validateGuardianInFamily(
+      admin,
+      query.organizationId,
+      query.familyId,
+      query.guardianId,
+    );
+  }
+
   return {
     admin,
     request,
@@ -153,6 +205,7 @@ async function resolveParentPreviewContext(
     organizationId: query.organizationId,
     slug: query.slug,
     familyId: query.familyId,
+    previewGuardianId: query.guardianId,
     org,
     previewParentBasePath: familyPreviewParentBasePath(query.slug, query.familyId),
   };
@@ -236,12 +289,18 @@ async function assertStudentBelongsToFamily(
 
 async function loadBillingPreviewForMobile(
   admin: SupabaseClient,
-  input: { organizationId: string; familyId: string; slug: string },
+  input: {
+    organizationId: string;
+    familyId: string;
+    slug: string;
+    previewGuardianId?: string | null;
+  },
 ) {
-  const guardianId = await getFamilyPreviewGuardianId(
+  const guardianId = await resolveFamilyPreviewGuardianId(
     admin,
     input.organizationId,
     input.familyId,
+    input.previewGuardianId,
   );
   const billingSplits = await listBillingSplits(admin, input.familyId);
   const hasBillingSplit = billingSplits.length > 0;
@@ -340,6 +399,7 @@ export async function handleParentMobilePreviewGet(
       familyId,
       org,
       previewParentBasePath,
+      previewGuardianId,
     } = context;
     const url = new URL(request.url);
     const segment = pathSegments[0] ?? "";
@@ -367,6 +427,7 @@ export async function handleParentMobilePreviewGet(
           familyId,
           previewParentBasePath,
           programSlug,
+          previewGuardianId,
         });
         return NextResponse.json(payload);
       } catch (err) {
@@ -418,6 +479,7 @@ export async function handleParentMobilePreviewGet(
         organizationId,
         familyId,
         slug,
+        previewGuardianId,
       });
 
       return NextResponse.json({
@@ -603,7 +665,12 @@ export async function handleParentMobilePreviewGet(
     }
 
     if (segment === "notification-settings") {
-      const profile = await getFamilyPreviewProfile(admin, organizationId, familyId);
+      const profile = await getFamilyPreviewProfile(
+        admin,
+        organizationId,
+        familyId,
+        previewGuardianId,
+      );
       const settings = await getFamilyNotificationEmailSettings(admin, {
         familyId,
         loginEmail: profile.email?.trim() || null,
@@ -619,10 +686,11 @@ export async function handleParentMobilePreviewGet(
       const subsegment = pathSegments[1] ?? "";
 
       if (subsegment === "browse") {
-        const guardianUserId = await getFamilyPreviewGuardianUserId(
+        const guardianUserId = await resolvePreviewGuardianUserId(
           admin,
           organizationId,
           familyId,
+          previewGuardianId,
         );
         const committees = await listBrowsableCommitteesForParent(
           admin,
@@ -633,10 +701,11 @@ export async function handleParentMobilePreviewGet(
       }
 
       if (subsegment === "mine") {
-        const guardianUserId = await getFamilyPreviewGuardianUserId(
+        const guardianUserId = await resolvePreviewGuardianUserId(
           admin,
           organizationId,
           familyId,
+          previewGuardianId,
         );
         const committees = guardianUserId
           ? await listParentCommitteeMemberships(admin, organizationId, guardianUserId)
@@ -654,10 +723,11 @@ export async function handleParentMobilePreviewGet(
         });
       }
 
-      const guardianUserId = await getFamilyPreviewGuardianUserId(
+      const guardianUserId = await resolvePreviewGuardianUserId(
         admin,
         organizationId,
         familyId,
+        previewGuardianId,
       );
       if (!guardianUserId) {
         return apiError(route, {
@@ -788,22 +858,30 @@ export async function handleParentMobilePreviewGet(
         const programId = url.searchParams.get("programId")?.trim() || undefined;
         if (!threadId) {
           const previewUserId =
-            (await getFamilyPreviewGuardianUserId(admin, organizationId, familyId)) ??
-            PREVIEW_NO_USER_ID;
+            (await resolvePreviewGuardianUserId(
+              admin,
+              organizationId,
+              familyId,
+              previewGuardianId,
+            )) ?? PREVIEW_NO_USER_ID;
           const inbox = await loadParentMessagesPreviewInbox(
             admin,
             organizationId,
             familyId,
             schoolName,
             previewUserId,
-            { programId },
+            { programId, previewGuardianId },
           );
           return NextResponse.json(inbox);
         }
 
         const previewUserId =
-          (await getFamilyPreviewGuardianUserId(admin, organizationId, familyId)) ??
-          PREVIEW_NO_USER_ID;
+          (await resolvePreviewGuardianUserId(
+            admin,
+            organizationId,
+            familyId,
+            previewGuardianId,
+          )) ?? PREVIEW_NO_USER_ID;
         await assertParentPreviewCanAccessThread(
           admin,
           organizationId,
@@ -834,17 +912,18 @@ export async function handleParentMobilePreviewGet(
 
       if (subsegment === "unread-count") {
         const previewUserId =
-          (await getFamilyPreviewGuardianUserId(admin, organizationId, familyId)) ??
-          PREVIEW_NO_USER_ID;
-        const { data: guardianRows, error: guardianError } = await admin
-          .from("guardians")
-          .select("id")
-          .eq("organization_id", organizationId)
-          .eq("family_id", familyId);
-
-        if (guardianError) throw new Error(guardianError.message);
-
-        const guardianIds = (guardianRows ?? []).map((row) => String(row.id));
+          (await resolvePreviewGuardianUserId(
+            admin,
+            organizationId,
+            familyId,
+            previewGuardianId,
+          )) ?? PREVIEW_NO_USER_ID;
+        const guardianIds = await resolvePreviewGuardianIdsForMessages(
+          admin,
+          organizationId,
+          familyId,
+          previewGuardianId,
+        );
         const unreadCount =
           guardianIds.length > 0
             ? await getTotalUnreadCount(
@@ -941,8 +1020,12 @@ export async function handleParentMobilePreviewGet(
       }
 
       const previewUserId =
-        (await getFamilyPreviewGuardianUserId(admin, organizationId, familyId)) ??
-        PREVIEW_NO_USER_ID;
+        (await resolvePreviewGuardianUserId(
+          admin,
+          organizationId,
+          familyId,
+          previewGuardianId,
+        )) ?? PREVIEW_NO_USER_ID;
       const applyBasePath = `${familyPreviewBasePath(slug, familyId)}/apply`;
 
       if (pathSegments[1] === "unread-count") {

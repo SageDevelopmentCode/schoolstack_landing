@@ -5,11 +5,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
 import { Story } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
-import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
+import { useBottomSheetKeyboardScrollStyle } from '@/hooks/use-bottom-sheet-keyboard-scroll-style';
 
 type StoryBottomSheetProps = {
   visible: boolean;
   onClose: () => void;
+  onDismissed?: () => void;
   children: ReactNode;
   accessibilityLabel?: string;
 };
@@ -17,16 +18,18 @@ type StoryBottomSheetProps = {
 export function StoryBottomSheet({
   visible,
   onClose,
+  onDismissed,
   children,
   accessibilityLabel = 'Close',
 }: StoryBottomSheetProps) {
   const insets = useSafeAreaInsets();
-  const keyboardInset = useKeyboardHeight();
+  const { scrollContentStyle } = useBottomSheetKeyboardScrollStyle(styles.body);
 
   return (
     <BottomSheetShell
       visible={visible}
       onClose={onClose}
+      onDismissed={onDismissed}
       accessibilityLabel={accessibilityLabel}
       keyboardAvoiding
       keyboardShouldPersistTaps="handled"
@@ -35,10 +38,7 @@ export function StoryBottomSheet({
       handleColor={Story.line}
       maxHeight="92%"
       bottomInset={insets.bottom + Spacing.four}
-      scrollContentStyle={[
-        styles.body,
-        keyboardInset > 0 ? { paddingBottom: keyboardInset + Spacing.four } : null,
-      ]}>
+      scrollContentStyle={scrollContentStyle}>
       {children}
     </BottomSheetShell>
   );

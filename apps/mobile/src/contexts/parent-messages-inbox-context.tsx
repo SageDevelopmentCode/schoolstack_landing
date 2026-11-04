@@ -17,6 +17,7 @@ import {
   resolveParentPortalProviderInit,
 } from '@/lib/parent/parent-portal-cache';
 import { createParentPortalErrorReporter } from '@/lib/mobile-error-reporter';
+import { getActivePreviewSession } from '@/lib/platform-admin/preview-session-store';
 
 export type ParentMessagesInboxData = {
   threads: MessageThreadSummary[];
@@ -40,10 +41,13 @@ const ParentMessagesInboxContext = createContext<ParentMessagesInboxContextValue
 const messagesInboxCache = createParentPortalCache<ParentMessagesInboxData>('parent_messages:');
 
 function cacheKey(organizationId: string, schoolName: string, programId?: string): string {
+  const session = getActivePreviewSession();
+  const previewGuardianSuffix =
+    session?.portal === 'parent' && session.guardianId ? `:g:${session.guardianId}` : '';
   if (programId) {
-    return `${organizationId}:${schoolName}:p:${programId}`;
+    return `${organizationId}:${schoolName}:p:${programId}${previewGuardianSuffix}`;
   }
-  return `${organizationId}:${schoolName}`;
+  return `${organizationId}:${schoolName}${previewGuardianSuffix}`;
 }
 
 function toInboxData(inbox: {

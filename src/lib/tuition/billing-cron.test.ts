@@ -124,6 +124,13 @@ describe("runTuitionBillingCron", () => {
           failures: 0,
         };
       },
+      sendStaffHoursWeeklyDigestForOrganization: async (_admin, organizationId) => {
+        calls.push(`staff-hours-digest:${organizationId}`);
+        return {
+          weeklyDigestsSent: organizationId === "org-1" ? 1 : 0,
+          failures: 0,
+        };
+      },
       sendPendingScheduledBulletinEmailsForOrganization: async (
         _admin,
         organizationId,
@@ -151,6 +158,7 @@ describe("runTuitionBillingCron", () => {
       "committee-digest:org-1",
       "unread-message-digest:org-1",
       "visit-reminders:org-1",
+      "staff-hours-digest:org-1",
       "bulletin-emails:org-1",
       "overdue:org-2",
       "reminders:org-2",
@@ -161,6 +169,7 @@ describe("runTuitionBillingCron", () => {
       "committee-digest:org-2",
       "unread-message-digest:org-2",
       "visit-reminders:org-2",
+      "staff-hours-digest:org-2",
       "bulletin-emails:org-2",
     ]);
     assert.equal(summary.organizations, 2);
@@ -188,6 +197,8 @@ describe("runTuitionBillingCron", () => {
     assert.equal(summary.scheduledVisitAdminDayBeforeDigestsSent, 1);
     assert.equal(summary.bulletinEmailsSent, 2);
     assert.equal(summary.bulletinEmailFailures, 0);
+    assert.equal(summary.staffHoursWeeklyDigestsSent, 1);
+    assert.equal(summary.staffHoursWeeklyDigestFailures, 0);
     const payload = notifiedPayload as Record<string, unknown> | null;
     assert.equal(payload?.autopaySkipped, 4);
     assert.equal(payload?.autopayDueCandidates, 2);
@@ -272,6 +283,10 @@ describe("runTuitionBillingCron", () => {
           failures: 0,
         };
       },
+      sendStaffHoursWeeklyDigestForOrganization: async (_admin, organizationId) => {
+        calls.push(`staff-hours-digest:${organizationId}`);
+        return { weeklyDigestsSent: 0, failures: 0 };
+      },
       sendPendingScheduledBulletinEmailsForOrganization: async (
         _admin,
         organizationId,
@@ -298,6 +313,7 @@ describe("runTuitionBillingCron", () => {
       "autopay:org-1",
       "unread-message-digest:org-1",
       "visit-reminders:org-1",
+      "staff-hours-digest:org-1",
       "bulletin-emails:org-1",
       "overdue:org-2",
       "reminders:org-2",
@@ -309,6 +325,7 @@ describe("runTuitionBillingCron", () => {
       "autopay:org-2",
       "unread-message-digest:org-2",
       "visit-reminders:org-2",
+      "staff-hours-digest:org-2",
       "bulletin-emails:org-2",
     ]);
     assert.equal(summary.organizationFailures, 0);
@@ -394,6 +411,10 @@ describe("runTuitionBillingCron", () => {
           failures: 0,
         };
       },
+      sendStaffHoursWeeklyDigestForOrganization: async (_admin, organizationId) => {
+        calls.push(`staff-hours-digest:${organizationId}`);
+        return { weeklyDigestsSent: 0, failures: 0 };
+      },
       sendPendingScheduledBulletinEmailsForOrganization: async (
         _admin,
         organizationId,
@@ -420,6 +441,7 @@ describe("runTuitionBillingCron", () => {
       "autopay:org-1",
       "unread-message-digest:org-1",
       "visit-reminders:org-1",
+      "staff-hours-digest:org-1",
       "bulletin-emails:org-1",
     ]);
     assert.equal(summary.organizationFailures, 0);

@@ -26,40 +26,38 @@ export type FreeToolsHubStageId =
 export type FreeToolsHubStage = {
   id: FreeToolsHubStageId;
   label: string;
-  flowLabel: string;
   flowIcon: LucideIcon;
 };
 
 export const FREE_TOOLS_HUB_STAGES: FreeToolsHubStage[] = [
   {
     id: "prospective_family",
-    label: "Prospective family tools",
-    flowLabel: "Prospective",
+    label: "Trying to reach prospective families?",
     flowIcon: Sparkles,
   },
   {
     id: "applying_family",
-    label: "Applying family tools",
-    flowLabel: "Applying",
+    label: "When families need to apply?",
     flowIcon: ClipboardList,
   },
   {
     id: "accepted_enrolling",
-    label: "Accepted and enrolling family tools",
-    flowLabel: "Accepted",
+    label: "What happens after they’re accepted?",
     flowIcon: BadgeCheck,
   },
   {
     id: "enrolled",
-    label: "Enrolled family tools",
-    flowLabel: "Enrolled",
+    label: "Once families are enrolled?",
     flowIcon: GraduationCap,
   },
-  { id: "staff", label: "Staff tools", flowLabel: "Staff", flowIcon: Briefcase },
+  {
+    id: "staff",
+    label: "What do your staff need day to day?",
+    flowIcon: Briefcase,
+  },
   {
     id: "founder_admin",
-    label: "Founder and admin tools",
-    flowLabel: "Founders",
+    label: "Planning and running your school?",
     flowIcon: Landmark,
   },
 ];

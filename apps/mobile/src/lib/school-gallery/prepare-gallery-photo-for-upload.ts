@@ -1,9 +1,7 @@
 import {
   compressImageForUpload,
-  isGalleryImageCompressionAvailable,
   type PickerImageAsset,
 } from '@/lib/images/compress-image-for-upload';
-import { shouldSkipImageCompression } from '@/lib/images/compress-image-dimensions';
 import {
   GALLERY_ALLOWED_MIME_TYPES,
   GALLERY_IMAGE_COMPRESS_OPTIONS,
@@ -48,16 +46,6 @@ export async function prepareGalleryPhotoForUpload(
 ): Promise<PreparedGalleryUploadFile> {
   const displayName = asset.fileName?.trim() || `photo-${index + 1}.jpg`;
   validateGalleryPickerAsset(asset, displayName);
-
-  if (
-    !isGalleryImageCompressionAvailable() &&
-    !shouldSkipImageCompression(asset.fileSize, GALLERY_IMAGE_COMPRESS_OPTIONS.skipBelowBytes)
-  ) {
-    throw new GalleryPhotoPrepareError(
-      'Photo compression is unavailable in this app version. Update MudKitchen from the App Store, or choose smaller photos.',
-      'compression_unavailable',
-    );
-  }
 
   const compressed = await compressImageForUpload(asset, GALLERY_IMAGE_COMPRESS_OPTIONS);
   return {

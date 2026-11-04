@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { resolveFamilyPreviewGuardianId } from "@/lib/admissions/family-preview-access";
 import { getGuardianIdsForUser } from "@/lib/messages/messages";
 import { listParentMessageContacts } from "./contacts";
 import {
@@ -13,6 +14,7 @@ type LoadParentMessagesInboxOptions = {
   includeContacts?: boolean;
   programId?: string | null;
   audienceScope?: MessageThreadAudienceScope;
+  previewGuardianId?: string | null;
 };
 
 function resolveParentMessageAudienceScope(
@@ -146,7 +148,10 @@ export async function loadParentMessagesPreviewInbox(
   familyId: string,
   schoolName: string,
   previewUserId: string,
-  options: Pick<LoadParentMessagesInboxOptions, "programId" | "audienceScope"> = {},
+  options: Pick<
+    LoadParentMessagesInboxOptions,
+    "programId" | "audienceScope" | "previewGuardianId"
+  > = {},
 ): Promise<MessagesInboxData> {
   const schoolOfficeLabel = `${schoolName} Office`;
   const audienceScope = resolveParentMessageAudienceScope(
@@ -154,6 +159,28 @@ export async function loadParentMessagesPreviewInbox(
     options.audienceScope,
   );
   const programId = options.programId?.trim() || null;
+  const previewGuardianId = options.previewGuardianId ?? null;
+
+  async function resolveGuardianIdsForInbox(): Promise<string[]> {
+    if (previewGuardianId) {
+      const guardianId = await resolveFamilyPreviewGuardianId(
+        admin,
+        organizationId,
+        familyId,
+        previewGuardianId,
+      );
+      return guardianId ? [guardianId] : [];
+    }
+
+    const { data: guardianRows, error: guardianError } = await admin
+      .from("guardians")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .eq("family_id", familyId);
+
+    if (guardianError) throw new Error(guardianError.message);
+    return (guardianRows ?? []).map((row) => String(row.id));
+  }
 
   const contacts: MessagesInboxData["contacts"] = [
     {
@@ -216,18 +243,11 @@ export async function loadParentMessagesPreviewInbox(
 
   if (enrolledStudentIds) {
     if (enrolledStudentIds.length === 0) {
-      const { data: guardianRows, error: guardianError } = await admin
-        .from("guardians")
-        .select("id")
-        .eq("organization_id", organizationId)
-        .eq("family_id", familyId);
-
-      if (guardianError) throw new Error(guardianError.message);
-
+      const guardianIds = await resolveGuardianIdsForInbox();
       return {
         threads: [],
         contacts,
-        guardianId: guardianRows?.[0]?.id ? String(guardianRows[0].id) : null,
+        guardianId: guardianIds[0] ?? null,
       };
     }
     assignmentsQuery = assignmentsQuery.in("students.id", enrolledStudentIds);
@@ -258,15 +278,7 @@ export async function loadParentMessagesPreviewInbox(
   }
   contacts.push(...teacherMap.values());
 
-  const { data: guardianRows, error: guardianError } = await admin
-    .from("guardians")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .eq("family_id", familyId);
-
-  if (guardianError) throw new Error(guardianError.message);
-
-  const guardianIds = (guardianRows ?? []).map((row) => String(row.id));
+  const guardianIds = await resolveGuardianIdsForInbox();
   const threads =
     guardianIds.length > 0
       ? await listThreadsForOrganization(

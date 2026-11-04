@@ -36,6 +36,7 @@ export type BottomSheetShellProps = {
   bounces?: boolean;
   keyboardShouldPersistTaps?: 'always' | 'never' | 'handled';
   bottomInset?: number;
+  onDismissed?: () => void;
 };
 
 export function BottomSheetShell({
@@ -58,12 +59,14 @@ export function BottomSheetShell({
   bounces = true,
   keyboardShouldPersistTaps,
   bottomInset,
+  onDismissed,
 }: BottomSheetShellProps) {
   const insets = useSafeAreaInsets();
   const resolvedBottomInset = bottomInset ?? insets.bottom + Spacing.two;
 
   const {
     modalVisible,
+    isClosing,
     backdropAnimatedStyle,
     sheetAnimatedStyle,
     scrollHandler,
@@ -72,6 +75,7 @@ export function BottomSheetShell({
   } = useBottomSheetMotion({
     visible,
     onClose,
+    onDismissed,
     enableDragToDismiss,
   });
 
@@ -87,6 +91,7 @@ export function BottomSheetShell({
           paddingBottom: resolvedBottomInset,
         },
         sheetStyle,
+        !scrollable ? styles.sheetFill : null,
       ]}>
       <GestureDetector gesture={handlePanGesture}>
         <View style={styles.handleRow}>
@@ -97,7 +102,7 @@ export function BottomSheetShell({
       {header}
 
       <GestureDetector gesture={contentPanGesture}>
-        <View style={styles.contentArea}>
+        <View style={[styles.contentArea, !scrollable ? styles.contentAreaFill : null]}>
           {scrollable ? (
             <Animated.ScrollView
               style={styles.scroll}
@@ -110,7 +115,7 @@ export function BottomSheetShell({
               {children}
             </Animated.ScrollView>
           ) : (
-            <View style={[styles.body, scrollContentStyle]}>{children}</View>
+            <View style={[styles.body, styles.bodyFill, scrollContentStyle]}>{children}</View>
           )}
         </View>
       </GestureDetector>
@@ -121,8 +126,10 @@ export function BottomSheetShell({
 
   return (
     <Modal visible={modalVisible} animationType="none" transparent onRequestClose={onClose}>
-      <GestureHandlerRootView style={styles.root}>
-        <View style={styles.overlay}>
+      <GestureHandlerRootView
+        style={[styles.root, isClosing ? styles.rootPassthrough : null]}
+        pointerEvents={isClosing ? 'box-none' : 'auto'}>
+        <View style={styles.overlay} pointerEvents={isClosing ? 'box-none' : 'auto'}>
           <Animated.View
             pointerEvents="none"
             style={[styles.backdrop, { backgroundColor: backdropColor }, backdropAnimatedStyle]}
@@ -131,6 +138,7 @@ export function BottomSheetShell({
             style={StyleSheet.absoluteFill}
             onPress={onClose}
             accessibilityLabel={accessibilityLabel}
+            pointerEvents={isClosing ? 'none' : 'auto'}
           />
           {keyboardAvoiding ? (
             <KeyboardAvoidingView
@@ -151,6 +159,9 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
+  rootPassthrough: {
+    pointerEvents: 'box-none',
+  },
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -166,6 +177,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: Radius.xl,
     borderWidth: StyleSheet.hairlineWidth,
   },
+  sheetFill: {
+    flex: 1,
+  },
   handleRow: {
     alignItems: 'center',
     paddingTop: Spacing.two,
@@ -180,11 +194,19 @@ const styles = StyleSheet.create({
     flexGrow: 0,
     flexShrink: 1,
   },
+  contentAreaFill: {
+    flex: 1,
+    minHeight: 0,
+  },
   scroll: {
     flexGrow: 0,
   },
   body: {
     flexGrow: 1,
     paddingBottom: Spacing.four,
+  },
+  bodyFill: {
+    flex: 1,
+    minHeight: 0,
   },
 });

@@ -6,7 +6,7 @@ import {
   fetchCommitteeActivityEvents,
   mapCommitteeActivityItems,
 } from "@/lib/committees/activity-feed";
-import { getParentCommitteeWorkspace } from "@/lib/committees/parent-committees";
+import { resolveActiveCommitteeMemberForPost } from "@/lib/committees/parent-committees";
 import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -63,7 +63,12 @@ export async function GET(request: Request, context: RouteContext) {
     }
 
     const admin = createAdminClient();
-    await getParentCommitteeWorkspace(admin, organizationId, user.id, committeeId);
+    await resolveActiveCommitteeMemberForPost(
+      admin,
+      organizationId,
+      user.id,
+      committeeId,
+    );
 
     const rows = await fetchCommitteeActivityEvents(admin, {
       organizationId,

@@ -4,11 +4,13 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
 import { StoryButton } from '@/components/story/story-button';
-import { StoryTextField } from '@/components/story/story-text-field';
+import { StoryDateField } from '@/components/story/story-date-field';
 import { ThemedText } from '@/components/themed-text';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { StoryFonts } from '@/constants/story-theme';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
+import { isGalleryImageCompressionAvailable } from '@/lib/images/compress-image-for-upload';
 import { MobileApiFormDataError } from '@/lib/api-form-data-error';
 import { reportMobileOperationalError } from '@/lib/mobile-activity';
 import { MAX_GALLERY_PHOTOS_PER_UPLOAD } from '@/lib/school-gallery/constants';
@@ -18,6 +20,7 @@ import {
   type PreparedGalleryUploadFile,
 } from '@/lib/school-gallery/gallery-api';
 import { isGalleryUploadPartialFailure } from '@/lib/school-gallery/gallery-upload-partial-error';
+import { todayGalleryPhotoDate } from '@/lib/school-gallery/gallery-photo-date';
 import {
   GalleryPhotoPrepareError,
   prepareGalleryPhotoForUpload,
@@ -45,14 +48,6 @@ type GalleryUploadSheetProps = {
   uploadSurface: 'school_admin' | 'teacher_portal';
 };
 
-function todayIsoDate(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
 export function GalleryUploadSheet({
   visible,
   onClose,
@@ -63,7 +58,11 @@ export function GalleryUploadSheet({
   uploadSurface,
 }: GalleryUploadSheetProps) {
   const theme = useParentTheme();
-  const [photoDate, setPhotoDate] = useState(todayIsoDate());
+  const compressionAvailable = isGalleryImageCompressionAvailable();
+  const uploadSubcopy = compressionAvailable
+    ? 'Photos are compressed before upload to save space.'
+    : 'Photos upload at original size on this app version. Update MudKitchen from the App Store for automatic compression.';
+  const [photoDate, setPhotoDate] = useState(todayGalleryPhotoDate());
   const [phase, setPhase] = useState<UploadPhase>('idle');
   const [prepareIndex, setPrepareIndex] = useState(0);
   const [prepareTotal, setPrepareTotal] = useState(0);
@@ -196,7 +195,7 @@ export function GalleryUploadSheet({
       mediaTypes: ['images'],
       allowsMultipleSelection: true,
       selectionLimit: MAX_GALLERY_PHOTOS_PER_UPLOAD,
-      quality: 1,
+      quality: compressionAvailable ? 1 : 0.75,
     });
 
     if (result.canceled || result.assets.length === 0) {
@@ -249,23 +248,21 @@ export function GalleryUploadSheet({
       onClose={handleClose}
       enableDragToDismiss={!busy}
       accessibilityLabel="Upload photos"
+      scrollContentStyle={styles.content}
       header={
         <View style={styles.header}>
           <ThemedText type="title" style={{ color: theme.ink }}>Upload photos</ThemedText>
           <ThemedText type="small" style={{ color: theme.muted, marginTop: 4 }}>
-            Photos are compressed before upload to save space.
+            {uploadSubcopy}
           </ThemedText>
         </View>
       }>
-      <View style={styles.content}>
-        <StoryTextField
+      <>
+        <StoryDateField
           label="Photo date"
           value={photoDate}
-          onChangeText={setPhotoDate}
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="numbers-and-punctuation"
-          editable={!busy}
+          onChange={setPhotoDate}
+          disabled={busy}
         />
 
         {error ? <Text style={[styles.error, { color: theme.alert }]}>{error}</Text> : null}
@@ -298,17 +295,19 @@ export function GalleryUploadSheet({
         <Text style={[styles.hint, { color: theme.muted }]}>
           Up to {MAX_GALLERY_PHOTOS_PER_UPLOAD} images per batch. JPEG, PNG, or WebP.
         </Text>
-      </View>
+      </>
     </BottomSheetShell>
   );
 }
 
 const styles = StyleSheet.create({
   header: {
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingBottom: Spacing.two,
   },
   content: {
     gap: Spacing.three,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingBottom: Spacing.two,
   },
   error: {

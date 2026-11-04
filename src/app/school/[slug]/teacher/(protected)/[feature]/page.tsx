@@ -14,6 +14,10 @@ import { loadTeacherDashboardInitialData } from "@/lib/school-teacher/load-teach
 import { loadTeacherCalendarInitialData } from "@/lib/school-events/load-teacher-calendar-data";
 import { loadTeacherCommitteesInitialData } from "@/lib/committees/load-teacher-committees-data";
 import { loadTeacherClassroomSignupsPageData } from "@/lib/classroom-signups/load-classroom-signups-page-data";
+import {
+  emptyTeacherMyHoursPageData,
+  loadTeacherMyHoursPageData,
+} from "@/lib/school-teacher/my-hours/load-teacher-my-hours-data";
 import { loadTeacherFormsDocumentsPageData } from "@/lib/school-teacher/forms-documents/load-forms-documents-page-data";
 import { getStaffPortalRoleForUser } from "@/lib/staff/teacher-portal-access";
 import {
@@ -70,6 +74,10 @@ const TeacherAttendancePage = dynamicFeaturePage(
 
 const TeacherCommitteesPage = dynamicFeaturePage(
   () => import("@/components/school-teacher/committees/TeacherCommitteesPage"),
+);
+
+const TeacherMyHoursPage = dynamicFeaturePage(
+  () => import("@/components/school-teacher/my-hours/TeacherMyHoursPage"),
 );
 
 export const dynamic = "force-dynamic";
@@ -350,6 +358,26 @@ export default async function SchoolTeacherFeaturePage({
         initialResponsesBySignupId={pageData.responsesBySignupId}
         classroomOptions={pageData.classroomOptions}
         assignedFamilyCount={pageData.assignedFamilyCount}
+      />
+    );
+  }
+
+  if (feature === "my_hours") {
+    const user = await getTeacherPortalPageUser(org.id);
+    const staffMemberId = await getCachedStaffMemberIdForUser(user.id, org.id);
+
+    const admin = createAdminClient();
+    const initialData =
+      staffMemberId != null
+        ? await loadTeacherMyHoursPageData(admin, org.id, staffMemberId)
+        : emptyTeacherMyHoursPageData("America/Denver");
+
+    return (
+      <TeacherMyHoursPage
+        branding={org.branding}
+        organizationId={org.id}
+        slug={slug}
+        initialData={initialData}
       />
     );
   }

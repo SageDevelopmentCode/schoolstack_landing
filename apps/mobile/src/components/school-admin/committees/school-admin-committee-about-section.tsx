@@ -19,6 +19,7 @@ import { stripHtmlTags } from '@/lib/parent/parent-committees-types';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
+import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type DutyRolePanelMode = 'create' | 'edit';
@@ -55,6 +56,7 @@ function DutyRoleFormSheet({
   onDelete?: () => void;
 }) {
   const theme = useParentTheme();
+  const keyboardOpen = useKeyboardHeight() > 0;
   const [form, setForm] = useState(initial);
 
   useEffect(() => {
@@ -120,17 +122,19 @@ function DutyRoleFormSheet({
           </View>
         </View>
 
-        <View style={styles.sheetActions}>
-          {onDelete ? (
-            <StoryButton label="Delete" variant="outline" onPress={onDelete} disabled={saving} />
-          ) : null}
-          <StoryButton label="Cancel" variant="soft" onPress={onClose} disabled={saving} />
-          <StoryButton
-            label={saving ? 'Saving…' : 'Save'}
-            onPress={() => onSave(form)}
-            disabled={saving || !form.title.trim()}
-          />
-        </View>
+        {!keyboardOpen ? (
+          <View style={styles.sheetActions}>
+            {onDelete ? (
+              <StoryButton label="Delete" variant="outline" onPress={onDelete} disabled={saving} />
+            ) : null}
+            <StoryButton label="Cancel" variant="soft" onPress={onClose} disabled={saving} />
+            <StoryButton
+              label={saving ? 'Saving…' : 'Save'}
+              onPress={() => onSave(form)}
+              disabled={saving || !form.title.trim()}
+            />
+          </View>
+        ) : null}
       </View>
     </StoryBottomSheet>
   );

@@ -24,6 +24,7 @@ const MY_SCHOOL_CHILD_DEFAULTS: FeatureNavChildConfig[] = [
   { key: 'attendance' },
   { key: 'programs' },
   { key: 'staff' },
+  { key: 'staff_hours' },
   { key: 'classrooms' },
   { key: 'forms_documents' },
   { key: 'tuition' },
@@ -155,4 +156,10 @@ export function isSchoolAdminPhotosEnabled(
   features: SchoolAdminOrganizationFeatures | undefined,
 ): boolean {
   return isAdminFeatureEnabled(features, 'photos');
+}
+
+export function isSchoolAdminStaffHoursEnabled(
+  features: SchoolAdminOrganizationFeatures | undefined,
+): boolean {
+  return isAdminNavPathEnabled(features, 'my_school', 'staff_hours');
 }

@@ -49,16 +49,6 @@ function formatPersonName(firstName: string, lastName: string, fallback: string)
   return name || fallback;
 }
 
-function dedupeFamilies(statuses: ParentPortalLoginStatus[]) {
-  const byFamily = new Map<string, ParentPortalLoginStatus>();
-  for (const status of statuses) {
-    if (!byFamily.has(status.familyId)) {
-      byFamily.set(status.familyId, status);
-    }
-  }
-  return [...byFamily.values()];
-}
-
 type PlatformAdminImpersonateSubjectsScreenProps = {
   organizationId: string;
 };
@@ -135,7 +125,7 @@ export function PlatformAdminImpersonateSubjectsScreen({
           (member) => member.portalRole === 'teacher' && member.membershipStatus === 'active',
         ),
       );
-      setParentStatuses(dedupeFamilies(parentPayload.statuses));
+      setParentStatuses(parentPayload.statuses);
     } catch (loadError) {
       setSubjectsError(
         loadError instanceof Error ? loadError.message : 'Failed to load preview subjects.',
@@ -248,21 +238,32 @@ export function PlatformAdminImpersonateSubjectsScreen({
 
     return parentStatuses.map((status) => {
       const name = formatPersonName(status.firstName, status.lastName, status.email ?? 'Parent');
+      const canPreview = Boolean(status.userId);
       return (
         <ImpersonateSubjectRow
-          key={status.familyId}
+          key={status.guardianId}
           title={name}
           subtitle={status.email}
-          meta={status.learnersSummaryLabel ?? undefined}
-          onPreview={() =>
+          meta={
+            status.learnersSummaryLabel
+              ? canPreview
+                ? status.learnersSummaryLabel
+                : `${status.learnersSummaryLabel} · No login`
+              : canPreview
+                ? undefined
+                : 'No login'
+          }
+          onPreview={() => {
+            if (!canPreview) return;
             void handlePreview({
               portal: 'parent',
               organizationId: organization.id,
               slug: organization.slug,
               subjectLabel: name,
               familyId: status.familyId,
-            })
-          }
+              guardianId: status.guardianId,
+            });
+          }}
         />
       );
     });

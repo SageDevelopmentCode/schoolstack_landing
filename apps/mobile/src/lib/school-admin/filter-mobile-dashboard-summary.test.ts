@@ -23,6 +23,7 @@ function baseSummary(overrides: Partial<AdminDashboardSummary> = {}): AdminDashb
     featureAnnouncements: [],
     messagesUnreadCount: 0,
     setupComplete: true,
+    staffHoursToday: null,
     ...overrides,
   };
 }

@@ -1,7 +1,7 @@
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { StoryButton } from '@/components/story/story-button';
-import { StoryTextField } from '@/components/story/story-text-field';
+import { StoryDateField } from '@/components/story/story-date-field';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Story, StoryFonts } from '@/constants/story-theme';
@@ -31,14 +31,11 @@ export function GalleryEditDateModal({
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={[styles.card, { backgroundColor: Story.white }]} onPress={() => {}}>
           <Text style={[styles.title, { color: theme.ink }]}>Photo date</Text>
-          <Text style={[styles.hint, { color: theme.muted }]}>Use YYYY-MM-DD format.</Text>
-          <StoryTextField
+          <StoryDateField
+            label="Date"
             value={value}
-            onChangeText={onChange}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="numbers-and-punctuation"
-            placeholder="2026-10-20"
+            onChange={onChange}
+            disabled={saving}
           />
           <View style={styles.actions}>
             <StoryButton label="Cancel" variant="outline" onPress={onClose} disabled={saving} />
@@ -66,11 +63,6 @@ const styles = StyleSheet.create({
     fontFamily: StoryFonts.bodySemiBold,
     fontSize: 17,
     fontWeight: '600',
-  },
-  hint: {
-    fontFamily: StoryFonts.body,
-    fontSize: 14,
-    lineHeight: 20,
   },
   actions: {
     flexDirection: 'row',

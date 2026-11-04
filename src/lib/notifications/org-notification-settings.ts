@@ -14,7 +14,8 @@ export type NotificationChannel =
   | "payments"
   | "visits"
   | "committees"
-  | "program_signups";
+  | "program_signups"
+  | "staff_hours";
 
 export type NotificationChannelSettings = {
   enabled: boolean;
@@ -26,6 +27,10 @@ export type ScheduledVisitReminderState = {
   last_weekly_admin_digest_week_start?: string;
   last_day_before_admin_digest_for_date?: string;
   last_day_of_admin_digest_for_date?: string;
+};
+
+export type StaffHoursReminderState = {
+  last_weekly_digest_week_end?: string;
 };
 
 export type ParentReminderSettings = {
@@ -55,8 +60,10 @@ export type OrganizationNotificationSettings = {
   visits: NotificationChannelSettings;
   committees: NotificationChannelSettings;
   program_signups: NotificationChannelSettings;
+  staff_hours: NotificationChannelSettings;
   parent_reminders: ParentReminderSettings;
   scheduled_visit_reminders: ScheduledVisitReminderState;
+  staff_hours_reminders: StaffHoursReminderState;
 };
 
 export type RecipientSummary = {
@@ -113,6 +120,11 @@ export function getDefaultNotificationSettings(): OrganizationNotificationSettin
       include_org_admins: true,
       additional_emails: [],
     },
+    staff_hours: {
+      enabled: true,
+      include_org_admins: true,
+      additional_emails: [],
+    },
     parent_reminders: {
       incomplete_admissions: {
         enabled: false,
@@ -134,6 +146,27 @@ export function getDefaultNotificationSettings(): OrganizationNotificationSettin
       },
     },
     scheduled_visit_reminders: {},
+    staff_hours_reminders: {},
+  };
+}
+
+function parseStaffHoursReminderState(
+  raw: Record<string, unknown> | undefined,
+): StaffHoursReminderState {
+  const state =
+    raw?.staff_hours_reminders &&
+    typeof raw.staff_hours_reminders === "object" &&
+    !Array.isArray(raw.staff_hours_reminders)
+      ? (raw.staff_hours_reminders as Record<string, unknown>)
+      : undefined;
+
+  const lastWeekEnd =
+    typeof state?.last_weekly_digest_week_end === "string"
+      ? state.last_weekly_digest_week_end.trim()
+      : undefined;
+
+  return {
+    ...(lastWeekEnd ? { last_weekly_digest_week_end: lastWeekEnd } : {}),
   };
 }
 
@@ -303,6 +336,10 @@ export function parseOrganizationNotificationSettings(
     stored.program_signups && typeof stored.program_signups === "object"
       ? (stored.program_signups as Record<string, unknown>)
       : undefined;
+  const staffHoursRaw =
+    stored.staff_hours && typeof stored.staff_hours === "object"
+      ? (stored.staff_hours as Record<string, unknown>)
+      : undefined;
   const parentRemindersRaw =
     stored.parent_reminders && typeof stored.parent_reminders === "object"
       ? (stored.parent_reminders as Record<string, unknown>)
@@ -314,12 +351,36 @@ export function parseOrganizationNotificationSettings(
     visits: parseChannelSettings(visitsRaw, defaults.visits),
     committees: parseChannelSettings(committeesRaw, defaults.committees),
     program_signups: parseChannelSettings(programSignupsRaw, defaults.program_signups),
+    staff_hours: parseChannelSettings(staffHoursRaw, defaults.staff_hours),
     parent_reminders: parseParentReminderSettings(
       parentRemindersRaw,
       defaults.parent_reminders,
     ),
     scheduled_visit_reminders: parseScheduledVisitReminderState(stored),
+    staff_hours_reminders: parseStaffHoursReminderState(stored),
   };
+}
+
+export async function persistStaffHoursReminderState(
+  admin: SupabaseClient,
+  organizationId: string,
+  patch: Partial<StaffHoursReminderState>,
+): Promise<void> {
+  const settings = await loadOrganizationNotificationSettings(admin, organizationId);
+  const nextSettings: OrganizationNotificationSettings = {
+    ...settings,
+    staff_hours_reminders: {
+      ...settings.staff_hours_reminders,
+      ...patch,
+    },
+  };
+
+  const { error } = await admin
+    .from("organization_settings")
+    .update({ notifications: nextSettings })
+    .eq("organization_id", organizationId);
+
+  if (error) throw error;
 }
 
 export async function persistScheduledVisitReminderState(
@@ -372,7 +433,8 @@ export function validateOrganizationNotificationSettings(
     validateChannelEmails(settings.payments.additional_emails, "payment") ??
     validateChannelEmails(settings.visits.additional_emails, "visit") ??
     validateChannelEmails(settings.committees.additional_emails, "committee") ??
-    validateChannelEmails(settings.program_signups.additional_emails, "program sign-up")
+    validateChannelEmails(settings.program_signups.additional_emails, "program sign-up") ??
+    validateChannelEmails(settings.staff_hours.additional_emails, "staff hours")
   );
 }
 
@@ -420,6 +482,7 @@ export function buildOrganizationNotificationRecipients(
       settings.program_signups,
       orgAdminEmails,
     ),
+    staff_hours: computeNotificationRecipients(settings.staff_hours, orgAdminEmails),
   };
 }
 
@@ -715,4 +778,11 @@ export async function resolveProgramSignupNotificationEmails(
   organizationId: string,
 ): Promise<string[]> {
   return resolveChannelNotificationEmails(admin, organizationId, "program_signups");
+}
+
+export async function resolveStaffHoursNotificationEmails(
+  admin: SupabaseClient,
+  organizationId: string,
+): Promise<string[]> {
+  return resolveChannelNotificationEmails(admin, organizationId, "staff_hours");
 }

@@ -166,6 +166,40 @@ export async function applicationBelongsToFamily(
   return Boolean(data);
 }
 
+export type FamilyPreviewGuardianOption = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  userId: string | null;
+};
+
+export async function listFamilyPreviewGuardians(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+): Promise<FamilyPreviewGuardianOption[]> {
+  const { data, error } = await supabase
+    .from("guardians")
+    .select("id, first_name, last_name, email, user_id")
+    .eq("organization_id", organizationId)
+    .eq("family_id", familyId)
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+
+  return (data ?? []).map((row) => ({
+    id: String(row.id),
+    firstName: String(row.first_name ?? "").trim(),
+    lastName: String(row.last_name ?? "").trim(),
+    email: typeof row.email === "string" ? row.email.trim() || null : null,
+    userId:
+      row.user_id != null && String(row.user_id).trim()
+        ? String(row.user_id).trim()
+        : null,
+  }));
+}
+
 async function getFamilyPreviewPrimaryGuardian(
   supabase: SupabaseClient,
   organizationId: string,
@@ -200,15 +234,58 @@ async function getFamilyPreviewPrimaryGuardian(
   );
 }
 
+export async function resolveFamilyPreviewGuardian(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+  overrideGuardianId?: string | null,
+) {
+  const trimmedOverride = overrideGuardianId?.trim();
+  if (trimmedOverride) {
+    const { data, error } = await supabase
+      .from("guardians")
+      .select(
+        "id, first_name, last_name, email, user_id, profile_photo_url, created_at",
+      )
+      .eq("organization_id", organizationId)
+      .eq("family_id", familyId)
+      .eq("id", trimmedOverride)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (data) return data;
+  }
+
+  return getFamilyPreviewPrimaryGuardian(supabase, organizationId, familyId);
+}
+
+export async function resolveFamilyPreviewGuardianId(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+  overrideGuardianId?: string | null,
+): Promise<string | null> {
+  const guardian = await resolveFamilyPreviewGuardian(
+    supabase,
+    organizationId,
+    familyId,
+    overrideGuardianId,
+  );
+  if (!guardian?.id) return null;
+  return String(guardian.id);
+}
+
 export async function getFamilyPreviewGuardianUserId(
   supabase: SupabaseClient,
   organizationId: string,
   familyId: string,
+  overrideGuardianId?: string | null,
 ): Promise<string | null> {
-  const guardian = await getFamilyPreviewPrimaryGuardian(
+  const guardian = await resolveFamilyPreviewGuardian(
     supabase,
     organizationId,
     familyId,
+    overrideGuardianId,
   );
   if (!guardian?.user_id) return null;
   const userId = String(guardian.user_id).trim();
@@ -219,25 +296,27 @@ export async function getFamilyPreviewGuardianId(
   supabase: SupabaseClient,
   organizationId: string,
   familyId: string,
+  overrideGuardianId?: string | null,
 ): Promise<string | null> {
-  const guardian = await getFamilyPreviewPrimaryGuardian(
+  return resolveFamilyPreviewGuardianId(
     supabase,
     organizationId,
     familyId,
+    overrideGuardianId,
   );
-  if (!guardian?.id) return null;
-  return String(guardian.id);
 }
 
 export async function getFamilyPreviewProfile(
   supabase: SupabaseClient,
   organizationId: string,
   familyId: string,
+  overrideGuardianId?: string | null,
 ): Promise<FamilyUserProfile> {
-  const guardian = await getFamilyPreviewPrimaryGuardian(
+  const guardian = await resolveFamilyPreviewGuardian(
     supabase,
     organizationId,
     familyId,
+    overrideGuardianId,
   );
 
   if (!guardian) {

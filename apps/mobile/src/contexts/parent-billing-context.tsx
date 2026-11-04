@@ -19,6 +19,10 @@ import {
   createParentPortalCache,
   resolveParentPortalProviderInit,
 } from '@/lib/parent/parent-portal-cache';
+import {
+  parentBillingCacheKey,
+  type ParentBillingCacheScope,
+} from '@/lib/parent/parent-billing-cache-key';
 import { createParentPortalErrorReporter } from '@/lib/mobile-error-reporter';
 
 type ParentBillingContextValue = {
@@ -53,16 +57,13 @@ const ParentBillingContext = createContext<ParentBillingContextValue | null>(nul
 
 const billingCache = createParentPortalCache<ParentBillingData>('parent_billing:');
 
-function cacheKey(organizationId: string, slug: string): string {
-  return `${organizationId}:${slug}`;
-}
-
 function fetchAndCacheParentBilling(
   organizationId: string,
   slug: string,
+  cacheScope: ParentBillingCacheScope | undefined,
   options?: { refresh?: boolean },
 ): Promise<ParentBillingData> {
-  const key = cacheKey(organizationId, slug);
+  const key = parentBillingCacheKey(organizationId, slug, cacheScope);
   return billingCache.fetchAndCache(
     key,
     () => fetchParentBillingData(organizationId, slug),
@@ -70,16 +71,23 @@ function fetchAndCacheParentBilling(
   );
 }
 
-export function prefetchParentBilling(organizationId: string, slug: string): Promise<void> {
-  const key = cacheKey(organizationId, slug);
+export function prefetchParentBilling(
+  organizationId: string,
+  slug: string,
+  cacheScope?: ParentBillingCacheScope,
+): Promise<void> {
+  const key = parentBillingCacheKey(organizationId, slug, cacheScope);
   return billingCache.prefetch(key, () => fetchParentBillingData(organizationId, slug));
 }
 
 export async function hydrateParentBillingFromDisk(
   organizationId: string,
   slug: string,
+  cacheScope?: ParentBillingCacheScope,
 ): Promise<ParentBillingData | null> {
-  return billingCache.hydrateFromDisk(cacheKey(organizationId, slug));
+  return billingCache.hydrateFromDisk(
+    parentBillingCacheKey(organizationId, slug, cacheScope),
+  );
 }
 
 type ParentBillingProviderProps = {
@@ -87,6 +95,7 @@ type ParentBillingProviderProps = {
   organizationId: string;
   slug: string;
   authReady?: boolean;
+  billingCacheScope?: ParentBillingCacheScope;
 };
 
 export function ParentBillingProvider({
@@ -94,8 +103,9 @@ export function ParentBillingProvider({
   organizationId,
   slug,
   authReady = true,
+  billingCacheScope,
 }: ParentBillingProviderProps) {
-  const key = cacheKey(organizationId, slug);
+  const key = parentBillingCacheKey(organizationId, slug, billingCacheScope);
   const cached = billingCache.get(key);
 
   const [data, setData] = useState<ParentBillingData | null>(cached);
@@ -127,9 +137,14 @@ export function ParentBillingProvider({
         setError(null);
 
         try {
-          const nextData = await fetchAndCacheParentBilling(organizationId, slug, {
-            refresh: isRefresh,
-          });
+          const nextData = await fetchAndCacheParentBilling(
+            organizationId,
+            slug,
+            billingCacheScope,
+            {
+              refresh: isRefresh,
+            },
+          );
           setData(nextData);
           setHasLoaded(true);
           return nextData;
@@ -150,7 +165,7 @@ export function ParentBillingProvider({
       }
       return promise;
     },
-    [data, key, organizationId, reportError, slug],
+    [billingCacheScope, data, key, organizationId, reportError, slug],
   );
 
   const ensureLoaded = useCallback(() => {
@@ -175,7 +190,7 @@ export function ParentBillingProvider({
 
     async function init() {
       const resolved = await resolveParentPortalProviderInit(key, billingCache, () =>
-        hydrateParentBillingFromDisk(organizationId, slug),
+        hydrateParentBillingFromDisk(organizationId, slug, billingCacheScope),
       );
       if (cancelled) return;
 
@@ -193,7 +208,7 @@ export function ParentBillingProvider({
       }
 
       try {
-        await fetchAndCacheParentBilling(organizationId, slug);
+        await fetchAndCacheParentBilling(organizationId, slug, billingCacheScope);
         if (cancelled) return;
 
         setData(billingCache.get(key));
@@ -217,7 +232,7 @@ export function ParentBillingProvider({
     return () => {
       cancelled = true;
     };
-  }, [authReady, key, organizationId, reportError, slug]);
+  }, [authReady, billingCacheScope, key, organizationId, reportError, slug]);
 
   const value = useMemo(
     () => ({

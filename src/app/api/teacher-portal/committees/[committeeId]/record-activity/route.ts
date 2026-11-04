@@ -4,7 +4,7 @@ import {
   handleRecordCommitteeActivity,
   type RecordCommitteeActivityBody,
 } from "@/lib/committees/api/committee-record-activity-route";
-import { getTeacherCommitteeWorkspace } from "@/lib/committees/teacher-committees";
+import { resolveActiveCommitteeMemberForPost } from "@/lib/committees/parent-committees";
 import { TeacherPortalAuthError } from "@/lib/staff/teacher-portal-access";
 import { requireTeacherPortalUser } from "@/lib/staff/teacher-portal-access-server";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
@@ -43,15 +43,12 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const user = await requireTeacherPortalUser(supabase, organizationId, request);
     const admin = createAdminClient();
-    await getTeacherCommitteeWorkspace(admin, organizationId, user.id, committeeId);
-
-    const { data: actorMember } = await admin
-      .from("committee_members")
-      .select("id")
-      .eq("committee_id", committeeId)
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .maybeSingle();
+    const currentMember = await resolveActiveCommitteeMemberForPost(
+      admin,
+      organizationId,
+      user.id,
+      committeeId,
+    );
 
     const displayName =
       user.user_metadata?.full_name?.trim() ||
@@ -62,7 +59,7 @@ export async function POST(request: Request, context: RouteContext) {
       userId: user.id,
       email: user.email,
       name: displayName,
-      memberId: actorMember?.id ? String(actorMember.id) : null,
+      memberId: currentMember.id,
       type: "teacher",
       surface: "teacher_portal",
     });

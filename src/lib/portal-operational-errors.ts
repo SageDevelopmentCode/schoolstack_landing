@@ -13,7 +13,13 @@ export type PortalOperationalSurface =
   | "teacher_portal"
   | "school_admin";
 
-const BENIGN_ERROR_CODES = new Set(["already_completed", "already_paid"]);
+const BENIGN_ERROR_CODES = new Set([
+  "already_completed",
+  "already_paid",
+  "already_clocked_in",
+  "not_clocked_in",
+  "session_too_short",
+]);
 
 export function isBenignPortalErrorCode(code?: string): boolean {
   return code ? BENIGN_ERROR_CODES.has(code) : false;

@@ -163,7 +163,7 @@ export const TEACHER_PORTAL_QA_SCENARIOS: PortalQaScenario[] = [
     auth: "staff",
     buildPath: () => teacherSchoolFeaturePath("my_hours"),
     assertReady: async (page) => {
-      await expect(page.getByTestId("teacher-portal-coming-soon")).toBeVisible({
+      await expect(page.getByTestId("teacher-my-hours-page")).toBeVisible({
         timeout: 30_000,
       });
     },

@@ -7,6 +7,10 @@ import {
   getFamilyPreviewProfile,
 } from "@/lib/admissions/family-preview-server-cache";
 import {
+  listFamilyPreviewGuardians,
+  resolveFamilyPreviewGuardianId,
+} from "@/lib/admissions/family-preview-access";
+import {
   listPreviewPortalOptions,
   resolveFamilyPreviewParentPortalHref,
 } from "@/lib/admissions/preview-portal-options";
@@ -34,10 +38,13 @@ export default async function FamilyPreviewLayout({
     notFound();
   }
 
-  const [userProfile, hasEnrolledAccess] = await Promise.all([
-    getFamilyPreviewProfile(supabase, org.id, familyId),
-    familyHasEnrolledAccess(supabase, org.id, familyId),
-  ]);
+  const [userProfile, hasEnrolledAccess, guardians, defaultGuardianId] =
+    await Promise.all([
+      getFamilyPreviewProfile(supabase, org.id, familyId),
+      familyHasEnrolledAccess(supabase, org.id, familyId),
+      listFamilyPreviewGuardians(supabase, org.id, familyId),
+      resolveFamilyPreviewGuardianId(supabase, org.id, familyId),
+    ]);
 
   const parentPortalEnabled = isParentPortalEnabled(org.features);
   const parentPortalHref =
@@ -60,6 +67,8 @@ export default async function FamilyPreviewLayout({
         familyId={familyId}
         schoolName={org.name}
         userProfile={userProfile}
+        guardians={guardians}
+        defaultGuardianId={defaultGuardianId}
         hasEnrolledAccess={hasEnrolledAccess}
         parentPortalEnabled={parentPortalEnabled}
         parentPortalHref={parentPortalHref}

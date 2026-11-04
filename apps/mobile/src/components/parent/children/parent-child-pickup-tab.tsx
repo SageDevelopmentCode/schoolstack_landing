@@ -17,6 +17,7 @@ import {
 } from '@/lib/parent/parent-portal-pickup-api';
 import { Story, StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
+import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type ParentChildPickupTabProps = {
@@ -51,6 +52,7 @@ export function ParentChildPickupTab({
 }: ParentChildPickupTabProps) {
   const theme = useParentTheme();
   const { reportError } = useMobileErrorReporter(organizationId);
+  const keyboardOpen = useKeyboardHeight() > 0;
 
   const [contacts, setContacts] = useState<AuthorizedPickupContact[]>([]);
   const [loading, setLoading] = useState(true);
@@ -257,18 +259,22 @@ export function ParentChildPickupTab({
             onChangeText={(notes) => setFormValues((prev) => ({ ...prev, notes }))}
             multiline
           />
-          <StoryButton
-            label={formState.mode === 'edit' ? 'Save changes' : 'Add contact'}
-            onPress={() => void handleSave()}
-            disabled={saving}
-          />
-          {formState.mode === 'edit' ? (
-            <StoryButton
-              label="Remove contact"
-              variant="soft"
-              onPress={() => handleDelete(formState.contact)}
-              disabled={saving}
-            />
+          {!keyboardOpen ? (
+            <>
+              <StoryButton
+                label={formState.mode === 'edit' ? 'Save changes' : 'Add contact'}
+                onPress={() => void handleSave()}
+                disabled={saving}
+              />
+              {formState.mode === 'edit' ? (
+                <StoryButton
+                  label="Remove contact"
+                  variant="soft"
+                  onPress={() => handleDelete(formState.contact)}
+                  disabled={saving}
+                />
+              ) : null}
+            </>
           ) : null}
         </View>
       </StoryBottomSheet>

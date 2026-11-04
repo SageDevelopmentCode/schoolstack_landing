@@ -1,6 +1,7 @@
 "use client";
 
 import { DASHBOARD_TAB_ROOT_CLASS } from "@/components/school-admin/dashboard/dashboard-panel-layout";
+import AdminDashboardStaffHoursSection from "@/components/school-admin/dashboard/AdminDashboardStaffHoursSection";
 import AdminDashboardAttendanceSection from "@/components/school-admin/AdminDashboardAttendanceSection";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import AdminFocusQueue from "@/components/school-admin/ui/story/AdminFocusQueue";
@@ -110,6 +111,21 @@ export default function AdminDashboardTodayPanel({
                     : null,
                 });
               }}
+            />
+          </AdminCard>
+        </div>
+      ) : null}
+
+      {today.staffHoursToday ? (
+        <div className="mb-[19px]">
+          <AdminCard
+            theme={theme}
+            padding="canvas"
+            className="bg-gradient-to-br from-[#FFFDF8] to-[#E8F2F4]"
+          >
+            <AdminDashboardStaffHoursSection
+              slug={slug}
+              data={today.staffHoursToday}
             />
           </AdminCard>
         </div>

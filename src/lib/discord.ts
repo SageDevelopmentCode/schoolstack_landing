@@ -444,6 +444,8 @@ export async function notifyTuitionBillingCronSummary(payload: {
   scheduledVisitReminderFailures?: number;
   bulletinEmailsSent?: number;
   bulletinEmailFailures?: number;
+  staffHoursWeeklyDigestsSent?: number;
+  staffHoursWeeklyDigestFailures?: number;
   activityEventsRetentionMonths?: number;
   activityEventsRetentionWarnDays?: number;
   activityEventsRetentionCutoff?: string | null;
@@ -549,6 +551,16 @@ export async function notifyTuitionBillingCronSummary(payload: {
     embedField(
       "Bulletin email failures",
       String(payload.bulletinEmailFailures ?? 0),
+      true,
+    ),
+    embedField(
+      "Staff hours weekly digests",
+      String(payload.staffHoursWeeklyDigestsSent ?? 0),
+      true,
+    ),
+    embedField(
+      "Staff hours digest failures",
+      String(payload.staffHoursWeeklyDigestFailures ?? 0),
       true,
     ),
     embedField("Rules evaluated", String(payload.rulesEvaluated), true),

@@ -117,7 +117,8 @@ For each:
 | `teacher-attendance` | Attendance roster shell visible | Same |
 | `teacher-committees-list` | Committees header; mine list | Same |
 | `teacher-committee-*` | Section content; mobile committee menu; seeded message on messages | Sidebar + section layout |
-| `teacher-my-hours` / `teacher-feed` / `teacher-payroll` | Coming-soon layout (no broken chrome) | Same |
+| `teacher-my-hours` | My Hours day/week/month layout + sidebar (`teacher-my-hours-page`) | Same |
+| `teacher-feed` / `teacher-payroll` | Coming-soon layout (no broken chrome) | Same |
 | `admin-dashboard` | Admin shell + dashboard content | Same |
 | `admin-admissions-submissions` | Table visible (Status, seeded names) | Same |
 | **generic** | Primary content visible; no clipping; touch targets not overlapping | Matches intent |

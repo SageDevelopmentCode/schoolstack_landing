@@ -30,6 +30,7 @@ import {
   buildPostSubmitVisitOwnerNotificationHtml,
   buildPublicCampusTourConfirmationHtml,
   buildScheduledVisitAdminDigestHtml,
+  buildStaffHoursWeeklyAdminDigestHtml,
   buildScheduledVisitDayBeforeReminderHtml,
   buildScheduledVisitDayOfReminderHtml,
   buildTeacherParentFormPublishedEmailHtml,
@@ -956,6 +957,65 @@ const previews = [
       "shadow / observation",
       "Campus tour",
       "Open schedule",
+    ],
+  },
+  {
+    filename: "admin-staff-hours-weekly-digest.html",
+    html: buildStaffHoursWeeklyAdminDigestHtml({
+      schoolName: "Rooted Meadows Waldorf School",
+      weekLabel: "Mar 2, 2026 – Mar 7, 2026",
+      staffHoursAdminUrl:
+        "https://trymudkitchen.com/school/rooted-meadows/admin/my_school/staff_hours",
+      staffRows: [
+        {
+          staffName: "Ms. Taylor Reyes",
+          totalLabel: "32h 15m",
+        },
+        {
+          staffName: "Julius Cecilia",
+          totalLabel: "8h 30m",
+        },
+      ],
+      staffSessionGroups: [
+        {
+          staffName: "Ms. Taylor Reyes",
+          sessions: [
+            {
+              dateLabel: "Tuesday, March 3",
+              timeLabel: "8:00 AM – 12:30 PM",
+              durationLabel: "4h 30m",
+            },
+            {
+              dateLabel: "Wednesday, March 4",
+              timeLabel: "8:15 AM – 3:45 PM",
+              durationLabel: "7h 30m",
+            },
+          ],
+        },
+        {
+          staffName: "Julius Cecilia",
+          sessions: [
+            {
+              dateLabel: "Thursday, March 5",
+              timeLabel: "9:00 AM – 1:30 PM",
+              durationLabel: "4h 30m",
+            },
+          ],
+        },
+      ],
+    }),
+    checks: [
+      "Staff hours",
+      "Weekly staff hours",
+      "Hours by staff",
+      "Completed sessions",
+      "Open Staff hours",
+      "Ms. Taylor Reyes",
+      "32h 15m",
+      "Tuesday, March 3",
+      "Julius Cecilia",
+      "email-digest-section",
+      "Rooted Meadows Waldorf School",
     ],
   },
   {

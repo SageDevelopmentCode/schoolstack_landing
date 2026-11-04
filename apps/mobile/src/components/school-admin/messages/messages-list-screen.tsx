@@ -3,6 +3,8 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { AdminMessagesBroadcastSheet } from '@/components/school-admin/messages/admin-messages-broadcast-sheet';
+import { AdminMessagesComposeMenuSheet } from '@/components/school-admin/messages/admin-messages-compose-menu-sheet';
 import { AdminMessageThreadRow } from '@/components/school-admin/messages/admin-message-thread-row';
 import { AdminMessagesEmptyState } from '@/components/school-admin/messages/admin-messages-empty-state';
 import { AdminMessagesSectionHeader } from '@/components/school-admin/messages/admin-messages-section-header';
@@ -22,6 +24,7 @@ import {
 } from '@/lib/messages/message-thread-cache';
 import { createMessageThread } from '@/lib/messages/api';
 import { contactKeyForThread } from '@/lib/messages/participants-from-contact';
+import { usePortalReadOnly } from '@/lib/portal-preview-gating';
 import { useMessagesRealtime } from '@/contexts/messages-realtime-context';
 import type { AdminConversationListItem } from '@/lib/messages/admin-thread-sections';
 import type { MessageContact, MessageThreadSummary } from '@/lib/messages/types';
@@ -53,6 +56,7 @@ export function MessagesListScreen({
   const router = useRouter();
   const { refreshUnreadCount } = useMessagesUnread();
   const { reportError } = useMobileErrorReporter(organizationId);
+  const readOnly = usePortalReadOnly();
   const {
     threads,
     contacts,
@@ -65,7 +69,9 @@ export function MessagesListScreen({
   } = useSchoolAdminMessagesInbox();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [composeMenuOpen, setComposeMenuOpen] = useState(false);
   const [newConversationOpen, setNewConversationOpen] = useState(false);
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [startingConversation, setStartingConversation] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -103,6 +109,7 @@ export function MessagesListScreen({
   };
 
   const prefetchedThreadIdsRef = useRef<string>('');
+  const pendingComposeActionRef = useRef<'bulk' | 'newConversation' | null>(null);
 
   const prefetchThread = useCallback(
     (threadId: string) => {
@@ -139,8 +146,37 @@ export function MessagesListScreen({
   );
 
   const handleNewMessage = () => {
-    setNewConversationOpen(true);
-    void ensureContactsLoaded();
+    pendingComposeActionRef.current = null;
+    setComposeMenuOpen(true);
+  };
+
+  const handleComposeMenuDismissed = useCallback(() => {
+    const action = pendingComposeActionRef.current;
+    pendingComposeActionRef.current = null;
+    if (action === 'bulk') {
+      setBroadcastOpen(true);
+      void ensureContactsLoaded();
+      return;
+    }
+    if (action === 'newConversation') {
+      setNewConversationOpen(true);
+      void ensureContactsLoaded();
+    }
+  }, [ensureContactsLoaded]);
+
+  const handleRequestNewConversation = () => {
+    pendingComposeActionRef.current = 'newConversation';
+    setComposeMenuOpen(false);
+  };
+
+  const handleRequestBulkMessage = () => {
+    pendingComposeActionRef.current = 'bulk';
+    setComposeMenuOpen(false);
+  };
+
+  const handleBroadcastSent = () => {
+    void refresh({ silent: true });
+    void refreshUnreadCount();
   };
 
   const handleNewConversationSelect = async (contact: MessageContact) => {
@@ -237,6 +273,17 @@ export function MessagesListScreen({
         )}
       </View>
 
+      <AdminMessagesComposeMenuSheet
+        visible={composeMenuOpen}
+        onClose={() => {
+          pendingComposeActionRef.current = null;
+          setComposeMenuOpen(false);
+        }}
+        onDismissed={handleComposeMenuDismissed}
+        onNewConversation={handleRequestNewConversation}
+        onBulkMessage={readOnly ? undefined : handleRequestBulkMessage}
+      />
+
       <NewConversationSheet
         visible={newConversationOpen}
         contacts={contacts}
@@ -246,6 +293,17 @@ export function MessagesListScreen({
         onSelect={(contact) => {
           void handleNewConversationSelect(contact);
         }}
+      />
+
+      <AdminMessagesBroadcastSheet
+        visible={broadcastOpen}
+        organizationId={organizationId}
+        organizationSlug={organizationSlug}
+        schoolName={schoolName}
+        contacts={contacts}
+        loadingContacts={loadingContacts}
+        onClose={() => setBroadcastOpen(false)}
+        onSent={handleBroadcastSent}
       />
     </View>
   );

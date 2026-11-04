@@ -17,6 +17,7 @@ import { Story, StoryFonts } from '@/constants/story-theme';
 import { requestCloseIfClean } from '@/lib/unsaved-changes';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { DISABLED_BUTTON_OPACITY, Radius, Spacing } from '@/constants/theme';
+import { useBottomSheetKeyboardScrollStyle } from '@/hooks/use-bottom-sheet-keyboard-scroll-style';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type ClassroomFormSheetProps = {
@@ -40,6 +41,7 @@ export function ClassroomFormSheet({
 }: ClassroomFormSheetProps) {
   const theme = useParentTheme();
   const { reportError } = useMobileErrorReporter();
+  const { keyboardOpen, scrollContentStyle } = useBottomSheetKeyboardScrollStyle(styles.scrollContent);
   const isEdit = classroom != null;
 
   const [name, setName] = useState('');
@@ -122,7 +124,7 @@ export function ClassroomFormSheet({
       handleColor={Story.line}
       maxHeight="88%"
       sheetStyle={styles.sheet}
-      scrollContentStyle={styles.scrollContent}
+      scrollContentStyle={scrollContentStyle}
       header={
         <View style={styles.header}>
           <Text style={[styles.title, { color: theme.ink }]}>
@@ -134,6 +136,7 @@ export function ClassroomFormSheet({
         </View>
       }
       footer={
+        keyboardOpen ? undefined : (
         <View style={styles.footer}>
           <Pressable accessibilityRole="button" disabled={saving} onPress={requestClose}>
             <Text style={[styles.cancelLabel, { color: theme.muted }]}>Cancel</Text>
@@ -156,6 +159,7 @@ export function ClassroomFormSheet({
             )}
           </Pressable>
         </View>
+        )
       }>
       <Field label="Name" value={name} onChangeText={setName} />
       <Text style={[styles.fieldLabel, { color: theme.muted }]}>Program (optional)</Text>

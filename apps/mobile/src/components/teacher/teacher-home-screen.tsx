@@ -24,6 +24,7 @@ import {
 } from '@/components/teacher/home/teacher-home-sub-tabs';
 import { TeacherHomeSchoolUpdatesCard } from '@/components/teacher/home/teacher-home-school-updates-card';
 import { TeacherHomeSnapshotCard } from '@/components/teacher/home/teacher-home-snapshot-card';
+import { TeacherHomeMyHoursQuickCard } from '@/components/teacher/home/teacher-home-my-hours-quick-card';
 import { TeacherHomeStartHereCard } from '@/components/teacher/home/teacher-home-start-here-card';
 import { TeacherHomeStudentCard } from '@/components/teacher/home/teacher-home-student-card';
 import { TeacherHomeSkeleton } from '@/components/teacher/home/teacher-home-skeleton';
@@ -74,6 +75,7 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
   const [accountSheetOpen, setAccountSheetOpen] = useState(false);
   const { selectedSchool } = useAuth();
   const [classroomRoster, setClassroomRoster] = useState<StaffClassroomOption | null>(null);
+  const [myHoursRefreshKey, setMyHoursRefreshKey] = useState(0);
 
   useAuthRequiredRedirect(error);
 
@@ -143,6 +145,11 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
     }
   }, [attendanceEnabledForHooks, homeTab]);
 
+  const handleHomeRefresh = useCallback(async () => {
+    await refresh();
+    setMyHoursRefreshKey((key) => key + 1);
+  }, [refresh]);
+
   if (isLoading && !data) {
     return <TeacherHomeSkeleton />;
   }
@@ -164,6 +171,7 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
   const myStudentsEnabled = isTeacherFeatureEnabled(features, 'my_students');
   const messagesEnabled = isTeacherFeatureEnabled(features, 'messages');
   const calendarEnabled = isTeacherFeatureEnabled(features, 'calendar');
+  const myHoursEnabled = isTeacherFeatureEnabled(features, 'my_hours');
   const studentCount = summary.assignedStudents.length;
   const visibleStudents = summary.assignedStudents.slice(0, MAX_STUDENT_CARDS);
   const hasMoreStudents = summary.assignedStudents.length > MAX_STUDENT_CARDS;
@@ -185,6 +193,16 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
 
   const overviewBody = (
     <>
+      {myHoursEnabled ? (
+        <Animated.View entering={FadeInDown.delay(0).duration(350)}>
+          <TeacherHomeMyHoursQuickCard
+            organizationId={data.organizationId}
+            slug={slug}
+            refreshKey={myHoursRefreshKey}
+          />
+        </Animated.View>
+      ) : null}
+
       <Animated.View entering={FadeInDown.delay(40).duration(350)}>
         <TeacherHomeStartHereCard
           focusItems={summary.focusItems}
@@ -336,7 +354,7 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
   const refreshControl = (
     <RefreshControl
       refreshing={isRefreshing}
-      onRefresh={() => void refresh()}
+      onRefresh={() => void handleHomeRefresh()}
       tintColor={theme.primary}
     />
   );

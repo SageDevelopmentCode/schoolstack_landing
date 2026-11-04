@@ -1,6 +1,6 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { StoryBottomSheet } from '@/components/story/story-bottom-sheet';
 import { StoryButton } from '@/components/story/story-button';
@@ -16,6 +16,7 @@ import { getSupabaseClient } from '@/lib/supabase';
 import { StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
+import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 
 type SchoolAdminFridayBranchClassEditSheetProps = {
   visible: boolean;
@@ -42,6 +43,7 @@ export function SchoolAdminFridayBranchClassEditSheet({
 }: SchoolAdminFridayBranchClassEditSheetProps) {
   const theme = useParentTheme();
   const { reportError } = useMobileErrorReporter(organizationId);
+  const keyboardOpen = useKeyboardHeight() > 0;
   const supabase = useMemo(() => getSupabaseClient(), []);
   const [draft, setDraft] = useState<FridayBranchClass | null>(classEntry);
   const [draftSlotId, setDraftSlotId] = useState(slotId ?? slots[0]?.id ?? '');
@@ -142,7 +144,7 @@ export function SchoolAdminFridayBranchClassEditSheet({
 
   return (
     <StoryBottomSheet visible={visible} onClose={onClose} accessibilityLabel="Close class editor">
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <View style={styles.content}>
         <Text style={[styles.title, { color: theme.ink }]}>{title}</Text>
         <Text style={[styles.subtitle, { color: theme.muted }]}>
           Update the class details families and staff need.
@@ -255,16 +257,18 @@ export function SchoolAdminFridayBranchClassEditSheet({
           />
         </View>
 
-        <View style={styles.actions}>
-          <StoryButton label="Cancel" variant="outline" previewSafe onPress={onClose} />
-          <StoryButton
-            label={isBusy ? 'Saving…' : 'Save class'}
-            previewSafe
-            disabled={isBusy}
-            onPress={() => void handleSave()}
-          />
-        </View>
-      </ScrollView>
+        {!keyboardOpen ? (
+          <View style={styles.actions}>
+            <StoryButton label="Cancel" variant="outline" previewSafe onPress={onClose} />
+            <StoryButton
+              label={isBusy ? 'Saving…' : 'Save class'}
+              previewSafe
+              disabled={isBusy}
+              onPress={() => void handleSave()}
+            />
+          </View>
+        ) : null}
+      </View>
     </StoryBottomSheet>
   );
 }

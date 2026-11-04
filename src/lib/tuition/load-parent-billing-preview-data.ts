@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { getFamilyPreviewGuardianId } from "@/lib/admissions/family-preview-access";
+import { resolveFamilyPreviewGuardianId } from "@/lib/admissions/family-preview-access";
 import { listBillingSplits } from "@/lib/tuition/billing-splits";
 import {
   filterChargesForFamilyGuardian,
@@ -26,15 +26,17 @@ export async function loadParentBillingPreviewData(input: {
   organizationId: string;
   familyId: string;
   slug: string;
+  previewGuardianId?: string | null;
 }): Promise<ParentBillingInitialData> {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   const admin = createAdminClient();
 
-  const guardianId = await getFamilyPreviewGuardianId(
+  const guardianId = await resolveFamilyPreviewGuardianId(
     supabase,
     input.organizationId,
     input.familyId,
+    input.previewGuardianId,
   );
   const billingSplits = await listBillingSplits(admin, input.familyId);
   const hasBillingSplit = billingSplits.length > 0;

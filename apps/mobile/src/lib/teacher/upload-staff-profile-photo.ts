@@ -1,4 +1,5 @@
 import { reportMobileOperationalError } from '@/lib/mobile-activity';
+import { prepareProfilePhotoForUpload } from '@/lib/profile-photo/prepare-profile-photo-for-upload';
 import { fetchTeacherApiFormData } from '@/lib/teacher/teacher-portal-api';
 import { appendLocalFileToFormData } from '@/lib/upload/append-local-file-to-form-data';
 
@@ -24,13 +25,11 @@ export async function uploadStaffProfilePhotoFromTeacher(
 ): Promise<string> {
   const { organizationId, uri, mimeType = 'image/jpeg', fileName = 'profile-photo.jpg' } = params;
 
+  const file = await prepareProfilePhotoForUpload(uri, mimeType, fileName);
+
   const formData = new FormData();
   formData.append('organizationId', organizationId);
-  await appendLocalFileToFormData(formData, 'file', {
-    uri,
-    name: fileName,
-    type: mimeType,
-  });
+  await appendLocalFileToFormData(formData, 'file', file);
 
   try {
     const payload = await fetchTeacherApiFormData<{ profilePhotoUrl?: string; error?: string }>(

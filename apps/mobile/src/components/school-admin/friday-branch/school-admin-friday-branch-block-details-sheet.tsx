@@ -1,7 +1,8 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { StoryBottomSheet } from '@/components/story/story-bottom-sheet';
 import { StoryButton } from '@/components/story/story-button';
+import { StoryDateField } from '@/components/story/story-date-field';
 import { StoryTextField } from '@/components/story/story-text-field';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import type { FridayBranchBlock } from '@/lib/school-admin/friday-branch/friday-branch-types';
@@ -13,6 +14,7 @@ import {
 import { StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
+import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 
 type SchoolAdminFridayBranchBlockDetailsSheetProps = {
   visible: boolean;
@@ -28,14 +30,13 @@ export function SchoolAdminFridayBranchBlockDetailsSheet({
   onChange,
 }: SchoolAdminFridayBranchBlockDetailsSheetProps) {
   const theme = useParentTheme();
+  const keyboardOpen = useKeyboardHeight() > 0;
 
   if (!block) return null;
 
   return (
     <StoryBottomSheet visible={visible} onClose={onClose} accessibilityLabel="Close block details">
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled">
+      <View style={styles.content}>
         <Text style={[styles.title, { color: theme.ink }]}>Block details</Text>
         <Text style={[styles.subtitle, { color: theme.muted }]}>
           Name this block and set its Friday date range.
@@ -59,22 +60,20 @@ export function SchoolAdminFridayBranchBlockDetailsSheet({
         />
 
         <View style={styles.dateRow}>
-          <StoryTextField
-            label="Start date (YYYY-MM-DD)"
-            value={block.startDate}
-            onChangeText={(startDate) => onChange({ ...block, startDate })}
-            placeholder="2026-11-06"
-            autoCapitalize="none"
-            style={styles.dateField}
-          />
-          <StoryTextField
-            label="End date (YYYY-MM-DD)"
-            value={block.endDate}
-            onChangeText={(endDate) => onChange({ ...block, endDate })}
-            placeholder="2026-11-20"
-            autoCapitalize="none"
-            style={styles.dateField}
-          />
+          <View style={styles.dateField}>
+            <StoryDateField
+              label="Start date"
+              value={block.startDate}
+              onChange={(startDate) => onChange({ ...block, startDate })}
+            />
+          </View>
+          <View style={styles.dateField}>
+            <StoryDateField
+              label="End date"
+              value={block.endDate}
+              onChange={(endDate) => onChange({ ...block, endDate })}
+            />
+          </View>
         </View>
 
         <View style={[styles.metaCard, { borderColor: theme.line, backgroundColor: theme.white }]}>
@@ -90,8 +89,8 @@ export function SchoolAdminFridayBranchBlockDetailsSheet({
           </Text>
         </View>
 
-        <StoryButton label="Done" previewSafe onPress={onClose} />
-      </ScrollView>
+        {!keyboardOpen ? <StoryButton label="Done" previewSafe onPress={onClose} /> : null}
+      </View>
     </StoryBottomSheet>
   );
 }

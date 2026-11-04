@@ -5,7 +5,7 @@ import {
   fetchCommitteeActivityEvents,
   mapCommitteeActivityItems,
 } from "@/lib/committees/activity-feed";
-import { getTeacherCommitteeWorkspace } from "@/lib/committees/teacher-committees";
+import { resolveActiveCommitteeMemberForPost } from "@/lib/committees/parent-committees";
 import {
   TeacherPortalAuthError,
 } from "@/lib/staff/teacher-portal-access";
@@ -38,7 +38,12 @@ export async function GET(request: Request, context: RouteContext) {
   try {
     const user = await requireTeacherPortalUser(supabase, organizationId, request);
     const admin = createAdminClient();
-    await getTeacherCommitteeWorkspace(admin, organizationId, user.id, committeeId);
+    await resolveActiveCommitteeMemberForPost(
+      admin,
+      organizationId,
+      user.id,
+      committeeId,
+    );
 
     const rows = await fetchCommitteeActivityEvents(admin, {
       organizationId,

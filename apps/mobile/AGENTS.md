@@ -41,4 +41,12 @@ Nested `KeyboardAvoidingView` inside portal `SafeAreaView` often **passes the si
 
 **Device test:** When adding or changing `TextInput` near the **bottom** of the screen or in a sheet, verify on a **physical iPhone** (type 2–3 lines). Simulator alone is not sufficient.
 
+After keyboard sheet/scroll changes (phase 2+), spot-check on a physical iPhone:
+
+- School admin Friday Branch class edit — lower fields and save row while typing
+- School admin committee workspace — settings/about inline text fields
+- Parent committee task sheet — description field
+- Parent child pickup contact — multiline Notes
+- Parent enrollment checklist item — text/signature fields in bottom sheet
+
 Repo check: `npm run check:mobile-keyboard-patterns` from the monorepo root.

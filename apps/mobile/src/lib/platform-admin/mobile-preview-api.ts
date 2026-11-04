@@ -29,6 +29,9 @@ function appendPreviewParams(path: string, session: PortalPreviewSession): strin
   if (session.membershipId) {
     url.searchParams.set('membershipId', session.membershipId);
   }
+  if (session.guardianId) {
+    url.searchParams.set('guardianId', session.guardianId);
+  }
   return `${url.pathname}${url.search}`;
 }
 

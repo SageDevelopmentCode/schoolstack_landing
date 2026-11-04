@@ -1,5 +1,5 @@
 import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -35,18 +35,15 @@ import { usePortalPreview } from '@/lib/portal-preview-gating';
 function ParentPortalContextBridge({
   children,
   authReady,
+  organizationId,
+  slug,
 }: {
   children: React.ReactNode;
   authReady: boolean;
+  organizationId: string;
+  slug: string;
 }) {
-  const { slug } = useLocalSearchParams<{ slug: string }>();
-  const { selectedSchool } = useAuth();
   const { data: homeData } = useParentHome();
-  const organizationId = selectedSchool?.slug === slug ? selectedSchool.id : '';
-
-  if (!slug || !organizationId) {
-    return <>{children}</>;
-  }
 
   return (
     <ParentPortalContextProvider
@@ -135,7 +132,7 @@ function ParentLayoutContent() {
 }
 
 export default function ParentLayout() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, previewSession } = useAuth();
   const { isPreview } = usePortalPreview();
   const router = useRouter();
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -150,6 +147,16 @@ export default function ParentLayout() {
 
   const orgReady =
     loadedOrg && loadedOrg.slug === slug && orgLoadState === 'ready';
+
+  const billingCacheScope = useMemo(() => {
+    if (previewSession?.portal !== 'parent' || !previewSession.familyId) {
+      return undefined;
+    }
+    return {
+      familyId: previewSession.familyId,
+      ...(previewSession.guardianId ? { guardianId: previewSession.guardianId } : {}),
+    };
+  }, [previewSession]);
 
   if (!orgReady) {
     return (
@@ -169,11 +176,15 @@ export default function ParentLayout() {
           organizationId={loadedOrg.id}
           slug={loadedOrg.slug}
           authReady={authReady}>
-          <ParentPortalContextBridge authReady={authReady}>
+          <ParentPortalContextBridge
+            authReady={authReady}
+            organizationId={loadedOrg.id}
+            slug={loadedOrg.slug}>
             <ParentBillingProvider
               organizationId={loadedOrg.id}
               slug={loadedOrg.slug}
-              authReady={authReady}>
+              authReady={authReady}
+              billingCacheScope={billingCacheScope}>
               <ParentCommitteesProvider
                 organizationId={loadedOrg.id}
                 slug={loadedOrg.slug}

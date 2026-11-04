@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { loadFridayBranchSchedule } from "@/lib/school-admin/friday-branch/friday-branch-storage";
+import {
+  loadFridayBranchSchedule,
+  loadFridayBranchParentHomeDisplayBlockMatching,
+} from "@/lib/school-admin/friday-branch/friday-branch-storage";
 import type {
   FridayBranchBlock,
   FridayBranchBlockStatus,
@@ -195,6 +198,69 @@ async function loadFamilyEnrollments(
   return byClassId;
 }
 
+function buildParentFridayBranchBlockSummaries(
+  visibleBlocks: FridayBranchBlock[],
+  confirmedCounts: Map<string, number>,
+  familyEnrollmentsByClassId: Map<string, ParentFridayBranchClassSummary["familyEnrollments"]>,
+): ParentFridayBranchBlockSummary[] {
+  return visibleBlocks.map((block) => {
+    const classes: ParentFridayBranchClassSummary[] = [];
+    for (const slot of block.slots) {
+      for (const classEntry of slot.classes) {
+        classes.push(
+          buildClassSummary(
+            classEntry,
+            slot.id,
+            slot.time,
+            confirmedCounts.get(classEntry.id) ?? 0,
+            familyEnrollmentsByClassId.get(classEntry.id) ?? [],
+          ),
+        );
+      }
+    }
+    return { block, classes };
+  });
+}
+
+/** Parent home card: one display block instead of the full schedule. */
+export async function loadParentFridayBranchHomePageBundle(
+  admin: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+  studentOptions: ParentFridayBranchStudentOption[],
+): Promise<ParentFridayBranchPageBundle> {
+  const displayBlock = await loadFridayBranchParentHomeDisplayBlockMatching(
+    admin,
+    organizationId,
+    (candidate) => filterParentVisibleBlocks([candidate]).length > 0,
+  );
+  if (!displayBlock) {
+    return { blocks: [], studentOptions };
+  }
+
+  const block = filterParentVisibleBlocks([displayBlock])[0]!;
+  const classIds: string[] = [];
+  for (const slot of block.slots) {
+    for (const classEntry of slot.classes) {
+      classIds.push(classEntry.id);
+    }
+  }
+
+  const [confirmedCounts, familyEnrollmentsByClassId] = await Promise.all([
+    loadConfirmedCountsByClassId(admin, organizationId, classIds),
+    loadFamilyEnrollments(admin, organizationId, familyId, [block.id]),
+  ]);
+
+  return {
+    blocks: buildParentFridayBranchBlockSummaries(
+      [block],
+      confirmedCounts,
+      familyEnrollmentsByClassId,
+    ),
+    studentOptions,
+  };
+}
+
 export async function loadParentFridayBranchPageBundle(
   admin: SupabaseClient,
   organizationId: string,
@@ -219,26 +285,12 @@ export async function loadParentFridayBranchPageBundle(
     loadFamilyEnrollments(admin, organizationId, familyId, blockIds),
   ]);
 
-  const blocks: ParentFridayBranchBlockSummary[] = visibleBlocks.map((block) => {
-    const classes: ParentFridayBranchClassSummary[] = [];
-    for (const slot of block.slots) {
-      for (const classEntry of slot.classes) {
-        classes.push(
-          buildClassSummary(
-            classEntry,
-            slot.id,
-            slot.time,
-            confirmedCounts.get(classEntry.id) ?? 0,
-            familyEnrollmentsByClassId.get(classEntry.id) ?? [],
-          ),
-        );
-      }
-    }
-    return { block, classes };
-  });
-
   return {
-    blocks,
+    blocks: buildParentFridayBranchBlockSummaries(
+      visibleBlocks,
+      confirmedCounts,
+      familyEnrollmentsByClassId,
+    ),
     studentOptions,
   };
 }

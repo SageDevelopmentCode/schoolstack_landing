@@ -11,6 +11,7 @@
     "@expo/ui": "~57.0.11",
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/datetimepicker": "9.1.0",
     "@sentry/react-native": "^6.22.0",
     "@supabase/supabase-js": "^2.112.3",
     "aes-js": "^3.1.2",

@@ -12,6 +12,7 @@ export type PreviewPortalSwitchTarget = {
   membershipId?: string;
   staffMemberId?: string;
   familyId?: string;
+  guardianId?: string;
   subjectLabel: string;
 };
 
@@ -30,6 +31,7 @@ function previewPortalOptionsCacheKey(session: PortalPreviewSession): string {
     session.membershipId ?? '',
     session.staffMemberId ?? '',
     session.familyId ?? '',
+    session.guardianId ?? '',
   ].join(':');
 }
 
@@ -44,7 +46,7 @@ function appendPreviewIdentityParams(
   path: string,
   session: Pick<
     PortalPreviewSession,
-    'organizationId' | 'slug' | 'membershipId' | 'staffMemberId' | 'familyId'
+    'organizationId' | 'slug' | 'membershipId' | 'staffMemberId' | 'familyId' | 'guardianId'
   >,
 ): string {
   const url = new URL(path, 'https://trymudkitchen.com');
@@ -58,6 +60,9 @@ function appendPreviewIdentityParams(
   }
   if (session.familyId) {
     url.searchParams.set('familyId', session.familyId);
+  }
+  if (session.guardianId) {
+    url.searchParams.set('guardianId', session.guardianId);
   }
   return `${url.pathname}${url.search}`;
 }

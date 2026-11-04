@@ -18,6 +18,7 @@ import type { Committee, CommitteeTemplate } from '@/lib/parent/parent-committee
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
+import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 import { getSupabaseClient } from '@/lib/supabase';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
@@ -64,6 +65,7 @@ export function SchoolAdminCreateCommitteeSheet({
   const theme = useParentTheme();
   const supabase = useMemo(() => getSupabaseClient(), []);
   const { reportError } = useMobileErrorReporter(organizationId);
+  const keyboardOpen = useKeyboardHeight() > 0;
 
   const options = useMemo(() => buildTemplateOptions(templates), [templates]);
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(options[0]?.id ?? null);
@@ -190,16 +192,18 @@ export function SchoolAdminCreateCommitteeSheet({
 
         {error ? <Text style={[styles.errorCopy, { color: theme.alert }]}>{error}</Text> : null}
 
-        <View style={styles.actions}>
-          <StoryButton label="Cancel" variant="soft" onPress={onClose} disabled={saving} style={styles.action} />
-          <StoryButton
-            label={saving ? 'Creating…' : 'Create committee'}
-            onPress={() => void handleCreate()}
-            disabled={saving || !name.trim()}
-            style={styles.action}
-            trailingIcon={saving ? <ActivityIndicator color={theme.white} size="small" /> : undefined}
-          />
-        </View>
+        {!keyboardOpen ? (
+          <View style={styles.actions}>
+            <StoryButton label="Cancel" variant="soft" onPress={onClose} disabled={saving} style={styles.action} />
+            <StoryButton
+              label={saving ? 'Creating…' : 'Create committee'}
+              onPress={() => void handleCreate()}
+              disabled={saving || !name.trim()}
+              style={styles.action}
+              trailingIcon={saving ? <ActivityIndicator color={theme.white} size="small" /> : undefined}
+            />
+          </View>
+        ) : null}
       </View>
     </StoryBottomSheet>
   );

@@ -10,6 +10,8 @@ export type PortalPreviewSession = {
   membershipId?: string;
   staffMemberId?: string;
   familyId?: string;
+  /** When set, parent preview loads guardian-specific data (billing, messages, committees, home). */
+  guardianId?: string;
 };
 
 export type StartPortalPreviewInput = PortalPreviewSession & {

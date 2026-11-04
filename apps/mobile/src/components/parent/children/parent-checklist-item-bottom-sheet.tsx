@@ -1,5 +1,7 @@
 import { useCallback, useState } from 'react';
 
+// keyboard: verified on device — enrollment checklist item sheet uses ParentBottomSheet scroll inset
+
 import { ParentEnrollmentChecklistItemPanel } from '@/components/parent/children/parent-enrollment-checklist-item-panel';
 import { ParentBottomSheet } from '@/components/parent/parent-bottom-sheet';
 import { StatusBadge } from '@/components/ui/status-badge';

@@ -1,4 +1,12 @@
 import {
+  BroadcastSendError,
+  type AdminBroadcastAudienceState,
+  type AdminBroadcastOptionClassroom,
+  type AdminBroadcastOptionProgram,
+  type BroadcastPreviewResponse,
+  type BroadcastSendResponse,
+} from '@/lib/messages/admin-broadcast';
+import {
   deletePortalMessageRequest,
   patchPortalMessage,
 } from '@/lib/messages/message-mutations';
@@ -6,6 +14,12 @@ import {
   fetchSchoolAdminApi,
   fetchSchoolAdminApiFormData,
 } from '@/lib/school-admin-api';
+import { assertApiAuthenticated, getApiAuthHeaders } from '@/lib/auth/auth-session';
+import {
+  assertPreviewWriteAllowed,
+  isPreviewSessionActive,
+} from '@/lib/platform-admin/preview-session-store';
+import { resolveSchoolAdminPreviewPath } from '@/lib/platform-admin/mobile-preview-api';
 import { appendLocalFileToFormData } from '@/lib/upload/append-local-file-to-form-data';
 import type {
   MessageContact,
@@ -16,6 +30,8 @@ import type {
 } from '@/lib/messages/types';
 
 const BASE_PATH = '/api/school-admin/messages';
+
+const siteUrl = process.env.EXPO_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https://trymudkitchen.com';
 
 function buildQuery(organizationId: string, schoolName: string): string {
   return new URLSearchParams({
@@ -155,6 +171,99 @@ export async function fetchMessagesUnreadCount(
     `${BASE_PATH}/unread-count?${query}`,
   );
   return payload.unreadCount ?? 0;
+}
+
+export async function loadBroadcastOptions(organizationId: string): Promise<{
+  programs: AdminBroadcastOptionProgram[];
+  classrooms: AdminBroadcastOptionClassroom[];
+}> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  return fetchSchoolAdminApi<{
+    programs: AdminBroadcastOptionProgram[];
+    classrooms: AdminBroadcastOptionClassroom[];
+  }>(`${BASE_PATH}/broadcast/options?${query}`);
+}
+
+export async function previewBroadcastAudience(
+  organizationId: string,
+  audience: AdminBroadcastAudienceState,
+): Promise<BroadcastPreviewResponse> {
+  return fetchSchoolAdminApi<BroadcastPreviewResponse>(`${BASE_PATH}/broadcast/preview`, {
+    method: 'POST',
+    body: { organizationId, audience },
+  });
+}
+
+export async function sendBroadcast(params: {
+  organizationId: string;
+  organizationSlug: string;
+  schoolName: string;
+  body: string;
+  audience: AdminBroadcastAudienceState;
+  broadcastBatchId: string;
+  files?: StagedMessageFile[];
+}): Promise<BroadcastSendResponse> {
+  const {
+    organizationId,
+    organizationSlug,
+    schoolName,
+    body,
+    audience,
+    broadcastBatchId,
+    files = [],
+  } = params;
+
+  assertPreviewWriteAllowed('POST');
+  const path = `${BASE_PATH}/broadcast`;
+  if (resolveSchoolAdminPreviewPath(path) || isPreviewSessionActive()) {
+    throw new Error('Preview mode is read-only.');
+  }
+
+  const formData = new FormData();
+  formData.append('organizationId', organizationId);
+  formData.append('organizationSlug', organizationSlug);
+  formData.append('schoolName', schoolName);
+  formData.append('body', body);
+  formData.append('audience', JSON.stringify(audience));
+  formData.append('broadcastBatchId', broadcastBatchId);
+  for (const file of files) {
+    await appendLocalFileToFormData(formData, 'files', {
+      uri: file.uri,
+      name: file.name,
+      type: file.mimeType ?? 'application/octet-stream',
+    });
+  }
+
+  const response = await fetch(`${siteUrl}${path}`, {
+    method: 'POST',
+    headers: await getApiAuthHeaders(false),
+    body: formData,
+  });
+
+  const rawText = await response.text();
+  let payload = {} as BroadcastSendResponse & { error?: string; failures?: BroadcastSendResponse['failures'] };
+  if (rawText.trim()) {
+    try {
+      payload = JSON.parse(rawText) as typeof payload;
+    } catch {
+      payload = {} as typeof payload;
+    }
+  }
+
+  await assertApiAuthenticated(response);
+  if (!response.ok) {
+    const failures = Array.isArray(payload.failures) ? payload.failures : [];
+    throw new BroadcastSendError(
+      typeof payload.error === 'string' ? payload.error : 'Request failed.',
+      failures,
+    );
+  }
+
+  return {
+    sentCount: payload.sentCount ?? 0,
+    failedCount: payload.failedCount ?? 0,
+    failures: Array.isArray(payload.failures) ? payload.failures : [],
+  };
 }
 
 export function mergeMessages(

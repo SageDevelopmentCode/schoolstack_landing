@@ -3,6 +3,7 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ParentBottomSheet } from '@/components/parent/parent-bottom-sheet';
 import { StoryButton } from '@/components/story/story-button';
+import { StoryDateField } from '@/components/story/story-date-field';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import type { CommitteeEventType } from '@/lib/parent/parent-committees-types';
 import { StoryFonts } from '@/constants/story-theme';
@@ -59,16 +60,11 @@ export function ParentCommitteeEventFormSheet({
           />
         </Field>
 
-        <Field label="Date (YYYY-MM-DD)" theme={theme}>
-          <TextInput
-            value={form.date}
-            onChangeText={(value) => setForm((current) => ({ ...current, date: value }))}
-            placeholder="2026-09-22"
-            placeholderTextColor={theme.muted}
-            autoCapitalize="none"
-            style={[styles.input, { color: theme.ink, borderColor: theme.line }]}
-          />
-        </Field>
+        <StoryDateField
+          label="Date"
+          value={form.date}
+          onChange={(date) => setForm((current) => ({ ...current, date }))}
+        />
 
         <Field label="Time (optional)" theme={theme}>
           <TextInput

@@ -102,6 +102,14 @@ export function resolveSchoolAdminNativeRoute(slug: string, href: string): strin
     return `/school-admin/${slug}/more/attendance`;
   }
 
+  const staffHoursPaths = [
+    `/school/${slug}/admin/my_school/staff_hours`,
+    `/school/${slug}/admin/staff_hours`,
+  ];
+  if (staffHoursPaths.includes(pathname)) {
+    return `/school-admin/${slug}/more/staff-hours`;
+  }
+
   const classroomsPaths = [
     `/school/${slug}/admin/classrooms`,
     `/school/${slug}/admin/my_school/classrooms`,

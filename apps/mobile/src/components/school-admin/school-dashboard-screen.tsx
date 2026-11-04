@@ -16,6 +16,7 @@ import { AdminDashboardHeader } from '@/components/school-admin/dashboard/admin-
 import { AdminDashboardSkeleton } from '@/components/school-admin/dashboard/admin-dashboard-skeleton';
 import { AdminFeatureAnnouncementsCard } from '@/components/school-admin/dashboard/admin-feature-announcements-card';
 import { AdminFocusQueueCard } from '@/components/school-admin/dashboard/admin-focus-queue-card';
+import { AdminStaffHoursTodayCard } from '@/components/school-admin/dashboard/admin-staff-hours-today-card';
 import { AdminMetricCard } from '@/components/school-admin/dashboard/admin-metric-card';
 import { AdminNeedHelpCard } from '@/components/school-admin/dashboard/admin-need-help-card';
 import { AdminQuickActionsCard } from '@/components/school-admin/dashboard/admin-quick-actions-card';
@@ -47,6 +48,7 @@ import {
   schoolAdminSubmissionsRoute,
 } from '@/lib/school-admin/school-admin-nav';
 import { usePortalPreview } from '@/lib/portal-preview-gating';
+import { useSchoolAdminFeatures } from '@/contexts/school-admin-features-context';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 const SCHOOL_ADMIN_ACCESS_DENIED_MESSAGE =
@@ -75,6 +77,7 @@ export function SchoolDashboardScreen({
   const { isPreview } = usePortalPreview();
   const { user, setResolvedPortal } = useAuth();
   const { reportError } = useMobileErrorReporter(organizationId);
+  const { staffHoursEnabled } = useSchoolAdminFeatures();
   const [homeTab, setHomeTab] = useState<SchoolDashboardTab>('overview');
   const [summary, setSummary] = useState<MobileAdminDashboardSummary | null>(null);
   const viewer = useSchoolAdminViewerProfile(summary?.viewerProfile ?? null);
@@ -282,6 +285,17 @@ export function SchoolDashboardScreen({
           {summary.metrics.map((metric) => (
             <AdminMetricCard key={metric.id} metric={metric} />
           ))}
+        </Animated.View>
+      ) : null}
+
+      {staffHoursEnabled && summary.staffHoursToday ? (
+        <Animated.View entering={FadeInDown.delay(180).duration(350)} style={styles.section}>
+          <AdminStaffHoursTodayCard
+            data={summary.staffHoursToday}
+            onPressOpen={() =>
+              router.push(`/school-admin/${slug}/more/staff-hours` as Href)
+            }
+          />
         </Animated.View>
       ) : null}
 

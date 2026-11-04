@@ -13,6 +13,7 @@ import { fetchOrganizationBySlug } from '@/lib/school-admin/fetch-organization';
 import {
   isSchoolAdminFridayBranchEnabled,
   isSchoolAdminPhotosEnabled,
+  isSchoolAdminStaffHoursEnabled,
   type SchoolAdminOrganizationFeatures,
 } from '@/lib/school-admin/school-admin-features';
 
@@ -22,6 +23,7 @@ type SchoolAdminFeaturesContextValue = {
   error: string | null;
   fridayBranchEnabled: boolean;
   photosEnabled: boolean;
+  staffHoursEnabled: boolean;
   refresh: () => Promise<void>;
 };
 
@@ -71,6 +73,7 @@ export function SchoolAdminFeaturesProvider({
 
   const fridayBranchEnabled = isSchoolAdminFridayBranchEnabled(features);
   const photosEnabled = isSchoolAdminPhotosEnabled(features);
+  const staffHoursEnabled = isSchoolAdminStaffHoursEnabled(features);
 
   const value = useMemo(
     () => ({
@@ -79,9 +82,10 @@ export function SchoolAdminFeaturesProvider({
       error,
       fridayBranchEnabled,
       photosEnabled,
+      staffHoursEnabled,
       refresh: load,
     }),
-    [features, fridayBranchEnabled, photosEnabled, isLoading, error, load],
+    [features, fridayBranchEnabled, photosEnabled, staffHoursEnabled, isLoading, error, load],
   );
 
   return (

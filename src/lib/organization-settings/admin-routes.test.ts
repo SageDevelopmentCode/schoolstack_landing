@@ -16,6 +16,10 @@ describe("isAdminNavPathEnabled", () => {
       isAdminNavPathEnabled(DEFAULT_FEATURES, "my_school", "students"),
       true,
     );
+    assert.equal(
+      isAdminNavPathEnabled(DEFAULT_FEATURES, "my_school", "staff_hours"),
+      true,
+    );
   });
 
   it("blocks cross-feature subtabs when the owning nav feature is disabled", () => {

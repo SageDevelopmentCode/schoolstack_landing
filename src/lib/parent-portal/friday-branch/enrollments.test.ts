@@ -10,6 +10,7 @@ import {
   filterParentVisibleBlocks,
 } from "./load-parent-friday-branch";
 import type { FridayBranchBlock } from "@/lib/school-admin/friday-branch/friday-branch-types";
+import { orderFridayBranchParentHomeBlockCandidates } from "@/lib/school-admin/friday-branch/friday-branch-storage";
 
 describe("resolveEnrollmentStatus", () => {
   it("returns confirmed when under capacity", () => {
@@ -86,6 +87,85 @@ describe("filterParentVisibleBlocks", () => {
     const filtered = filterParentVisibleBlocks(blocks);
     assert.equal(filtered[0]?.slots[0]?.classes.length, 1);
     assert.equal(filtered[0]?.slots[0]?.classes[0]?.id, "class-2");
+  });
+
+  it("skips a current block with only family-hidden classes for the next upcoming block", () => {
+    const homeCandidates: FridayBranchBlock[] = [
+      {
+        id: "block-current-hidden",
+        label: "Hidden term",
+        startDate: "2026-02-01",
+        endDate: "2026-02-28",
+        accent: "berry",
+        status: "current",
+        slots: [
+          {
+            id: "slot-hidden",
+            time: "10:00",
+            classes: [
+              {
+                id: "class-hidden",
+                name: "Staff only",
+                location: "Room",
+                ageGroup: "5-7",
+                familyVisible: false,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: "block-upcoming-visible",
+        label: "Public term",
+        startDate: "2026-03-01",
+        endDate: "2026-03-31",
+        accent: "sky",
+        status: "upcoming",
+        slots: [
+          {
+            id: "slot-visible",
+            time: "10:00",
+            classes: [
+              {
+                id: "class-visible",
+                name: "Art",
+                location: "Room",
+                ageGroup: "5-7",
+                familyVisible: true,
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const blocksById = new Map(homeCandidates.map((block) => [block.id, block]));
+    const orderedRows = orderFridayBranchParentHomeBlockCandidates(
+      homeCandidates.map((block, index) => ({
+        id: block.id,
+        organization_id: "org-1",
+        label: block.label,
+        start_date: block.startDate,
+        end_date: block.endDate,
+        accent: block.accent,
+        description: "",
+        status: block.status ?? "draft",
+        sort_order: index,
+      })),
+    );
+
+    let picked: FridayBranchBlock | undefined;
+    for (const row of orderedRows) {
+      const candidate = blocksById.get(row.id);
+      if (!candidate) continue;
+      const visible = filterParentVisibleBlocks([candidate]);
+      if (visible.length > 0) {
+        picked = visible[0];
+        break;
+      }
+    }
+
+    assert.equal(picked?.id, "block-upcoming-visible");
   });
 });
 

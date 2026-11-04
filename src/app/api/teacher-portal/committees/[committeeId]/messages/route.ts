@@ -1,7 +1,7 @@
 import { apiError } from "@/lib/api/route-errors";
 import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import { handlePostCommitteeMessage } from "@/lib/committees/api/committee-message-route";
-import { getTeacherCommitteeWorkspace } from "@/lib/committees/teacher-committees";
+import { resolveActiveCommitteeMemberForPost } from "@/lib/committees/parent-committees";
 import { TeacherPortalAuthError } from "@/lib/staff/teacher-portal-access";
 import { requireTeacherPortalUser } from "@/lib/staff/teacher-portal-access-server";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
@@ -35,25 +35,12 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const user = await requireTeacherPortalUser(supabase, resolvedOrganizationId, request);
     const admin = createAdminClient();
-    const committee = await getTeacherCommitteeWorkspace(
+    const currentMember = await resolveActiveCommitteeMemberForPost(
       admin,
       resolvedOrganizationId,
       user.id,
       committeeId,
     );
-
-    const currentMember = committee.members.find(
-      (member) => member.userId === user.id && member.status === "active",
-    );
-
-    if (!currentMember) {
-      return apiError(ROUTE, {
-        request,
-        status: 403,
-        error: "You are not a member of this committee.",
-        code: "forbidden",
-      });
-    }
 
     const displayName =
       user.user_metadata?.full_name?.trim() ||

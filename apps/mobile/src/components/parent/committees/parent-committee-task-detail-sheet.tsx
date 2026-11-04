@@ -1,9 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ParentBottomSheet } from '@/components/parent/parent-bottom-sheet';
 import { StoryButton } from '@/components/story/story-button';
 import { StoryChip } from '@/components/story/story-chip';
+import { StoryDateField } from '@/components/story/story-date-field';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import type {
   CommitteeMember,
@@ -14,6 +15,7 @@ import type {
 import { TASK_STATUS_LABELS } from '@/lib/parent/parent-committees-types';
 import { StoryFonts } from '@/constants/story-theme';
 import { Radius, Spacing } from '@/constants/theme';
+import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 
 export type CommitteeTaskFormState = {
   title: string;
@@ -81,6 +83,7 @@ export function ParentCommitteeTaskDetailSheet({
   onDelete,
 }: ParentCommitteeTaskDetailSheetProps) {
   const theme = useParentTheme();
+  const keyboardOpen = useKeyboardHeight() > 0;
   const defaultGroup = taskGroups[0]?.id ?? 'general';
   const [form, setForm] = useState(() => buildFormState(mode, task, defaultStatus, defaultGroup));
 
@@ -97,7 +100,7 @@ export function ParentCommitteeTaskDetailSheet({
       visible={visible}
       onClose={onClose}
       title={mode === 'create' ? 'Add task' : task?.title ?? 'Task'}>
-      <ScrollView contentContainerStyle={styles.form}>
+      <View style={styles.form}>
         <Field label="Title" theme={theme}>
           <TextInput
             editable={!readOnly}
@@ -164,19 +167,16 @@ export function ParentCommitteeTaskDetailSheet({
           </View>
         </Field>
 
-        <Field label="Due date (YYYY-MM-DD)" theme={theme}>
-          <TextInput
-            editable={!readOnly}
-            value={form.dueDate}
-            onChangeText={(value) => setForm((current) => ({ ...current, dueDate: value }))}
-            placeholder="Optional"
-            placeholderTextColor={theme.muted}
-            autoCapitalize="none"
-            style={[styles.input, { color: theme.ink, borderColor: theme.line }]}
-          />
-        </Field>
+        <StoryDateField
+          label="Due date"
+          value={form.dueDate}
+          onChange={(dueDate) => setForm((current) => ({ ...current, dueDate }))}
+          placeholder="Optional"
+          clearable
+          disabled={readOnly}
+        />
 
-        {!readOnly ? (
+        {!readOnly && !keyboardOpen ? (
           <View style={styles.actions}>
             <StoryButton
               label={saving ? 'Saving…' : mode === 'create' ? 'Create task' : 'Save changes'}
@@ -189,7 +189,7 @@ export function ParentCommitteeTaskDetailSheet({
             ) : null}
           </View>
         ) : null}
-      </ScrollView>
+      </View>
     </ParentBottomSheet>
   );
 }

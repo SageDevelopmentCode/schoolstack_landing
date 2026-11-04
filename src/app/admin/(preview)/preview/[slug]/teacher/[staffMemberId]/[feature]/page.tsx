@@ -23,6 +23,7 @@ import { loadTeacherClassroomSignupsPageData } from "@/lib/classroom-signups/loa
 import { loadTeacherFormsDocumentsPageData } from "@/lib/school-teacher/forms-documents/load-forms-documents-page-data";
 import { mintTeacherFormUploadPreviewUrls } from "@/lib/school-teacher/forms-documents/mint-teacher-form-upload-preview-urls";
 import { loadTeacherDashboardPreviewData } from "@/lib/school-teacher/load-teacher-dashboard-data";
+import { loadTeacherMyHoursPreviewData } from "@/lib/school-teacher/my-hours/load-teacher-my-hours-data";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -50,6 +51,10 @@ const TeacherAttendancePage = nextDynamic(
 
 const TeacherCommitteesPage = nextDynamic(
   () => import("@/components/school-teacher/committees/TeacherCommitteesPage"),
+);
+
+const TeacherMyHoursPage = nextDynamic(
+  () => import("@/components/school-teacher/my-hours/TeacherMyHoursPage"),
 );
 
 export const dynamic = "force-dynamic";
@@ -281,6 +286,24 @@ export default async function StaffTeacherPreviewFeaturePage({
         classroomOptions={pageData.classroomOptions}
         assignedFamilyCount={pageData.assignedFamilyCount}
         teacherBasePath={previewBasePath}
+        previewMode
+      />
+    );
+  }
+
+  if (feature === "my_hours") {
+    const initialData = await loadTeacherMyHoursPreviewData(
+      admin,
+      org.id,
+      staffMemberId,
+    );
+
+    return (
+      <TeacherMyHoursPage
+        branding={org.branding}
+        organizationId={org.id}
+        slug={slug}
+        initialData={initialData}
         previewMode
       />
     );

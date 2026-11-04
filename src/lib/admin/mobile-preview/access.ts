@@ -11,6 +11,7 @@ export type MobilePreviewQuery = {
   familyId: string | null;
   staffMemberId: string | null;
   membershipId: string | null;
+  guardianId: string | null;
 };
 
 export class MobilePreviewAccessError extends Error {
@@ -32,6 +33,7 @@ export function parseMobilePreviewQuery(request: Request): MobilePreviewQuery {
     familyId: searchParams.get("familyId")?.trim() || null,
     staffMemberId: searchParams.get("staffMemberId")?.trim() || null,
     membershipId: searchParams.get("membershipId")?.trim() || null,
+    guardianId: searchParams.get("guardianId")?.trim() || null,
   };
 }
 
@@ -55,6 +57,26 @@ export async function validateFamilyInOrganization(
   if (error) throw error;
   if (!data) {
     throw new MobilePreviewAccessError("Family not found.", "not_found");
+  }
+}
+
+export async function validateGuardianInFamily(
+  admin: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+  guardianId: string,
+): Promise<void> {
+  const { data, error } = await admin
+    .from("guardians")
+    .select("id")
+    .eq("id", guardianId)
+    .eq("organization_id", organizationId)
+    .eq("family_id", familyId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) {
+    throw new MobilePreviewAccessError("Guardian not found.", "not_found");
   }
 }
 

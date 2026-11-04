@@ -2,12 +2,14 @@ import { useCallback, useMemo } from 'react';
 import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
+import { StoryDateField } from '@/components/story/story-date-field';
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { StorySectionKicker } from '@/components/story/story-section-kicker';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { Story, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
+import { useBottomSheetKeyboardScrollStyle } from '@/hooks/use-bottom-sheet-keyboard-scroll-style';
 import {
   getDefaultColorKeyForType,
   SCHOOL_EVENT_COLOR_KEYS,
@@ -71,6 +73,7 @@ export function SchoolEventFormSheet({
   onSave,
 }: SchoolEventFormSheetProps) {
   const theme = useParentTheme();
+  const { scrollContentStyle } = useBottomSheetKeyboardScrollStyle(styles.content);
   const isValid = useMemo(
     () => Boolean(form.title.trim() && form.date && (form.isAllDay || form.time.trim())),
     [form],
@@ -91,7 +94,7 @@ export function SchoolEventFormSheet({
       borderColor={Story.line}
       handleColor={Story.line}
       maxHeight="92%"
-      scrollContentStyle={styles.content}
+      scrollContentStyle={scrollContentStyle}
       header={
         <View style={[styles.header, { borderBottomColor: theme.line }]}>
           <Pressable accessibilityRole="button" onPress={requestClose}>
@@ -126,16 +129,11 @@ export function SchoolEventFormSheet({
         />
       </Field>
 
-      <Field label="Date (YYYY-MM-DD)">
-        <TextInput
-          value={form.date}
-          onChangeText={(date) => onChange({ ...form, date })}
-          placeholder="2026-08-22"
-          autoCapitalize="none"
-          placeholderTextColor={theme.muted}
-          style={[styles.input, inputStyle(theme)]}
-        />
-      </Field>
+      <StoryDateField
+        label="Date"
+        value={form.date}
+        onChange={(date) => onChange({ ...form, date })}
+      />
 
       <View style={styles.switchRow}>
         <Text style={[styles.fieldLabel, { color: theme.ink }]}>All day</Text>

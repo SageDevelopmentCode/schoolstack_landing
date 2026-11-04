@@ -36,6 +36,8 @@ import {
   sendPendingScheduledBulletinEmailsForOrganization,
   type PendingBulletinEmailCronResult,
 } from "@/lib/school-bulletin/bulletin-notifications";
+import type { StaffHoursWeeklyDigestResult } from "@/lib/school-admin/staff-hours/staff-hours-weekly-digest";
+import { sendStaffHoursWeeklyDigestForOrganization } from "@/lib/school-admin/staff-hours/staff-hours-weekly-digest";
 
 const FAILED_ORGANIZATION_IDS_CAP = 10;
 
@@ -73,6 +75,8 @@ export type TuitionBillingCronSummary = {
   scheduledVisitReminderFailures: number;
   bulletinEmailsSent: number;
   bulletinEmailFailures: number;
+  staffHoursWeeklyDigestsSent: number;
+  staffHoursWeeklyDigestFailures: number;
   activityEventsRetentionMonths?: number;
   activityEventsRetentionWarnDays?: number;
   activityEventsRetentionCutoff?: string | null;
@@ -111,6 +115,10 @@ export type TuitionBillingCronDeps = {
     admin: SupabaseClient,
     organizationId: string,
   ) => Promise<PendingBulletinEmailCronResult>;
+  sendStaffHoursWeeklyDigestForOrganization?: (
+    admin: SupabaseClient,
+    organizationId: string,
+  ) => Promise<StaffHoursWeeklyDigestResult>;
   runActivityEventsRetention?: typeof runActivityEventsRetentionSafely;
 };
 
@@ -181,6 +189,9 @@ export async function runTuitionBillingCron(
   const sendPendingBulletinEmails =
     deps.sendPendingScheduledBulletinEmailsForOrganization ??
     sendPendingScheduledBulletinEmailsForOrganization;
+  const sendStaffHoursWeeklyDigest =
+    deps.sendStaffHoursWeeklyDigestForOrganization ??
+    sendStaffHoursWeeklyDigestForOrganization;
 
   const organizationIds = await listLiveOrganizationIds(admin);
 
@@ -215,6 +226,8 @@ export async function runTuitionBillingCron(
   let scheduledVisitReminderFailures = 0;
   let bulletinEmailsSent = 0;
   let bulletinEmailFailures = 0;
+  let staffHoursWeeklyDigestsSent = 0;
+  let staffHoursWeeklyDigestFailures = 0;
   const failedOrganizationIds: string[] = [];
 
   for (const organizationId of organizationIds) {
@@ -441,6 +454,30 @@ export async function runTuitionBillingCron(
       }
 
       try {
+        const staffHoursDigestResult = await sendStaffHoursWeeklyDigest(
+          admin,
+          organizationId,
+        );
+        staffHoursWeeklyDigestsSent += staffHoursDigestResult.weeklyDigestsSent;
+        staffHoursWeeklyDigestFailures += staffHoursDigestResult.failures;
+      } catch (error) {
+        staffHoursWeeklyDigestFailures += 1;
+        void reportOperationalError({
+          supabase: admin,
+          surface: "system",
+          organizationId,
+          operation: "staff_hours_weekly_digest_cron.organization",
+          error:
+            messageFromCause(error) ??
+            "Staff hours weekly digest cron failed for organization",
+          entityType: "organization",
+          entityId: organizationId,
+          actor: { type: "system" },
+          cause: error,
+        });
+      }
+
+      try {
         const bulletinResult = await sendPendingBulletinEmails(admin, organizationId);
         bulletinEmailsSent += bulletinResult.emailsSucceeded;
         bulletinEmailFailures += bulletinResult.failures;
@@ -516,6 +553,8 @@ export async function runTuitionBillingCron(
     scheduledVisitReminderFailures,
     bulletinEmailsSent,
     bulletinEmailFailures,
+    staffHoursWeeklyDigestsSent,
+    staffHoursWeeklyDigestFailures,
   };
 
   const runRetention =

@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { StoryBottomSheet } from '@/components/story/story-bottom-sheet';
 import { StoryButton } from '@/components/story/story-button';
@@ -30,7 +30,7 @@ export function ParentDocumentationGuideSheet({
       onClose={onClose}
       accessibilityLabel={guide?.title ?? 'How-to guide'}>
       {guide ? (
-        <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.content}>
           <StoryDisplayHeading size="section">{guide.title}</StoryDisplayHeading>
           <Text style={[styles.summary, { color: theme.muted }]}>{guide.summary}</Text>
 
@@ -58,7 +58,7 @@ export function ParentDocumentationGuideSheet({
               </View>
             ))}
           </View>
-        </ScrollView>
+        </View>
       ) : null}
     </StoryBottomSheet>
   );

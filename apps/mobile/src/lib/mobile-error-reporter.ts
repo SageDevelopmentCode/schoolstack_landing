@@ -12,6 +12,9 @@ const BENIGN_ERROR_CODES = new Set([
   'already_completed',
   'already_paid',
   'friday_branch_paused',
+  'already_clocked_in',
+  'not_clocked_in',
+  'session_too_short',
 ]);
 
 export function isBenignMobileErrorCode(code?: string): boolean {

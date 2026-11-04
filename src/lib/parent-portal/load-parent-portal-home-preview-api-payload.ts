@@ -50,16 +50,23 @@ export async function loadParentPortalHomePreviewApiPayload(input: {
   familyId: string;
   previewParentBasePath: string;
   programSlug?: string;
+  previewGuardianId?: string | null;
 }): Promise<ParentPortalHomeApiPayload> {
   const { supabase, org, slug, organizationId, familyId, previewParentBasePath } =
     input;
   const programSlug = input.programSlug?.trim() || undefined;
+  const previewGuardianId = input.previewGuardianId ?? null;
   const bulletinEnabled = Boolean(org.features.admin?.bulletin);
   const schoolGalleryEnabled = isSchoolGalleryEnabled(org.features);
   const parentNewslettersEnabled = isParentFeatureEnabled(org.features, "newsletters");
   const admin = createAdminClient();
 
-  const userProfile = await getFamilyPreviewProfile(supabase, organizationId, familyId);
+  const userProfile = await getFamilyPreviewProfile(
+    supabase,
+    organizationId,
+    familyId,
+    previewGuardianId,
+  );
 
   if (!programSlug) {
     const features = resolveMainParentOrganizationFeatures(org.features);
@@ -71,6 +78,7 @@ export async function loadParentPortalHomePreviewApiPayload(input: {
       previewBasePath: previewParentBasePath,
       fridayBranchSettings: org.fridayBranchSettings,
       supabase,
+      previewGuardianId,
     });
 
     const [upcomingEvents, bulletinPosts, featureAnnouncements] = await Promise.all([
@@ -161,6 +169,7 @@ export async function loadParentPortalHomePreviewApiPayload(input: {
     coopModeEnabled,
     fridayBranchSettings: org.fridayBranchSettings,
     supabase,
+    previewGuardianId,
   });
 
   const [upcomingEvents, bulletinPosts, featureAnnouncements] = await Promise.all([

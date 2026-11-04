@@ -26,6 +26,7 @@ import { parseProgramParentPortalOrgConfig } from "@/lib/admissions/program-pare
 import { parseAdmissionsOrgSettings } from "@/lib/admissions/admissions-org-settings";
 import { ParentThemeProvider } from "@/components/school-parent/ParentThemeContext";
 import { getRequestUser } from "@/lib/auth/session";
+import { loadAdminStaffHoursPageData } from "@/lib/school-admin/staff-hours/load-admin-staff-hours-page-data";
 import { loadAdminFormsDocumentsPageData } from "@/lib/school-admin/forms-documents/load-forms-documents-page-data";
 import { getStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -71,6 +72,10 @@ const FridayBranchPage = nextDynamic(
 const AttendancePage = nextDynamic(
   () => import("@/components/school-admin/attendance/AttendancePage"),
   { loading: () => <AdminPageSkeleton label="Loading attendance" /> },
+);
+const StaffHoursPage = nextDynamic(
+  () => import("@/components/school-admin/staff-hours/StaffHoursPage"),
+  { loading: () => <AdminPageSkeleton label="Loading staff hours" /> },
 );
 const SchoolProfilePage = nextDynamic(
   () => import("@/components/school-admin/school-profile/SchoolProfilePage"),
@@ -328,6 +333,20 @@ export default async function SchoolAdminSubtabPage({
           initialParentPortalPaused={org.fridayBranchSettings.parent_portal_paused}
         />
       </Suspense>
+    );
+  }
+
+  if (feature === "my_school" && subtab === "staff_hours") {
+    const admin = createAdminClient();
+    const initialData = await loadAdminStaffHoursPageData(admin, org.id);
+
+    return (
+      <StaffHoursPage
+        organizationId={org.id}
+        slug={slug}
+        branding={org.branding}
+        initialData={initialData}
+      />
     );
   }
 

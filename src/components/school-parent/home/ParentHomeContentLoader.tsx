@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { loadParentHomeContentData } from "@/lib/parent-portal/load-parent-home-content-data";
 import { fetchParentFeatureAnnouncements } from "@/lib/parent-portal/parent-feature-announcements";
 import type { OrganizationFeatures } from "@/lib/organization-settings/types";
+import { resolveParentPortalHomeBulletinLimit } from "@/lib/parent-portal/load-parent-portal-home-api-payload";
 import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts-home";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -59,7 +60,7 @@ export default async function ParentHomeContentLoader({
       bulletinEnabled,
       viewer: "parent",
       programId,
-      limit: coopModeEnabled ? 3 : 25,
+      limit: resolveParentPortalHomeBulletinLimit(Boolean(coopModeEnabled)),
     }),
     fetchParentFeatureAnnouncements(admin, organizationId, {
       slug,

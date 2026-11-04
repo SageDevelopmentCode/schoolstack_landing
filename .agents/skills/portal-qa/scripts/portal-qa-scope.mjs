@@ -220,8 +220,12 @@ const SCENARIO_RULES = [
     patterns: [/teacher\/committees/, /school-teacher\/committees/],
   },
   {
-    scenarios: ["teacher-my-hours", "teacher-feed", "teacher-payroll"],
-    patterns: [/teacher\/my_hours/, /teacher\/feed/, /teacher\/payroll/, /SchoolTeacherComingSoon/],
+    scenarios: ["teacher-my-hours"],
+    patterns: [/TeacherMyHoursPage/, /teacher\/my_hours/, /teacher-my-hours-page/],
+  },
+  {
+    scenarios: ["teacher-feed", "teacher-payroll"],
+    patterns: [/teacher\/feed/, /teacher\/payroll/, /SchoolTeacherComingSoon/],
   },
   {
     scenarios: ["teacher-messages"],

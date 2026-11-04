@@ -212,6 +212,7 @@ function SchoolAdminLayoutContent() {
       | 'classrooms'
       | 'bulletin'
       | 'attendance'
+      | 'staff-hours'
       | 'committees'
       | 'friday-branch'
       | 'photos',
@@ -226,6 +227,7 @@ function SchoolAdminLayoutContent() {
       classrooms: `/school-admin/${slug}/more/classrooms`,
       bulletin: `/school-admin/${slug}/more/bulletin`,
       attendance: `/school-admin/${slug}/more/attendance`,
+      'staff-hours': `/school-admin/${slug}/more/staff-hours`,
       committees: `/school-admin/${slug}/more/committees`,
       'friday-branch': `/school-admin/${slug}/more/friday-branch`,
       photos: `/school-admin/${slug}/more/photos`,

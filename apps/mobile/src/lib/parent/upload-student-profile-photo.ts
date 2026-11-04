@@ -1,5 +1,6 @@
 import { reportMobileOperationalError } from '@/lib/mobile-activity';
 import { fetchParentApiFormData } from '@/lib/parent/parent-portal-api';
+import { prepareProfilePhotoForUpload } from '@/lib/profile-photo/prepare-profile-photo-for-upload';
 import { appendLocalFileToFormData } from '@/lib/upload/append-local-file-to-form-data';
 
 export class StudentProfilePhotoUploadError extends Error {
@@ -26,13 +27,11 @@ export async function uploadStudentProfilePhotoFromParent(
   const { organizationId, studentId, uri, mimeType = 'image/jpeg', fileName = 'profile-photo.jpg' } =
     params;
 
+  const file = await prepareProfilePhotoForUpload(uri, mimeType, fileName);
+
   const formData = new FormData();
   formData.append('organizationId', organizationId);
-  await appendLocalFileToFormData(formData, 'file', {
-    uri,
-    name: fileName,
-    type: mimeType,
-  });
+  await appendLocalFileToFormData(formData, 'file', file);
 
   try {
     const payload = await fetchParentApiFormData<{ profilePhotoUrl?: string; error?: string }>(

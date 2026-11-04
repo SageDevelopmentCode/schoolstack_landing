@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { SchoolAdminFridayBranchStatusTag } from '@/components/school-admin/friday-branch/school-admin-friday-branch-status-tag';
 import { StoryBottomSheet } from '@/components/story/story-bottom-sheet';
@@ -98,7 +98,7 @@ export function SchoolAdminFridayBranchClassDetailSheet({
 
   return (
     <StoryBottomSheet visible={visible} onClose={onClose} accessibilityLabel="Close class detail">
-      <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.content}>
         {loading && !detail ? (
           <ActivityIndicator color={theme.primary} style={styles.loader} />
         ) : classEntry ? (
@@ -163,7 +163,7 @@ export function SchoolAdminFridayBranchClassDetailSheet({
         ) : (
           <Text style={[styles.emptyCopy, { color: theme.muted }]}>Class not found.</Text>
         )}
-      </ScrollView>
+      </View>
     </StoryBottomSheet>
   );
 }

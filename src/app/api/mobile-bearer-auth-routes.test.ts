@@ -137,6 +137,40 @@ describe("mobile bearer auth route wiring", () => {
     });
   }
 
+  const staffHoursRoutes = ["app/api/school-admin/staff-hours/route.ts"];
+
+  for (const routePath of staffHoursRoutes) {
+    it(`${routePath} uses createClientFromRequest`, () => {
+      const source = readRoute(routePath);
+
+      assert.match(
+        source,
+        /import \{ createClientFromRequest \} from "@\/lib\/supabase\/request-client"/,
+      );
+      assert.match(source, /const supabase = await createClientFromRequest\(request\)/);
+    });
+  }
+
+  const myHoursRoutes = [
+    "app/api/teacher-portal/my-hours/route.ts",
+    "app/api/teacher-portal/my-hours/clock-in/route.ts",
+    "app/api/teacher-portal/my-hours/clock-out/route.ts",
+  ];
+
+  for (const routePath of myHoursRoutes) {
+    it(`${routePath} uses createClientFromRequest`, () => {
+      const source = readRoute(routePath);
+
+      assert.match(
+        source,
+        /import \{ createClientFromRequest \} from "@\/lib\/supabase\/request-client"/,
+      );
+      assert.match(source, /const supabase = await createClientFromRequest\(request\)/);
+      assert.doesNotMatch(source, /createClient\(cookieStore\)/);
+      assert.doesNotMatch(source, /from "@\/utils\/supabase\/server"/);
+    });
+  }
+
   it("application form save activity route uses createClientFromRequest", () => {
     const source = readRoute(
       "app/api/school-admin/application-forms/record-save-activity/route.ts",
