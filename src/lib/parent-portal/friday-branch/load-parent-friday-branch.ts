@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { loadFridayBranchSchedule, loadFridayBranchParentHomeDisplayBlock } from "@/lib/school-admin/friday-branch/friday-branch-storage";
+import {
+  loadFridayBranchSchedule,
+  loadFridayBranchParentHomeDisplayBlockMatching,
+} from "@/lib/school-admin/friday-branch/friday-branch-storage";
 import type {
   FridayBranchBlock,
   FridayBranchBlockStatus,
@@ -226,17 +229,16 @@ export async function loadParentFridayBranchHomePageBundle(
   familyId: string,
   studentOptions: ParentFridayBranchStudentOption[],
 ): Promise<ParentFridayBranchPageBundle> {
-  const displayBlock = await loadFridayBranchParentHomeDisplayBlock(admin, organizationId);
+  const displayBlock = await loadFridayBranchParentHomeDisplayBlockMatching(
+    admin,
+    organizationId,
+    (candidate) => filterParentVisibleBlocks([candidate]).length > 0,
+  );
   if (!displayBlock) {
     return { blocks: [], studentOptions };
   }
 
-  const visibleBlocks = filterParentVisibleBlocks([displayBlock]);
-  if (visibleBlocks.length === 0) {
-    return { blocks: [], studentOptions };
-  }
-
-  const block = visibleBlocks[0]!;
+  const block = filterParentVisibleBlocks([displayBlock])[0]!;
   const classIds: string[] = [];
   for (const slot of block.slots) {
     for (const classEntry of slot.classes) {

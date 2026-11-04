@@ -17,6 +17,22 @@ describe("parseMobilePreviewQuery", () => {
       familyId: "fam-1",
       staffMemberId: "staff-1",
       membershipId: "mem-1",
+      guardianId: null,
+    });
+  });
+
+  it("parses guardianId when present", () => {
+    const request = new Request(
+      "https://example.com/api/admin/mobile-preview/parent/home?organizationId=org-1&slug=rooted-meadows&familyId=fam-1&staffMemberId=staff-1&membershipId=mem-1&guardianId=guard-1",
+    );
+
+    assert.deepEqual(parseMobilePreviewQuery(request), {
+      organizationId: "org-1",
+      slug: "rooted-meadows",
+      familyId: "fam-1",
+      staffMemberId: "staff-1",
+      membershipId: "mem-1",
+      guardianId: "guard-1",
     });
   });
 
@@ -28,6 +44,7 @@ describe("parseMobilePreviewQuery", () => {
       familyId: null,
       staffMemberId: null,
       membershipId: null,
+      guardianId: null,
     });
   });
 });

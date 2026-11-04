@@ -11,6 +11,7 @@ import type {
   AdminStaffHoursSessionRow,
 } from "@/lib/school-admin/staff-hours/staff-hours-types";
 import { formatStaffHoursClockLabel } from "@/lib/school-admin/staff-hours/staff-hours-org-utils";
+import { fetchAllPostgrestRows } from "@/lib/supabase/fetch-all-rows";
 
 function staffNameById(
   members: StaffMemberRecord[],
@@ -53,28 +54,31 @@ export async function loadAdminStaffHoursLive(
 }> {
   const byId = staffNameById(members);
 
-  const [openResult, todayResult] = await Promise.all([
-    admin
-      .from("staff_work_time_entries")
-      .select(STAFF_WORK_TIME_ENTRY_COLUMNS)
-      .eq("organization_id", organizationId)
-      .is("clock_out_at", null)
-      .order("clock_in_at", { ascending: true }),
-    admin
-      .from("staff_work_time_entries")
-      .select(STAFF_WORK_TIME_ENTRY_COLUMNS)
-      .eq("organization_id", organizationId)
-      .eq("work_date", referenceDateKey)
-      .not("clock_out_at", "is", null)
-      .order("clock_in_at", { ascending: false }),
+  const [openRows, todayRows] = await Promise.all([
+    fetchAllPostgrestRows(async (offset, limit) =>
+      admin
+        .from("staff_work_time_entries")
+        .select(STAFF_WORK_TIME_ENTRY_COLUMNS)
+        .eq("organization_id", organizationId)
+        .is("clock_out_at", null)
+        .order("clock_in_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(offset, limit),
+    ),
+    fetchAllPostgrestRows(async (offset, limit) =>
+      admin
+        .from("staff_work_time_entries")
+        .select(STAFF_WORK_TIME_ENTRY_COLUMNS)
+        .eq("organization_id", organizationId)
+        .eq("work_date", referenceDateKey)
+        .not("clock_out_at", "is", null)
+        .order("clock_in_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(offset, limit),
+    ),
   ]);
 
-  if (openResult.error) throw openResult.error;
-  if (todayResult.error) throw todayResult.error;
-
-  const liveRows: AdminStaffHoursLiveRow[] = (
-    (openResult.data ?? []) as StaffWorkTimeEntryRow[]
-  ).map((row) => {
+  const liveRows: AdminStaffHoursLiveRow[] = openRows.map((row) => {
     const member = byId.get(row.staff_member_id);
     return {
       staffMemberId: row.staff_member_id,
@@ -87,9 +91,9 @@ export async function loadAdminStaffHoursLive(
     };
   });
 
-  const todayClosedSessions = (
-    (todayResult.data ?? []) as StaffWorkTimeEntryRow[]
-  ).map((row) => rowToSession(row, byId.get(row.staff_member_id), timezone, now));
+  const todayClosedSessions = todayRows.map((row) =>
+    rowToSession(row, byId.get(row.staff_member_id), timezone, now),
+  );
 
   return { liveRows, todayClosedSessions };
 }

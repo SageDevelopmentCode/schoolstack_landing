@@ -22,6 +22,7 @@ import type {
   TeacherMyHoursPageData,
 } from "@/lib/school-teacher/my-hours/types";
 import { assertStaffMemberBelongsToOrg } from "@/lib/staff/staff-preview-access";
+import { fetchAllPostgrestRows } from "@/lib/supabase/fetch-all-rows";
 
 const DEFAULT_LOOKBACK_DAYS = 365;
 
@@ -106,15 +107,19 @@ export async function loadTeacherMyHoursPageData(
   const from = options?.from ? parseMyHoursDateKey(options.from) : defaults.from;
   const to = options?.to ? parseMyHoursDateKey(options.to) : defaults.to;
 
-  const [rangeResult, openResult] = await Promise.all([
-    admin
-      .from("staff_work_time_entries")
-      .select(STAFF_WORK_TIME_ENTRY_COLUMNS)
-      .eq("organization_id", organizationId)
-      .eq("staff_member_id", staffMemberId)
-      .gte("work_date", from)
-      .lte("work_date", to)
-      .order("clock_in_at", { ascending: true }),
+  const [rangeRows, openResult] = await Promise.all([
+    fetchAllPostgrestRows(async (offset, limit) =>
+      admin
+        .from("staff_work_time_entries")
+        .select(STAFF_WORK_TIME_ENTRY_COLUMNS)
+        .eq("organization_id", organizationId)
+        .eq("staff_member_id", staffMemberId)
+        .gte("work_date", from)
+        .lte("work_date", to)
+        .order("clock_in_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(offset, limit),
+    ),
     admin
       .from("staff_work_time_entries")
       .select(STAFF_WORK_TIME_ENTRY_COLUMNS)
@@ -124,11 +129,10 @@ export async function loadTeacherMyHoursPageData(
       .maybeSingle(),
   ]);
 
-  if (rangeResult.error) throw rangeResult.error;
   if (openResult.error) throw openResult.error;
 
   const merged = new Map<string, StaffWorkTimeEntryRow>();
-  for (const row of (rangeResult.data ?? []) as StaffWorkTimeEntryRow[]) {
+  for (const row of rangeRows) {
     merged.set(row.id, row);
   }
   const openRow = openResult.data as StaffWorkTimeEntryRow | null;

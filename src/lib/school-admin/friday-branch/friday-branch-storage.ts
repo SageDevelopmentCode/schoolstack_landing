@@ -403,30 +403,40 @@ export async function loadFridayBranchSchedule(
   );
 }
 
-/** Loads slots/classes for a single current or upcoming block (parent home card). */
-export async function loadFridayBranchParentHomeDisplayBlock(
+/** Parent home: try current first, then each upcoming block in sort order. */
+export function orderFridayBranchParentHomeBlockCandidates(
+  rows: FridayBranchBlockRow[],
+): FridayBranchBlockRow[] {
+  if (rows.length === 0) return [];
+
+  const ordered: FridayBranchBlockRow[] = [];
+  const seen = new Set<string>();
+
+  const firstCurrent = rows.find((row) => row.status === "current");
+  if (firstCurrent) {
+    ordered.push(firstCurrent);
+    seen.add(firstCurrent.id);
+  }
+
+  for (const row of rows) {
+    if (row.status === "upcoming" && !seen.has(row.id)) {
+      ordered.push(row);
+      seen.add(row.id);
+    }
+  }
+
+  if (ordered.length === 0) {
+    return [rows[0]!];
+  }
+
+  return ordered;
+}
+
+async function loadAssembledFridayBranchBlockRow(
   supabase: SupabaseClient,
   organizationId: string,
+  displayRow: FridayBranchBlockRow,
 ): Promise<FridayBranchBlock | null> {
-  const { data: blockRows, error: blocksError } = await supabase
-    .from("friday_branch_blocks")
-    .select(
-      "id, organization_id, label, start_date, end_date, accent, description, status, sort_order",
-    )
-    .eq("organization_id", organizationId)
-    .in("status", ["current", "upcoming"])
-    .order("sort_order", { ascending: true });
-
-  if (blocksError) throw blocksError;
-
-  const rows = (blockRows ?? []) as FridayBranchBlockRow[];
-  if (rows.length === 0) return null;
-
-  const displayRow =
-    rows.find((row) => row.status === "current") ??
-    rows.find((row) => row.status === "upcoming") ??
-    rows[0];
-
   const { data: slotRows, error: slotsError } = await supabase
     .from("friday_branch_time_slots")
     .select("id, block_id, organization_id, time, sort_order")
@@ -460,6 +470,51 @@ export async function loadFridayBranchParentHomeDisplayBlock(
   );
 
   return assembled ?? null;
+}
+
+async function loadFridayBranchParentHomeCandidateBlockRows(
+  supabase: SupabaseClient,
+  organizationId: string,
+): Promise<FridayBranchBlockRow[]> {
+  const { data: blockRows, error: blocksError } = await supabase
+    .from("friday_branch_blocks")
+    .select(
+      "id, organization_id, label, start_date, end_date, accent, description, status, sort_order",
+    )
+    .eq("organization_id", organizationId)
+    .in("status", ["current", "upcoming"])
+    .order("sort_order", { ascending: true });
+
+  if (blocksError) throw blocksError;
+
+  return (blockRows ?? []) as FridayBranchBlockRow[];
+}
+
+/** Loads the first current/upcoming block that satisfies predicate (parent home fallback). */
+export async function loadFridayBranchParentHomeDisplayBlockMatching(
+  supabase: SupabaseClient,
+  organizationId: string,
+  predicate: (block: FridayBranchBlock) => boolean,
+): Promise<FridayBranchBlock | null> {
+  const rows = await loadFridayBranchParentHomeCandidateBlockRows(supabase, organizationId);
+  if (rows.length === 0) return null;
+
+  for (const displayRow of orderFridayBranchParentHomeBlockCandidates(rows)) {
+    const block = await loadAssembledFridayBranchBlockRow(supabase, organizationId, displayRow);
+    if (block && predicate(block)) {
+      return block;
+    }
+  }
+
+  return null;
+}
+
+/** Loads slots/classes for a single current or upcoming block (parent home card). */
+export async function loadFridayBranchParentHomeDisplayBlock(
+  supabase: SupabaseClient,
+  organizationId: string,
+): Promise<FridayBranchBlock | null> {
+  return loadFridayBranchParentHomeDisplayBlockMatching(supabase, organizationId, () => true);
 }
 
 export async function saveFridayBranchSchedule(

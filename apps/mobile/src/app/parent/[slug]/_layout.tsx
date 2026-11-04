@@ -148,6 +148,16 @@ export default function ParentLayout() {
   const orgReady =
     loadedOrg && loadedOrg.slug === slug && orgLoadState === 'ready';
 
+  const billingCacheScope = useMemo(() => {
+    if (previewSession?.portal !== 'parent' || !previewSession.familyId) {
+      return undefined;
+    }
+    return {
+      familyId: previewSession.familyId,
+      ...(previewSession.guardianId ? { guardianId: previewSession.guardianId } : {}),
+    };
+  }, [previewSession]);
+
   if (!orgReady) {
     return (
       <SafeAreaView style={[styles.loadingContainer, { backgroundColor: Story.paper }]}>
@@ -158,15 +168,6 @@ export default function ParentLayout() {
 
   const branding = toOrganizationBranding(loadedOrg.branding);
   const authReady = !isLoading && Boolean(user);
-  const billingCacheScope = useMemo(() => {
-    if (previewSession?.portal !== 'parent' || !previewSession.familyId) {
-      return undefined;
-    }
-    return {
-      familyId: previewSession.familyId,
-      ...(previewSession.guardianId ? { guardianId: previewSession.guardianId } : {}),
-    };
-  }, [previewSession]);
 
   return (
     <SchoolAdminThemeProvider branding={branding}>

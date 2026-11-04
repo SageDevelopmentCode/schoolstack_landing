@@ -11,6 +11,7 @@ import type {
   AdminStaffHoursSummaryRow,
 } from "@/lib/school-admin/staff-hours/staff-hours-types";
 import { formatStaffHoursClockLabel } from "@/lib/school-admin/staff-hours/staff-hours-org-utils";
+import { fetchAllPostgrestRows } from "@/lib/supabase/fetch-all-rows";
 
 export function buildAdminStaffHoursSummaryRows(
   rows: StaffWorkTimeEntryRow[],
@@ -56,18 +57,54 @@ export function buildAdminStaffHoursSummaryRows(
 
   const memberById = new Map(members.map((m) => [m.id, m]));
   const activeMembers = members.filter((m) => m.employmentStatus === "active");
-  const roster =
-    options.staffMemberId != null
-      ? activeMembers.filter((m) => m.id === options.staffMemberId)
-      : activeMembers;
 
-  const summaryRows: AdminStaffHoursSummaryRow[] = roster
-    .map((member) => {
-      const totals = byStaff.get(member.id);
+  type SummaryRosterEntry =
+    | { kind: "member"; member: StaffMemberRecord }
+    | { kind: "orphan"; staffMemberId: string };
+
+  let rosterEntries: SummaryRosterEntry[];
+
+  if (options.staffMemberId != null) {
+    const member = memberById.get(options.staffMemberId);
+    rosterEntries = member ? [{ kind: "member", member }] : [];
+  } else {
+    rosterEntries = activeMembers.map((member) => ({
+      kind: "member" as const,
+      member,
+    }));
+    const rosterIds = new Set(activeMembers.map((m) => m.id));
+    for (const staffId of byStaff.keys()) {
+      if (rosterIds.has(staffId)) continue;
+      const member = memberById.get(staffId);
+      if (member) {
+        rosterIds.add(staffId);
+        rosterEntries.push({ kind: "member", member });
+      } else {
+        rosterIds.add(staffId);
+        rosterEntries.push({ kind: "orphan", staffMemberId: staffId });
+      }
+    }
+  }
+
+  const summaryRows: AdminStaffHoursSummaryRow[] = rosterEntries
+    .map((entry) => {
+      const staffMemberId =
+        entry.kind === "member" ? entry.member.id : entry.staffMemberId;
+      const totals = byStaff.get(staffMemberId);
+      if (entry.kind === "member") {
+        return {
+          staffMemberId,
+          staffName: staffDisplayName(entry.member),
+          roleTitle: entry.member.roleTitle,
+          totalMinutes: totals?.minutes ?? 0,
+          sessionCount: totals?.sessions ?? 0,
+          daysWorked: totals?.days.size ?? 0,
+        };
+      }
       return {
-        staffMemberId: member.id,
-        staffName: staffDisplayName(member),
-        roleTitle: member.roleTitle,
+        staffMemberId,
+        staffName: "Staff member",
+        roleTitle: null,
         totalMinutes: totals?.minutes ?? 0,
         sessionCount: totals?.sessions ?? 0,
         daysWorked: totals?.days.size ?? 0,
@@ -106,14 +143,18 @@ export async function loadStaffWorkTimeEntriesInRange(
   from: string,
   to: string,
 ): Promise<StaffWorkTimeEntryRow[]> {
-  const [rangeResult, openResult] = await Promise.all([
-    admin
-      .from("staff_work_time_entries")
-      .select(STAFF_WORK_TIME_ENTRY_COLUMNS)
-      .eq("organization_id", organizationId)
-      .gte("work_date", from)
-      .lte("work_date", to)
-      .order("clock_in_at", { ascending: true }),
+  const [rangeRows, openResult] = await Promise.all([
+    fetchAllPostgrestRows(async (offset, limit) =>
+      admin
+        .from("staff_work_time_entries")
+        .select(STAFF_WORK_TIME_ENTRY_COLUMNS)
+        .eq("organization_id", organizationId)
+        .gte("work_date", from)
+        .lte("work_date", to)
+        .order("clock_in_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(offset, limit),
+    ),
     admin
       .from("staff_work_time_entries")
       .select(STAFF_WORK_TIME_ENTRY_COLUMNS)
@@ -121,11 +162,10 @@ export async function loadStaffWorkTimeEntriesInRange(
       .is("clock_out_at", null),
   ]);
 
-  if (rangeResult.error) throw rangeResult.error;
   if (openResult.error) throw openResult.error;
 
   const merged = new Map<string, StaffWorkTimeEntryRow>();
-  for (const row of (rangeResult.data ?? []) as StaffWorkTimeEntryRow[]) {
+  for (const row of rangeRows) {
     merged.set(row.id, row);
   }
   for (const row of (openResult.data ?? []) as StaffWorkTimeEntryRow[]) {

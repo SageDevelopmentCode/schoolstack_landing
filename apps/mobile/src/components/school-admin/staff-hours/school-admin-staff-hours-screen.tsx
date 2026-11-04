@@ -11,6 +11,10 @@ import { SchoolAdminStaffHoursSummaryPanel } from '@/components/school-admin/sta
 import { StoryErrorBanner } from '@/components/story/story-error-banner';
 import { StoryPillNav } from '@/components/story/story-pill-nav';
 import { useParentTheme } from '@/contexts/parent-theme-context';
+import {
+  isCommitteeWorkspaceLoadTimeoutError,
+  withCommitteeWorkspaceLoadTimeout,
+} from '@/lib/school-admin/committees/committee-workspace-load';
 import { fetchStaffHoursPageData } from '@/lib/school-admin/staff-hours/staff-hours-api';
 import type { AdminStaffHoursPageData } from '@/lib/school-admin/staff-hours/staff-hours-types';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
@@ -52,12 +56,14 @@ export function SchoolAdminStaffHoursScreen({
       staffMemberId?: string | null;
       seedSummaryRange?: boolean;
     }) => {
-      const next = await fetchStaffHoursPageData(organizationId, {
-        from: options.from || undefined,
-        to: options.to || undefined,
-        staffMemberId: options.staffMemberId ?? null,
-        view: 'all',
-      });
+      const next = await withCommitteeWorkspaceLoadTimeout(
+        fetchStaffHoursPageData(organizationId, {
+          from: options.from || undefined,
+          to: options.to || undefined,
+          staffMemberId: options.staffMemberId ?? null,
+          view: 'all',
+        }),
+      );
       setPageData(next);
       if (options.seedSummaryRange) {
         setSummaryFrom(next.summaryFrom);
@@ -84,7 +90,12 @@ export function SchoolAdminStaffHoursScreen({
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load staff hours.';
         setError(message);
-        void reportError('staff_hours.load', err);
+        void reportError(
+          isCommitteeWorkspaceLoadTimeoutError(err)
+            ? 'staff_hours.load_timeout'
+            : 'staff_hours.load',
+          err,
+        );
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -104,7 +115,12 @@ export function SchoolAdminStaffHoursScreen({
         if (cancelled) return;
         const message = err instanceof Error ? err.message : 'Failed to load staff hours.';
         setError(message);
-        void reportError('staff_hours.load', err);
+        void reportError(
+          isCommitteeWorkspaceLoadTimeoutError(err)
+            ? 'staff_hours.load_timeout'
+            : 'staff_hours.load',
+          err,
+        );
       } finally {
         if (!cancelled) setLoading(false);
       }

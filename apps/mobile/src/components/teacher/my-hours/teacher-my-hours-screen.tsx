@@ -40,9 +40,14 @@ import {
   toDateKey,
 } from '@/lib/teacher/my-hours/format-duration';
 import {
+  activeSessionStartedAtForFocusDay,
   getDayLogForDateKey,
   referenceDateFromKey,
 } from '@/lib/teacher/my-hours/my-hours-page-utils';
+import {
+  isCommitteeWorkspaceLoadTimeoutError,
+  withCommitteeWorkspaceLoadTimeout,
+} from '@/lib/school-admin/committees/committee-workspace-load';
 import {
   fetchTeacherMyHoursPageData,
   postTeacherMyHoursClockIn,
@@ -100,7 +105,9 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
       }
       setError(null);
       try {
-        const next = await fetchTeacherMyHoursPageData(organizationId, slug);
+        const next = await withCommitteeWorkspaceLoadTimeout(
+          fetchTeacherMyHoursPageData(organizationId, slug),
+        );
         setPageData(next);
         const ref = referenceDateFromKey(next.referenceDateKey);
         setFocusDate(ref);
@@ -108,7 +115,10 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load My Hours.';
         setError(message);
-        void reportError('my_hours.load', err);
+        void reportError(
+          isCommitteeWorkspaceLoadTimeoutError(err) ? 'my_hours.load_timeout' : 'my_hours.load',
+          err,
+        );
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -153,11 +163,13 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
     return sessions.filter((session) => session.clockOutAt != null);
   }, [pageData, focusDateKey]);
 
-  const activeOnFocusDay =
-    pageData?.activeSession != null &&
-    pageData.activeSession.workDate === focusDateKey
-      ? activeSessionStartedAt
-      : null;
+  const activeOnFocusDay = pageData
+    ? activeSessionStartedAtForFocusDay(
+        pageData.activeSession,
+        focusDateKey,
+        pageData.referenceDateKey,
+      )
+    : null;
 
   const sidebarTodayMinutes = useMemo(() => {
     if (!pageData) return null;

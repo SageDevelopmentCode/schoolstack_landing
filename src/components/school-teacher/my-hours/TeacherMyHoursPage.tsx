@@ -27,6 +27,7 @@ import {
 } from "@/lib/school-teacher/my-hours/fetch-teacher-my-hours";
 import { myHoursViewTransition } from "@/lib/school-teacher/my-hours/my-hours-motion";
 import {
+  activeSessionStartedAtForFocusDay,
   getDayLogForDateKey,
   referenceDateFromKey,
 } from "@/lib/school-teacher/my-hours/my-hours-page-utils";
@@ -92,11 +93,11 @@ export default function TeacherMyHoursPage({
     return sessions.filter((session) => session.clockOutAt != null);
   }, [pageData.sessionsByDateKey, focusDateKey]);
 
-  const activeOnFocusDay =
-    pageData.activeSession != null &&
-    pageData.activeSession.workDate === focusDateKey
-      ? activeSessionStartedAt
-      : null;
+  const activeOnFocusDay = activeSessionStartedAtForFocusDay(
+    pageData.activeSession,
+    focusDateKey,
+    pageData.referenceDateKey,
+  );
 
   const sidebarTodayMinutes = useMemo(() => {
     const todayKey = pageData.referenceDateKey;

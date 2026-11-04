@@ -14,6 +14,7 @@ import { recordCommitteeActivityServer } from "@/lib/committees/record-committee
 import { mapMessageRow, type CommitteeMessageRow } from "@/lib/committees/mappers";
 import type { CommitteeMessage, CommitteeMessageAttachment } from "@/lib/committees/types";
 import { SCHOOL_ADMIN_ATTRIBUTION } from "@/lib/committees/attribution";
+import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { runAfterResponse } from "@/lib/next/run-after-response";
 
 export type PostCommitteeMessageServerInput = {
@@ -133,7 +134,18 @@ export async function postCommitteeMessageServer(
   };
 
   runAfterResponse(async () => {
-    await sendCommitteeMessagePostedNotifications(supabase, notifyInput);
+    try {
+      await sendCommitteeMessagePostedNotifications(supabase, notifyInput);
+    } catch (error) {
+      await logNotificationFailure(supabase, {
+        organizationId: input.organizationId,
+        operation: "committee.message.posted.notify",
+        entityType: "committee_message",
+        entityId: messageId,
+        metadata: { committeeId: input.committeeId },
+        error,
+      });
+    }
   });
 
   const message = mapMessageRow(data as CommitteeMessageRow, []);

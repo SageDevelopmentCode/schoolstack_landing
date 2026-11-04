@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
@@ -17,6 +18,7 @@ type StoryDateFieldProps = {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  clearable?: boolean;
   minimumDate?: Date;
   maximumDate?: Date;
 };
@@ -27,6 +29,7 @@ export function StoryDateField({
   onChange,
   placeholder = 'Select date',
   disabled = false,
+  clearable = false,
   minimumDate,
   maximumDate,
 }: StoryDateFieldProps) {
@@ -67,29 +70,51 @@ export function StoryDateField({
     setIosPickerOpen((open) => !open);
   };
 
+  const showClear = clearable && hasValue && !disabled;
+
+  const handleClear = () => {
+    onChange('');
+    setIosPickerOpen(false);
+    setAndroidPickerOpen(false);
+  };
+
   const accessibilityValue = hasValue ? displayText : placeholder;
 
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${label}, ${accessibilityValue}`}
-        accessibilityHint="Opens date picker"
-        accessibilityState={{ disabled }}
-        disabled={disabled}
-        onPress={openPicker}
-        style={({ pressed }) => [
-          styles.input,
-          disabled && styles.inputDisabled,
-          pressed && !disabled && styles.inputPressed,
-        ]}>
-        <Text
-          style={[styles.inputText, !hasValue && styles.placeholderText]}
-          numberOfLines={2}>
-          {displayText}
-        </Text>
-      </Pressable>
+      <View style={styles.inputShell}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${label}, ${accessibilityValue}`}
+          accessibilityHint="Opens date picker"
+          accessibilityState={{ disabled }}
+          disabled={disabled}
+          onPress={openPicker}
+          style={({ pressed }) => [
+            styles.input,
+            showClear && styles.inputWithClear,
+            disabled && styles.inputDisabled,
+            pressed && !disabled && styles.inputPressed,
+          ]}>
+          <Text
+            style={[styles.inputText, !hasValue && styles.placeholderText]}
+            numberOfLines={2}>
+            {displayText}
+          </Text>
+        </Pressable>
+        {showClear ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Clear ${label}`}
+            accessibilityHint="Removes the selected date"
+            onPress={handleClear}
+            hitSlop={8}
+            style={styles.clearButton}>
+            <Ionicons name="close-circle" size={20} color={Story.muted} />
+          </Pressable>
+        ) : null}
+      </View>
 
       {Platform.OS === 'ios' && iosPickerOpen && !disabled ? (
         <DateTimePicker
@@ -127,6 +152,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: Story.ink,
   },
+  inputShell: {
+    position: 'relative',
+  },
   input: {
     minHeight: 44,
     justifyContent: 'center',
@@ -136,6 +164,16 @@ const styles = StyleSheet.create({
     borderRadius: StoryRadius.input,
     paddingHorizontal: 14,
     paddingVertical: 12,
+  },
+  inputWithClear: {
+    paddingRight: 40,
+  },
+  clearButton: {
+    position: 'absolute',
+    right: 10,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
   },
   inputDisabled: {
     opacity: 0.6,

@@ -300,6 +300,7 @@ export async function loadParentHomePreviewContentData(input: {
   coopModeEnabled?: boolean;
   supabase: SupabaseClient;
   fridayBranchSettings?: import("@/lib/school-admin/friday-branch/friday-branch-org-settings").OrganizationFridayBranchSettings | null;
+  previewGuardianId?: string | null;
 }): Promise<ParentHomeContentData> {
   const hasProgramAccess = input.programId
     ? await familyHasEnrolledAccessInProgram(
@@ -329,6 +330,7 @@ export async function loadParentHomePreviewContentData(input: {
     input.supabase,
     input.organizationId,
     input.familyId,
+    input.previewGuardianId ?? null,
   );
   const onboardingItems = await loadResolvedParentOnboardingItems({
     supabase: input.supabase,

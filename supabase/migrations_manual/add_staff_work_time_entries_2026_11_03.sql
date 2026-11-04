@@ -47,17 +47,5 @@ create policy "Staff read own staff_work_time_entries"
     staff_member_id = public.user_staff_member_id_for_org(organization_id)
   );
 
-create policy "Staff insert own staff_work_time_entries"
-  on public.staff_work_time_entries for insert to authenticated
-  with check (
-    staff_member_id = public.user_staff_member_id_for_org(organization_id)
-  );
-
-create policy "Staff update own staff_work_time_entries"
-  on public.staff_work_time_entries for update to authenticated
-  using (
-    staff_member_id = public.user_staff_member_id_for_org(organization_id)
-  )
-  with check (
-    staff_member_id = public.user_staff_member_id_for_org(organization_id)
-  );
+-- Clock in/out uses service_role via API; block PostgREST writes for staff (and all authenticated).
+revoke insert, update, delete on public.staff_work_time_entries from anon, authenticated;

@@ -3,7 +3,26 @@ import {
   parseDateKey,
   toDateKey,
 } from '@/lib/teacher/my-hours/format-duration';
-import type { MyHoursDayLog, MyHoursMonthSummary } from '@/lib/teacher/my-hours/types';
+import type {
+  MyHoursDayLog,
+  MyHoursMonthSummary,
+  TeacherMyHoursActiveSession,
+} from '@/lib/teacher/my-hours/types';
+
+export function activeSessionStartedAtForFocusDay(
+  activeSession: TeacherMyHoursActiveSession | null,
+  focusDateKey: string,
+  referenceDateKey: string,
+): Date | null {
+  if (!activeSession) return null;
+  if (
+    activeSession.workDate !== focusDateKey &&
+    focusDateKey !== referenceDateKey
+  ) {
+    return null;
+  }
+  return new Date(activeSession.clockInAt);
+}
 
 export function getDayLogForDateKey(
   entriesByDateKey: Record<string, MyHoursDayLog>,

@@ -170,6 +170,7 @@ export default function TeacherMyHoursDayPanel({
   const fadeUp = myHoursFadeUpTransition(reducedMotion ?? false);
   const isToday = isSameDay(focusDate, referenceDate);
   const isClockedIn = activeSessionStartedAt != null;
+  const showDayClockActions = isToday || isClockedIn;
   const isPending = clockActionPending != null;
 
   const todayTotalMinutes = useMemo(() => {
@@ -207,27 +208,55 @@ export default function TeacherMyHoursDayPanel({
               sessionLabel={`${dayLog.sessionCount} ${dayLog.sessionCount === 1 ? "session" : "sessions"}`}
             />
           </div>
-          <SessionsTable theme={theme} sessions={pastDaySessions} />
+          <SessionsTable
+            theme={theme}
+            sessions={pastDaySessions}
+            activeSessionStartedAt={activeSessionStartedAt}
+            elapsedSeconds={elapsedSeconds}
+          />
         </>
       ) : null}
 
-      {isToday ? (
+      {showDayClockActions ? (
         <>
-          <AnimatePresence initial={false}>
-            {showTodayLoggedSummary ? (
-              <motion.div key="today-logged-summary" className="mt-4" {...fadeUp}>
-                <LoggedSummaryStrip
-                  theme={theme}
-                  totalLabel={formatHoursMinutes(todayTotalMinutes)}
-                  sessionLabel={`${sessionCountToday} ${sessionCountToday === 1 ? "session" : "sessions"}`}
-                />
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
+          {isToday ? (
+            <AnimatePresence initial={false}>
+              {showTodayLoggedSummary ? (
+                <motion.div key="today-logged-summary" className="mt-4" {...fadeUp}>
+                  <LoggedSummaryStrip
+                    theme={theme}
+                    totalLabel={formatHoursMinutes(todayTotalMinutes)}
+                    sessionLabel={`${sessionCountToday} ${sessionCountToday === 1 ? "session" : "sessions"}`}
+                  />
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+          ) : null}
 
-          <AnimatePresence initial={false}>
-            {isClockedIn && activeSessionStartedAt ? (
-              <motion.div key="current-session" className="mt-5" {...fadeUp}>
+          {isClockedIn && activeSessionStartedAt ? (
+            isToday ? (
+              <AnimatePresence initial={false}>
+                <motion.div key="current-session" className="mt-5" {...fadeUp}>
+                  <p
+                    className="text-[11px] font-bold uppercase tracking-wider"
+                    style={{ color: theme.muted }}
+                  >
+                    Current session
+                  </p>
+                  <p
+                    className="mt-2 font-display text-4xl font-semibold tabular-nums sm:text-5xl"
+                    style={{ color: theme.ink }}
+                    data-testid="teacher-my-hours-live-timer"
+                  >
+                    {formatLiveElapsed(elapsedSeconds)}
+                  </p>
+                  <p className="mt-1 text-sm" style={{ color: theme.muted }}>
+                    Started at {formatWallClockTime(activeSessionStartedAt)}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+            ) : (
+              <div className="mt-5">
                 <p
                   className="text-[11px] font-bold uppercase tracking-wider"
                   style={{ color: theme.muted }}
@@ -244,17 +273,26 @@ export default function TeacherMyHoursDayPanel({
                 <p className="mt-1 text-sm" style={{ color: theme.muted }}>
                   Started at {formatWallClockTime(activeSessionStartedAt)}
                 </p>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
+              </div>
+            )
+          ) : null}
 
-          <SessionsTable
-            theme={theme}
-            sessions={closedSessions}
-            activeSessionStartedAt={activeSessionStartedAt}
-            elapsedSeconds={elapsedSeconds}
-            animateRows
-          />
+          {isToday ? (
+            <SessionsTable
+              theme={theme}
+              sessions={closedSessions}
+              activeSessionStartedAt={activeSessionStartedAt}
+              elapsedSeconds={elapsedSeconds}
+              animateRows
+            />
+          ) : isClockedIn && !dayLog ? (
+            <SessionsTable
+              theme={theme}
+              sessions={closedSessions}
+              activeSessionStartedAt={activeSessionStartedAt}
+              elapsedSeconds={elapsedSeconds}
+            />
+          ) : null}
 
           <div className="mt-5 flex justify-center sm:justify-start">
             <motion.div whileTap={reducedMotion ? undefined : { scale: 0.98 }}>

@@ -10,7 +10,7 @@ export type PortalPreviewSession = {
   membershipId?: string;
   staffMemberId?: string;
   familyId?: string;
-  /** When set, parent preview loads billing/autopay as this guardian. */
+  /** When set, parent preview loads guardian-specific data (billing, messages, committees, home). */
   guardianId?: string;
 };
 

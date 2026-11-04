@@ -108,6 +108,7 @@ export function TeacherMyHoursDayPanel({
   const theme = useParentTheme();
   const isToday = isSameDay(focusDate, referenceDate);
   const isClockedIn = activeSessionStartedAt != null;
+  const showDayClockActions = isToday || isClockedIn;
   const isPending = clockActionPending != null;
 
   const todayTotalMinutes =
@@ -138,15 +139,15 @@ export function TeacherMyHoursDayPanel({
           </View>
           <SessionRows
             sessions={closedSessions}
-            activeSessionStartedAt={null}
-            elapsedSeconds={0}
+            activeSessionStartedAt={activeSessionStartedAt}
+            elapsedSeconds={elapsedSeconds}
           />
         </>
       ) : null}
 
-      {isToday ? (
+      {showDayClockActions ? (
         <>
-          {showTodayLoggedSummary ? (
+          {isToday && showTodayLoggedSummary ? (
             <View style={[styles.loggedStrip, { backgroundColor: MY_HOURS_LOGGED_BG }]}>
               <Text style={[styles.loggedKicker, { color: theme.primary }]}>LOGGED</Text>
               <Text style={[styles.loggedValue, { color: theme.ink }]}>
@@ -170,11 +171,13 @@ export function TeacherMyHoursDayPanel({
             </View>
           ) : null}
 
-          <SessionRows
-            sessions={closedSessions}
-            activeSessionStartedAt={activeSessionStartedAt}
-            elapsedSeconds={elapsedSeconds}
-          />
+          {isToday || (isClockedIn && !dayLog) ? (
+            <SessionRows
+              sessions={closedSessions}
+              activeSessionStartedAt={activeSessionStartedAt}
+              elapsedSeconds={elapsedSeconds}
+            />
+          ) : null}
 
           <StoryButton
             label={

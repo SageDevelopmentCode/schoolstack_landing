@@ -172,6 +172,7 @@ export function ParentCommitteeTaskDetailSheet({
           value={form.dueDate}
           onChange={(dueDate) => setForm((current) => ({ ...current, dueDate }))}
           placeholder="Optional"
+          clearable
           disabled={readOnly}
         />
 
