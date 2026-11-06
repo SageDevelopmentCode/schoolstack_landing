@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { APPLICATION_STATUSES_EXCLUDED_FROM_DEFAULT_ALL } from "@/lib/admissions/application-status-ui";
 import { fetchLatestSubmittedApplication } from "@/lib/school-admin/dashboard-metrics";
+import { reportRpcPermissionDenied } from "@/lib/rpc-permission-errors";
 
 export type SubmissionFormOption = {
   key: string;
@@ -85,7 +86,15 @@ export async function fetchSubmissionPageMetaFromRpc(
     p_organization_id: organizationId,
   });
 
-  if (error) return null;
+  if (error) {
+    await reportRpcPermissionDenied({
+      functionName: "admin_submissions_page_meta",
+      organizationId,
+      error,
+      surface: "school_admin",
+    });
+    return null;
+  }
 
   return parseAdminSubmissionsPageMetaRow(
     (data ?? null) as AdminSubmissionsPageMetaRow | null,

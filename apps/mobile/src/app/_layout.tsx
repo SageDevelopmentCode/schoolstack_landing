@@ -14,6 +14,7 @@ import {
   Poppins_600SemiBold,
 } from '@expo-google-fonts/poppins';
 import { useFonts } from 'expo-font';
+import { Observe, ObserveRoot } from 'expo-observe';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { LogBox, View } from 'react-native';
@@ -34,6 +35,14 @@ import { isMobileE2e } from '@/lib/e2e';
 import { initMobileSentry, Sentry } from '@/lib/sentry';
 
 initMobileSentry();
+
+Observe.configure({
+  integrations: {
+    'expo-router': {
+      filteredParams: ['token', 'access_token', 'refresh_token', 'code', 'state'],
+    },
+  },
+});
 
 SplashScreen.preventAutoHideAsync();
 
@@ -110,4 +119,4 @@ function RootLayout() {
   );
 }
 
-export default Sentry.wrap(RootLayout);
+export default ObserveRoot.wrap(Sentry.wrap(RootLayout));

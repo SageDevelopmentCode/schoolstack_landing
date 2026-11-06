@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { reportRpcPermissionDenied } from "@/lib/rpc-permission-errors";
 import {
   listOrganizationPayments,
   summarizePaymentRows,
@@ -81,6 +82,12 @@ async function fetchTransactionsPageMetaFromRpc(
   );
 
   if (error) {
+    await reportRpcPermissionDenied({
+      functionName: "get_organization_payment_transactions_meta",
+      organizationId,
+      error,
+      surface: "school_admin",
+    });
     return null;
   }
 

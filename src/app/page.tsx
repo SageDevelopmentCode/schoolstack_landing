@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
-import Navbar from "@/components/sections/Navbar";
-import HeroSection from "@/components/sections/HeroSection";
-import HomeBookDemoSection from "@/components/sections/HomeBookDemoSection";
-import HomePageMain from "@/components/sections/HomePageMain";
-import SectionFallback from "@/components/ui/SectionFallback";
-import { InViewSectionGate } from "@/components/ui/InViewSectionGate";
 import JsonLd from "@/components/seo/JsonLd";
 import FaqJsonLd from "@/components/seo/FaqJsonLd";
-import HomeFaqSection from "@/components/seo/HomeFaqSection";
+import BrightHero from "@/components/home/BrightHero";
+import BrightStats from "@/components/home/BrightStats";
+import BrightBento from "@/components/home/BrightBento";
+import BrightPain from "@/components/home/BrightPain";
+import BrightPersonas from "@/components/home/BrightPersonas";
+import BrightStory from "@/components/home/BrightStory";
+import BrightSetup from "@/components/home/BrightSetup";
+import BrightPricing from "@/components/home/BrightPricing";
+import HomeShell from "@/components/home/HomeShell";
+import HomeTail from "@/components/home/HomeTail";
 import { pageMetadata } from "@/lib/metadata";
 import { HOME_FAQ } from "@/lib/faq";
 import { HOME_DESCRIPTION, HOME_TITLE } from "@/lib/site";
@@ -24,114 +26,20 @@ export const metadata: Metadata = {
   },
 };
 
-
-const ProductPreviewSection = dynamic(
-  () => import("@/components/sections/ProductPreviewSection"),
-  { loading: () => <SectionFallback minHeight="32rem" /> },
-);
-const PainSection = dynamic(
-  () => import("@/components/sections/PainSection"),
-  { loading: () => <SectionFallback minHeight="28rem" /> },
-);
-const FamilyClaritySection = dynamic(
-  () => import("@/components/sections/FamilyClaritySection"),
-  { loading: () => <SectionFallback minHeight="24rem" /> },
-);
-const AdminGrowthSection = dynamic(
-  () => import("@/components/sections/AdminGrowthSection"),
-  { loading: () => <SectionFallback minHeight="24rem" /> },
-);
-const TeacherSupportSection = dynamic(
-  () => import("@/components/sections/TeacherSupportSection"),
-  { loading: () => <SectionFallback minHeight="24rem" /> },
-);
-const HomeFreeToolsSection = dynamic(
-  () => import("@/components/sections/HomeFreeToolsSection"),
-  { loading: () => <SectionFallback minHeight="28rem" /> },
-);
-const WorkflowSection = dynamic(
-  () => import("@/components/sections/WorkflowSection"),
-  { loading: () => <SectionFallback minHeight="32rem" /> },
-);
-const StacksSection = dynamic(
-  () => import("@/components/sections/StacksSection"),
-  { loading: () => <SectionFallback minHeight="20rem" /> },
-);
-const FounderStorySection = dynamic(
-  () => import("@/components/sections/FounderStorySection"),
-  { loading: () => <SectionFallback minHeight="28rem" /> },
-);
-const CustomSection = dynamic(
-  () => import("@/components/sections/CustomSection"),
-  { loading: () => <SectionFallback minHeight="20rem" /> },
-);
-const GetStartedShowcaseCarousel = dynamic(
-  () => import("@/components/get-started/GetStartedShowcaseCarousel"),
-  { loading: () => <SectionFallback minHeight="20rem" /> },
-);
-const Footer = dynamic(
-  () => import("@/components/sections/Footer"),
-  { loading: () => <SectionFallback minHeight="12rem" /> },
-);
-const FloatingQuestionButton = dynamic(
-  () => import("@/components/sections/FloatingQuestionButton"),
-  { loading: () => null },
-);
-
 export default function Home() {
   return (
-    <>
-      <link
-        rel="preload"
-        as="image"
-        href="/images/Logo.webp"
-        fetchPriority="high"
-      />
+    <HomeShell className="bg-white">
       <JsonLd />
       <FaqJsonLd faqs={HOME_FAQ} />
-      <Navbar />
-      <HomePageMain>
-        <HeroSection />
-        <InViewSectionGate minHeight="32rem">
-          <ProductPreviewSection />
-        </InViewSectionGate>
-        <InViewSectionGate minHeight="28rem">
-          <PainSection />
-        </InViewSectionGate>
-        <InViewSectionGate minHeight="24rem">
-          <FamilyClaritySection />
-        </InViewSectionGate>
-        <InViewSectionGate minHeight="24rem">
-          <AdminGrowthSection />
-        </InViewSectionGate>
-        <InViewSectionGate minHeight="24rem">
-          <TeacherSupportSection />
-        </InViewSectionGate>
-        <InViewSectionGate minHeight="28rem">
-          <HomeFreeToolsSection />
-        </InViewSectionGate>
-        <InViewSectionGate minHeight="32rem">
-          <WorkflowSection />
-        </InViewSectionGate>
-        <InViewSectionGate minHeight="20rem">
-          <StacksSection />
-        </InViewSectionGate>
-        <InViewSectionGate minHeight="28rem">
-          <FounderStorySection />
-        </InViewSectionGate>
-        <InViewSectionGate minHeight="20rem">
-          <GetStartedShowcaseCarousel variant="page" />
-        </InViewSectionGate>
-        <InViewSectionGate minHeight="20rem">
-          <CustomSection />
-        </InViewSectionGate>
-        <HomeFaqSection />
-        <HomeBookDemoSection />
-      </HomePageMain>
-      <InViewSectionGate minHeight="12rem">
-        <Footer />
-      </InViewSectionGate>
-      <FloatingQuestionButton />
-    </>
+      <BrightHero />
+      <BrightStats />
+      <BrightBento />
+      <BrightPain />
+      <BrightPersonas />
+      <BrightStory />
+      <BrightSetup />
+      <BrightPricing />
+      <HomeTail />
+    </HomeShell>
   );
 }

@@ -1,3 +1,4 @@
+import { useObserve } from 'expo-observe';
 import { Slot, useIsFocused, useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
@@ -92,6 +93,12 @@ function SchoolAdminLayoutContent() {
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
   const organizationId =
     selectedSchool?.slug === slug ? (selectedSchool?.id ?? '') : '';
+  const { markInteractive } = useObserve();
+
+  const organization = useMemo(() => {
+    if (selectedSchool?.slug === slug) return selectedSchool;
+    return null;
+  }, [selectedSchool, slug]);
 
   useMobileFeatureVisitTracking({
     surface: 'school_admin',
@@ -137,10 +144,10 @@ function SchoolAdminLayoutContent() {
     let cancelled = false;
 
     void (async () => {
-      const organization = await fetchOrganizationBySlug(slug);
+      const orgFromSlug = await fetchOrganizationBySlug(slug);
       if (cancelled) return;
 
-      if (!organization) {
+      if (!orgFromSlug) {
         router.replace(
           previewSession ? '/platform-admin/impersonate' : '/platform-admin/organizations',
         );
@@ -155,7 +162,7 @@ function SchoolAdminLayoutContent() {
       if (cancelled) return;
 
       if (isPlatformAdminSession) {
-        await enterSchoolAsPlatformAdmin(organization);
+        await enterSchoolAsPlatformAdmin(orgFromSlug);
         return;
       }
 
@@ -180,6 +187,11 @@ function SchoolAdminLayoutContent() {
     slug,
     user,
   ]);
+
+  useEffect(() => {
+    if (isLoading || !organization) return;
+    markInteractive();
+  }, [isLoading, markInteractive, organization]);
 
   const handleTabChange = (tab: SchoolAdminTab) => {
     if (!slug) return;
@@ -246,11 +258,6 @@ function SchoolAdminLayoutContent() {
       }
     }
   };
-
-  const organization = useMemo(() => {
-    if (selectedSchool?.slug === slug) return selectedSchool;
-    return null;
-  }, [selectedSchool, slug]);
 
   if (isLoading || !organization) {
     return (

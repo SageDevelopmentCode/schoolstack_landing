@@ -1,3 +1,4 @@
+import { useObserve } from 'expo-observe';
 import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
 import { StyleSheet } from 'react-native';
@@ -73,6 +74,7 @@ function ParentLayoutContent() {
   const router = useRouter();
   const isFocused = useIsFocused();
   const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { markInteractive } = useObserve();
   const {
     user,
     selectedSchool,
@@ -114,6 +116,11 @@ function ParentLayoutContent() {
 
   useCompletePortalTransitionOnMount('parent');
   useReleaseAccountPortalSwitchOnBlur();
+
+  useEffect(() => {
+    if (isLoading || !organization) return;
+    markInteractive();
+  }, [isLoading, markInteractive, organization]);
 
   if (isLoading || !organization) {
     return (

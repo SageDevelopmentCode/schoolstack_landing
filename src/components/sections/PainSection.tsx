@@ -47,7 +47,7 @@ function pillEdge(
 
 // 10 pairs — outer = third-party tool, inner = SchoolLayer feature at same angle
 // Outer ring: rx=390, ry=240 | Inner ring: rx=140, ry=105
-const PAIRS = [
+export const PAIRS = [
   {
     tool: "Google Forms",
     logo: "/images/competitors/GoogleForms.png",

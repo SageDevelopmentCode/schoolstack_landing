@@ -173,6 +173,16 @@ Scripts run [`scripts/assert-production-mobile-env.sh`](scripts/assert-productio
 
 Monitor: [expo.dev](https://expo.dev) → project → Builds.
 
+### Expo Observe (after this change)
+
+`expo-observe` is a **native module**. Ship a **new store build** (bump `expo.version` in [`app.json`](app.json) in the same PR as other native changes) so TestFlight / Play installs include the binary.
+
+After the build is installable:
+
+1. Open the app on a device (not Expo Go), sign in through a normal path.
+2. Background the app or wait briefly so metrics flush.
+3. In [expo.dev](https://expo.dev) → project → **Observe**, confirm startup / navigation data for the new app version. CLI: `eas observe:metrics-summary` (requires `eas login`).
+
 ## EAS Update (OTA)
 
 Production builds include **`expo-updates`** and listen on the **`production`** channel ([`app.json`](app.json) `runtimeVersion` policy `appVersion`, [`eas.json`](eas.json) `production.channel`).

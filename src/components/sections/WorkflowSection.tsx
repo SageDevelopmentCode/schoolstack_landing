@@ -192,7 +192,7 @@ function Step1TransitionMobileVisual() {
   );
 }
 
-function Step1TransitionVisual() {
+export function Step1TransitionVisual() {
   return (
     <div className="flex items-center justify-center w-full px-4 py-4 lg:px-6 lg:py-5 select-none">
       <Step1TransitionMobileVisual />
@@ -481,7 +481,7 @@ function SetupMilestoneCard({
   );
 }
 
-function Step2SetupProgress() {
+export function Step2SetupProgress() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const cycleLength = SETUP_MILESTONES.length;
   const [index, setIndex] = useState(0);
@@ -576,15 +576,9 @@ function Step2SetupProgress() {
 const PROGRESS_STEPS = ["Kickoff", "Setup", "Review", "Go Live"];
 const LAUNCH_ITEMS = ["Team walkthrough complete", "Families notified", "School is live"];
 
-const STEP_PREVIEWS = [
-  /* 01 — Tools converge into one workspace */
-  <Step1TransitionVisual key="show" />,
-
-  /* 02 — Setup progress */
-  <Step2SetupProgress key="build" />,
-
-  /* 03 — Go live */
-  <div key="live" className="flex items-center justify-center w-full p-6 lg:p-8">
+export function Step3GoLivePreview() {
+  return (
+  <div className="flex items-center justify-center w-full p-6 lg:p-8">
     <div className="w-full max-w-[340px]">
       {/* Onboarding progress bar */}
       <div className="mb-7">
@@ -650,7 +644,19 @@ const STEP_PREVIEWS = [
         Your school is ready. Families can enroll today.
       </p>
     </div>
-  </div>,
+  </div>
+  );
+}
+
+const STEP_PREVIEWS = [
+  /* 01 — Tools converge into one workspace */
+  <Step1TransitionVisual key="show" />,
+
+  /* 02 — Setup progress */
+  <Step2SetupProgress key="build" />,
+
+  /* 03 — Go live */
+  <Step3GoLivePreview key="live" />,
 ];
 
 export default function WorkflowSection() {

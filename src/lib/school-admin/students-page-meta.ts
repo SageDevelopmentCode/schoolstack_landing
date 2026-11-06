@@ -7,6 +7,7 @@ import {
   listOrgEnrolledStudents,
   type AdminEnrolledStudentSummary,
 } from "@/lib/school-admin/enrolled-students";
+import { reportRpcPermissionDenied } from "@/lib/rpc-permission-errors";
 
 export type StudentsProgramOption = {
   name: string;
@@ -58,7 +59,15 @@ export async function fetchStudentsPageMetaFromRpc(
     p_organization_id: organizationId,
   });
 
-  if (error) return null;
+  if (error) {
+    await reportRpcPermissionDenied({
+      functionName: "admin_students_page_meta",
+      organizationId,
+      error,
+      surface: "school_admin",
+    });
+    return null;
+  }
 
   return parseAdminStudentsPageMetaRow(
     (data ?? null) as AdminStudentsPageMetaRow | null,

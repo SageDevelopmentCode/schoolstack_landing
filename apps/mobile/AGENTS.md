@@ -6,6 +6,16 @@ Local Maestro E2E (local Supabase only): [`.agents/skills/mobile-e2e-local/SKILL
 
 After mobile UI changes: visual screenshot capture + agent review — [`.agents/skills/mobile-ui-visual-verify/SKILL.md`](../../.agents/skills/mobile-ui-visual-verify/SKILL.md).
 
+## Expo Observe (production performance)
+
+The app uses **`expo-observe`** for [Expo Observe](https://docs.expo.dev/eas/observe/introduction/) (startup and per-route metrics). It does **not** run in **Expo Go**; use a **development build** or **production EAS build** to send metrics.
+
+- **Dashboard:** project on [expo.dev](https://expo.dev) → **Observe** tab.
+- **Verify after changing instrumentation:** run a new EAS build (`npm run build:production:ios` / `build:production:android` from `apps/mobile` or your usual profile), install the build, open the app, then confirm data appears in Observe (allow a short delay).
+- **AI agents — Expo Skills:** install the bundle that includes the **eas-observe** skill: `npx skills add expo/skills` (see [Observe: AI agents](https://docs.expo.dev/eas/observe/ai-agents/)). Optionally add the **Expo MCP** server (`https://mcp.expo.dev/mcp`) in Cursor for read-only metric queries; it uses your Expo account OAuth.
+
+Unhandled JS errors for Observe (preview on SDK 57) are separate from **Sentry**; production source maps for Observe stacks use **`uploadSourceMaps`** on the EAS production profile in `eas.json`.
+
 ## Environment (production accounts)
 
 Copy from the web app `.env.local` into the shell that starts Metro (or an `apps/mobile/.env` file if you use one):

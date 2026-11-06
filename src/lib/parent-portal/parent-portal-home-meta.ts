@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { reportRpcPermissionDenied } from "@/lib/rpc-permission-errors";
 
 export type ParentPortalHomeMeta = {
   childrenCount: number;
@@ -31,7 +32,15 @@ export async function fetchParentPortalHomeMetaFromRpc(
     p_family_id: familyId,
   });
 
-  if (error) throw error;
+  if (error) {
+    await reportRpcPermissionDenied({
+      functionName: "parent_portal_home_meta",
+      organizationId,
+      error,
+      surface: "parent_portal",
+    });
+    throw error;
+  }
   if (!data || typeof data !== "object") return null;
 
   return parseParentPortalHomeMetaRow(data as ParentPortalHomeMetaRow);

@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useObserve } from 'expo-observe';
 import { Redirect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,10 +28,16 @@ export default function IntroScreen() {
   const insets = useSafeAreaInsets();
   const { user, portalType, isLoading } = useAuth();
   const [activeIndex, setActiveIndex] = useState(0);
+  const { markInteractive } = useObserve();
 
   const handleIndexChange = useCallback((index: number) => {
     setActiveIndex(index);
   }, []);
+
+  useEffect(() => {
+    if (isMobileE2e || isLoading || user) return;
+    markInteractive();
+  }, [isLoading, isMobileE2e, markInteractive, user]);
 
   if (isMobileE2e) {
     return <Redirect href="/login" />;
