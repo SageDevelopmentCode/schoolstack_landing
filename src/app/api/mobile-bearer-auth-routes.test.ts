@@ -15,11 +15,11 @@ describe("mobile bearer auth route wiring", () => {
       "app/api/parent-portal/classroom-signups/[signupId]/route.ts",
     );
 
-    assert.match(source, /createClientFromRequest/);
+    // The wrapper resolves the bearer-aware client (see with-parent-portal-route.test.ts).
     assert.equal(
-      (source.match(/await createClientFromRequest\(request\)/g) ?? []).length,
-      3,
-      "GET, POST, and DELETE should each call createClientFromRequest",
+      (source.match(/withParentPortalRoute/g) ?? []).length >= 3,
+      true,
+      "GET, POST, and DELETE should each use withParentPortalRoute",
     );
     assert.doesNotMatch(source, /createClient\(cookieStore\)/);
     assert.doesNotMatch(source, /from "@\/utils\/supabase\/server"/);
@@ -39,7 +39,7 @@ describe("mobile bearer auth route wiring", () => {
   it("parent portal support-requests route uses bearer-aware auth", () => {
     const source = readRoute("app/api/parent-portal/support-requests/route.ts");
 
-    assert.match(source, /const supabase = await createClientFromRequest\(request\)/);
+    assert.match(source, /withParentPortalRoute/);
     assert.doesNotMatch(source, /createClient\(cookieStore\)/);
     assert.doesNotMatch(source, /from "@\/utils\/supabase\/server"/);
   });
@@ -302,11 +302,22 @@ describe("mobile bearer auth route wiring", () => {
     "app/api/teacher-portal/committees/[committeeId]/mark-read/route.ts",
   ];
 
+  it("withParentPortalRoute builds its client and user from the request (bearer-aware)", () => {
+    const source = readRoute("lib/parent-portal/with-parent-portal-route.ts");
+
+    assert.match(source, /createClient: createClientFromRequest/);
+    assert.match(source, /getUser: getUserFromRequest/);
+    assert.match(source, /signedInErrorForRequest/);
+    assert.doesNotMatch(source, /createClient\(cookieStore\)/);
+    assert.doesNotMatch(source, /from "@\/utils\/supabase\/server"/);
+  });
+
   for (const routePath of bearerMigratedPortalRoutes) {
     it(`${routePath} uses createClientFromRequest instead of cookie client`, () => {
       const source = readRoute(routePath);
 
-      assert.match(source, /createClientFromRequest/);
+      // Parent portal routes get the bearer-aware client from withParentPortalRoute.
+      assert.match(source, /createClientFromRequest|withParentPortalRoute/);
       assert.doesNotMatch(source, /createClient\(cookieStore\)/);
       assert.doesNotMatch(source, /from "@\/utils\/supabase\/server"/);
     });

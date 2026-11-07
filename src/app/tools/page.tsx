@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
+import HomeShell from "@/components/home/HomeShell";
 import BreadcrumbJsonLd from "@/components/seo/BreadcrumbJsonLd";
-import Navbar from "@/components/sections/Navbar";
-import Footer from "@/components/sections/Footer";
 import FreeToolsHubPage from "@/components/marketing/free-tools/FreeToolsHubPage";
 import { FREE_TOOLS_HUB_PATH } from "@/lib/marketing/free-tools";
 import { pageMetadata } from "@/lib/metadata";
@@ -30,11 +29,9 @@ const BREADCRUMBS = buildBreadcrumbs({
 
 export default function ToolsPage() {
   return (
-    <>
+    <HomeShell className="bg-white">
       <BreadcrumbJsonLd items={BREADCRUMBS} />
-      <Navbar />
       <FreeToolsHubPage />
-      <Footer />
-    </>
+    </HomeShell>
   );
 }

@@ -9,18 +9,21 @@ import {
   AuthGatePromoPanel,
   AuthHelpButton,
 } from "@/components/admissions/AuthGatePromoPanel";
+import GetStartedStoryTextField from "@/components/get-started/GetStartedStoryTextField";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
+import { DARK_PILL } from "@/components/home/bright-styles";
+import LoginPhaseHeader from "@/components/login/login-phase-header";
 import OrganizationSelector from "@/components/login/OrganizationSelector";
 import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
 } from "@/components/ui/ButtonLoadingLabel";
 import VerificationCodeInput from "@/components/ui/VerificationCodeInput";
-import { DEFAULT_BRANDING } from "@/lib/organization-settings/catalog";
-import type { LiveOrganizationOption } from "@/lib/organization-settings/list-live-organizations";
 import {
-  buildAdminThemeTokens,
-  type AdminThemeTokens,
-} from "@/lib/organization-settings/theme";
+  NO_SCHOOL_ACCESS_MESSAGE,
+  normalizeLoginErrorMessage,
+} from "@/lib/auth/login-error-message";
+import type { LiveOrganizationOption } from "@/lib/organization-settings/list-live-organizations";
+import { MUDKITCHEN_MARKETING_BRIGHT_THEME } from "@/lib/marketing/mudkitchen-bright-marketing-theme";
 import { AUTH_GATE_PROMO } from "@/lib/site";
 import {
   reportAuthOtpFailed,
@@ -35,8 +38,42 @@ type LoginAuthMethod = "otp" | "password" | "session_restored";
 type LoginPhase = "select_org" | "email" | "verify" | "password";
 
 type LoginExperienceProps = {
-  organizations: LiveOrganizationOption[];
+  /** School named by `?school=`, resolved server-side. */
+  initialOrganization: LiveOrganizationOption | null;
 };
+
+type LoginDestinationPayload = {
+  href?: string;
+  needsSchoolSelection?: boolean;
+  noAccess?: boolean;
+  organizations?: LiveOrganizationOption[];
+  error?: string;
+  message?: string;
+};
+
+type SessionResolution =
+  | { kind: "redirected" }
+  | { kind: "needs_school_selection"; organizations: LiveOrganizationOption[] }
+  | { kind: "no_access" };
+
+async function fetchLoginDestination(
+  slug: string | undefined,
+  method: LoginAuthMethod | undefined,
+): Promise<{ status: number; ok: boolean; payload: LoginDestinationPayload }> {
+  const params = new URLSearchParams();
+  if (slug) params.set("slug", slug);
+  if (method) params.set("method", method);
+
+  const query = params.toString();
+  const response = await fetch(
+    query ? `/api/auth/login-destination?${query}` : "/api/auth/login-destination",
+  );
+  const payload = (await response
+    .json()
+    .catch(() => ({}))) as LoginDestinationPayload;
+
+  return { status: response.status, ok: response.ok, payload };
+}
 
 const stepVariants = {
   enter: (direction: number) => ({
@@ -52,50 +89,45 @@ const stepVariants = {
 
 const stepTransition = { duration: 0.22, ease: [0.25, 0.1, 0.25, 1] as const };
 
-function inputStyle(C: AdminThemeTokens): React.CSSProperties {
-  return {
-    borderColor: C.inputBorder,
-    backgroundColor: C.input,
-    color: C.textPrimary,
-  };
-}
+const BRIGHT_THEME = MUDKITCHEN_MARKETING_BRIGHT_THEME;
+const BRIGHT_PRIMARY_BUTTON = `${DARK_PILL} w-full justify-center ${BUTTON_LOADING_LAYOUT_CLASS}`;
 
-export default function LoginExperience({ organizations }: LoginExperienceProps) {
+export default function LoginExperience({ initialOrganization }: LoginExperienceProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = useMemo(() => createClient(), []);
 
-  const initialSchoolSlug = searchParams.get("school")?.trim() ?? null;
   const initialAuthMethod = searchParams.get("auth")?.trim() ?? null;
-  const initialOrganization = useMemo(
-    () =>
-      initialSchoolSlug
-        ? organizations.find((organization) => organization.slug === initialSchoolSlug) ?? null
-        : null,
-    [initialSchoolSlug, organizations],
-  );
 
-  const [phase, setPhase] = useState<LoginPhase>(() => {
-    if (!initialOrganization) return "select_org";
-    return initialAuthMethod === "password" ? "password" : "email";
-  });
+  const [phase, setPhase] = useState<LoginPhase>(
+    initialAuthMethod === "password" ? "password" : "email",
+  );
   const [direction, setDirection] = useState(1);
+  // Only set for `?school=` deep links or after the user picks a school.
   const [selectedOrganization, setSelectedOrganization] =
     useState<LiveOrganizationOption | null>(initialOrganization);
+  const [pickerOrganizations, setPickerOrganizations] = useState<
+    LiveOrganizationOption[]
+  >([]);
+  // How the user authenticated, so the post-picker call is attributed correctly.
+  const [authMethod, setAuthMethod] = useState<LoginAuthMethod>("session_restored");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
-  const [accessibleSlugs, setAccessibleSlugs] = useState<string[] | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [activeSlide, setActiveSlide] = useState(0);
+  const [openingOrganizationId, setOpeningOrganizationId] = useState<string | null>(
+    null,
+  );
+  const [openingOrganizationName, setOpeningOrganizationName] = useState<string | null>(
+    null,
+  );
 
-  const branding = selectedOrganization?.branding ?? DEFAULT_BRANDING;
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
-  const pageBg = branding.colors.bg;
   const normalizedCode = code.replace(/\D/g, "").slice(0, 6);
+  const normalizedEmail = email.trim().toLowerCase();
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -120,98 +152,114 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
     setError(null);
   }, []);
 
+  /**
+   * Asks the server where this signed-in user belongs. Without a slug the server
+   * detects their school(s). A deep-linked school the user cannot access falls
+   * back to detection instead of leaving them stuck.
+   */
   const resolveAuthenticatedSession = useCallback(
-    async (slug?: string, method?: LoginAuthMethod) => {
-      const params = new URLSearchParams();
-      if (slug) {
-        params.set("slug", slug);
-      }
-      if (method) {
-        params.set("method", method);
+    async (slug?: string, method?: LoginAuthMethod): Promise<SessionResolution> => {
+      let attempt = await fetchLoginDestination(slug, method);
+
+      if (!attempt.ok && slug && (attempt.status === 403 || attempt.status === 404)) {
+        attempt = await fetchLoginDestination(undefined, method);
       }
 
-      const query = params.toString();
-      const response = await fetch(
-        query
-          ? `/api/auth/login-destination?${query}`
-          : "/api/auth/login-destination",
-      );
-      const payload = (await response.json()) as {
-        href?: string;
-        needsSchoolSelection?: boolean;
-        accessibleSlugs?: string[];
-        error?: string;
-        message?: string;
-      };
+      const { ok, payload } = attempt;
 
-      if (!response.ok) {
-        throw new Error(payload.message ?? "Unable to determine where to send you next.");
+      if (!ok) {
+        throw new Error(
+          payload.message ?? "Unable to determine where to send you next.",
+        );
+      }
+
+      if (payload.noAccess) {
+        return { kind: "no_access" };
       }
 
       if (payload.href) {
         router.replace(payload.href);
         router.refresh();
-        return { redirected: true as const };
+        return { kind: "redirected" };
       }
 
       if (payload.needsSchoolSelection) {
-        setAccessibleSlugs(payload.accessibleSlugs ?? []);
-        return { redirected: false as const };
+        return {
+          kind: "needs_school_selection",
+          organizations: payload.organizations ?? [],
+        };
       }
 
-      throw new Error(payload.message ?? "Unable to determine where to send you next.");
+      throw new Error(
+        payload.message ?? "Unable to determine where to send you next.",
+      );
     },
     [router],
   );
 
-  const completeSignIn = useCallback(
-    async (
-      organization: LiveOrganizationOption,
-      method: LoginAuthMethod,
-    ) => {
-      setIsSubmitting(true);
-      setError(null);
+  /** Applies a non-redirect resolution: school picker, or sign out when no access. */
+  const applyResolution = useCallback(
+    async (resolution: SessionResolution, method: LoginAuthMethod) => {
+      if (resolution.kind === "needs_school_selection") {
+        setPickerOrganizations(resolution.organizations);
+        setSelectedOrganization(null);
+        setAuthMethod(method);
+        goToPhase("select_org", 1);
+        return;
+      }
 
-      try {
-        const result = await resolveAuthenticatedSession(organization.slug, method);
-        if (!result.redirected) {
-          throw new Error("Unable to determine where to send you next.");
-        }
-      } catch (completeError) {
-        setError(
-          completeError instanceof Error
-            ? completeError.message
-            : "Sign in failed. Please try again.",
-        );
-      } finally {
-        setIsSubmitting(false);
+      if (resolution.kind === "no_access") {
+        await supabase.auth.signOut();
+        setPassword("");
+        setCode("");
+        goToPhase("email", -1);
+        setError(NO_SCHOOL_ACCESS_MESSAGE);
       }
     },
-    [resolveAuthenticatedSession],
+    [goToPhase, supabase.auth],
+  );
+
+  const finishAuthentication = useCallback(
+    async (method: LoginAuthMethod, organization: LiveOrganizationOption | null) => {
+      const resolution = await resolveAuthenticatedSession(
+        organization?.slug,
+        method,
+      );
+      await applyResolution(resolution, method);
+    },
+    [applyResolution, resolveAuthenticatedSession],
   );
 
   const handleOrganizationSelect = useCallback(
     async (organization: LiveOrganizationOption) => {
       setSelectedOrganization(organization);
+      setOpeningOrganizationId(organization.id);
+      setOpeningOrganizationName(organization.name);
       setError(null);
       setIsSubmitting(true);
 
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        if (session) {
-          await completeSignIn(organization, "session_restored");
-          return;
+        const resolution = await resolveAuthenticatedSession(
+          organization.slug,
+          authMethod,
+        );
+        if (resolution.kind !== "redirected") {
+          throw new Error("Unable to determine where to send you next.");
         }
-
-        goToPhase("email", 1);
+      } catch (selectError) {
+        setError(
+          normalizeLoginErrorMessage(
+            selectError,
+            "Unable to continue with this school.",
+          ),
+        );
       } finally {
         setIsSubmitting(false);
+        setOpeningOrganizationId(null);
+        setOpeningOrganizationName(null);
       }
     },
-    [completeSignIn, goToPhase, supabase.auth],
+    [authMethod, resolveAuthenticatedSession],
   );
 
   useEffect(() => {
@@ -228,27 +276,30 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
       if (cancelled) return;
 
       if (!session) {
-        setAccessibleSlugs(null);
         setCheckingSession(false);
         return;
       }
 
       try {
-        const slug = initialOrganization?.slug;
-        const result = await resolveAuthenticatedSession(
-          slug,
+        const resolution = await resolveAuthenticatedSession(
+          initialOrganization?.slug,
           "session_restored",
         );
 
-        if (!cancelled && !result.redirected) {
+        if (cancelled) return;
+
+        if (resolution.kind !== "redirected") {
+          await applyResolution(resolution, "session_restored");
+          if (cancelled) return;
           setCheckingSession(false);
         }
       } catch (sessionError) {
         if (!cancelled) {
           setError(
-            sessionError instanceof Error
-              ? sessionError.message
-              : "Unable to continue with your existing session.",
+            normalizeLoginErrorMessage(
+              sessionError,
+              "Unable to continue with your existing session.",
+            ),
           );
           setCheckingSession(false);
         }
@@ -260,12 +311,11 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
     return () => {
       cancelled = true;
     };
-  }, [initialOrganization, resolveAuthenticatedSession, supabase.auth]);
+  }, [applyResolution, initialOrganization, resolveAuthenticatedSession, supabase.auth]);
 
   const sendOtp = useCallback(async () => {
-    const trimmedEmail = email.trim().toLowerCase();
     const { error: otpError } = await supabase.auth.signInWithOtp({
-      email: trimmedEmail,
+      email: normalizedEmail,
       options: {
         shouldCreateUser: false,
       },
@@ -276,7 +326,23 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
     }
 
     setResendCooldown(RESEND_COOLDOWN_SECONDS);
-  }, [email, supabase.auth]);
+  }, [normalizedEmail, supabase.auth]);
+
+  const reportOtpRequested = useCallback(
+    (resent: boolean) => {
+      reportAuthOtpRequested({
+        email: normalizedEmail,
+        organizationId: selectedOrganization?.id,
+        organizationSlug: selectedOrganization?.slug,
+        schoolName: selectedOrganization?.name,
+        surface: "login",
+        mode: "login",
+        page: "/login",
+        ...(resent ? { resent: true } : {}),
+      });
+    },
+    [normalizedEmail, selectedOrganization],
+  );
 
   const handleEmailSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -285,24 +351,12 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
 
     try {
       await sendOtp();
-      if (selectedOrganization) {
-        reportAuthOtpRequested({
-          email: email.trim().toLowerCase(),
-          organizationId: selectedOrganization.id,
-          organizationSlug: selectedOrganization.slug,
-          schoolName: selectedOrganization.name,
-          surface: "login",
-          mode: "login",
-          page: "/login",
-        });
-      }
+      reportOtpRequested(false);
       goToPhase("verify", 1);
       setCode("");
     } catch (submitError) {
       setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Failed to send verification code.",
+        normalizeLoginErrorMessage(submitError, "Failed to send verification code."),
       );
     } finally {
       setIsSubmitting(false);
@@ -311,40 +365,37 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
 
   const handleVerifySubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!selectedOrganization) return;
 
     setIsSubmitting(true);
     setError(null);
 
     try {
       const { error: verifyError } = await supabase.auth.verifyOtp({
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         token: normalizedCode,
         type: "email",
       });
 
       if (verifyError) {
+        reportAuthOtpFailed({
+          email: normalizedEmail,
+          organizationId: selectedOrganization?.id,
+          organizationSlug: selectedOrganization?.slug,
+          surface: "login",
+          mode: "login",
+          page: "/login",
+          errorCode: verifyError.message.slice(0, 120),
+        });
         throw new Error(verifyError.message);
       }
 
-      await completeSignIn(selectedOrganization, "otp");
+      await finishAuthentication("otp", selectedOrganization);
     } catch (submitError) {
-      reportAuthOtpFailed({
-        email: email.trim().toLowerCase(),
-        organizationId: selectedOrganization.id,
-        organizationSlug: selectedOrganization.slug,
-        surface: "login",
-        mode: "login",
-        page: "/login",
-        errorCode:
-          submitError instanceof Error
-            ? submitError.message.slice(0, 120)
-            : "verify_failed",
-      });
       setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Verification failed. Please try again.",
+        normalizeLoginErrorMessage(
+          submitError,
+          "Verification failed. Please try again.",
+        ),
       );
     } finally {
       setIsSubmitting(false);
@@ -353,14 +404,13 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
 
   const handlePasswordSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!selectedOrganization) return;
 
     setIsSubmitting(true);
     setError(null);
 
     try {
       const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         password,
       });
 
@@ -368,12 +418,10 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
         throw new Error(signInError.message);
       }
 
-      await completeSignIn(selectedOrganization, "password");
+      await finishAuthentication("password", selectedOrganization);
     } catch (submitError) {
       setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Sign in failed. Please try again.",
+        normalizeLoginErrorMessage(submitError, "Sign in failed. Please try again."),
       );
     } finally {
       setIsSubmitting(false);
@@ -388,35 +436,35 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
 
     try {
       await sendOtp();
-      if (selectedOrganization) {
-        reportAuthOtpRequested({
-          email: email.trim().toLowerCase(),
-          organizationId: selectedOrganization.id,
-          organizationSlug: selectedOrganization.slug,
-          schoolName: selectedOrganization.name,
-          surface: "login",
-          mode: "login",
-          page: "/login",
-          resent: true,
-        });
-      }
+      reportOtpRequested(true);
     } catch (submitError) {
       setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Failed to resend verification code.",
+        normalizeLoginErrorMessage(
+          submitError,
+          "Failed to resend verification code.",
+        ),
       );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleBackToOrganizations = () => {
-    setSelectedOrganization(null);
+  /** Back from the post-auth school picker: sign out and start over. */
+  const handleBackFromSchoolPicker = async () => {
+    setIsSubmitting(true);
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      setIsSubmitting(false);
+    }
+    setSelectedOrganization(initialOrganization);
+    setPickerOrganizations([]);
     setEmail("");
     setPassword("");
     setCode("");
-    goToPhase("select_org", -1);
+    setOpeningOrganizationId(null);
+    setOpeningOrganizationName(null);
+    goToPhase("email", -1);
   };
 
   const handleBackToEmail = () => {
@@ -430,114 +478,113 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
     goToPhase("email", -1);
   };
 
-  const heading =
-    phase === "select_org"
-      ? "Sign in to your school"
-      : phase === "email" || phase === "password"
-        ? "Sign in to continue"
-        : "Check your email";
+  const switchToPassword = () => {
+    setCode("");
+    goToPhase("password", 1);
+  };
 
-  const subtext =
+  const phaseForHeader =
+    phase === "password" ? "password" : phase === "email" ? "email" : phase;
+
+  const subtitle =
     phase === "select_org" ? (
-      "Choose your school to continue to your portal."
+      "Choose which school to open."
     ) : phase === "email" ? (
-      <>
-        Enter the email you use with{" "}
-        <span className="font-medium" style={{ color: C.textPrimary }}>
-          {selectedOrganization?.name}
-        </span>
-        . We&apos;ll send you a one-time code.
-      </>
+      selectedOrganization ? (
+        <>
+          Enter the email you use with{" "}
+          <span className="font-semibold text-[#1d1a16]">{selectedOrganization.name}</span>
+          . We&apos;ll send you a one-time code.
+        </>
+      ) : (
+        "Enter the email you use with your school. We'll send you a one-time code."
+      )
     ) : phase === "password" ? (
       "Sign in with your email and password."
     ) : (
       <>
         We sent a 6-digit code to{" "}
-        <span className="font-medium" style={{ color: C.textPrimary }}>
-          {email.trim().toLowerCase()}
-        </span>
-        . If it doesn&apos;t arrive within a minute, check your spam or junk folder.
+        <span className="font-semibold text-[#1d1a16]">{normalizedEmail}</span>. If it
+        doesn&apos;t arrive within a minute, check your spam or junk folder.
       </>
     );
 
+  const schoolWordmark =
+    selectedOrganization && phase !== "select_org" ? (
+      <SchoolDemoWordmark
+        logo={{
+          src: selectedOrganization.branding.logo.src,
+          alt:
+            selectedOrganization.branding.logo.alt || selectedOrganization.name,
+          width: selectedOrganization.branding.logo.width,
+          height: selectedOrganization.branding.logo.height,
+          text: selectedOrganization.branding.logo.src
+            ? undefined
+            : selectedOrganization.name,
+        }}
+        className="mb-6 h-8 w-auto max-w-[200px] object-contain"
+      />
+    ) : null;
+
   if (checkingSession) {
     return (
-      <div
-        className="flex min-h-dvh flex-col items-center justify-center gap-3 px-6"
-        style={{ backgroundColor: pageBg, color: C.textSecondary }}
-      >
-        <Loader2 className="h-6 w-6 animate-spin" style={{ color: C.accent }} />
-        <p className="text-sm">Checking your session…</p>
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-white px-6">
+        <Loader2 className="h-6 w-6 animate-spin text-[#1d1a16]" />
+        <p className="font-secondary text-sm text-[#1d1a16]/70">Checking your session…</p>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-dvh flex-col lg:flex-row">
-      <AuthGatePromoPanel activeSlide={activeSlide} />
+    <div className="flex min-h-dvh flex-col bg-white lg:flex-row">
+      <AuthGatePromoPanel activeSlide={activeSlide} variant="bright" />
 
-      <div
-        className="relative flex min-h-0 flex-1 flex-col lg:min-h-dvh"
-        style={{ backgroundColor: pageBg, color: C.textPrimary }}
-      >
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 pb-20 sm:px-6 sm:py-8 sm:pb-24 lg:flex lg:items-center lg:justify-center lg:py-12">
+      <div className="relative flex min-h-0 flex-1 flex-col text-[#1d1a16] lg:min-h-dvh">
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-[min(420px,55vh)] opacity-90 lg:hidden"
+          aria-hidden
+          style={{
+            background:
+              "radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in srgb, #A6B89A 35%, transparent), transparent 70%), radial-gradient(ellipse 60% 40% at 90% 20%, color-mix(in srgb, #A05C45 12%, transparent), transparent 65%)",
+          }}
+        />
+
+        <div className="relative z-[1] min-h-0 flex-1 overflow-y-auto px-4 py-6 pb-20 sm:px-6 sm:py-8 sm:pb-24 lg:flex lg:items-center lg:justify-center lg:py-12">
           <div className="mx-auto w-full max-w-md">
-            {phase !== "select_org" ? (
+            {phase === "verify" || phase === "select_org" ? (
               <button
                 type="button"
                 onClick={
-                  phase === "email" || phase === "password"
-                    ? handleBackToOrganizations
-                    : handleBackToEmail
+                  phase === "select_org" ? handleBackFromSchoolPicker : handleBackToEmail
                 }
                 disabled={isSubmitting}
-                className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
-                style={{ color: C.textSecondary }}
+                className="mb-6 inline-flex items-center gap-1.5 font-secondary text-sm font-medium text-[#1d1a16]/70 transition hover:text-[#1d1a16] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back
               </button>
             ) : null}
 
-            <div className="mb-8">
-              {selectedOrganization ? (
-                <SchoolDemoWordmark
-                  logo={{
-                    src: selectedOrganization.branding.logo.src,
-                    alt:
-                      selectedOrganization.branding.logo.alt ||
-                      selectedOrganization.name,
-                    width: selectedOrganization.branding.logo.width,
-                    height: selectedOrganization.branding.logo.height,
-                    text: selectedOrganization.branding.logo.src
-                      ? undefined
-                      : selectedOrganization.name,
-                  }}
-                  className="mb-6 h-8 w-auto max-w-[200px] object-contain"
-                />
-              ) : null}
+            <LoginPhaseHeader
+              phase={phaseForHeader}
+              subtitle={subtitle}
+              schoolWordmark={schoolWordmark}
+            />
 
-              <h1
-                className={`font-display font-medium leading-tight ${
-                  phase === "select_org" ? "text-2xl sm:text-3xl" : "text-xl sm:text-2xl"
-                }`}
-                style={{ color: C.accentDark }}
+            {openingOrganizationId && openingOrganizationName ? (
+              <div
+                className="-mt-4 mb-4 inline-flex w-full items-center justify-center gap-2 rounded-pill bg-[#F4F1EC] px-4 py-2 font-secondary text-sm font-medium text-[#1d1a16]/80"
+                role="status"
+                aria-live="polite"
               >
-                {heading}
-              </h1>
-              <p className="mt-3 text-sm leading-relaxed" style={{ color: C.textSecondary }}>
-                {subtext}
-              </p>
-            </div>
+                <Loader2 className="h-4 w-4 animate-spin text-[#1d1a16]" aria-hidden />
+                Opening {openingOrganizationName}…
+              </div>
+            ) : null}
 
             {error ? (
               <p
-                className="mb-4 rounded-md border px-3 py-2.5 text-sm"
-                style={{
-                  borderColor: C.border,
-                  backgroundColor: C.surface,
-                  color: "#b42318",
-                }}
+                className="mb-4 rounded-[16px] border border-black/8 bg-[#FBEDEB] px-3 py-2.5 font-secondary text-sm text-[#B5594A]"
                 role="alert"
               >
                 {error}
@@ -556,10 +603,10 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
                   transition={stepTransition}
                 >
                   <OrganizationSelector
-                    organizations={organizations}
+                    organizations={pickerOrganizations}
                     onSelect={handleOrganizationSelect}
-                    accessibleSlugs={accessibleSlugs}
-                    C={C}
+                    disabled={isSubmitting}
+                    openingOrganizationId={openingOrganizationId}
                   />
                 </motion.div>
               ) : phase === "email" ? (
@@ -574,28 +621,20 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
                   className="space-y-4"
                 >
                   <form onSubmit={handleEmailSubmit} className="space-y-4">
-                    <div className="flex flex-col gap-1.5">
-                      <label htmlFor="login-email" className="text-sm font-medium">
-                        Email
-                      </label>
-                      <input
-                        id="login-email"
-                        type="email"
-                        required
-                        autoComplete="email"
-                        value={email}
-                        onChange={(event) => setEmail(event.target.value)}
-                        className="w-full rounded-md border px-3 py-2.5 text-sm outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
-                        style={inputStyle(C)}
-                        disabled={isSubmitting}
-                      />
-                    </div>
+                    <GetStartedStoryTextField
+                      theme={BRIGHT_THEME}
+                      id="login-email"
+                      label="Email"
+                      type="email"
+                      value={email}
+                      onChange={setEmail}
+                      autoComplete="email"
+                    />
 
                     <button
                       type="submit"
-                      disabled={isSubmitting}
-                      className={`w-full rounded-md px-4 py-2.5 text-sm font-medium text-white transition disabled:opacity-60 ${BUTTON_LOADING_LAYOUT_CLASS}`}
-                      style={{ backgroundColor: C.accent }}
+                      disabled={isSubmitting || !email.trim()}
+                      className={BRIGHT_PRIMARY_BUTTON}
                     >
                       <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Sending code…">
                         Send verification code
@@ -603,16 +642,29 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
                     </button>
                   </form>
 
-                  <p className="text-sm" style={{ color: C.textSecondary }}>
-                    New here?{" "}
-                    <Link
-                      href={`/school/${selectedOrganization?.slug}/forms/apply`}
-                      className="font-medium underline-offset-2 hover:underline"
-                      style={{ color: C.accent }}
+                  <p className="font-secondary text-sm text-[#1d1a16]/70">
+                    Prefer a password?{" "}
+                    <button
+                      type="button"
+                      onClick={switchToPassword}
+                      disabled={isSubmitting}
+                      className="font-semibold text-clay underline-offset-2 hover:underline disabled:opacity-60"
                     >
-                      Start your application
-                    </Link>
+                      Use password instead
+                    </button>
                   </p>
+
+                  {selectedOrganization ? (
+                    <p className="font-secondary text-sm text-[#1d1a16]/70">
+                      New here?{" "}
+                      <Link
+                        href={`/school/${selectedOrganization.slug}/forms/apply`}
+                        className="font-semibold text-clay underline-offset-2 hover:underline"
+                      >
+                        Start your application
+                      </Link>
+                    </p>
+                  ) : null}
                 </motion.div>
               ) : phase === "password" ? (
                 <motion.div
@@ -626,45 +678,30 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
                   className="space-y-4"
                 >
                   <form onSubmit={handlePasswordSubmit} className="space-y-4">
-                    <div className="flex flex-col gap-1.5">
-                      <label htmlFor="login-password-email" className="text-sm font-medium">
-                        Email
-                      </label>
-                      <input
-                        id="login-password-email"
-                        type="email"
-                        required
-                        autoComplete="email"
-                        value={email}
-                        onChange={(event) => setEmail(event.target.value)}
-                        className="w-full rounded-md border px-3 py-2.5 text-sm outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
-                        style={inputStyle(C)}
-                        disabled={isSubmitting}
-                      />
-                    </div>
+                    <GetStartedStoryTextField
+                      theme={BRIGHT_THEME}
+                      id="login-password-email"
+                      label="Email"
+                      type="email"
+                      value={email}
+                      onChange={setEmail}
+                      autoComplete="email"
+                    />
 
-                    <div className="flex flex-col gap-1.5">
-                      <label htmlFor="login-password" className="text-sm font-medium">
-                        Password
-                      </label>
-                      <input
-                        id="login-password"
-                        type="password"
-                        required
-                        autoComplete="current-password"
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value)}
-                        className="w-full rounded-md border px-3 py-2.5 text-sm outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
-                        style={inputStyle(C)}
-                        disabled={isSubmitting}
-                      />
-                    </div>
+                    <GetStartedStoryTextField
+                      theme={BRIGHT_THEME}
+                      id="login-password"
+                      label="Password"
+                      type="password"
+                      value={password}
+                      onChange={setPassword}
+                      autoComplete="current-password"
+                    />
 
                     <button
                       type="submit"
-                      disabled={isSubmitting}
-                      className={`w-full rounded-md px-4 py-2.5 text-sm font-medium text-white transition disabled:opacity-60 ${BUTTON_LOADING_LAYOUT_CLASS}`}
-                      style={{ backgroundColor: C.accent }}
+                      disabled={isSubmitting || !email.trim() || !password}
+                      className={BRIGHT_PRIMARY_BUTTON}
                     >
                       <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Signing in…">
                         Sign in
@@ -672,13 +709,13 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
                     </button>
                   </form>
 
-                  <p className="text-sm" style={{ color: C.textSecondary }}>
+                  <p className="font-secondary text-sm text-[#1d1a16]/70">
                     Prefer a one-time code?{" "}
                     <button
                       type="button"
                       onClick={switchToOtpEmail}
-                      className="font-medium underline-offset-2 hover:underline"
-                      style={{ color: C.accent }}
+                      disabled={isSubmitting}
+                      className="font-semibold text-clay underline-offset-2 hover:underline disabled:opacity-60"
                     >
                       Use email code instead
                     </button>
@@ -703,14 +740,13 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
                       onChange={setCode}
                       disabled={isSubmitting}
                       autoFocus
-                      C={C}
+                      variant="bright"
                     />
 
                     <button
                       type="submit"
                       disabled={isSubmitting || normalizedCode.length < 6}
-                      className={`w-full rounded-md px-4 py-2.5 text-sm font-medium text-white transition disabled:opacity-60 ${BUTTON_LOADING_LAYOUT_CLASS}`}
-                      style={{ backgroundColor: C.accent }}
+                      className={BRIGHT_PRIMARY_BUTTON}
                     >
                       <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Verifying…">
                         Continue
@@ -718,12 +754,12 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
                     </button>
                   </form>
 
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center justify-between font-secondary text-sm">
                     <button
                       type="button"
                       onClick={handleBackToEmail}
-                      className="underline-offset-2 hover:underline"
-                      style={{ color: C.textSecondary }}
+                      disabled={isSubmitting}
+                      className="text-[#1d1a16]/70 underline-offset-2 hover:underline disabled:opacity-60"
                     >
                       Use a different email
                     </button>
@@ -731,8 +767,7 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
                       type="button"
                       onClick={handleResendCode}
                       disabled={resendCooldown > 0 || isSubmitting}
-                      className="underline-offset-2 hover:underline disabled:opacity-60"
-                      style={{ color: C.accent }}
+                      className="font-semibold text-clay underline-offset-2 hover:underline disabled:opacity-60"
                     >
                       {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
                     </button>

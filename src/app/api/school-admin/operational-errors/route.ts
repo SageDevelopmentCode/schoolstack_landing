@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
+import {
+  sanitizeClientErrorFields,
+  shouldNotifyClientError,
+} from "@/lib/client-operational-error-input";
 import { reportOperationalError } from "@/lib/operational-errors";
 import {
   requireSchoolAdminUser,
@@ -19,7 +23,6 @@ type OperationalErrorBody = {
   entityType?: string;
   entityId?: string;
   metadata?: Record<string, unknown>;
-  notify?: boolean;
 };
 
 export async function POST(request: Request) {
@@ -38,8 +41,9 @@ export async function POST(request: Request) {
   }
 
   const organizationId = body.organizationId?.trim();
-  const operation = body.operation?.trim();
-  const error = body.error?.trim();
+  const fields = sanitizeClientErrorFields(body);
+  const operation = fields?.operation;
+  const error = fields?.error;
 
   if (!organizationId || !operation || !error) {
     return apiError(ROUTE, {
@@ -67,12 +71,13 @@ export async function POST(request: Request) {
       organizationSlug: organization?.slug ?? null,
       operation,
       error,
-      code: body.code ?? null,
-      details: body.details ?? null,
-      entityType: body.entityType ?? null,
-      entityId: body.entityId ?? null,
-      metadata: body.metadata,
-      notify: body.notify ?? true,
+      code: fields?.code ?? null,
+      details: fields?.details ?? null,
+      entityType: fields?.entityType ?? null,
+      entityId: fields?.entityId ?? null,
+      metadata: fields?.metadata,
+      // Server decides: client `notify` is ignored; throttled per user + organization.
+      notify: shouldNotifyClientError(user.id, organizationId),
       actor: {
         type: "school_admin",
         userId: user.id,

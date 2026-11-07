@@ -26,7 +26,7 @@ export default async function StaffTeacherPreviewLayout({
   const { slug, staffMemberId } = await params;
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org || !isTeacherPortalEnabled(org.features)) {
     notFound();

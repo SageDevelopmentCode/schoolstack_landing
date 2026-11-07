@@ -37,7 +37,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   try {
     const admin = createAdminClient();
-    const org = await fetchOrganizationWithSettings(admin, slug);
+    const org = await fetchOrganizationWithSettings(slug);
     if (!org || org.id !== organizationId) {
       return apiError(ROUTE, {
         request,
@@ -132,7 +132,7 @@ export async function DELETE(request: Request, context: RouteContext) {
 
   try {
     const admin = createAdminClient();
-    const org = await fetchOrganizationWithSettings(admin, slug);
+    const org = await fetchOrganizationWithSettings(slug);
     if (!org || org.id !== organizationId) {
       return apiError(ROUTE, {
         request,

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
-type VerificationCodeInputProps = {
+type VerificationCodeInputBaseProps = {
   id?: string;
   label?: string;
   value: string;
@@ -12,34 +12,60 @@ type VerificationCodeInputProps = {
   disabled?: boolean;
   autoFocus?: boolean;
   length?: number;
+};
+
+type VerificationCodeInputPortalProps = VerificationCodeInputBaseProps & {
+  variant?: "portal";
   C: AdminThemeTokens;
 };
+
+type VerificationCodeInputBrightProps = VerificationCodeInputBaseProps & {
+  variant: "bright";
+  C?: never;
+};
+
+type VerificationCodeInputProps =
+  | VerificationCodeInputPortalProps
+  | VerificationCodeInputBrightProps;
 
 function normalizeCode(value: string, length: number): string {
   return value.replace(/\D/g, "").slice(0, length);
 }
 
-export default function VerificationCodeInput({
-  id,
-  label = "Verification code",
-  value,
-  onChange,
-  disabled = false,
-  autoFocus = false,
-  length = 6,
-  C,
-}: VerificationCodeInputProps) {
+export default function VerificationCodeInput(props: VerificationCodeInputProps) {
+  const {
+    id,
+    label = "Verification code",
+    value,
+    onChange,
+    disabled = false,
+    autoFocus = false,
+    length = 6,
+    variant = "portal",
+  } = props;
+
   const normalized = normalizeCode(value, length);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const autofillRef = useRef<HTMLInputElement>(null);
 
-  const focusRing = { "--tw-ring-color": `${C.accent}40` } as CSSProperties;
+  const isBright = variant === "bright";
+  const C = variant === "portal" ? props.C : null;
 
-  const cellStyle: CSSProperties = {
-    borderColor: C.inputBorder,
-    backgroundColor: C.input,
-    color: C.textPrimary,
-  };
+  const focusRing = !isBright && C
+    ? ({ "--tw-ring-color": `${C.accent}40` } as CSSProperties)
+    : undefined;
+
+  const cellStyle: CSSProperties | undefined = !isBright && C
+    ? {
+        borderColor: C.inputBorder,
+        backgroundColor: C.input,
+        color: C.textPrimary,
+      }
+    : undefined;
+
+  const cellClassName = isBright
+    ? "h-12 w-full min-w-0 rounded-[12px] border border-black/10 bg-white text-center font-secondary text-xl font-semibold tabular-nums text-[#1d1a16] outline-none transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1d1a16] disabled:cursor-not-allowed disabled:opacity-60"
+    : "h-12 w-full min-w-0 rounded-md border text-center text-xl font-semibold tabular-nums outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60";
 
   const updateValue = useCallback(
     (next: string) => {
@@ -118,7 +144,15 @@ export default function VerificationCodeInput({
   return (
     <div className="flex flex-col gap-1.5">
       {label ? (
-        <span id={labelId} className="text-sm font-medium" style={{ color: C.textPrimary }}>
+        <span
+          id={labelId}
+          className={
+            isBright
+              ? "font-secondary text-[13px] font-semibold text-[#1d1a16]/70"
+              : "text-sm font-medium"
+          }
+          style={!isBright && C ? { color: C.textPrimary } : undefined}
+        >
           {label}
         </span>
       ) : null}
@@ -196,8 +230,8 @@ export default function VerificationCodeInput({
                 event.preventDefault();
                 applyPaste(event.clipboardData.getData("text"), index);
               }}
-              className="h-12 w-full min-w-0 rounded-md border text-center text-xl font-semibold tabular-nums outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
-              style={{ ...cellStyle, ...focusRing }}
+              className={cellClassName}
+              style={cellStyle ? { ...cellStyle, ...focusRing } : undefined}
             />
           ))}
         </div>

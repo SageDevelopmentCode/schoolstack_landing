@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getStudentIdsForFamilies } from "@/lib/admissions/family-students";
 import type { ParentNotificationContext } from "@/lib/parent-portal/parent-notification-context";
 import { getFamilyIdsForUser } from "./application-auth";
 import {
@@ -20,23 +21,6 @@ import {
   resolveDefaultParentPortalEntryHrefFromContexts,
   shouldRedirectAwayFromMainParentPortal,
 } from "./program-parent-portal-context-switch";
-
-export async function getStudentIdsForFamilies(
-  supabase: SupabaseClient,
-  organizationId: string,
-  familyIds: string[],
-): Promise<string[]> {
-  if (familyIds.length === 0) return [];
-
-  const { data, error } = await supabase
-    .from("students")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .in("family_id", familyIds);
-
-  if (error) throw error;
-  return (data ?? []).map((row) => String(row.id));
-}
 
 export async function userHasEnrolledAccessInProgram(
   supabase: SupabaseClient,
@@ -553,3 +537,6 @@ export async function resolveDefaultParentPortalEntryHrefForFamily(input: {
 }
 
 export { shouldRedirectAwayFromMainParentPortal };
+
+/** Re-exported for existing importers; implementation lives in `family-students.ts`. */
+export { getStudentIdsForFamilies };

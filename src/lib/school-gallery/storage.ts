@@ -14,11 +14,7 @@ export const GALLERY_IMAGE_COMPRESS_OPTIONS = {
   skipBelowBytes: 300 * 1024,
 } as const;
 
-const ALLOWED_MIME_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-]);
+const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 export const GALLERY_SIGNED_URL_TTL_SECONDS = 60 * 60;
 
@@ -74,7 +70,11 @@ export async function uploadPreparedGalleryPhotoFile(
   organizationId: string,
   photoId: string,
   prepared: File,
-): Promise<{ storagePath: string; mimeType: string | null; sizeBytes: number }> {
+): Promise<{
+  storagePath: string;
+  mimeType: string | null;
+  sizeBytes: number;
+}> {
   const storagePath = buildGalleryPhotoStoragePath(
     organizationId,
     photoId,
@@ -102,7 +102,11 @@ export async function uploadGalleryPhotoFile(
   organizationId: string,
   photoId: string,
   file: File,
-): Promise<{ storagePath: string; mimeType: string | null; sizeBytes: number }> {
+): Promise<{
+  storagePath: string;
+  mimeType: string | null;
+  sizeBytes: number;
+}> {
   validateGalleryPhotoFile(file);
   const prepared = await prepareGalleryPhotoForUpload(file);
   return uploadPreparedGalleryPhotoFile(
@@ -144,51 +148,122 @@ export async function getGalleryPhotoSignedUrl(
   return data.signedUrl;
 }
 
-function reportGalleryPhotoSignedUrlFailure(
+type SignedUrlFailure = {
+  photo: { organizationId: string; id: string; storagePath: string };
+  cause: unknown;
+};
+
+/** One report per organization per batch, not one per photo. */
+function reportGalleryPhotoSignedUrlFailures(
   supabase: SupabaseClient,
-  photo: { organizationId: string; id: string; storagePath: string },
-  cause: unknown,
+  failures: SignedUrlFailure[],
+  totalPhotos: number,
 ): void {
-  void reportOperationalError({
-    supabase,
-    surface: "system",
-    organizationId: photo.organizationId,
-    operation: "school_gallery.photo_signed_url",
-    error:
-      cause instanceof Error
-        ? cause.message
-        : "Failed to create a signed URL for a gallery photo.",
-    entityType: "school_gallery_photo",
-    entityId: photo.id,
-    metadata: {
-      storagePath: photo.storagePath,
-      bucket: SCHOOL_GALLERY_FILES_BUCKET,
-    },
-    severity: "warning",
-    notify: true,
-    actor: { type: "system" },
-    cause,
-  });
+  const byOrganization = new Map<string, SignedUrlFailure[]>();
+  for (const failure of failures) {
+    const list = byOrganization.get(failure.photo.organizationId) ?? [];
+    list.push(failure);
+    byOrganization.set(failure.photo.organizationId, list);
+  }
+
+  for (const [organizationId, orgFailures] of byOrganization) {
+    const first = orgFailures[0];
+    const cause = first.cause;
+    void reportOperationalError({
+      supabase,
+      surface: "system",
+      organizationId,
+      operation: "school_gallery.photo_signed_url",
+      error:
+        cause instanceof Error
+          ? cause.message
+          : typeof (cause as { message?: unknown } | null)?.message === "string"
+            ? String((cause as { message: string }).message)
+            : "Failed to create a signed URL for a gallery photo.",
+      entityType: "school_gallery_photo",
+      entityId: first.photo.id,
+      metadata: {
+        bucket: SCHOOL_GALLERY_FILES_BUCKET,
+        failedCount: orgFailures.length,
+        totalPhotos: totalPhotos,
+        photoIds: orgFailures.slice(0, 20).map((entry) => entry.photo.id),
+        storagePaths: orgFailures
+          .slice(0, 5)
+          .map((entry) => entry.photo.storagePath),
+      },
+      severity: "warning",
+      notify: true,
+      actor: { type: "system" },
+      cause,
+    });
+  }
 }
 
+/**
+ * Signs every photo with one `createSignedUrls` call (instead of one storage request per photo)
+ * and reports failures once per batch. Photos that fail to sign keep `imageUrl: undefined`.
+ */
 export async function attachSignedUrlsToGalleryPhotos(
   supabase: SupabaseClient,
   photos: import("./types").GalleryPhoto[],
 ): Promise<import("./types").GalleryPhoto[]> {
-  return Promise.all(
-    photos.map(async (photo) => ({
-      ...photo,
-      imageUrl: await getGalleryPhotoSignedUrl(
-        supabase,
+  if (photos.length === 0) return photos;
+
+  const failures: SignedUrlFailure[] = [];
+  const signable: import("./types").GalleryPhoto[] = [];
+
+  for (const photo of photos) {
+    try {
+      assertGalleryPhotoStoragePath(
         photo.organizationId,
         photo.id,
         photo.storagePath,
-      ).catch((err) => {
-        reportGalleryPhotoSignedUrlFailure(supabase, photo, err);
-        return undefined;
-      }),
-    })),
-  );
+      );
+      signable.push(photo);
+    } catch (cause) {
+      failures.push({ photo, cause });
+    }
+  }
+
+  const urlByPath = new Map<string, string>();
+
+  if (signable.length > 0) {
+    const paths = [...new Set(signable.map((photo) => photo.storagePath))];
+    const { data, error } = await supabase.storage
+      .from(SCHOOL_GALLERY_FILES_BUCKET)
+      .createSignedUrls(paths, GALLERY_SIGNED_URL_TTL_SECONDS);
+
+    if (error) {
+      for (const photo of signable) failures.push({ photo, cause: error });
+    } else {
+      for (const entry of data ?? []) {
+        if (entry.path && entry.signedUrl && !entry.error) {
+          urlByPath.set(entry.path, entry.signedUrl);
+        }
+      }
+      for (const photo of signable) {
+        if (urlByPath.has(photo.storagePath)) continue;
+        const entry = (data ?? []).find(
+          (row) => row.path === photo.storagePath,
+        );
+        failures.push({
+          photo,
+          cause: new Error(
+            entry?.error ?? "Failed to create a download link for this photo.",
+          ),
+        });
+      }
+    }
+  }
+
+  if (failures.length > 0) {
+    reportGalleryPhotoSignedUrlFailures(supabase, failures, photos.length);
+  }
+
+  return photos.map((photo) => ({
+    ...photo,
+    imageUrl: urlByPath.get(photo.storagePath),
+  }));
 }
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;

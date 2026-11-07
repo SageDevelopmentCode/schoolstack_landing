@@ -19,9 +19,7 @@ type PageProps = {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org) {
     return { title: "Preview Not Found" };
@@ -36,7 +34,7 @@ export default async function FamilyPreviewApplicationPage({ params }: PageProps
   const { slug, familyId, applicationId } = await params;
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org) {
     notFound();

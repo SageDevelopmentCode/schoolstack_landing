@@ -6,6 +6,7 @@ import {
   parseOrganizationFridayBranchSettings,
   type OrganizationFridayBranchSettings,
 } from "@/lib/school-admin/friday-branch/friday-branch-org-settings";
+import { revalidateOrganizationSettingsById } from "@/lib/organization-settings/revalidate";
 import {
   requireSchoolAdminUser,
   SchoolAdminAuthError,
@@ -155,6 +156,8 @@ export async function PATCH(request: Request) {
         });
       }
     }
+
+    await revalidateOrganizationSettingsById(admin, organizationId);
 
     return NextResponse.json({ settings });
   } catch (err) {

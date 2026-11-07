@@ -9,7 +9,12 @@ import {
 } from "@/lib/auth/portal-sign-in-discord";
 import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import { notifyRootedMeadowsPortalSignedIn } from "@/lib/discord";
+import { apiError } from "@/lib/api/route-errors";
 import { reportOperationalError } from "@/lib/operational-errors";
+import {
+  listLiveOrganizationsBySlugs,
+  type LiveOrganizationOption,
+} from "@/lib/organization-settings/list-live-organizations";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -58,13 +63,46 @@ export async function GET(request: Request) {
   }
 
   const admin = createAdminClient();
+
+  if ("noAccess" in result) {
+    return NextResponse.json({ noAccess: true });
+  }
+
+  if ("needsSchoolSelection" in result) {
+    let organizations: LiveOrganizationOption[] = [];
+    try {
+      organizations = await listLiveOrganizationsBySlugs(
+        admin,
+        result.accessibleSlugs,
+      );
+    } catch (error) {
+      return apiError(ROUTE, {
+        request,
+        status: 500,
+        error: "Failed to load your schools.",
+        code: "login_organizations_failed",
+        cause: error,
+      });
+    }
+
+    return NextResponse.json({
+      needsSchoolSelection: true,
+      accessibleSlugs: result.accessibleSlugs,
+      organizations,
+    });
+  }
+
   let organizationId: string | null = null;
 
-  if (slug) {
+  // The slug may be detected server-side when the client did not pick a school.
+  const effectiveSlug =
+    slug ?? ("resolvedSlug" in result ? result.resolvedSlug : undefined);
+
+  if (effectiveSlug) {
     const { data: organization } = await admin
       .from("organizations")
       .select("id")
-      .eq("slug", slug)
+      .eq("slug", effectiveSlug)
       .maybeSingle();
 
     organizationId = organization?.id ? String(organization.id) : null;
@@ -74,7 +112,7 @@ export async function GET(request: Request) {
     const metadata = {
       method: method === "session_restored" ? undefined : method,
       page: "/login" as const,
-      organizationSlug: slug,
+      organizationSlug: effectiveSlug,
     };
 
     if (method === "session_restored") {
@@ -115,24 +153,17 @@ export async function GET(request: Request) {
     }
   }
 
-  if ("needsSchoolSelection" in result) {
-    return NextResponse.json({
-      needsSchoolSelection: true,
-      accessibleSlugs: result.accessibleSlugs,
-    });
-  }
-
   const href = result.href;
 
   if (
     method &&
     method !== "session_restored" &&
     href &&
-    slug &&
+    effectiveSlug &&
     user.email
   ) {
     try {
-      const inferred = inferPortalSignInDiscordFromLoginHref(href, slug);
+      const inferred = inferPortalSignInDiscordFromLoginHref(href, effectiveSlug);
       const actorType = await resolvePortalSignInDiscordActorType(
         supabase,
         user.id,

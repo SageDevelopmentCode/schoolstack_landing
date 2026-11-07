@@ -33,7 +33,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const org = await fetchOrganizationWithSettings(supabase, slug);
+    const org = await fetchOrganizationWithSettings(slug);
     if (!org || org.id !== organizationId) {
       return apiError(ROUTE, {
         request,
@@ -110,7 +110,7 @@ export async function POST(request: Request) {
 
   try {
     const admin = createAdminClient();
-    const org = await fetchOrganizationWithSettings(admin, slug);
+    const org = await fetchOrganizationWithSettings(slug);
     if (!org || org.id !== organizationId) {
       return apiError(ROUTE, {
         request,

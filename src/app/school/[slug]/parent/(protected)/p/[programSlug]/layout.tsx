@@ -12,6 +12,7 @@ import {
   getParentPortalUserProfile,
 } from "@/lib/parent-portal/parent-portal-server-cache";
 import { buildProgramParentNotificationContext } from "@/lib/parent-portal/parent-notification-context";
+import { startParentBadgeCountLoads } from "@/lib/parent-portal/parent-badge-counts";
 import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-server";
 import { portalAccountLinkOpensInNewTab } from "@/lib/auth/portal-switcher-types";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
@@ -31,7 +32,7 @@ export default async function SchoolProgramParentLayout({
   const { slug, programSlug } = await params;
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
   const user = await getRequestUser();
 
   if (!org || !user) {
@@ -70,7 +71,7 @@ export default async function SchoolProgramParentLayout({
 
   const [userProfile, portalOptions, parentPortalContexts, linkContext] =
     await Promise.all([
-    getParentPortalUserProfile(supabase, org.id),
+    getParentPortalUserProfile(org.id),
     listSchoolPortalOptionsForUser(supabase, user.id, slug, {
       org,
       hasEnrolledAccess: true,
@@ -97,6 +98,18 @@ export default async function SchoolProgramParentLayout({
     { parentNavBasePath: programContext.parentNavBasePath },
   );
 
+  // Started, not awaited: the shell renders now and the header badges fill in as these resolve.
+  const badgeCountPromises = startParentBadgeCountLoads({
+    supabase,
+    organizationId: org.id,
+    organizationName: org.name,
+    slug,
+    userId: user.id,
+    notificationContext,
+    messagesEnabled: Boolean(programContext.effectiveFeatures.parent?.messages),
+    committeesEnabled: Boolean(programContext.effectiveFeatures.parent?.committees),
+  });
+
   return (
     <SchoolParentBaseline
       slug={slug}
@@ -112,6 +125,7 @@ export default async function SchoolProgramParentLayout({
       coopModeEnabled={programContext.coopMode}
       coopProgramLabel={programContext.displayLabel}
       notificationContext={notificationContext}
+      badgeCountPromises={badgeCountPromises}
       fridayBranchSettings={org.fridayBranchSettings}
     >
       {children}

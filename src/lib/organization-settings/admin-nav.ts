@@ -13,7 +13,11 @@ import {
 import { humanizeFeatureKey } from "./features";
 import type { AdminNavPath } from "./admin-routes";
 import { resolveAdminNavChildHref } from "./admin-routes";
-import type { AdminFeatures, FeatureNavChildConfig, PortalFeatureNav } from "./types";
+import type {
+  AdminFeatures,
+  FeatureNavChildConfig,
+  PortalFeatureNav,
+} from "./types";
 
 export type AdminNavPage = keyof AdminFeatures | string;
 
@@ -41,7 +45,9 @@ const CATALOG_KEYS = new Set<string>(
   ADMIN_NAV_CATALOG_ENTRIES.map((entry) => entry.key),
 );
 
-function toAdminFeatureRecord(adminFeatures: AdminFeatures): Record<string, boolean> {
+function toAdminFeatureRecord(
+  adminFeatures: AdminFeatures,
+): Record<string, boolean> {
   return adminFeatures as unknown as Record<string, boolean>;
 }
 
@@ -99,7 +105,10 @@ export function adminNavItemMatchesPath(
   pathname: string,
   item: AdminNavItem,
 ): boolean {
-  const visit = (parentFeature: string, children: AdminNavChildItem[]): boolean => {
+  const visit = (
+    parentFeature: string,
+    children: AdminNavChildItem[],
+  ): boolean => {
     for (const child of children) {
       if (child.children?.length) {
         if (visit(parentFeature, child.children)) return true;

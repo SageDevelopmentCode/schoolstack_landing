@@ -1,6 +1,5 @@
 export type ResolveSignupAttentionFamilyIdResult =
-  | { familyId: string }
-  | { error: "forbidden" };
+  { familyId: string } | { error: "forbidden" };
 
 export function resolveSignupAttentionFamilyId(
   familyIds: string[],

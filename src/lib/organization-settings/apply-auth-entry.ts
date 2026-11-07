@@ -32,7 +32,8 @@ function normalizeOption(
   raw: Record<string, unknown>,
   index: number,
 ): ApplyAuthEntryOption | null {
-  const type = raw.type === "schedule_campus_tour" ? "schedule_campus_tour" : "apply";
+  const type =
+    raw.type === "schedule_campus_tour" ? "schedule_campus_tour" : "apply";
   const enabled = raw.enabled === true;
   const id =
     typeof raw.id === "string" && raw.id.trim()

@@ -31,7 +31,11 @@ function allParentFeatureKeys(orgFeatures: OrganizationFeatures): string[] {
   }
   for (const key of Object.keys(orgFeatures)) {
     if (typeof orgFeatures[key] === "boolean") continue;
-    if (key === "feature_nav" || key === "parent_onboarding" || key === "apply_auth_entry") {
+    if (
+      key === "feature_nav" ||
+      key === "parent_onboarding" ||
+      key === "apply_auth_entry"
+    ) {
       continue;
     }
   }
@@ -44,7 +48,12 @@ export function resolveProgramParentFeatures(
 ): ParentFeatures {
   const orgParent = orgFeatures.parent ?? DEFAULT_FEATURES.parent;
   if (programSettings.mode !== "isolated") {
-    return { ...orgParent, curriculum: false, supply_list: false, teaching_schedule: false };
+    return {
+      ...orgParent,
+      curriculum: false,
+      supply_list: false,
+      teaching_schedule: false,
+    };
   }
 
   const programParent = programSettings.features ?? {};
@@ -55,7 +64,9 @@ export function resolveProgramParentFeatures(
       continue;
     }
     const orgEnabled = Boolean((orgParent as Record<string, boolean>)[key]);
-    const programRequested = Boolean((programParent as Record<string, boolean>)[key]);
+    const programRequested = Boolean(
+      (programParent as Record<string, boolean>)[key],
+    );
     result[key] = orgEnabled && programRequested;
   }
 
@@ -64,7 +75,8 @@ export function resolveProgramParentFeatures(
     Boolean((orgParent as Record<string, boolean>).committees) &&
     programParent.committees !== false;
 
-  result.portal = Boolean(orgParent.portal) && Boolean(programParent.portal ?? true);
+  result.portal =
+    Boolean(orgParent.portal) && Boolean(programParent.portal ?? true);
   result.curriculum =
     Boolean((orgParent as Record<string, boolean>).curriculum) &&
     Boolean((programParent as Record<string, boolean>).curriculum) &&

@@ -44,7 +44,32 @@ export async function listLiveOrganizations(
 
   if (error) throw error;
 
-  const rows = data ?? [];
+  return hydrateOrganizationOptions(supabase, data ?? []);
+}
+
+/** Live organizations for specific slugs (e.g. the schools a signed-in user can access). */
+export async function listLiveOrganizationsBySlugs(
+  supabase: SupabaseClient,
+  slugs: string[],
+): Promise<LiveOrganizationOption[]> {
+  if (slugs.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from("organizations")
+    .select("id, slug, name")
+    .eq("status", "live")
+    .in("slug", slugs)
+    .order("name", { ascending: true });
+
+  if (error) throw error;
+
+  return hydrateOrganizationOptions(supabase, data ?? []);
+}
+
+async function hydrateOrganizationOptions(
+  supabase: SupabaseClient,
+  rows: { id: unknown; slug: unknown; name: unknown }[],
+): Promise<LiveOrganizationOption[]> {
   const brandingByOrgId = await loadPublicBrandingByOrganizationId(
     supabase,
     rows.map((row) => String(row.id)),

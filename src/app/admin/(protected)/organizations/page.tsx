@@ -1,5 +1,6 @@
 "use client";
 
+import { revalidateOrganizationSettingsFromBrowser } from "@/lib/organization-settings/revalidate-client";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Bell, GraduationCap, Inbox, LayoutDashboard, LayoutGrid, Link2, MessageSquare, Palette, Smartphone, ToggleLeft } from "lucide-react";
@@ -258,6 +259,8 @@ export default function AdminOrganizationsPage() {
         alert("Update failed: " + updateError.message);
         return;
       }
+
+      revalidateOrganizationSettingsFromBrowser(id);
 
       setOrganizations((prev) =>
         prev.map((org) =>

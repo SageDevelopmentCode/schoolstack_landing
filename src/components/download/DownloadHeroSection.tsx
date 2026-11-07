@@ -9,9 +9,7 @@ import {
   DownloadFloatingIllustration,
   useDownloadPageParallax,
 } from "@/components/download/DownloadPageMotion";
-import { MUDKITCHEN_MARKETING_STORY_THEME } from "@/lib/marketing/mudkitchen-story-theme";
-
-const theme = MUDKITCHEN_MARKETING_STORY_THEME;
+import { ACCENT_HIGHLIGHT } from "@/components/home/bright-styles";
 
 export default function DownloadHeroSection() {
   const [slideIndex, setSlideIndex] = useState(0);
@@ -59,14 +57,10 @@ export default function DownloadHeroSection() {
         <div className="flex flex-col gap-10 lg:grid lg:grid-cols-2 lg:items-center lg:gap-10 xl:gap-14">
           <div>
             <GetStartedStoryHeader
-              theme={theme}
               kicker="MudKitchen mobile"
               title={
                 <>
-                  Your school,{" "}
-                  <em style={{ color: theme.coral, fontStyle: "italic" }}>
-                    in your pocket.
-                  </em>
+                  Your school, <span className={ACCENT_HIGHLIGHT}>in your pocket.</span>
                 </>
               }
               subtitle="Download the MudKitchen app for iPhone today. On Android, leave your email and we’ll send you the Google Play link when it’s live."

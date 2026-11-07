@@ -1,98 +1,58 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
-import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import {
   fetchCommitteeActivityEvents,
   mapCommitteeActivityItems,
 } from "@/lib/committees/activity-feed";
 import { resolveActiveCommitteeMemberForPost } from "@/lib/committees/parent-committees";
-import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
+import { withParentPortalRoute } from "@/lib/parent-portal/with-parent-portal-route";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/committees/[committeeId]/activity";
 
-type RouteContext = { params: Promise<{ committeeId: string }> };
+export const GET = withParentPortalRoute<undefined, { committeeId: string }>(
+  {
+    route: ROUTE,
+    feature: "committees",
+    forbiddenMessage: "You do not have access to this committee.",
+    fallbackErrorMessage: "Failed to load committee activity.",
+  },
+  async ({ request, user, organizationId, params }) => {
+    const { searchParams } = new URL(request.url);
+    const slug = searchParams.get("slug")?.trim() ?? "";
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam ? Math.min(Math.max(Number(limitParam) || 15, 1), 50) : 15;
+    const { committeeId } = params;
 
-export async function GET(request: Request, context: RouteContext) {
-  const supabase = await createClientFromRequest(request);
-  const { committeeId } = await context.params;
-  const { searchParams } = new URL(request.url);
-  const organizationId = searchParams.get("organizationId")?.trim() ?? "";
-  const slug = searchParams.get("slug")?.trim() ?? "";
-  const limitParam = searchParams.get("limit");
-  const limit = limitParam ? Math.min(Math.max(Number(limitParam) || 15, 1), 50) : 15;
+    try {
+      const admin = createAdminClient();
+      await resolveActiveCommitteeMemberForPost(admin, organizationId, user.id, committeeId);
 
-  if (!organizationId || !committeeId) {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "organizationId is required.",
-      code: "missing_fields",
-    });
-  }
+      const rows = await fetchCommitteeActivityEvents(admin, {
+        organizationId,
+        committeeId,
+        limit,
+        audience: "parent",
+      });
 
-  const {
-    data: { user },
-    error: authError,
-  } = await getUserFromRequest(supabase, request);
+      const items = mapCommitteeActivityItems(rows, {
+        slug,
+        committeeId,
+        linkSurface: "parent",
+        includeHref: Boolean(slug),
+      });
 
-  if (!user) {
-    return apiError(ROUTE, {
-      request,
-      status: 401,
-      error: await signedInErrorForRequest(request, authError),
-      code: "unauthorized",
-    });
-  }
-
-  try {
-    const hasEnrolledAccess = await userHasEnrolledAccess(
-      supabase,
-      user.id,
-      organizationId,
-    );
-
-    if (!hasEnrolledAccess) {
+      return NextResponse.json({ items });
+    } catch (err) {
+      const resolved = portalRouteErrorStatus(err, "Failed to load committee activity.");
       return apiError(ROUTE, {
         request,
-        status: 403,
-        error: "You do not have access to this committee.",
-        code: "forbidden",
+        status: resolved.status,
+        error: resolved.message,
+        code: resolved.code,
+        cause: err,
       });
     }
-
-    const admin = createAdminClient();
-    await resolveActiveCommitteeMemberForPost(
-      admin,
-      organizationId,
-      user.id,
-      committeeId,
-    );
-
-    const rows = await fetchCommitteeActivityEvents(admin, {
-      organizationId,
-      committeeId,
-      limit,
-      audience: "parent",
-    });
-
-    const items = mapCommitteeActivityItems(rows, {
-      slug,
-      committeeId,
-      linkSurface: "parent",
-      includeHref: Boolean(slug),
-    });
-
-    return NextResponse.json({ items });
-  } catch (err) {
-    const resolved = portalRouteErrorStatus(err, "Failed to load committee activity.");
-    return apiError(ROUTE, {
-      request,
-      status: resolved.status,
-      error: resolved.message,
-      code: resolved.code,
-      cause: err,
-    });
-  }
-}
+  },
+);

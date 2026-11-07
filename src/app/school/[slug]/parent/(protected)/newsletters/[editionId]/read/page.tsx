@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { cookies } from "next/headers";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { schoolParentPath } from "@/lib/organization-settings/parent-routes";
 import {
@@ -9,8 +8,8 @@ import {
   loadParentNewsletterDetailBundleForOrganization,
 } from "@/lib/parent-portal/newsletters/load-parent-newsletters";
 import { parentNewsletterDocumentApiPath } from "@/lib/parent-portal/newsletters/parent-newsletter-document-url";
+import { requireParentPortalAccess } from "@/lib/parent-portal/parent-portal-server-cache";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -20,13 +19,13 @@ type PageProps = {
 
 export default async function ParentNewsletterReadPage({ params }: PageProps) {
   const { slug, editionId } = await params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org || !isParentNewslettersFeatureEnabled(org.features)) {
     notFound();
   }
+
+  await requireParentPortalAccess({ organizationId: org.id, schoolSlug: slug });
 
   const admin = createAdminClient();
   const result = await loadParentNewsletterDetailBundleForOrganization(admin, org.id, editionId);

@@ -25,9 +25,7 @@ type PageProps = {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org) {
     return { title: "School Not Found" };
@@ -42,7 +40,7 @@ export default async function ApplicationEnrollmentPage({ params }: PageProps) {
   const { slug, applicationId } = await params;
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org) {
     notFound();

@@ -5,45 +5,38 @@ import {
   GET_STARTED_FILM_COPY,
   GET_STARTED_FILM_YOUTUBE_EMBED_SRC,
 } from "@/lib/marketing/get-started-film";
-import { MUDKITCHEN_MARKETING_STORY_THEME } from "@/lib/marketing/mudkitchen-story-theme";
-
-const theme = MUDKITCHEN_MARKETING_STORY_THEME;
+import { ACCENT_HIGHLIGHT } from "@/components/home/bright-styles";
 
 export default function GetStartedFilmSection() {
   return (
     <section
-      className="border-t border-border bg-surface py-16 sm:py-20 font-secondary text-text"
+      className="bg-white px-3 py-16 sm:py-20 lg:px-6"
       aria-labelledby="get-started-film-heading"
     >
-      <div className="mx-auto max-w-3xl px-4 sm:px-6">
-        <GetStartedStoryHeader
-          theme={theme}
-          kicker={GET_STARTED_FILM_COPY.kicker}
-          title={
-            <>
-              Before your demo,{" "}
-              <em style={{ color: theme.coral, fontStyle: "italic" }}>
-                watch how it works.
-              </em>
-            </>
-          }
-          subtitle={GET_STARTED_FILM_COPY.subtitle}
-          className="mb-8 sm:mb-10"
-          headingAs="h2"
-          titleId="get-started-film-heading"
-        />
-
-        <div
-          className="relative aspect-video w-full overflow-hidden rounded-[22px] border border-border bg-black"
-          style={{ boxShadow: theme.shadowCard }}
-        >
-          <iframe
-            className="absolute inset-0 h-full w-full border-0"
-            src={GET_STARTED_FILM_YOUTUBE_EMBED_SRC}
-            title="MudKitchen product overview"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
+      <div className="mx-auto max-w-[1400px] rounded-[40px] bg-[#FFF4EC] px-6 py-12 md:px-10 lg:px-14">
+        <div className="mx-auto max-w-3xl">
+          <GetStartedStoryHeader
+            kicker={GET_STARTED_FILM_COPY.kicker}
+            title={
+              <>
+                Before your demo, <span className={ACCENT_HIGHLIGHT}>watch how it works.</span>
+              </>
+            }
+            subtitle={GET_STARTED_FILM_COPY.subtitle}
+            className="mb-8 sm:mb-10"
+            headingAs="h2"
+            titleId="get-started-film-heading"
           />
+
+          <div className="relative aspect-video w-full overflow-hidden rounded-[24px] border border-black/10 bg-black shadow-[0_24px_60px_rgba(30,60,30,0.10)]">
+            <iframe
+              className="absolute inset-0 h-full w-full border-0"
+              src={GET_STARTED_FILM_YOUTUBE_EMBED_SRC}
+              title="MudKitchen product overview"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
         </div>
       </div>
     </section>

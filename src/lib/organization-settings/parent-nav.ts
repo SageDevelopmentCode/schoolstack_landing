@@ -154,7 +154,9 @@ export function splitParentNavForHeader(
 
   if (options?.coopMode) {
     primaryKeys.delete("committees");
-    const teachingSchedule = items.find((item) => item.key === "teaching_schedule");
+    const teachingSchedule = items.find(
+      (item) => item.key === "teaching_schedule",
+    );
     if (teachingSchedule) {
       primaryKeys.add("teaching_schedule");
     }

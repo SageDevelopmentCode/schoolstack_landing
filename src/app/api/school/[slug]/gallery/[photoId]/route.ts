@@ -27,7 +27,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   try {
     const admin = createAdminClient();
-    const org = await fetchOrganizationWithSettings(admin, slug);
+    const org = await fetchOrganizationWithSettings(slug);
 
     if (!org || !isSchoolGalleryEnabled(org.features)) {
       return apiError(ROUTE, {
@@ -91,7 +91,7 @@ export async function DELETE(request: Request, context: RouteContext) {
 
   try {
     const admin = createAdminClient();
-    const org = await fetchOrganizationWithSettings(admin, slug);
+    const org = await fetchOrganizationWithSettings(slug);
 
     if (!org || !isSchoolGalleryEnabled(org.features)) {
       return apiError(ROUTE, {

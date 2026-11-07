@@ -5,6 +5,7 @@ import {
   listFamilyChildrenForHome,
   userHasEnrolledAccess,
 } from "@/lib/admissions/parent-portal-access";
+import type { ParentPortalAccess } from "@/lib/parent-portal/parent-portal-access-rpc";
 import type { ParentFridayBranchStudentOption } from "./types";
 
 export class ParentFridayBranchAuthError extends Error {
@@ -23,8 +24,15 @@ export async function requireParentFridayBranchAccess(
   supabase: SupabaseClient,
   user: User,
   organizationId: string,
-): Promise<{ familyId: string; studentOptions: ParentFridayBranchStudentOption[] }> {
-  const hasAccess = await userHasEnrolledAccess(supabase, user.id, organizationId);
+  /** Access snapshot from `parent_portal_access`; skips the access and family lookups. */
+  portalAccess?: ParentPortalAccess,
+): Promise<{
+  familyId: string;
+  studentOptions: ParentFridayBranchStudentOption[];
+}> {
+  const hasAccess = portalAccess
+    ? portalAccess.hasEnrolledAccess
+    : await userHasEnrolledAccess(supabase, user.id, organizationId);
   if (!hasAccess) {
     throw new ParentFridayBranchAuthError(
       "You do not have access to the parent portal.",
@@ -33,13 +41,23 @@ export async function requireParentFridayBranchAccess(
     );
   }
 
-  const familyIds = await getFamilyIdsForUser(supabase, user.id, organizationId);
+  const familyIds = portalAccess
+    ? portalAccess.familyIds
+    : await getFamilyIdsForUser(supabase, user.id, organizationId);
   const familyId = familyIds[0];
   if (!familyId) {
-    throw new ParentFridayBranchAuthError("Family not found.", 404, "not_found");
+    throw new ParentFridayBranchAuthError(
+      "Family not found.",
+      404,
+      "not_found",
+    );
   }
 
-  const familyChildren = await listFamilyChildrenForHome(supabase, organizationId, user.id);
+  const familyChildren = await listFamilyChildrenForHome(
+    supabase,
+    organizationId,
+    user.id,
+  );
   const studentOptions = familyChildren
     .filter((child) => child.studentId)
     .map((child) => ({

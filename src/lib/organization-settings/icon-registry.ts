@@ -106,4 +106,3 @@ export function getFeatureIcon(slug: string | undefined): LucideIcon {
   if (!slug) return Puzzle;
   return ICON_MAP[slug] ?? Puzzle;
 }
-

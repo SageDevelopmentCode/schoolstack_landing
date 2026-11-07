@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { cookies } from "next/headers";
 import type { Metadata } from "next";
 import LoginExperience from "@/components/login/LoginExperience";
-import { listLiveOrganizations } from "@/lib/organization-settings/list-live-organizations";
+import { listLiveOrganizationsBySlugs } from "@/lib/organization-settings/list-live-organizations";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -14,20 +14,35 @@ export const metadata: Metadata = {
 
 function LoginFallback() {
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-bg">
-      <div className="h-8 w-48 animate-pulse rounded bg-border/40" />
+    <div className="flex min-h-dvh items-center justify-center bg-white">
+      <div className="h-8 w-48 animate-pulse rounded-pill bg-[#F4F1EC]" />
     </div>
   );
 }
 
-export default async function LoginPage() {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const organizations = await listLiveOrganizations(supabase);
+type LoginPageProps = {
+  searchParams: Promise<{ school?: string | string[] }>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const { school } = await searchParams;
+  const schoolSlug = (Array.isArray(school) ? school[0] : school)?.trim();
+
+  // Only resolve the school named in a deep link. The full school list is never
+  // shipped to the browser; signed-in users get their own schools after auth.
+  let initialOrganization = null;
+  if (schoolSlug) {
+    const cookieStore = await cookies();
+    const supabase = createClient(cookieStore);
+    const [organization] = await listLiveOrganizationsBySlugs(supabase, [
+      schoolSlug,
+    ]);
+    initialOrganization = organization ?? null;
+  }
 
   return (
     <Suspense fallback={<LoginFallback />}>
-      <LoginExperience organizations={organizations} />
+      <LoginExperience initialOrganization={initialOrganization} />
     </Suspense>
   );
 }

@@ -11,15 +11,14 @@ import FloatingStickers, { STICKERS_BY_DEMO } from "./FloatingStickers";
 import { HERO_COPY } from "./home-copy";
 import { ACCENT_HIGHLIGHT, BOLD_HEADING, DARK_PILL, OUTLINE_PILL } from "./bright-styles";
 
-const TABS: { key: DemoStageKey; label: string; caption: string; icon: LucideIcon; color: string }[] = [
-  { key: "parent", label: "Parent View", caption: "Parent portal", icon: Users, color: PRODUCT_PREVIEW_GROUP_COLORS.parent },
-  { key: "teacher", label: "Teacher View", caption: "Teacher portal", icon: BookOpen, color: PRODUCT_PREVIEW_GROUP_COLORS.teacher },
-  { key: "admin", label: "Admin View", caption: "Admin workspace", icon: LayoutDashboard, color: PRODUCT_PREVIEW_GROUP_COLORS.admin },
+const TABS: { key: DemoStageKey; label: string; icon: LucideIcon; color: string }[] = [
+  { key: "parent", label: "Parent View", icon: Users, color: PRODUCT_PREVIEW_GROUP_COLORS.parent },
+  { key: "teacher", label: "Teacher View", icon: BookOpen, color: PRODUCT_PREVIEW_GROUP_COLORS.teacher },
+  { key: "admin", label: "Admin View", icon: LayoutDashboard, color: PRODUCT_PREVIEW_GROUP_COLORS.admin },
 ];
 
 export default function BrightHero() {
   const [active, setActive] = useState<DemoStageKey>("parent");
-  const tab = TABS.find((t) => t.key === active)!;
   const sectionRef = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion();
   const isLg = useMediaQuery("(min-width: 1024px)");
@@ -92,7 +91,7 @@ export default function BrightHero() {
           </div>
         </div>
 
-        <div className="hero-frame-enter relative mx-auto mt-8 max-w-[1120px]" style={{ perspective: tilt ? 1600 : undefined }}>
+        <div className="hero-frame-enter relative mx-auto mt-12 max-w-[1120px] lg:mt-14" style={{ perspective: tilt ? 1600 : undefined }}>
           <motion.div style={tilt ? { rotateX, scale, y, transformOrigin: "50% 0%" } : undefined} className="relative">
             <FloatingStickers stickers={STICKERS_BY_DEMO[active]} />
             <motion.div
@@ -106,17 +105,6 @@ export default function BrightHero() {
               designHeight={680}
               minScale={0.42}
               className="relative rounded-[28px] border border-black/10 bg-white shadow-[0_50px_120px_rgba(20,20,40,0.16)]"
-              header={
-                <div className="flex h-11 items-center gap-2 border-b border-black/5 bg-[#FAF9F7] px-4">
-                  <span className="h-3 w-3 rounded-full bg-[#FF6159]" />
-                  <span className="h-3 w-3 rounded-full bg-[#FFBD2E]" />
-                  <span className="h-3 w-3 rounded-full bg-[#28C941]" />
-                  <span className="font-secondary mx-auto truncate rounded-pill bg-white px-4 py-1 text-[12px] text-[#1d1a16]/50 ring-1 ring-black/5">
-                    trymudkitchen.com · {tab.caption}
-                  </span>
-                  <span className="w-[52px]" aria-hidden />
-                </div>
-              }
             />
           </motion.div>
         </div>

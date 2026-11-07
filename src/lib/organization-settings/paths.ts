@@ -44,9 +44,7 @@ export function setBrandingValue(
 /** Normalize rgba/hex for color input (only supports #rrggbb). */
 export function toColorInputValue(value: string): string {
   if (/^#[0-9a-fA-F]{6}$/.test(value)) return value;
-  const rgbMatch = value.match(
-    /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/,
-  );
+  const rgbMatch = value.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
   if (rgbMatch) {
     const r = Number(rgbMatch[1]).toString(16).padStart(2, "0");
     const g = Number(rgbMatch[2]).toString(16).padStart(2, "0");

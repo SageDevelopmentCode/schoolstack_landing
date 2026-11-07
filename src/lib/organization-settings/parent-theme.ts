@@ -106,9 +106,7 @@ export function childAccentColor(index: number): string {
   return CHILD_ACCENT_ICON[index % CHILD_ACCENT_ICON.length];
 }
 
-export function parentThemeCssVars(
-  theme: ParentThemeTokens,
-): CSSProperties {
+export function parentThemeCssVars(theme: ParentThemeTokens): CSSProperties {
   return {
     "--parent-paper": theme.paper,
     "--parent-ink": theme.ink,

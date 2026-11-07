@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { revalidateOrganizationSettingsById } from "@/lib/organization-settings/revalidate";
 import {
   campusToDatabaseRow,
   parseOrganizationCampusRow,
@@ -6,6 +7,20 @@ import {
 } from "./school-profile";
 
 export async function saveSchoolProfileBundle(
+  supabase: SupabaseClient,
+  organizationId: string,
+  patch: SchoolProfilePatch,
+): Promise<SchoolProfilePatch> {
+  const saved = await saveSchoolProfileBundleUncached(
+    supabase,
+    organizationId,
+    patch,
+  );
+  await revalidateOrganizationSettingsById(supabase, organizationId);
+  return saved;
+}
+
+async function saveSchoolProfileBundleUncached(
   supabase: SupabaseClient,
   organizationId: string,
   patch: SchoolProfilePatch,

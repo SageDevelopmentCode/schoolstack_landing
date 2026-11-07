@@ -18,6 +18,7 @@ import {
   validateParticipantSet,
 } from "./participant-signature";
 import { loadAttachmentsForMessages, getMessageAttachmentSignedUrl } from "./message-attachment-storage";
+import { reportOperationalError } from "@/lib/operational-errors";
 import { mapThreadUnreadCountRows } from "./thread-list-helpers";
 import {
   applyMessageThreadAudienceScope,
@@ -312,6 +313,26 @@ function collectIdsFromParticipants(
   };
 }
 
+/** Caps the fallback scan so a missing RPC cannot turn the inbox into a full-table read. */
+const UNREAD_FALLBACK_MESSAGE_LIMIT = 5000;
+/** The RPC failing is operational noise once per process window, not once per request. */
+const UNREAD_RPC_FAILURE_NOTIFY_WINDOW_MS = 10 * 60 * 1000;
+let lastUnreadRpcFailureNotifyAt = 0;
+
+/** Exported for tests. */
+export function shouldNotifyUnreadRpcFailure(now: number = Date.now()): boolean {
+  if (now - lastUnreadRpcFailureNotifyAt < UNREAD_RPC_FAILURE_NOTIFY_WINDOW_MS) {
+    return false;
+  }
+  lastUnreadRpcFailureNotifyAt = now;
+  return true;
+}
+
+/** Exported for tests. */
+export function resetUnreadRpcFailureThrottle(): void {
+  lastUnreadRpcFailureNotifyAt = 0;
+}
+
 async function getUnreadCountsFallback(
   admin: SupabaseClient,
   threadIds: string[],
@@ -332,11 +353,22 @@ async function getUnreadCountsFallback(
     (reads ?? []).map((row) => [String(row.thread_id), String(row.last_read_at)]),
   );
 
-  const { data: messages, error: messagesError } = await admin
+  // Only messages newer than the oldest read marker can be unread, but that bound only holds when
+  // every thread has a marker (a thread without one counts all of its messages).
+  let messagesQuery = admin
     .from("portal_messages")
     .select("thread_id, created_at, sender_user_id")
     .in("thread_id", threadIds)
-    .order("created_at", { ascending: false });
+    .or(`sender_user_id.is.null,sender_user_id.neq.${userId}`)
+    .order("created_at", { ascending: false })
+    .limit(UNREAD_FALLBACK_MESSAGE_LIMIT);
+
+  if (threadIds.every((threadId) => readMap.has(threadId))) {
+    const oldestRead = [...readMap.values()].sort()[0];
+    if (oldestRead) messagesQuery = messagesQuery.gt("created_at", oldestRead);
+  }
+
+  const { data: messages, error: messagesError } = await messagesQuery;
 
   if (messagesError) throw new Error(messagesError.message);
 
@@ -368,6 +400,21 @@ async function getUnreadCounts(
 
   if (!error && data != null) {
     return mapThreadUnreadCountRows(threadIds, data);
+  }
+
+  if (error) {
+    // Falling back hides a broken or missing RPC; make it visible to ops (throttled).
+    void reportOperationalError({
+      supabase: admin,
+      surface: "system",
+      operation: "messages.thread_unread_counts_rpc_failed",
+      error: "thread_unread_counts RPC failed; using the slower fallback.",
+      code: error.code ?? null,
+      details: error.message,
+      notify: shouldNotifyUnreadRpcFailure(),
+      actor: { type: "system" },
+      cause: error,
+    });
   }
 
   return getUnreadCountsFallback(admin, threadIds, userId);

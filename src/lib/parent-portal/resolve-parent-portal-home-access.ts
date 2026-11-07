@@ -1,4 +1,5 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { getStudentIdsForFamilies } from "@/lib/admissions/family-students";
 import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
 import {
   familyHasMainPortalEnrollment,
@@ -9,23 +10,6 @@ import {
   getFamilyUserProfile,
   type FamilyUserProfile,
 } from "@/lib/admissions/parent-portal-access";
-
-async function getStudentIdsForFamilies(
-  supabase: SupabaseClient,
-  organizationId: string,
-  familyIds: string[],
-): Promise<string[]> {
-  if (familyIds.length === 0) return [];
-
-  const { data, error } = await supabase
-    .from("students")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .in("family_id", familyIds);
-
-  if (error) throw error;
-  return (data ?? []).map((row) => String(row.id));
-}
 
 async function userHasAnyEnrolledEnrollment(
   supabase: SupabaseClient,

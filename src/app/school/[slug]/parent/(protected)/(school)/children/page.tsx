@@ -4,7 +4,10 @@ import type { Metadata } from "next";
 import ParentChildrenPage from "@/components/school-parent/ParentChildrenPage";
 import SchoolParentPageShell from "@/components/school-parent/SchoolParentPageShell";
 import { listFamilyChildrenForHome } from "@/lib/admissions/parent-portal-access";
-import { getParentPortalUserProfile } from "@/lib/parent-portal/parent-portal-server-cache";
+import {
+  getParentPortalUserProfile,
+  requireParentPortalAccess,
+} from "@/lib/parent-portal/parent-portal-server-cache";
 import { getParentPageLabel } from "@/lib/organization-settings/parent-nav";
 import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
 import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
@@ -19,9 +22,7 @@ type PageProps = {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org || !isParentFeatureEnabled(org.features, "children")) {
     return { title: "School Not Found" };
@@ -38,24 +39,21 @@ export default async function SchoolParentChildrenPage({ params }: PageProps) {
   const { slug } = await params;
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org || !isParentFeatureEnabled(org.features, "children")) {
     notFound();
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    notFound();
-  }
+  const { userId } = await requireParentPortalAccess({
+    organizationId: org.id,
+    schoolSlug: slug,
+  });
 
   // Overview cards only — full application schemas load when a profile panel opens.
   const [familyChildren, userProfile] = await Promise.all([
-    listFamilyChildrenForHome(supabase, org.id, user.id),
-    getParentPortalUserProfile(supabase, org.id),
+    listFamilyChildrenForHome(supabase, org.id, userId),
+    getParentPortalUserProfile(org.id),
   ]);
 
   const studentIds = familyChildren

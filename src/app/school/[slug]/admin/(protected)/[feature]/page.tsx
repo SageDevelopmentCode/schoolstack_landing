@@ -54,9 +54,7 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug, feature } = await params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org || !isAdminFeatureEnabled(org.features, feature)) {
     return { title: "School Not Found" };
@@ -76,7 +74,7 @@ export default async function SchoolAdminFeaturePage({ params }: PageProps) {
   const { slug, feature } = await params;
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org || !isAdminFeatureEnabled(org.features, feature)) {
     notFound();

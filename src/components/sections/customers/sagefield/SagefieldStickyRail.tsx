@@ -1,21 +1,22 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, TrendingUp } from 'lucide-react'
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowRight, TrendingUp } from "lucide-react";
+import { BOOK_DEMO_HASH_HREF } from "@/lib/marketing/book-demo";
+import { DARK_PILL } from "@/components/home/bright-styles";
 
 export default function SagefieldStickyRail() {
-  const [visible, setVisible] = useState(false)
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      // Show after scrolling 600px (past the hero)
-      setVisible(window.scrollY > 600)
-    }
+      setVisible(window.scrollY > 600);
+    };
 
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
     <AnimatePresence>
@@ -25,55 +26,48 @@ export default function SagefieldStickyRail() {
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 24 }}
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-          className="hidden 2xl:flex fixed right-6 top-1/2 -translate-y-1/2 z-40 flex-col gap-3 w-[176px]"
+          className="fixed right-6 top-1/2 z-40 hidden w-[176px] -translate-y-1/2 flex-col gap-3 2xl:flex"
           aria-label="Key results"
         >
-          <div
-            className="rounded-2xl border border-border bg-surface shadow-md p-4 flex flex-col gap-3"
-          >
-            {/* Icon + label */}
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-7 h-7 rounded-lg bg-sage-100 flex items-center justify-center shrink-0">
-                <TrendingUp size={13} className="text-accent" />
+          <div className="flex flex-col gap-3 rounded-2xl border border-black/10 bg-white p-4 shadow-[0_16px_40px_rgba(0,0,0,0.08)]">
+            <div className="mb-1 flex items-center gap-2">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#F4F1EC]">
+                <TrendingUp size={13} className="text-clay" />
               </div>
-              <span className="text-[10px] font-secondary font-semibold uppercase tracking-widest text-text-faint">
+              <span className="font-secondary text-[10px] font-semibold uppercase tracking-widest text-[#1d1a16]/50">
                 Sage Field
               </span>
             </div>
 
-            {/* Stats */}
             <div className="space-y-2.5">
-              <div className="rounded-lg bg-bg-alt border border-border px-3 py-2.5 text-center">
-                <div className="font-display text-[1.5rem] leading-none text-text">0→35</div>
-                <div className="text-[11px] font-secondary text-text-faint mt-1 leading-snug">
+              <div className="rounded-lg border border-black/8 bg-[#F4F1EC] px-3 py-2.5 text-center">
+                <div className="font-secondary text-[1.5rem] font-bold leading-none tracking-[-0.03em] text-[#1d1a16]">
+                  0→35
+                </div>
+                <div className="mt-1 font-secondary text-[11px] leading-snug text-[#1d1a16]/50">
                   students in &lt;3 months
                 </div>
               </div>
-              <div className="rounded-lg bg-bg-alt border border-border px-3 py-2.5">
-                <div className="text-[10px] font-secondary font-semibold uppercase tracking-widest text-text-faint mb-1.5">
+              <div className="rounded-lg border border-black/8 bg-[#F4F1EC] px-3 py-2.5">
+                <div className="mb-1.5 font-secondary text-[10px] font-semibold uppercase tracking-widest text-[#1d1a16]/50">
                   Platform covered
                 </div>
-                {['Website', 'Enrollment', 'Tuition', 'Ops'].map((item) => (
-                  <div key={item} className="flex items-center gap-1.5 mb-1 last:mb-0">
-                    <div className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
-                    <span className="text-[12px] font-secondary text-text-muted">{item}</span>
+                {["Website", "Enrollment", "Tuition", "Ops"].map((item) => (
+                  <div key={item} className="mb-1 flex items-center gap-1.5 last:mb-0">
+                    <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-clay" />
+                    <span className="font-secondary text-[12px] text-[#1d1a16]/70">{item}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* CTA */}
-            <a
-              href="#demo"
-              className="flex items-center justify-center gap-1.5 rounded-pill h-9 text-[12px] font-medium font-secondary hover:-translate-y-0.5 transition-all duration-200 w-full"
-              style={{ backgroundColor: '#A05C45', color: '#ffffff' }}
-            >
+            <a href={BOOK_DEMO_HASH_HREF} className={`${DARK_PILL} h-9 w-full justify-center text-[12px]`}>
               Book a demo
-              <ArrowRight size={12} />
+              <ArrowRight size={12} aria-hidden />
             </a>
           </div>
         </motion.aside>
       )}
     </AnimatePresence>
-  )
+  );
 }

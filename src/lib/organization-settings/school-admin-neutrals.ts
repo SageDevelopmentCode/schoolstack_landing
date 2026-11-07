@@ -1,11 +1,7 @@
 import type { BrandingColors } from "./types";
 
 export type SchoolAdminStructureColorKey =
-  | "bg"
-  | "border"
-  | "borderStrong"
-  | "textPrimary"
-  | "textSecondary";
+  "bg" | "border" | "borderStrong" | "textPrimary" | "textSecondary";
 
 export const SCHOOL_ADMIN_LIGHT_NEUTRALS = {
   bg: "#F8FAFC",
@@ -24,14 +20,16 @@ export const SCHOOL_ADMIN_LIGHT_NEUTRALS = {
 } as const;
 
 /** Warm Rooted Meadows defaults — schools still on these get upgraded to light neutrals. */
-export const SCHOOL_ADMIN_LEGACY_NEUTRALS: Record<SchoolAdminStructureColorKey, string> =
-  {
-    bg: "#FAF8F4",
-    border: "#E8E0D4",
-    borderStrong: "#D4C9BA",
-    textPrimary: "#2B2A26",
-    textSecondary: "#6B6560",
-  };
+export const SCHOOL_ADMIN_LEGACY_NEUTRALS: Record<
+  SchoolAdminStructureColorKey,
+  string
+> = {
+  bg: "#FAF8F4",
+  border: "#E8E0D4",
+  borderStrong: "#D4C9BA",
+  textPrimary: "#2B2A26",
+  textSecondary: "#6B6560",
+};
 
 const STRUCTURE_KEYS: SchoolAdminStructureColorKey[] = [
   "bg",
@@ -49,7 +47,9 @@ function isLegacyNeutral(
   key: SchoolAdminStructureColorKey,
   value: string,
 ): boolean {
-  return normalizeColor(value) === normalizeColor(SCHOOL_ADMIN_LEGACY_NEUTRALS[key]);
+  return (
+    normalizeColor(value) === normalizeColor(SCHOOL_ADMIN_LEGACY_NEUTRALS[key])
+  );
 }
 
 export function resolveSchoolAdminStructureColors(
@@ -74,7 +74,9 @@ export function resolveSchoolAdminStructureColors(
   };
 }
 
-export function migrateLegacyNeutralBranding(colors: BrandingColors): BrandingColors {
+export function migrateLegacyNeutralBranding(
+  colors: BrandingColors,
+): BrandingColors {
   const migrated = { ...colors };
 
   for (const key of STRUCTURE_KEYS) {

@@ -248,8 +248,8 @@ export default function GetStartedShowcaseCarousel({
     <section
       className={
         isEmbedded
-          ? "relative overflow-hidden rounded-2xl border border-border bg-accent py-8 pb-6"
-          : "relative border-b border-white/10 bg-accent py-8"
+          ? "relative overflow-hidden rounded-[32px] border border-black/8 bg-[#F7F5F2] py-8 pb-6"
+          : "relative border-b border-black/8 bg-white py-8 shadow-[0_8px_32px_rgba(30,60,30,0.04)]"
       }
       aria-label="Product preview samples"
     >
@@ -269,11 +269,19 @@ export default function GetStartedShowcaseCarousel({
           : undefined)}
       >
         <div
-          className="pointer-events-none absolute inset-y-0 left-0 z-10 hidden w-14 bg-gradient-to-r from-accent/85 via-accent/25 to-transparent sm:block"
+          className={
+            isEmbedded
+              ? "pointer-events-none absolute inset-y-0 left-0 z-10 hidden w-14 bg-gradient-to-r from-[#F7F5F2] via-[#F7F5F2]/40 to-transparent sm:block"
+              : "pointer-events-none absolute inset-y-0 left-0 z-10 hidden w-14 bg-gradient-to-r from-white via-white/40 to-transparent sm:block"
+          }
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute inset-y-0 right-0 z-10 hidden w-14 bg-gradient-to-l from-accent/85 via-accent/25 to-transparent sm:block"
+          className={
+            isEmbedded
+              ? "pointer-events-none absolute inset-y-0 right-0 z-10 hidden w-14 bg-gradient-to-l from-[#F7F5F2] via-[#F7F5F2]/40 to-transparent sm:block"
+              : "pointer-events-none absolute inset-y-0 right-0 z-10 hidden w-14 bg-gradient-to-l from-white via-white/40 to-transparent sm:block"
+          }
           aria-hidden
         />
 

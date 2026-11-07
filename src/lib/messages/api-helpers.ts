@@ -2,7 +2,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { PortalRouteError } from "@/lib/api/portal-route-errors";
 import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
-import { getGuardianIdsForUser } from "@/lib/messages/messages";
 import { participantsFromContact, isParentPeerGuardianContact } from "@/lib/messages/participants-from-contact";
 import { assertCoopPeerMessageAllowed } from "@/lib/messages/coop-peer-messaging";
 import {
@@ -11,6 +10,7 @@ import {
   markThreadRead,
 } from "@/lib/messages/threads";
 import { assertSchoolAdminCanAccessThread } from "@/lib/messages/thread-access";
+import type { ParentPortalAccess } from "@/lib/parent-portal/parent-portal-access-rpc";
 import type { MessageContactInput, MessageParticipantInput } from "@/lib/messages/types";
 import {
   getStaffMemberIdForUser,
@@ -18,22 +18,25 @@ import {
 import { requireTeacherPortalUser } from "@/lib/staff/teacher-portal-access-server";
 import { requireSchoolAdminUser } from "@/lib/school-admin/access";
 
+/**
+ * Thread access for a parent, using the access snapshot already loaded by `withParentPortalRoute`
+ * (own guardian ids, linked family ids, enrolled access) so only the participants are read.
+ * Returns the parent's primary family id.
+ */
 export async function assertParentCanAccessThread(
   admin: SupabaseClient,
-  supabase: SupabaseClient,
+  access: ParentPortalAccess,
   organizationId: string,
-  userId: string,
   threadId: string,
 ): Promise<string> {
-  const hasAccess = await userHasEnrolledAccess(supabase, userId, organizationId);
-  if (!hasAccess) {
+  if (!access.hasEnrolledAccess) {
     throw new PortalRouteError("You do not have access to messages.", 403, "forbidden");
   }
 
-  const familyIds = await getFamilyIdsForUser(supabase, userId, organizationId);
+  const familyIds = access.familyIds;
   if (familyIds.length === 0) throw new Error("No family found for this account.");
 
-  const guardianIds = await getGuardianIdsForUser(admin, userId, organizationId);
+  const guardianIds = access.guardianIds;
 
   const { data: participants, error } = await admin
     .from("message_thread_participants")

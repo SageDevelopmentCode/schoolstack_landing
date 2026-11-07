@@ -14,200 +14,174 @@ import type { AuthorizedPickupContactInput } from "@/lib/authorized-pickup/types
 import { reportOperationalError } from "@/lib/operational-errors";
 import { getStudentDisplayName } from "@/lib/student-health/mutations";
 import { createAdminClient } from "@/utils/supabase/admin";
-import {
-  createClientFromRequest,
-  getUserFromRequest,
-  signedInErrorForRequest,
-} from "@/lib/supabase/request-client";
+import { withParentPortalRoute } from "@/lib/parent-portal/with-parent-portal-route";
 
 const ROUTE = "/api/parent-portal/students/[studentId]/authorized-pickup";
 
-type RouteContext = {
-  params: Promise<{ studentId: string }>;
-};
+type StudentParams = { studentId: string };
 
-export async function GET(request: Request, context: RouteContext) {
-  const { studentId } = await context.params;
-  const supabase = await createClientFromRequest(request);
-
-  const {
-    data: { user },
-    error: authError,
-  } = await getUserFromRequest(supabase, request);
-
-  if (!user) {
-    return apiError(ROUTE, {
-      request,
-      status: 401,
-      error: await signedInErrorForRequest(request, authError),
-      code: "unauthorized",
-    });
-  }
-
-  const organizationId = new URL(request.url).searchParams.get("organizationId")?.trim() ?? "";
-  if (!organizationId) {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "organizationId is required.",
-      code: "missing_fields",
-    });
-  }
-
-  const access = await authorizeParentStudentPickupAccess(
+export const GET = withParentPortalRoute<undefined, StudentParams>(
+  {
+    route: ROUTE,
+    enforceAccess: false,
+    fallbackErrorMessage: "Failed to load authorized pickup contacts.",
+  },
+  async ({
+    request,
     supabase,
     user,
     organizationId,
-    studentId,
-  );
+    access: portalAccess,
+    params,
+  }) => {
+    const { studentId } = params;
 
-  if (!access.ok) {
-    return apiError(ROUTE, {
-      request,
-      status: 403,
-      error: "You do not have permission to view this student's authorized pickup list.",
-      code: "forbidden",
-    });
-  }
-
-  try {
-    const contacts = await loadStudentAuthorizedPickupContacts(
+    const access = await authorizeParentStudentPickupAccess(
       supabase,
+      user,
       organizationId,
       studentId,
+      portalAccess,
     );
-    return NextResponse.json({ contacts });
-  } catch (error) {
-    return apiError(ROUTE, {
-      request,
-      status: 500,
-      error: "Failed to load authorized pickup contacts.",
-      cause: error,
-      code: "load_failed",
-    });
-  }
-}
+
+    if (!access.ok) {
+      return apiError(ROUTE, {
+        request,
+        status: 403,
+        error:
+          "You do not have permission to view this student's authorized pickup list.",
+        code: "forbidden",
+      });
+    }
+
+    try {
+      const contacts = await loadStudentAuthorizedPickupContacts(
+        supabase,
+        organizationId,
+        studentId,
+      );
+      return NextResponse.json({ contacts });
+    } catch (error) {
+      return apiError(ROUTE, {
+        request,
+        status: 500,
+        error: "Failed to load authorized pickup contacts.",
+        cause: error,
+        code: "load_failed",
+      });
+    }
+  },
+);
 
 type CreateBody = AuthorizedPickupContactInput & {
   organizationId?: string;
 };
 
-export async function POST(request: Request, context: RouteContext) {
-  const { studentId } = await context.params;
-  const supabase = await createClientFromRequest(request);
-
-  const {
-    data: { user },
-    error: authError,
-  } = await getUserFromRequest(supabase, request);
-
-  if (!user) {
-    return apiError(ROUTE, {
-      request,
-      status: 401,
-      error: await signedInErrorForRequest(request, authError),
-      code: "unauthorized",
-    });
-  }
-
-  let body: CreateBody;
-  try {
-    body = (await request.json()) as CreateBody;
-  } catch {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "Invalid request body.",
-      code: "invalid_body",
-    });
-  }
-
-  const organizationId = body.organizationId?.trim() ?? "";
-  if (!organizationId) {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "organizationId is required.",
-      code: "missing_fields",
-    });
-  }
-
-  const access = await authorizeParentStudentPickupAccess(
+export const POST = withParentPortalRoute<CreateBody, StudentParams>(
+  {
+    route: ROUTE,
+    organizationFrom: "body",
+    enforceAccess: false,
+    fallbackErrorMessage: "Failed to create authorized pickup contact.",
+  },
+  async ({
+    request,
     supabase,
     user,
     organizationId,
-    studentId,
-  );
+    access: portalAccess,
+    body,
+    params,
+  }) => {
+    const { studentId } = params;
 
-  if (!access.ok) {
-    return apiError(ROUTE, {
-      request,
-      status: 403,
-      error: "You do not have permission to update this student's authorized pickup list.",
-      code: "forbidden",
-    });
-  }
-
-  try {
-    const input = validateAuthorizedPickupContactInput(body);
-    const admin = createAdminClient();
-    const familyId = await loadStudentFamilyId(admin, organizationId, studentId);
-    const [contact, studentName] = await Promise.all([
-      createAuthorizedPickupContact(
-        admin,
-        {
-          organizationId,
-          studentId,
-          familyId,
-          userId: user.id,
-          guardianId: access.guardian.id,
-        },
-        input,
-      ),
-      getStudentDisplayName(admin, organizationId, studentId),
-    ]);
-
-    void sendAuthorizedPickupContactNotifications(admin, {
+    const access = await authorizeParentStudentPickupAccess(
+      supabase,
+      user,
       organizationId,
       studentId,
-      studentName,
-      contactId: contact.id,
-      contactName: formatAuthorizedPickupContactName(contact),
-      action: "created",
-      actorUserId: user.id,
-      actorName: access.guardian.displayName,
-      actorEmail: access.guardian.email,
-    }).catch((error) =>
-      reportOperationalError({
-        supabase: admin,
-        surface: "parent_portal",
-        operation: "authorized_pickup.contact.create.notify",
-        error: "Failed to record authorized pickup contact activity.",
-        organizationId,
-        entityType: "authorized_pickup_contact",
-        entityId: contact.id,
-        actor: { type: "parent", userId: user.id, email: access.guardian.email },
-        cause: error,
-      }),
+      portalAccess,
     );
 
-    return NextResponse.json({ contact });
-  } catch (error) {
-    if (error instanceof AuthorizedPickupValidationError) {
+    if (!access.ok) {
       return apiError(ROUTE, {
         request,
-        status: error.status,
-        error: error.message,
-        code: error.code,
+        status: 403,
+        error:
+          "You do not have permission to update this student's authorized pickup list.",
+        code: "forbidden",
       });
     }
 
-    return apiError(ROUTE, {
-      request,
-      status: 500,
-      error: "Failed to create authorized pickup contact.",
-      cause: error,
-      code: "create_failed",
-    });
-  }
-}
+    try {
+      const input = validateAuthorizedPickupContactInput(body);
+      const admin = createAdminClient();
+      const familyId = await loadStudentFamilyId(
+        admin,
+        organizationId,
+        studentId,
+      );
+      const [contact, studentName] = await Promise.all([
+        createAuthorizedPickupContact(
+          admin,
+          {
+            organizationId,
+            studentId,
+            familyId,
+            userId: user.id,
+            guardianId: access.guardian.id,
+          },
+          input,
+        ),
+        getStudentDisplayName(admin, organizationId, studentId),
+      ]);
+
+      void sendAuthorizedPickupContactNotifications(admin, {
+        organizationId,
+        studentId,
+        studentName,
+        contactId: contact.id,
+        contactName: formatAuthorizedPickupContactName(contact),
+        action: "created",
+        actorUserId: user.id,
+        actorName: access.guardian.displayName,
+        actorEmail: access.guardian.email,
+      }).catch((error) =>
+        reportOperationalError({
+          supabase: admin,
+          surface: "parent_portal",
+          operation: "authorized_pickup.contact.create.notify",
+          error: "Failed to record authorized pickup contact activity.",
+          organizationId,
+          entityType: "authorized_pickup_contact",
+          entityId: contact.id,
+          actor: {
+            type: "parent",
+            userId: user.id,
+            email: access.guardian.email,
+          },
+          cause: error,
+        }),
+      );
+
+      return NextResponse.json({ contact });
+    } catch (error) {
+      if (error instanceof AuthorizedPickupValidationError) {
+        return apiError(ROUTE, {
+          request,
+          status: error.status,
+          error: error.message,
+          code: error.code,
+        });
+      }
+
+      return apiError(ROUTE, {
+        request,
+        status: 500,
+        error: "Failed to create authorized pickup contact.",
+        cause: error,
+        code: "create_failed",
+      });
+    }
+  },
+);

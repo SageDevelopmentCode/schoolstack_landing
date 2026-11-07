@@ -1,5 +1,6 @@
 "use client";
 
+import { revalidateOrganizationSettingsFromBrowser } from "@/lib/organization-settings/revalidate-client";
 import {
   useCallback,
   useEffect,
@@ -571,6 +572,8 @@ export default function OrganizationSettingsEditor({
       setError(upsertError.message);
       return;
     }
+
+    revalidateOrganizationSettingsFromBrowser(organizationId);
 
     const prevPortalConfig = parseProgramParentPortalOrgConfig(
       JSON.parse(savedAdmissionsSnapshot),

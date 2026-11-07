@@ -48,7 +48,9 @@ function normalizeOnboardingItem(
       : `onboarding_item_${index + 1}`;
 
   const icon =
-    typeof raw.icon === "string" && raw.icon.trim() ? raw.icon.trim() : undefined;
+    typeof raw.icon === "string" && raw.icon.trim()
+      ? raw.icon.trim()
+      : undefined;
 
   return { id, label, target, icon };
 }
@@ -214,8 +216,7 @@ export function resolveParentOnboardingItems(input: {
       return {
         ...item,
         href: href ?? "#",
-        completed:
-          autoType !== null ? input.completion[autoType] : false,
+        completed: autoType !== null ? input.completion[autoType] : false,
         autoTracked: autoType !== null,
       };
     })

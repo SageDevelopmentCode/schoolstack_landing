@@ -3,190 +3,120 @@ import { apiError } from "@/lib/api/route-errors";
 import { getGuardianIdForUser } from "@/lib/messages/messages";
 import { loadParentMessagesInbox } from "@/lib/messages/parent-messages";
 import { resolveThreadProgramIdForContact } from "@/lib/messages/message-audience";
-import {
-  findOrCreateThread,
-  getFamilyIdsForUser,
-  resolveParticipantsForContact,
-} from "@/lib/messages/api-helpers";
-import { userHasAccessForOptionalProgramScope } from "@/lib/admissions/program-parent-portal-access";
-import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
+import { findOrCreateThread, resolveParticipantsForContact } from "@/lib/messages/api-helpers";
+import { withParentPortalRoute } from "@/lib/parent-portal/with-parent-portal-route";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/messages/threads";
 
-export async function GET(request: Request) {
-  const supabase = await createClientFromRequest(request);
-  const { searchParams } = new URL(request.url);
-  const organizationId = searchParams.get("organizationId")?.trim() ?? "";
-  const schoolName = searchParams.get("schoolName")?.trim() ?? "School";
-  const programId = searchParams.get("programId")?.trim() || null;
+type CreateThreadBody = {
+  organizationId?: string;
+  programId?: string | null;
+  contact: {
+    key: string;
+    kind: "guardian" | "staff_member" | "school_office" | "platform_support";
+    guardianId?: string;
+    familyId?: string;
+    staffMemberId?: string;
+    name: string;
+  };
+};
 
-  if (!organizationId) {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "organizationId is required.",
-      code: "missing_fields",
-    });
-  }
+export const GET = withParentPortalRoute(
+  {
+    route: ROUTE,
+    programScope: "optional",
+    feature: "messages",
+    forbiddenMessage: "You do not have access to messages.",
+    fallbackErrorMessage: "Failed to load messages.",
+  },
+  async ({ request, supabase, user, organizationId, programId }) => {
+    const schoolName = new URL(request.url).searchParams.get("schoolName")?.trim() ?? "School";
 
-  const {
-    data: { user },
-    error: authError,
-  } = await getUserFromRequest(supabase, request);
+    try {
+      const admin = createAdminClient();
+      const inbox = await loadParentMessagesInbox(
+        admin,
+        supabase,
+        organizationId,
+        user.id,
+        schoolName,
+        { programId },
+      );
 
-  if (!user) {
-    return apiError(ROUTE, {
-      request,
-      status: 401,
-      error: await signedInErrorForRequest(request, authError),
-      code: "unauthorized",
-    });
-  }
-
-  try {
-    const hasAccess = await userHasAccessForOptionalProgramScope(
-      supabase,
-      user.id,
-      organizationId,
-      programId,
-    );
-    if (!hasAccess) {
+      return NextResponse.json(inbox);
+    } catch (err) {
       return apiError(ROUTE, {
         request,
-        status: 403,
-        error: "You do not have access to messages.",
-        code: "forbidden",
+        status: 500,
+        error: "Failed to load messages.",
+        cause: err,
+        code: "internal_error",
       });
     }
+  },
+);
 
-    const admin = createAdminClient();
-    const inbox = await loadParentMessagesInbox(
-      admin,
-      supabase,
-      organizationId,
-      user.id,
-      schoolName,
-      { programId },
-    );
+export const POST = withParentPortalRoute<CreateThreadBody>(
+  {
+    route: ROUTE,
+    organizationFrom: "body",
+    programScope: "optional",
+    feature: "messages",
+    forbiddenMessage: "You do not have access to messages.",
+    missingOrganizationMessage: "organizationId and contact are required.",
+    invalidBodyMessage: "organizationId and contact are required.",
+    fallbackErrorMessage: "Failed to create thread.",
+    parseBody: (raw) => {
+      const body = raw as Partial<CreateThreadBody> | null;
+      return body?.contact ? (body as CreateThreadBody) : null;
+    },
+  },
+  async ({ request, user, organizationId, programId, familyId, body }) => {
+    try {
+      if (!familyId) {
+        return apiError(ROUTE, {
+          request,
+          status: 400,
+          error: "No family found for this account.",
+          code: "missing_family",
+        });
+      }
 
-    return NextResponse.json(inbox);
-  } catch (err) {
-    return apiError(ROUTE, {
-      request,
-      status: 500,
-      error: "Failed to load messages.",
-      cause: err,
-      code: "internal_error",
-    });
-  }
-}
+      const admin = createAdminClient();
+      const guardianId = await getGuardianIdForUser(admin, user.id, organizationId, familyId);
+      if (!guardianId) {
+        return apiError(ROUTE, {
+          request,
+          status: 400,
+          error: "No guardian profile found for this account.",
+          code: "missing_guardian",
+        });
+      }
 
-export async function POST(request: Request) {
-  const supabase = await createClientFromRequest(request);
+      const participants = await resolveParticipantsForContact(
+        admin,
+        organizationId,
+        body.contact,
+        { guardianId, familyId, viewer: "parent", programId },
+      );
+      const threadProgramId = resolveThreadProgramIdForContact({
+        contactKind: body.contact.kind,
+        portalProgramId: programId,
+      });
+      const threadId = await findOrCreateThread(admin, organizationId, participants, {
+        programId: threadProgramId,
+      });
 
-  const {
-    data: { user },
-    error: authError,
-  } = await getUserFromRequest(supabase, request);
-
-  if (!user) {
-    return apiError(ROUTE, {
-      request,
-      status: 401,
-      error: await signedInErrorForRequest(request, authError),
-      code: "unauthorized",
-    });
-  }
-
-  try {
-    const body = (await request.json()) as {
-      organizationId?: string;
-      programId?: string | null;
-      contact?: {
-        key: string;
-        kind: "guardian" | "staff_member" | "school_office" | "platform_support";
-        guardianId?: string;
-        familyId?: string;
-        staffMemberId?: string;
-        name: string;
-      };
-    };
-
-    const organizationId = body.organizationId?.trim() ?? "";
-    if (!organizationId || !body.contact) {
+      return NextResponse.json({ threadId });
+    } catch (err) {
       return apiError(ROUTE, {
         request,
-        status: 400,
-        error: "organizationId and contact are required.",
-        code: "missing_fields",
+        status: 500,
+        error: "Failed to create thread.",
+        cause: err,
+        code: "internal_error",
       });
     }
-
-    const hasAccess = await userHasAccessForOptionalProgramScope(
-      supabase,
-      user.id,
-      organizationId,
-      body.programId,
-    );
-    if (!hasAccess) {
-      return apiError(ROUTE, {
-        request,
-        status: 403,
-        error: "You do not have access to messages.",
-        code: "forbidden",
-      });
-    }
-
-    const familyIds = await getFamilyIdsForUser(supabase, user.id, organizationId);
-    const familyId = familyIds[0];
-    if (!familyId) {
-      return apiError(ROUTE, {
-        request,
-        status: 400,
-        error: "No family found for this account.",
-        code: "missing_family",
-      });
-    }
-
-    const admin = createAdminClient();
-    const guardianId = await getGuardianIdForUser(
-      admin,
-      user.id,
-      organizationId,
-      familyId,
-    );
-    if (!guardianId) {
-      return apiError(ROUTE, {
-        request,
-        status: 400,
-        error: "No guardian profile found for this account.",
-        code: "missing_guardian",
-      });
-    }
-
-    const participants = await resolveParticipantsForContact(
-      admin,
-      organizationId,
-      body.contact,
-      { guardianId, familyId, viewer: "parent", programId: body.programId },
-    );
-    const programId = resolveThreadProgramIdForContact({
-      contactKind: body.contact.kind,
-      portalProgramId: body.programId,
-    });
-    const threadId = await findOrCreateThread(admin, organizationId, participants, {
-      programId,
-    });
-
-    return NextResponse.json({ threadId });
-  } catch (err) {
-    return apiError(ROUTE, {
-      request,
-      status: 500,
-      error: "Failed to create thread.",
-      cause: err,
-      code: "internal_error",
-    });
-  }
-}
+  },
+);

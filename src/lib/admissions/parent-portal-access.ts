@@ -1,4 +1,5 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { getStudentIdsForFamilies } from "@/lib/admissions/family-students";
 import {
   buildAdminPostSubmitSteps,
   type AdminPostSubmitStep,
@@ -246,23 +247,6 @@ export async function getFamilyUserProfile(
   return { email, displayName, profilePhotoUrl };
 }
 
-async function getStudentIdsForFamilies(
-  supabase: SupabaseClient,
-  organizationId: string,
-  familyIds: string[],
-): Promise<string[]> {
-  if (familyIds.length === 0) return [];
-
-  const { data, error } = await supabase
-    .from("students")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .in("family_id", familyIds);
-
-  if (error) throw error;
-  return (data ?? []).map((row) => String(row.id));
-}
-
 async function loadStudentProfilePhotoUrls(
   supabase: SupabaseClient,
   organizationId: string,
@@ -292,7 +276,11 @@ export async function userIsGuardianForStudent(
   userId: string,
   organizationId: string,
   studentId: string,
+  /** Access snapshot from `parent_portal_access`; skips the family and student lookups. */
+  portalAccess?: { studentIds: string[] },
 ): Promise<boolean> {
+  if (portalAccess) return portalAccess.studentIds.includes(studentId);
+
   const familyIds = await getFamilyIdsForUser(supabase, userId, organizationId);
   if (familyIds.length === 0) return false;
 

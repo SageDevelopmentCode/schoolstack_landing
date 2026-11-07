@@ -66,9 +66,7 @@ type PageProps = {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug, feature } = await params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org || !isTeacherFeatureEnabled(org.features, feature)) {
     return { title: "Preview Not Found" };
@@ -92,7 +90,7 @@ export default async function StaffTeacherPreviewFeaturePage({
   const resolvedSearchParams = await searchParams;
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org || !isTeacherFeatureEnabled(org.features, feature)) {
     notFound();

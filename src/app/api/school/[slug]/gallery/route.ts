@@ -28,7 +28,7 @@ export async function GET(request: Request, context: RouteContext) {
 
   try {
     const admin = createAdminClient();
-    const org = await fetchOrganizationWithSettings(admin, slug);
+    const org = await fetchOrganizationWithSettings(slug);
 
     if (!org || !isSchoolGalleryEnabled(org.features)) {
       return apiError(ROUTE, {
@@ -83,7 +83,7 @@ export async function POST(request: Request, context: RouteContext) {
 
   try {
     const admin = createAdminClient();
-    const org = await fetchOrganizationWithSettings(admin, slug);
+    const org = await fetchOrganizationWithSettings(slug);
 
     if (!org || !isSchoolGalleryEnabled(org.features)) {
       return apiError(ROUTE, {

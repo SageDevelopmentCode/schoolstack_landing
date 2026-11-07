@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Navbar from "@/components/sections/Navbar";
+import HomeShell from "@/components/home/HomeShell";
 import GetStartedDemoFlow, {
   type GetStartedDemoStep,
 } from "@/components/get-started/GetStartedDemoFlow";
@@ -15,9 +15,8 @@ export default function GetStartedPage() {
   const [step, setStep] = useState<GetStartedDemoStep>(0);
 
   return (
-    <>
-      <Navbar />
-      <div className="min-h-screen bg-bg pt-[100px]">
+    <HomeShell className="bg-white">
+      <div className="min-h-screen bg-white">
         {step === 0 && <GetStartedShowcaseCarousel />}
         <GetStartedStoryShell
           id={GET_STARTED_DEMO_SECTION_ID}
@@ -34,6 +33,6 @@ export default function GetStartedPage() {
         <GetStartedFilmSection />
         <GetStartedOurStorySection />
       </div>
-    </>
+    </HomeShell>
   );
 }

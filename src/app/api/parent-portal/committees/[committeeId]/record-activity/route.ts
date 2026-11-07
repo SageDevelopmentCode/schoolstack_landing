@@ -1,6 +1,5 @@
 import { apiError } from "@/lib/api/route-errors";
 import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
-import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import {
   handleRecordCommitteeActivity,
   type RecordCommitteeActivityBody,
@@ -9,100 +8,53 @@ import {
   resolveActiveCommitteeMemberForPost,
   resolveParentGuardianForOrg,
 } from "@/lib/committees/parent-committees";
-import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
+import { withParentPortalRoute } from "@/lib/parent-portal/with-parent-portal-route";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/committees/[committeeId]/record-activity";
 
-type RouteContext = { params: Promise<{ committeeId: string }> };
+export const POST = withParentPortalRoute<RecordCommitteeActivityBody, { committeeId: string }>(
+  {
+    route: ROUTE,
+    organizationFrom: "body",
+    feature: "committees",
+    forbiddenMessage: "You do not have access to this committee.",
+    fallbackErrorMessage: "Failed to record activity.",
+  },
+  async ({ request, user, organizationId, body, params }) => {
+    try {
+      const admin = createAdminClient();
+      const guardian = await resolveParentGuardianForOrg(
+        admin,
+        user.id,
+        organizationId,
+        user.email ?? "",
+      );
 
-export async function POST(request: Request, context: RouteContext) {
-  const supabase = await createClientFromRequest(request);
-  const { committeeId } = await context.params;
+      const currentMember = await resolveActiveCommitteeMemberForPost(
+        admin,
+        organizationId,
+        user.id,
+        params.committeeId,
+      );
 
-  const {
-    data: { user },
-    error: authError,
-  } = await getUserFromRequest(supabase, request);
-
-  if (!user) {
-    return apiError(ROUTE, {
-      request,
-      status: 401,
-      error: await signedInErrorForRequest(request, authError),
-      code: "unauthorized",
-    });
-  }
-
-  let body: RecordCommitteeActivityBody;
-  try {
-    body = await request.json();
-  } catch {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "Invalid request body.",
-      code: "invalid_body",
-    });
-  }
-
-  const organizationId = body.organizationId?.trim() ?? "";
-  if (!organizationId || !committeeId) {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "organizationId is required.",
-      code: "missing_fields",
-    });
-  }
-
-  try {
-    const hasEnrolledAccess = await userHasEnrolledAccess(
-      supabase,
-      user.id,
-      organizationId,
-    );
-
-    if (!hasEnrolledAccess) {
+      return await handleRecordCommitteeActivity(request, ROUTE, params.committeeId, body, {
+        userId: user.id,
+        email: guardian.email || user.email,
+        name: guardian.displayName,
+        memberId: currentMember.id,
+        type: "parent",
+        surface: "parent_portal",
+      });
+    } catch (err) {
+      const resolved = portalRouteErrorStatus(err, "Failed to record activity.");
       return apiError(ROUTE, {
         request,
-        status: 403,
-        error: "You do not have access to this committee.",
-        code: "forbidden",
+        status: resolved.status,
+        error: resolved.message,
+        code: resolved.code,
+        cause: err,
       });
     }
-
-    const admin = createAdminClient();
-    const guardian = await resolveParentGuardianForOrg(
-      admin,
-      user.id,
-      organizationId,
-      user.email ?? "",
-    );
-
-    const currentMember = await resolveActiveCommitteeMemberForPost(
-      admin,
-      organizationId,
-      user.id,
-      committeeId,
-    );
-
-    return handleRecordCommitteeActivity(request, ROUTE, committeeId, body, {
-      userId: user.id,
-      email: guardian.email || user.email,
-      name: guardian.displayName,
-      memberId: currentMember.id,
-      type: "parent",
-      surface: "parent_portal",
-    });
-  } catch (err) {
-    const resolved = portalRouteErrorStatus(err, "Failed to record activity.");
-    return apiError(ROUTE, {
-      request,
-      status: resolved.status,
-      error: resolved.message,
-      code: resolved.code,
-      cause: err,
-    });
-  }
-}
+  },
+);

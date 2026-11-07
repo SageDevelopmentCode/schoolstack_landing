@@ -17,10 +17,25 @@ export type PortalNavCatalogEntry = {
 };
 
 const ADMIN_NAV_CATALOG_ENTRIES: PortalNavCatalogEntry[] = [
-  { key: "dashboard", label: "Dashboard", group: "Main", icon: "layout-dashboard" },
-  { key: "admissions", label: "Admissions", group: "Main", icon: "graduation-cap" },
+  {
+    key: "dashboard",
+    label: "Dashboard",
+    group: "Main",
+    icon: "layout-dashboard",
+  },
+  {
+    key: "admissions",
+    label: "Admissions",
+    group: "Main",
+    icon: "graduation-cap",
+  },
   { key: "my_school", label: "My School", group: "Main", icon: "school" },
-  { key: "communication", label: "Communication", group: "Main", icon: "message-square" },
+  {
+    key: "communication",
+    label: "Communication",
+    group: "Main",
+    icon: "message-square",
+  },
   { key: "committees", label: "Committees", group: "Main", icon: "heart" },
   { key: "schedule", label: "Schedule", group: "Main", icon: "calendar-days" },
   { key: "messages", label: "Messages", group: "Main", icon: "message-square" },
@@ -106,14 +121,20 @@ const DEFAULT_CHILD_LABELS: Record<string, Record<string, string>> = {
   my_school: {},
   communication: {},
   admissions: Object.fromEntries(
-    DEFAULT_FEATURE_CHILDREN.admissions.map((child) => [child.key, child.label!]),
+    DEFAULT_FEATURE_CHILDREN.admissions.map((child) => [
+      child.key,
+      child.label!,
+    ]),
   ),
   finances: Object.fromEntries(
     DEFAULT_FEATURE_CHILDREN.finances.map((child) => [child.key, child.label!]),
   ),
 };
 
-collectDefaultChildLabels(DEFAULT_FEATURE_CHILDREN.my_school, DEFAULT_CHILD_LABELS.my_school);
+collectDefaultChildLabels(
+  DEFAULT_FEATURE_CHILDREN.my_school,
+  DEFAULT_CHILD_LABELS.my_school,
+);
 collectDefaultChildLabels(
   DEFAULT_FEATURE_CHILDREN.communication,
   DEFAULT_CHILD_LABELS.communication,
@@ -161,7 +182,9 @@ function applyLegacyNavItemOverrides(
   return { ...merged, label, icon };
 }
 
-export function getDefaultFeatureChildren(parentKey: string): FeatureNavChildConfig[] {
+export function getDefaultFeatureChildren(
+  parentKey: string,
+): FeatureNavChildConfig[] {
   const defaults = DEFAULT_FEATURE_CHILDREN[parentKey];
   if (!defaults) return [];
   return defaults.map((child) => ({ ...child }));
@@ -171,11 +194,17 @@ export function hasDefaultFeatureChildren(parentKey: string): boolean {
   return Boolean(DEFAULT_FEATURE_CHILDREN[parentKey]?.length);
 }
 
-function cloneFeatureNavChild(child: FeatureNavChildConfig): FeatureNavChildConfig {
+function cloneFeatureNavChild(
+  child: FeatureNavChildConfig,
+): FeatureNavChildConfig {
   return {
     ...child,
     ...(child.children
-      ? { children: child.children.map((nested) => cloneFeatureNavChild(nested)) }
+      ? {
+          children: child.children.map((nested) =>
+            cloneFeatureNavChild(nested),
+          ),
+        }
       : {}),
   };
 }
@@ -213,7 +242,9 @@ function mergeFeatureNavChildList(
 ): FeatureNavChildConfig[] {
   const defaultList = defaults ?? [];
   if (defaultList.length === 0) {
-    return stored?.length ? stored.map((child) => cloneFeatureNavChild(child)) : [];
+    return stored?.length
+      ? stored.map((child) => cloneFeatureNavChild(child))
+      : [];
   }
 
   if (!stored?.length) {
@@ -498,7 +529,8 @@ export function mergePortalFeatureNav(
   const defaults = getDefaultPortalNav(portal);
   if (!stored) return defaults;
 
-  const groups = stored.groups.length > 0 ? [...stored.groups] : [...defaults.groups];
+  const groups =
+    stored.groups.length > 0 ? [...stored.groups] : [...defaults.groups];
   for (const group of defaults.groups) {
     if (!groups.includes(group)) {
       groups.push(group);
@@ -513,7 +545,10 @@ export function mergePortalFeatureNav(
   for (const key of Object.keys(items)) {
     const storedItem = stored.items[key];
     const defaultItem = defaults.items[key];
-    const children = mergeFeatureNavChildren(key, storedItem?.children ?? defaultItem?.children);
+    const children = mergeFeatureNavChildren(
+      key,
+      storedItem?.children ?? defaultItem?.children,
+    );
     items[key] = applyLegacyNavItemOverrides(key, storedItem, defaultItem, {
       group: storedItem?.group ?? defaultItem?.group ?? groups[0] ?? "Main",
       label: storedItem?.label ?? defaultItem?.label,
@@ -585,7 +620,8 @@ export function removePortalGroup(
   nav: PortalFeatureNav,
   groupName: string,
 ): PortalFeatureNav {
-  const fallbackGroup = nav.groups.find((group) => group !== groupName) ?? "Main";
+  const fallbackGroup =
+    nav.groups.find((group) => group !== groupName) ?? "Main";
   const items = { ...nav.items };
 
   for (const [key, item] of Object.entries(items)) {
@@ -677,7 +713,9 @@ export function resolveFeatureNavItem(
     hiddenFromRootNav:
       stored?.hiddenFromRootNav ??
       defaultItem?.hiddenFromRootNav ??
-      (portal === "admin" ? ADMIN_NAV_HIDDEN_FROM_ROOT_DEFAULTS[key] : undefined),
+      (portal === "admin"
+        ? ADMIN_NAV_HIDDEN_FROM_ROOT_DEFAULTS[key]
+        : undefined),
     ...(children ? { children } : {}),
   });
 }
@@ -691,7 +729,9 @@ export function resolveFeatureNavChildren(
   return item.children ?? [];
 }
 
-export function isFeatureNavChildEnabled(child: FeatureNavChildConfig): boolean {
+export function isFeatureNavChildEnabled(
+  child: FeatureNavChildConfig,
+): boolean {
   return child.enabled !== false;
 }
 
@@ -711,11 +751,14 @@ export function getFeatureNavChildLabel(
   child?: FeatureNavChildConfig,
 ): string {
   if (child?.label) return child.label;
-  return DEFAULT_CHILD_LABELS[parentKey]?.[childKey] ?? childKey
-    .split("_")
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
+  return (
+    DEFAULT_CHILD_LABELS[parentKey]?.[childKey] ??
+    childKey
+      .split("_")
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ")
+  );
 }
 
 export function setFeatureNavChildren(

@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { apiError } from "@/lib/api/route-errors";
 import { reportOperationalError } from "@/lib/operational-errors";
-import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
-import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
 import { notifyAdminSupportRequest } from "@/lib/discord";
-import { buildEmailNotificationContext, sendAdminSupportRequestConfirmation } from "@/lib/emails";
+import {
+  buildEmailNotificationContext,
+  sendAdminSupportRequestConfirmation,
+} from "@/lib/emails";
 import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
 import {
   MAX_SUPPORT_REQUEST_FILE_BYTES,
@@ -14,11 +15,16 @@ import {
   uploadSupportRequestFile,
   type SupportRequestAttachmentMeta,
 } from "@/lib/school-admin/support-request-storage";
-import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
+import { withParentPortalRoute } from "@/lib/parent-portal/with-parent-portal-route";
+import {
+  enforceUserFormRateLimit,
+  recordUserFormSubmission,
+} from "@/lib/public-forms/enforce-user-form-submission";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/support-requests";
 const MAX_DESCRIPTION_LENGTH = 5000;
+const MAX_SOURCE_PAGE_PATH_LENGTH = 500;
 
 const ALLOWED_TOPICS = new Set([
   "general",
@@ -40,288 +46,289 @@ function isAllowedAttachment(file: File): boolean {
   return ALLOWED_MIME_PREFIXES.some((prefix) => file.type.startsWith(prefix));
 }
 
-export async function POST(request: Request) {
-  const supabase = await createClientFromRequest(request);
-
-  const {
-    data: { user },
-    error: authError,
-  } = await getUserFromRequest(supabase, request);
-
-  if (!user) {
-    return apiError(ROUTE, {
-      request,
-      status: 401,
-      error: await signedInErrorForRequest(request, authError),
-      code: "unauthorized",
-    });
-  }
-
-  let formData: FormData;
-  try {
-    formData = await request.formData();
-  } catch {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "Invalid form data.",
-      code: "invalid_body",
-    });
-  }
-
-  const organizationId = String(formData.get("organizationId") ?? "").trim();
-  const topic = String(formData.get("topic") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim();
-  const sourcePagePath =
-    String(formData.get("sourcePagePath") ?? "").trim() || null;
-  const attachmentFiles = formData
-    .getAll("attachments")
-    .filter((entry): entry is File => entry instanceof File && entry.size > 0);
-
-  if (!organizationId || !topic || !description) {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "organizationId, topic, and description are required.",
-      code: "missing_fields",
-    });
-  }
-
-  if (!ALLOWED_TOPICS.has(topic)) {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "Invalid topic.",
-      code: "invalid_topic",
-    });
-  }
-
-  if (description.length > MAX_DESCRIPTION_LENGTH) {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "Description is too long.",
-      code: "description_too_long",
-    });
-  }
-
-  if (attachmentFiles.length > MAX_SUPPORT_REQUEST_FILES) {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: `You can attach up to ${MAX_SUPPORT_REQUEST_FILES} files.`,
-      code: "too_many_files",
-    });
-  }
-
-  for (const file of attachmentFiles) {
-    if (file.size > MAX_SUPPORT_REQUEST_FILE_BYTES) {
-      return apiError(ROUTE, {
-        request,
-        status: 400,
-        error: `${file.name} exceeds 10 MB.`,
-        code: "file_too_large",
-      });
-    }
-
-    if (!isAllowedAttachment(file)) {
-      return apiError(ROUTE, {
-        request,
-        status: 400,
-        error: `${file.name} has an unsupported file type.`,
-        code: "invalid_file_type",
-      });
-    }
-  }
-
-  const submitterEmail = user.email?.trim();
-  if (!submitterEmail) {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "Your account must have an email address to submit a support request.",
-      code: "missing_email",
-    });
-  }
-
-  const hasEnrolledAccess = await userHasEnrolledAccess(
+export const POST = withParentPortalRoute(
+  {
+    route: ROUTE,
+    organizationFrom: "body",
+    forbiddenMessage:
+      "You do not have access to submit a support request for this school.",
+    missingOrganizationMessage:
+      "organizationId, topic, and description are required.",
+    invalidBodyMessage: "Invalid form data.",
+    fallbackErrorMessage: "Failed to create support request.",
+  },
+  async ({
+    request,
     supabase,
-    user.id,
+    user,
     organizationId,
-  );
-
-  if (!hasEnrolledAccess) {
-    return apiError(ROUTE, {
-      request,
-      status: 403,
-      error: "You do not have access to submit a support request for this school.",
-      code: "forbidden",
-    });
-  }
-
-  const { data: organization, error: organizationError } = await supabase
-    .from("organizations")
-    .select("id, name, slug")
-    .eq("id", organizationId)
-    .maybeSingle();
-
-  if (organizationError) {
-    return apiError(ROUTE, {
-      request,
-      status: 500,
-      error: "Failed to upload attachments.",
-      cause: organizationError,
-    });
-  }
-
-  if (!organization) {
-    return apiError(ROUTE, {
-      request,
-      status: 404,
-      error: "Organization not found.",
-      code: "organization_not_found",
-    });
-  }
-
-  const admin = createAdminClient();
-
-  const { data: inserted, error: insertError } = await admin
-    .from("admin_support_requests")
-    .insert({
-      organization_id: organization.id,
-      organization_slug: organization.slug,
-      organization_name: organization.name,
-      submitted_by_user_id: user.id,
-      submitter_email: submitterEmail,
-      topic,
-      description,
-      source_page_path: sourcePagePath,
-      attachments: [],
-    })
-    .select("id")
-    .single();
-
-  if (insertError || !inserted) {
-    return apiError(ROUTE, {
-      request,
-      status: 500,
-      error: "Failed to create support request.",
-      cause: insertError,
-    });
-  }
-
-  const requestId = String(inserted.id);
-  const uploadedAttachments: SupportRequestAttachmentMeta[] = [];
-  const uploadedPaths: string[] = [];
-
-  try {
-    for (const file of attachmentFiles) {
-      const meta = await uploadSupportRequestFile(
-        admin,
-        { organizationId, requestId },
-        file,
+    formData: parsedFormData,
+    familyIds,
+  }) => {
+    const formData = parsedFormData!;
+    const topic = String(formData.get("topic") ?? "").trim();
+    const description = String(formData.get("description") ?? "").trim();
+    const sourcePagePath =
+      String(formData.get("sourcePagePath") ?? "")
+        .trim()
+        .slice(0, MAX_SOURCE_PAGE_PATH_LENGTH) || null;
+    const attachmentFiles = formData
+      .getAll("attachments")
+      .filter(
+        (entry): entry is File => entry instanceof File && entry.size > 0,
       );
-      uploadedAttachments.push(meta);
-      uploadedPaths.push(meta.storagePath);
+
+    if (!organizationId || !topic || !description) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: "organizationId, topic, and description are required.",
+        code: "missing_fields",
+      });
     }
 
-    if (uploadedAttachments.length > 0) {
-      const { error: updateError } = await admin
-        .from("admin_support_requests")
-        .update({ attachments: uploadedAttachments })
-        .eq("id", requestId);
+    if (!ALLOWED_TOPICS.has(topic)) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: "Invalid topic.",
+        code: "invalid_topic",
+      });
+    }
 
-      if (updateError) {
-        throw updateError;
+    if (description.length > MAX_DESCRIPTION_LENGTH) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: "Description is too long.",
+        code: "description_too_long",
+      });
+    }
+
+    if (attachmentFiles.length > MAX_SUPPORT_REQUEST_FILES) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: `You can attach up to ${MAX_SUPPORT_REQUEST_FILES} files.`,
+        code: "too_many_files",
+      });
+    }
+
+    for (const file of attachmentFiles) {
+      if (file.size > MAX_SUPPORT_REQUEST_FILE_BYTES) {
+        return apiError(ROUTE, {
+          request,
+          status: 400,
+          error: `${file.name} exceeds 10 MB.`,
+          code: "file_too_large",
+        });
+      }
+
+      if (!isAllowedAttachment(file)) {
+        return apiError(ROUTE, {
+          request,
+          status: 400,
+          error: `${file.name} has an unsupported file type.`,
+          code: "invalid_file_type",
+        });
       }
     }
-  } catch (uploadError) {
-    await deleteSupportRequestFiles(admin, uploadedPaths).catch((cleanupError) => {
-      void reportOperationalError({
-        supabase: admin,
-        surface: "parent_portal",
-        organizationId: organization.id,
-        operation: "parent_portal_support_request_attachment_cleanup",
-        error: "Support request attachment cleanup failed.",
-      cause: cleanupError,
-        entityType: "admin_support_request",
-        entityId: requestId,
-        notify: true,
-        actor: { type: "parent", userId: user.id, email: submitterEmail },
+
+    const submitterEmail = user.email?.trim();
+    if (!submitterEmail) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error:
+          "Your account must have an email address to submit a support request.",
+        code: "missing_email",
       });
+    }
+
+    const rateLimit = await enforceUserFormRateLimit({
+      form: "parent_portal_support",
+      email: submitterEmail,
     });
+    if (!rateLimit.ok) {
+      return apiError(ROUTE, {
+        request,
+        status: rateLimit.status,
+        error: rateLimit.error,
+        code: rateLimit.code,
+      });
+    }
 
-    await admin.from("admin_support_requests").delete().eq("id", requestId);
+    const { data: organization, error: organizationError } = await supabase
+      .from("organizations")
+      .select("id, name, slug")
+      .eq("id", organizationId)
+      .maybeSingle();
 
-    return apiError(ROUTE, {
+    if (organizationError) {
+      return apiError(ROUTE, {
+        request,
+        status: 500,
+        error: "Failed to upload attachments.",
+        cause: organizationError,
+      });
+    }
+
+    if (!organization) {
+      return apiError(ROUTE, {
+        request,
+        status: 404,
+        error: "Organization not found.",
+        code: "organization_not_found",
+      });
+    }
+
+    const admin = createAdminClient();
+
+    const { data: inserted, error: insertError } = await admin
+      .from("admin_support_requests")
+      .insert({
+        organization_id: organization.id,
+        organization_slug: organization.slug,
+        organization_name: organization.name,
+        submitted_by_user_id: user.id,
+        submitter_email: submitterEmail,
+        topic,
+        description,
+        source_page_path: sourcePagePath,
+        attachments: [],
+      })
+      .select("id")
+      .single();
+
+    if (insertError || !inserted) {
+      return apiError(ROUTE, {
+        request,
+        status: 500,
+        error: "Failed to create support request.",
+        cause: insertError,
+      });
+    }
+
+    const requestId = String(inserted.id);
+    void recordUserFormSubmission({
+      form: "parent_portal_support",
+      email: submitterEmail,
+      route: ROUTE,
       request,
-      status: 500,
-      error: "Failed to upload attachments.",
-      code: "upload_failed",
-      cause: uploadError,
     });
-  }
+    const uploadedAttachments: SupportRequestAttachmentMeta[] = [];
+    const uploadedPaths: string[] = [];
 
-  try {
-    await notifyAdminSupportRequest({
-      requestId,
-      organizationId: organization.id,
-      organizationSlug: organization.slug,
-      organizationName: organization.name,
-      submitterEmail,
-      topic,
-      description,
-      sourcePagePath,
-      attachments: uploadedAttachments,
-    });
-  } catch (err) {
-    void logNotificationFailure(admin, {
-      organizationId: organization.id,
-      operation: "parent_portal_support_request_discord",
-      error: err,
-      entityType: "admin_support_request",
-      entityId: requestId,
-    });
-  }
+    try {
+      for (const file of attachmentFiles) {
+        const meta = await uploadSupportRequestFile(
+          admin,
+          { organizationId, requestId },
+          file,
+        );
+        uploadedAttachments.push(meta);
+        uploadedPaths.push(meta.storagePath);
+      }
 
-  try {
-    const familyIds = await getFamilyIdsForUser(supabase, user.id, organizationId);
-    const familyId = familyIds[0];
-    const notificationEmails = familyId
-      ? await loadFamilyNotificationEmails(admin, familyId)
-      : [];
-    const confirmationEmails =
-      notificationEmails.length > 0
-        ? notificationEmails
-        : submitterEmail
-          ? [submitterEmail]
-          : [];
+      if (uploadedAttachments.length > 0) {
+        const { error: updateError } = await admin
+          .from("admin_support_requests")
+          .update({ attachments: uploadedAttachments })
+          .eq("id", requestId);
 
-    await Promise.all(
-      confirmationEmails.map((email) =>
-        sendAdminSupportRequestConfirmation({
-          submitterEmail: email,
-          schoolName: organization.name,
-          topic,
-          notificationContext: buildEmailNotificationContext({
+        if (updateError) {
+          throw updateError;
+        }
+      }
+    } catch (uploadError) {
+      await deleteSupportRequestFiles(admin, uploadedPaths).catch(
+        (cleanupError) => {
+          void reportOperationalError({
+            supabase: admin,
+            surface: "parent_portal",
             organizationId: organization.id,
-            organizationSlug: organization.slug,
-            surface: "web",
+            operation: "parent_portal_support_request_attachment_cleanup",
+            error: "Support request attachment cleanup failed.",
+            cause: cleanupError,
             entityType: "admin_support_request",
             entityId: requestId,
-          }),
-        }),
-      ),
-    );
-  } catch (err) {
-    void logNotificationFailure(admin, {
-      organizationId: organization.id,
-      operation: "parent_portal_support_request_confirmation_email",
-      error: err,
-      entityType: "admin_support_request",
-      entityId: requestId,
-    });
-  }
+            notify: true,
+            actor: { type: "parent", userId: user.id, email: submitterEmail },
+          });
+        },
+      );
 
-  return NextResponse.json({ ok: true, requestId });
-}
+      await admin.from("admin_support_requests").delete().eq("id", requestId);
+
+      return apiError(ROUTE, {
+        request,
+        status: 500,
+        error: "Failed to upload attachments.",
+        code: "upload_failed",
+        cause: uploadError,
+      });
+    }
+
+    try {
+      await notifyAdminSupportRequest({
+        requestId,
+        organizationId: organization.id,
+        organizationSlug: organization.slug,
+        organizationName: organization.name,
+        submitterEmail,
+        topic,
+        description,
+        sourcePagePath,
+        attachments: uploadedAttachments,
+      });
+    } catch (err) {
+      void logNotificationFailure(admin, {
+        organizationId: organization.id,
+        operation: "parent_portal_support_request_discord",
+        error: err,
+        entityType: "admin_support_request",
+        entityId: requestId,
+      });
+    }
+
+    try {
+      const familyId = familyIds[0];
+      const notificationEmails = familyId
+        ? await loadFamilyNotificationEmails(admin, familyId)
+        : [];
+      const confirmationEmails =
+        notificationEmails.length > 0
+          ? notificationEmails
+          : submitterEmail
+            ? [submitterEmail]
+            : [];
+
+      await Promise.all(
+        confirmationEmails.map((email) =>
+          sendAdminSupportRequestConfirmation({
+            submitterEmail: email,
+            schoolName: organization.name,
+            topic,
+            notificationContext: buildEmailNotificationContext({
+              organizationId: organization.id,
+              organizationSlug: organization.slug,
+              surface: "web",
+              entityType: "admin_support_request",
+              entityId: requestId,
+            }),
+          }),
+        ),
+      );
+    } catch (err) {
+      void logNotificationFailure(admin, {
+        organizationId: organization.id,
+        operation: "parent_portal_support_request_confirmation_email",
+        error: err,
+        entityType: "admin_support_request",
+        entityId: requestId,
+      });
+    }
+
+    return NextResponse.json({ ok: true, requestId });
+  },
+);

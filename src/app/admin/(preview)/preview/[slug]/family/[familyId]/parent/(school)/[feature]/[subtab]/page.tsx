@@ -20,9 +20,7 @@ type PageProps = {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug, feature, subtab } = await params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org || !isParentNavPathEnabled(org.features, feature, subtab)) {
     return { title: "Preview Not Found" };
@@ -47,7 +45,7 @@ export default async function FamilyPreviewParentSubtabPage({ params }: PageProp
   const { slug, familyId, feature, subtab } = await params;
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org || !isParentNavPathEnabled(org.features, feature, subtab)) {
     notFound();

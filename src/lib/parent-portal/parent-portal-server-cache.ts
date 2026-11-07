@@ -2,11 +2,8 @@ import "server-only";
 
 import { cache } from "react";
 import { cookies } from "next/headers";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { getFamilyIdsForAuthUser } from "@/lib/admissions/application-auth";
+import { notFound, redirect } from "next/navigation";
 import {
-  getStudentIdsForFamilies,
-  listEnrolledProgramsForStudentIds,
   parentPortalNavContextsFromPrograms,
   type EnrolledProgramPortalSummary,
 } from "@/lib/admissions/program-parent-portal-access";
@@ -14,10 +11,12 @@ import {
   getFamilyUserProfile as getFamilyUserProfileImpl,
   type FamilyUserProfile,
 } from "@/lib/admissions/parent-portal-access";
+import type { PortalAccountLinkContext } from "@/lib/auth/portal-account-link-context";
 import {
-  getPortalAccountLinkContext,
-  type PortalAccountLinkContext,
-} from "@/lib/auth/portal-account-link-context";
+  fetchParentPortalAccess,
+  parentPortalAccessHasProgram,
+  type ParentPortalAccess,
+} from "@/lib/parent-portal/parent-portal-access-rpc";
 import { getRequestUser } from "@/lib/auth/session";
 import type { ParentPortalContextOption } from "@/lib/organization-settings/resolve-program-parent-features";
 import type { OrganizationFeatures } from "@/lib/organization-settings/types";
@@ -40,98 +39,61 @@ const getFamilyUserProfileByOrg = cache(
   },
 );
 
-const getPortalLinkContextByOrg = cache(
-  async (organizationId: string): Promise<PortalAccountLinkContext | null> => {
+/**
+ * One `parent_portal_access` RPC per school per request. Family ids, student ids, enrolled
+ * programs and the enrolled-access flags below are all derived from it.
+ */
+const getParentPortalAccessByOrg = cache(
+  async (organizationId: string): Promise<ParentPortalAccess | null> => {
     const user = await getCachedRequestUser();
     if (!user) return null;
 
     const supabase = await getRequestSupabase();
-    return getPortalAccountLinkContext(supabase, organizationId, user.id);
+    return fetchParentPortalAccess(supabase, organizationId, user.id);
+  },
+);
+
+const getPortalLinkContextByOrg = cache(
+  async (organizationId: string): Promise<PortalAccountLinkContext | null> => {
+    const access = await getParentPortalAccessByOrg(organizationId);
+    return access?.link ?? null;
   },
 );
 
 const getFamilyIdsByOrg = cache(async (organizationId: string): Promise<string[]> => {
-  const user = await getCachedRequestUser();
-  if (!user) return [];
-
-  const link = await getPortalLinkContextByOrg(organizationId);
-  const memberUserIds = link?.memberUserIds ?? [user.id];
-  const supabase = await getRequestSupabase();
-  const batches = await Promise.all(
-    memberUserIds.map((memberUserId) =>
-      getFamilyIdsForAuthUser(supabase, memberUserId, organizationId),
-    ),
-  );
-  const familyIds = new Set<string>();
-  for (const ids of batches) {
-    for (const familyId of ids) {
-      familyIds.add(familyId);
-    }
-  }
-  return [...familyIds];
-});
-
-const getStudentIdsByOrg = cache(async (organizationId: string): Promise<string[]> => {
-  const familyIds = await getFamilyIdsByOrg(organizationId);
-  if (familyIds.length === 0) return [];
-
-  const supabase = await getRequestSupabase();
-  return getStudentIdsForFamilies(supabase, organizationId, familyIds);
+  const access = await getParentPortalAccessByOrg(organizationId);
+  return access?.familyIds ?? [];
 });
 
 const getRequestUserHasEnrolledAccessByOrg = cache(
   async (organizationId: string): Promise<boolean> => {
-    const studentIds = await getStudentIdsByOrg(organizationId);
-    if (studentIds.length === 0) return false;
-
-    const supabase = await getRequestSupabase();
-    const { data, error } = await supabase
-      .from("enrollments")
-      .select("id")
-      .eq("organization_id", organizationId)
-      .eq("status", "enrolled")
-      .in("student_id", studentIds)
-      .limit(1);
-
-    if (error) throw error;
-    return (data ?? []).length > 0;
+    const access = await getParentPortalAccessByOrg(organizationId);
+    return access?.hasEnrolledAccess ?? false;
   },
 );
 
 const getRequestUserHasProgramAccess = cache(
   async (organizationId: string, programId: string): Promise<boolean> => {
-    const studentIds = await getStudentIdsByOrg(organizationId);
-    if (studentIds.length === 0) return false;
-
-    const supabase = await getRequestSupabase();
-    const { data, error } = await supabase
-      .from("enrollments")
-      .select("id")
-      .eq("organization_id", organizationId)
-      .eq("program_id", programId)
-      .eq("status", "enrolled")
-      .in("student_id", studentIds)
-      .limit(1);
-
-    if (error) throw error;
-    return (data ?? []).length > 0;
+    const access = await getParentPortalAccessByOrg(organizationId);
+    return access ? parentPortalAccessHasProgram(access, programId) : false;
   },
 );
 
 const getEnrolledProgramsByOrg = cache(
   async (organizationId: string): Promise<EnrolledProgramPortalSummary[]> => {
-    const studentIds = await getStudentIdsByOrg(organizationId);
-    const supabase = await getRequestSupabase();
-    return listEnrolledProgramsForStudentIds(
-      supabase,
-      organizationId,
-      studentIds,
-    );
+    const access = await getParentPortalAccessByOrg(organizationId);
+    return access?.enrolledPrograms ?? [];
   },
 );
 
+/** Cached access snapshot for the signed-in parent (null when signed out). */
+export async function getParentPortalAccess(
+  organizationId: string,
+): Promise<ParentPortalAccess | null> {
+  return getParentPortalAccessByOrg(organizationId);
+}
+
 export async function getParentPortalUserProfile(
-  _supabase: SupabaseClient,
   organizationId: string,
 ): Promise<FamilyUserProfile> {
   const profile = await getFamilyUserProfileByOrg(organizationId);
@@ -142,14 +104,12 @@ export async function getParentPortalUserProfile(
 }
 
 export async function getParentPortalFamilyIds(
-  _supabase: SupabaseClient,
   organizationId: string,
 ): Promise<string[]> {
   return getFamilyIdsByOrg(organizationId);
 }
 
 export async function getParentPortalPrimaryFamilyId(
-  _supabase: SupabaseClient,
   organizationId: string,
 ): Promise<string | null> {
   const familyIds = await getFamilyIdsByOrg(organizationId);
@@ -177,6 +137,51 @@ export async function getCachedParentPortalProgramAccess(
   programId: string,
 ): Promise<boolean> {
   return getRequestUserHasProgramAccess(organizationId, programId);
+}
+
+/**
+ * Page-level access guard for parent portal routes. Layouts are not guaranteed to
+ * run on every navigation, so any page that loads data (especially with the admin
+ * client) must call this before loading it. Uses the same per-request cached
+ * checks as the layouts, so it adds no extra queries when a layout already ran.
+ *
+ * - No session: `notFound()`.
+ * - Program scope without enrollment in that program: `notFound()`.
+ * - Main portal without any enrolled student: redirect to the apply page when
+ *   `schoolSlug` is given (matches the protected layout), otherwise `notFound()`.
+ */
+export async function requireParentPortalAccess(input: {
+  organizationId: string;
+  programId?: string | null;
+  schoolSlug?: string;
+}): Promise<{ userId: string }> {
+  const user = await getCachedRequestUser();
+  if (!user) {
+    notFound();
+  }
+
+  if (input.programId) {
+    const hasProgramAccess = await getRequestUserHasProgramAccess(
+      input.organizationId,
+      input.programId,
+    );
+    if (!hasProgramAccess) {
+      notFound();
+    }
+    return { userId: user.id };
+  }
+
+  const hasEnrolledAccess = await getRequestUserHasEnrolledAccessByOrg(
+    input.organizationId,
+  );
+  if (!hasEnrolledAccess) {
+    if (input.schoolSlug) {
+      redirect(`/school/${input.schoolSlug}/apply`);
+    }
+    notFound();
+  }
+
+  return { userId: user.id };
 }
 
 export async function getCachedParentPortalNavContexts(input: {

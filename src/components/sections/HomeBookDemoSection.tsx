@@ -5,6 +5,7 @@ import GetStartedDemoFlow, {
   type GetStartedDemoStep,
 } from "@/components/get-started/GetStartedDemoFlow";
 import { BOOK_DEMO_SECTION_ID } from "@/lib/marketing/book-demo";
+import { MUDKITCHEN_MARKETING_BRIGHT_THEME } from "@/lib/marketing/mudkitchen-bright-marketing-theme";
 
 export default function HomeBookDemoSection() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -17,7 +18,7 @@ export default function HomeBookDemoSection() {
     <section
       ref={sectionRef}
       id={BOOK_DEMO_SECTION_ID}
-      className="scroll-mt-28 border-t border-border bg-bg py-20 sm:py-28 px-4 sm:px-6 font-secondary text-text"
+      className="scroll-mt-28 bg-white px-3 py-16 sm:py-20 lg:px-6 lg:py-24"
     >
       <div
         className={`${maxWidthClass} mx-auto transition-[max-width] duration-300`}
@@ -27,6 +28,7 @@ export default function HomeBookDemoSection() {
           sectionRef={sectionRef}
           onStepChange={setStep}
           showStepProgress={false}
+          theme={MUDKITCHEN_MARKETING_BRIGHT_THEME}
         />
       </div>
     </section>

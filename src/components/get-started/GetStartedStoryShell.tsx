@@ -29,8 +29,8 @@ export default function GetStartedStoryShell({
       id={id}
       className={
         isPage
-          ? "min-h-screen scroll-mt-[100px] bg-bg pt-[100px] pb-28 px-4 sm:px-6 font-secondary text-text"
-          : "scroll-mt-[100px] px-4 pb-28 pt-6 sm:px-6 font-secondary text-text"
+          ? "min-h-screen scroll-mt-[100px] bg-white pb-28 px-4 pt-28 sm:px-6 font-secondary text-[#1d1a16] sm:pt-32"
+          : "scroll-mt-[100px] bg-white px-4 pb-28 pt-6 sm:px-6 font-secondary text-[#1d1a16]"
       }
     >
       <div

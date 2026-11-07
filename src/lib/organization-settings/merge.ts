@@ -21,10 +21,7 @@ function deepMerge<T extends Record<string, unknown>>(
     const defaultVal = defaults[key];
 
     if (isPlainObject(storedVal) && isPlainObject(defaultVal)) {
-      result[key] = deepMerge(
-        defaultVal as Record<string, unknown>,
-        storedVal,
-      );
+      result[key] = deepMerge(defaultVal as Record<string, unknown>, storedVal);
     } else if (storedVal !== undefined) {
       result[key] = storedVal;
     }

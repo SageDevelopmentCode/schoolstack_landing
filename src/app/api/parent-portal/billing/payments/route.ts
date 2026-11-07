@@ -1,69 +1,42 @@
 import { NextResponse } from "next/server";
+import { parsePagination } from "@/lib/api/pagination";
 import { apiError } from "@/lib/api/route-errors";
-import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
+import { withParentPortalRoute } from "@/lib/parent-portal/with-parent-portal-route";
 import { listParentTuitionPaymentHistoryPaginated } from "@/lib/tuition/payments";
-import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/parent-portal/billing/payments";
 
-export async function GET(request: Request) {
-  const supabase = await createClientFromRequest(request);
-  const {
-    data: { user },
-    error: authError,
-  } = await getUserFromRequest(supabase, request);
-
-  if (!user) {
-    return apiError(ROUTE, {
-      request,
-      status: 401,
-      error: await signedInErrorForRequest(request, authError),
-      code: "unauthorized",
+export const GET = withParentPortalRoute(
+  {
+    route: ROUTE,
+    requireFamily: true,
+    feature: "billing",
+    fallbackErrorMessage: "Failed to load payments.",
+  },
+  async ({ request, supabase, familyId }) => {
+    const { limit, offset } = parsePagination(new URL(request.url).searchParams, {
+      defaultLimit: 50,
+      maxLimit: 200,
     });
-  }
 
-  const url = new URL(request.url);
-  const organizationId = url.searchParams.get("organizationId")?.trim() ?? "";
-  const familyId = url.searchParams.get("familyId")?.trim() ?? "";
-  const limit = Number(url.searchParams.get("limit") ?? "50");
-  const offset = Number(url.searchParams.get("offset") ?? "0");
+    try {
+      const page = await listParentTuitionPaymentHistoryPaginated(supabase, familyId!, {
+        limit,
+        offset,
+      });
 
-  if (!organizationId || !familyId) {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "organizationId and familyId are required.",
-      code: "missing_fields",
-    });
-  }
-
-  try {
-    const hasAccess = await userHasEnrolledAccess(supabase, user.id, organizationId);
-    if (!hasAccess) {
+      return NextResponse.json({
+        payments: page.payments,
+        totalCount: page.totalCount,
+      });
+    } catch (err) {
       return apiError(ROUTE, {
         request,
-        status: 403,
-        error: "You do not have access to the parent portal.",
-        code: "forbidden",
+        status: 500,
+        error: "Failed to load payments.",
+        cause: err,
+        code: "internal_error",
       });
     }
-
-    const page = await listParentTuitionPaymentHistoryPaginated(supabase, familyId, {
-      limit,
-      offset,
-    });
-
-    return NextResponse.json({
-      payments: page.payments,
-      totalCount: page.totalCount,
-    });
-  } catch (err) {
-    return apiError(ROUTE, {
-      request,
-      status: 500,
-      error: "Failed to load payments.",
-      cause: err,
-      code: "internal_error",
-    });
-  }
-}
+  },
+);

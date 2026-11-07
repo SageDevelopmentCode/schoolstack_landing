@@ -129,7 +129,9 @@ export function childPickupDeepLinkHref(
 }
 
 export function parseSchoolParentPath(pathname: string): ParentNavPath | null {
-  const match = pathname.match(/\/school\/[^/]+\/parent\/([^/]+)(?:\/([^/]+))?$/);
+  const match = pathname.match(
+    /\/school\/[^/]+\/parent\/([^/]+)(?:\/([^/]+))?$/,
+  );
   if (!match) return null;
   return {
     feature: match[1],
@@ -173,7 +175,9 @@ export function isParentCommitteeWorkspaceOpen(
 ): boolean {
   if (!searchParams?.get("committee")) return false;
   if (isParentCommitteesPath(pathname)) return true;
-  return /\/admin\/preview\/[^/]+\/family\/[^/]+\/parent\/committees(?:\/|$)/.test(pathname);
+  return /\/admin\/preview\/[^/]+\/family\/[^/]+\/parent\/committees(?:\/|$)/.test(
+    pathname,
+  );
 }
 
 export function isParentSupplyListPath(pathname: string): boolean {
@@ -183,8 +187,10 @@ export function isParentSupplyListPath(pathname: string): boolean {
 }
 
 export function isParentTeachingSchedulePath(pathname: string): boolean {
-  if (parseProgramParentPath(pathname)?.feature === "teaching_schedule") return true;
-  if (parseSchoolParentPath(pathname)?.feature === "teaching_schedule") return true;
+  if (parseProgramParentPath(pathname)?.feature === "teaching_schedule")
+    return true;
+  if (parseSchoolParentPath(pathname)?.feature === "teaching_schedule")
+    return true;
   return /\/parent\/(?:p\/[^/]+\/)?teaching_schedule(?:\/|$)/.test(pathname);
 }
 
@@ -201,9 +207,7 @@ export function isParentFeatureEnabled(
     return false;
   }
 
-  return Boolean(
-    (parentFeatures as Record<string, boolean>)[featureKey],
-  );
+  return Boolean((parentFeatures as Record<string, boolean>)[featureKey]);
 }
 
 export function isParentPortalEnabled(features: OrganizationFeatures): boolean {
@@ -223,7 +227,14 @@ export function isParentNavPathEnabled(
     return true;
   }
 
-  const portalNav = mergePortalFeatureNav("parent", features.feature_nav?.parent);
-  const children = getEnabledFeatureNavChildren("parent", featureKey, portalNav);
+  const portalNav = mergePortalFeatureNav(
+    "parent",
+    features.feature_nav?.parent,
+  );
+  const children = getEnabledFeatureNavChildren(
+    "parent",
+    featureKey,
+    portalNav,
+  );
   return children.some((child) => child.key === subtab);
 }

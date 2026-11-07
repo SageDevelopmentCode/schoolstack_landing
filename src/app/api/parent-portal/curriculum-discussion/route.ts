@@ -5,187 +5,109 @@ import {
   postProgramCoopCurriculumDiscussionMessage,
   validateProgramCoopCurriculumDiscussionBody,
 } from "@/lib/admissions/program-coop-curriculum-discussion";
-import { userHasAccessForProgramPortal } from "@/lib/admissions/program-parent-portal-access";
 import { getGuardianIdForUser } from "@/lib/messages/messages";
-import { getFamilyIdsForUser } from "@/lib/messages/api-helpers";
-import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
+import { withParentPortalRoute } from "@/lib/parent-portal/with-parent-portal-route";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/curriculum-discussion";
 
-export async function GET(request: Request) {
-  const supabase = await createClientFromRequest(request);
-  const { searchParams } = new URL(request.url);
-  const organizationId = searchParams.get("organizationId")?.trim() ?? "";
-  const programId = searchParams.get("programId")?.trim() ?? "";
-  const curriculumId = searchParams.get("curriculumId");
+export const GET = withParentPortalRoute(
+  {
+    route: ROUTE,
+    programScope: "required",
+    forbiddenMessage: "You do not have access to curriculum discussion.",
+    fallbackErrorMessage: "Failed to load discussion.",
+  },
+  async ({ request, organizationId, programId }) => {
+    const curriculumId = new URL(request.url).searchParams.get("curriculumId");
 
-  if (!organizationId || !programId) {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "organizationId and programId are required.",
-      code: "missing_fields",
-    });
-  }
+    try {
+      const admin = createAdminClient();
+      const messages = await listProgramCoopCurriculumDiscussionMessages(admin, {
+        organizationId,
+        programId: programId!,
+        curriculumId,
+      });
 
-  const {
-    data: { user },
-    error: authError,
-  } = await getUserFromRequest(supabase, request);
-
-  if (!user) {
-    return apiError(ROUTE, {
-      request,
-      status: 401,
-      error: await signedInErrorForRequest(request, authError),
-      code: "unauthorized",
-    });
-  }
-
-  try {
-    const hasAccess = await userHasAccessForProgramPortal(
-      supabase,
-      user.id,
-      organizationId,
-      programId,
-    );
-    if (!hasAccess) {
+      return NextResponse.json({ messages });
+    } catch (err) {
       return apiError(ROUTE, {
         request,
-        status: 403,
-        error: "You do not have access to curriculum discussion.",
-        code: "forbidden",
+        status: 500,
+        error: "Failed to load discussion.",
+        cause: err,
+        code: "internal_error",
       });
     }
+  },
+);
 
-    const admin = createAdminClient();
-    const messages = await listProgramCoopCurriculumDiscussionMessages(admin, {
-      organizationId,
-      programId,
-      curriculumId,
-    });
+type PostBody = {
+  curriculumId?: string | null;
+  body?: string;
+  pageNumber?: number | null;
+};
 
-    return NextResponse.json({ messages });
-  } catch (err) {
-    return apiError(ROUTE, {
-      request,
-      status: 500,
-      error: "Failed to load discussion.",
-      cause: err,
-      code: "internal_error",
-    });
-  }
-}
+export const POST = withParentPortalRoute<PostBody>(
+  {
+    route: ROUTE,
+    organizationFrom: "body",
+    programScope: "required",
+    forbiddenMessage: "You do not have access to curriculum discussion.",
+    fallbackErrorMessage: "Failed to post message.",
+  },
+  async ({ request, user, organizationId, programId, familyId, body }) => {
+    try {
+      const messageBody = body.body ?? "";
 
-export async function POST(request: Request) {
-  const supabase = await createClientFromRequest(request);
+      const validationError = validateProgramCoopCurriculumDiscussionBody(messageBody);
+      if (validationError) {
+        return apiError(ROUTE, {
+          request,
+          status: 400,
+          error: validationError,
+          code: "invalid_body",
+        });
+      }
 
-  const {
-    data: { user },
-    error: authError,
-  } = await getUserFromRequest(supabase, request);
+      if (!familyId) {
+        return apiError(ROUTE, {
+          request,
+          status: 400,
+          error: "No family found for this account.",
+          code: "missing_family",
+        });
+      }
 
-  if (!user) {
-    return apiError(ROUTE, {
-      request,
-      status: 401,
-      error: await signedInErrorForRequest(request, authError),
-      code: "unauthorized",
-    });
-  }
+      const admin = createAdminClient();
+      const guardianId = await getGuardianIdForUser(admin, user.id, organizationId, familyId);
+      if (!guardianId) {
+        return apiError(ROUTE, {
+          request,
+          status: 400,
+          error: "No guardian profile found for this account.",
+          code: "missing_guardian",
+        });
+      }
 
-  try {
-    const body = (await request.json()) as {
-      organizationId?: string;
-      programId?: string;
-      curriculumId?: string | null;
-      body?: string;
-      pageNumber?: number | null;
-    };
+      const message = await postProgramCoopCurriculumDiscussionMessage(admin, {
+        organizationId,
+        programId: programId!,
+        senderGuardianId: guardianId,
+        body: messageBody,
+        curriculumId: body.curriculumId,
+        pageNumber: body.pageNumber,
+      });
 
-    const organizationId = body.organizationId?.trim() ?? "";
-    const programId = body.programId?.trim() ?? "";
-    const messageBody = body.body ?? "";
-
-    if (!organizationId || !programId) {
+      return NextResponse.json({ message });
+    } catch (err) {
       return apiError(ROUTE, {
         request,
-        status: 400,
-        error: "organizationId and programId are required.",
-        code: "missing_fields",
+        status: 500,
+        error: "Failed to post message.",
+        cause: err,
+        code: "internal_error",
       });
     }
-
-    const validationError = validateProgramCoopCurriculumDiscussionBody(messageBody);
-    if (validationError) {
-      return apiError(ROUTE, {
-        request,
-        status: 400,
-        error: validationError,
-        code: "invalid_body",
-      });
-    }
-
-    const hasAccess = await userHasAccessForProgramPortal(
-      supabase,
-      user.id,
-      organizationId,
-      programId,
-    );
-    if (!hasAccess) {
-      return apiError(ROUTE, {
-        request,
-        status: 403,
-        error: "You do not have access to curriculum discussion.",
-        code: "forbidden",
-      });
-    }
-
-    const familyIds = await getFamilyIdsForUser(supabase, user.id, organizationId);
-    const familyId = familyIds[0];
-    if (!familyId) {
-      return apiError(ROUTE, {
-        request,
-        status: 400,
-        error: "No family found for this account.",
-        code: "missing_family",
-      });
-    }
-
-    const admin = createAdminClient();
-    const guardianId = await getGuardianIdForUser(
-      admin,
-      user.id,
-      organizationId,
-      familyId,
-    );
-    if (!guardianId) {
-      return apiError(ROUTE, {
-        request,
-        status: 400,
-        error: "No guardian profile found for this account.",
-        code: "missing_guardian",
-      });
-    }
-
-    const message = await postProgramCoopCurriculumDiscussionMessage(admin, {
-      organizationId,
-      programId,
-      senderGuardianId: guardianId,
-      body: messageBody,
-      curriculumId: body.curriculumId,
-      pageNumber: body.pageNumber,
-    });
-
-    return NextResponse.json({ message });
-  } catch (err) {
-    return apiError(ROUTE, {
-      request,
-      status: 500,
-      error: "Failed to post message.",
-      cause: err,
-      code: "internal_error",
-    });
-  }
-}
+  },
+);

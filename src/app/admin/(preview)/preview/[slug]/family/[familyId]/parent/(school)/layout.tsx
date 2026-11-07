@@ -12,6 +12,7 @@ import {
 import { getFamilyPreviewGuardianUserId } from "@/lib/admissions/family-preview-access";
 import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
 import { getCommitteeUnreadSummaryForUser } from "@/lib/committees/committee-unread";
+import { getParentMessagesUnreadCountForUser } from "@/lib/messages/unread-count-api";
 import { getParentPortalActivityUnreadCount } from "@/lib/parent-portal/parent-activity-notifications-server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { buildMainParentNotificationContext } from "@/lib/parent-portal/parent-notification-context";
@@ -34,7 +35,7 @@ export default async function FamilyPreviewMainParentLayout({
   const { slug, familyId } = await params;
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org) {
     return children;
@@ -87,13 +88,24 @@ export default async function FamilyPreviewMainParentLayout({
       )
     : undefined;
 
+  const features = resolveMainParentOrganizationFeatures(org.features);
+  const initialMessagesUnreadCount =
+    guardianUserId && features.parent?.messages
+      ? await getParentMessagesUnreadCountForUser(
+          createAdminClient(),
+          org.id,
+          guardianUserId,
+          org.name,
+        ).catch(() => 0)
+      : 0;
+
   return (
     <SchoolParentBaseline
       slug={slug}
       organizationId={org.id}
       schoolName={org.name}
       branding={org.branding}
-      features={resolveMainParentOrganizationFeatures(org.features)}
+      features={features}
       userProfile={userProfile}
       parentPortalContexts={parentPortalContexts}
       previewMode
@@ -102,6 +114,7 @@ export default async function FamilyPreviewMainParentLayout({
       previewFamilyId={familyId}
       initialActivityUnreadCount={initialActivityUnreadCount}
       initialCommitteeUnreadSummary={initialCommitteeUnreadSummary}
+      initialMessagesUnreadCount={initialMessagesUnreadCount}
       notificationContext={notificationContext}
       fridayBranchSettings={org.fridayBranchSettings}
     >

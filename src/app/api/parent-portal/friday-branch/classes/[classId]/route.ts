@@ -20,374 +20,337 @@ import {
   notifyFridayBranchWithdrawalFromParentPortal,
 } from "@/lib/friday-branch/friday-branch-admin-notifications";
 import { reportOperationalError } from "@/lib/operational-errors";
-import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
+import { withParentPortalRoute } from "@/lib/parent-portal/with-parent-portal-route";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/friday-branch/classes/[classId]";
 
-type RouteContext = {
-  params: Promise<{ classId: string }>;
-};
+type ClassParams = { classId: string };
 
-export async function GET(request: Request, context: RouteContext) {
-  const { classId } = await context.params;
-  const supabase = await createClientFromRequest(request);
-  const organizationId = new URL(request.url).searchParams.get("organizationId")?.trim() ?? "";
-
-  if (!organizationId || !classId?.trim()) {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "organizationId and classId are required.",
-      code: "missing_fields",
-    });
-  }
-
-  const {
-    data: { user },
-    error: authError,
-  } = await getUserFromRequest(supabase, request);
-
-  if (!user) {
-    return apiError(ROUTE, {
-      request,
-      status: 401,
-      error: await signedInErrorForRequest(request, authError),
-      code: "unauthorized",
-    });
-  }
-
-  try {
-    const { familyId, studentOptions } = await requireParentFridayBranchAccess(
-      supabase,
-      user,
-      organizationId,
-    );
-
-    const admin = createAdminClient();
-    await assertFridayBranchParentPortalOpen(admin, organizationId);
-    const detail = await loadParentFridayBranchClassDetail(
-      admin,
-      organizationId,
-      familyId,
-      classId.trim(),
-      studentOptions,
-    );
-
-    if (!detail) {
+export const GET = withParentPortalRoute<undefined, ClassParams>(
+  {
+    route: ROUTE,
+    enforceAccess: false,
+    missingOrganizationMessage: "organizationId and classId are required.",
+    fallbackErrorMessage: "Failed to load Friday Branch class.",
+  },
+  async ({ request, supabase, user, organizationId, access, params }) => {
+    const { classId } = params;
+    if (!classId?.trim()) {
       return apiError(ROUTE, {
         request,
-        status: 404,
-        error: "Friday Branch class not found.",
-        code: "not_found",
+        status: 400,
+        error: "organizationId and classId are required.",
+        code: "missing_fields",
       });
     }
 
-    return NextResponse.json({ detail, studentOptions });
-  } catch (err) {
-    if (err instanceof ParentFridayBranchAuthError) {
+    try {
+      const { familyId, studentOptions } =
+        await requireParentFridayBranchAccess(
+          supabase,
+          user,
+          organizationId,
+          access,
+        );
+
+      const admin = createAdminClient();
+      await assertFridayBranchParentPortalOpen(admin, organizationId);
+      const detail = await loadParentFridayBranchClassDetail(
+        admin,
+        organizationId,
+        familyId,
+        classId.trim(),
+        studentOptions,
+      );
+
+      if (!detail) {
+        return apiError(ROUTE, {
+          request,
+          status: 404,
+          error: "Friday Branch class not found.",
+          code: "not_found",
+        });
+      }
+
+      return NextResponse.json({ detail, studentOptions });
+    } catch (err) {
+      if (err instanceof ParentFridayBranchAuthError) {
+        return apiError(ROUTE, {
+          request,
+          status: err.status,
+          error: err.message,
+          code: err.code,
+          cause: err,
+        });
+      }
+
+      if (err instanceof FridayBranchParentPortalPausedError) {
+        return apiError(ROUTE, {
+          request,
+          status: err.status,
+          error: err.message,
+          code: err.code,
+          cause: err,
+        });
+      }
+
       return apiError(ROUTE, {
         request,
-        status: err.status,
-        error: err.message,
-        code: err.code,
+        status: 500,
+        error: "Failed to load Friday Branch class.",
         cause: err,
+        code: "load_failed",
       });
     }
-
-    if (err instanceof FridayBranchParentPortalPausedError) {
-      return apiError(ROUTE, {
-        request,
-        status: err.status,
-        error: err.message,
-        code: err.code,
-        cause: err,
-      });
-    }
-
-    return apiError(ROUTE, {
-      request,
-      status: 500,
-      error: "Failed to load Friday Branch class.",
-      cause: err,
-      code: "load_failed",
-    });
-  }
-}
+  },
+);
 
 type MutationBody = {
   organizationId?: string;
   studentId?: string;
 };
 
-export async function POST(request: Request, context: RouteContext) {
-  const { classId } = await context.params;
-  const supabase = await createClientFromRequest(request);
-
-  const {
-    data: { user },
-    error: authError,
-  } = await getUserFromRequest(supabase, request);
-
-  if (!user) {
-    return apiError(ROUTE, {
-      request,
-      status: 401,
-      error: await signedInErrorForRequest(request, authError),
-      code: "unauthorized",
-    });
-  }
-
-  let body: MutationBody;
-  try {
-    body = (await request.json()) as MutationBody;
-  } catch {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "Invalid request body.",
-      code: "invalid_body",
-    });
-  }
-
-  const organizationId = body.organizationId?.trim() ?? "";
-  const studentId = body.studentId?.trim() ?? "";
-
-  if (!organizationId || !classId?.trim() || !studentId) {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "organizationId, classId, and studentId are required.",
-      code: "missing_fields",
-    });
-  }
-
-  try {
-    const { familyId, studentOptions } = await requireParentFridayBranchAccess(
-      supabase,
-      user,
-      organizationId,
-    );
-
-    const admin = createAdminClient();
-    const result = await enrollStudentInFridayBranchClass(
-      admin,
-      organizationId,
-      familyId,
-      classId.trim(),
-      studentId,
-      studentOptions,
-    );
-
-    const studentName =
-      studentOptions.find((student) => student.id === studentId)?.name ?? "Student";
-
-    void notifyFridayBranchEnrollmentFromParentPortal(admin, {
-      organizationId,
-      familyId,
-      enrollmentId: result.enrollmentId,
-      classId: classId.trim(),
-      studentId,
-      studentName,
-      status: result.status,
-      detail: result.detail,
-      actor: user,
-    }).catch((error) =>
-      reportOperationalError({
-        supabase: admin,
-        surface: "parent_portal",
-        operation: "friday_branch.class.enroll.notify",
-        error: "Failed to notify admins of Friday Branch sign-up.",
-        organizationId,
-        entityType: "friday_branch_class_enrollment",
-        entityId: result.enrollmentId,
-        actor: { type: "parent", userId: user.id, email: user.email },
-        cause: error,
-      }),
-    );
-
-    return NextResponse.json(result);
-  } catch (err) {
-    if (err instanceof ParentFridayBranchAuthError) {
+export const POST = withParentPortalRoute<MutationBody, ClassParams>(
+  {
+    route: ROUTE,
+    organizationFrom: "body",
+    enforceAccess: false,
+    missingOrganizationMessage:
+      "organizationId, classId, and studentId are required.",
+    fallbackErrorMessage: "Failed to sign up for Friday Branch class.",
+  },
+  async ({ request, supabase, user, organizationId, access, body, params }) => {
+    const { classId } = params;
+    const studentId = body.studentId?.trim() ?? "";
+    if (!classId?.trim() || !studentId) {
       return apiError(ROUTE, {
         request,
-        status: err.status,
-        error: err.message,
-        code: err.code,
-        cause: err,
+        status: 400,
+        error: "organizationId, classId, and studentId are required.",
+        code: "missing_fields",
       });
     }
 
-    if (err instanceof FridayBranchParentPortalPausedError) {
-      return apiError(ROUTE, {
-        request,
-        status: err.status,
-        error: err.message,
-        code: err.code,
-        cause: err,
-      });
-    }
+    try {
+      const { familyId, studentOptions } =
+        await requireParentFridayBranchAccess(
+          supabase,
+          user,
+          organizationId,
+          access,
+        );
 
-    if (err instanceof FridayBranchEnrollmentConflictError) {
-      return apiError(ROUTE, {
-        request,
-        status: err.status,
-        error: err.message,
-        code: err.code,
-        cause: err,
-      });
-    }
-
-    const resolved = portalRouteErrorStatus(err, "Failed to sign up for Friday Branch class.");
-    return apiError(ROUTE, {
-      request,
-      status: resolved.status,
-      error: resolved.message,
-      code: resolved.status === 500 ? "internal_error" : "enroll_failed",
-      cause: err,
-    });
-  }
-}
-
-export async function DELETE(request: Request, context: RouteContext) {
-  const { classId } = await context.params;
-  const supabase = await createClientFromRequest(request);
-
-  const {
-    data: { user },
-    error: authError,
-  } = await getUserFromRequest(supabase, request);
-
-  if (!user) {
-    return apiError(ROUTE, {
-      request,
-      status: 401,
-      error: await signedInErrorForRequest(request, authError),
-      code: "unauthorized",
-    });
-  }
-
-  let body: MutationBody;
-  try {
-    body = (await request.json()) as MutationBody;
-  } catch {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "Invalid request body.",
-      code: "invalid_body",
-    });
-  }
-
-  const organizationId = body.organizationId?.trim() ?? "";
-  const studentId = body.studentId?.trim() ?? "";
-
-  if (!organizationId || !classId?.trim() || !studentId) {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "organizationId, classId, and studentId are required.",
-      code: "missing_fields",
-    });
-  }
-
-  try {
-    const { familyId, studentOptions } = await requireParentFridayBranchAccess(
-      supabase,
-      user,
-      organizationId,
-    );
-
-    const admin = createAdminClient();
-
-    const { data: existingEnrollment } = await admin
-      .from("friday_branch_class_enrollments")
-      .select("id")
-      .eq("organization_id", organizationId)
-      .eq("family_id", familyId)
-      .eq("class_id", classId.trim())
-      .eq("student_id", studentId)
-      .in("status", ["confirmed", "waitlisted"])
-      .maybeSingle();
-
-    const detail = await withdrawStudentFromFridayBranchClass(
-      admin,
-      organizationId,
-      familyId,
-      classId.trim(),
-      studentId,
-      studentOptions,
-    );
-
-    const enrollmentId = existingEnrollment
-      ? String((existingEnrollment as { id: string }).id)
-      : null;
-    const studentName =
-      studentOptions.find((student) => student.id === studentId)?.name ?? "Student";
-
-    if (enrollmentId) {
-      void notifyFridayBranchWithdrawalFromParentPortal(admin, {
+      const admin = createAdminClient();
+      const result = await enrollStudentInFridayBranchClass(
+        admin,
         organizationId,
         familyId,
-        enrollmentId,
+        classId.trim(),
+        studentId,
+        studentOptions,
+      );
+
+      const studentName =
+        studentOptions.find((student) => student.id === studentId)?.name ??
+        "Student";
+
+      void notifyFridayBranchEnrollmentFromParentPortal(admin, {
+        organizationId,
+        familyId,
+        enrollmentId: result.enrollmentId,
         classId: classId.trim(),
+        studentId,
         studentName,
-        detail,
+        status: result.status,
+        detail: result.detail,
         actor: user,
       }).catch((error) =>
         reportOperationalError({
           supabase: admin,
           surface: "parent_portal",
-          operation: "friday_branch.class.withdraw.notify",
-          error: "Failed to log Friday Branch withdrawal activity.",
+          operation: "friday_branch.class.enroll.notify",
+          error: "Failed to notify admins of Friday Branch sign-up.",
           organizationId,
           entityType: "friday_branch_class_enrollment",
-          entityId: enrollmentId,
+          entityId: result.enrollmentId,
           actor: { type: "parent", userId: user.id, email: user.email },
           cause: error,
         }),
       );
-    }
 
-    return NextResponse.json({ detail });
-  } catch (err) {
-    if (err instanceof ParentFridayBranchAuthError) {
+      return NextResponse.json(result);
+    } catch (err) {
+      if (err instanceof ParentFridayBranchAuthError) {
+        return apiError(ROUTE, {
+          request,
+          status: err.status,
+          error: err.message,
+          code: err.code,
+          cause: err,
+        });
+      }
+
+      if (err instanceof FridayBranchParentPortalPausedError) {
+        return apiError(ROUTE, {
+          request,
+          status: err.status,
+          error: err.message,
+          code: err.code,
+          cause: err,
+        });
+      }
+
+      if (err instanceof FridayBranchEnrollmentConflictError) {
+        return apiError(ROUTE, {
+          request,
+          status: err.status,
+          error: err.message,
+          code: err.code,
+          cause: err,
+        });
+      }
+
+      const resolved = portalRouteErrorStatus(
+        err,
+        "Failed to sign up for Friday Branch class.",
+      );
       return apiError(ROUTE, {
         request,
-        status: err.status,
-        error: err.message,
-        code: err.code,
+        status: resolved.status,
+        error: resolved.message,
+        code: resolved.status === 500 ? "internal_error" : "enroll_failed",
         cause: err,
       });
     }
+  },
+);
 
-    if (err instanceof FridayBranchParentPortalPausedError) {
+export const DELETE = withParentPortalRoute<MutationBody, ClassParams>(
+  {
+    route: ROUTE,
+    organizationFrom: "body",
+    enforceAccess: false,
+    missingOrganizationMessage:
+      "organizationId, classId, and studentId are required.",
+    fallbackErrorMessage: "Failed to withdraw from Friday Branch class.",
+  },
+  async ({ request, supabase, user, organizationId, access, body, params }) => {
+    const { classId } = params;
+    const studentId = body.studentId?.trim() ?? "";
+    if (!classId?.trim() || !studentId) {
       return apiError(ROUTE, {
         request,
-        status: err.status,
-        error: err.message,
-        code: err.code,
-        cause: err,
+        status: 400,
+        error: "organizationId, classId, and studentId are required.",
+        code: "missing_fields",
       });
     }
 
-    if (err instanceof FridayBranchEnrollmentConflictError) {
+    try {
+      const { familyId, studentOptions } =
+        await requireParentFridayBranchAccess(
+          supabase,
+          user,
+          organizationId,
+          access,
+        );
+
+      const admin = createAdminClient();
+
+      const { data: existingEnrollment } = await admin
+        .from("friday_branch_class_enrollments")
+        .select("id")
+        .eq("organization_id", organizationId)
+        .eq("family_id", familyId)
+        .eq("class_id", classId.trim())
+        .eq("student_id", studentId)
+        .in("status", ["confirmed", "waitlisted"])
+        .maybeSingle();
+
+      const detail = await withdrawStudentFromFridayBranchClass(
+        admin,
+        organizationId,
+        familyId,
+        classId.trim(),
+        studentId,
+        studentOptions,
+      );
+
+      const enrollmentId = existingEnrollment
+        ? String((existingEnrollment as { id: string }).id)
+        : null;
+      const studentName =
+        studentOptions.find((student) => student.id === studentId)?.name ??
+        "Student";
+
+      if (enrollmentId) {
+        void notifyFridayBranchWithdrawalFromParentPortal(admin, {
+          organizationId,
+          familyId,
+          enrollmentId,
+          classId: classId.trim(),
+          studentName,
+          detail,
+          actor: user,
+        }).catch((error) =>
+          reportOperationalError({
+            supabase: admin,
+            surface: "parent_portal",
+            operation: "friday_branch.class.withdraw.notify",
+            error: "Failed to log Friday Branch withdrawal activity.",
+            organizationId,
+            entityType: "friday_branch_class_enrollment",
+            entityId: enrollmentId,
+            actor: { type: "parent", userId: user.id, email: user.email },
+            cause: error,
+          }),
+        );
+      }
+
+      return NextResponse.json({ detail });
+    } catch (err) {
+      if (err instanceof ParentFridayBranchAuthError) {
+        return apiError(ROUTE, {
+          request,
+          status: err.status,
+          error: err.message,
+          code: err.code,
+          cause: err,
+        });
+      }
+
+      if (err instanceof FridayBranchParentPortalPausedError) {
+        return apiError(ROUTE, {
+          request,
+          status: err.status,
+          error: err.message,
+          code: err.code,
+          cause: err,
+        });
+      }
+
+      if (err instanceof FridayBranchEnrollmentConflictError) {
+        return apiError(ROUTE, {
+          request,
+          status: err.status,
+          error: err.message,
+          code: err.code,
+          cause: err,
+        });
+      }
+
+      const resolved = portalRouteErrorStatus(
+        err,
+        "Failed to withdraw from Friday Branch class.",
+      );
       return apiError(ROUTE, {
         request,
-        status: err.status,
-        error: err.message,
-        code: err.code,
+        status: resolved.status,
+        error: resolved.message,
+        code: resolved.status === 500 ? "internal_error" : "withdraw_failed",
         cause: err,
       });
     }
-
-    const resolved = portalRouteErrorStatus(err, "Failed to withdraw from Friday Branch class.");
-    return apiError(ROUTE, {
-      request,
-      status: resolved.status,
-      error: resolved.message,
-      code: resolved.status === 500 ? "internal_error" : "withdraw_failed",
-      cause: err,
-    });
-  }
-}
+  },
+);

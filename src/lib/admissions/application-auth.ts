@@ -40,6 +40,36 @@ export async function userIsOrgAdmin(
   return false;
 }
 
+type GuardianFamilyRow = { family_id: unknown; created_at?: unknown };
+
+/**
+ * Families in a stable order: the family whose guardian row is oldest first, ties by family id.
+ * Matches the `family_ids` order returned by `parent_portal_access`, so `familyIds[0]` (the
+ * "primary" family) is the same on every request and in every code path. Duplicates collapse to
+ * their first (oldest) occurrence. Exported for tests.
+ */
+export function orderFamilyIdsByFirstGuardian(rows: GuardianFamilyRow[]): string[] {
+  const sorted = rows
+    .map((row) => ({
+      familyId: String(row.family_id),
+      createdAt: row.created_at == null ? "" : String(row.created_at),
+    }))
+    .sort((a, b) =>
+      a.createdAt === b.createdAt
+        ? a.familyId.localeCompare(b.familyId)
+        : a.createdAt.localeCompare(b.createdAt),
+    );
+
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  for (const row of sorted) {
+    if (seen.has(row.familyId)) continue;
+    seen.add(row.familyId);
+    ordered.push(row.familyId);
+  }
+  return ordered;
+}
+
 export async function getFamilyIdsForAuthUser(
   supabase: SupabaseClient,
   userId: string,
@@ -47,12 +77,12 @@ export async function getFamilyIdsForAuthUser(
 ): Promise<string[]> {
   const { data, error } = await supabase
     .from("guardians")
-    .select("family_id")
+    .select("family_id, created_at")
     .eq("user_id", userId)
     .eq("organization_id", organizationId);
 
   if (error) throw error;
-  return (data ?? []).map((row) => String(row.family_id));
+  return orderFamilyIdsByFirstGuardian((data ?? []) as GuardianFamilyRow[]);
 }
 
 export async function getFamilyIdsForUser(
@@ -65,20 +95,15 @@ export async function getFamilyIdsForUser(
     organizationId,
     userId,
   );
-  const batches = await Promise.all(
-    memberUserIds.map((memberUserId) =>
-      getFamilyIdsForAuthUser(supabase, memberUserId, organizationId),
-    ),
-  );
-  const familyIds = new Set<string>();
 
-  for (const ids of batches) {
-    for (const familyId of ids) {
-      familyIds.add(familyId);
-    }
-  }
+  const { data, error } = await supabase
+    .from("guardians")
+    .select("family_id, created_at")
+    .eq("organization_id", organizationId)
+    .in("user_id", memberUserIds);
 
-  return [...familyIds];
+  if (error) throw error;
+  return orderFamilyIdsByFirstGuardian((data ?? []) as GuardianFamilyRow[]);
 }
 
 export function applicationOwnershipFilter(

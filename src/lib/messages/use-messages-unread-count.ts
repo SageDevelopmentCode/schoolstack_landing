@@ -13,6 +13,11 @@ export function useMessagesUnreadCount(
     initialUnreadCount?: number;
     skipInitialFetch?: boolean;
     deferUntilIdle?: boolean;
+    /**
+     * Count started on the server (streamed from the layout). While set, the hook applies it when
+     * it resolves instead of fetching, and only fetches itself if the server load failed (null).
+     */
+    seedPromise?: Promise<number | null>;
   },
 ) {
   const [unreadCount, setUnreadCount] = useState(options?.initialUnreadCount ?? 0);
@@ -31,8 +36,31 @@ export function useMessagesUnreadCount(
     }
   }, [apiBasePath, enabled, organizationId, schoolName]);
 
+  const seedPromise = options?.seedPromise;
+
   useEffect(() => {
-    if (options?.skipInitialFetch || !enabled) return;
+    if (!enabled || !seedPromise) return undefined;
+    let cancelled = false;
+    void seedPromise.then(
+      (count) => {
+        if (cancelled) return;
+        if (count == null) {
+          void fetchUnreadCount();
+          return;
+        }
+        setUnreadCount(count);
+      },
+      () => {
+        if (!cancelled) void fetchUnreadCount();
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, fetchUnreadCount, seedPromise]);
+
+  useEffect(() => {
+    if (options?.skipInitialFetch || seedPromise || !enabled) return;
     if (options?.deferUntilIdle) {
       return scheduleAfterFirstPaint(() => {
         void fetchUnreadCount();
@@ -46,6 +74,7 @@ export function useMessagesUnreadCount(
     fetchUnreadCount,
     options?.deferUntilIdle,
     options?.skipInitialFetch,
+    seedPromise,
   ]);
 
   useEffect(() => {
