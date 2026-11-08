@@ -14,7 +14,7 @@ export const naturesSchoolhouseConfig: SchoolWebsiteDemoConfig = {
     muted: "#8F8F8F",
     badgeBg: "rgba(63, 118, 82, 0.12)",
     accentText: "#E84A43",
-    pageBg: "#F7F3EC",
+    pageBg: "#FFFFFF",
   },
   logo: NATURES_SCHOOLHOUSE_LOGO,
   hero: {

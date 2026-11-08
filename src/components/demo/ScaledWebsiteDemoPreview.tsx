@@ -7,7 +7,15 @@ import {
   prefetchSchoolWebsiteDemo,
 } from "@/components/demo/shared/lazySchoolWebsiteDemo";
 
-const DESIGN_WIDTH = 1440;
+/**
+ * Narrow frames render the phone layout near 1:1 instead of shrinking the
+ * desktop site into unreadable text; wider frames scale a tablet or desktop canvas.
+ */
+function designWidthFor(frameWidth: number) {
+  if (frameWidth < 640) return Math.max(375, frameWidth);
+  if (frameWidth < 1100) return 1024;
+  return 1440;
+}
 
 interface Props {
   demoSlug?: string;
@@ -21,6 +29,7 @@ export default function ScaledWebsiteDemoPreview({
   onDiscoveryCallClick,
 }: Props) {
   const outerRef = useRef<HTMLDivElement>(null);
+  const [designWidth, setDesignWidth] = useState(1440);
   const [scale, setScale] = useState(0.81);
 
   useEffect(() => {
@@ -31,7 +40,11 @@ export default function ScaledWebsiteDemoPreview({
     const el = outerRef.current;
     if (!el) return;
 
-    const update = () => setScale(el.offsetWidth / DESIGN_WIDTH);
+    const update = () => {
+      const width = designWidthFor(el.offsetWidth);
+      setDesignWidth(width);
+      setScale(el.offsetWidth / width);
+    };
     update();
 
     const ro = new ResizeObserver(update);
@@ -44,7 +57,7 @@ export default function ScaledWebsiteDemoPreview({
       <div ref={outerRef} className="relative h-full overflow-hidden">
         <div
           style={{
-            width: DESIGN_WIDTH,
+            width: designWidth,
             height: scale > 0 ? `${100 / scale}%` : "100%",
             transform: `scale(${scale})`,
             transformOrigin: "top left",

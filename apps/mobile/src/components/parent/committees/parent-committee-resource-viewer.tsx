@@ -1,10 +1,10 @@
-import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { ParentEmbeddedPdfPreview } from '@/components/parent/shared/parent-embedded-pdf-preview';
 import { StoryButton } from '@/components/story/story-button';
 import { useParentTheme } from '@/contexts/parent-theme-context';
+import { openExternalUrlSafely } from '@/lib/open-external-url';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { resolveCommitteeResourceUrl } from '@/lib/parent/committees/mutations';
 import type { CommitteeResource } from '@/lib/parent/parent-committees-types';
@@ -57,8 +57,13 @@ export function ParentCommitteeResourceViewer({
 
   const openExternally = useCallback(async () => {
     if (!url) return;
-    await WebBrowser.openBrowserAsync(url);
-  }, [url]);
+    await openExternalUrlSafely(url, reportError, {
+      operation: 'parent_committee_resource_open_external',
+      entityType: 'committee_resource',
+      entityId: resource.id,
+      errorTitle: 'Could not open resource',
+    });
+  }, [reportError, resource.id, url]);
 
   if (loading) {
     return (
@@ -84,6 +89,8 @@ export function ParentCommitteeResourceViewer({
         url={buildEmbeddedPdfViewerUrl(url)}
         title={resource.title}
         minHeight={420}
+        reportEntityType="committee_resource"
+        reportEntityId={resource.id}
       />
     );
   }

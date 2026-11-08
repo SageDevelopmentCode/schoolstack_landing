@@ -1,11 +1,12 @@
 import { useCallback, useState } from 'react';
-import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { PrimaryButton } from '@/components/primary-button';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { resolveWebUrl } from '@/lib/admissions/school-apply-url';
+import { openExternalUrlSafely } from '@/lib/open-external-url';
 import { submitParentSupportRequest } from '@/lib/parent/parent-portal-api';
 import { submitAdminSupportRequest } from '@/lib/school-admin/support-request';
 import { submitTeacherSupportRequest } from '@/lib/teacher/teacher-portal-api';
@@ -57,8 +58,10 @@ export function AccountDeletionRequest({
   const [submitting, setSubmitting] = useState(false);
 
   const handleLearnMore = useCallback(() => {
-    void Linking.openURL(resolveWebUrl('/account-deletion'));
-  }, []);
+    void openExternalUrlSafely(resolveWebUrl('/account-deletion'), reportError, {
+      operation: 'account_deletion_learn_more_open',
+    });
+  }, [reportError]);
 
   const handleRequestDeletion = useCallback(() => {
     Alert.alert(

@@ -22,11 +22,11 @@ import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Story, StoryCardPadding, StoryFonts, StoryRadius } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 import { useParentTheme } from '@/contexts/parent-theme-context';
-import { cacheParentCoopCurriculumPdf } from '@/lib/pdf/cache-authenticated-parent-pdf';
 import { usePortalReadOnly } from '@/lib/portal-preview-gating';
 import {
   fetchParentCoopCurriculumDiscussion,
   fetchParentCoopCurriculumPageData,
+  fetchParentCoopCurriculumPdfUrl,
   postParentCoopCurriculumDiscussionMessage,
   type ParentCoopCurriculumRecord,
 } from '@/lib/parent/parent-portal-api';
@@ -60,7 +60,7 @@ export function ParentCoopCurriculumScreen({
   const [error, setError] = useState<string | null>(null);
   const [curricula, setCurricula] = useState<ParentCoopCurriculumRecord[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [pdfFileUri, setPdfFileUri] = useState<string | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState(false);
   const [discussionOpen, setDiscussionOpen] = useState(false);
@@ -121,45 +121,53 @@ export function ParentCoopCurriculumScreen({
     void load();
   }, [load]);
 
+  // Curriculum books can be 60+ MB. Resolve a short-lived signed URL and let the viewer stream
+  // it (HTTP range requests) instead of downloading the whole file to cache first.
+  const loadPdfUrl = useCallback(
+    (curriculumId: string, isCancelled: () => boolean) => {
+      setPdfLoading(true);
+      setPdfError(false);
+      setPdfUrl(null);
+
+      void fetchParentCoopCurriculumPdfUrl(organizationId, programId, curriculumId)
+        .then((payload) => {
+          if (!isCancelled()) {
+            setPdfUrl(payload.url);
+          }
+        })
+        .catch((urlError) => {
+          if (!isCancelled()) {
+            reportError('parent_coop_curriculum_pdf_url', urlError, {
+              entityType: 'curriculum',
+              entityId: curriculumId,
+              metadata: { programId },
+            });
+            setPdfError(true);
+          }
+        })
+        .finally(() => {
+          if (!isCancelled()) setPdfLoading(false);
+        });
+    },
+    [organizationId, programId, reportError],
+  );
+
+  const activeCurriculumId = activeCurriculum?.id ?? null;
+
   useEffect(() => {
-    if (!activeCurriculum) {
-      setPdfFileUri(null);
+    if (!activeCurriculumId) {
+      setPdfUrl(null);
       setPdfError(false);
       return;
     }
 
     let cancelled = false;
-    setPdfLoading(true);
-    setPdfError(false);
-    setPdfFileUri(null);
-
-    void cacheParentCoopCurriculumPdf({
-      organizationId,
-      programId,
-      curriculumId: activeCurriculum.id,
-    })
-      .then((fileUri) => {
-        if (!cancelled) {
-          setPdfFileUri(fileUri);
-        }
-      })
-      .catch((pdfError) => {
-        if (!cancelled) {
-          reportError('parent_coop_curriculum_pdf_cache', pdfError, {
-            entityType: 'curriculum',
-            entityId: activeCurriculum.id,
-          });
-          setPdfError(true);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setPdfLoading(false);
-      });
+    loadPdfUrl(activeCurriculumId, () => cancelled);
 
     return () => {
       cancelled = true;
     };
-  }, [activeCurriculum, organizationId, programId, reportError]);
+  }, [activeCurriculumId, loadPdfUrl]);
 
   const applyDiscussionMessages = useCallback(
     (
@@ -203,6 +211,13 @@ export function ParentCoopCurriculumScreen({
       .then((payload) => {
         if (cancelled) return;
         applyDiscussionMessages(curriculumId, payload.messages);
+      })
+      .catch((discussionError) => {
+        if (cancelled) return;
+        reportError('parent_coop_curriculum_discussion_load', discussionError, {
+          entityType: 'program',
+          entityId: programId,
+        });
       });
 
     return () => {
@@ -215,6 +230,7 @@ export function ParentCoopCurriculumScreen({
     discussionOpen,
     organizationId,
     programId,
+    reportError,
   ]);
 
   const handleSend = async () => {
@@ -243,22 +259,7 @@ export function ParentCoopCurriculumScreen({
 
   const retryPdf = () => {
     if (!activeCurriculum) return;
-    setPdfLoading(true);
-    setPdfError(false);
-    void cacheParentCoopCurriculumPdf({
-      organizationId,
-      programId,
-      curriculumId: activeCurriculum.id,
-    })
-      .then(setPdfFileUri)
-      .catch((pdfError) => {
-        reportError('parent_coop_curriculum_pdf_cache', pdfError, {
-          entityType: 'curriculum',
-          entityId: activeCurriculum.id,
-        });
-        setPdfError(true);
-      })
-      .finally(() => setPdfLoading(false));
+    loadPdfUrl(activeCurriculum.id, () => false);
   };
 
   if (loading) {
@@ -307,8 +308,14 @@ export function ParentCoopCurriculumScreen({
               <View style={styles.pdfCardInner}>
                 {pdfLoading ? (
                   <PdfSkeletonBlock />
-                ) : pdfFileUri ? (
-                  <ParentEmbeddedPdfPreview url={pdfFileUri} title={pdfTitle} minHeight={360} />
+                ) : pdfUrl ? (
+                  <ParentEmbeddedPdfPreview
+                    url={pdfUrl}
+                    title={pdfTitle}
+                    minHeight={360}
+                    reportEntityType="curriculum"
+                    reportEntityId={activeCurriculum?.id}
+                  />
                 ) : pdfError ? (
                   <View style={styles.pdfError}>
                     <Text style={[styles.error, { color: theme.muted }]}>

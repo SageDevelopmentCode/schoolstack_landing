@@ -14,7 +14,7 @@ export const oneAcreFarmConfig: SchoolWebsiteDemoConfig = {
     muted: "#6B6560",
     badgeBg: "rgba(91, 122, 74, 0.12)",
     accentText: "#7A5C3E",
-    pageBg: "#FBF9F4",
+    pageBg: "#FFFFFF",
   },
   logo: ONE_ACRE_FARM_ADMIN_LOGO,
   hero: {

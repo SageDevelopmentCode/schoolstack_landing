@@ -22,9 +22,6 @@ export const micahsMissionSchoolConfig: SchoolWebsiteDemoConfig = {
     eyebrowPlacement: "announcementBar",
     headline: ["Act justly. Love mercy.", "Walk humbly with your God."],
     headlineAccentLine: 1,
-    headlineClassName:
-      "text-3xl md:text-[2.625rem] font-bold text-white font-heading leading-[1.12] mb-5",
-    headlineAccentClassName: "text-[#B8D4F5]",
     subheadline:
       "Micah's Mission School, Inc. is a Hybrid Learning and Resource Center providing hope for the whole child — serving educationally at-risk K–12 students with and without disabilities through project-based learning, daily living skills, pre-work training, and character development.",
     primaryCta: "Request Information",

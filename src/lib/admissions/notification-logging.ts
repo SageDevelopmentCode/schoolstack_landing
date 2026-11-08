@@ -8,7 +8,7 @@ export type OutboundEmailSendResult = {
   skipped?: string;
 };
 
-async function resolveOrganizationContextForNotification(
+export async function resolveOrganizationContextForNotification(
   supabase: SupabaseClient,
   organizationId?: string | null,
 ): Promise<{ organizationName?: string; organizationSlug?: string }> {

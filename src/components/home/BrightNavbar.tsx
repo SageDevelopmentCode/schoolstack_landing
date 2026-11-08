@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Menu, Wrench, X } from "lucide-react";
-import { BOOK_DEMO_HASH_HREF } from "@/lib/marketing/book-demo";
+import { GET_STARTED_PAGE_PATH } from "@/lib/marketing/book-demo";
 import { FREE_TOOLS_HUB_PATH, FREE_TOOLS_NAV_LABEL } from "@/lib/marketing/free-tools";
 
 const LINKS = [
@@ -85,13 +85,13 @@ export default function BrightNavbar() {
             <Wrench size={14} aria-hidden />
             {FREE_TOOLS_NAV_LABEL}
           </Link>
-          <a
-            href={BOOK_DEMO_HASH_HREF}
+          <Link
+            href={GET_STARTED_PAGE_PATH}
             className={`inline-flex h-10 items-center gap-1.5 rounded-pill px-5 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 ${t.cta}`}
           >
             Book a Demo
             <ArrowRight size={14} aria-hidden />
-          </a>
+          </Link>
         </div>
 
         <button
@@ -122,14 +122,14 @@ export default function BrightNavbar() {
               {link.label}
             </a>
           ))}
-          <a
-            href={BOOK_DEMO_HASH_HREF}
+          <Link
+            href={GET_STARTED_PAGE_PATH}
             onClick={() => setOpen(false)}
             className={`mt-2 flex h-12 items-center justify-center gap-2 rounded-pill text-sm font-semibold ${t.cta}`}
           >
             Book a Demo
             <ArrowRight size={14} aria-hidden />
-          </a>
+          </Link>
           <Link
             href={FREE_TOOLS_HUB_PATH}
             onClick={() => setOpen(false)}

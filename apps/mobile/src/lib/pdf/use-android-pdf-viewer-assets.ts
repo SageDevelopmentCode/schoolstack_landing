@@ -21,21 +21,26 @@ export type AndroidPdfViewerAssetUris = {
 export function useAndroidPdfViewerAssets(enabled: boolean): {
   assetUris: AndroidPdfViewerAssetUris | null;
   assetsFailed: boolean;
+  /** Why asset loading failed (for operational reporting); null while loading or on success. */
+  assetsError: unknown;
   assetsReady: boolean;
 } {
   const [assetUris, setAssetUris] = useState<AndroidPdfViewerAssetUris | null>(null);
   const [assetsFailed, setAssetsFailed] = useState(false);
+  const [assetsError, setAssetsError] = useState<unknown>(null);
 
   useEffect(() => {
     if (!enabled) {
       setAssetUris(null);
       setAssetsFailed(false);
+      setAssetsError(null);
       return;
     }
 
     let cancelled = false;
     setAssetUris(null);
     setAssetsFailed(false);
+    setAssetsError(null);
 
     void (async () => {
       try {
@@ -49,13 +54,15 @@ export function useAndroidPdfViewerAssets(enabled: boolean): {
         const pdfModuleUri = pdfAsset.localUri ?? pdfAsset.uri;
         const workerModuleUri = workerAsset.localUri ?? workerAsset.uri;
         if (!pdfModuleUri || !workerModuleUri) {
+          setAssetsError(new Error('Bundled pdf.js asset has no local URI.'));
           setAssetsFailed(true);
           return;
         }
 
         setAssetUris({ pdfModuleUri, workerModuleUri });
-      } catch {
+      } catch (assetError) {
         if (!cancelled) {
+          setAssetsError(assetError);
           setAssetsFailed(true);
         }
       }
@@ -69,6 +76,7 @@ export function useAndroidPdfViewerAssets(enabled: boolean): {
   return {
     assetUris,
     assetsFailed,
+    assetsError,
     assetsReady: Boolean(assetUris),
   };
 }

@@ -6,6 +6,7 @@ import SchoolDemoWordmark, {
   type SchoolDemoLogo,
 } from "@/components/demo/SchoolDemoWordmark";
 import GetStartedFilmSection from "@/components/get-started/GetStartedFilmSection";
+import ProductShowcaseSection from "@/components/get-started/ProductShowcaseSection";
 import GetStartedShowcaseCarousel from "@/components/get-started/GetStartedShowcaseCarousel";
 import {
   DemoScheduler,
@@ -290,7 +291,9 @@ function DemoContactSchedulePanel({
 
   return (
     <div className="h-full overflow-y-auto bg-[#F7F1E7]">
-      <GetStartedShowcaseCarousel />
+      <ProductShowcaseSection header="compact">
+        <GetStartedShowcaseCarousel variant="page" presentation="section" />
+      </ProductShowcaseSection>
       <div className="mx-auto flex max-w-3xl flex-col px-6 py-10 sm:px-10 sm:py-12">
         <div className="mb-6 flex items-center gap-3">
           <SchoolDemoWordmark

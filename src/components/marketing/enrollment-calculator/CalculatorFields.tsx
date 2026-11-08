@@ -14,7 +14,7 @@ import CalculatorInfoTip from "@/components/marketing/enrollment-calculator/Calc
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 export const calculatorFocusClass =
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2E4A3C]";
+  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay";
 
 function formatEditableDollars(cents: number): string {
   if (cents % 100 === 0) return String(cents / 100);

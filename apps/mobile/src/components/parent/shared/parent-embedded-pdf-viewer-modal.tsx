@@ -11,6 +11,8 @@ type ParentEmbeddedPdfViewerModalProps = {
   url: string;
   title: string;
   onClose: () => void;
+  reportEntityType?: string;
+  reportEntityId?: string;
 };
 
 export function ParentEmbeddedPdfViewerModal({
@@ -18,6 +20,8 @@ export function ParentEmbeddedPdfViewerModal({
   url,
   title,
   onClose,
+  reportEntityType,
+  reportEntityId,
 }: ParentEmbeddedPdfViewerModalProps) {
   const insets = useSafeAreaInsets();
 
@@ -58,7 +62,13 @@ export function ParentEmbeddedPdfViewerModal({
           </View>
 
           <View style={[styles.webViewArea, { paddingBottom: insets.bottom }]}>
-            <ParentEmbeddedPdfWebView url={url} style={styles.webView} startInLoadingState />
+            <ParentEmbeddedPdfWebView
+              url={url}
+              style={styles.webView}
+              startInLoadingState
+              reportEntityType={reportEntityType}
+              reportEntityId={reportEntityId}
+            />
           </View>
         </View>
       </View>

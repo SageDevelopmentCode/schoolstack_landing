@@ -26,8 +26,8 @@ export default function ApplyAuthPage({
       organizationId={organizationId}
       organizationSlug={organizationSlug}
       authPage="/apply"
-      title="Sign in to your applications"
-      subtitle="Enter the email you used when applying. We&apos;ll send you a one-time code."
+      layoutVariant="bright"
+      subtitle="Enter the email you used when applying. We'll send you a one-time code."
       onComplete={() => {
         router.refresh();
       }}

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { instrumentSerif, workSans } from "@/lib/fonts";
+import SchoolDemoWebsiteFonts from "@/app/demo/_shared/SchoolDemoWebsiteFonts";
 import { pageMetadata } from "@/lib/metadata";
 
 export const metadata: Metadata = pageMetadata({
@@ -10,16 +10,10 @@ export const metadata: Metadata = pageMetadata({
   noIndex: true,
 });
 
-export default function AthenaMicroacademyLayout({
+export default function DemoLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div
-      className={`${instrumentSerif.variable} ${workSans.variable} [&_.font-heading]:font-[family-name:var(--font-instrument-serif)] [&_.font-secondary]:font-[family-name:var(--font-work-sans)]`}
-    >
-      {children}
-    </div>
-  );
+  return <SchoolDemoWebsiteFonts>{children}</SchoolDemoWebsiteFonts>;
 }

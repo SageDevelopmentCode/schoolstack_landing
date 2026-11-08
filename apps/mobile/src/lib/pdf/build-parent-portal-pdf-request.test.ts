@@ -1,7 +1,16 @@
 import {
   buildParentCoopCurriculumPdfApiPath,
+  buildParentCoopCurriculumPdfUrlApiPath,
   resolveParentPortalPdfDownloadUrl,
 } from '@/lib/pdf/build-parent-portal-pdf-request';
+
+describe('buildParentCoopCurriculumPdfUrlApiPath', () => {
+  it('builds signed-url query path', () => {
+    expect(buildParentCoopCurriculumPdfUrlApiPath('org-1', 'prog-1', 'curr-1')).toBe(
+      '/api/parent-portal/curriculum/pdf-url?organizationId=org-1&programId=prog-1&curriculumId=curr-1',
+    );
+  });
+});
 
 describe('buildParentCoopCurriculumPdfApiPath', () => {
   it('builds curriculum pdf query path', () => {

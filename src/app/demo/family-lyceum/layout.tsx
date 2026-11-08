@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { cormorantGaramond, inter } from "@/lib/fonts";
+import SchoolDemoWebsiteFonts from "@/app/demo/_shared/SchoolDemoWebsiteFonts";
 import { pageMetadata } from "@/lib/metadata";
 
 export const metadata: Metadata = pageMetadata({
@@ -10,16 +10,10 @@ export const metadata: Metadata = pageMetadata({
   noIndex: true,
 });
 
-export default function FamilyLyceumLayout({
+export default function DemoLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div
-      className={`${cormorantGaramond.variable} ${inter.variable} [&_.font-heading]:font-[family-name:var(--font-cormorant)] [&_.font-secondary]:font-[family-name:var(--font-inter)]`}
-    >
-      {children}
-    </div>
-  );
+  return <SchoolDemoWebsiteFonts>{children}</SchoolDemoWebsiteFonts>;
 }

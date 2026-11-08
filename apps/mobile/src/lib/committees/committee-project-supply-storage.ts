@@ -112,7 +112,9 @@ function recordSupplyCreateActivity(
     organizationId: ctx.workspaceRecord.organizationId,
     action: ACTIVITY_ACTIONS.COMMITTEE_PROJECT_SUPPLY_CREATED,
     entityId: itemId,
-  }).catch(() => {});
+  }).catch(() => {
+    // Activity logging is non-blocking; the API route reports its own failures.
+  });
 }
 
 export async function insertCommitteeProjectSupplyItem(

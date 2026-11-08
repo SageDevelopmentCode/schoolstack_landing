@@ -14,7 +14,7 @@ export const theFocusAcademyConfig: SchoolWebsiteDemoConfig = {
     muted: "#5B6974",
     badgeBg: "rgba(44, 140, 140, 0.12)",
     accentText: "#2C8C8C",
-    pageBg: "#F7F4ED",
+    pageBg: "#FFFFFF",
   },
   logo: THE_FOCUS_ACADEMY_LOGO,
   hero: {

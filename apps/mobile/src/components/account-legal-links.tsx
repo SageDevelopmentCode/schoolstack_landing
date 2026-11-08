@@ -1,14 +1,21 @@
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Story, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 import { resolveWebUrl } from '@/lib/admissions/school-apply-url';
-
-function openLegalPage(path: '/privacy' | '/terms' | '/account-deletion') {
-  void Linking.openURL(resolveWebUrl(path));
-}
+import { openExternalUrlSafely } from '@/lib/open-external-url';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 export function AccountLegalLinks() {
+  const { reportError } = useMobileErrorReporter();
+
+  const openLegalPage = (path: '/privacy' | '/terms' | '/account-deletion') => {
+    void openExternalUrlSafely(resolveWebUrl(path), reportError, {
+      operation: 'account_legal_link_open',
+      metadata: { path },
+    });
+  };
+
   return (
     <View style={styles.container}>
       <Pressable

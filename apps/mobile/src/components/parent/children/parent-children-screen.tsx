@@ -1,4 +1,3 @@
-import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -27,6 +26,8 @@ import {
   type ParentChildrenPortalScope,
 } from '@/lib/parent/parent-children-utils';
 import { reportMobileOperationalError } from '@/lib/mobile-activity';
+import { openExternalUrlSafely } from '@/lib/open-external-url';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { fetchParentChildProfile, type ParentHomeData } from '@/lib/parent/parent-portal-api';
 
 type ParentChildrenHomeState = {
@@ -63,6 +64,7 @@ function ParentChildrenScreenContent({
 
   const children = data?.familyChildren ?? [];
   const organizationId = data?.organizationId ?? '';
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(
     children[0]?.applicationId ?? null,
@@ -203,8 +205,9 @@ function ParentChildrenScreenContent({
   );
 
   const handleOpenApplyDashboard = async () => {
-    await openBrowserAsync(resolveWebUrl(schoolApplyUrl(_slug)), {
-      presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
+    await openExternalUrlSafely(resolveWebUrl(schoolApplyUrl(_slug)), reportError, {
+      operation: 'parent_children_open_apply_dashboard',
+      errorTitle: 'Could not open application',
     });
   };
 

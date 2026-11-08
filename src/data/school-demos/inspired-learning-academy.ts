@@ -24,7 +24,6 @@ export const inspiredLearningConfig: SchoolWebsiteDemoConfig = {
     eyebrowPlacement: "announcementBar",
     headline: ["More Ownership. More Growth.", "A Better Fit Than Traditional School"],
     headlineAccentLine: 0,
-    headlineAccentClassName: "text-[#FC6D5D]",
     subheadline:
       "A smaller, mentor-supported school for capable middle and high school students who need more connection, meaningful work, and room to grow.",
     primaryCta: "Schedule a Tour",

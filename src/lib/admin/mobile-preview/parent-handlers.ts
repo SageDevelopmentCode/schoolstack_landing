@@ -49,8 +49,10 @@ import { getFamilyNotificationEmailSettings } from "@/lib/notifications/family-n
 import { fetchOrganizationWithSettingsUncached } from "@/lib/organization-settings/fetch";
 import { loadParentPortalHomePreviewApiPayload } from "@/lib/parent-portal/load-parent-portal-home-preview-api-payload";
 import {
+  createProgramCoopCurriculumSignedUrl,
   getProgramCoopCurriculumById,
   PROGRAM_COOP_CURRICULUM_BUCKET,
+  PROGRAM_COOP_CURRICULUM_SIGNED_URL_TTL_SECONDS,
 } from "@/lib/admissions/program-coop-curriculum-storage";
 import { familyHasEnrolledAccessInProgram } from "@/lib/admissions/program-parent-portal-access";
 import {
@@ -490,6 +492,62 @@ export async function handleParentMobilePreviewGet(
         familyId,
         ...billingData,
       });
+    }
+
+    if (segment === "curriculum" && pathSegments[1] === "pdf-url") {
+      const programId = url.searchParams.get("programId")?.trim() ?? "";
+      const curriculumId = url.searchParams.get("curriculumId")?.trim() ?? "";
+      if (!programId || !curriculumId) {
+        return apiError(route, {
+          request,
+          status: 400,
+          error: "programId and curriculumId are required.",
+          code: "missing_fields",
+        });
+      }
+
+      const hasAccess = await familyHasEnrolledAccessInProgram(
+        admin,
+        organizationId,
+        familyId,
+        programId,
+      );
+      if (!hasAccess) {
+        return apiError(route, {
+          request,
+          status: 403,
+          error: "You do not have access to this curriculum.",
+          code: "forbidden",
+        });
+      }
+
+      const curriculum = await getProgramCoopCurriculumById(admin, curriculumId);
+      if (
+        !curriculum ||
+        curriculum.organizationId !== organizationId ||
+        curriculum.programId !== programId
+      ) {
+        return apiError(route, {
+          request,
+          status: 404,
+          error: "Curriculum not found.",
+          code: "not_found",
+        });
+      }
+
+      const signedUrl = await createProgramCoopCurriculumSignedUrl(
+        admin,
+        curriculum.storagePath,
+      );
+      return NextResponse.json(
+        {
+          url: signedUrl,
+          fileName: curriculum.fileName,
+          fileSizeBytes: curriculum.fileSizeBytes,
+          expiresInSeconds: PROGRAM_COOP_CURRICULUM_SIGNED_URL_TTL_SECONDS,
+        },
+        { headers: { "Cache-Control": "private, no-store" } },
+      );
     }
 
     if (segment === "curriculum" && pathSegments[1] === "pdf") {

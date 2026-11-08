@@ -254,7 +254,8 @@ export function SubmissionDetailScreen({
     async (status: string) => {
       setActionLoadingStatus(status);
       try {
-        await patchApplicationStatus(applicationId, status);
+        const { status: nextStatus } = await patchApplicationStatus(applicationId, status);
+        setCurrentStatus(nextStatus);
         await loadCore();
       } catch (actionError) {
         reportError('school_admin_submission_status', actionError, {

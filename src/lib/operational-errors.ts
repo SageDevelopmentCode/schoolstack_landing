@@ -258,6 +258,28 @@ export async function reportMobileOperationalError(
       entityType: entityType ?? undefined,
       entityId: entityId ?? undefined,
       platform,
+      appVersion:
+        typeof metadata?.appVersion === "string" ? metadata.appVersion : undefined,
+      context: mobileErrorContextSummary(metadata),
     });
   }
+}
+
+const MOBILE_CONTEXT_OMITTED_KEYS = new Set(["client", "platform", "appVersion"]);
+
+/** Compact `key=value` summary of client diagnostics for the Discord embed. */
+function mobileErrorContextSummary(
+  metadata: Record<string, unknown> | null | undefined,
+): string | undefined {
+  if (!metadata) return undefined;
+
+  const parts: string[] = [];
+  for (const [key, value] of Object.entries(metadata)) {
+    if (MOBILE_CONTEXT_OMITTED_KEYS.has(key)) continue;
+    if (value === null || value === undefined) continue;
+    if (typeof value === "object") continue;
+    parts.push(`${key}=${String(value)}`);
+  }
+
+  return parts.length > 0 ? parts.join(" · ") : undefined;
 }

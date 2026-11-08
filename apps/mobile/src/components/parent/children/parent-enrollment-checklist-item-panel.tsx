@@ -381,7 +381,13 @@ function DocumentSignPdfPanel({
     <View style={styles.panel}>
       <Text style={[styles.title, { color: theme.ink }]}>{item.label}</Text>
       {previewUrl ? (
-        <ParentEmbeddedPdfPreview url={previewUrl} title={item.label} minHeight={280} />
+        <ParentEmbeddedPdfPreview
+          url={previewUrl}
+          title={item.label}
+          minHeight={280}
+          reportEntityType="enrollment_checklist_item"
+          reportEntityId={item.id}
+        />
       ) : null}
       <View style={styles.signatureSection}>
         <ParentFormSignatureField

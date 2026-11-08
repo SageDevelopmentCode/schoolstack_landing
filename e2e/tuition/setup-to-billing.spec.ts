@@ -125,15 +125,27 @@ test("full tuition setup to parent billing smoke", async ({
     { data: { status: "accepted" } },
   );
   expect(acceptResponse.status()).toBe(200);
+  const acceptBody = (await acceptResponse.json()) as { status?: string };
+  expect(acceptBody.status).toBe("enrolled");
 
-  const enrollResponse = await request.post(
-    `/api/admissions/applications/${applicationId}/mark-enrolled`,
-    { data: { note: "E2E tuition smoke" } },
-  );
-  expect(enrollResponse.status()).toBe(200);
+  const { data: enrolledApplication, error: enrolledApplicationError } = await admin
+    .from("applications")
+    .select("student_id, program_id")
+    .eq("id", applicationId)
+    .single();
+  expect(enrolledApplicationError).toBeNull();
 
-  const enrollBody = (await enrollResponse.json()) as { enrollmentId?: string };
-  expect(enrollBody.enrollmentId).toBeTruthy();
+  const { data: enrollmentRow, error: enrollmentLookupError } = await admin
+    .from("enrollments")
+    .select("id")
+    .eq("student_id", enrolledApplication!.student_id)
+    .eq("program_id", enrolledApplication!.program_id)
+    .eq("status", "enrolled")
+    .maybeSingle();
+  expect(enrollmentLookupError).toBeNull();
+  expect(enrollmentRow?.id).toBeTruthy();
+
+  const enrollBody = { enrollmentId: String(enrollmentRow!.id) };
 
   await finalizeEnrollmentBilling(admin, enrollBody.enrollmentId!);
 

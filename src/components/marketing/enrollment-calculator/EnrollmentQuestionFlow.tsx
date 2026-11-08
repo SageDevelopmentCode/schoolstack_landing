@@ -455,8 +455,8 @@ function EnrollmentDoneStep({
     <div
       className="rounded-2xl border px-5 py-5"
       style={{
-        background: "linear-gradient(135deg, #EAF2EB, #F4F7EE)",
-        borderColor: "#C7DFCB",
+        background: "#E9F2E4",
+        borderColor: "rgba(0,0,0,0.08)",
       }}
     >
       <div className="flex items-start gap-3">
@@ -464,7 +464,7 @@ function EnrollmentDoneStep({
         <div className="min-w-0 flex-1">
           <p
             className="text-[10px] font-extrabold uppercase tracking-[0.13em]"
-            style={{ color: "#729077", fontFamily: theme.fontBody }}
+            style={{ color: "#A05C45", fontFamily: theme.fontBody }}
           >
             {ENROLLMENT_WIZARD_DONE_KICKER}
           </p>

@@ -1,103 +1,66 @@
 "use client";
 
 import { motion } from "framer-motion";
-import DemoIcon from "./DemoIcon";
-import DemoWebsiteCard from "./DemoWebsiteCard";
-import DemoWebsiteSectionKicker from "./DemoWebsiteSectionKicker";
+import { Sparkles } from "lucide-react";
 import type { DemoLearningModesSection } from "@/data/school-demos/types";
+import DemoIcon from "./DemoIcon";
+import { DEMO_BLOCK, DEMO_BODY, DEMO_EYEBROW, DEMO_GUTTER, DEMO_H3, DEMO_INK, DEMO_TILE, DEMO_TINTS, STORY_EASE } from "./bright-demo-theme";
+import SiteSectionHeader from "./sections/SiteSectionHeader";
 
-export default function LearningModesSection({
-  section,
-}: {
-  section: DemoLearningModesSection;
-}) {
+export default function LearningModesSection({ section }: { section: DemoLearningModesSection }) {
   return (
-    <section
-      id="signature"
-      className="py-24 px-8 sm:px-12 lg:px-16"
-      style={{ backgroundColor: "var(--demo-cream)" }}
-    >
-      <div className="max-w-7xl mx-auto">
-        <motion.div
-          className="text-center mb-14 max-w-3xl mx-auto"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <div className="mb-5">
-            <DemoWebsiteSectionKicker>{section.eyebrow}</DemoWebsiteSectionKicker>
-          </div>
-          <h2
-            className="text-4xl md:text-5xl font-bold font-heading leading-tight"
-            style={{ color: "var(--demo-ink)" }}
-          >
-            {section.heading}
-          </h2>
-          {section.subtitle && (
-            <p className="mt-4 font-secondary text-lg" style={{ color: "var(--demo-muted)" }}>
-              {section.subtitle}
-            </p>
-          )}
-        </motion.div>
+    <section id="signature" className={`scroll-mt-[88px] py-3 ${DEMO_GUTTER}`}>
+      <div className={`${DEMO_BLOCK} bg-[var(--demo-tint-3)]`}>
+        <SiteSectionHeader eyebrow={section.eyebrow} heading={section.heading} subtitle={section.subtitle} align="split" />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        <div className="mt-12 grid gap-3 @2xl/site:grid-cols-2 @5xl/site:grid-cols-4">
           {section.modes.map((mode, i) => (
             <motion.div
               key={mode.title}
+              className={`${DEMO_TILE} relative flex flex-col bg-white`}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.08 }}
-              whileHover={{ y: -4 }}
+              transition={{ duration: 0.5, delay: i * 0.07, ease: STORY_EASE }}
             >
-              <DemoWebsiteCard className="h-full">
-                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-[var(--demo-radius-button)] bg-[color-mix(in_srgb,var(--demo-primary)_12%,transparent)]">
-                  <DemoIcon name={mode.icon} className="h-5 w-5 text-[var(--demo-accent-text)]" />
-                </div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-[var(--demo-primary)] font-secondary mb-2">
-                  {mode.label}
-                </p>
-                <h3 className="text-lg font-bold font-heading mb-2" style={{ color: "var(--demo-ink)" }}>
-                  {mode.title}
-                </h3>
-                <p className="text-sm font-secondary leading-relaxed" style={{ color: "var(--demo-muted)" }}>
-                  {mode.desc}
-                </p>
-              </DemoWebsiteCard>
+              <div className="flex items-center justify-between">
+                <span
+                  className="flex h-12 w-12 items-center justify-center rounded-2xl"
+                  style={{ backgroundColor: DEMO_TINTS[i % DEMO_TINTS.length] }}
+                >
+                  <DemoIcon name={mode.icon} className="h-5 w-5 text-[var(--demo-accent)]" />
+                </span>
+                <span className="font-secondary text-[13px] font-bold text-[var(--demo-ink)]/25">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+              </div>
+              <p className={`${DEMO_EYEBROW} mt-8`}>{mode.label}</p>
+              <h3 className={`${DEMO_H3} ${DEMO_INK} mt-2`}>{mode.title}</h3>
+              <p className={`${DEMO_BODY} mt-2 text-[15px]`}>{mode.desc}</p>
             </motion.div>
           ))}
         </div>
 
-        {section.flexFriday && (
+        {section.flexFriday ? (
           <motion.div
+            className="relative mt-3 flex flex-col gap-4 overflow-hidden rounded-[28px] bg-[var(--demo-ink)] p-7 text-white @3xl/site:flex-row @3xl/site:items-center @3xl/site:gap-10 @3xl/site:p-9"
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.55, ease: STORY_EASE }}
           >
-            <DemoWebsiteCard className="overflow-hidden p-0" padding="none">
-              <div className="flex flex-col md:flex-row">
-                <div
-                  className="flex items-center justify-center px-8 py-10 md:w-2/5"
-                  style={{ backgroundColor: "var(--demo-primary-soft)" }}
-                >
-                  <p
-                    className="text-center text-2xl font-bold font-heading leading-tight md:text-3xl"
-                    style={{ color: "var(--demo-ink)" }}
-                  >
-                    {section.flexFriday.title}
-                  </p>
-                </div>
-                <div className="flex items-center px-8 py-10 md:w-3/5">
-                  <p className="text-base font-secondary leading-relaxed" style={{ color: "var(--demo-muted)" }}>
-                    {section.flexFriday.desc}
-                  </p>
-                </div>
-              </div>
-            </DemoWebsiteCard>
+            <div className="pointer-events-none absolute -right-10 -top-16 h-52 w-52 rounded-full bg-[var(--demo-glow)] blur-3xl" aria-hidden />
+            <span className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/15">
+              <Sparkles className="h-6 w-6 text-[var(--demo-primary-light)]" aria-hidden />
+            </span>
+            <p className="font-secondary relative text-[1.5rem] font-bold leading-tight tracking-[-0.02em] @3xl/site:w-1/3">
+              {section.flexFriday.title}
+            </p>
+            <p className="font-secondary relative text-[15px] leading-relaxed text-white/70 @3xl/site:flex-1">
+              {section.flexFriday.desc}
+            </p>
           </motion.div>
-        )}
+        ) : null}
       </div>
     </section>
   );

@@ -5,26 +5,24 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import {
-  AuthGatePromoPanel,
-  AuthHelpButton,
-} from "@/components/admissions/AuthGatePromoPanel";
+import { BrightAuthSessionCheck } from "@/components/admissions/BrightPortalAuthShell";
 import GetStartedStoryTextField from "@/components/get-started/GetStartedStoryTextField";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
-import { DARK_PILL } from "@/components/home/bright-styles";
+import BrightAuthPageLayout from "@/components/login/BrightAuthPageLayout";
+import {
+  BRIGHT_AUTH_ERROR_CLASS,
+  BRIGHT_AUTH_PRIMARY_BUTTON,
+  BRIGHT_AUTH_THEME,
+} from "@/components/login/bright-auth-form-styles";
 import LoginPhaseHeader from "@/components/login/login-phase-header";
 import OrganizationSelector from "@/components/login/OrganizationSelector";
-import ButtonLoadingLabel, {
-  BUTTON_LOADING_LAYOUT_CLASS,
-} from "@/components/ui/ButtonLoadingLabel";
+import ButtonLoadingLabel from "@/components/ui/ButtonLoadingLabel";
 import VerificationCodeInput from "@/components/ui/VerificationCodeInput";
 import {
   NO_SCHOOL_ACCESS_MESSAGE,
   normalizeLoginErrorMessage,
 } from "@/lib/auth/login-error-message";
 import type { LiveOrganizationOption } from "@/lib/organization-settings/list-live-organizations";
-import { MUDKITCHEN_MARKETING_BRIGHT_THEME } from "@/lib/marketing/mudkitchen-bright-marketing-theme";
-import { AUTH_GATE_PROMO } from "@/lib/site";
 import {
   reportAuthOtpFailed,
   reportAuthOtpRequested,
@@ -89,9 +87,6 @@ const stepVariants = {
 
 const stepTransition = { duration: 0.22, ease: [0.25, 0.1, 0.25, 1] as const };
 
-const BRIGHT_THEME = MUDKITCHEN_MARKETING_BRIGHT_THEME;
-const BRIGHT_PRIMARY_BUTTON = `${DARK_PILL} w-full justify-center ${BUTTON_LOADING_LAYOUT_CLASS}`;
-
 export default function LoginExperience({ initialOrganization }: LoginExperienceProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -118,7 +113,6 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const [resendCooldown, setResendCooldown] = useState(0);
-  const [activeSlide, setActiveSlide] = useState(0);
   const [openingOrganizationId, setOpeningOrganizationId] = useState<string | null>(
     null,
   );
@@ -128,13 +122,6 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
 
   const normalizedCode = code.replace(/\D/g, "").slice(0, 6);
   const normalizedEmail = email.trim().toLowerCase();
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setActiveSlide((index) => (index + 1) % AUTH_GATE_PROMO.slides.length);
-    }, AUTH_GATE_PROMO.slideIntervalMs);
-    return () => clearInterval(id);
-  }, []);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -527,30 +514,11 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
     ) : null;
 
   if (checkingSession) {
-    return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-white px-6">
-        <Loader2 className="h-6 w-6 animate-spin text-[#1d1a16]" />
-        <p className="font-secondary text-sm text-[#1d1a16]/70">Checking your session…</p>
-      </div>
-    );
+    return <BrightAuthSessionCheck />;
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-white lg:flex-row">
-      <AuthGatePromoPanel activeSlide={activeSlide} variant="bright" />
-
-      <div className="relative flex min-h-0 flex-1 flex-col text-[#1d1a16] lg:min-h-dvh">
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-[min(420px,55vh)] opacity-90 lg:hidden"
-          aria-hidden
-          style={{
-            background:
-              "radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in srgb, #A6B89A 35%, transparent), transparent 70%), radial-gradient(ellipse 60% 40% at 90% 20%, color-mix(in srgb, #A05C45 12%, transparent), transparent 65%)",
-          }}
-        />
-
-        <div className="relative z-[1] min-h-0 flex-1 overflow-y-auto px-4 py-6 pb-20 sm:px-6 sm:py-8 sm:pb-24 lg:flex lg:items-center lg:justify-center lg:py-12">
-          <div className="mx-auto w-full max-w-md">
+    <BrightAuthPageLayout>
             {phase === "verify" || phase === "select_org" ? (
               <button
                 type="button"
@@ -566,6 +534,7 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
             ) : null}
 
             <LoginPhaseHeader
+              preset="login"
               phase={phaseForHeader}
               subtitle={subtitle}
               schoolWordmark={schoolWordmark}
@@ -583,10 +552,7 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
             ) : null}
 
             {error ? (
-              <p
-                className="mb-4 rounded-[16px] border border-black/8 bg-[#FBEDEB] px-3 py-2.5 font-secondary text-sm text-[#B5594A]"
-                role="alert"
-              >
+              <p className={BRIGHT_AUTH_ERROR_CLASS} role="alert">
                 {error}
               </p>
             ) : null}
@@ -622,7 +588,7 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
                 >
                   <form onSubmit={handleEmailSubmit} className="space-y-4">
                     <GetStartedStoryTextField
-                      theme={BRIGHT_THEME}
+                      theme={BRIGHT_AUTH_THEME}
                       id="login-email"
                       label="Email"
                       type="email"
@@ -634,7 +600,7 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
                     <button
                       type="submit"
                       disabled={isSubmitting || !email.trim()}
-                      className={BRIGHT_PRIMARY_BUTTON}
+                      className={BRIGHT_AUTH_PRIMARY_BUTTON}
                     >
                       <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Sending code…">
                         Send verification code
@@ -679,7 +645,7 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
                 >
                   <form onSubmit={handlePasswordSubmit} className="space-y-4">
                     <GetStartedStoryTextField
-                      theme={BRIGHT_THEME}
+                      theme={BRIGHT_AUTH_THEME}
                       id="login-password-email"
                       label="Email"
                       type="email"
@@ -689,7 +655,7 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
                     />
 
                     <GetStartedStoryTextField
-                      theme={BRIGHT_THEME}
+                      theme={BRIGHT_AUTH_THEME}
                       id="login-password"
                       label="Password"
                       type="password"
@@ -701,7 +667,7 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
                     <button
                       type="submit"
                       disabled={isSubmitting || !email.trim() || !password}
-                      className={BRIGHT_PRIMARY_BUTTON}
+                      className={BRIGHT_AUTH_PRIMARY_BUTTON}
                     >
                       <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Signing in…">
                         Sign in
@@ -746,7 +712,7 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
                     <button
                       type="submit"
                       disabled={isSubmitting || normalizedCode.length < 6}
-                      className={BRIGHT_PRIMARY_BUTTON}
+                      className={BRIGHT_AUTH_PRIMARY_BUTTON}
                     >
                       <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Verifying…">
                         Continue
@@ -775,11 +741,6 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
-        </div>
-      </div>
-
-      <AuthHelpButton />
-    </div>
+    </BrightAuthPageLayout>
   );
 }

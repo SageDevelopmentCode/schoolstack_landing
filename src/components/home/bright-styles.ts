@@ -2,6 +2,9 @@ import type { ProductPreviewTabGroup } from "@/lib/marketing/product-preview-tab
 
 export const INK = "#1d1a16";
 
+/** Top padding for first content below fixed BrightNavbar (h-16 / md:h-[72px]). */
+export const BRIGHT_NAV_OFFSET = "pt-24 sm:pt-28 md:pt-32";
+
 /**
  * Global `h1, h2, h3` rules are unlayered and beat Tailwind utilities, so the
  * bold sans heading treatment needs `!` to win.

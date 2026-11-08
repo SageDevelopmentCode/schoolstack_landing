@@ -6,13 +6,14 @@ import {
   type CarouselDemoCrop,
 } from "@/components/admin/marketing/carousels/carousel-product-slide";
 import { ShowcaseDesktopEmbedProvider } from "@/components/demo/shared/showcase-desktop-embed";
+import ShowcaseBrowserChrome from "@/components/get-started/ShowcaseBrowserChrome";
 
 /** Demo band height at default card width (340px); matches scaled typical portal slides. */
-export const GET_STARTED_SHOWCASE_VIEWPORT_HEIGHT = 272;
+export const GET_STARTED_SHOWCASE_VIEWPORT_HEIGHT = 288;
 /** Demo band height at sm+ card width (400px). */
-export const GET_STARTED_SHOWCASE_VIEWPORT_HEIGHT_SM = 300;
+export const GET_STARTED_SHOWCASE_VIEWPORT_HEIGHT_SM = 320;
 
-const SHOWCASE_VIEWPORT_HEIGHT_CLASS = "h-[272px] sm:h-[300px]";
+const SHOWCASE_VIEWPORT_HEIGHT_CLASS = "h-[288px] sm:h-[320px]";
 
 /** Matches marketing `DemoCanvas` paper tone. */
 const SHOWCASE_DEMO_CANVAS_BG = "#F8F8F3";
@@ -31,6 +32,8 @@ type GetStartedShowcaseDemoViewportProps = {
   fillHeight?: boolean;
   visibleHeight?: number;
   crop?: CarouselDemoCrop;
+  wellColor?: string;
+  showBrowserChrome?: boolean;
 };
 
 export default function GetStartedShowcaseDemoViewport({
@@ -40,6 +43,8 @@ export default function GetStartedShowcaseDemoViewport({
   fillHeight = false,
   visibleHeight = GET_STARTED_SHOWCASE_VIEWPORT_HEIGHT,
   crop,
+  wellColor,
+  showBrowserChrome = true,
 }: GetStartedShowcaseDemoViewportProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({
@@ -99,10 +104,11 @@ export default function GetStartedShowcaseDemoViewport({
   const useDefaultResponsiveHeight =
     !fillHeight && visibleHeight === GET_STARTED_SHOWCASE_VIEWPORT_HEIGHT;
 
+  const canvasBg = wellColor ?? SHOWCASE_DEMO_CANVAS_BG;
+
   return (
     <div
-      ref={containerRef}
-      className={`relative w-full overflow-hidden ${
+      className={`flex w-full flex-col overflow-hidden ${
         fillHeight
           ? "h-full min-h-0"
           : useDefaultResponsiveHeight
@@ -110,23 +116,30 @@ export default function GetStartedShowcaseDemoViewport({
             : ""
       }`}
       style={{
-        backgroundColor: SHOWCASE_DEMO_CANVAS_BG,
+        backgroundColor: canvasBg,
         ...(fillHeight || useDefaultResponsiveHeight
           ? undefined
           : { height: visibleHeight }),
       }}
     >
+      {showBrowserChrome ? <ShowcaseBrowserChrome /> : null}
       <div
-        inert
-        data-showcase-desktop-embed="true"
-        className="showcase-demo-embed @container pointer-events-none absolute left-0 top-0"
-        style={{
-          width: contentWidth,
-          height: contentHeight,
-          ...croppedFrame,
-        }}
+        ref={containerRef}
+        className="relative min-h-0 w-full flex-1 overflow-hidden rounded-b-[16px]"
+        style={{ backgroundColor: wellColor ? "#FFFFFF" : SHOWCASE_DEMO_CANVAS_BG }}
       >
-        <ShowcaseDesktopEmbedProvider>{children}</ShowcaseDesktopEmbedProvider>
+        <div
+          inert
+          data-showcase-desktop-embed="true"
+          className="showcase-demo-embed @container pointer-events-none absolute left-0 top-0"
+          style={{
+            width: contentWidth,
+            height: contentHeight,
+            ...croppedFrame,
+          }}
+        >
+          <ShowcaseDesktopEmbedProvider>{children}</ShowcaseDesktopEmbedProvider>
+        </div>
       </div>
     </div>
   );

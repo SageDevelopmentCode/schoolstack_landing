@@ -1,5 +1,4 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -36,7 +35,9 @@ import {
   type ResolvedParentFeatureAnnouncement,
   type ResolvedParentOnboardingItem,
 } from '@/lib/parent/parent-portal-api';
+import { openExternalUrlSafely } from '@/lib/open-external-url';
 import { usePortalPreview } from '@/lib/portal-preview-gating';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type ParentHomeScreenProps = {
   slug: string;
@@ -47,6 +48,7 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
   const router = useRouter();
   const { isPreview } = usePortalPreview();
   const { data, isLoading, isRefreshing, error, refresh } = useParentHome();
+  const { reportError } = useMobileErrorReporter(data?.organizationId);
   const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
   const [signupAttentionItems, setSignupAttentionItems] = useState<ParentSignupAttentionItem[]>(
     [],
@@ -63,10 +65,11 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
         buildParentActivityNotificationContext({ slug }),
       );
       setNotificationUnreadCount(count);
-    } catch {
+    } catch (err) {
       // Keep the last known count on transient errors.
+      reportError('parent.activity_notifications.unread_count_failed', err);
     }
-  }, [data?.organizationId, slug]);
+  }, [data?.organizationId, reportError, slug]);
 
   useFocusEffect(
     useCallback(() => {
@@ -84,18 +87,22 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
           setSignupAttentionItems(items);
         }
       })
-      .catch(() => {
-        // Signup attention is non-blocking.
+      .catch((err) => {
+        // Signup attention is non-blocking for the user, but failures are still reported.
+        if (!cancelled) {
+          reportError('parent.signup_attention.fetch_failed', err);
+        }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [data?.organizationId]);
+  }, [data?.organizationId, reportError]);
 
   const openWebUrl = async (href: string) => {
-    await openBrowserAsync(resolveWebUrl(href), {
-      presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
+    await openExternalUrlSafely(resolveWebUrl(href), reportError, {
+      operation: 'parent_home_open_web_url',
+      metadata: { href },
     });
   };
 

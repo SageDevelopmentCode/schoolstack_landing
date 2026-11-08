@@ -1,5 +1,4 @@
 import { useFocusEffect, useRouter, type Href } from 'expo-router';
-import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -36,6 +35,7 @@ import {
   type ResolvedParentOnboardingItem,
 } from '@/lib/parent/parent-portal-api';
 import { usePortalPreview } from '@/lib/portal-preview-gating';
+import { openExternalUrlSafely } from '@/lib/open-external-url';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type ParentProgramHomeScreenProps = {
@@ -106,8 +106,9 @@ export function ParentProgramHomeScreen({ slug, programSlug }: ParentProgramHome
   }, [data?.organizationId, reportError]);
 
   const openWebUrl = async (href: string) => {
-    await openBrowserAsync(resolveWebUrl(href), {
-      presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
+    await openExternalUrlSafely(resolveWebUrl(href), reportError, {
+      operation: 'parent_home_open_web_url',
+      metadata: { href },
     });
   };
 

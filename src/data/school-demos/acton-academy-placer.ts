@@ -14,7 +14,7 @@ export const actonAcademyPlacerConfig: SchoolWebsiteDemoConfig = {
     muted: "#7A9676",
     badgeBg: "rgba(24, 62, 53, 0.12)",
     accentText: "#B8623E",
-    pageBg: "#F6F0E4",
+    pageBg: "#FFFFFF",
   },
   logo: ACTON_ACADEMY_PLACER_LOGO,
   hero: {

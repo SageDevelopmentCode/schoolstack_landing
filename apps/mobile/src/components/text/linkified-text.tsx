@@ -1,6 +1,8 @@
-import { Linking, StyleSheet, Text, type TextStyle } from 'react-native';
+import { StyleSheet, Text, type TextStyle } from 'react-native';
 
+import { openExternalUrlSafely } from '@/lib/open-external-url';
 import { splitPlainTextLinks } from '@/lib/text/plain-text-links';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type LinkifiedTextProps = {
   text: string;
@@ -10,6 +12,7 @@ type LinkifiedTextProps = {
 };
 
 export function LinkifiedText({ text, style, linkColor, linkStyle }: LinkifiedTextProps) {
+  const { reportError } = useMobileErrorReporter();
   const segments = splitPlainTextLinks(text);
 
   return (
@@ -22,7 +25,9 @@ export function LinkifiedText({ text, style, linkColor, linkStyle }: LinkifiedTe
               style={[styles.link, { color: linkColor }, linkStyle]}
               accessibilityRole="link"
               onPress={() => {
-                void Linking.openURL(segment.href);
+                void openExternalUrlSafely(segment.href, reportError, {
+                  operation: 'linkified_text_open_link',
+                });
               }}>
               {segment.value}
             </Text>

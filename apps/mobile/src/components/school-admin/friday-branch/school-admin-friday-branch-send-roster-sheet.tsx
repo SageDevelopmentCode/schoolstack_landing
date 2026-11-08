@@ -174,6 +174,23 @@ export function SchoolAdminFridayBranchSendRosterSheet({
                   source={{ html: preview.html }}
                   style={styles.webview}
                   scrollEnabled
+                  onError={(event) =>
+                    reportError(
+                      'friday_branch.roster.preview_webview_error',
+                      new Error(
+                        event.nativeEvent.description?.trim() ||
+                          'Roster email preview failed to render.',
+                      ),
+                      { entityType: 'friday_branch_class', entityId: classId ?? undefined },
+                    )
+                  }
+                  onRenderProcessGone={() =>
+                    reportError(
+                      'friday_branch.roster.preview_render_process_gone',
+                      new Error('The roster email preview process was terminated.'),
+                      { entityType: 'friday_branch_class', entityId: classId ?? undefined },
+                    )
+                  }
                 />
               </View>
             ) : null}

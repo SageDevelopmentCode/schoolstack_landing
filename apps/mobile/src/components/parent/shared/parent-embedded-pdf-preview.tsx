@@ -11,12 +11,17 @@ type ParentEmbeddedPdfPreviewProps = {
   url: string;
   title: string;
   minHeight?: number;
+  /** Included in operational error reports (for example `curriculum` + its id). */
+  reportEntityType?: string;
+  reportEntityId?: string;
 };
 
 export function ParentEmbeddedPdfPreview({
   url,
   title,
   minHeight = 360,
+  reportEntityType,
+  reportEntityId,
 }: ParentEmbeddedPdfPreviewProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -35,6 +40,9 @@ export function ParentEmbeddedPdfPreview({
             style={[styles.webView, { minHeight }]}
             scrollEnabled={false}
             pointerEvents="none"
+            firstPageOnly
+            reportEntityType={reportEntityType}
+            reportEntityId={reportEntityId}
           />
         )}
         <View style={styles.expandHint} pointerEvents="none">
@@ -48,6 +56,8 @@ export function ParentEmbeddedPdfPreview({
         url={url}
         title={title}
         onClose={() => setExpanded(false)}
+        reportEntityType={reportEntityType}
+        reportEntityId={reportEntityId}
       />
     </>
   );

@@ -147,7 +147,16 @@ export function SubmissionEnrollmentActionsSection({
   onMarkEnrolled: () => void;
   loading: boolean;
 }) {
-  if (currentStatus !== 'accepted' && currentStatus !== 'enrolling') return null;
+  if (
+    currentStatus !== 'accepted' &&
+    currentStatus !== 'enrolling'
+  ) {
+    return null;
+  }
+
+  const showMarkEnrolled =
+    currentStatus === 'enrolling' ||
+    (currentStatus === 'accepted' && !hasPublishedChecklist);
 
   const description = (() => {
     if (currentStatus === 'enrolling') {
@@ -160,14 +169,14 @@ export function SubmissionEnrollmentActionsSection({
       return 'Start enrollment from the web admin to choose checklist variants.';
     }
     if (programName) {
-      return `${programName} has no enrollment checklist — mark enrolled directly when paperwork is handled offline.`;
+      return `${programName} has no enrollment checklist. Accept enrolls automatically; use Mark enrolled if accept could not finish enrollment.`;
     }
-    return 'No published enrollment checklist is linked to this program yet.';
+    return 'No published enrollment checklist is linked to this program yet. Accept enrolls automatically when possible.';
   })();
 
   return (
     <StoryDetailSection title="Enrollment" description={description}>
-      {currentStatus === 'enrolling' ? (
+      {showMarkEnrolled ? (
         loading ? (
           <ActivityIndicator size="small" />
         ) : (

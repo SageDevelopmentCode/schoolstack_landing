@@ -24,6 +24,7 @@ export const wildcatMicroschoolConfig: SchoolWebsiteDemoConfig = {
   hero: {
     eyebrow: "Wildcat Microschool · Haverhill, New Hampshire",
     headline: ["Learning at their own pace.", "Growing together."],
+    headlineAccentLine: 1,
     subheadline:
       "Wildcat Microschool is a homeschool learning pod where children explore, collaborate, and learn through hands-on projects—with individualized support and opportunities to connect with nature.",
     primaryCta: "Contact us",
@@ -45,9 +46,9 @@ export const wildcatMicroschoolConfig: SchoolWebsiteDemoConfig = {
     showClosingCta: true,
   },
   stats: [
-    { value: "Haverhill", label: "New Hampshire" },
-    { value: "Homeschool", label: "Learning pod" },
     { value: "3", label: "Guides" },
+    { value: "Haverhill", label: "New Hampshire" },
+    { value: "Pod", label: "Homeschool learning" },
     { value: "Forest", label: "Nature-based learning" },
   ],
   welcome: {

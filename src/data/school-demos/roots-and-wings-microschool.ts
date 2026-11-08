@@ -14,7 +14,7 @@ export const rootsAndWingsMicroschoolConfig: SchoolWebsiteDemoConfig = {
     muted: "#3D4950",
     badgeBg: "rgba(185, 95, 69, 0.12)",
     accentText: "#D9A441",
-    pageBg: "#FFFDF9",
+    pageBg: "#FFFFFF",
   },
   logo: ROOTS_AND_WINGS_LOGO,
   hero: {

@@ -14,15 +14,13 @@ export const trueNorthConfig: SchoolWebsiteDemoConfig = {
     muted: "#6B7280",
     badgeBg: "#EEF2FF",
     accentText: "#3B6FE8",
-    pageBg: "#F8F8F8",
+    pageBg: "#FFFFFF",
   },
   logo: TRUE_NORTH_ADMIN_LOGO,
   hero: {
     eyebrow: "Grades 1–12 · The Woodlands, TX · Christian Education",
     eyebrowPlacement: "announcementBar",
     headline: ["Educating students while", "maintaining a True North."],
-    headlineClassName:
-      "text-3xl md:text-[2.75rem] font-bold text-white font-heading leading-[1.1] mb-3",
     subheadline:
       "A Christian, biblically based parent partnership for grades 1–12 in The Woodlands — academic challenge, spiritual encouragement, and family time at home.",
     primaryCta: "Request Information",

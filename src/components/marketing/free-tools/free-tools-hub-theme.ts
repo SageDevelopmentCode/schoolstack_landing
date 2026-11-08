@@ -5,3 +5,6 @@ import { MUDKITCHEN_MARKETING_BRIGHT_THEME } from "@/lib/marketing/mudkitchen-br
 export const FREE_TOOLS_HUB_THEME: ParentThemeTokens = {
   ...MUDKITCHEN_MARKETING_BRIGHT_THEME,
 };
+
+/** Alias for standalone calculator / planner / ops-check flows */
+export const MARKETING_TOOL_BRIGHT_THEME = FREE_TOOLS_HUB_THEME;

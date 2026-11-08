@@ -818,6 +818,61 @@ export async function markApplicationAsEnrolled(
   });
 }
 
+export async function autoEnrollApplicationIfNoChecklist(
+  supabase: SupabaseClient,
+  input: {
+    applicationId: string;
+    actorUserId: string;
+    activityMetadata?: Record<string, unknown>;
+  },
+): Promise<MarkedEnrollment | null> {
+  const { applicationId, actorUserId, activityMetadata } = input;
+
+  const { data: application, error: appError } = await supabase
+    .from("applications")
+    .select("id, organization_id, program_id, student_id, status, family_id")
+    .eq("id", applicationId)
+    .maybeSingle();
+
+  if (appError) throw appError;
+  if (!application) return null;
+
+  if (String(application.status) !== "accepted") {
+    return null;
+  }
+
+  if (!application.program_id) {
+    return null;
+  }
+
+  const organizationId = String(application.organization_id);
+  const programId = String(application.program_id);
+
+  const publishedChecklist = await getPublishedEnrollmentChecklistForProgram(
+    supabase,
+    organizationId,
+    programId,
+  );
+  if (publishedChecklist) {
+    return null;
+  }
+
+  const existingChecklist = await getChecklistForApplication(supabase, applicationId);
+  if (existingChecklist) {
+    return null;
+  }
+
+  if (!application.student_id) {
+    return null;
+  }
+
+  return markApplicationAsEnrolled(supabase, {
+    applicationId,
+    actorUserId,
+    activityMetadata,
+  });
+}
+
 export type LoadedEnrollmentChecklist = {
   checklistId: string;
   enrollmentId: string;

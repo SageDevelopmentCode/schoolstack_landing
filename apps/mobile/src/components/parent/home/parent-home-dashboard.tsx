@@ -56,7 +56,8 @@ import {
 } from '@/lib/parent/parent-portal-api';
 import { buildParentActivityNotificationContext } from '@/lib/parent/fetch-activity-notifications';
 import { programPortalChildrenEmptyMessage } from '@/lib/parent/parent-children-utils';
-import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
+import { openExternalUrlSafely } from '@/lib/open-external-url';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 export type ParentHomeDashboardProps = {
   slug: string;
@@ -179,9 +180,11 @@ export function ParentHomeDashboard({
     setActiveSubTab(tabId);
   }, []);
 
+  const { reportError } = useMobileErrorReporter(data.organizationId);
   const openWebUrl = async (href: string) => {
-    await openBrowserAsync(resolveWebUrl(href), {
-      presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
+    await openExternalUrlSafely(resolveWebUrl(href), reportError, {
+      operation: 'parent_home_open_web_url',
+      metadata: { href },
     });
   };
 

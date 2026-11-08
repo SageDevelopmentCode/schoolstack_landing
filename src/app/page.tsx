@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import JsonLd from "@/components/seo/JsonLd";
 import FaqJsonLd from "@/components/seo/FaqJsonLd";
 import BrightHero from "@/components/home/BrightHero";
-import BrightStats from "@/components/home/BrightStats";
 import BrightBento from "@/components/home/BrightBento";
 import BrightPain from "@/components/home/BrightPain";
 import BrightPersonas from "@/components/home/BrightPersonas";
@@ -32,7 +31,6 @@ export default function Home() {
       <JsonLd />
       <FaqJsonLd faqs={HOME_FAQ} />
       <BrightHero />
-      <BrightStats />
       <BrightBento />
       <BrightPain />
       <BrightPersonas />

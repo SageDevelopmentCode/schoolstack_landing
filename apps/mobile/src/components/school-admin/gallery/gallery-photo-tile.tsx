@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { StaticSkeletonPulse } from '@/components/story/static-skeleton-pulse';
 import { StoryFonts } from '@/constants/story-theme';
 import { Radius } from '@/constants/theme';
+import { reportMobileMediaLoadFailure } from '@/lib/mobile-global-error-reporting';
 import type { GalleryPhoto } from '@/lib/school-gallery/types';
 
 type GalleryPhotoTileProps = {
@@ -64,7 +65,10 @@ export function GalleryPhotoTile({
           transition={200}
           recyclingKey={photo.id}
           onLoad={() => setImageLoaded(true)}
-          onError={() => setImageFailed(true)}
+          onError={() => {
+            setImageFailed(true);
+            reportMobileMediaLoadFailure('gallery_photo', imageUrl);
+          }}
         />
       ) : (
         <View style={styles.placeholder}>

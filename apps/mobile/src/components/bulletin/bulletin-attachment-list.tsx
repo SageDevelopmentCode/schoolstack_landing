@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
-import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { StoryFonts } from '@/constants/story-theme';
 import { Radius, Spacing } from '@/constants/theme';
+import { openExternalUrlSafely } from '@/lib/open-external-url';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import {
   canPreviewBulletinAttachment,
   isBulletinImageAttachment,
@@ -18,12 +19,6 @@ type BulletinAttachmentListProps = {
   onOpenAttachment: (attachment: BulletinAttachment, index: number) => void;
 };
 
-async function openAttachmentUrl(url: string) {
-  await openBrowserAsync(url, {
-    presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
-  });
-}
-
 function AttachmentRow({
   attachment,
   index,
@@ -34,6 +29,14 @@ function AttachmentRow({
   onOpenAttachment: (attachment: BulletinAttachment, index: number) => void;
 }) {
   const theme = useParentTheme();
+  const { reportError } = useMobileErrorReporter();
+  const openAttachmentUrl = (url: string) =>
+    openExternalUrlSafely(url, reportError, {
+      operation: 'bulletin_attachment_open',
+      entityType: 'bulletin_attachment',
+      entityId: attachment.id,
+      errorTitle: 'Could not open attachment',
+    });
   const isPreviewable =
     Boolean(attachment.downloadUrl) && canPreviewBulletinAttachment(attachment.mimeType);
   const isImage = isBulletinImageAttachment(attachment.mimeType);
@@ -104,7 +107,7 @@ function AttachmentRow({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Download ${attachment.fileName}`}
-      onPress={() => void Linking.openURL(attachment.downloadUrl!)}
+      onPress={() => void openAttachmentUrl(attachment.downloadUrl!)}
       style={({ pressed }) => [
         styles.row,
         styles.downloadRow,

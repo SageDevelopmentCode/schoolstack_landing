@@ -2,79 +2,62 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import DemoIcon from "./DemoIcon";
-import DemoWebsiteCard from "./DemoWebsiteCard";
-import DemoWebsiteSectionKicker from "./DemoWebsiteSectionKicker";
 import type { DemoFarmExperienceSection } from "@/data/school-demos/types";
+import DemoIcon from "./DemoIcon";
+import { DEMO_BLOCK, DEMO_BODY, DEMO_GUTTER, DEMO_H3, DEMO_TINTS, STORY_EASE } from "./bright-demo-theme";
+import SiteSectionHeader from "./sections/SiteSectionHeader";
 
-export default function FarmExperienceSection({
-  section,
-}: {
-  section: DemoFarmExperienceSection;
-}) {
+const GRID_COLS: Record<number, string> = {
+  2: "@3xl/site:grid-cols-2",
+  3: "@3xl/site:grid-cols-3",
+  4: "@3xl/site:grid-cols-2 @5xl/site:grid-cols-4",
+};
+
+export default function FarmExperienceSection({ section }: { section: DemoFarmExperienceSection }) {
+  const count = section.paths.length;
+
   return (
-    <section
-      id="signature"
-      className="py-24 px-8 sm:px-12 lg:px-16"
-      style={{ backgroundColor: "var(--demo-paper)" }}
-    >
-      <div className="max-w-7xl mx-auto">
-        <motion.div
-          className="text-center mb-14 max-w-3xl mx-auto"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <div className="mb-5">
-            <DemoWebsiteSectionKicker>{section.eyebrow}</DemoWebsiteSectionKicker>
-          </div>
-          <h2
-            className="text-4xl md:text-5xl font-bold font-heading leading-tight mb-4"
-            style={{ color: "var(--demo-ink)" }}
-          >
-            {section.heading}
-          </h2>
-          <p className="font-secondary text-lg" style={{ color: "var(--demo-muted)" }}>
-            {section.subtitle}
-          </p>
-        </motion.div>
+    <section id="signature" className={`scroll-mt-[88px] py-3 ${DEMO_GUTTER}`}>
+      <div className={`${DEMO_BLOCK} bg-[var(--demo-tint-3)]`}>
+        <SiteSectionHeader eyebrow={section.eyebrow} heading={section.heading} subtitle={section.subtitle} align="split" />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className={`mt-12 grid gap-3 ${GRID_COLS[count] ?? "@3xl/site:grid-cols-3"}`}>
           {section.paths.map((path, i) => (
-            <motion.div
+            <motion.article
               key={path.title}
-              initial={{ opacity: 0, y: 20 }}
+              className="group overflow-hidden rounded-[28px] bg-white ring-1 ring-black/[0.04] transition-transform duration-300 hover:-translate-y-1"
+              initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.08 }}
-              whileHover={{ y: -4 }}
+              transition={{ duration: 0.55, delay: i * 0.08, ease: STORY_EASE }}
             >
-              <DemoWebsiteCard className="group h-full overflow-hidden p-0" padding="none">
-                {path.image && (
-                  <div className="relative h-40 overflow-hidden">
-                    <Image
-                      src={path.image}
-                      fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
-                      alt={path.title}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                  </div>
+              <div
+                className="relative m-2 h-52 overflow-hidden rounded-[22px]"
+                style={{ backgroundColor: DEMO_TINTS[i % DEMO_TINTS.length] }}
+              >
+                {path.image ? (
+                  <Image
+                    src={path.image}
+                    fill
+                    sizes="420px"
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                    alt=""
+                  />
+                ) : (
+                  <DemoIcon
+                    name={path.icon}
+                    className="absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 text-[var(--demo-accent)]/40"
+                  />
                 )}
-                <div className="p-6">
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-[var(--demo-radius-button)] bg-[color-mix(in_srgb,var(--demo-primary)_12%,transparent)]">
-                    <DemoIcon name={path.icon} className="h-5 w-5 text-[var(--demo-accent-text)]" />
-                  </div>
-                  <h3 className="text-lg font-bold font-heading mb-2" style={{ color: "var(--demo-ink)" }}>
-                    {path.title}
-                  </h3>
-                  <p className="text-sm font-secondary leading-relaxed" style={{ color: "var(--demo-muted)" }}>
-                    {path.desc}
-                  </p>
-                </div>
-              </DemoWebsiteCard>
-            </motion.div>
+                <span className="absolute left-3 top-3 flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-[var(--demo-shadow-card)]">
+                  <DemoIcon name={path.icon} className="h-5 w-5 text-[var(--demo-accent)]" />
+                </span>
+              </div>
+              <div className="px-6 pb-7 pt-4">
+                <h3 className={`${DEMO_H3} text-[var(--demo-ink)]`}>{path.title}</h3>
+                <p className={`${DEMO_BODY} mt-2 text-[15px]`}>{path.desc}</p>
+              </div>
+            </motion.article>
           ))}
         </div>
       </div>

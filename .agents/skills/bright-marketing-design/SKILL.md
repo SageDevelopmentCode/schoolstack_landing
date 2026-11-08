@@ -22,6 +22,56 @@ inventing a new one.
 - Not for logged-in portals (parent, teacher, school admin). Those use
   [`parent-portal-story-design`](../parent-portal-story-design/SKILL.md) and
   [`admin-workspace-design`](../admin-workspace-design/SKILL.md).
+- **School website demos** at `/demo/{slug}`: same bright **layout** (white
+  canvas, pastel blocks, Poppins bold headings, pill CTAs) with **per-school**
+  `DemoTheme` colors — see
+  [`src/components/sections/website-demo/bright-demo-theme.ts`](../../src/components/sections/website-demo/bright-demo-theme.ts)
+  and [`school-demo-builder`](../../.cursor/skills/school-demo-builder/SKILL.md).
+  Do not use MudKitchen clay for school eyebrows; use `theme.primary`.
+  See [School website recipes](#school-website-recipes) below.
+
+## School website recipes
+
+The template is `WebsiteDashboardDemo` composing files in
+`src/components/sections/website-demo/sections/`. It renders inside a scaled
+canvas, so it is a `@container/site` and uses container variants, never
+viewport `sm:`/`md:`/`lg:`:
+
+| Container variant | Frame width | Replaces |
+|---|---|---|
+| `@2xl/site:` | 672px | `sm:` |
+| `@3xl/site:` | 768px | `md:` |
+| `@5xl/site:` | 1024px | `lg:` |
+
+Heading sizes use `cqw` clamps (`DEMO_H1`, `DEMO_H2`) so they follow the frame.
+Global `h1–h3` rules set font, weight, tracking and line height, so those four
+carry `!` in `DEMO_HEADING`.
+
+**Palette.** Every school color comes from CSS variables built by
+`buildBrightDemoWebsiteThemeVars(theme)`: `--demo-ink` (theme.dark),
+`--demo-accent` (theme.accentText), and four tints mixed onto white —
+`--demo-tint-1` (primary 10%), `--demo-tint-2` (dark 7%), `--demo-tint-3`
+(warm cream), `--demo-tint-4` (cool mist). Rotate `DEMO_TINTS` across tiles so
+neighbours never share a tint. Never mix primary into an off-white page color;
+it goes muddy.
+
+| Section | File | Recipe |
+|---|---|---|
+| Hero | `SiteHero` | White, palette blobs, floating pill nav, accent line highlighted, photo collage with two tilted frames and stat stickers. Parallax only on wide frames without reduced motion |
+| Stats | `SiteStats` | Ink band overlapping the hero by `-mt-20`, four big values with icons |
+| Welcome | `SiteWelcomeBento` | Bento: photo tile with inset photo plus tinted fit/mission tiles |
+| Marquee | `SiteMarquee` | Two opposite-direction rows of tinted chips, edge fade, pause on hover |
+| Signature | `LearningModes…FarmExperience` | Rounded tint block (`DEMO_BLOCK`) or white section with tiles; first or closing tile ink |
+| Programs | `SitePrograms` | Expanding photo cards on wide frames, snap carousel on narrow; tint-1 detail panel |
+| Gallery | `SiteGallery` | Up to four photos in a bento |
+| Day | `SiteDayTimeline` | Cream block, sticky crossfading photo, auto-rotating step list with progress bar |
+| Story | `SiteStory` | Testimonials carousel on tint-1, or trust bento on tint-4 |
+| Founder | `SiteFounder` | Tilted portrait with stickers, credential chips, quote card |
+| Close | `SiteEnroll`, `SiteFaq`, `SiteClosing`, `SiteFooter` | Ink sidebar plus pill-input form; sticky FAQ header with `details` accordion; ink closing block |
+
+Sticky nav and the mobile floating CTA are `sticky` (not `fixed`) because the
+scaled canvas creates a containing block. Scroll helpers must divide by the
+visual scale (see `scrollToSection`).
 
 ## Design principles
 
@@ -116,7 +166,6 @@ Each recipe maps to a component in `src/components/home/`.
 | Section | Component | Recipe |
 |---------|-----------|--------|
 | Hero | `BrightHero` | Centered badge, huge bold headline with highlighted clause, body, two pills. Pastel blurred blobs behind. Below: Parent / Teacher / Admin segmented tabs (white pill bar, ink active tab, role-colored icons, icons hidden below `sm`) driving a `DemoStage` with `tour` inside a browser-chrome frame and `FloatingStickers`. At `lg` and up the frame starts tilted (`rotateX 24` to `0`, scale `0.86` to `1`) and flattens on scroll with a pastel glow behind it. |
-| Stats | `BrightStats` | Full-width ink block, three huge bold numbers, location link with a circular arrow. |
 | Product bento | `BrightBento` (`id="product"`) | Centered eyebrow + heading + bullet chips. Left: module tiles tinted by group, active tile fills with its role color, horizontal scroll on mobile. Right: tinted panel with caption and an interactive `DemoStage`. |
 | Problem | `BrightPain` | Peach block. "Scattered today / All in one shared system" toggle animates `ToolHub variant="converge"`. Below `md` it is a plain list. Auto-flips to unified after entering view unless the user interacts. |
 | Roles | `BrightPersonas` | Three role cards; the active card grows (`lg:flex-[1.9]`) and fills with the role color. Detail panel has copy, bullets, sub-tab pills and an interactive demo. |

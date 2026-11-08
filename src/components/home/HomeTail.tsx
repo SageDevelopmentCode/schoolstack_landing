@@ -7,6 +7,10 @@ import BrightFaqSection from "./BrightFaqSection";
 const HomeFreeToolsSection = dynamic(() => import("@/components/sections/HomeFreeToolsSection"), {
   loading: () => <SectionFallback minHeight="28rem" />,
 });
+const ProductShowcaseSection = dynamic(
+  () => import("@/components/get-started/ProductShowcaseSection"),
+  { loading: () => <SectionFallback minHeight="20rem" /> },
+);
 const GetStartedShowcaseCarousel = dynamic(
   () => import("@/components/get-started/GetStartedShowcaseCarousel"),
   { loading: () => <SectionFallback minHeight="20rem" /> },
@@ -20,7 +24,9 @@ export default function HomeTail() {
         <HomeFreeToolsSection />
       </InViewSectionGate>
       <InViewSectionGate minHeight="20rem">
-        <GetStartedShowcaseCarousel variant="page" />
+        <ProductShowcaseSection>
+          <GetStartedShowcaseCarousel variant="page" presentation="section" />
+        </ProductShowcaseSection>
       </InViewSectionGate>
       <BrightFaqSection />
       <HomeBookDemoSection />

@@ -26,8 +26,8 @@ export default function ParentAuthPage({
       organizationId={organizationId}
       organizationSlug={organizationSlug}
       authPage="/parent"
-      title="Sign in to your parent portal"
-      subtitle="Enter the email on your family account. We&apos;ll send you a one-time code."
+      layoutVariant="bright"
+      subtitle="Enter the email on your family account. We'll send you a one-time code."
       onComplete={() => {
         router.refresh();
       }}

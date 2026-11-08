@@ -14,7 +14,7 @@ export const asheboroHybridAcademyConfig: SchoolWebsiteDemoConfig = {
     muted: "#5C6875",
     badgeBg: "rgba(216, 166, 42, 0.12)",
     accentText: "#D8A62A",
-    pageBg: "#F7F3E8",
+    pageBg: "#FFFFFF",
   },
   logo: ASHEBORO_HYBRID_ACADEMY_LOGO,
   hero: {

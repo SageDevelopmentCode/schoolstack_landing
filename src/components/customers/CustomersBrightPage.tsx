@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ExternalLink, MapPin, TrendingUp, Users } from "lucide-react";
+import { ArrowRight, ExternalLink, MapPin, Users } from "lucide-react";
 import { FadeInView } from "@/components/ui/FadeInView";
 import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
 import { ACCENT_HIGHLIGHT, BOLD_HEADING } from "@/components/home/bright-styles";
@@ -97,23 +97,8 @@ export default function CustomersBrightPage() {
                       {story.description}
                     </p>
 
-                    <div className="mt-4 flex flex-wrap gap-1.5">
-                      {story.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="inline-flex items-center rounded-pill bg-[#F4F1EC] px-2.5 py-1 font-secondary text-[11px] text-[#1d1a16]/75"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="mt-5 flex items-center justify-between border-t border-black/8 pt-4">
-                      <span className="flex items-center gap-1.5 font-secondary text-[12px] font-medium text-clay">
-                        <TrendingUp size={12} />
-                        {story.result}
-                      </span>
-                      <span className="flex items-center gap-1 font-secondary text-[12px] text-[#1d1a16]/50 transition-colors duration-150 group-hover:text-clay">
+                    <div className="mt-5 flex justify-end border-t border-black/8 pt-4">
+                      <span className="flex items-center gap-1 font-secondary text-[12px] font-medium text-[#1d1a16]/50 transition-colors duration-150 group-hover:text-clay">
                         Read the story
                         <ArrowRight size={11} />
                       </span>

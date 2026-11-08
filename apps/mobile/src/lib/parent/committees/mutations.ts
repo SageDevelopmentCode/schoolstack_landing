@@ -143,7 +143,9 @@ export async function createCommitteeEvent(
       organizationId: input.workspaceRecord.organizationId,
       action: ACTIVITY_ACTIONS.COMMITTEE_EVENT_CREATED,
       entityId: event.id,
-    }).catch(() => {});
+    }).catch(() => {
+      // Activity logging is non-blocking; the API route reports its own failures.
+    });
   }
   return event;
 }
@@ -217,7 +219,9 @@ export async function createCommitteeTask(
       organizationId: input.workspaceRecord.organizationId,
       action: ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED,
       entityId: task.id,
-    }).catch(() => {});
+    }).catch(() => {
+      // Activity logging is non-blocking; the API route reports its own failures.
+    });
   }
   return task;
 }
@@ -361,7 +365,9 @@ export async function createCommitteeResource(
       organizationId: input.workspaceRecord.organizationId,
       action: ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_CREATED,
       entityId: resource.id,
-    }).catch(() => {});
+    }).catch(() => {
+      // Activity logging is non-blocking; the API route reports its own failures.
+    });
   }
   return resource;
 }

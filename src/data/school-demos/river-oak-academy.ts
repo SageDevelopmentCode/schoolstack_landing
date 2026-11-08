@@ -14,7 +14,7 @@ export const riverOakAcademyConfig: SchoolWebsiteDemoConfig = {
     muted: "#505650",
     badgeBg: "rgba(73, 104, 70, 0.12)",
     accentText: "#B96545",
-    pageBg: "#F5F0E5",
+    pageBg: "#FFFFFF",
   },
   logo: RIVER_OAK_ACADEMY_LOGO,
   hero: {

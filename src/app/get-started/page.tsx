@@ -5,11 +5,13 @@ import HomeShell from "@/components/home/HomeShell";
 import GetStartedDemoFlow, {
   type GetStartedDemoStep,
 } from "@/components/get-started/GetStartedDemoFlow";
+import ProductShowcaseSection from "@/components/get-started/ProductShowcaseSection";
 import GetStartedShowcaseCarousel from "@/components/get-started/GetStartedShowcaseCarousel";
 import GetStartedFilmSection from "@/components/get-started/GetStartedFilmSection";
 import GetStartedOurStorySection from "@/components/get-started/GetStartedOurStorySection";
 import GetStartedStoryShell from "@/components/get-started/GetStartedStoryShell";
 import { GET_STARTED_DEMO_SECTION_ID } from "@/components/about/AboutOurStorySection";
+import { BRIGHT_NAV_OFFSET } from "@/components/home/bright-styles";
 
 export default function GetStartedPage() {
   const [step, setStep] = useState<GetStartedDemoStep>(0);
@@ -17,12 +19,17 @@ export default function GetStartedPage() {
   return (
     <HomeShell className="bg-white">
       <div className="min-h-screen bg-white">
-        {step === 0 && <GetStartedShowcaseCarousel />}
+        {step === 0 ? (
+          <ProductShowcaseSection underFixedNav>
+            <GetStartedShowcaseCarousel variant="page" presentation="section" />
+          </ProductShowcaseSection>
+        ) : null}
         <GetStartedStoryShell
           id={GET_STARTED_DEMO_SECTION_ID}
           medium={step === 0}
           wide={step === 1}
           variant="nested"
+          className={step === 1 ? BRIGHT_NAV_OFFSET : undefined}
         >
           <GetStartedDemoFlow
             scrollOnStepChange="window"

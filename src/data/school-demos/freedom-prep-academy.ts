@@ -14,7 +14,7 @@ export const freedomPrepAcademyConfig: SchoolWebsiteDemoConfig = {
     muted: "#536274",
     badgeBg: "rgba(244, 185, 66, 0.15)",
     accentText: "#F4B942",
-    pageBg: "#F5F8FC",
+    pageBg: "#FFFFFF",
   },
   logo: FREEDOM_PREP_ACADEMY_LOGO,
   hero: {

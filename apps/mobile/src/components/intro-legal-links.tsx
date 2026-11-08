@@ -1,11 +1,13 @@
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Story, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 import { resolveWebUrl } from '@/lib/admissions/school-apply-url';
+import { openExternalUrlSafely } from '@/lib/open-external-url';
 
 function openLegalPage(path: '/privacy' | '/terms') {
-  void Linking.openURL(resolveWebUrl(path));
+  // Pre-sign-in: no school context to report against, but failures still get a friendly alert.
+  void openExternalUrlSafely(resolveWebUrl(path), null, { operation: 'intro_legal_link_open' });
 }
 
 export function IntroLegalLinks() {

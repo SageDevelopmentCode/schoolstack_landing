@@ -14,7 +14,7 @@ export const actonAcademyPittsburghConfig: SchoolWebsiteDemoConfig = {
     muted: "#607064",
     badgeBg: "rgba(47, 90, 71, 0.12)",
     accentText: "#C96F4A",
-    pageBg: "#F7F2E8",
+    pageBg: "#FFFFFF",
   },
   logo: ACTON_ACADEMY_PITTSBURGH_LOGO,
   hero: {

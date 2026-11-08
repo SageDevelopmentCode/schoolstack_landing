@@ -66,10 +66,13 @@ function prefetchAllProductPreviewShowcaseSlides() {
 
 type GetStartedShowcaseCarouselProps = {
   variant?: "page" | "embedded";
+  /** When nested inside ProductShowcaseSection, omit outer page chrome */
+  presentation?: "standalone" | "section";
 };
 
 export default function GetStartedShowcaseCarousel({
   variant = "page",
+  presentation = "standalone",
 }: GetStartedShowcaseCarouselProps) {
   const [reduceMotion, setReduceMotion] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -243,16 +246,16 @@ export default function GetStartedShowcaseCarousel({
       : undefined;
 
   const isEmbedded = variant === "embedded";
+  const isSectionNested = presentation === "section" && !isEmbedded;
+
+  const sectionClass = isEmbedded
+    ? "relative overflow-hidden rounded-[32px] border border-black/8 bg-[#F7F5F2] py-8 pb-6"
+    : isSectionNested
+      ? "relative overflow-hidden bg-white py-2"
+      : "relative border-b border-black/8 bg-white py-8 shadow-[0_8px_32px_rgba(30,60,30,0.04)]";
 
   return (
-    <section
-      className={
-        isEmbedded
-          ? "relative overflow-hidden rounded-[32px] border border-black/8 bg-[#F7F5F2] py-8 pb-6"
-          : "relative border-b border-black/8 bg-white py-8 shadow-[0_8px_32px_rgba(30,60,30,0.04)]"
-      }
-      aria-label="Product preview samples"
-    >
+    <section className={sectionClass} aria-label="Product preview samples">
       <div
         className="relative"
         {...(carouselMode === "desktopMarquee"

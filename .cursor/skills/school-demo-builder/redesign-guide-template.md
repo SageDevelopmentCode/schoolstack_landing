@@ -28,23 +28,27 @@ This document consolidates brand signals, reusable copy, and practical redesign 
 
 ### Recommended demo palette mapping
 
-| Demo use | Hex | Notes |
+Bright-layout demos (`WebsiteDashboardDemo`) map scraped colors into `SchoolWebsiteDemoConfig.theme`:
+
+| Demo use | Config field | Bright token / notes |
 |---|---|---|
-| Primary CTA / buttons | | |
-| CTA hover / active | | |
-| Headings / dark nav | | |
-| Secondary highlights | | |
-| Tinted feature cards | | |
-| Body text | | |
-| Muted captions | | |
-| Main page background | | |
-| Alternate sections | | |
-| Borders | | |
+| Primary CTA accent / eyebrows | `theme.primary` | `DEMO_ACCENT_HIGHLIGHT`, kicker text |
+| Dark pills / stats ink band | `theme.dark` | `--demo-cta-bg`, `--demo-ink-band` |
+| CTA hover | `theme.primaryHover` | `--demo-cta-hover` |
+| Section pastel blocks | mix primary + `#EEF3EC` | `var(--demo-section-tint)` via `bright-demo-theme.ts` |
+| Body / captions | `theme.muted` | body copy |
+| Main page background | `theme.pageBg` | prefer `#FFFFFF` |
+| Cards / borders | `theme.lightBorder` | `--demo-line` |
 
-## Typography signals
+### Typography (bright demos)
 
-- Fonts loaded on site: {e.g. Open Sans, DM Serif Display}
-- Recommended demo pairing: {display font for hero} + {sans for body/UI}
+- Shell: Poppins via `SchoolDemoWebsiteFonts` — not per-school Google font pairs on `/demo/*`.
+- Headings: `BOLD_HEADING` + optional `headlineAccentLine` for hero highlighter.
+
+## Typography signals (source school site)
+
+- Fonts loaded on live site: {e.g. Open Sans, DM Serif Display}
+- Note brand display face in the guide for copy tone; demo UI stays Poppins unless a future `typography` override is added.
 
 ## Content themes to reuse
 

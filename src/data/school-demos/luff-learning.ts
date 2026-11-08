@@ -21,6 +21,7 @@ export const luffLearningConfig: SchoolWebsiteDemoConfig = {
     eyebrow: "Spring, TX · Fine Arts Academy · Enrolling Now",
     eyebrowPlacement: "announcementBar",
     headline: ["Discover the magic of learning", "through play(s)."],
+    headlineAccentLine: 1,
     subheadline:
       "Luff Learning is a secular, inclusive fine arts academy and virtual microschool in Spring, Texas — designed for bright, creative students who thrive with ADHD-friendly structure, rigorous academics, and a place to truly belong.",
     primaryCta: "Schedule a Tour",
@@ -34,7 +35,7 @@ export const luffLearningConfig: SchoolWebsiteDemoConfig = {
     trustBadges: ["Secular", "Fine Arts", "ADHD-Friendly", "Spring, TX"],
   },
   sections: {
-    showMosaic: false,
+    showMosaic: true,
   },
   signatureSection: {
     type: "learningModes",
@@ -101,8 +102,8 @@ export const luffLearningConfig: SchoolWebsiteDemoConfig = {
         desc: "From our Virtual Academy to in-person programs like AEP and Creative Dramatics — pathways for middle and high school learners.",
       },
     ],
-    mainImage: "/images/stock/ImageSeven.jpg",
-    secondaryImage: "/images/stock/ImageSix.jpg",
+    mainImage: "/images/stock/ImageFive.jpg",
+    secondaryImage: "/images/stock/ImageEight.jpg",
   },
   marquee: [
     "Seek to Understand",
@@ -167,9 +168,10 @@ export const luffLearningConfig: SchoolWebsiteDemoConfig = {
     ],
   },
   mosaicImages: [
-    "/images/stock/ImageTwo.jpg",
-    "/images/stock/ImageSeven.jpg",
-    "/images/stock/ImageSix.jpg",
+    "/images/stock/ImageThree.jpg",
+    "/images/stock/ImageFour.jpg",
+    "/images/stock/ImageOne.jpg",
+    "/images/stock/ImageFourteen.jpg",
   ],
   quote: {
     text: [

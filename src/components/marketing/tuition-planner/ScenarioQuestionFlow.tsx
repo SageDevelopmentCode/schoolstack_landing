@@ -706,7 +706,7 @@ function PlannerDoneStep({
       <div
         className="rounded-2xl border px-5 py-5"
         style={{
-          background: "linear-gradient(135deg, #EAF2EB, #F4F7EE)",
+          background: "#E9F2E4",
           borderColor: "#C7DFCB",
         }}
       >
@@ -715,7 +715,7 @@ function PlannerDoneStep({
           <div className="min-w-0 flex-1">
             <p
               className="text-[10px] font-extrabold uppercase tracking-[0.13em]"
-              style={{ color: "#729077", fontFamily: theme.fontBody }}
+              style={{ color: "#A05C45", fontFamily: theme.fontBody }}
             >
               {QUESTION_DONE_KICKER}
             </p>

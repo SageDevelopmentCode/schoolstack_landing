@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
-import { Linking, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { Fonts, Spacing } from '@/constants/theme';
 import { addMarkdownSubsectionBreaks } from '@/lib/admissions/markdown-text';
+import { openExternalUrlSafely } from '@/lib/open-external-url';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type FormattedDocumentTextProps = {
   content: string;
@@ -12,6 +14,7 @@ type FormattedDocumentTextProps = {
 
 export function FormattedDocumentText({ content }: FormattedDocumentTextProps) {
   const theme = useAdminTheme();
+  const { reportError } = useMobileErrorReporter();
   const normalizedContent = useMemo(() => addMarkdownSubsectionBreaks(content), [content]);
 
   const markdownStyles = useMemo(
@@ -97,7 +100,9 @@ export function FormattedDocumentText({ content }: FormattedDocumentTextProps) {
       <Markdown
         style={markdownStyles}
         onLinkPress={(url) => {
-          void Linking.openURL(url);
+          void openExternalUrlSafely(url, reportError, {
+            operation: 'formatted_document_link_open',
+          });
           return false;
         }}>
         {normalizedContent}

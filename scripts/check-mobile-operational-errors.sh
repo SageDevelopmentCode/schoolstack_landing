@@ -71,9 +71,45 @@ check_unstable_reporter() {
   fi
 }
 
+# Callback-style failures (WebView onError, external opens) never hit a `catch`, so they were
+# invisible to Discord. Enforce them across all components.
+check_webview_reporting() {
+  local file="$1"
+
+  if should_skip_file "$file"; then
+    return
+  fi
+
+  if ! grep -qE '<WebView([[:space:]>]|$)' "$file"; then
+    return
+  fi
+
+  if grep -qE 'onError=' "$file" && grep -qE 'reportError\(|reportViewerFailure\(|reportMobileOperationalError' "$file"; then
+    return
+  fi
+
+  echo "WebView without onError + operational error reporting: $file"
+  failures=$((failures + 1))
+}
+
+check_bare_external_open() {
+  local file="$1"
+
+  if should_skip_file "$file"; then
+    return
+  fi
+
+  if grep -qE '(^|[^A-Za-z_.])(openBrowserAsync|Linking\.openURL|WebBrowser\.openBrowserAsync)\(' "$file"; then
+    echo "Bare openBrowserAsync/Linking.openURL (use openExternalUrlSafely from @/lib/open-external-url): $file"
+    failures=$((failures + 1))
+  fi
+}
+
 for dir in "${UNSTABLE_DIRS[@]}"; do
   while IFS= read -r file; do
     check_unstable_reporter "$file"
+    check_webview_reporting "$file"
+    check_bare_external_open "$file"
   done < <(find "$dir" \( -name '*.tsx' -o -name '*.ts' \))
 done
 

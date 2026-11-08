@@ -14,7 +14,7 @@ export const piedmontForestSchoolConfig: SchoolWebsiteDemoConfig = {
     muted: "#607064",
     badgeBg: "rgba(53, 91, 58, 0.12)",
     accentText: "#B55D3B",
-    pageBg: "#F7F3E8",
+    pageBg: "#FFFFFF",
   },
   logo: PIEDMONT_FOREST_SCHOOL_LOGO,
   hero: {

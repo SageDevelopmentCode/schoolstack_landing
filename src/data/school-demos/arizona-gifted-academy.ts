@@ -14,7 +14,7 @@ export const arizonaGiftedAcademyConfig: SchoolWebsiteDemoConfig = {
     muted: "#5A6570",
     badgeBg: "#F7EDD9",
     accentText: "#008000",
-    pageBg: "#FEFAF5",
+    pageBg: "#FFFFFF",
   },
   logo: ARIZONA_GIFTED_ACADEMY_ADMIN_LOGO,
   hero: {

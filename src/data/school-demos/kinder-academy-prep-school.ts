@@ -14,15 +14,13 @@ export const kinderAcademyPrepSchoolConfig: SchoolWebsiteDemoConfig = {
     muted: "#475467",
     badgeBg: "rgba(43, 108, 176, 0.12)",
     accentText: "#4F8A5B",
-    pageBg: "#FFF9EF",
+    pageBg: "#FFFFFF",
   },
   logo: KINDER_ACADEMY_PREP_SCHOOL_LOGO,
   hero: {
     eyebrow: "Georgetown, Texas · Ages 4–8 / K–3",
     eyebrowPlacement: "announcementBar",
     headline: ["Known by name.", "Supported to learn."],
-    headlineClassName:
-      "text-3xl md:text-[2.75rem] font-bold text-white font-heading leading-[1.1] mb-3",
     subheadline:
       "A private Prenda microschool in Georgetown for ages 4–8 and K–3 — personalized, play-based, and faith-forward.",
     primaryCta: "Explore Enrollment",

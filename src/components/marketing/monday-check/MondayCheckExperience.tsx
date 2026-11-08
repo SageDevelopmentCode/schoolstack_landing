@@ -4,14 +4,13 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import MondayCheckStoryShell from "@/components/marketing/monday-check/MondayCheckStoryShell";
-import ParentButton from "@/components/school-parent/ui/ParentButton";
 import MondayCheckIntro from "@/components/marketing/monday-check/MondayCheckIntro";
 import MondayCheckProgress from "@/components/marketing/monday-check/MondayCheckProgress";
 import MondayCheckQuestion from "@/components/marketing/monday-check/MondayCheckQuestion";
 import MondayCheckResults from "@/components/marketing/monday-check/MondayCheckResults";
 import { clearOpsCheckLocalPlanStorage } from "@/components/marketing/monday-check/useOpsCheckLocalPlan";
-import { DEFAULT_BRANDING } from "@/lib/organization-settings/catalog";
-import { buildParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { MARKETING_TOOL_BRIGHT_THEME } from "@/components/marketing/free-tools/free-tools-hub-theme";
+import { DARK_PILL, OUTLINE_PILL } from "@/components/home/bright-styles";
 import {
   MONDAY_CHECK_QUESTIONS,
   type MondayCheckAnswers,
@@ -37,8 +36,9 @@ const slideIn = {
   },
 };
 
+const theme = MARKETING_TOOL_BRIGHT_THEME;
+
 export default function MondayCheckExperience() {
-  const theme = useMemo(() => buildParentThemeTokens(DEFAULT_BRANDING), []);
   const [phase, setPhase] = useState<Phase>("intro");
   const [questionIndex, setQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<MondayCheckAnswers>({});
@@ -114,7 +114,7 @@ export default function MondayCheckExperience() {
   const wide = phase === "results";
 
   return (
-    <MondayCheckStoryShell theme={theme} wide={wide}>
+    <MondayCheckStoryShell wide={wide}>
       <AnimatePresence mode="wait">
         {phase === "intro" && (
           <motion.div key="intro" {...slideIn}>
@@ -140,24 +140,15 @@ export default function MondayCheckExperience() {
               />
             </div>
             <div className="mt-8 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
-              <button
-                type="button"
-                onClick={handleBack}
-                className="inline-flex items-center gap-1.5 text-[14px] font-semibold transition-colors px-2 py-2"
-                style={{
-                  fontFamily: theme.fontBody,
-                  color: theme.muted,
-                }}
-              >
+              <button type="button" onClick={handleBack} className={OUTLINE_PILL}>
                 <ArrowLeft className="h-4 w-4" aria-hidden />
                 Back
               </button>
-              <ParentButton
-                theme={theme}
+              <button
                 type="button"
                 onClick={handleNext}
                 disabled={!selectedOptionId}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-1"
+                className={`${DARK_PILL} w-full disabled:opacity-40 sm:w-auto`}
               >
                 {questionIndex < MONDAY_CHECK_QUESTIONS.length - 1 ? (
                   <>
@@ -167,7 +158,7 @@ export default function MondayCheckExperience() {
                 ) : (
                   "See my results"
                 )}
-              </ParentButton>
+              </button>
             </div>
           </motion.div>
         )}

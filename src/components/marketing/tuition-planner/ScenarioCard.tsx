@@ -112,7 +112,7 @@ function MultipleProgramsChip() {
     <span
       className="inline-flex items-center rounded-full px-2 py-1 text-[10px] font-extrabold"
       style={{
-        backgroundColor: "#EAF2EB",
+        backgroundColor: "#F4F1EC",
         color: "#3D5C44",
         fontFamily: "var(--font-dm-sans), system-ui, sans-serif",
       }}

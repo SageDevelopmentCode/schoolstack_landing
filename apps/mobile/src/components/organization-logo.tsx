@@ -4,6 +4,7 @@ import { StyleSheet, View, type ImageStyle, type StyleProp } from 'react-native'
 
 import { ThemedText } from '@/components/themed-text';
 import { Brand, Radius } from '@/constants/theme';
+import { reportMobileMediaLoadFailure } from '@/lib/mobile-global-error-reporting';
 
 type OrganizationLogoProps = {
   logoSrc: string;
@@ -44,7 +45,10 @@ export function OrganizationLogo({
       style={[logoStyle, style]}
       contentFit="contain"
       accessibilityLabel={logoAlt || name}
-      onError={() => setImageError(true)}
+      onError={() => {
+        setImageError(true);
+        reportMobileMediaLoadFailure('organization_logo', logoSrc);
+      }}
     />
   );
 }

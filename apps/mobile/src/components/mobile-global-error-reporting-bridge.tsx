@@ -3,7 +3,8 @@ import { useEffect } from 'react';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { isMobileE2e } from '@/lib/e2e';
 import {
-  reportMobileGlobalOperationalError,
+  installMobileUncaughtErrorHandler,
+  reportMobileUncaughtError,
   setMobileGlobalErrorReporter,
 } from '@/lib/mobile-global-error-reporting';
 
@@ -24,17 +25,27 @@ export function MobileGlobalErrorReportingBridge() {
       return;
     }
 
+    // Uncaught JS exceptions (the previous handler — red box / Sentry — still runs).
+    const uninstallUncaughtHandler = installMobileUncaughtErrorHandler();
+
+    // Hermes/React Native rarely dispatch `unhandledrejection` on globalThis; rejections are also
+    // forwarded from Sentry's rejection tracker (see `initMobileSentry`).
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      reportMobileGlobalOperationalError('unhandled_promise_rejection', event.reason);
+      reportMobileUncaughtError('unhandled_promise_rejection', event.reason);
     };
 
-    if (typeof globalThis.addEventListener === 'function') {
+    const hasEventTarget = typeof globalThis.addEventListener === 'function';
+    if (hasEventTarget) {
       globalThis.addEventListener('unhandledrejection', handleUnhandledRejection);
-      return () => globalThis.removeEventListener('unhandledrejection', handleUnhandledRejection);
     }
 
-    return undefined;
-  }, [reportError]);
+    return () => {
+      uninstallUncaughtHandler();
+      if (hasEventTarget) {
+        globalThis.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      }
+    };
+  }, []);
 
   return null;
 }

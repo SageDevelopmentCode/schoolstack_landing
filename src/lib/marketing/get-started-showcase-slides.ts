@@ -12,6 +12,7 @@ import type { CarouselDemoCrop } from "@/components/admin/marketing/carousels/ca
 import {
   PRODUCT_PREVIEW_GROUP_COLORS,
   PRODUCT_PREVIEW_TABS,
+  type ProductPreviewTabGroup,
   type ProductPreviewTabId,
 } from "@/lib/marketing/product-preview-tabs";
 
@@ -70,8 +71,23 @@ export type GetStartedShowcaseSlideConfig = {
   description: string;
   icon: LucideIcon;
   accent: string;
+  /** Bright group tint when not inferrable from productPreview tabId */
+  group?: ProductPreviewTabGroup;
   demo: GetStartedShowcaseDemoConfig;
 };
+
+export function getShowcaseSlideGroup(
+  slide: GetStartedShowcaseSlideConfig,
+): ProductPreviewTabGroup {
+  if (slide.group) return slide.group;
+  if (slide.demo.kind === "productPreview") {
+    const tabId = slide.demo.tabId;
+    const tab = PRODUCT_PREVIEW_TABS.find((t) => t.id === tabId);
+    return tab?.group ?? "admin";
+  }
+  if (slide.id === "marketing-parent-enrollment") return "parent";
+  return "admin";
+}
 
 /** Get-started carousel only; homepage product tabs keep `product-preview-tabs` copy. */
 const GET_STARTED_SHOWCASE_CARD_COPY: Record<
@@ -188,6 +204,7 @@ const productPreviewSlides: GetStartedShowcaseSlideConfig[] =
     description: tab.description,
     icon: tab.icon,
     accent: PRODUCT_PREVIEW_GROUP_COLORS[tab.group],
+    group: tab.group,
     demo: {
       kind: "productPreview",
       tabId: tab.id,
@@ -205,6 +222,7 @@ const marketingSlides: GetStartedShowcaseSlideConfig[] = [
       "Choose the questions and steps families complete—health, contacts, uploads, and signatures.",
     icon: ClipboardList,
     accent: PRODUCT_PREVIEW_GROUP_COLORS.admin,
+    group: "admin",
     demo: {
       kind: "marketing",
       variant: "enrollmentApplication",
@@ -220,6 +238,7 @@ const marketingSlides: GetStartedShowcaseSlideConfig[] = [
       "Let families book tours and keep your team aligned on who is visiting next.",
     icon: Calendar,
     accent: PRODUCT_PREVIEW_GROUP_COLORS.admin,
+    group: "admin",
     demo: {
       kind: "marketing",
       variant: "scheduleTours",
@@ -235,6 +254,7 @@ const marketingSlides: GetStartedShowcaseSlideConfig[] = [
       "Review applications in one place with notes, status, and clear next steps.",
     icon: Inbox,
     accent: PRODUCT_PREVIEW_GROUP_COLORS.admin,
+    group: "admin",
     demo: {
       kind: "marketing",
       variant: "admissionsInbox",
@@ -250,6 +270,7 @@ const marketingSlides: GetStartedShowcaseSlideConfig[] = [
       "Define what accepted families complete—agreements, forms, and fees—in one checklist.",
     icon: ListChecks,
     accent: PRODUCT_PREVIEW_GROUP_COLORS.admin,
+    group: "admin",
     demo: {
       kind: "marketing",
       variant: "enrollmentChecklist",
@@ -265,6 +286,7 @@ const marketingSlides: GetStartedShowcaseSlideConfig[] = [
       "Accepted families see what's left to finish—forms, agreements, and payments—in one view.",
     icon: GraduationCap,
     accent: PRODUCT_PREVIEW_GROUP_COLORS.parent,
+    group: "parent",
     demo: {
       kind: "marketing",
       variant: "parentEnrollment",
@@ -280,6 +302,7 @@ const marketingSlides: GetStartedShowcaseSlideConfig[] = [
       "Configure rates, catalogs, and family billing before you send the first invoice.",
     icon: CreditCard,
     accent: PRODUCT_PREVIEW_GROUP_COLORS.admin,
+    group: "admin",
     demo: {
       kind: "marketing",
       variant: "tuitionAdmin",
@@ -295,6 +318,7 @@ const marketingSlides: GetStartedShowcaseSlideConfig[] = [
       "Keep student records, programs, and family links organized as you grow.",
     icon: Users,
     accent: PRODUCT_PREVIEW_GROUP_COLORS.admin,
+    group: "admin",
     demo: {
       kind: "marketing",
       variant: "studentsRoster",

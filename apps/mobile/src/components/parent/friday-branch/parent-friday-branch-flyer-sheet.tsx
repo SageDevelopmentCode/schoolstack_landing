@@ -84,7 +84,12 @@ export function ParentFridayBranchFlyerSheet({
         </View>
       ) : null}
       {!loading && !error && url ? (
-        <ParentEmbeddedPdfPreview url={url} title={target?.fileName ?? 'Class flyer'} minHeight={420} />
+        <ParentEmbeddedPdfPreview
+          url={url}
+          title={target?.fileName ?? 'Class flyer'}
+          minHeight={420}
+          reportEntityType="friday_branch_flyer"
+        />
       ) : null}
     </ParentBottomSheet>
   );
