@@ -63,7 +63,7 @@ export default function SiteFounder({ founder }: { founder: SchoolWebsiteDemoCon
               &ldquo;{founder.quote}&rdquo;
             </blockquote>
             <figcaption className="font-secondary mt-4 text-[13px] italic text-[var(--demo-muted)]">
-              &mdash; {founder.quoteAttribution}
+              &mdash; {founder.quoteAttribution.replace(/^[\s—–-]+/, "")}
             </figcaption>
           </figure>
         </div>

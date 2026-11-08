@@ -26,7 +26,7 @@ export default function SiteClosing({ closingCta, onCtaClick, onSecondaryCtaClic
           <DemoWebsiteSectionKicker onDark>{closingCta.eyebrow}</DemoWebsiteSectionKicker>
           <h2 className={`${DEMO_H1} mt-5 text-balance text-white`}>
             {closingCta.heading}{" "}
-            <span className="text-[var(--demo-primary-light)] [box-decoration-break:clone] bg-[linear-gradient(transparent_62%,rgba(255,255,255,0.14)_62%)]">
+            <span className="text-[var(--demo-primary-light)] [box-decoration-break:clone] bg-[linear-gradient(transparent_80%,rgba(255,255,255,0.16)_80%)]">
               {closingCta.headingAccent}
             </span>
           </h2>

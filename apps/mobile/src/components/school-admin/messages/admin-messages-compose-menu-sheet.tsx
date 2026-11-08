@@ -51,6 +51,7 @@ export function AdminMessagesComposeMenuSheet({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="New conversation"
+            testID="admin-messages-new-conversation"
             onPress={handleNewConversation}
             style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
             <StoryMoreMenuIcon

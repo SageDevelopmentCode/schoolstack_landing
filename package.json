@@ -61,6 +61,8 @@
     "mobile:e2e:env": "bash apps/mobile/scripts/print-e2e-env.sh",
     "mobile:visual:capture": "bash apps/mobile/scripts/run-visual-capture.sh",
     "mobile:visual:capture:coop-program": "bash apps/mobile/scripts/run-parent-coop-visual-capture.sh",
+    "mobile:visual:gallery": "bash apps/mobile/scripts/run-sheet-gallery.sh",
+    "mobile:visual:gallery:compare": "node apps/mobile/scripts/compare-sheet-gallery.mjs",
     "verify:mobile-artifacts": "node scripts/verify-mobile-artifacts.mjs",
     "verify:parent-coop-visual": "node scripts/verify-parent-coop-visual-checklist.mjs",
     "seed:e2e": "tsx e2e/seed-only.ts"

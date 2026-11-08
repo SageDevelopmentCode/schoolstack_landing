@@ -52,7 +52,12 @@ export default function SiteDayTimeline({ timeline }: Props) {
           </div>
 
           <div>
-            <SiteSectionHeader eyebrow={timeline.eyebrow} heading={timeline.heading} subtitle={timeline.headingSub} />
+            {/* A heading ending in a comma continues into headingSub, so show it as the accent line. */}
+            {timeline.heading.trim().endsWith(",") ? (
+              <SiteSectionHeader eyebrow={timeline.eyebrow} heading={timeline.heading} accent={timeline.headingSub} />
+            ) : (
+              <SiteSectionHeader eyebrow={timeline.eyebrow} heading={timeline.heading} subtitle={timeline.headingSub} />
+            )}
             <ol className="mt-10 space-y-2.5">
               {timeline.steps.map((s, i) => {
                 const isActive = i === index;

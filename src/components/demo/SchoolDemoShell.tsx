@@ -3,15 +3,13 @@
 import { AnimatePresence } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import {
-  buildDemoParentThemeTokens,
-  demoStoryShellStyle,
-} from "@/components/demo/shared/demo-story-theme";
-import { dmSans, fraunces } from "@/lib/fonts/local";
+import { demoStoryShellStyle } from "@/components/demo/shared/demo-story-theme";
 import { resolveWalkthroughStepIndex } from "@/lib/demo-walkthrough";
 import DemoContactPanel from "@/components/demo/DemoContactPanel";
 import DemoPreviewHint from "@/components/demo/DemoPreviewHint";
+import DemoWalkthroughMobileBar from "@/components/demo/DemoWalkthroughMobileBar";
 import DemoWalkthroughPanel from "@/components/demo/DemoWalkthroughPanel";
+import { buildSchoolConceptWalkthroughTheme } from "@/lib/marketing/school-concept-walkthrough-theme";
 import ScaledAdminDemoPreview from "@/components/demo/ScaledAdminDemoPreview";
 import ScaledParentDemoPreview from "@/components/demo/ScaledParentDemoPreview";
 import ScaledTeacherDemoPreview from "@/components/demo/ScaledTeacherDemoPreview";
@@ -96,31 +94,35 @@ function SchoolDemoShellInner({
     }
   }, [searchParams, steps]);
 
-  const storyTheme = useMemo(
-    () =>
-      buildDemoParentThemeTokens({
-        accent: config.theme.primary,
-        accentHover: config.theme.primaryHover,
-        accentLight: config.theme.badgeBg,
-        accentDark: config.theme.dark,
-      }),
+  const walkthroughTheme = useMemo(
+    () => buildSchoolConceptWalkthroughTheme(config.theme),
     [config.theme],
   );
 
+  const schoolPrimary = config.theme.primary;
+
   return (
     <div
-      className={`${fraunces.variable} ${dmSans.variable} flex h-screen overflow-hidden [&_.font-heading]:font-[family-name:var(--font-fraunces)] [&_.font-secondary]:font-[family-name:var(--font-dm-sans)]`}
-      style={demoStoryShellStyle(storyTheme)}
+      className="flex h-screen flex-col overflow-hidden bg-white lg:flex-row"
+      style={demoStoryShellStyle(walkthroughTheme)}
     >
+      <DemoWalkthroughMobileBar
+        schoolName={schoolName}
+        schoolLogo={config.logo}
+        steps={steps}
+        activeStep={activeStep}
+        schoolPrimary={schoolPrimary}
+        onStepSelect={handleStepSelect}
+      />
       <DemoWalkthroughPanel
         schoolName={schoolName}
         schoolLogo={config.logo}
         steps={steps}
         activeStep={activeStep}
-        storyTheme={storyTheme}
+        schoolPrimary={schoolPrimary}
         onStepSelect={handleStepSelect}
       />
-      <div className="relative flex-1 h-screen min-w-0">
+      <div className="relative h-full min-h-0 min-w-0 flex-1">
         {activePreview === "admin" ? (
           <ScaledAdminDemoPreview
             key={steps[activeStep].id}
@@ -196,6 +198,7 @@ function SchoolDemoShellInner({
             schoolName={schoolName}
             logo={config.logo}
             variant={steps[activeStep].contactPanelVariant ?? "schedule"}
+            theme={walkthroughTheme}
           />
         ) : activePreview === "mobile" ? (
           <ScaledMobileAppPreview key={steps[activeStep].id} demoSlug={config.slug} />

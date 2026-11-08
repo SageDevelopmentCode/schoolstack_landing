@@ -116,7 +116,7 @@ function Testimonials({ section }: { section: DemoTestimonialsSection }) {
                     </span>
                     <span className="min-w-0">
                       <span className={`font-secondary block text-[14px] font-bold ${DEMO_INK}`}>{t.name}</span>
-                      <span className="font-secondary mt-0.5 line-clamp-2 block text-[13px] leading-snug text-[var(--demo-muted)]">
+                      <span className="font-secondary mt-0.5 line-clamp-2 text-[13px] leading-snug text-[var(--demo-muted)]">
                         {t.quote}
                       </span>
                     </span>
@@ -152,7 +152,7 @@ function Trust({ section }: { section: DemoTrustSection }) {
               className={`${DEMO_TILE} flex min-h-[220px] flex-col justify-between ${trustSpan(i, section.items.length)} ${
                 featured ? "bg-[var(--demo-ink)]" : "bg-white"
               }`}
-              style={featured ? undefined : { backgroundColor: i % 2 === 0 ? "#FFFFFF" : DEMO_TINTS[(i + 1) % DEMO_TINTS.length] }}
+              style={featured ? undefined : { backgroundColor: i % 2 === 0 ? "#FFFFFF" : DEMO_TINTS[1] }}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}

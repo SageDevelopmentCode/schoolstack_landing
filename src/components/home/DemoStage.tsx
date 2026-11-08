@@ -107,6 +107,7 @@ export default function DemoStage({
 }: DemoStageProps) {
   const measureRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
+  const [height, setHeight] = useState(0);
   const [loaded, setLoaded] = useState<Set<DemoStageKey>>(
     () => new Set([active]),
   );
@@ -118,17 +119,26 @@ export default function DemoStage({
   useLayoutEffect(() => {
     const el = measureRef.current;
     if (!el) return;
-    const update = () => setWidth(el.clientWidth);
+    const update = () => {
+      setWidth(el.clientWidth);
+      setHeight(el.clientHeight);
+    };
     update();
     const observer = new ResizeObserver(update);
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
-  const scale =
-    width > 0
+  // The school website is container-responsive, so on phones it renders its own
+  // narrow layout at near 1:1 instead of clipping a desktop canvas.
+  const fluidWebsite = active === "website" && width > 0 && width < 640;
+  const canvasWidth = fluidWebsite ? Math.max(375, width) : designWidth;
+  const scale = fluidWebsite
+    ? width / canvasWidth
+    : width > 0
       ? Math.min(maxScale, Math.max(minScale, width / designWidth))
       : minScale;
+  const canvasHeight = fluidWebsite && height > 0 ? height / scale : designHeight;
   // Height is pure CSS (container query units) so it matches the scaled demo on first paint.
   // A JS-measured height changed after hydration and made `/#product` links land too high.
   const visibleHeight = `clamp(${designHeight * minScale}px, ${(designHeight / designWidth) * 100}cqw, ${designHeight * maxScale}px)`;
@@ -146,8 +156,8 @@ export default function DemoStage({
             <div
               className="absolute left-0 top-0 origin-top-left"
               style={{
-                width: designWidth,
-                height: designHeight,
+                width: canvasWidth,
+                height: canvasHeight,
                 transform: `scale(${scale})`,
               }}
             >

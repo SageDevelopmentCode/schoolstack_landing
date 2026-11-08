@@ -1,18 +1,3 @@
-import {
-  DMSans_400Regular,
-  DMSans_500Medium,
-  DMSans_600SemiBold,
-} from '@expo-google-fonts/dm-sans';
-import { Fraunces_600SemiBold } from '@expo-google-fonts/fraunces';
-import {
-  Lora_500Medium,
-  Lora_500Medium_Italic,
-} from '@expo-google-fonts/lora';
-import {
-  Poppins_400Regular,
-  Poppins_500Medium,
-  Poppins_600SemiBold,
-} from '@expo-google-fonts/poppins';
 import { useFonts } from 'expo-font';
 import { Observe, ObserveRoot } from 'expo-observe';
 import { Stack } from 'expo-router';
@@ -30,6 +15,7 @@ import { PushNotificationManager } from '@/components/push-notification-manager'
 import { SplashOverlay } from '@/components/splash-overlay';
 import { AuthProvider } from '@/contexts/auth-context';
 import { PortalTransitionProvider } from '@/contexts/portal-transition-context';
+import { APP_FONTS } from '@/constants/app-fonts';
 import { Brand } from '@/constants/theme';
 import { isMobileE2e } from '@/lib/e2e';
 import { initMobileSentry, Sentry } from '@/lib/sentry';
@@ -51,17 +37,7 @@ if (isMobileE2e) {
 }
 
 function RootLayout() {
-  const [fontsLoaded] = useFonts({
-    Fraunces_600SemiBold,
-    DMSans_400Regular,
-    DMSans_500Medium,
-    DMSans_600SemiBold,
-    Lora_500Medium,
-    Lora_500Medium_Italic,
-    Poppins_400Regular,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
-  });
+  const [fontsLoaded] = useFonts(APP_FONTS);
 
   if (!fontsLoaded && !isMobileE2e) {
     return <View style={{ flex: 1, backgroundColor: Brand.bg }} />;
@@ -112,6 +88,7 @@ function RootLayout() {
           options={{ animation: isMobileE2e ? 'none' : 'slide_from_right' }}
         />
         <Stack.Screen name="stripe-checkout" options={{ animation: 'none' }} />
+        <Stack.Screen name="dev/sheet-gallery" options={{ animation: 'none' }} />
         </Stack>
         </StoryToastProvider>
       </PortalTransitionProvider>

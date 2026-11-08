@@ -25,7 +25,9 @@ export const DEMO_ACCENT_HIGHLIGHT =
 export const DEMO_EYEBROW =
   "font-secondary text-[12px] font-semibold uppercase tracking-[0.16em] text-[var(--demo-accent)]";
 
-export const DEMO_BODY = "font-secondary text-[16px] leading-relaxed text-[var(--demo-muted)]";
+/** Configs embed raw URLs in copy, so body text must wrap anywhere. */
+export const DEMO_BODY =
+  "font-secondary text-[16px] leading-relaxed text-[var(--demo-muted)] [overflow-wrap:anywhere]";
 
 export const DEMO_CHIP =
   "font-secondary inline-flex items-center gap-1.5 rounded-pill bg-white px-3.5 py-1.5 text-[12px] font-semibold text-[var(--demo-ink)] ring-1 ring-black/[0.06]";

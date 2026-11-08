@@ -13,7 +13,7 @@ export default function LearningModesSection({ section }: { section: DemoLearnin
       <div className={`${DEMO_BLOCK} bg-[var(--demo-tint-3)]`}>
         <SiteSectionHeader eyebrow={section.eyebrow} heading={section.heading} subtitle={section.subtitle} align="split" />
 
-        <div className="mt-12 grid gap-3 @2xl/site:grid-cols-2 @5xl/site:grid-cols-4">
+        <div className="mt-12 grid gap-3 @2xl/site:grid-cols-2 @6xl/site:grid-cols-4">
           {section.modes.map((mode, i) => (
             <motion.div
               key={mode.title}

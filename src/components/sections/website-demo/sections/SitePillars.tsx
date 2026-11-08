@@ -6,15 +6,24 @@ import DemoIcon from "../DemoIcon";
 import { DEMO_BODY, DEMO_CONTAINER, DEMO_H3, DEMO_INK, DEMO_TILE, DEMO_TINTS, STORY_EASE } from "../bright-demo-theme";
 import SiteSectionHeader from "./SiteSectionHeader";
 
-/** Tinted bento tiles for the four core pillars. */
+const GRID_COLS: Record<number, string> = {
+  1: "",
+  2: "@3xl/site:grid-cols-2",
+  3: "@3xl/site:grid-cols-3",
+};
+
+/** Tinted bento tiles for the core pillars; column count follows the item count so rows fill. */
 export default function SitePillars({ pillars }: { pillars: SchoolWebsiteDemoConfig["pillars"] }) {
-  if (pillars.items.length === 0) return null;
+  const count = pillars.items.length;
+  if (count === 0) return null;
 
   return (
     <section className="bg-white py-20 @3xl/site:py-28">
       <div className={DEMO_CONTAINER}>
         <SiteSectionHeader align="split" eyebrow={pillars.eyebrow} heading={pillars.heading} subtitle={pillars.subtitle} />
-        <div className="mt-12 grid grid-cols-1 gap-4 @3xl/site:grid-cols-2 @5xl/site:grid-cols-4">
+        <div
+          className={`mt-12 grid grid-cols-1 gap-4 ${GRID_COLS[count] ?? "@3xl/site:grid-cols-2 @6xl/site:grid-cols-4"}`}
+        >
           {pillars.items.map((pillar, i) => (
             <motion.div
               key={pillar.title}

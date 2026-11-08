@@ -39,6 +39,12 @@ jobs:
       - name: Check mobile operational error reporting
         run: npm run check:mobile-operational-errors
 
+      - name: Install ripgrep
+        run: command -v rg >/dev/null || (sudo apt-get update && sudo apt-get install -y ripgrep)
+
+      - name: Check mobile keyboard patterns
+        run: npm run check:mobile-keyboard-patterns
+
       - name: Lint mobile app
         run: npm run lint:errors --workspace @schoolstack/mobile
 
@@ -58,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      MAESTRO_FLOWS: ${{ github.event_name == 'pull_request' && 'school-admin-logged-in.yaml dashboard.yaml' || '.maestro' }}
+      MAESTRO_FLOWS: ${{ github.event_name == 'pull_request' && 'school-admin-logged-in.yaml dashboard.yaml school-admin-messages-new-conversation.yaml parent-messages-new-conversation.yaml teacher-messages-new-conversation.yaml sheet-gallery.yaml' || '.maestro' }}
       E2E_APK_CACHE_KEY: ${{ hashFiles('package-lock.json', 'apps/mobile/package.json', 'apps/mobile/app.json', 'apps/mobile/src/**', 'apps/mobile/.maestro/**', 'apps/mobile/scripts/build-android-debug-ci.sh') }}
 
     steps:
@@ -193,6 +199,18 @@ jobs:
           disable-animations: true
           script: bash apps/mobile/scripts/run-e2e-android-ci.sh
 
+      - name: Compare sheet gallery screenshots
+        run: node apps/mobile/scripts/compare-sheet-gallery.mjs --platform android
+
+      - name: Upload sheet gallery screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sheet-gallery-android
+          path: apps/mobile/.artifacts/sheet-gallery/android
+          retention-days: 14
+          if-no-files-found: ignore
+
       - name: Upload Maestro debug output
         if: failure()
         uses: actions/upload-artifact@v4
@@ -295,6 +313,18 @@ jobs:
 
       - name: Build and run Maestro E2E on iOS simulator
         run: bash apps/mobile/scripts/run-e2e-ios-ci.sh
+
+      - name: Compare sheet gallery screenshots
+        run: node apps/mobile/scripts/compare-sheet-gallery.mjs --platform ios
+
+      - name: Upload sheet gallery screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sheet-gallery-ios
+          path: apps/mobile/.artifacts/sheet-gallery/ios
+          retention-days: 14
+          if-no-files-found: ignore
 
       - name: Upload Maestro debug output
         if: failure()

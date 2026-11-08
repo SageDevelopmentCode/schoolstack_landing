@@ -14,8 +14,8 @@ const FIELD =
 
 const NEXT_STEPS = [
   { title: "Send your inquiry", desc: "Share a little about your family and learner." },
-  { title: "Talk with our team", desc: "We follow up to answer questions and find a time." },
-  { title: "Visit and meet us", desc: "Tour the space and see a school day up close." },
+  { title: "Hear back from the school", desc: "Someone follows up to answer your questions." },
+  { title: "Find your next step", desc: "Talk through fit, timing, and how to enroll." },
 ] as const;
 
 type Props = {
@@ -138,7 +138,7 @@ export default function SiteEnroll({ form, formRef, onExplorePrograms }: Props) 
               >
                 <input
                   type="text"
-                  placeholder="Parent / guardian name"
+                  placeholder="Your name"
                   aria-label="Parent or guardian name"
                   value={data.name}
                   onChange={(e) => setData((p) => ({ ...p, name: e.target.value }))}

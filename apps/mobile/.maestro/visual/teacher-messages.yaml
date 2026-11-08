@@ -6,3 +6,14 @@ appId: com.mudkitchen.schoolstack.mobile
     visible: 'Messages'
     timeout: 30000
 - takeScreenshot: visual-capture
+- tapOn:
+    id: parent-messages-new-button
+- extendedWaitUntil:
+    visible:
+      id: new-conversation-search-input
+    timeout: 15000
+- takeScreenshot: visual-capture-new-conversation
+- tapOn:
+    id: new-conversation-search-input
+- inputText: 'e2e'
+- takeScreenshot: visual-capture-new-conversation-typing

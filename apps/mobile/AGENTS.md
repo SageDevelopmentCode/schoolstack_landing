@@ -64,4 +64,31 @@ After keyboard sheet/scroll changes (phase 2+), spot-check on a physical iPhone:
 - Parent child pickup contact — multiline Notes
 - Parent enrollment checklist item — text/signature fields in bottom sheet
 
-Repo check: `npm run check:mobile-keyboard-patterns` from the monorepo root.
+Repo check: `npm run check:mobile-keyboard-patterns` from the monorepo root (also runs in CI).
+
+### Shared sheet primitives
+
+`BottomSheetShell` (and `StoryBottomSheet` / `ParentBottomSheet` built on it) is used by dozens of sheets, and `scrollable={false}` + `keyboardAvoiding` take a different layout path from the default. Before merging a change to the shell, `use-bottom-sheet-motion.ts`, or `use-bottom-sheet-keyboard-scroll-style.ts`:
+
+- `rg -l 'BottomSheetShell|StoryBottomSheet|ParentBottomSheet' src` and check each prop combination you affect.
+- Run `npm run mobile:visual:capture -- school-admin-messages` (and `parent-messages`, `teacher-messages`); these open New message and type into its search.
+- Open at least one sheet per affected combination on a physical iPhone and type into every field.
+
+PR CI runs `.maestro/*-messages-new-conversation.yaml`, which fails if the New message search cannot be focused and typed into.
+
+### Sheet gallery visual diff
+
+`src/app/dev/sheet-gallery.tsx` (dev and E2E builds only) renders every `BottomSheetShell` prop combination with fixture data. `schoolstack://dev/sheet-gallery?case=<id>` opens one case directly; with no `case` it shows a list for manual testing.
+
+- `.maestro/sheet-gallery.yaml` screenshots each case, with the keyboard open for cases that have text fields.
+- `scripts/compare-sheet-gallery.mjs` diffs them against `visual-baselines/sheet-gallery/<platform>/`. It ignores the status bar and fails when more than 1% of pixels change. Red-highlighted diffs are written to `.artifacts/sheet-gallery/<platform>/diff/`.
+- CI runs both on Android for every PR and on iOS for pushes to `main`, and uploads the `sheet-gallery-<platform>` artifact (current screenshots, diffs, summary).
+- Local: `npm run mobile:visual:gallery -- ios` with the app running on a simulator (no backend needed). Local devices differ from CI, so a size mismatch is a warning locally.
+
+**Intentional UI change or first run (no baselines yet):** download the `sheet-gallery-android` artifact from the PR's Mobile run, review the PNGs, then commit them with:
+
+```bash
+node apps/mobile/scripts/compare-sheet-gallery.mjs --platform android --update --from ~/Downloads/sheet-gallery-android
+```
+
+**New sheet variant:** add a case to `SHEET_GALLERY_CASES` in `src/components/dev/sheet-gallery-screen.tsx`, add matching steps to `.maestro/sheet-gallery.yaml`, and commit its baseline the same way.

@@ -42,6 +42,10 @@ viewport `sm:`/`md:`/`lg:`:
 | `@2xl/site:` | 672px | `sm:` |
 | `@3xl/site:` | 768px | `md:` |
 | `@5xl/site:` | 1024px | `lg:` |
+| `@6xl/site:` | 1152px | four-column grids only |
+
+The preview renders a 375px, 1024px or 1440px canvas, so tablet sits exactly on
+`@5xl`. Put four-column tile grids on `@6xl` so tablet gets two columns.
 
 Heading sizes use `cqw` clamps (`DEMO_H1`, `DEMO_H2`) so they follow the frame.
 Global `h1–h3` rules set font, weight, tracking and line height, so those four

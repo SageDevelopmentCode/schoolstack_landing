@@ -10,7 +10,7 @@ import SiteSectionHeader from "./sections/SiteSectionHeader";
 const GRID_COLS: Record<number, string> = {
   2: "@3xl/site:grid-cols-2",
   3: "@3xl/site:grid-cols-3",
-  4: "@3xl/site:grid-cols-2 @5xl/site:grid-cols-4",
+  4: "@3xl/site:grid-cols-2 @6xl/site:grid-cols-4",
 };
 
 export default function FarmExperienceSection({ section }: { section: DemoFarmExperienceSection }) {
