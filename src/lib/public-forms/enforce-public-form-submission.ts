@@ -10,7 +10,9 @@ export type PublicFormId =
   | "public_tour_booking"
   | "mobile_app_download"
   | "parent_portal_support"
-  | "parent_portal_feedback";
+  | "parent_portal_feedback"
+  | "free_school_otp"
+  | "free_school_signup";
 
 export type EnforcePublicFormSubmissionResult =
   | { ok: true }

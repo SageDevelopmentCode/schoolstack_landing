@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
+import TeacherMyHoursAdjustPanel from "@/components/school-teacher/my-hours/TeacherMyHoursAdjustPanel";
 import TeacherMyHoursDayPanel from "@/components/school-teacher/my-hours/TeacherMyHoursDayPanel";
 import TeacherMyHoursMonthPanel from "@/components/school-teacher/my-hours/TeacherMyHoursMonthPanel";
 import TeacherMyHoursStoryHeader from "@/components/school-teacher/my-hours/TeacherMyHoursStoryHeader";
@@ -238,14 +239,14 @@ export default function TeacherMyHoursPage({
           if (view === "month") {
             shiftMonth(-1);
           } else {
-            shiftFocusDate(view === "week" ? -7 : -1);
+            shiftFocusDate(view === "week" || view === "adjust" ? -7 : -1);
           }
         }}
         onNextDate={() => {
           if (view === "month") {
             shiftMonth(1);
           } else {
-            shiftFocusDate(view === "week" ? 7 : 1);
+            shiftFocusDate(view === "week" || view === "adjust" ? 7 : 1);
           }
         }}
       />
@@ -287,6 +288,17 @@ export default function TeacherMyHoursPage({
                 onPreviousMonth={() => shiftMonth(-1)}
                 onNextMonth={() => shiftMonth(1)}
                 onDaySelect={openDayDetail}
+              />
+            ) : null}
+            {view === "adjust" ? (
+              <TeacherMyHoursAdjustPanel
+                theme={theme}
+                focusDate={focusDate}
+                referenceDate={referenceDate}
+                timezone={pageData.timezone}
+                sessionsByDateKey={pageData.sessionsByDateKey}
+                activeSession={pageData.activeSession}
+                previewMode={previewMode}
               />
             ) : null}
           </motion.div>

@@ -8,7 +8,7 @@ import {
   loadProgramParentPortalContext,
   userHasEnrolledAccessInProgram,
 } from "@/lib/admissions/program-parent-portal-access";
-import { getRequestUser } from "@/lib/auth/session";
+import { getRequestUserFromClaims } from "@/lib/auth/session";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import {
   isParentPortalEnabled,
@@ -57,7 +57,7 @@ export default async function SchoolProgramParentDocumentationRoute({
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   const org = await fetchOrganizationWithSettings(slug);
-  const user = await getRequestUser();
+  const user = await getRequestUserFromClaims();
 
   if (!org || !user || !isParentPortalEnabled(org.features)) {
     notFound();

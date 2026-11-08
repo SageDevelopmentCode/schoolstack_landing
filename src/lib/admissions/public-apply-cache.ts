@@ -6,6 +6,12 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { normalizePublicSlug } from "@/lib/admissions/application-form-schema";
 import { resolvePublishedApplyEntry } from "@/lib/admissions/resolve-published-apply-entry";
 import { mergeBranding, mergeFeatures } from "@/lib/organization-settings/merge";
+import {
+  applyPlanToFeatures,
+  isMissingOrganizationPlanColumnError,
+  parseOrganizationPlan,
+  type OrganizationPlan,
+} from "@/lib/organization-settings/plans";
 import type {
   OrganizationBranding,
   OrganizationFeatures,
@@ -17,6 +23,7 @@ export type PublicApplyOrganization = {
   id: string;
   slug: string;
   name: string;
+  plan: OrganizationPlan;
   branding: OrganizationBranding;
   features: OrganizationFeatures;
 };
@@ -51,13 +58,33 @@ async function fetchPublicApplyOrganizationUncached(
   slug: string,
 ): Promise<PublicApplyOrganization | null> {
   const supabase = createPublicReadClient();
-  const { data: org, error: orgError } = await supabase
+  const selected = await supabase
     .from("organizations")
-    .select("id, slug, name")
+    .select("id, slug, name, plan")
     .eq("slug", slug)
     .maybeSingle();
 
-  if (orgError) throw orgError;
+  let org: { id: string; slug: string; name: string } | null = null;
+  let plan: OrganizationPlan = "custom";
+
+  if (
+    selected.error &&
+    isMissingOrganizationPlanColumnError(selected.error)
+  ) {
+    const fallback = await supabase
+      .from("organizations")
+      .select("id, slug, name")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (fallback.error) throw fallback.error;
+    org = fallback.data;
+  } else if (selected.error) {
+    throw selected.error;
+  } else {
+    org = selected.data;
+    plan = parseOrganizationPlan(selected.data?.plan);
+  }
+
   if (!org) return null;
 
   const { data: settings, error: settingsError } = await supabase
@@ -72,11 +99,15 @@ async function fetchPublicApplyOrganizationUncached(
     id: org.id,
     slug: org.slug,
     name: org.name,
+    plan,
     branding: mergeBranding(
       settings?.branding as Record<string, unknown> | null | undefined,
     ),
-    features: mergeFeatures(
-      settings?.features as Record<string, unknown> | null | undefined,
+    features: applyPlanToFeatures(
+      mergeFeatures(
+        settings?.features as Record<string, unknown> | null | undefined,
+      ),
+      plan,
     ),
   };
 }

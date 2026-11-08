@@ -3,6 +3,10 @@ import {
   isAdminNavPathEnabled,
   schoolAdminPath,
 } from "@/lib/organization-settings/admin-routes";
+import {
+  applyPlanToFeatures,
+  type OrganizationPlan,
+} from "@/lib/organization-settings/plans";
 import type { AdminFeatures, OrganizationFeatures } from "@/lib/organization-settings/types";
 
 export type AdminDocGuideStep = {
@@ -856,9 +860,10 @@ function resolveActionHref(
 function isGuideEnabled(
   features: OrganizationFeatures,
   guide: AdminDocGuideTemplate,
+  plan: OrganizationPlan,
 ): boolean {
   const required = guide.requiredFeatures;
-  if (!required) return true;
+  if (!required) return plan !== "free";
 
   if (required.admin) {
     for (const [key, enabled] of Object.entries(required.admin)) {
@@ -882,11 +887,13 @@ function isGuideEnabled(
 export function buildAdminDocumentationGuides(
   slug: string,
   features: OrganizationFeatures,
+  plan: OrganizationPlan = "custom",
 ): AdminDocGuide[] {
   const templates = buildGuideTemplates(slug);
+  const usableFeatures = applyPlanToFeatures(features, plan);
 
   return templates
-    .filter((guide) => isGuideEnabled(features, guide))
+    .filter((guide) => isGuideEnabled(usableFeatures, guide, plan))
     .map((guide) => ({
       id: guide.id,
       title: guide.title,

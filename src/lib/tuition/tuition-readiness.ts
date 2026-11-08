@@ -366,8 +366,16 @@ export async function fetchFamilyBillingReadiness(
     familyId: string;
     slug: string;
   },
+  options?: {
+    /**
+     * Client for tuition catalog tables. Parent billing passes the service role
+     * after the access check, because those tables are staff-only.
+     */
+    catalogClient?: SupabaseClient;
+  },
 ): Promise<FamilyBillingReadiness> {
   const { organizationId, familyId, slug } = input;
+  const catalog = options?.catalogClient ?? supabase;
 
   const { data: students, error: studentsError } = await supabase
     .from("students")
@@ -416,15 +424,15 @@ export async function fetchFamilyBillingReadiness(
       .not("status", "eq", "void")
       .order("due_date", { ascending: true }),
     supabase.from("programs").select("id, name").eq("organization_id", organizationId),
-    supabase
+    catalog
       .from("tuition_rate_plans")
       .select("id, name, billing_basis, effective_start, effective_end")
       .eq("organization_id", organizationId),
-    supabase
+    catalog
       .from("tuition_rate_tiers")
       .select("id, rate_plan_id, label, amount_cents")
       .eq("organization_id", organizationId),
-    supabase
+    catalog
       .from("tuition_payment_plans")
       .select("id, name, installment_count")
       .eq("organization_id", organizationId),

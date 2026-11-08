@@ -9,6 +9,7 @@ import {
   requireSchoolAdminUser,
   SchoolAdminAuthError,
 } from "@/lib/school-admin/access";
+import { freePlanFeatureDeniedResponse } from "@/lib/school-admin/free-plan-api-guard";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -72,6 +73,11 @@ export async function POST(request: Request, context: RouteContext) {
 
   try {
     await requireSchoolAdminUser(supabase, organizationId, request);
+    const planDenied = await freePlanFeatureDeniedResponse({
+      organizationId,
+      featureKey: "my_school",
+    });
+    if (planDenied) return planDenied;
 
     const admin = createAdminClient();
     const { sentCount } = await sendFridayBranchClassRosterEmails(admin, {

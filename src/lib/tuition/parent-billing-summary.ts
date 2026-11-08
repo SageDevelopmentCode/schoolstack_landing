@@ -294,19 +294,28 @@ export async function fetchParentBillingFamilySummary(
     charges: TuitionCharge[];
     allFamilyCharges?: TuitionCharge[];
   },
+  options?: {
+    /** Service-role client for payment-plan labels. Catalog tables are staff-only. */
+    catalogClient?: SupabaseClient;
+  },
 ): Promise<ParentBillingFamilySummary> {
+  const catalog = options?.catalogClient ?? supabase;
   const [selectionItems, assignmentRows, paymentPlansResult] = await Promise.all([
-    getFamilyTuitionSelectionContexts(supabase, {
-      organizationId: input.organizationId,
-      familyId: input.familyId,
-    }),
+    getFamilyTuitionSelectionContexts(
+      supabase,
+      {
+        organizationId: input.organizationId,
+        familyId: input.familyId,
+      },
+      { catalogClient: catalog },
+    ),
     supabase
       .from("tuition_enrollment_assignments")
       .select("*")
       .eq("organization_id", input.organizationId)
       .eq("family_id", input.familyId)
       .eq("status", "active"),
-    supabase
+    catalog
       .from("tuition_payment_plans")
       .select("id, name, installment_count")
       .eq("organization_id", input.organizationId),

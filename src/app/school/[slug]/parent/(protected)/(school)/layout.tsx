@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import SchoolParentBaseline from "@/components/school-parent/SchoolParentBaseline";
-import { getRequestUser } from "@/lib/auth/session";
+import { getRequestUserFromClaims } from "@/lib/auth/session";
 import { shouldRedirectAwayFromMainParentPortal } from "@/lib/admissions/program-parent-portal-access";
 import {
   getCachedParentPortalNavContexts,
@@ -32,7 +32,7 @@ export default async function SchoolParentMainLayout({
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   const org = await fetchOrganizationWithSettings(slug);
-  const user = await getRequestUser();
+  const user = await getRequestUserFromClaims();
 
   if (!org || !user) {
     return children;

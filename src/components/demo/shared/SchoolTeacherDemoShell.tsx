@@ -31,6 +31,7 @@ import {
 import { demoStoryShellStyle } from "@/components/demo/shared/demo-story-theme";
 import SchoolTeacherComingSoon from "@/components/school-teacher/SchoolTeacherComingSoon";
 import { buildDemoTeacherBranding } from "@/data/school-demos/demo-portal-shared";
+import { getTourTargetCenter } from "@/components/demo/shared/tour-cursor-position";
 import { fraunces, dmSans } from "@/lib/fonts/local";
 
 export type TeacherDemoNavTab =
@@ -225,13 +226,8 @@ export default function SchoolTeacherDemoShell({
     const target = root.querySelector(
       `[data-tour-nav="primary"] [data-tour-id="${targetId}"]`,
     );
-    if (!target || !(target instanceof HTMLElement)) return null;
-    const rootRect = root.getBoundingClientRect();
-    const targetRect = target.getBoundingClientRect();
-    return {
-      x: targetRect.left - rootRect.left + targetRect.width / 2,
-      y: targetRect.top - rootRect.top + targetRect.height / 2,
-    };
+    if (!target) return null;
+    return getTourTargetCenter(root, target);
   }, []);
 
   useEffect(() => {

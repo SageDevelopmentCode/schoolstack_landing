@@ -36,6 +36,7 @@ import {
   requireSchoolAdminUser,
   SchoolAdminAuthError,
 } from "@/lib/school-admin/access";
+import { freePlanFeatureDeniedResponse } from "@/lib/school-admin/free-plan-api-guard";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 
@@ -130,6 +131,11 @@ export async function POST(request: Request) {
 
   try {
     const user = await requireSchoolAdminUser(supabase, organizationId, request);
+    const planDenied = await freePlanFeatureDeniedResponse({
+      organizationId,
+      featureKey: "admissions",
+    });
+    if (planDenied) return planDenied;
     const admin = createAdminClient();
     const actorIdentity = getActorIdentityFromUser(user);
 

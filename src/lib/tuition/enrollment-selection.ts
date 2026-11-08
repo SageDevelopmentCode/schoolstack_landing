@@ -18,14 +18,14 @@ export type FamilyTuitionSelectionItem = {
 };
 
 async function buildSelectionContext(
-  supabase: SupabaseClient,
+  catalog: SupabaseClient,
   assignment: TuitionEnrollmentAssignment,
 ): Promise<EnrollmentTuitionSelectionContext | null> {
   if (!assignmentNeedsPaymentPlanSelection(assignment)) {
     return null;
   }
 
-  const ratePlan = await getRatePlanWithDetails(supabase, assignment.ratePlanId);
+  const ratePlan = await getRatePlanWithDetails(catalog, assignment.ratePlanId);
   if (!ratePlan || ratePlan.paymentPlans.length <= 1) {
     return null;
   }
@@ -64,7 +64,12 @@ export async function getFamilyTuitionSelectionContexts(
     organizationId: string;
     familyId: string;
   },
+  options?: {
+    /** Service-role client for rate-plan details. Catalog tables are staff-only. */
+    catalogClient?: SupabaseClient;
+  },
 ): Promise<FamilyTuitionSelectionItem[]> {
+  const catalog = options?.catalogClient ?? supabase;
   const { data: assignmentRows, error: assignmentError } = await supabase
     .from("tuition_enrollment_assignments")
     .select("*")
@@ -118,7 +123,7 @@ export async function getFamilyTuitionSelectionContexts(
 
   for (const row of assignmentRows) {
     const assignment = rowToAssignment(row);
-    const context = await buildSelectionContext(supabase, assignment);
+    const context = await buildSelectionContext(catalog, assignment);
     if (!context) continue;
 
     const studentId = enrollmentStudentId.get(String(row.enrollment_id));

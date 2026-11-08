@@ -1,4 +1,4 @@
-export type MyHoursView = "day" | "week" | "month";
+export type MyHoursView = "day" | "week" | "month" | "adjust";
 
 export type MyHoursDayLog = {
   dateKey: string;

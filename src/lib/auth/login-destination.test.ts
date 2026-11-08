@@ -70,6 +70,40 @@ describe("resolveAuthenticatedLogin without a slug", () => {
     assert.deepEqual(result, { ok: true, noAccess: true });
   });
 
+  it("includes an onboarding school the user administers", async () => {
+    const supabase = createSupabase({
+      profiles: { data: { role: "parent" }, error: null },
+      organization_memberships: {
+        data: [
+          membershipRow("live-school"),
+          {
+            organizations: {
+              slug: "new-school",
+              status: "onboarding",
+              name: "New School",
+            },
+          },
+          {
+            organizations: {
+              slug: "paused-school",
+              status: "paused",
+              name: "Paused School",
+            },
+          },
+        ],
+        error: null,
+      },
+    });
+
+    const result = await resolveAuthenticatedLogin(supabase, USER_ID);
+
+    assert.deepEqual(result, {
+      ok: true,
+      needsSchoolSelection: true,
+      accessibleSlugs: ["live-school", "new-school"],
+    });
+  });
+
   it("asks for a school choice when the user belongs to several schools", async () => {
     const supabase = createSupabase({
       profiles: { data: { role: "parent" }, error: null },

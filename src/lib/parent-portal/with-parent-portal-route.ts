@@ -15,7 +15,7 @@ import {
 } from "@/lib/parent-portal/parent-portal-access-rpc";
 import {
   createClientFromRequest,
-  getUserFromRequest,
+  getUserFromRequestClaims,
   signedInErrorForRequest,
 } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -125,7 +125,7 @@ async function defaultLoadOrganizationFeatures(
 
 const defaultDeps: ParentPortalRouteDeps = {
   createClient: createClientFromRequest,
-  getUser: getUserFromRequest as ParentPortalRouteDeps["getUser"],
+  getUser: getUserFromRequestClaims as ParentPortalRouteDeps["getUser"],
   signedInError: (request, authError) =>
     signedInErrorForRequest(request, authError as never),
   fetchAccess: fetchParentPortalAccess,

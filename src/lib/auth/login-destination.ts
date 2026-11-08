@@ -79,7 +79,10 @@ async function listAdminAccessibleLiveSlugs(
       | null;
     const org = Array.isArray(organization) ? organization[0] : organization;
 
-    if (org?.status === "live" && org.slug) {
+    if (
+      (org?.status === "live" || org?.status === "onboarding") &&
+      org.slug
+    ) {
       slugs.add(String(org.slug));
     }
   }

@@ -38,6 +38,7 @@ export default async function SchoolAdminDocumentationRoute({ params }: PageProp
         schoolName={org.name}
         branding={org.branding}
         features={org.features}
+        plan={org.plan}
       />
     </Suspense>
   );

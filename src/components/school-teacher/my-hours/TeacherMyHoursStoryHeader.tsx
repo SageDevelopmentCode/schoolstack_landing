@@ -1,6 +1,13 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Calendar,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  PencilLine,
+  Sun,
+} from "lucide-react";
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
 import ParentStoryPillNav from "@/components/school-parent/ui/ParentStoryPillNav";
 import {
@@ -10,9 +17,10 @@ import type { MyHoursView } from "@/lib/school-teacher/my-hours/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 const VIEW_ITEMS = [
-  { key: "day", label: "Day" },
-  { key: "week", label: "Week" },
-  { key: "month", label: "Month" },
+  { key: "day", label: "Day", icon: Sun },
+  { key: "week", label: "Week", icon: CalendarDays },
+  { key: "month", label: "Month", icon: Calendar },
+  { key: "adjust", label: "Adjust", icon: PencilLine },
 ] as const;
 
 type TeacherMyHoursStoryHeaderProps = {
@@ -37,7 +45,9 @@ export default function TeacherMyHoursStoryHeader({
       <div>
         <ParentDisplayHeading theme={theme}>My Hours</ParentDisplayHeading>
         <p className="mt-1 text-sm" style={{ color: theme.muted }}>
-          Clock in and out to track your daily work time.
+          {view === "adjust"
+            ? "Add hours you missed, or correct a day you already logged."
+            : "Clock in and out to track your daily work time."}
         </p>
       </div>
 
@@ -76,10 +86,15 @@ export default function TeacherMyHoursStoryHeader({
           activeKey={view}
           onChange={(key) => onViewChange(key as MyHoursView)}
           data-testid="teacher-my-hours-view-nav"
-          items={VIEW_ITEMS.map((item) => ({
-            key: item.key,
-            label: item.label,
-          }))}
+          items={VIEW_ITEMS.map((item) => {
+            const Icon = item.icon;
+            return {
+              key: item.key,
+              label: item.label,
+              icon: <Icon className="h-3.5 w-3.5" aria-hidden />,
+              testId: `teacher-my-hours-view-${item.key}`,
+            };
+          })}
         />
       </div>
     </div>

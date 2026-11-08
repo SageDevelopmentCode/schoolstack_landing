@@ -16,6 +16,7 @@ import {
 } from "@/lib/messages/parse-admin-broadcast-audience";
 import { reportOperationalError } from "@/lib/operational-errors";
 import { SchoolAdminAuthError } from "@/lib/school-admin/access";
+import { freePlanFeatureDeniedResponse } from "@/lib/school-admin/free-plan-api-guard";
 import { activityClientMetadataFromRequest } from "@/lib/activity-client";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -125,6 +126,11 @@ export async function POST(request: Request) {
     }
 
     const user = await requireSchoolAdminUser(supabase, organizationId, request);
+    const planDenied = await freePlanFeatureDeniedResponse({
+      organizationId,
+      featureKey: "messages",
+    });
+    if (planDenied) return planDenied;
     const staffMemberId = await getStaffMemberIdForUser(
       supabase,
       user.id,

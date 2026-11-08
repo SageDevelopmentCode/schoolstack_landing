@@ -37,7 +37,7 @@ export default async function SchoolTeacherLoginPage({ params }: PageProps) {
   const { slug } = await params;
   const org = await fetchOrganizationWithSettings(slug);
 
-  if (!org) {
+  if (!org || org.plan === "free") {
     notFound();
   }
 

@@ -8,6 +8,7 @@ const minimalOrg: OrganizationWithSettings = {
   id: "org-1",
   slug: "demo",
   name: "Demo School",
+  plan: "custom",
   branding: DEFAULT_BRANDING,
   features: DEFAULT_FEATURES,
   fridayBranchSettings: { parent_portal_paused: false },

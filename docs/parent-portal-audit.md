@@ -2,10 +2,35 @@
 
 **Started:** 2026-11-06
 **Scope:** Live parent portal (`/school/[slug]/parent/**`), `/api/parent-portal/**`, and the Supabase permissions behind them. Every school is affected; the audit was driven by `rooted-meadows` and `rooted-meadows-demo`.
-**Status:** Plan approved (all phases). Phase 1a, the 1a Discord monitoring code, and Phase 1b steps 1-2 are written and verified locally. **Nothing has been pasted on production yet** and the monitoring code is not deployed yet. Phase 2 (app security hardening) is written and verified locally (not deployed); it adds one new SQL file that must be pasted **before** the code deploys. Phase 3 (access layer and performance, "core pass") is written and verified locally (not deployed); it adds one SQL file (`20261150`) that must be pasted **before** the code deploys. Realtime Broadcast and `getClaims()` are deferred. Phase 4 safe pass (deterministic primary family, ignored-param cleanup, duplicate helper removal) is written and verified locally (not deployed, no new SQL); the registry, loader merge and component splits are deferred.
+**Status (2026-11-08):** All planned phases are written. Production has Phases 1a, 1b steps 1-3 (safe tier), 2, 3, and the public-form grants fix. `getClaims()` is written but not deployed. The rest of Phase 1b step 3 is written (`20261153`–`20261155`) and not pasted. What is left: user smoke-checks, the `getClaims()` deploy, pasting `20261153` then the billing code plus `20261154` then `20261155`, and the deferred Phase 3/4 items. See [Where we are](#where-we-are-2026-11-08).
 
 > **For new chats:** Read this whole file first. Follow [Execution order](#execution-order). Tick checkboxes and add a row to the [Progress log](#progress-log) as work lands. Database changes follow `.cursor/rules/supabase-manual-sql-only.mdc`: SQL goes in `supabase/migrations/` **and** `supabase/migrations_manual/`, and the user pastes it into the SQL Editor. Agents never write to the database. Read-only MCP queries are fine.
 
+
+## Where we are (2026-11-08)
+
+**Applied on production (verified read-only via MCP on 2026-11-08):**
+
+| Phase | SQL | Evidence |
+|---|---|---|
+| 1a | `20261146` | "Allow all" policies gone from `organizations`, `organization_progress_log`, `organization_timeline_phase_demos`; service-only functions not executable by `anon` |
+| 1b step 1 | `20261147` | `user_is_family_portal_member` exists with the right grants |
+| 1b step 2 | `20261148` | Financial tables use "Staff read ..." policies |
+| 2 | `20261149` | `submit_classroom_signup_response_atomic` exists, service role only |
+| 3 | `20261150` | `parent_portal_access` and `parent_unread_message_count` exist (`authenticated` + service role) |
+| 1b step 3 (safe tier) | `20261151` | 13 "Staff read ..." policies exist; 18 broad `user_is_active_org_member` SELECT policies remain (28 before) |
+| Public-form grants | `20261152` | `anon` and `authenticated` cannot execute the 3 public-form rate-limit functions |
+
+**Code:** Phases 1a monitoring, 2, 3 and 4 (safe pass) are deployed. The `getClaims()` follow-up (`get-claims-user.ts`, parent middleware, parent pages, `withParentPortalRoute`) is **not deployed yet**; it needs no SQL and can ship any time.
+
+**What is left**
+
+1. User smoke-checks (RLS tightening shows empty data, not errors, so nothing alerts on a miss). Not confirmed done: Phase 1a/1b/2/3 checklists below, plus `20261151` (admin staff/classrooms/classroom signups/settings, teacher roster web and mobile, parent home/messages/committees/signup) and `20261152` (submit one public form). Roll back from the manual SQL file if something is empty.
+2. Deploy the `getClaims()` code, then check a long parent session (no random logouts) and that a session signed out elsewhere loses access within the token lifetime (1 hour). Kill switch: `AUTH_VERIFY_JWT_LOCALLY=0` plus a redeploy.
+3. Phase 1b step 3, the rest, is written (`20261153` memberships, `20261154` tuition catalogs, `20261155` visit days and checklist embeds). Not pasted yet. Deploy the billing catalog code before pasting `20261154`. Leave `organizations`, `programs`, `application_form_versions`, checklist templates/items and the announcement tables on broad policies unless a fully closed model is wanted.
+4. Deferred (not blocked): Realtime private Broadcast per guardian/family (Phase 3); feature registry, live/preview home-loader merge, component splits (Phase 4). Open product question: billing, forms and Friday Branch use the primary family only (see Open questions).
+
+---
 
 ## Environments and how to verify
 
@@ -13,7 +38,7 @@
 - **Local Supabase** is a Docker stack (`supabase start`). `supabase db reset` applies `supabase/migrations/` only, never `migrations_manual/`. Docker must be running (`open -a Docker`). Test helpers refuse any non-local URL.
 - **Run order on production:** deploy monitoring code, paste 1a, smoke-check; paste 1b step 1, smoke-check; paste 1b step 2, smoke-check. Each file has a dry-run block and a rollback block.
 - **Local verification commands:**
-  - `supabase db reset`, then `npm run test:integration` (121 tests), `npm test` (1287 tests), `npm run lint:errors`, `npm run typecheck`
+  - `supabase db reset`, then `npm run test:integration` (133 tests), `npm test` (1310 tests), `npm run lint:errors`, `npm run typecheck`
   - If typecheck reports stale `.next/types` errors: `npx next typegen`
   - E2E: `npm run test:e2e:build` first (a plain `npm run build` bakes the production Supabase URL into the bundle and logins fail with "Invalid login credentials"). Reset the DB before each run, or the seed hits a duplicate-key error. Then: `PLAYWRIGHT_BROWSERS_PATH=$HOME/Library/Caches/ms-playwright CI=true npm run test:e2e -- e2e/parent e2e/tuition e2e/admin`
 - **Known unrelated E2E failure:** `e2e/parent/apply-mobile.spec.ts` "application detail uses shared navbar on mobile" fails with or without these migrations.
@@ -170,7 +195,7 @@ Files: `supabase/migrations/20261146_lock_down_open_policies_and_function_grants
 - [x] Local verification: `supabase db reset` applies cleanly; `npm run test:integration` 97/97; billing + tuition E2E 18/18; `lint:errors` and `typecheck` clean
 - [x] Log review (last 24h, read-only): no DELETE/PATCH on `/rest/v1/organizations`; RPC POSTs came only from the server (`node`) and the MudKitchen mobile app (`admin_submissions_page_meta`, called with the admin's own session, so it still works through the wrapper)
 - [ ] User: run dry-run block as a parent, a school admin and a teacher
-- [ ] User: deploy the monitoring code, then paste migration in Supabase SQL Editor
+- [x] User: deployed the monitoring code and pasted the migration (applied on production, verified read-only 2026-11-08)
 - [ ] Smoke-check: parent home and billing (rooted-meadows-demo); admin dashboard, tuition, students, submissions (web and mobile), schedule, transactions; Friday Branch enroll; public timeline page
 
 **Monitoring (Discord alerts for 1a):**
@@ -203,17 +228,31 @@ Both mirrors include a dry-run block (rolls back) and a rollback block. Neither 
 - [x] Guardians read form versions linked to their own applications (covers archived versions)
 - [x] Guardians read checklist templates and template items for their own checklists
 - [ ] Admissions slots: parents read availability/slots with their own client in the apply flow. **Left on the broad policy on purpose** (open question below); decide before step 3
-- [ ] User: dry-run, paste step 1, smoke-check parent home/billing/children/enrollment on rooted-meadows-demo
+- [x] User: pasted step 1 (applied on production, verified read-only 2026-11-08)
+- [ ] Smoke-check parent home/billing/children/enrollment on rooted-meadows-demo (not confirmed)
 
 **Step 2: tighten tables parents never need (paste only after step 1 is smoke-checked)**
 - [x] Staff-only reads (`user_is_staff_org_member()`, keeps teachers unchanged) replace "Org members read" on `tuition_charges`, `tuition_billing_accounts`, `tuition_billing_splits`, `tuition_adjustments`, `tuition_enrollment_assignments`, `family_payment_methods`, `document_signatures`. `document_signatures` has no parent-facing user-client reads in the app.
 - [x] Local verification: integration test `src/lib/supabase/family-financial-rls.integration.test.ts` (own family only, unrelated parent blocked, linked login sees linked family, staff sees all); parent, tuition and admin E2E specs 45 of 46 pass. The one failure, `apply-mobile.spec.ts` "application detail uses shared navbar on mobile", fails identically with the 1b migrations absent (it opens a draft form where the profile button is not rendered, so it looks data/order dependent, not related to these changes); worth a separate look
-- [ ] User: dry-run, paste step 2, verify billing loads for a parent with a split, one without, a linked login and an admin (rooted-meadows-demo first, then rooted-meadows)
+- [x] User: pasted step 2 (applied on production, verified read-only 2026-11-08)
+- [ ] Verify billing loads for a parent with a split, one without, a linked login and an admin (rooted-meadows-demo first, then rooted-meadows) (not confirmed)
 - Silent failure mode: RLS tightening shows empty data, not errors, so Discord alerts do not fire. Rely on the dry-run output and the smoke-check; roll back immediately if billing is empty.
 
-**Step 3: after phase 3**
-- [ ] Remaining tables: `staff_members`, `organization_settings`, `organization_memberships` (broad read), tuition config tables, classroom tables, `student_teacher_assignments`, `committee_templates`, admissions slots, and the rest of the 38
-- [ ] Then drop the broad "Org members read" policies on `programs`, `application_form_versions`, checklist templates/items (the narrow replacements from step 1 are already in place)
+**Step 3: after phase 3** (the Phase 1-4 code is deployed; before `20261151`, 28 broad `user_is_active_org_member` SELECT policies remained on production, 18 after)
+
+Files: `supabase/migrations/20261151_staff_only_reads_phase1b_step3.sql`, mirror `supabase/migrations_manual/staff_only_reads_phase1b_step3_2026_11_08.sql` (dry-run and rollback blocks). No code dependency.
+
+- [x] Safe tier written: "Org members ..." SELECT replaced by `user_is_staff_org_member` (teachers keep access) on `staff_members`, `student_teacher_assignments`, `classroom_staff_assignments`, `classrooms`, `classroom_signups`, `enrollment_classrooms`, `organization_settings`, `admissions_availability_slots`, `admissions_observation_day_availability`, `application_form_version_revisions`, `tuition_adjustment_rules`, `tuition_late_fee_overrides`, `committee_templates`. Why safe: no parent-reachable read with a user session (parent routes use the service role for classroom signups, committees browse, teachers and availability; the mobile app reads them only in school-admin and teacher screens; parents read branding through `organization_settings_public`, a `security_invoker = false` view). No other policy or view depends on these tables. `committee_templates` keeps platform-default rows (`organization_id is null`) readable to any signed-in user, as before; only school templates become staff-only.
+- [x] Integration test `src/lib/supabase/staff-only-reads.integration.test.ts` (parent and linked login read 0 rows, teacher reads own school only, branding view still readable).
+- [x] User: pasted `20261151` (13 "Staff read ..." policies verified on production 2026-11-08)
+- [ ] Smoke-check on rooted-meadows-demo then rooted-meadows: school admin (staff list, classrooms, classroom signups, shadow-day / admissions settings, tuition rules); teacher (My Students and classroom roster, web and mobile staff schedule); parent (home, messages, committees, classroom signup, children). Roll back immediately if any admin or teacher page is empty (rollback block is in the manual SQL file). Not confirmed done yet.
+
+Still on broad policies, on purpose (portal shells and the mobile app need them):
+- [x] `organization_memberships`: staff-only SELECT plus the own-row/peer policy from step 1 (`20261153`). Confirmed: mobile school picker, portal routing, and login destination filter to the caller's own rows; screens that list every member use the service role or a staff session. Platform admins keep "Platform admins manage memberships".
+- [x] Tuition catalogs (`tuition_rate_plans`, `tuition_rate_tiers`, `tuition_payment_plans`, `tuition_fee_components`): parent billing loads them with the service role after the access check (`loadParentBillingInitialDataWithClient`; the browser refresh calls `/api/parent-portal/billing`). Staff-only SELECT is `20261154`. Deploy that code before pasting the SQL. `programs` stays broad.
+- [x] Visit tables and checklist embeds (`20261155`): families read their own visit days (linked peers included), the slots and grades on those days, and document templates / fee definitions linked to their checklist. Staff still read the whole school. Availability and booking stay on the service role.
+- [ ] Needed by portal shells and the mobile app, left broad: `organizations`, `programs`, `application_form_versions`, checklist templates and items, `admin_feature_announcements` and `parent_feature_announcements`.
+- Production count after `20261151`: 18 policies still match `user_is_active_org_member` (includes INSERT policies, announcements and the narrow own-application policies, not only the broad reads above).
 
 ---
 
@@ -230,12 +269,13 @@ Files: `supabase/migrations/20261149_submit_classroom_signup_response_atomic.sql
 - [x] Client operational-errors endpoints (`parent-portal`, `teacher-portal`, `school-admin`, `admissions`, `mobile`): client `notify` is ignored; the server throttles Discord to 5 per user + organization per 10 minutes per instance (events are still recorded); string fields and metadata size are capped (`src/lib/client-operational-error-input.ts`). No client in the repo sends `notify: false`.
 - [x] Support requests and feedback: per-email rate limit (3 per hour, 1 per minute) via the existing public-form functions, keyed by email only (not IP, because parents share school networks); fails open if the rate-limit RPC is down (already reported). Feedback body is type-checked and length-capped; support `sourcePagePath` capped. New form ids `parent_portal_support` and `parent_portal_feedback` (free text in SQL, no migration needed).
 - [x] `parsePagination` (`src/lib/api/pagination.ts`): rejects NaN/non-integers, clamps `limit` and `offset`. Used by billing charges, billing payments and attendance history. Gallery, activity-notifications and committee activity already clamp.
-- [ ] User: paste 20261149 (dry-run first), then deploy code, then smoke-check: parent home and a deep link (forms, newsletter read), billing history for a parent with a split, classroom signup submit / change / withdraw, no random logouts over a long session.
-- Note for later: the public-form rate-limit functions were granted with `revoke ... from public` only (see `20261112`); check whether `anon` can still execute `record_public_form_submission_event` (it could be used to fill the rate-limit table and block a form).
+- [x] User: pasted 20261149 and deployed the code (verified read-only 2026-11-08).
+- [ ] Smoke-check (not confirmed): parent home and a deep link (forms, newsletter read), billing history for a parent with a split, classroom signup submit / change / withdraw, no random logouts over a long session.
+- Public-form rate-limit functions: confirmed on 2026-11-08 that `anon` and `authenticated` could still execute `check_public_form_submission_allowed`, `record_public_form_submission_event` and `record_public_form_submission_if_allowed` (`20261111`/`20261112` revoked from `public` only; Supabase grants to `anon`/`authenticated` directly, same root cause as C2). Fixed in `20261152_revoke_public_form_function_grants.sql` (mirror `supabase/migrations_manual/revoke_public_form_function_grants_2026_11_08.sql`, with dry-run and rollback). The app only calls them with the service role (`src/lib/public-forms/rate-limit.ts`). Extended `function-grants.integration.test.ts`. [x] User: pasted `20261152` (verified on production 2026-11-08). [ ] Submit one public form to smoke-check (not confirmed).
 
 ## Phase 3: access layer and performance
 
-Scope: **core pass** (chosen with the user). Realtime Broadcast and `getClaims()` are deferred; JWT signing keys are unknown, so routes still call `getUser()`.
+Scope: **core pass** (chosen with the user). Realtime Broadcast is deferred. `getClaims()` was deferred here and added afterwards, see [getClaims follow-up](#getclaims-follow-up).
 
 Files: `supabase/migrations/20261150_parent_portal_access.sql`, mirror `supabase/migrations_manual/parent_portal_access_2026_11_06.sql` (deploy-order header, dry-run and rollback blocks included).
 
@@ -248,9 +288,10 @@ Files: `supabase/migrations/20261150_parent_portal_access.sql`, mirror `supabase
 - [x] Badge counts: the live main and program layouts call `startParentBadgeCountLoads` (no `await`) and pass the promises to `SchoolParentBaseline`. The activity count, message count and committee summary resolve into the header as they finish; a failed server load resolves `null` and the client falls back to its old fetch. The three post-load client fetches are gone on a healthy load. The family preview layouts now pass `initialMessagesUnreadCount` as well (parity).
 - [x] `attachSignedUrlsToGalleryPhotos`: one `createSignedUrls` call per batch (was one request per photo) and one aggregated report per organization per batch. Newsletters use it through `load-parent-newsletters.ts`. Unit tests in `src/lib/school-gallery/storage.test.ts`.
 - [x] School settings cache: `fetchOrganizationWithSettings` reads `organizations` + `organization_settings_public` through the cookie-free anon client inside `unstable_cache` (tag `org-settings:<slug>`, 60s TTL, misses never cached), with the per-request `cache()` still in front; any failure falls back to the signed-in read. Saves expire the tag: `saveSchoolProfileBundle`, `notifications/settings` and `friday-branch/settings` call `revalidateOrganizationSettingsById`; browser editors (`OrganizationSettingsEditor`, the platform-admin status update) call the new `POST /api/school-admin/revalidate-settings` (school admin or platform admin only). Integration test `organization-settings/fetch.integration.test.ts` checks the anon read equals the privileged read.
-- [ ] Deferred: `getClaims()` instead of `getUser()` (needs asymmetric JWT signing keys; see open questions). It now matters more, see [Phase 3 measurements](#phase-3-measurements).
+- [x] `getClaims()` instead of `getUser()` on parent paths: done in the [getClaims follow-up](#getclaims-follow-up).
 - [ ] Deferred: Realtime private Broadcast channel per guardian/family fed by a DB trigger; debounce refetches (~750ms).
-- [ ] User: paste 20261150 (dry-run first), then deploy code, then smoke-check: parent home, messages (badge matches the inbox), committees, calendar, gallery, newsletters, billing, classroom signup, Friday Branch, notification settings; edit a school's branding or features and see it on the parent portal within a few seconds.
+- [x] User: pasted 20261150 and deployed the code (verified read-only 2026-11-08).
+- [ ] Smoke-check (not confirmed): parent home, messages (badge matches the inbox), committees, calendar, gallery, newsletters, billing, classroom signup, Friday Branch, notification settings; edit a school's branding or features and see it on the parent portal within a few seconds.
 
 Behavior notes:
 - Org settings cache: a **churned** school is not readable by `anon`, so those requests use the signed-in read exactly as before. Cached branding/features can lag a save made by a script or SQL (not through the app) by up to 60s.
@@ -296,7 +337,17 @@ Measured locally on `rooted-meadows-school` parent home with production builds, 
 | GoTrue `getUser` calls (session/user/identity lookups) per home load | 6 | 23 |
 | Total database transactions per home load (includes auth) | about 210 | about 414 |
 
-- The PostgREST requests the app makes roughly halved. The database total went **up** because GoTrue `getUser` lookups quadrupled: Phase 2 put `/school/:slug/parent/**` and `/apply/**` behind the middleware, which calls `getUser()` on every page, RSC prefetch and API request. This is the cost of fixing random logouts, and it is why `getClaims()` (local JWT verification in the middleware) is the next worthwhile change once the JWT keys are known.
+- The PostgREST requests the app makes roughly halved. The database total went **up** because GoTrue `getUser` lookups quadrupled: Phase 2 put `/school/:slug/parent/**` and `/apply/**` behind the middleware, which called `getUser()` on every page, RSC prefetch and API request. This is the cost of fixing random logouts; the [getClaims follow-up](#getclaims-follow-up) removes it for the parent portal.
+
+### getClaims follow-up
+
+Unblocked on 2026-11-08: `https://<project>.supabase.co/auth/v1/.well-known/jwks.json` publishes an ES256 key, so asymmetric JWT signing is on (local Supabase publishes one too, so tests exercise the real path). No SQL.
+
+- [x] `src/lib/supabase/get-claims-user.ts`: `getUserFromClaims(supabase, token?)` calls `auth.getClaims()` (local signature check, refreshes an expired cookie session) and builds a `User` from the claims (`id`, `email`, `phone`, `role`, `app_metadata`, `user_metadata`). Falls back to `auth.getUser()` when claims fail, are missing or `getClaims` throws. Kill switch: set `AUTH_VERIFY_JWT_LOCALLY=0` to go back to a GoTrue check on every request (needs a redeploy). Unit tests: `get-claims-user.test.ts` (9).
+- [x] Used where a revoked session staying valid until the access token expires (1 hour by default) is acceptable: the middleware for `/school/:slug/parent/**` and `/apply/**` (`updateSession(request, { verify: "claims" })`; cookie refresh only, no redirects), `getRequestUserFromClaims` (`src/lib/auth/session.ts`) for the parent layouts, pages, home loader and billing data loader, `getCachedRequestUser` in `parent-portal-server-cache.ts`, and `withParentPortalRoute` (`getUserFromRequestClaims`, bearer tokens included).
+- Kept on `getUser()`: `/admin` and `/school/:slug/admin` middleware gating, admin, teacher, apply pages, payment and account routes, and every non-parent API route. The parent code only reads `user.id`, `user.email` and `user.user_metadata` (all in the JWT); `user_metadata` can lag a profile change by up to the token lifetime.
+- Measured locally (production build, parent home loaded twice, GoTrue `GET /user` requests counted from the auth container log, setup logins excluded): about 49 calls (about 24 per load, matches the 23 recorded above) with `AUTH_VERIFY_JWT_LOCALLY=0`, versus 0-3 calls with local verification (the JWKS document is fetched a few times and cached).
+- [ ] User: after deploy, check the parent portal over a long session (no random logouts, no extra sign-in prompts), then sign a parent out from another browser and confirm the other session loses access within the token lifetime.
 
 ## Phase 4: architecture
 
@@ -316,8 +367,8 @@ Behavior note: a parent with several families, or a linked login, now always lan
 ## Open questions
 - Billing, forms and Friday Branch use the primary family only, while the children list shows every family. Should multi-family parents get a family switcher, or should those features cover all families? (Rare today; the primary is now at least stable.)
 - ~~Staging DB?~~ Answered: production only, plus local Docker.
-- Are asymmetric JWT signing keys enabled? (Required for `getClaims()`, which would remove most of the GoTrue lookups measured in Phase 3.)
-- Should prospective (not yet enrolled) parents keep reading admissions availability with their own client, or should those reads go through API routes?
+- ~~Are asymmetric JWT signing keys enabled?~~ Answered: yes (ES256 in the project JWKS). `getClaims()` is in the code, see [getClaims follow-up](#getclaims-follow-up).
+- ~~Should prospective parents keep reading admissions availability with their own client?~~ Answered in `20261155`: availability and booking stay on the service role. Parents read only their own booked visit days and the slots on those days.
 
 ---
 
@@ -332,3 +383,6 @@ Behavior note: a parent with several families, or a linked login, now always lan
 | 2026-11-06 | 2 | Access guard on parent pages, billing family check, atomic classroom signup RPC (`20261149`) + route changes, middleware matcher, server-controlled operational-error reporting (5 endpoints), support/feedback rate limits, `parsePagination` | `supabase db reset` applies cleanly; `test:integration` 112/112 (9 new); `npm test` 1269/1269 (13 new); `lint:errors`, `typecheck`; E2E parent/tuition/admin 48 passed, 1 skipped | Paste `20261149` SQL first, then deploy code |
 | 2026-11-06 | 3 | Migration `20261150` (`parent_portal_access`, `parent_unread_message_count`) + manual mirror; `getParentPortalAccess` snapshot; `withParentPortalRoute` on all 67 parent routes; parent unread via RPC with a reported, bounded fallback; badge counts streamed from the live layouts; batched gallery/newsletter signed URLs with one report; cached org settings with tag revalidation (server saves + `POST /api/school-admin/revalidate-settings`); family preview gets the message badge | `supabase db reset` applies cleanly; `test:integration` 121/121 (9 new); `npm test` 1287/1287 (18 new); `lint:errors`, `typecheck`; E2E parent/tuition/admin 47 passed, 1 flaky (apply-mobile, passed on retry), 1 skipped; parent/committee messages layout specs 7/7 with screenshots reviewed; PostgREST requests per home load 104 to 53 | Paste `20261150` SQL first, then deploy code. `getClaims()` and Realtime Broadcast deferred |
 | 2026-11-07 | 4 safe pass | Deterministic family order (`orderFamilyIdsByFirstGuardian`, matches the RPC), `fetchOrganizationWithSettings(slug)` and parent-portal cache helpers without ignored client args, 56 unused client/cookie locals removed, shared `getStudentIdsForFamilies` | `supabase db reset` applies cleanly; `test:integration` 122/122 (1 new); `npm test` 1291/1291 (4 new); `lint:errors`, `typecheck`; E2E parent/tuition/admin 48 passed, 1 skipped; parent messages layout spec 3/3, desktop screenshot reviewed | No new SQL. Registry, loader merge and component splits deferred |
+| 2026-11-08 | 1b step 3 (safe tier), public-form grants, getClaims | `20261151` (13 tables to staff-only reads) and `20261152` (revoke `anon`/`authenticated` on the 3 public-form functions) + manual mirrors with dry-run/rollback + integration tests; `getUserFromClaims` in the parent middleware, parent pages and `withParentPortalRoute` | `supabase db reset` applies cleanly; `test:integration` 133/133 (11 new); `npm test` 1310/1310 (19 new); `lint:errors`, `typecheck`; E2E parent/tuition/admin/teacher 47 passed, 1 failed (`apply-mobile` data-dependent flake, passes on a fresh DB), 3 skipped by it; GoTrue `GET /user` per parent home load about 24 to 0-3 | Paste `20261151` then `20261152` (any order, dry-runs first), smoke-check; deploy the getClaims code independently. Tier B/C tables stay on broad policies, see Phase 1b step 3 |
+| 2026-11-08 | Production verification | Read-only MCP checks after the user pasted `20261151` and `20261152` | 13 "Staff read ..." policies present; 18 policies still match `user_is_active_org_member`; the 3 public-form functions not executable by `anon`/`authenticated`; earlier phases' functions and policies present | `getClaims()` code not deployed yet. Smoke-checks for 1a, 1b, 2, 3, 20261151 and 20261152 not confirmed. Next: `organization_memberships`, then tuition catalogs |
+| 2026-11-08 | 1b step 3 remainder | `20261153` staff-only membership SELECT (own-row policy kept); `20261154` staff-only tuition catalogs after parent billing loads them with the service role; `20261155` family-scoped visit days, booked slots, and checklist document/fee embeds. Integration test `phase1b-step3-remainder.integration.test.ts` | `supabase migration up` applied 20261153–55 on the local stack; remainder RLS test 3/3; function-grant checks for the three new helpers passed; `lint:errors` and `typecheck` clean. Full `db reset` was not run | Paste `20261153` any time. Deploy the billing code before `20261154`. Then paste `20261155`. Dry-run each file first |

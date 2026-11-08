@@ -10,6 +10,7 @@ const ParentDashboardDemo = dynamic(() => import("./ParentDashboardDemo"), {
   ssr: false,
 });
 import DemoAdminDashboardPage from "@/components/demo/shared/DemoAdminDashboardPage";
+import { getTourTargetCenter } from "@/components/demo/shared/tour-cursor-position";
 import { useShowcaseDesktopEmbed } from "@/components/demo/shared/showcase-desktop-embed";
 import DemoAdminClassroomsPage from "@/components/demo/shared/DemoAdminClassroomsPage";
 import DemoAdminProgramsPage from "@/components/demo/shared/DemoAdminProgramsPage";
@@ -24119,17 +24120,11 @@ export default function AdminDashboardDemo({
 
   const getTargetCenter = useCallback(
     (targetId: string): { x: number; y: number } | null => {
-      if (!containerRef.current) return null;
-      const el = containerRef.current.querySelector(
-        `[data-tour-id="${targetId}"]`,
-      );
+      const container = containerRef.current;
+      if (!container) return null;
+      const el = container.querySelector(`[data-tour-id="${targetId}"]`);
       if (!el) return null;
-      const cr = containerRef.current.getBoundingClientRect();
-      const er = el.getBoundingClientRect();
-      return {
-        x: er.left - cr.left + er.width / 2,
-        y: er.top - cr.top + er.height / 2,
-      };
+      return getTourTargetCenter(container, el);
     },
     [],
   );

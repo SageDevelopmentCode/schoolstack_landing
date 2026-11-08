@@ -26,6 +26,7 @@ import {
   type AdminDocGuide,
 } from "@/lib/school-admin/admin-documentation";
 import { schoolMudKitchenPortalPath } from "@/lib/organization-settings/admin-routes";
+import type { OrganizationPlan } from "@/lib/organization-settings/plans";
 import type { OrganizationFeatures } from "@/lib/organization-settings/types";
 import { useAdminNotificationsPanel } from "@/lib/school-admin/admin-notifications-panel-context";
 import { useVisibilityPolling } from "@/lib/hooks/use-visibility-polling";
@@ -37,6 +38,7 @@ import {
 type AdminDashboardContentProps = {
   organizationId: string;
   slug: string;
+  plan: OrganizationPlan;
   features: OrganizationFeatures;
   userFirstName?: string | null;
   schoolName: string;
@@ -69,6 +71,7 @@ function isTabDataReady(
 export default function AdminDashboardContent({
   organizationId,
   slug,
+  plan,
   features,
   userFirstName,
   schoolName,
@@ -103,8 +106,8 @@ export default function AdminDashboardContent({
   const guidesFetchStartedRef = useRef(false);
 
   const howToGuides = useMemo(
-    () => buildAdminDocumentationGuides(slug, features),
-    [slug, features],
+    () => buildAdminDocumentationGuides(slug, features, plan),
+    [slug, features, plan],
   );
   const groupedHowToGuides = useMemo(
     () => groupAdminDocumentationByCategory(howToGuides),
@@ -402,6 +405,7 @@ export default function AdminDashboardContent({
                 C={C}
                 organizationId={organizationId}
                 slug={slug}
+                plan={plan}
                 features={features}
                 today={today}
                 onTodayChange={setToday}

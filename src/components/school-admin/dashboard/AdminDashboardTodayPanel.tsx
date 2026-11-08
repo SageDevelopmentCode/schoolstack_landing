@@ -12,6 +12,7 @@ import DetailPanelProgressBar from "@/components/school-admin/admissions/DetailP
 import type { AdminDashboardToday } from "@/lib/school-admin/dashboard-summary";
 import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import type { OrganizationPlan } from "@/lib/organization-settings/plans";
 import type { OrganizationFeatures } from "@/lib/organization-settings/types";
 
 type AdminDashboardTodayPanelProps = {
@@ -19,6 +20,7 @@ type AdminDashboardTodayPanelProps = {
   C: ReturnType<typeof parentThemeToAdminCompat>;
   organizationId: string;
   slug: string;
+  plan: OrganizationPlan;
   features: OrganizationFeatures;
   today: AdminDashboardToday;
   onTodayChange: (next: AdminDashboardToday) => void;
@@ -29,13 +31,14 @@ export default function AdminDashboardTodayPanel({
   C,
   organizationId,
   slug,
+  plan,
   features,
   today,
   onTodayChange,
 }: AdminDashboardTodayPanelProps) {
   return (
     <div className={DASHBOARD_TAB_ROOT_CLASS}>
-      {!today.setupComplete ? (
+      {plan !== "free" && !today.setupComplete ? (
         <div className="mb-5 max-w-md">
           <DetailPanelProgressBar
             C={C}
@@ -71,7 +74,9 @@ export default function AdminDashboardTodayPanel({
           <AdminCard theme={theme} padding="canvas">
             <AdminSectionKicker theme={theme}>School signal</AdminSectionKicker>
             <p className="mt-3 text-sm" style={{ color: theme.muted }}>
-              Activity will appear here as families apply and enroll.
+              {plan === "free"
+                ? "You're all set for today."
+                : "Activity will appear here as families apply and enroll."}
             </p>
           </AdminCard>
         )}
