@@ -1,107 +1,73 @@
 import { apiError } from "@/lib/api/route-errors";
 import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
-import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { handlePostCommitteeMessage } from "@/lib/committees/api/committee-message-route";
 import {
   resolveActiveCommitteeMemberForPost,
   resolveParentGuardianForOrg,
 } from "@/lib/committees/parent-committees";
-import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
+import { withParentPortalRoute } from "@/lib/parent-portal/with-parent-portal-route";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/committees/[committeeId]/messages";
 
-type RouteContext = { params: Promise<{ committeeId: string }> };
+export const POST = withParentPortalRoute<undefined, { committeeId: string }>(
+  {
+    route: ROUTE,
+    feature: "committees",
+    forbiddenMessage: "You do not have access to this committee.",
+    // The handler reads the (possibly multipart) body itself, so look the school up on a clone.
+    resolveOrganizationId: async (request) => {
+      const fromRequest =
+        request.headers.get("x-organization-id")?.trim() ||
+        new URL(request.url).searchParams.get("organizationId")?.trim() ||
+        "";
+      if (fromRequest) return fromRequest;
+      if (request.headers.get("content-type")?.includes("multipart/form-data")) {
+        const formData = await request.formData();
+        return String(formData.get("organizationId") ?? "").trim();
+      }
+      return "";
+    },
+    fallbackErrorMessage: "Failed to send message.",
+  },
+  async ({ request, user, organizationId, params }) => {
+    try {
+      const admin = createAdminClient();
+      const guardian = await resolveParentGuardianForOrg(
+        admin,
+        user.id,
+        organizationId,
+        user.email ?? "",
+      );
 
-export async function POST(request: Request, context: RouteContext) {
-  const supabase = await createClientFromRequest(request);
-  const { committeeId } = await context.params;
+      const currentMember = await resolveActiveCommitteeMemberForPost(
+        admin,
+        organizationId,
+        user.id,
+        params.committeeId,
+      );
 
-  const {
-    data: { user },
-    error: authError,
-  } = await getUserFromRequest(supabase, request);
-
-  if (!user) {
-    return apiError(ROUTE, {
-      request,
-      status: 401,
-      error: await signedInErrorForRequest(request, authError),
-      code: "unauthorized",
-    });
-  }
-
-  const organizationId =
-    request.headers.get("x-organization-id")?.trim() ||
-    new URL(request.url).searchParams.get("organizationId")?.trim() ||
-    "";
-
-  let resolvedOrganizationId = organizationId;
-  if (!resolvedOrganizationId && request.headers.get("content-type")?.includes("multipart/form-data")) {
-    const formData = await request.clone().formData();
-    resolvedOrganizationId = String(formData.get("organizationId") ?? "").trim();
-  }
-
-  if (!resolvedOrganizationId || !committeeId) {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "organizationId is required.",
-      code: "missing_fields",
-    });
-  }
-
-  try {
-    const hasEnrolledAccess = await userHasEnrolledAccess(
-      supabase,
-      user.id,
-      resolvedOrganizationId,
-    );
-
-    if (!hasEnrolledAccess) {
+      return await handlePostCommitteeMessage(request, ROUTE, {
+        committeeId: params.committeeId,
+        organizationId,
+        actorUserId: user.id,
+        actorEmail: guardian.email || user.email,
+        actorName: guardian.displayName,
+        actorMemberId: currentMember.id,
+        senderMemberId: currentMember.id,
+        senderName: currentMember.name,
+        actorType: "parent",
+        surface: "parent_portal",
+      });
+    } catch (err) {
+      const resolved = portalRouteErrorStatus(err, "Failed to send message.");
       return apiError(ROUTE, {
         request,
-        status: 403,
-        error: "You do not have access to this committee.",
-        code: "forbidden",
+        status: resolved.status,
+        error: resolved.message,
+        code: resolved.code,
+        cause: err,
       });
     }
-
-    const admin = createAdminClient();
-    const guardian = await resolveParentGuardianForOrg(
-      admin,
-      user.id,
-      resolvedOrganizationId,
-      user.email ?? "",
-    );
-
-    const currentMember = await resolveActiveCommitteeMemberForPost(
-      admin,
-      resolvedOrganizationId,
-      user.id,
-      committeeId,
-    );
-
-    return handlePostCommitteeMessage(request, ROUTE, {
-      committeeId,
-      organizationId: resolvedOrganizationId,
-      actorUserId: user.id,
-      actorEmail: guardian.email || user.email,
-      actorName: guardian.displayName,
-      actorMemberId: currentMember.id,
-      senderMemberId: currentMember.id,
-      senderName: currentMember.name,
-      actorType: "parent",
-      surface: "parent_portal",
-    });
-  } catch (err) {
-    const resolved = portalRouteErrorStatus(err, "Failed to send message.");
-    return apiError(ROUTE, {
-      request,
-      status: resolved.status,
-      error: resolved.message,
-      code: resolved.code,
-      cause: err,
-    });
-  }
-}
+  },
+);

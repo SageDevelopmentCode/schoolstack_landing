@@ -22,10 +22,7 @@ describe("adminNavItemMatchesPath", () => {
     assert.ok(mySchool);
     assert.ok(communication);
 
-    assert.equal(
-      adminNavItemMatchesPath(SLUG, pathname, communication),
-      true,
-    );
+    assert.equal(adminNavItemMatchesPath(SLUG, pathname, communication), true);
     assert.equal(adminNavItemMatchesPath(SLUG, pathname, mySchool), false);
   });
 

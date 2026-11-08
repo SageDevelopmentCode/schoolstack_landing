@@ -24,9 +24,11 @@ import GetStartedIntroductionForm, {
 } from "@/components/get-started/GetStartedIntroductionForm";
 import GetStartedStepProgress from "@/components/get-started/GetStartedStepProgress";
 import GetStartedStoryHeader from "@/components/get-started/GetStartedStoryHeader";
+import { ACCENT_HIGHLIGHT } from "@/components/home/bright-styles";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import { demoRequestRoleLabel } from "@/lib/demo-request-roles";
-import { MUDKITCHEN_MARKETING_STORY_THEME } from "@/lib/marketing/mudkitchen-story-theme";
+import { MUDKITCHEN_MARKETING_BRIGHT_THEME } from "@/lib/marketing/mudkitchen-bright-marketing-theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type FormData = GetStartedIntroductionFormData;
 
@@ -79,6 +81,7 @@ type GetStartedDemoFlowProps = {
   sectionRef?: RefObject<HTMLElement | null>;
   onStepChange?: (step: GetStartedDemoStep) => void;
   showStepProgress?: boolean;
+  theme?: ParentThemeTokens;
 };
 
 export default function GetStartedDemoFlow({
@@ -86,8 +89,12 @@ export default function GetStartedDemoFlow({
   sectionRef,
   onStepChange,
   showStepProgress = true,
+  theme: themeProp,
 }: GetStartedDemoFlowProps) {
-  const theme = useMemo(() => MUDKITCHEN_MARKETING_STORY_THEME, []);
+  const theme = useMemo(
+    () => themeProp ?? MUDKITCHEN_MARKETING_BRIGHT_THEME,
+    [themeProp],
+  );
 
   const [step, setStep] = useState<GetStartedDemoStep>(0);
   const [errors, setErrors] = useState<Set<string>>(new Set());
@@ -177,7 +184,7 @@ export default function GetStartedDemoFlow({
   useEffect(() => {
     if (step !== 2) return;
 
-    const colors = [theme.coral, theme.primary, theme.sage, "#E8D5C8", theme.paper];
+    const colors = [theme.coral, theme.primary, "#F8DDCF", "#E9F2E4", theme.paper];
 
     const burst = (origin: { x: number; y: number }, angle: number) =>
       confetti({
@@ -312,21 +319,16 @@ export default function GetStartedDemoFlow({
                 goToStep(0);
                 scrollAfterStepChange();
               }}
-              className="mb-6 inline-flex items-center gap-1.5 text-[13px] font-bold transition-opacity hover:opacity-80"
-              style={{ color: theme.primary, fontFamily: theme.fontBody }}
+              className="mb-6 inline-flex items-center gap-1.5 font-secondary text-[13px] font-semibold text-clay transition-opacity hover:opacity-80"
             >
               <ArrowLeft size={14} />
               Back
             </button>
 
             <GetStartedStoryHeader
-              theme={theme}
               title={
                 <>
-                  Pick a time{" "}
-                  <em style={{ color: theme.coral, fontStyle: "italic" }}>
-                    that works.
-                  </em>
+                  Pick a time <span className={ACCENT_HIGHLIGHT}>that works.</span>
                 </>
               }
               subtitle="We'll walk through the workflows that matter most to your school."

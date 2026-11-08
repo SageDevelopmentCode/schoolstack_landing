@@ -10,9 +10,31 @@ appId: com.mudkitchen.schoolstack.mobile
 - tapOn:
     id: admin-messages-new-button
 - extendedWaitUntil:
-    visible: 'Bulk message'
+    visible:
+      id: admin-messages-new-conversation
     timeout: 15000
 - takeScreenshot: visual-capture-compose-menu
+- tapOn:
+    id: admin-messages-new-conversation
+- extendedWaitUntil:
+    visible:
+      id: new-conversation-search-input
+    timeout: 15000
+- takeScreenshot: visual-capture-new-conversation
+- tapOn:
+    id: new-conversation-search-input
+- inputText: 'e2e'
+- takeScreenshot: visual-capture-new-conversation-typing
+- tapOn: 'Cancel'
+- extendedWaitUntil:
+    notVisible:
+      id: new-conversation-search-input
+    timeout: 15000
+- tapOn:
+    id: admin-messages-new-button
+- extendedWaitUntil:
+    visible: 'Bulk message'
+    timeout: 15000
 - tapOn: 'Bulk message'
 - extendedWaitUntil:
     visible: 'Bulk message'

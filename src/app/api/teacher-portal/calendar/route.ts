@@ -40,7 +40,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const org = await fetchOrganizationWithSettings(supabase, slug);
+    const org = await fetchOrganizationWithSettings(slug);
     if (!org || org.id !== organizationId) {
       return apiError(ROUTE, {
         request,

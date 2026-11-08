@@ -6,6 +6,7 @@ import {
   type TuitionReadinessStatus,
 } from "./tuition-readiness";
 import type { OutstandingPeriod, SchoolYearBounds } from "./outstanding-period";
+import { reportRpcPermissionDenied } from "@/lib/rpc-permission-errors";
 
 export type TuitionPageKpis = {
   collectedYtdCents: number;
@@ -93,7 +94,15 @@ export async function fetchTuitionPageMetaFromRpc(
     p_school_year_end: schoolYearBounds.effectiveEnd,
   });
 
-  if (error) return null;
+  if (error) {
+    await reportRpcPermissionDenied({
+      functionName: "admin_tuition_page_meta",
+      organizationId,
+      error,
+      surface: "school_admin",
+    });
+    return null;
+  }
 
   return parseAdminTuitionPageMetaRow((data ?? null) as AdminTuitionPageMetaRow | null);
 }

@@ -49,6 +49,26 @@ description: >
 
 New tables usually need no extra grant file — `202601010054_grant_postgrest_api_access.sql` sets default privileges for later tables. Add explicit grants only if a new migration fails with permission errors locally.
 
+## Function grants
+
+Since `20261146_lock_down_open_policies_and_function_grants.sql`, **new functions are created without execute for `public`, `anon`, and `authenticated`** (default privileges). Every new function therefore needs an explicit grant — decide who may call it:
+
+| Kind of function | Grant |
+|---|---|
+| Atomic / money / write RPC called only by server code (`createAdminClient()`) | `revoke all on function ... from public, anon, authenticated; grant execute on function ... to service_role;` |
+| Summary/read RPC called with the signed-in user's client | Put a caller check inside (service role OR platform admin OR staff/guardian of the org), then `revoke all ... from public, anon; grant execute ... to authenticated, service_role;` |
+| RLS helper used inside a policy (`user_is_*`, `is_platform_admin`, ...) | `grant execute ... to authenticated` (and `anon` only if a public-read policy calls it) |
+| Trigger function | No grant needed |
+
+Rules:
+
+- Always write the full signature in `revoke`/`grant` (`function public.name(uuid, text)`), never rely on the name alone.
+- `revoke ... from public, authenticated` is **not enough**: Supabase grants `anon` explicitly, so include `anon` (the 20261146 migration fixed ~20 functions that missed it).
+- Any function that trusts its parameters (`p_organization_id`, `p_family_id`, `p_user_id`) must either be service-role only or verify the caller via `auth.uid()` / `auth.role()`. A `SECURITY DEFINER` function without one of those is a data leak when exposed through PostgREST.
+- Never write a `for all using (true)` policy, even for a prototype table. Public read of curated rows: `for select ... using (published = true)`; writes: platform-admin policy or service role.
+- Guarded-wrapper pattern for retrofitting a check without copying a large body: rename the original to `<name>_unchecked`, lock it, create a wrapper with the original name/signature (see section 3 of 20261146).
+- `integration` test `src/lib/supabase/function-grants.integration.test.ts` fails if an `anon`/`authenticated` client can call a locked function — extend its lists when you add one.
+
 ## Naming conventions
 
 - **Migrations folder:** `20260732_add_tuition_billing_splits.sql` (timestamp prefix required by Supabase CLI).

@@ -84,8 +84,7 @@ export function extractCustomPortalFeatureKeys(
 
   if (portal === "additional") {
     return Object.keys(features).filter(
-      (key) =>
-        typeof features[key] === "boolean" && !catalogKeys.has(key),
+      (key) => typeof features[key] === "boolean" && !catalogKeys.has(key),
     );
   }
 

@@ -110,11 +110,18 @@ export async function fetchSchoolAdminApiFormData<T>(
   return payload;
 }
 
-export async function patchApplicationStatus(applicationId: string, status: string): Promise<void> {
-  await fetchSchoolAdminApi(`/api/admissions/applications/${applicationId}/status`, {
-    method: 'PATCH',
-    body: { status },
-  });
+export async function patchApplicationStatus(
+  applicationId: string,
+  status: string,
+): Promise<{ status: string }> {
+  const payload = await fetchSchoolAdminApi<{ status?: string }>(
+    `/api/admissions/applications/${applicationId}/status`,
+    {
+      method: 'PATCH',
+      body: { status },
+    },
+  );
+  return { status: typeof payload.status === 'string' ? payload.status : status };
 }
 
 export async function fetchWithdrawnDecisionActions(

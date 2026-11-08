@@ -14,7 +14,7 @@ export const creationAcresConfig: SchoolWebsiteDemoConfig = {
     muted: "#6F6558",
     badgeBg: "#E8F2FA",
     accentText: "#457B9D",
-    pageBg: "#F8FBFE",
+    pageBg: "#FFFFFF",
   },
   logo: CREATION_ACRES_ADMIN_LOGO,
   hero: {

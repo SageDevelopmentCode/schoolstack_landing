@@ -150,8 +150,13 @@ export default function ApplicationDecisionSection({
         throw new Error(body.error ?? "Failed to update application status.");
       }
 
-      onStatusChanged(String(body.status));
-      adminToast.success("Application status updated");
+      const next = String(body.status);
+      onStatusChanged(next);
+      adminToast.success(
+        next === "enrolled" && nextStatus === "accepted"
+          ? "Accepted and enrolled"
+          : "Application status updated",
+      );
     } catch (err) {
       void reportPortalOperationalError("school_admin", {
         organizationId,

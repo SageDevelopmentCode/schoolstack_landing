@@ -97,7 +97,7 @@ export default function PlannerResultColumn({ theme, row }: PlannerResultColumnP
         aria-live="polite"
         aria-atomic="true"
         className="rounded-[22px] p-6 text-white"
-        style={{ backgroundColor: theme.primary, boxShadow: theme.shadowCard }}
+        style={{ backgroundColor: "#1d1a16", boxShadow: theme.shadowCard }}
       >
         <div className="flex items-center justify-between gap-2.5">
           <p className="text-[10px] font-extrabold uppercase tracking-[0.13em]" style={{ color: "#BDDEC4" }}>

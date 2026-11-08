@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react-native';
 import Constants from 'expo-constants';
 
 import { isMobileE2e } from '@/lib/e2e';
+import { reportUnhandledRejectionFromSentryEvent } from '@/lib/mobile-global-error-reporting';
 
 let sentryInitialized = false;
 
@@ -33,6 +34,15 @@ export function initMobileSentry(): void {
     enableAutoPerformanceTracing: true,
     enableNativeFramesTracking: !isMobileE2e,
     integrations: [navigationIntegration],
+    beforeSend(event) {
+      // Unhandled promise rejections are only visible through Sentry's tracker; also notify Discord.
+      try {
+        reportUnhandledRejectionFromSentryEvent(event);
+      } catch {
+        // Never block Sentry delivery.
+      }
+      return event;
+    },
     tracePropagationTargets: [/trymudkitchen\.com/i, /localhost/i, /127\.0\.0\.1/i],
   });
 

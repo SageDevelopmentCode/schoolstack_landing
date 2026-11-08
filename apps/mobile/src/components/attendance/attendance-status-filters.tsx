@@ -19,6 +19,7 @@ type AttendanceStatusFiltersProps = {
   activeFilter: AttendanceStatusFilter;
   summary: AttendanceRosterSummary | null;
   onChange: (filter: AttendanceStatusFilter) => void;
+  disabled?: boolean;
 };
 
 function filterCount(
@@ -44,6 +45,7 @@ export function AttendanceStatusFilters({
   activeFilter,
   summary,
   onChange,
+  disabled = false,
 }: AttendanceStatusFiltersProps) {
   const theme = useParentTheme();
 
@@ -61,6 +63,7 @@ export function AttendanceStatusFilters({
           <Pressable
             key={filter.key}
             accessibilityRole="button"
+            disabled={disabled}
             onPress={() => onChange(filter.key)}
             style={[
               styles.pill,

@@ -190,7 +190,8 @@ function mobileClientHeaders(): Record<string, string> {
     headers[MOBILE_PLATFORM_HEADER] = Platform.OS;
   }
 
-  const appVersion = Constants.expoConfig?.version?.trim();
+  const appVersion =
+    Constants.expoConfig?.version?.trim() || Constants.nativeAppVersion?.trim();
   if (appVersion) {
     headers['X-Schoolstack-App-Version'] = appVersion;
   }

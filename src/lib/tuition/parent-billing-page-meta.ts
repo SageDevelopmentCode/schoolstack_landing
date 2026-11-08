@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { reportRpcPermissionDenied } from "@/lib/rpc-permission-errors";
 
 export type ParentBillingPageMeta = {
   balanceDueCents: number;
@@ -46,7 +47,15 @@ export async function fetchParentBillingPageMetaFromRpc(
     p_family_id: familyId,
   });
 
-  if (error) throw error;
+  if (error) {
+    await reportRpcPermissionDenied({
+      functionName: "parent_billing_page_meta",
+      organizationId,
+      error,
+      surface: "parent_portal",
+    });
+    throw error;
+  }
   if (!data || typeof data !== "object") return null;
 
   return parseParentBillingPageMetaRow(data as ParentBillingPageMetaRow);

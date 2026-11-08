@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import BreadcrumbJsonLd from "@/components/seo/BreadcrumbJsonLd";
-import Navbar from "@/components/sections/Navbar";
-import Footer from "@/components/sections/Footer";
+import HomeShell from "@/components/home/HomeShell";
 import AboutPage from "@/components/about/AboutPage";
 import { pageMetadata } from "@/lib/metadata";
 import { buildBreadcrumbs } from "@/lib/seo";
@@ -19,13 +18,9 @@ const BREADCRUMBS = buildBreadcrumbs({ name: "About", path: "/about" });
 
 export default function AboutRoute() {
   return (
-    <>
+    <HomeShell className="bg-white">
       <BreadcrumbJsonLd items={BREADCRUMBS} />
-      <Navbar />
-      <main className="bg-bg min-h-screen">
-        <AboutPage />
-      </main>
-      <Footer />
-    </>
+      <AboutPage />
+    </HomeShell>
   );
 }

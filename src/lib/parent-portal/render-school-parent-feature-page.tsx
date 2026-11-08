@@ -49,6 +49,7 @@ import { fetchParentPortalHomeMetaFromRpc } from "@/lib/parent-portal/parent-por
 import {
   getParentPortalPrimaryFamilyId,
   getParentPortalUserProfile,
+  requireParentPortalAccess,
 } from "@/lib/parent-portal/parent-portal-server-cache";
 import { listUpcomingEventsForOrg } from "@/lib/school-events/events";
 import {
@@ -112,7 +113,7 @@ export async function generateSchoolParentFeatureMetadata(
 ): Promise<Metadata> {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, context.slug);
+  const org = await fetchOrganizationWithSettings(context.slug);
 
   if (!org) {
     return { title: "School Not Found" };
@@ -166,7 +167,7 @@ export async function renderSchoolParentFeaturePage(
 ) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, context.slug);
+  const org = await fetchOrganizationWithSettings(context.slug);
 
   if (!org) {
     notFound();
@@ -201,13 +202,21 @@ export async function renderSchoolParentFeaturePage(
     coopModeEnabled = programContext.coopMode;
   }
 
+  // Layouts are not guaranteed to run on every navigation; check access here
+  // before any loader (several use the admin client) runs.
+  await requireParentPortalAccess({
+    organizationId: org.id,
+    programId,
+    schoolSlug: context.slug,
+  });
+
+  const user = await getRequestUser();
+  if (!user) {
+    notFound();
+  }
+
   if (isSchoolGalleryFeatureKey(context.feature)) {
     if (!isSchoolGalleryEnabled(org.features)) {
-      notFound();
-    }
-
-    const user = await getRequestUser();
-    if (!user) {
       notFound();
     }
 
@@ -273,14 +282,8 @@ export async function renderSchoolParentFeaturePage(
     features.feature_nav?.parent,
   );
 
-  const user = await getRequestUser();
-
-  if (!user) {
-    notFound();
-  }
-
-  const userProfile = await getParentPortalUserProfile(supabase, org.id);
-  const familyId = await getParentPortalPrimaryFamilyId(supabase, org.id);
+  const userProfile = await getParentPortalUserProfile(org.id);
+  const familyId = await getParentPortalPrimaryFamilyId(org.id);
 
   if (context.feature === "portal") {
     const upcomingAudienceScope = programId

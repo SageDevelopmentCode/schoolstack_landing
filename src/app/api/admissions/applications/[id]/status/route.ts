@@ -12,6 +12,11 @@ import {
   buildWithdrawalRestoreAction,
   resolveWithdrawalRestoreStatus,
 } from "@/lib/admissions/application-withdrawal-restore";
+import {
+  autoEnrollApplicationIfNoChecklist,
+  EnrollmentMaterializationError,
+} from "@/lib/admissions/enrollment-checklist-materialization";
+import { fireEnrollmentCompletedNotificationsIfNeeded } from "@/lib/admissions/fire-enrollment-completed-notifications";
 import { mergeActivityClientMetadata } from "@/lib/activity-client";
 import { getActorIdentityFromUser, logActivityEvent } from "@/lib/activity-log";
 import { apiError } from "@/lib/api/route-errors";
@@ -150,9 +155,38 @@ export async function PATCH(request: Request, context: RouteContext) {
       }),
     });
 
+    let responseStatus = String(updated.status);
+
+    if (toStatus === "accepted") {
+      try {
+        const autoEnrolled = await autoEnrollApplicationIfNoChecklist(admin, {
+          applicationId,
+          actorUserId: user.id,
+          activityMetadata: mergeActivityClientMetadata(request, {
+            autoEnrollOnAccept: true,
+          }),
+        });
+        if (autoEnrolled) {
+          fireEnrollmentCompletedNotificationsIfNeeded(admin, autoEnrolled);
+          responseStatus = "enrolled";
+        }
+      } catch (autoEnrollError) {
+        if (autoEnrollError instanceof EnrollmentMaterializationError) {
+          return apiError(ROUTE, {
+            request,
+            status: autoEnrollError.status,
+            error: `${autoEnrollError.message} The application remains accepted — use Mark as enrolled to retry.`,
+            code: autoEnrollError.code,
+            cause: autoEnrollError,
+          });
+        }
+        throw autoEnrollError;
+      }
+    }
+
     return NextResponse.json({
       id: String(updated.id),
-      status: String(updated.status),
+      status: responseStatus,
       updatedAt: String(updated.updated_at),
     });
   } catch (error) {
@@ -167,6 +201,16 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     if (error instanceof ApplicationStatusTransitionError) {
+      return apiError(ROUTE, {
+        request,
+        status: error.status,
+        error: error.message,
+        code: error.code,
+        cause: error,
+      });
+    }
+
+    if (error instanceof EnrollmentMaterializationError) {
       return apiError(ROUTE, {
         request,
         status: error.status,

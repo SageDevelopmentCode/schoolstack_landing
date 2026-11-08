@@ -5,6 +5,7 @@ import SchoolParentBaseline from "@/components/school-parent/SchoolParentBaselin
 import {
   familyPreviewBasePath,
   familyPreviewParentBasePath,
+  getFamilyPreviewGuardianUserId,
 } from "@/lib/admissions/family-preview-access";
 import {
   familyHasEnrolledAccessInProgram,
@@ -12,6 +13,7 @@ import {
   loadProgramParentPortalContext,
 } from "@/lib/admissions/program-parent-portal-access";
 import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
+import { getParentMessagesUnreadCountForUser } from "@/lib/messages/unread-count-api";
 import { getParentPortalActivityUnreadCount } from "@/lib/parent-portal/parent-activity-notifications-server";
 import { buildProgramParentNotificationContext } from "@/lib/parent-portal/parent-notification-context";
 import { programParentPortalHasEnabledFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
@@ -33,7 +35,7 @@ export default async function FamilyPreviewProgramParentLayout({
   const { slug, familyId, programSlug } = await params;
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org) {
     notFound();
@@ -100,6 +102,21 @@ export default async function FamilyPreviewProgramParentLayout({
     },
   );
 
+  const guardianUserId = await getFamilyPreviewGuardianUserId(
+    supabase,
+    org.id,
+    familyId,
+  );
+  const initialMessagesUnreadCount =
+    guardianUserId && programContext.effectiveFeatures.parent?.messages
+      ? await getParentMessagesUnreadCountForUser(
+          admin,
+          org.id,
+          guardianUserId,
+          org.name,
+        ).catch(() => 0)
+      : 0;
+
   return (
     <SchoolParentBaseline
       slug={slug}
@@ -117,6 +134,7 @@ export default async function FamilyPreviewProgramParentLayout({
       coopModeEnabled={programContext.coopMode}
       coopProgramLabel={programContext.displayLabel}
       initialActivityUnreadCount={initialActivityUnreadCount}
+      initialMessagesUnreadCount={initialMessagesUnreadCount}
       notificationContext={notificationContext}
       fridayBranchSettings={org.fridayBranchSettings}
     >

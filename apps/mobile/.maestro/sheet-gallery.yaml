@@ -1,0 +1,96 @@
+appId: com.mudkitchen.schoolstack.mobile
+---
+# Screenshots every BottomSheetShell variant from the dev sheet gallery
+# (src/components/dev/sheet-gallery-screen.tsx). Compared against committed
+# baselines by scripts/compare-sheet-gallery.mjs.
+
+- stopApp
+- openLink: schoolstack://dev/sheet-gallery?case=new-conversation-admin
+- extendedWaitUntil:
+    visible:
+      id: new-conversation-search-input
+    timeout: 60000
+- waitForAnimationToEnd
+- takeScreenshot: sheet-gallery-new-conversation-admin
+- tapOn:
+    id: new-conversation-search-input
+- inputText: 'Ada'
+- extendedWaitUntil:
+    visible: 'Ada Lovelace'
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: sheet-gallery-new-conversation-admin-typing
+
+- stopApp
+- openLink: schoolstack://dev/sheet-gallery?case=new-conversation-parent
+- extendedWaitUntil:
+    visible:
+      id: new-conversation-search-input
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: sheet-gallery-new-conversation-parent
+- tapOn:
+    id: new-conversation-search-input
+- inputText: 'Ada'
+- extendedWaitUntil:
+    visible: 'Ada Lovelace'
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: sheet-gallery-new-conversation-parent-typing
+
+- stopApp
+- openLink: schoolstack://dev/sheet-gallery?case=compose-menu
+- extendedWaitUntil:
+    visible:
+      id: admin-messages-new-conversation
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: sheet-gallery-compose-menu
+
+- stopApp
+- openLink: schoolstack://dev/sheet-gallery?case=story-form
+- extendedWaitUntil:
+    visible:
+      id: sheet-gallery-story-notes
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: sheet-gallery-story-form
+- tapOn:
+    id: sheet-gallery-story-notes
+- inputText: 'Bring sunscreen'
+- waitForAnimationToEnd
+- assertVisible:
+    id: sheet-gallery-story-notes
+- takeScreenshot: sheet-gallery-story-form-typing
+
+- stopApp
+- openLink: schoolstack://dev/sheet-gallery?case=parent-form
+- extendedWaitUntil:
+    visible:
+      id: sheet-gallery-parent-notes
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: sheet-gallery-parent-form
+- tapOn:
+    id: sheet-gallery-parent-notes
+- inputText: 'Grandmother'
+- waitForAnimationToEnd
+- assertVisible:
+    id: sheet-gallery-parent-notes
+- takeScreenshot: sheet-gallery-parent-form-typing
+
+- stopApp
+- openLink: schoolstack://dev/sheet-gallery?case=delete-confirm
+- extendedWaitUntil:
+    visible: 'Delete message?'
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: sheet-gallery-delete-confirm
+
+- stopApp
+- openLink: schoolstack://dev/sheet-gallery?case=teacher-assign
+- extendedWaitUntil:
+    visible: 'Assign teachers'
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: sheet-gallery-teacher-assign

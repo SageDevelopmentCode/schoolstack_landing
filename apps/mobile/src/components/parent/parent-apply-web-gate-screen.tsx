@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,6 +22,7 @@ import { adminCardShadow, buildPlatformAdminTheme } from '@/lib/organization-set
 import { toOrganizationBranding, type LiveOrganization } from '@/lib/organizations';
 import { resolveOrganizationAssetUrl } from '@/lib/resolve-asset-url';
 import { getSupabaseClient } from '@/lib/supabase';
+import { openExternalUrlSafely } from '@/lib/open-external-url';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 const DEFAULT_GATE_COPY: ParentMobileGateCopy = {
@@ -190,10 +190,11 @@ export function ParentApplyWebGateScreen() {
 
   const handleOpenApply = useCallback(async () => {
     if (!selectedSchool) return;
-    await openBrowserAsync(schoolApplyUrl(selectedSchool.slug), {
-      presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
+    await openExternalUrlSafely(schoolApplyUrl(selectedSchool.slug), reportError, {
+      operation: 'parent_apply_gate_open_apply',
+      errorTitle: 'Could not open application',
     });
-  }, [selectedSchool]);
+  }, [reportError, selectedSchool]);
 
   const handleSignOut = useCallback(async () => {
     await signOut();

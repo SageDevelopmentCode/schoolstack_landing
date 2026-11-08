@@ -1,9 +1,7 @@
-import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { getFirstTeacherNavPath } from "@/lib/organization-settings/teacher-nav";
 import { schoolTeacherPath } from "@/lib/organization-settings/teacher-routes";
-import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -13,9 +11,7 @@ type PageProps = {
 
 export default async function SchoolTeacherIndexPage({ params }: PageProps) {
   const { slug } = await params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org) {
     notFound();

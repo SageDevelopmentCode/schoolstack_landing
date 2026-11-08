@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug, familyId, programSlug, feature, subtab } = await params;
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
   const previewParentBasePath = familyPreviewParentBasePath(slug, familyId);
   const programContext = org
     ? await loadProgramParentPortalContext({
@@ -72,7 +72,7 @@ export default async function FamilyPreviewProgramParentSubtabPage({
   const { slug, familyId, programSlug, feature, subtab } = await params;
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org) {
     notFound();

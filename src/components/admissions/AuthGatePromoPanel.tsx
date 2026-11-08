@@ -3,11 +3,20 @@
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
+import { ACCENT_HIGHLIGHT, BOLD_HEADING } from "@/components/home/bright-styles";
 import { AUTH_GATE_PROMO } from "@/lib/site";
 
 const slideFadeTransition = { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] as const };
 
-export function AuthGatePromoPanel({ activeSlide }: { activeSlide: number }) {
+type AuthGatePromoPanelProps = {
+  activeSlide: number;
+  variant?: "legacy" | "bright";
+};
+
+export function AuthGatePromoPanel({
+  activeSlide,
+  variant = "legacy",
+}: AuthGatePromoPanelProps) {
   const slides = AUTH_GATE_PROMO.slides;
   const slide = slides[activeSlide];
 
@@ -45,7 +54,13 @@ export function AuthGatePromoPanel({ activeSlide }: { activeSlide: number }) {
             sizes="24px"
             className="h-6 w-auto object-contain"
           />
-          <span className="font-display text-base font-semibold text-clay">
+          <span
+            className={
+              variant === "bright"
+                ? "font-secondary text-base font-semibold text-clay"
+                : "font-display text-base font-semibold text-clay"
+            }
+          >
             MudKitchen
           </span>
         </div>
@@ -63,15 +78,26 @@ export function AuthGatePromoPanel({ activeSlide }: { activeSlide: number }) {
                 {slide.badge}
               </span>
 
-              <h2 className="mt-4 font-display text-[clamp(1.2rem,4.2vw,1.75rem)] font-medium leading-[1.12] text-white lg:text-[clamp(1.35rem,1.65vw,1.75rem)]">
-                <span className="block">{slide.headlineLead}</span>
-                <em
-                  className="mt-0 block text-[#E8D5C8]"
-                  style={{ fontStyle: "italic" }}
+              {variant === "bright" ? (
+                <h2
+                  className={`mt-4 text-[clamp(1.35rem,1.65vw,1.85rem)] text-white ${BOLD_HEADING}`}
                 >
-                  {slide.headlineAccent}
-                </em>
-              </h2>
+                  {slide.headlineLead}{" "}
+                  <span className={`${ACCENT_HIGHLIGHT} text-white`}>
+                    {slide.headlineAccent}
+                  </span>
+                </h2>
+              ) : (
+                <h2 className="mt-4 font-display text-[clamp(1.2rem,4.2vw,1.75rem)] font-medium leading-[1.12] text-white lg:text-[clamp(1.35rem,1.65vw,1.75rem)]">
+                  <span className="block">{slide.headlineLead}</span>
+                  <em
+                    className="mt-0 block text-[#E8D5C8]"
+                    style={{ fontStyle: "italic" }}
+                  >
+                    {slide.headlineAccent}
+                  </em>
+                </h2>
+              )}
 
               <p className="mt-4 line-clamp-3 text-sm leading-relaxed text-white/75 lg:text-[15px] lg:line-clamp-none">
                 {slide.subtext}

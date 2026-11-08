@@ -56,7 +56,11 @@ export function getFirstAdminNavChildPath(
 ): string | null {
   for (const child of children) {
     if (child.children?.length) {
-      const nested = getFirstAdminNavChildPath(slug, parentFeature, child.children);
+      const nested = getFirstAdminNavChildPath(
+        slug,
+        parentFeature,
+        child.children,
+      );
       if (nested) return nested;
       continue;
     }
@@ -74,7 +78,9 @@ export function schoolMudKitchenPortalPath(
 }
 
 export function parseSchoolAdminPath(pathname: string): AdminNavPath | null {
-  const match = pathname.match(/\/school\/[^/]+\/admin\/([^/]+)(?:\/([^/]+))?$/);
+  const match = pathname.match(
+    /\/school\/[^/]+\/admin\/([^/]+)(?:\/([^/]+))?$/,
+  );
   if (!match) return null;
   return {
     feature: match[1],
@@ -100,9 +106,7 @@ export function isAdminFeatureEnabled(
     return false;
   }
 
-  return Boolean(
-    (adminFeatures as Record<string, boolean>)[featureKey],
-  );
+  return Boolean((adminFeatures as Record<string, boolean>)[featureKey]);
 }
 
 export function isAdminNavPathEnabled(
@@ -124,7 +128,11 @@ export function isAdminNavPathEnabled(
     if (!isAdminFeatureEnabled(features, parentKey)) {
       continue;
     }
-    const children = getEnabledFeatureNavChildren("admin", parentKey, portalNav);
+    const children = getEnabledFeatureNavChildren(
+      "admin",
+      parentKey,
+      portalNav,
+    );
     if (
       children.some((child) =>
         adminNavChildMatchesPath(parentKey, child, featureKey, subtab),

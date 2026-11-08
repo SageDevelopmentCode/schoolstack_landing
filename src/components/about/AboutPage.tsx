@@ -15,6 +15,13 @@ import { FadeInView } from "@/components/ui/FadeInView";
 import AboutFeatureChipGrid from "@/components/about/AboutFeatureChipGrid";
 import { CORE_FEATURE_CHIPS } from "@/components/about/about-feature-chips";
 import { AUDIENCE_CARDS } from "@/components/about/about-copy";
+import {
+  ACCENT_HIGHLIGHT,
+  BOLD_HEADING,
+  DARK_PILL,
+  OUTLINE_PILL,
+} from "@/components/home/bright-styles";
+import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
 
 type AboutTab = "our-story" | "platform";
 
@@ -51,16 +58,16 @@ function SectionNav({
                 type="button"
                 onClick={() => onSelect(link.id)}
                 aria-current={active ? "true" : undefined}
-                className={`text-sm font-secondary transition-colors duration-150 ${
+                className={`font-secondary text-sm transition-colors duration-150 ${
                   layout === "sidebar"
-                    ? `block w-full text-left py-1.5 pl-3 border-l-2 ${
+                    ? `block w-full border-l-2 py-1.5 pl-3 text-left ${
                         active
-                          ? "border-clay text-text font-medium"
-                          : "border-transparent text-text-muted hover:text-text"
+                          ? "border-clay font-semibold text-[#1d1a16]"
+                          : "border-transparent text-[#1d1a16]/55 hover:text-[#1d1a16]"
                       }`
                     : active
-                      ? "text-text font-medium"
-                      : "text-text-muted hover:text-text"
+                      ? "font-semibold text-[#1d1a16]"
+                      : "text-[#1d1a16]/55 hover:text-[#1d1a16]"
                 }`}
               >
                 {link.label}
@@ -118,31 +125,23 @@ export default function AboutPage() {
 
   return (
     <>
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-sage-900 border-b border-white/8 pt-[140px] pb-16 lg:pb-20">
-        <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-bg/25"
-          aria-hidden
-        />
-        <div className="relative max-w-[1100px] mx-auto px-6 lg:px-16">
+      <section className="border-b border-black/8 bg-white pt-28 pb-14 sm:pt-32 sm:pb-16 lg:pb-20">
+        <div className="relative mx-auto max-w-[1400px] px-6 lg:px-8">
           <FadeInView>
-            <span className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 text-white/75 text-[11px] font-bold uppercase tracking-widest px-3.5 py-1.5">
+            <p className="font-secondary text-[13px] font-semibold uppercase tracking-widest text-clay">
               About MudKitchen
-            </span>
+            </p>
           </FadeInView>
           <FadeInView delay={0.08}>
-            <h1 className="font-display text-[clamp(2rem,4.5vw,3.2rem)] leading-[1.08] text-white mt-5 max-w-[720px]">
+            <h1
+              className={`mt-4 max-w-[720px] text-[clamp(2rem,4.5vw,3.2rem)] ${BOLD_HEADING}`}
+            >
               We didn&apos;t start with a software company.{" "}
-              <em style={{ color: "#A05C45", fontStyle: "italic" }}>
-                We started with a school.
-              </em>
+              <span className={ACCENT_HIGHLIGHT}>We started with a school.</span>
             </h1>
           </FadeInView>
           <FadeInView delay={0.14}>
-            <p
-              className="text-[17px] font-secondary leading-relaxed mt-5 max-w-[600px]"
-              style={{ color: "rgba(247, 241, 231, 0.75)" }}
-            >
+            <p className="mt-5 max-w-[600px] font-secondary text-[17px] leading-relaxed text-[#1d1a16]/70">
               MudKitchen is built by Julius Cecilia and Sabrina Obnamia — microschool
               founders who needed one connected system to open and run Sage Field in
               Round Rock, Texas.
@@ -151,13 +150,13 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <div className="max-w-[1100px] mx-auto px-6 lg:px-16 pb-8">
-        <div className="pt-10 lg:pt-12 lg:grid lg:grid-cols-[minmax(140px,180px)_1fr] lg:gap-12 xl:gap-16 lg:items-start">
+      <div className="mx-auto max-w-[1400px] px-6 pb-8 lg:px-8">
+        <div className="lg:grid lg:grid-cols-[minmax(140px,180px)_1fr] lg:items-start lg:gap-12 xl:gap-16 lg:pt-10">
           <SectionNav
             layout="sidebar"
             activeTab={activeTab}
             onSelect={scrollToSection}
-            className="hidden lg:block sticky top-[100px] self-start"
+            className="sticky top-[100px] hidden self-start lg:block"
           />
 
           <div className="min-w-0">
@@ -165,102 +164,105 @@ export default function AboutPage() {
               layout="inline"
               activeTab={activeTab}
               onSelect={scrollToSection}
-              className="lg:hidden sticky top-[72px] z-30 -mx-6 px-6 py-3 mb-6 bg-bg/90 backdrop-blur-md"
+              className="sticky top-[72px] z-30 -mx-6 mb-6 border-b border-black/8 bg-white/90 px-6 py-3 backdrop-blur-md lg:hidden"
             />
 
-            {/* Our story */}
             <section
               id="our-story"
               ref={storyRef}
-              className="scroll-mt-24 pt-0 pb-16"
+              className="scroll-mt-24 pb-16 pt-0"
             >
               <AboutOurStorySection ctaVariant="about" />
             </section>
 
-            {/* Platform */}
             <section
               id="platform"
               ref={platformRef}
-              className="scroll-mt-24 border-t border-border"
+              className="scroll-mt-24 border-t border-black/8 pt-8"
             >
               <GetStartedShowcaseCarousel variant="embedded" />
-              <div className="pt-12 lg:pt-14 pb-16 lg:pb-20">
-          <FadeInView>
-            <div className="flex items-center gap-2 text-accent mb-4">
-              <Layers size={18} aria-hidden />
-              <p className="text-[13px] font-medium uppercase tracking-widest text-text-muted">
-                The platform
-              </p>
-            </div>
-          </FadeInView>
-          <FadeInView delay={0.06}>
-            <h2 className="font-display text-[clamp(1.75rem,3.5vw,2.5rem)] leading-[1.08] text-text max-w-[640px]">
-              One system for the people who{" "}
-              <em style={{ color: "#A05C45", fontStyle: "italic" }}>run a microschool.</em>
-            </h2>
-          </FadeInView>
-          <FadeInView delay={0.1}>
-            <p className="text-[17px] font-secondary text-text-muted leading-relaxed mt-5 max-w-[640px]">
-              MudKitchen brings enrollment, tuition and billing, parent communication,
-              student records, and daily school operations into one platform — built
-              inside a real microschool to replace the patchwork of spreadsheets, form
-              builders, and disconnected tools founders typically stitch together.
-            </p>
-          </FadeInView>
-
-          <FadeInView delay={0.14} className="mt-12">
-            <h3 className="font-display text-xl text-text mb-4">Who it&apos;s for</h3>
-            <p className="text-[16px] font-secondary text-text-muted leading-relaxed max-w-[640px] mb-8">
-              Microschool founders, school administrators, and private school operators who
-              need parents, teachers, and admins aligned in one system — whether you are
-              launching a new program or running an established school.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {AUDIENCE_CARDS.map((card) => {
-                const Icon =
-                  card.title === "Parents"
-                    ? HeartHandshake
-                    : card.title === "Teachers"
-                      ? GraduationCap
-                      : Sparkles;
-                return (
-                  <div
-                    key={card.title}
-                    className="rounded-2xl border border-border bg-surface p-6 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-200"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-sage-100 flex items-center justify-center mb-4">
-                      <Icon size={18} className="text-accent" aria-hidden />
-                    </div>
-                    <h4 className="font-display text-lg text-text">{card.title}</h4>
-                    <p className="text-[15px] font-secondary text-text-muted leading-relaxed mt-2">
-                      {card.description}
+              <div className="pb-16 pt-12 lg:pb-20 lg:pt-14">
+                <FadeInView>
+                  <div className="mb-4 flex items-center gap-2 text-clay">
+                    <Layers size={18} aria-hidden />
+                    <p className="font-secondary text-[13px] font-semibold uppercase tracking-widest">
+                      The platform
                     </p>
                   </div>
-                );
-              })}
-            </div>
-          </FadeInView>
+                </FadeInView>
+                <FadeInView delay={0.06}>
+                  <h2
+                    className={`max-w-[640px] text-[clamp(1.75rem,3.5vw,2.5rem)] ${BOLD_HEADING}`}
+                  >
+                    One system for the people who{" "}
+                    <span className={ACCENT_HIGHLIGHT}>run a microschool.</span>
+                  </h2>
+                </FadeInView>
+                <FadeInView delay={0.1}>
+                  <p className="mt-5 max-w-[640px] font-secondary text-[17px] leading-relaxed text-[#1d1a16]/70">
+                    MudKitchen brings enrollment, tuition and billing, parent communication,
+                    student records, and daily school operations into one platform — built
+                    inside a real microschool to replace the patchwork of spreadsheets, form
+                    builders, and disconnected tools founders typically stitch together.
+                  </p>
+                </FadeInView>
 
-          <FadeInView delay={0.18} className="mt-16">
-            <h3 className="font-display text-xl text-text mb-6">What&apos;s included</h3>
-            <AboutFeatureChipGrid items={CORE_FEATURE_CHIPS} />
-          </FadeInView>
+                <FadeInView delay={0.14} className="mt-12">
+                  <h3 className="mb-4 font-secondary text-xl font-bold text-[#1d1a16]">
+                    Who it&apos;s for
+                  </h3>
+                  <p className="mb-8 max-w-[640px] font-secondary text-[16px] leading-relaxed text-[#1d1a16]/70">
+                    Microschool founders, school administrators, and private school operators who
+                    need parents, teachers, and admins aligned in one system — whether you are
+                    launching a new program or running an established school.
+                  </p>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    {AUDIENCE_CARDS.map((card) => {
+                      const Icon =
+                        card.title === "Parents"
+                          ? HeartHandshake
+                          : card.title === "Teachers"
+                            ? GraduationCap
+                            : Sparkles;
+                      return (
+                        <div
+                          key={card.title}
+                          className="rounded-[24px] border border-black/8 bg-white p-6 shadow-[0_12px_40px_rgba(30,60,30,0.05)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_48px_rgba(30,60,30,0.08)]"
+                        >
+                          <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-[#F4F1EC]">
+                            <Icon size={18} className="text-clay" aria-hidden />
+                          </div>
+                          <h4 className="font-secondary text-lg font-bold text-[#1d1a16]">
+                            {card.title}
+                          </h4>
+                          <p className="mt-2 font-secondary text-[15px] leading-relaxed text-[#1d1a16]/70">
+                            {card.description}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </FadeInView>
 
-          <FadeInView delay={0.22} className="mt-14 flex flex-col sm:flex-row flex-wrap gap-3">
-            <Link
-              href="/#product"
-              className="inline-flex items-center justify-center gap-2 rounded-pill border border-border bg-surface text-sm font-medium font-secondary text-text px-6 h-11 hover:bg-bg transition-colors duration-200"
-            >
-              See the product on the homepage
-              <ArrowRight size={16} aria-hidden />
-            </Link>
-            <Link
-              href="/get-started"
-              className="inline-flex items-center justify-center gap-2 rounded-pill bg-clay text-white text-sm font-medium font-secondary px-6 h-11 hover:opacity-90 transition-all duration-200"
-            >
-              Book a demo
-            </Link>
-          </FadeInView>
+                <FadeInView delay={0.18} className="mt-16">
+                  <h3 className="mb-6 font-secondary text-xl font-bold text-[#1d1a16]">
+                    What&apos;s included
+                  </h3>
+                  <AboutFeatureChipGrid items={CORE_FEATURE_CHIPS} />
+                </FadeInView>
+
+                <FadeInView
+                  delay={0.22}
+                  className="mt-14 flex flex-col flex-wrap gap-3 sm:flex-row"
+                >
+                  <Link href="/#product" className={OUTLINE_PILL}>
+                    See the product on the homepage
+                    <ArrowRight size={16} aria-hidden />
+                  </Link>
+                  <Link href={BOOK_DEMO_HREF} className={DARK_PILL}>
+                    Book a demo
+                  </Link>
+                </FadeInView>
               </div>
             </section>
           </div>

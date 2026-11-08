@@ -7,6 +7,8 @@ import { FadeInView } from "@/components/ui/FadeInView";
 import AboutFeatureChipGrid from "@/components/about/AboutFeatureChipGrid";
 import { BUILT_CAPABILITY_CHIPS } from "@/components/about/about-feature-chips";
 import { FOUNDER_PORTRAITS } from "@/components/about/about-copy";
+import { DARK_PILL, OUTLINE_PILL } from "@/components/home/bright-styles";
+import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
 import { scrollToBookDemoSection } from "@/lib/marketing/book-demo-hash-context";
 
 const SAGE_FIELD_URL = "https://sagefield.co/";
@@ -38,7 +40,7 @@ export default function AboutOurStorySection({
         {[FOUNDER_PORTRAITS.julius, FOUNDER_PORTRAITS.sabrina].map(
           (founder, i) => (
             <FadeInView key={founder.name} delay={i * 0.06}>
-              <div className="group relative overflow-hidden rounded-2xl border border-border bg-bg shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+              <div className="group relative overflow-hidden rounded-[24px] border border-black/8 bg-white shadow-[0_12px_40px_rgba(30,60,30,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_48px_rgba(30,60,30,0.10)]">
                 <div className="relative aspect-[4/3] overflow-hidden">
                   <Image
                     src={founder.src}
@@ -53,7 +55,7 @@ export default function AboutOurStorySection({
                     aria-hidden
                   />
                   <div className="absolute bottom-0 left-0 right-0 p-5">
-                    <p className="font-display text-xl text-white">{founder.name}</p>
+                    <p className="font-secondary text-xl font-bold text-white">{founder.name}</p>
                     <p className="text-sm text-white/75 font-secondary mt-0.5">
                       {founder.role} · {founder.focus}
                     </p>
@@ -65,9 +67,9 @@ export default function AboutOurStorySection({
         )}
       </div>
 
-      <div className="max-w-[720px] space-y-6 text-[17px] font-secondary text-text-muted leading-relaxed">
+      <div className="max-w-[720px] space-y-6 font-secondary text-[17px] leading-relaxed text-[#1d1a16]/70">
         <FadeInView>
-          <p className="text-text text-[19px] font-display leading-snug">
+          <p className="text-[19px] leading-snug text-[#1d1a16]">
             In May 2026, we founded{" "}
             <a
               href={SAGE_FIELD_URL}
@@ -101,7 +103,7 @@ export default function AboutOurStorySection({
           </p>
         </FadeInView>
         <FadeInView delay={0.1}>
-          <p className="font-display text-text text-[1.35rem] leading-snug">
+          <p className="text-[1.35rem] font-bold leading-snug text-[#1d1a16]">
             So we built our own.
           </p>
         </FadeInView>
@@ -113,7 +115,7 @@ export default function AboutOurStorySection({
 
       <FadeInView
         delay={0.14}
-        className="mt-10 max-w-[720px] space-y-6 text-[17px] font-secondary text-text-muted leading-relaxed"
+        className="mt-10 max-w-[720px] space-y-6 font-secondary text-[17px] leading-relaxed text-[#1d1a16]/70"
       >
         <p>
           Julius developed our website, parent portal, and mobile app, along with tools
@@ -129,17 +131,14 @@ export default function AboutOurStorySection({
       </FadeInView>
 
       <FadeInView delay={0.16} className="mt-12">
-        <div
-          className="rounded-2xl border border-white/10 px-8 py-10 text-center"
-          style={{ backgroundColor: "#1a3327" }}
-        >
-          <p className="font-display text-[clamp(2.5rem,6vw,3.5rem)] leading-none text-white">
+        <div className="rounded-[40px] bg-[#1d1a16] px-8 py-10 text-center">
+          <p className="font-secondary text-[clamp(2.5rem,6vw,3.5rem)] font-bold leading-none text-white">
             0 → 40
           </p>
-          <p className="text-white/70 font-secondary mt-2 text-[17px]">
+          <p className="mt-2 font-secondary text-[17px] text-white/70">
             enrolled students in our first three months
           </p>
-          <p className="text-white/55 font-secondary mt-4 text-[15px] max-w-[480px] mx-auto leading-relaxed">
+          <p className="mx-auto mt-4 max-w-[480px] font-secondary text-[15px] leading-relaxed text-white/55">
             The software helped support that growth by bringing the work of running our
             school into one connected system.
           </p>
@@ -148,7 +147,7 @@ export default function AboutOurStorySection({
 
       <FadeInView
         delay={0.18}
-        className="mt-10 max-w-[720px] space-y-6 text-[17px] font-secondary text-text-muted leading-relaxed"
+        className="mt-10 max-w-[720px] space-y-6 font-secondary text-[17px] leading-relaxed text-[#1d1a16]/70"
       >
         <p>
           From the beginning, though, we were building with other microschools in mind.
@@ -157,7 +156,7 @@ export default function AboutOurStorySection({
           collecting tuition, supporting teachers, and making their systems fit their
           school—not the other way around.
         </p>
-        <p className="text-text">
+        <p className="text-[#1d1a16]">
           That&apos;s why we&apos;re building this company. We know what it takes to start a
           microschool because we&apos;re doing it ourselves. And we believe the software
           behind a school should make that work easier, leaving founders more time for the
@@ -167,43 +166,29 @@ export default function AboutOurStorySection({
 
       <FadeInView delay={0.2} className="mt-10 flex flex-col sm:flex-row flex-wrap gap-3">
         {ctaVariant === "about" ? (
-          <Link
-            href="/get-started"
-            className="inline-flex items-center justify-center gap-2 rounded-pill bg-clay text-white text-sm font-medium font-secondary px-6 h-11 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
-          >
+          <Link href={BOOK_DEMO_HREF} className={DARK_PILL}>
             Book a demo
             <ArrowRight size={16} aria-hidden />
           </Link>
         ) : ctaVariant === "get-started" ? (
-          <button
-            type="button"
-            onClick={scrollToGetStartedDemo}
-            className="inline-flex items-center justify-center gap-2 rounded-pill bg-clay text-white text-sm font-medium font-secondary px-6 h-11 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
-          >
+          <button type="button" onClick={scrollToGetStartedDemo} className={DARK_PILL}>
             Schedule your demo
             <ArrowRight size={16} aria-hidden />
           </button>
         ) : (
-          <button
-            type="button"
-            onClick={scrollToBookDemoSection}
-            className="inline-flex items-center justify-center gap-2 rounded-pill bg-clay text-white text-sm font-medium font-secondary px-6 h-11 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
-          >
+          <button type="button" onClick={scrollToBookDemoSection} className={DARK_PILL}>
             Schedule your demo
             <ArrowRight size={16} aria-hidden />
           </button>
         )}
-        <Link
-          href="/customers/sagefield"
-          className="inline-flex items-center justify-center gap-2 rounded-pill border border-border bg-bg text-sm font-medium font-secondary text-text px-6 h-11 hover:bg-surface transition-colors duration-200"
-        >
+        <Link href="/customers/sagefield" className={OUTLINE_PILL}>
           Read the Sage Field story
         </Link>
         <a
           href={SAGE_FIELD_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center justify-center gap-2 rounded-pill border border-border bg-bg text-sm font-medium font-secondary text-text-muted px-6 h-11 hover:text-text hover:bg-surface transition-colors duration-200"
+          className={OUTLINE_PILL}
         >
           Visit sagefield.co
           <ExternalLink size={14} aria-hidden />

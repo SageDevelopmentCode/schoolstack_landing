@@ -44,8 +44,12 @@ export function teacherDocumentationPath(
   return `/school/${slug}/teacher/documentation`;
 }
 
-export function parseSchoolTeacherPath(pathname: string): TeacherNavPath | null {
-  const match = pathname.match(/\/school\/[^/]+\/teacher\/([^/]+)(?:\/([^/]+))?$/);
+export function parseSchoolTeacherPath(
+  pathname: string,
+): TeacherNavPath | null {
+  const match = pathname.match(
+    /\/school\/[^/]+\/teacher\/([^/]+)(?:\/([^/]+))?$/,
+  );
   if (!match) return null;
   return {
     feature: match[1],
@@ -84,12 +88,12 @@ export function isTeacherFeatureEnabled(
     return false;
   }
 
-  return Boolean(
-    (teacherFeatures as Record<string, boolean>)[featureKey],
-  );
+  return Boolean((teacherFeatures as Record<string, boolean>)[featureKey]);
 }
 
-export function isTeacherPortalEnabled(features: OrganizationFeatures): boolean {
+export function isTeacherPortalEnabled(
+  features: OrganizationFeatures,
+): boolean {
   const teacherFeatures = features.teacher;
   if (
     !teacherFeatures ||
@@ -99,7 +103,9 @@ export function isTeacherPortalEnabled(features: OrganizationFeatures): boolean 
     return false;
   }
 
-  return Object.values(teacherFeatures as Record<string, boolean>).some(Boolean);
+  return Object.values(teacherFeatures as Record<string, boolean>).some(
+    Boolean,
+  );
 }
 
 export function isTeacherNavPathEnabled(

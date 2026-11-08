@@ -7,12 +7,15 @@ export async function authorizeParentStudentHealthAccess(
   user: User,
   organizationId: string,
   studentId: string,
+  /** Access snapshot from `parent_portal_access`; skips the family and student lookups. */
+  portalAccess?: { studentIds: string[] },
 ) {
   const isGuardian = await userIsGuardianForStudent(
     supabase,
     user.id,
     organizationId,
     studentId,
+    portalAccess,
   );
 
   if (!isGuardian) {

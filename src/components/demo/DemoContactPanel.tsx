@@ -5,12 +5,15 @@ import { useEffect, useState } from "react";
 import SchoolDemoWordmark, {
   type SchoolDemoLogo,
 } from "@/components/demo/SchoolDemoWordmark";
-import GetStartedFilmSection from "@/components/get-started/GetStartedFilmSection";
-import GetStartedShowcaseCarousel from "@/components/get-started/GetStartedShowcaseCarousel";
+import GetStartedStoryHeader from "@/components/get-started/GetStartedStoryHeader";
+import GetStartedStoryTextField, {
+  GetStartedIntroTextArea,
+} from "@/components/get-started/GetStartedStoryTextField";
 import {
   DemoScheduler,
   type DemoSchedulerBooking,
 } from "@/components/scheduler/DemoScheduler";
+import { DemoSchedulerSkeleton } from "@/components/scheduler/DemoSchedulerSkeleton";
 import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
 } from "@/components/ui/ButtonLoadingLabel";
@@ -18,12 +21,11 @@ import PublicFormHoneypotField from "@/components/public-forms/PublicFormHoneypo
 import { PUBLIC_FORM_HONEYPOT_FIELD } from "@/lib/public-forms/honeypot";
 import { mudkitchenDemoContact } from "@/data/school-demos/mudkitchen-demo-contact";
 import { formatSelectedDate } from "@/lib/demo-scheduler";
-
-const inputClassName =
-  "w-full rounded-md bg-white border border-black/[0.09] px-3 py-2.5 text-sm text-[#2E4A3C] placeholder-[#2E4A3C]/40 font-body outline-none focus:ring-2 focus:ring-[#2E4A3C]/30 focus:border-[#2E4A3C] transition";
-
-const textareaClassName =
-  "w-full min-h-[140px] resize-y rounded-md bg-white border border-black/[0.09] px-3 py-2.5 text-sm text-[#2E4A3C] placeholder-[#2E4A3C]/40 font-body outline-none focus:ring-2 focus:ring-[#2E4A3C]/30 focus:border-[#2E4A3C] transition";
+import { detectBrowserTimezone } from "@/lib/marketing/demo-timezone-options";
+import { SCHEDULER_TIMEZONE } from "@/lib/demo-scheduler";
+import { ACCENT_HIGHLIGHT, DARK_PILL } from "@/components/home/bright-styles";
+import { MUDKITCHEN_MARKETING_BRIGHT_THEME } from "@/lib/marketing/mudkitchen-bright-marketing-theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -32,32 +34,37 @@ interface Props {
   schoolName: string;
   logo: SchoolDemoLogo;
   variant?: "schedule" | "feedback";
+  theme?: ParentThemeTokens;
 }
 
 function ContactDetailsFooter() {
   const { contact } = mudkitchenDemoContact;
+  const theme = MUDKITCHEN_MARKETING_BRIGHT_THEME;
 
   return (
-    <div className="mt-8 rounded-lg border border-black/[0.07] bg-white px-5 py-5">
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-[#2E4A3C]/50 font-body">
+    <div className="mt-8 rounded-[24px] bg-[#F4F1EC] px-5 py-5 ring-1 ring-black/[0.06]">
+      <p
+        className="font-secondary text-[11px] font-semibold uppercase tracking-widest text-[#1d1a16]/50"
+        style={{ fontFamily: theme.fontBody }}
+      >
         {contact.eyebrow}
       </p>
       <a
         href={`mailto:${contact.email}`}
-        className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#2E4A3C] font-body hover:text-[#233B2F] transition-colors"
+        className="font-secondary mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#1d1a16] transition-colors hover:text-clay"
       >
         <Mail className="h-4 w-4 shrink-0" aria-hidden />
         {contact.email}
       </a>
       <a
         href={contact.phoneHref}
-        className="mt-2 flex items-center gap-2 text-sm font-semibold text-[#2E4A3C] font-body hover:text-[#233B2F] transition-colors"
+        className="font-secondary mt-2 flex items-center gap-2 text-sm font-semibold text-[#1d1a16] transition-colors hover:text-clay"
       >
         <Phone className="h-4 w-4 shrink-0" aria-hidden />
         {contact.phone}
-        <span className="font-normal text-[#2E4A3C]/60">· text or call</span>
+        <span className="font-normal text-[#1d1a16]/60">· text or call</span>
       </a>
-      <p className="mt-2 text-xs text-[#2E4A3C]/60 font-body">{contact.blurb}</p>
+      <p className="font-secondary mt-2 text-xs text-[#1d1a16]/60">{contact.blurb}</p>
     </div>
   );
 }
@@ -66,10 +73,12 @@ function DemoContactFeedbackPanel({
   schoolSlug,
   schoolName,
   logo,
+  theme,
 }: {
   schoolSlug: string;
   schoolName: string;
   logo: SchoolDemoLogo;
+  theme: ParentThemeTokens;
 }) {
   const { feedback } = mudkitchenDemoContact;
   const [comment, setComment] = useState("");
@@ -116,67 +125,64 @@ function DemoContactFeedbackPanel({
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-[#F7F1E7]">
-      <div className="mx-auto flex max-w-3xl flex-col px-6 py-10 sm:px-10 sm:py-12">
+    <div className="h-full overflow-y-auto bg-white">
+      <div className="mx-auto flex max-w-[760px] flex-col px-5 py-10 sm:px-8 sm:py-12">
         <div className="mb-6 flex items-center gap-3">
           <SchoolDemoWordmark
             logo={logo}
-            className="h-10 w-auto object-contain shrink-0"
+            className="h-10 w-auto shrink-0 object-contain"
           />
-          <h2 className="font-display text-xl font-semibold text-[#2E4A3C] sm:text-2xl">
-            {feedback.heading}
-          </h2>
         </div>
 
+        <GetStartedStoryHeader
+          kicker="MudKitchen concept demo"
+          title={feedback.heading}
+          subtitle={feedback.subheading}
+        />
+
         {submitted ? (
-          <div className="rounded-lg border border-[#2E4A3C]/10 bg-white px-6 py-8 text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#2E4A3C] text-white">
+          <div className="rounded-[28px] bg-white px-6 py-8 text-center ring-1 ring-black/10">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#1d1a16] text-white">
               <Check className="h-6 w-6" aria-hidden />
             </div>
-            <h3 className="font-display text-lg font-medium text-[#2E4A3C]">
+            <h3 className="font-secondary text-lg font-bold text-[#1d1a16]">
               {feedback.successTitle}
             </h3>
-            <p className="mt-2 text-sm text-[#2E4A3C]/70 font-body">
+            <p className="font-secondary mt-2 text-sm text-[#1d1a16]/70">
               {feedback.successMessage}
             </p>
           </div>
         ) : (
-          <>
-            <p className="mb-6 text-sm leading-relaxed text-[#2E4A3C]/70 font-body">
-              {feedback.subheading}
-            </p>
-
-            <div className="relative rounded-lg border border-black/[0.07] bg-white p-5 sm:p-6">
-              <PublicFormHoneypotField
-                value={companyWebsite}
-                onChange={setCompanyWebsite}
-              />
-              <label className="flex flex-col gap-1.5">
-                <span className="sr-only">Questions or comments</span>
-                <textarea
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder={feedback.inputPlaceholder}
-                  className={textareaClassName}
-                />
-              </label>
-              <div className="mt-4 flex items-center justify-end gap-3">
-                {submitError ? (
-                  <p className="text-sm text-red-600 font-body mr-auto">{submitError}</p>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  disabled={!canSubmit}
-                  className={`px-4 py-2.5 rounded-md bg-[#2E4A3C] text-white text-sm font-medium font-body hover:bg-[#233B2F] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${BUTTON_LOADING_LAYOUT_CLASS}`}
-                >
-                  <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Sending…">
-                    {feedback.submitLabel}
-                  </ButtonLoadingLabel>
-                </button>
-              </div>
+          <div className="relative rounded-[28px] bg-white p-5 ring-1 ring-black/10 sm:p-6">
+            <PublicFormHoneypotField
+              value={companyWebsite}
+              onChange={setCompanyWebsite}
+            />
+            <GetStartedIntroTextArea
+              theme={theme}
+              label="Questions or comments"
+              value={comment}
+              onChange={setComment}
+              placeholder={feedback.inputPlaceholder}
+            />
+            <div className="mt-4 flex items-center justify-end gap-3">
+              {submitError ? (
+                <p className="font-secondary mr-auto text-sm text-clay">
+                  {submitError}
+                </p>
+              ) : null}
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={!canSubmit}
+                className={`${DARK_PILL} disabled:cursor-not-allowed disabled:opacity-50 ${BUTTON_LOADING_LAYOUT_CLASS}`}
+              >
+                <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Sending…">
+                  {feedback.submitLabel}
+                </ButtonLoadingLabel>
+              </button>
             </div>
-          </>
+          </div>
         )}
 
         <ContactDetailsFooter />
@@ -189,12 +195,14 @@ function DemoContactSchedulePanel({
   schoolSlug,
   schoolName,
   logo,
+  theme,
 }: {
   schoolSlug: string;
   schoolName: string;
   logo: SchoolDemoLogo;
+  theme: ParentThemeTokens;
 }) {
-  const { heading, subheading, scheduler, form } = mudkitchenDemoContact;
+  const { subheading, scheduler, form } = mudkitchenDemoContact;
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [booking, setBooking] = useState<DemoSchedulerBooking | null>(null);
@@ -204,6 +212,9 @@ function DemoContactSchedulePanel({
   const [availabilityLoading, setAvailabilityLoading] = useState(true);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
   const [companyWebsite, setCompanyWebsite] = useState("");
+  const [displayTimezone, setDisplayTimezone] = useState(() =>
+    detectBrowserTimezone(SCHEDULER_TIMEZONE),
+  );
 
   const canBook =
     name.trim().length > 0 &&
@@ -289,90 +300,95 @@ function DemoContactSchedulePanel({
     : form.successMessage;
 
   return (
-    <div className="h-full overflow-y-auto bg-[#F7F1E7]">
-      <GetStartedShowcaseCarousel />
-      <div className="mx-auto flex max-w-3xl flex-col px-6 py-10 sm:px-10 sm:py-12">
-        <div className="mb-6 flex items-center gap-3">
+    <div className="h-full overflow-y-auto bg-white">
+      <div className="mx-auto flex max-w-[760px] flex-col px-5 py-10 sm:px-8 sm:py-12">
+        <div className="mb-2 flex items-center gap-3">
           <SchoolDemoWordmark
             logo={logo}
-            className="h-10 w-auto object-contain shrink-0"
+            className="h-10 w-auto shrink-0 object-contain"
           />
-          <h2 className="font-display text-xl font-semibold text-[#2E4A3C] sm:text-2xl">
-            {heading}
-          </h2>
+          <p className="font-secondary text-xs text-[#1d1a16]/50">{schoolName}</p>
         </div>
 
-        <p className="mb-6 text-sm leading-relaxed text-[#2E4A3C]/70 font-body">
-          {subheading}
-        </p>
+        <GetStartedStoryHeader
+          kicker="MudKitchen concept demo"
+          title={
+            <>
+              Ready for <span className={ACCENT_HIGHLIGHT}>next steps?</span>
+            </>
+          }
+          subtitle={subheading}
+        />
 
         {booking ? (
-          <div className="rounded-lg border border-[#2E4A3C]/10 bg-white px-6 py-8 text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#2E4A3C] text-white">
+          <div className="rounded-[28px] bg-white px-6 py-8 text-center ring-1 ring-black/10">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#1d1a16] text-white">
               <Check className="h-6 w-6" aria-hidden />
             </div>
-            <h3 className="font-display text-lg font-medium text-[#2E4A3C]">
+            <h3 className="font-secondary text-lg font-bold text-[#1d1a16]">
               {form.successTitle}
             </h3>
-            <p className="mt-2 text-sm text-[#2E4A3C]/70 font-body">{successMessage}</p>
+            <p className="font-secondary mt-2 text-sm text-[#1d1a16]/70">
+              {successMessage}
+            </p>
           </div>
         ) : (
           <>
-            <div className="relative mb-4 rounded-lg border border-black/[0.07] bg-white p-5 sm:p-6">
+            <div className="relative mb-6 rounded-[28px] bg-white p-5 ring-1 ring-black/10 sm:p-6">
               <PublicFormHoneypotField
                 value={companyWebsite}
                 onChange={setCompanyWebsite}
               />
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-xs font-semibold text-[#2E4A3C]/80 font-body">
-                    {form.nameLabel}
-                  </span>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder={form.namePlaceholder}
-                    className={inputClassName}
-                  />
-                </label>
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-xs font-semibold text-[#2E4A3C]/80 font-body">
-                    {form.emailLabel}
-                  </span>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={form.emailPlaceholder}
-                    className={inputClassName}
-                  />
-                </label>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <GetStartedStoryTextField
+                  theme={theme}
+                  variant="intro"
+                  id="concept-demo-name"
+                  label={form.nameLabel}
+                  value={name}
+                  onChange={setName}
+                  placeholder={form.namePlaceholder}
+                  autoComplete="name"
+                />
+                <GetStartedStoryTextField
+                  theme={theme}
+                  variant="intro"
+                  id="concept-demo-email"
+                  label={form.emailLabel}
+                  type="email"
+                  value={email}
+                  onChange={setEmail}
+                  placeholder={form.emailPlaceholder}
+                  autoComplete="email"
+                />
               </div>
               {!canBook ? (
-                <p className="mt-3 text-xs text-[#2E4A3C]/55 font-body">{form.contactHint}</p>
+                <p className="font-secondary mt-3 text-xs text-[#1d1a16]/55">
+                  {form.contactHint}
+                </p>
               ) : null}
             </div>
 
             <div className="mb-4">
-              <h3 className="font-display text-base font-semibold text-[#2E4A3C]">
+              <h3 className="font-secondary text-base font-bold text-[#1d1a16]">
                 {scheduler.heading}
               </h3>
-              <p className="mt-1 text-xs text-[#2E4A3C]/60 font-body">{scheduler.subheading}</p>
+              <p className="font-secondary mt-1 text-xs text-[#1d1a16]/60">
+                {scheduler.subheading}
+              </p>
             </div>
 
-            <div className="overflow-hidden rounded-lg border border-black/[0.07] bg-white">
+            <div className="overflow-hidden rounded-[28px] ring-1 ring-black/10">
               {availabilityLoading ? (
-                <div className="flex items-center justify-center py-24 text-sm text-text-faint font-secondary">
-                  Loading available times…
-                </div>
+                <DemoSchedulerSkeleton storyTheme={theme} />
               ) : availabilityError ? (
-                <div className="flex items-center justify-center py-24 text-sm text-clay font-secondary">
+                <div className="font-secondary flex items-center justify-center py-24 text-sm text-clay">
                   {availabilityError}
                 </div>
               ) : Object.keys(availabilitySlots).length === 0 ? (
-                <div className="flex items-center justify-center py-24 text-sm text-[#2E4A3C]/70 font-body">
-                  No demo times are available right now. Please reach out by email or phone below.
+                <div className="font-secondary flex items-center justify-center py-24 text-sm text-[#1d1a16]/70">
+                  No demo times are available right now. Please reach out by email
+                  or phone below.
                 </div>
               ) : (
                 <DemoScheduler
@@ -380,19 +396,21 @@ function DemoContactSchedulePanel({
                   onConfirm={handleScheduled}
                   isSubmitting={isSubmitting}
                   confirmDisabled={!canBook}
+                  storyTheme={theme}
+                  displayTimezone={displayTimezone}
+                  onDisplayTimezoneChange={setDisplayTimezone}
                 />
               )}
             </div>
 
             {submitError ? (
-              <p className="mt-3 text-sm text-red-600 font-body">{submitError}</p>
+              <p className="font-secondary mt-3 text-sm text-clay">{submitError}</p>
             ) : null}
           </>
         )}
 
         <ContactDetailsFooter />
       </div>
-      <GetStartedFilmSection />
     </div>
   );
 }
@@ -402,13 +420,17 @@ export default function DemoContactPanel({
   schoolName,
   logo,
   variant = "schedule",
+  theme: themeProp,
 }: Props) {
+  const theme = themeProp ?? MUDKITCHEN_MARKETING_BRIGHT_THEME;
+
   if (variant === "feedback") {
     return (
       <DemoContactFeedbackPanel
         schoolSlug={schoolSlug}
         schoolName={schoolName}
         logo={logo}
+        theme={theme}
       />
     );
   }
@@ -418,6 +440,7 @@ export default function DemoContactPanel({
       schoolSlug={schoolSlug}
       schoolName={schoolName}
       logo={logo}
+      theme={theme}
     />
   );
 }

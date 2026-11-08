@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copy the latest Maestro visual-capture.png into apps/mobile/.artifacts/responsive/
+# Copy the latest Maestro visual-capture*.png set into apps/mobile/.artifacts/responsive/
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -15,15 +15,14 @@ if [[ -z "$FEATURE" ]]; then
 fi
 
 MAESTRO_TESTS="${MAESTRO_TESTS_DIR:-$HOME/.maestro/tests}"
-if [[ ! -d "$MAESTRO_TESTS" ]]; then
-  echo "Maestro tests directory not found: $MAESTRO_TESTS" >&2
-  echo "Run a visual capture flow first: npm run mobile:visual:capture -- $FEATURE" >&2
-  exit 1
-fi
+search_dirs=()
+[[ -d "$MAESTRO_TESTS" ]] && search_dirs+=("$MAESTRO_TESTS")
+search_dirs+=("$mobile_dir")
 
-LATEST="$(find "$MAESTRO_TESTS" -name 'visual-capture.png' -type f 2>/dev/null | xargs ls -t 2>/dev/null | head -n 1 || true)"
+LATEST="$(find "${search_dirs[@]}" -name 'visual-capture.png' -type f -not -path '*/.artifacts/*' -not -path '*/node_modules/*' 2>/dev/null | xargs ls -t 2>/dev/null | head -n 1 || true)"
 if [[ -z "$LATEST" ]]; then
-  echo "No visual-capture.png found under $MAESTRO_TESTS" >&2
+  echo "No visual-capture.png found under ${search_dirs[*]}" >&2
+  echo "Run a visual capture flow first: npm run mobile:visual:capture -- $FEATURE" >&2
   exit 1
 fi
 
@@ -32,3 +31,15 @@ mkdir -p "$DEST_DIR"
 DEST="$DEST_DIR/${FEATURE}-${PLATFORM}.png"
 cp "$LATEST" "$DEST"
 echo "Wrote $DEST (from $LATEST)"
+
+src_dir="$(dirname "$LATEST")"
+for extra in "$src_dir"/visual-capture-*.png; do
+  [[ -f "$extra" ]] || continue
+  # Skip screenshots left over from an earlier run in the same directory.
+  [[ "$extra" -ot "$LATEST" ]] && continue
+  suffix="$(basename "$extra" .png)"
+  suffix="${suffix#visual-capture-}"
+  extra_dest="$DEST_DIR/${FEATURE}-${suffix}-${PLATFORM}.png"
+  cp "$extra" "$extra_dest"
+  echo "Wrote $extra_dest (from $extra)"
+done

@@ -71,5 +71,13 @@ export const config = {
     "/auth/callback",
     "/school/:slug/admin",
     "/school/:slug/admin/:path*",
+    // Parent portal and apply flow: no redirects here (page layouts handle login), but
+    // updateSession() must run so refreshed auth cookies are written back to the browser.
+    // Without it, a token refreshed during a server render is discarded and the parent is
+    // eventually logged out.
+    "/school/:slug/parent",
+    "/school/:slug/parent/:path*",
+    "/school/:slug/apply",
+    "/school/:slug/apply/:path*",
   ],
 };

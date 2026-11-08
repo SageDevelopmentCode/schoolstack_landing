@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -87,6 +88,7 @@ export function AttendanceProvider({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [savingStudentId, setSavingStudentId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const loadRequestIdRef = useRef(0);
 
   const applyRoster = useCallback((roster: AttendanceRosterResponse) => {
     setStudents(roster.students);
@@ -98,27 +100,40 @@ export function AttendanceProvider({
       const targetDate = date ?? activeDate;
       const dateKey = toDateKey(targetDate);
       const isRefresh = options?.refresh === true;
+      const isDateChange = date != null;
+
+      const requestId = ++loadRequestIdRef.current;
 
       if (isRefresh) {
         setIsRefreshing(true);
       } else {
         setIsLoading(true);
+        if (isDateChange) {
+          setActiveDate(targetDate);
+          setStudents([]);
+          setSummary(null);
+        }
       }
       setError(null);
 
       try {
         const roster = await api.fetchRoster(organizationId, dateKey);
-        if (date) {
-          setActiveDate(targetDate);
+        if (requestId !== loadRequestIdRef.current) {
+          return;
         }
         applyRoster(roster);
       } catch (err) {
+        if (requestId !== loadRequestIdRef.current) {
+          return;
+        }
         const message = err instanceof Error ? err.message : 'Failed to load attendance roster.';
         setError(message);
         reportError('attendance.load_roster', err, { error: message });
       } finally {
-        setIsLoading(false);
-        setIsRefreshing(false);
+        if (requestId === loadRequestIdRef.current) {
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
       }
     },
     [activeDate, api, applyRoster, organizationId, reportError],

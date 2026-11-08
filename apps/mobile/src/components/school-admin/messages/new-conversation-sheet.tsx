@@ -134,7 +134,7 @@ export function NewConversationSheet({
           <View style={styles.headerSpacer} />
         </View>
       }>
-      <View style={styles.toolbar}>
+      <View style={styles.toolbar} testID="new-conversation-sheet">
         <View
           style={[
             styles.searchWrap,
@@ -145,6 +145,8 @@ export function NewConversationSheet({
           ]}>
           <Ionicons name="search" size={18} color={textTertiary} />
           <TextInput
+            testID="new-conversation-search-input"
+            accessibilityLabel="Search contacts"
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholder="Search contacts"
@@ -270,6 +272,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
+    flexShrink: 0,
+    minHeight: 44,
     marginHorizontal: SCREEN_HORIZONTAL_PADDING,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.pill,
@@ -278,6 +282,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
+    minHeight: 28,
     fontSize: 15,
     paddingVertical: 4,
   },

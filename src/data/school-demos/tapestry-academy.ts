@@ -14,7 +14,7 @@ export const tapestryAcademyConfig: SchoolWebsiteDemoConfig = {
     muted: "#66737A",
     badgeBg: "rgba(46, 125, 123, 0.12)",
     accentText: "#2E7D7B",
-    pageBg: "#FCFBF7",
+    pageBg: "#FFFFFF",
   },
   logo: TAPESTRY_ACADEMY_LOGO,
   hero: {

@@ -96,6 +96,46 @@ export function ParentNewsletterDetailScreen({
           style={styles.webview}
           setSupportMultipleWindows={false}
           startInLoadingState
+          onError={(event) => {
+            reportError(
+              'parent_newsletter_detail_webview_error',
+              new Error(event.nativeEvent.description?.trim() || 'Newsletter WebView failed to load.'),
+              {
+                entityType: 'newsletter_edition',
+                entityId: editionId,
+                metadata: { code: event.nativeEvent.code, domain: event.nativeEvent.domain },
+              },
+            );
+            setLoadError('This newsletter could not be loaded.');
+          }}
+          onHttpError={(event) => {
+            reportError(
+              'parent_newsletter_detail_http_error',
+              new Error(`Newsletter request failed with HTTP ${event.nativeEvent.statusCode}`),
+              {
+                entityType: 'newsletter_edition',
+                entityId: editionId,
+                metadata: { statusCode: event.nativeEvent.statusCode },
+              },
+            );
+            setLoadError('This newsletter could not be loaded.');
+          }}
+          onRenderProcessGone={() => {
+            reportError(
+              'parent_newsletter_detail_render_process_gone',
+              new Error('The newsletter viewer process was terminated.'),
+              { entityType: 'newsletter_edition', entityId: editionId },
+            );
+            setLoadError('This newsletter could not be loaded.');
+          }}
+          onContentProcessDidTerminate={() => {
+            reportError(
+              'parent_newsletter_detail_render_process_gone',
+              new Error('The newsletter viewer process was terminated.'),
+              { entityType: 'newsletter_edition', entityId: editionId },
+            );
+            setLoadError('This newsletter could not be loaded.');
+          }}
           renderLoading={() => (
             <View style={styles.webviewLoading}>
               <ActivityIndicator color={theme.primary} />

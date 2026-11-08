@@ -1,84 +1,55 @@
 import { NextResponse } from "next/server";
+import { parsePagination } from "@/lib/api/pagination";
 import { apiError } from "@/lib/api/route-errors";
-import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
+import { withParentPortalRoute } from "@/lib/parent-portal/with-parent-portal-route";
 import {
   filterChargesForFamilyGuardian,
   listChargesForFamilyPaginated,
 } from "@/lib/tuition/charges";
 import { listBillingSplits } from "@/lib/tuition/billing-splits";
 import { resolveGuardianIdForUser } from "@/lib/tuition/payment-settlement";
-import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/parent-portal/billing/charges";
 
-export async function GET(request: Request) {
-  const supabase = await createClientFromRequest(request);
-  const {
-    data: { user },
-    error: authError,
-  } = await getUserFromRequest(supabase, request);
-
-  if (!user) {
-    return apiError(ROUTE, {
-      request,
-      status: 401,
-      error: await signedInErrorForRequest(request, authError),
-      code: "unauthorized",
+export const GET = withParentPortalRoute(
+  {
+    route: ROUTE,
+    requireFamily: true,
+    feature: "billing",
+    fallbackErrorMessage: "Failed to load charges.",
+  },
+  async ({ request, supabase, user, familyId }) => {
+    const { limit, offset } = parsePagination(new URL(request.url).searchParams, {
+      defaultLimit: 50,
+      maxLimit: 200,
     });
-  }
 
-  const url = new URL(request.url);
-  const organizationId = url.searchParams.get("organizationId")?.trim() ?? "";
-  const familyId = url.searchParams.get("familyId")?.trim() ?? "";
-  const limit = Number(url.searchParams.get("limit") ?? "50");
-  const offset = Number(url.searchParams.get("offset") ?? "0");
+    try {
+      const [guardianId, billingSplits, page] = await Promise.all([
+        resolveGuardianIdForUser(supabase, { familyId: familyId!, userId: user.id }),
+        listBillingSplits(supabase, familyId!),
+        listChargesForFamilyPaginated(supabase, familyId!, { limit, offset }),
+      ]);
 
-  if (!organizationId || !familyId) {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "organizationId and familyId are required.",
-      code: "missing_fields",
-    });
-  }
+      const hasBillingSplit = billingSplits.length > 0;
+      const charges = filterChargesForFamilyGuardian(page.charges, guardianId, {
+        hasBillingSplit,
+      });
 
-  try {
-    const hasAccess = await userHasEnrolledAccess(supabase, user.id, organizationId);
-    if (!hasAccess) {
+      return NextResponse.json({
+        charges,
+        totalCount: page.totalCount,
+        hasBillingSplit,
+        guardianId,
+      });
+    } catch (err) {
       return apiError(ROUTE, {
         request,
-        status: 403,
-        error: "You do not have access to the parent portal.",
-        code: "forbidden",
+        status: 500,
+        error: "Failed to load charges.",
+        cause: err,
+        code: "internal_error",
       });
     }
-
-    const [guardianId, billingSplits, page] = await Promise.all([
-      resolveGuardianIdForUser(supabase, { familyId, userId: user.id }),
-      listBillingSplits(supabase, familyId),
-      listChargesForFamilyPaginated(supabase, familyId, { limit, offset }),
-    ]);
-
-    const hasBillingSplit = billingSplits.length > 0;
-    const charges = filterChargesForFamilyGuardian(
-      page.charges,
-      guardianId,
-      { hasBillingSplit },
-    );
-
-    return NextResponse.json({
-      charges,
-      totalCount: page.totalCount,
-      hasBillingSplit,
-      guardianId,
-    });
-  } catch (err) {
-    return apiError(ROUTE, {
-      request,
-      status: 500,
-      error: "Failed to load charges.",
-      cause: err,
-      code: "internal_error",
-    });
-  }
-}
+  },
+);

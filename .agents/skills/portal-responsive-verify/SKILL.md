@@ -81,6 +81,7 @@ Whenever this skill runs and PNGs were produced (browser MCP and/or Playwright),
    - `e2e/.artifacts/responsive/{feature}-desktop.png`
 3. Apply the **checklist** for that `{feature}` (table below).
 4. In the **task summary**, add a **Visual review** subsection: per viewport **Pass** or **Issue** + one line each. Any **Issue** → fix, re-capture, and re-read before finishing.
+5. **Cleanup (default):** After visual review **passes on every viewport** you captured, run `npm run clean:web-artifacts` (removes `e2e/.artifacts/responsive/`). If review found any **Issue**, **do not** clean — keep PNGs for debugging. Skip cleanup when the user asks to keep files or `KEEP_RESPONSIVE_ARTIFACTS=1` is set. Use `npm run clean:web-artifacts -- --feature {feature}` to delete only that feature’s PNGs; `--all` removes all of `e2e/.artifacts/`.
 
 If browser MCP only: read the MCP screenshot result **or** the saved paths above — same checklist.
 
@@ -161,5 +162,7 @@ Already required by post-change-verification; do not skip.
 ## Local cleanup
 
 ```bash
-rm -rf e2e/.artifacts
+npm run clean:web-artifacts              # responsive PNGs only (usual)
+npm run clean:web-artifacts -- --all     # entire e2e/.artifacts (portal-qa, scripts, etc.)
+KEEP_RESPONSIVE_ARTIFACTS=1 npm run clean:web-artifacts   # no-op unless --force
 ```

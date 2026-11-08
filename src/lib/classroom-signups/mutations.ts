@@ -328,30 +328,81 @@ export type UpsertClassroomSignupResponseInput = {
   note: string | null;
 };
 
+export type ClassroomSignupSubmitFailureReason =
+  | "not_found"
+  | "invalid_student"
+  | "invalid_selection"
+  | "slot_full"
+  | "role_full"
+  | "signup_full";
+
+/** Raised when `submit_classroom_signup_response_atomic` rejects a submission. */
+export class ClassroomSignupSubmitError extends Error {
+  readonly reason: ClassroomSignupSubmitFailureReason;
+
+  constructor(reason: ClassroomSignupSubmitFailureReason) {
+    super(`classroom_signup:${reason}`);
+    this.name = "ClassroomSignupSubmitError";
+    this.reason = reason;
+  }
+}
+
+const SUBMIT_FAILURE_REASONS: ClassroomSignupSubmitFailureReason[] = [
+  "not_found",
+  "invalid_student",
+  "invalid_selection",
+  "slot_full",
+  "role_full",
+  "signup_full",
+];
+
+export function parseClassroomSignupSubmitFailure(
+  message: string | null | undefined,
+): ClassroomSignupSubmitFailureReason | null {
+  if (!message) return null;
+  return (
+    SUBMIT_FAILURE_REASONS.find(
+      (reason) => message === `classroom_signup:${reason}`,
+    ) ?? null
+  );
+}
+
+/**
+ * Validates and saves a family's response in one transaction (row lock on the signup):
+ * student belongs to the family, slot/role ids exist in the signup config, and capacity
+ * is not exceeded. Throws `ClassroomSignupSubmitError` for expected rejections.
+ */
 export async function upsertClassroomSignupResponse(
   admin: SupabaseClient,
   input: UpsertClassroomSignupResponseInput,
 ): Promise<ClassroomSignupResponse> {
+  const { data: responseId, error: rpcError } = await admin.rpc(
+    "submit_classroom_signup_response_atomic",
+    {
+      p_organization_id: input.organizationId,
+      p_signup_id: input.signupId,
+      p_family_id: input.familyId,
+      p_student_id: input.studentId,
+      p_selected_slot_ids: input.selectedSlotIds,
+      p_selected_role_ids: input.selectedRoleIds,
+      p_note: input.note,
+    },
+  );
+
+  if (rpcError) {
+    const reason = parseClassroomSignupSubmitFailure(rpcError.message);
+    if (reason) throw new ClassroomSignupSubmitError(reason);
+    throw rpcError;
+  }
+
   const { data, error } = await admin
     .from("classroom_signup_responses")
-    .upsert(
-      {
-        organization_id: input.organizationId,
-        signup_id: input.signupId,
-        family_id: input.familyId,
-        student_id: input.studentId,
-        selected_slot_ids: input.selectedSlotIds,
-        selected_role_ids: input.selectedRoleIds,
-        note: input.note,
-        status: "confirmed",
-      },
-      { onConflict: "signup_id,family_id" },
-    )
     .select(CLASSROOM_SIGNUP_RESPONSE_SELECT)
+    .eq("id", String(responseId))
     .single();
 
   if (error) throw error;
-  return mapClassroomSignupResponseRow(data as ClassroomSignupResponseRow);
+  return mapClassroomSignupResponseRow(data as unknown as ClassroomSignupResponseRow);
 }
 
 export async function withdrawClassroomSignupResponse(

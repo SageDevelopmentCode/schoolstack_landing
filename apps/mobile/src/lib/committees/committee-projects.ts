@@ -142,7 +142,9 @@ export async function createCommitteeProject(
       organizationId: input.workspaceRecord.organizationId,
       action: ACTIVITY_ACTIONS.COMMITTEE_PROJECT_CREATED,
       entityId: project.id,
-    }).catch(() => {});
+    }).catch(() => {
+      // Activity logging is non-blocking; the API route reports its own failures.
+    });
   } else {
     logCommitteeActivityEvent(supabase, {
       committeeId,

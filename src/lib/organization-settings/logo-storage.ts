@@ -94,10 +94,7 @@ export async function uploadOrganizationLogo(
     });
 
   if (uploadError) {
-    throw new OrganizationLogoUploadError(
-      uploadError.message,
-      "upload_failed",
-    );
+    throw new OrganizationLogoUploadError(uploadError.message, "upload_failed");
   }
 
   const { data } = supabase.storage

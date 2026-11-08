@@ -14,7 +14,7 @@ export const zoeLearningHouseConfig: SchoolWebsiteDemoConfig = {
     muted: "#6B6560",
     badgeBg: "#EEF4F1",
     accentText: "#5F8A7A",
-    pageBg: "#FAF7F2",
+    pageBg: "#FFFFFF",
   },
   logo: ZOE_LEARNING_HOUSE_LOGO,
   hero: {

@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug, programSlug } = await params;
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org || !isParentPortalEnabled(org.features)) {
     return { title: "School Not Found" };
@@ -56,7 +56,7 @@ export default async function SchoolProgramParentDocumentationRoute({
   const { slug, programSlug } = await params;
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
   const user = await getRequestUser();
 
   if (!org || !user || !isParentPortalEnabled(org.features)) {

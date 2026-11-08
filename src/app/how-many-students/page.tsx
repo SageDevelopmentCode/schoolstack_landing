@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import BreadcrumbJsonLd from "@/components/seo/BreadcrumbJsonLd";
-import Navbar from "@/components/sections/Navbar";
-import Footer from "@/components/sections/Footer";
+import HomeShell from "@/components/home/HomeShell";
 import EnrollmentCalculatorExperience from "@/components/marketing/enrollment-calculator/EnrollmentCalculatorExperience";
-import TuitionPlannerMarketingTail from "@/components/marketing/tuition-planner/TuitionPlannerMarketingTail";
+import MarketingToolTail from "@/components/marketing/shared/MarketingToolTail";
 import { pageMetadata } from "@/lib/metadata";
 import { buildBreadcrumbs } from "@/lib/seo";
 
@@ -32,12 +31,10 @@ const BREADCRUMBS = buildBreadcrumbs({
 
 export default function HowManyStudentsPage() {
   return (
-    <>
+    <HomeShell className="bg-white">
       <BreadcrumbJsonLd items={BREADCRUMBS} />
-      <Navbar />
       <EnrollmentCalculatorExperience />
-      <TuitionPlannerMarketingTail />
-      <Footer />
-    </>
+      <MarketingToolTail />
+    </HomeShell>
   );
 }

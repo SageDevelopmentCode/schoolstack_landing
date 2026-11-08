@@ -14,7 +14,7 @@ export const gatheredOakFarmConfig: SchoolWebsiteDemoConfig = {
     muted: "#5F665C",
     badgeBg: "rgba(77, 99, 70, 0.12)",
     accentText: "#A95136",
-    pageBg: "#FCF9F2",
+    pageBg: "#FFFFFF",
   },
   logo: GATHERED_OAK_FARM_LOGO,
   hero: {

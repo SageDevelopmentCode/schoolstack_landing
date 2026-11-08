@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { cormorantGaramond, raleway } from "@/lib/fonts";
+import SchoolDemoWebsiteFonts from "@/app/demo/_shared/SchoolDemoWebsiteFonts";
 import { pageMetadata } from "@/lib/metadata";
 
 export const metadata: Metadata = pageMetadata({
@@ -10,16 +10,10 @@ export const metadata: Metadata = pageMetadata({
   noIndex: true,
 });
 
-export default function NaturesSchoolhouseLayout({
+export default function DemoLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div
-      className={`${cormorantGaramond.variable} ${raleway.variable} [&_.font-heading]:font-[family-name:var(--font-cormorant)] [&_.font-secondary]:font-[family-name:var(--font-raleway)]`}
-    >
-      {children}
-    </div>
-  );
+  return <SchoolDemoWebsiteFonts>{children}</SchoolDemoWebsiteFonts>;
 }

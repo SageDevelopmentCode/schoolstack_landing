@@ -79,6 +79,10 @@ type SchoolParentHeaderProps = {
   };
   activityUnreadCount?: number;
   initialCommitteeUnreadSummary?: CommitteeUnreadSummary;
+  initialMessagesUnreadCount?: number;
+  /** Live: counts started by the layout; the hooks apply them instead of fetching. */
+  messagesUnreadPromise?: Promise<number | null>;
+  committeesUnreadPromise?: Promise<CommitteeUnreadSummary | null>;
   onOpenNotifications?: () => void;
   fridayBranchSettings?: OrganizationFridayBranchSettings | null;
 };
@@ -176,6 +180,9 @@ export default function SchoolParentHeader({
   embeddedPreview,
   activityUnreadCount = 0,
   initialCommitteeUnreadSummary,
+  initialMessagesUnreadCount,
+  messagesUnreadPromise,
+  committeesUnreadPromise,
   onOpenNotifications,
   fridayBranchSettings,
 }: SchoolParentHeaderProps) {
@@ -245,19 +252,23 @@ export default function SchoolParentHeader({
   );
   const messagesEnabled = Boolean(features.parent.messages);
   const committeesEnabled = Boolean(features.parent.committees);
-  const { unreadCount: messagesUnreadCount } = useMessagesUnreadCount(
+  const { unreadCount: liveMessagesUnreadCount } = useMessagesUnreadCount(
     "/api/parent-portal/messages",
     organizationId,
     schoolName,
     messagesEnabled && !previewMode,
-    { deferUntilIdle: true },
+    { deferUntilIdle: true, seedPromise: messagesUnreadPromise },
   );
+  const messagesUnreadCount =
+    previewMode && initialMessagesUnreadCount != null
+      ? initialMessagesUnreadCount
+      : liveMessagesUnreadCount;
   const { totalUnread: liveCommitteesUnreadCount } = useCommitteeUnreadSummary(
     "/api/parent-portal/committees",
     organizationId,
     committeesEnabled && !previewMode,
     undefined,
-    { deferUntilIdle: true },
+    { deferUntilIdle: true, seedPromise: committeesUnreadPromise },
   );
   const committeesUnreadCount =
     previewMode && initialCommitteeUnreadSummary

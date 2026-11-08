@@ -12,6 +12,7 @@ import {
   type EnrollmentChecklistItem,
 } from "@/lib/admissions/enrollment-checklist-schema";
 import type { EnrollmentChecklistTemplate } from "@/lib/admissions/enrollment-checklist-templates";
+import type { FlowListSelection } from "@/components/school-admin/admissions/enrollment-flow-selection";
 import type { EnrollmentFlowsListData } from "@/lib/school-admin/load-enrollment-flows-list-data";
 import { buildDemoPrograms } from "@/data/school-demos/demo-admin-programs-fixtures";
 import {
@@ -475,4 +476,19 @@ export function buildDemoEnrollmentFlowsListData(): EnrollmentFlowsListData {
     programs,
     stripePaymentsReady: true,
   };
+}
+
+const LEGACY_CHECKLIST_FLOW_IDS = new Set(["flow-2"]);
+
+/** Maps legacy admin-demo flow ids to the real enrollment-flows editor selection. */
+export function resolveDemoEnrollmentFlowSelection(
+  initialSelectedFlowId?: string,
+): FlowListSelection {
+  if (
+    initialSelectedFlowId &&
+    LEGACY_CHECKLIST_FLOW_IDS.has(initialSelectedFlowId)
+  ) {
+    return { kind: "checklist", id: DEMO_MARKETING_CHECKLIST_TEMPLATE_ID };
+  }
+  return { kind: "apply", id: DEMO_MARKETING_APPLY_FORM_ID };
 }

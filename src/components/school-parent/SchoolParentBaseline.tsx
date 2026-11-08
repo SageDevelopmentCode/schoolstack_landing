@@ -30,6 +30,7 @@ import type {
   OrganizationFeatures,
 } from "@/lib/organization-settings/types";
 import type { ParentNotificationContext } from "@/lib/parent-portal/parent-notification-context";
+import type { ParentBadgeCountPromises } from "@/lib/parent-portal/parent-badge-counts";
 
 const ParentActivityNotificationsPanel = dynamic(
   () => import("@/components/school-parent/ParentActivityNotificationsPanel"),
@@ -61,6 +62,10 @@ type SchoolParentBaselineProps = {
   previewFamilyId?: string;
   initialActivityUnreadCount?: number;
   initialCommitteeUnreadSummary?: CommitteeUnreadSummary;
+  /** Preview only: unread messages for the previewed guardian (live fetches its own). */
+  initialMessagesUnreadCount?: number;
+  /** Live only: badge counts the layout started without blocking the shell. */
+  badgeCountPromises?: ParentBadgeCountPromises;
   notificationContext?: ParentNotificationContext;
   embeddedPreview?: SchoolParentEmbeddedPreview;
   fridayBranchSettings?: import("@/lib/school-admin/friday-branch/friday-branch-org-settings").OrganizationFridayBranchSettings | null;
@@ -111,6 +116,8 @@ function SchoolParentBaselineInner({
   previewFamilyId,
   initialActivityUnreadCount,
   initialCommitteeUnreadSummary,
+  initialMessagesUnreadCount,
+  badgeCountPromises,
   notificationContext,
   embeddedPreview,
   fridayBranchSettings,
@@ -140,8 +147,12 @@ function SchoolParentBaselineInner({
       parentNavBasePath: resolvedNavBasePath,
       applyBasePath: resolvedApplyBasePath,
     } satisfies ParentNotificationContext);
+  const activityUnreadPromise = previewMode
+    ? undefined
+    : badgeCountPromises?.activity;
   const skipInitialUnreadFetch =
-    !previewMode && initialActivityUnreadCount != null;
+    !previewMode &&
+    (initialActivityUnreadCount != null || activityUnreadPromise != null);
   const isMessagesPage = isParentMessagesPath(pathname);
   const isFixedLayoutPage =
     isMessagesPage ||
@@ -202,6 +213,23 @@ function SchoolParentBaselineInner({
   }, [fetchActivityUnreadCount, previewMode, skipInitialUnreadFetch]);
 
   useEffect(() => {
+    if (previewMode || !activityUnreadPromise) return undefined;
+    let cancelled = false;
+    void activityUnreadPromise.then((count) => {
+      if (cancelled) return;
+      if (count == null) {
+        void fetchActivityUnreadCount();
+        return;
+      }
+      setActivityUnreadCount(count);
+      lastUnreadFetchRef.current = Date.now();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [activityUnreadPromise, fetchActivityUnreadCount, previewMode]);
+
+  useEffect(() => {
     if (previewMode) return;
     const handleFocus = () => {
       if (Date.now() - lastUnreadFetchRef.current < FOCUS_REFETCH_MS) return;
@@ -260,6 +288,13 @@ function SchoolParentBaselineInner({
           coopProgramLabel={coopProgramLabel}
           activityUnreadCount={activityUnreadCount}
           initialCommitteeUnreadSummary={initialCommitteeUnreadSummary}
+          initialMessagesUnreadCount={initialMessagesUnreadCount}
+          messagesUnreadPromise={
+            previewMode ? undefined : badgeCountPromises?.messages
+          }
+          committeesUnreadPromise={
+            previewMode ? undefined : badgeCountPromises?.committees
+          }
           onOpenNotifications={openNotifications}
           fridayBranchSettings={fridayBranchSettings}
         />

@@ -14,7 +14,7 @@ export const springRiverSchoolConfig: SchoolWebsiteDemoConfig = {
     muted: "#6B6560",
     badgeBg: "#F4F0E8",
     accentText: "#EA492E",
-    pageBg: "#FAF8F4",
+    pageBg: "#FFFFFF",
   },
   logo: SPRING_RIVER_SCHOOL_ADMIN_LOGO,
   hero: {

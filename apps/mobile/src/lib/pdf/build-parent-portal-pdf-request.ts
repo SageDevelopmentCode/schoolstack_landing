@@ -16,6 +16,23 @@ export function buildParentCoopCurriculumPdfApiPath(
   return `/api/parent-portal/curriculum/pdf?${query}`;
 }
 
+/**
+ * Path that returns a short-lived signed storage URL for the curriculum PDF. Mobile viewers load
+ * that URL directly (HTTP range requests) instead of downloading the whole book first.
+ */
+export function buildParentCoopCurriculumPdfUrlApiPath(
+  organizationId: string,
+  programId: string,
+  curriculumId: string,
+): string {
+  const query = new URLSearchParams({
+    organizationId,
+    programId,
+    curriculumId,
+  }).toString();
+  return `/api/parent-portal/curriculum/pdf-url?${query}`;
+}
+
 /** Resolved path (preview or live) and full download URL for parent-portal PDF routes. */
 export function resolveParentPortalPdfDownloadUrl(apiPath: string): {
   requestPath: string;

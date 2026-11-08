@@ -13,7 +13,7 @@ export const athenaMicroacademyConfig: SchoolWebsiteDemoConfig = {
     muted: "#6A6F73",
     badgeBg: "#F2E7D1",
     accentText: "#24678D",
-    pageBg: "#FBFAF6",
+    pageBg: "#FFFFFF",
   },
   logo: {
     src: "/images/demo/athena/Logo.png",
@@ -25,6 +25,7 @@ export const athenaMicroacademyConfig: SchoolWebsiteDemoConfig = {
     eyebrow: "Launching Fall 2026 · South Austin · Grades 6–12",
     eyebrowPlacement: "announcementBar",
     headline: ["A smaller, wiser way to do", "middle and high school."],
+    headlineAccentLine: 1,
     subheadline:
       "Athena Micro-academy of Austin is a relationship-centered microschool for grades 6–12, designed for students who thrive with personalized learning, close community, and room to grow.",
     primaryCta: "Schedule a Discovery Call",
@@ -38,7 +39,7 @@ export const athenaMicroacademyConfig: SchoolWebsiteDemoConfig = {
     trustBadges: ["Accredited", "TEFA Approved", "KaiPod Catalyst"],
   },
   sections: {
-    showMosaic: false,
+    showMosaic: true,
   },
   signatureSection: {
     type: "learningModes",
@@ -77,10 +78,10 @@ export const athenaMicroacademyConfig: SchoolWebsiteDemoConfig = {
     },
   },
   stats: [
-    { value: "Grades 6–12", label: "Middle & High School" },
-    { value: "Fall 2026", label: "Launching Soon" },
-    { value: "South Austin", label: "Southeast Austin" },
-    { value: "4 Modes", label: "Daily Learning Modes" },
+    { value: "6–12", label: "Middle & high school grades" },
+    { value: "Fall 2026", label: "Launching in South Austin" },
+    { value: "4", label: "Daily learning modes" },
+    { value: "Fridays", label: "Austin-area experiences" },
   ],
   welcome: {
     type: "parentFit",
@@ -160,9 +161,10 @@ export const athenaMicroacademyConfig: SchoolWebsiteDemoConfig = {
     ],
   },
   mosaicImages: [
-    "/images/stock/ImageSix.jpg",
-    "/images/stock/ImageSeven.jpg",
-    "/images/stock/ImageTen.jpg",
+    "/images/stock/ImageThree.jpg",
+    "/images/stock/ImageOne.jpg",
+    "/images/stock/ImageFour.jpg",
+    "/images/stock/ImageEight.jpg",
   ],
   quote: {
     text: [

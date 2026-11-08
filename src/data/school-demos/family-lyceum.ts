@@ -14,7 +14,7 @@ export const familyLyceumConfig: SchoolWebsiteDemoConfig = {
     muted: "#72695F",
     badgeBg: "rgba(217, 155, 53, 0.12)",
     accentText: "#D99B35",
-    pageBg: "#FBF7EF",
+    pageBg: "#FFFFFF",
   },
   logo: FAMILY_LYCEUM_LOGO,
   hero: {

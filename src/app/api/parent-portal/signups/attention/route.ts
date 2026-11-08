@@ -1,81 +1,57 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
-import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
-import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { loadParentSignupAttentionItems } from "@/lib/classroom-signups/load-parent-signups";
-import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
+import { withParentPortalRoute } from "@/lib/parent-portal/with-parent-portal-route";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { resolveSignupAttentionFamilyId } from "./resolve-family-id";
 
 const ROUTE = "/api/parent-portal/signups/attention";
 
-export async function GET(request: Request) {
-  const supabase = await createClientFromRequest(request);
-  const {
-    data: { user },
-    error: authError,
-  } = await getUserFromRequest(supabase, request);
+export const GET = withParentPortalRoute(
+  {
+    route: ROUTE,
+    fallbackErrorMessage: "Failed to load signup attention items.",
+  },
+  async ({ request, organizationId, access }) => {
+    const requestedFamilyId =
+      new URL(request.url).searchParams.get("familyId")?.trim() ?? "";
+    const familyIds = access.familyIds;
 
-  if (!user) {
-    return apiError(ROUTE, {
-      request,
-      status: 401,
-      error: await signedInErrorForRequest(request, authError),
-      code: "unauthorized",
-    });
-  }
+    try {
+      const resolvedFamily = resolveSignupAttentionFamilyId(
+        familyIds,
+        requestedFamilyId,
+      );
+      if ("error" in resolvedFamily) {
+        return apiError(ROUTE, {
+          request,
+          status: 403,
+          error: "You do not have access to this family.",
+          code: "forbidden",
+        });
+      }
 
-  const url = new URL(request.url);
-  const organizationId = url.searchParams.get("organizationId")?.trim() ?? "";
-  const requestedFamilyId = url.searchParams.get("familyId")?.trim() ?? "";
+      const familyId = resolvedFamily.familyId;
+      if (!familyId) {
+        return NextResponse.json({ items: [] });
+      }
 
-  if (!organizationId) {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "organizationId is required.",
-      code: "missing_fields",
-    });
-  }
+      const admin = createAdminClient();
+      const items = await loadParentSignupAttentionItems(
+        admin,
+        organizationId,
+        familyId,
+      );
 
-  try {
-    const hasAccess = await userHasEnrolledAccess(supabase, user.id, organizationId);
-    if (!hasAccess) {
+      return NextResponse.json({ items });
+    } catch (err) {
       return apiError(ROUTE, {
         request,
-        status: 403,
-        error: "You do not have access to the parent portal.",
-        code: "forbidden",
+        status: 500,
+        error: "Failed to load signup attention items.",
+        cause: err,
+        code: "internal_error",
       });
     }
-
-    const familyIds = await getFamilyIdsForUser(supabase, user.id, organizationId);
-    const resolvedFamily = resolveSignupAttentionFamilyId(familyIds, requestedFamilyId);
-    if ("error" in resolvedFamily) {
-      return apiError(ROUTE, {
-        request,
-        status: 403,
-        error: "You do not have access to this family.",
-        code: "forbidden",
-      });
-    }
-
-    const familyId = resolvedFamily.familyId;
-    if (!familyId) {
-      return NextResponse.json({ items: [] });
-    }
-
-    const admin = createAdminClient();
-    const items = await loadParentSignupAttentionItems(admin, organizationId, familyId);
-
-    return NextResponse.json({ items });
-  } catch (err) {
-    return apiError(ROUTE, {
-      request,
-      status: 500,
-      error: "Failed to load signup attention items.",
-      cause: err,
-      code: "internal_error",
-    });
-  }
-}
+  },
+);

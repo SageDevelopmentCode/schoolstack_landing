@@ -12,7 +12,11 @@ export function useCommitteeUnreadSummary(
   organizationId: string,
   enabled = true,
   initialSummary?: CommitteeUnreadSummary,
-  options?: { deferUntilIdle?: boolean },
+  options?: {
+    deferUntilIdle?: boolean;
+    /** Summary started on the server; applied when it resolves (null = fetch instead). */
+    seedPromise?: Promise<CommitteeUnreadSummary | null>;
+  },
 ) {
   const [fetchedSummary, setFetchedSummary] = useState<CommitteeUnreadSummary>(
     initialSummary ?? EMPTY_SUMMARY,
@@ -34,8 +38,31 @@ export function useCommitteeUnreadSummary(
     }
   }, [apiBase, enabled, organizationId]);
 
+  const seedPromise = options?.seedPromise;
+
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !seedPromise) return undefined;
+    let cancelled = false;
+    void seedPromise.then(
+      (value) => {
+        if (cancelled) return;
+        if (value == null) {
+          void refresh();
+          return;
+        }
+        setFetchedSummary(value);
+      },
+      () => {
+        if (!cancelled) void refresh();
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, refresh, seedPromise]);
+
+  useEffect(() => {
+    if (!enabled || seedPromise) return;
     if (options?.deferUntilIdle) {
       return scheduleAfterFirstPaint(() => {
         void refresh();
@@ -44,7 +71,7 @@ export function useCommitteeUnreadSummary(
     queueMicrotask(() => {
       void refresh();
     });
-  }, [enabled, options?.deferUntilIdle, refresh]);
+  }, [enabled, options?.deferUntilIdle, refresh, seedPromise]);
 
   useEffect(() => {
     if (!enabled || !committeeUnreadRefresh) return undefined;

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { BookOpen, Info, Layers, Menu, Users, Wrench, X } from "lucide-react";
-import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
+import { GET_STARTED_PAGE_PATH } from "@/lib/marketing/book-demo";
 import {
   FREE_TOOLS_HUB_PATH,
   FREE_TOOLS_NAV_LABEL,
@@ -90,8 +90,8 @@ export default function NavbarFrame({ children }: { children: React.ReactNode })
               </Link>
             ))}
 
-            <a
-              href={BOOK_DEMO_HREF}
+            <Link
+              href={GET_STARTED_PAGE_PATH}
               onClick={() => setMenuOpen(false)}
               className="mt-2 flex h-12 items-center justify-center gap-2 rounded-pill bg-clay text-sm font-medium text-white transition-all duration-200 hover:opacity-90"
             >
@@ -105,7 +105,7 @@ export default function NavbarFrame({ children }: { children: React.ReactNode })
                   strokeLinejoin="round"
                 />
               </svg>
-            </a>
+            </Link>
 
             <Link
               href={FREE_TOOLS_HUB_PATH}

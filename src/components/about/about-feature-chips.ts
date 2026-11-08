@@ -14,7 +14,8 @@ import {
   Wallet,
   Zap,
 } from "lucide-react";
-import { MUDKITCHEN_MARKETING_STORY_THEME as theme } from "@/lib/marketing/mudkitchen-story-theme";
+import { MUDKITCHEN_MARKETING_BRIGHT_THEME as bright } from "@/lib/marketing/mudkitchen-bright-marketing-theme";
+import { INK } from "@/components/home/bright-styles";
 
 export type AboutFeatureChip = {
   id: string;
@@ -26,14 +27,14 @@ export type AboutFeatureChip = {
   iconColor: string;
 };
 
-function chipColors(accent: string): Pick<
+function chipColors(accent: string, iconWell = "#F4F1EC"): Pick<
   AboutFeatureChip,
   "chipBg" | "chipBorder" | "iconBg" | "iconColor"
 > {
   return {
-    chipBg: `color-mix(in srgb, ${accent} 14%, ${theme.white})`,
-    chipBorder: `color-mix(in srgb, ${accent} 30%, ${theme.line})`,
-    iconBg: `color-mix(in srgb, ${accent} 24%, ${theme.white})`,
+    chipBg: iconWell,
+    chipBorder: "rgba(0, 0, 0, 0.08)",
+    iconBg: `color-mix(in srgb, ${accent} 18%, #FFFFFF)`,
     iconColor: accent,
   };
 }
@@ -43,65 +44,73 @@ function defineChip(
   label: string,
   icon: LucideIcon,
   accent: string,
+  iconWell?: string,
 ): AboutFeatureChip {
-  return { id, label, icon, ...chipColors(accent) };
+  return { id, label, icon, ...chipColors(accent, iconWell) };
 }
 
 export const BUILT_CAPABILITY_CHIPS: readonly AboutFeatureChip[] = [
-  defineChip("website", "Branded school website", Globe, theme.primary),
-  defineChip("parent-app", "Parent portal & mobile app", Smartphone, theme.sky),
-  defineChip("applications", "Applications & enrollment", ClipboardList, theme.coral),
-  defineChip("tuition", "Tuition & family billing", CreditCard, theme.success),
-  defineChip("communication", "Family communication", MessagesSquare, theme.berry),
-  defineChip("marketing", "Marketing, tours & shadow days", Megaphone, theme.sun),
-  defineChip("teachers", "Teacher dashboards", GraduationCap, theme.sage),
-  defineChip("admin", "School administration & finances", Building2, theme.primaryDark),
-  defineChip("automations", "Automations", Zap, theme.warning),
+  defineChip("website", "Branded school website", Globe, bright.primary, "#EEF3EC"),
+  defineChip("parent-app", "Parent portal & mobile app", Smartphone, "#3d6bb3", "#EAF1FD"),
+  defineChip("applications", "Applications & enrollment", ClipboardList, bright.coral, "#FDEFE4"),
+  defineChip("tuition", "Tuition & family billing", CreditCard, bright.success, "#E9F2E4"),
+  defineChip("communication", "Family communication", MessagesSquare, bright.berry, "#F8E8ED"),
+  defineChip("marketing", "Marketing, tours & shadow days", Megaphone, bright.warning, "#FFF4D9"),
+  defineChip("teachers", "Teacher dashboards", GraduationCap, "#4a7c59", "#E4F5EC"),
+  defineChip("admin", "School administration & finances", Building2, INK, "#F4F1EC"),
+  defineChip("automations", "Automations", Zap, bright.warning, "#FFF4D9"),
 ];
 
 export const CORE_FEATURE_CHIPS: readonly AboutFeatureChip[] = [
-  defineChip("core-website", "Branded school website", Globe, theme.sky),
+  defineChip("core-website", "Branded school website", Globe, "#3d6bb3", "#EAF1FD"),
   defineChip(
     "core-enrollment",
     "Enrollment and registration workflows",
     ClipboardList,
-    theme.primary,
+    bright.primary,
+    "#EEF3EC",
   ),
   defineChip(
     "core-portal",
     "Parent portal, forms, and billing",
     LayoutDashboard,
-    theme.coral,
+    bright.coral,
+    "#FDEFE4",
   ),
   defineChip(
     "core-records",
     "Student records and family information",
     UserRound,
-    theme.berry,
+    bright.berry,
+    "#F8E8ED",
   ),
   defineChip(
     "core-tuition",
     "Tuition, fees, and Stripe payments",
     Wallet,
-    theme.success,
+    bright.success,
+    "#E9F2E4",
   ),
   defineChip(
     "core-admin",
     "Admin tools for daily operations",
     Building2,
-    theme.primaryDark,
+    INK,
+    "#F4F1EC",
   ),
   defineChip(
     "core-teachers",
     "Teacher workflows and classroom tools",
     GraduationCap,
-    theme.sage,
+    "#4a7c59",
+    "#E4F5EC",
   ),
   defineChip(
     "core-mobile",
     "Mobile app for families and staff",
     Smartphone,
-    theme.sun,
+    bright.warning,
+    "#FFF4D9",
   ),
-  defineChip("core-support", "Guided setup and support", LifeBuoy, theme.sky),
+  defineChip("core-support", "Guided setup and support", LifeBuoy, "#3d6bb3", "#EAF1FD"),
 ];

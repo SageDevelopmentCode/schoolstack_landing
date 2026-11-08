@@ -7,7 +7,10 @@ import {
 } from "./parent-onboarding";
 import type { FamilyChildOverview } from "@/lib/admissions/parent-portal-access";
 
-function makeChild(applicationId: string, studentId: string | null): FamilyChildOverview {
+function makeChild(
+  applicationId: string,
+  studentId: string | null,
+): FamilyChildOverview {
   return {
     applicationId,
     studentId,

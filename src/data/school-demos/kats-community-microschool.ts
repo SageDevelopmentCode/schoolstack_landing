@@ -14,7 +14,7 @@ export const katsCommunityMicroschoolConfig: SchoolWebsiteDemoConfig = {
     muted: "#647174",
     badgeBg: "rgba(40, 89, 67, 0.12)",
     accentText: "#7E9A63",
-    pageBg: "#FFFDF8",
+    pageBg: "#FFFFFF",
   },
   logo: KATS_COMMUNITY_MICROSCHOOL_LOGO,
   hero: {

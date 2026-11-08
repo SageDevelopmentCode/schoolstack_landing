@@ -1,0 +1,25 @@
+appId: com.mudkitchen.schoolstack.mobile
+---
+- runFlow: teacher-logged-in.yaml
+- tapOn: 'Messages'
+- extendedWaitUntil:
+    visible:
+      id: parent-messages-inbox-header
+    timeout: 30000
+- tapOn:
+    id: parent-messages-new-button
+- extendedWaitUntil:
+    visible:
+      id: new-conversation-search-input
+    timeout: 15000
+- tapOn:
+    id: new-conversation-search-input
+- inputText: 'zzqx'
+- extendedWaitUntil:
+    visible: 'No contacts found.'
+    timeout: 15000
+- tapOn: 'Cancel'
+- extendedWaitUntil:
+    notVisible:
+      id: new-conversation-search-input
+    timeout: 15000

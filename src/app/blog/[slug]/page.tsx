@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import HomeShell from "@/components/home/HomeShell";
 import BreadcrumbJsonLd from "@/components/seo/BreadcrumbJsonLd";
 import ArticleJsonLd from "@/components/seo/ArticleJsonLd";
-import Navbar from "@/components/sections/Navbar";
-import Footer from "@/components/sections/Footer";
 import BlogPostByline from "@/components/blog/BlogPostByline";
 import BlogPostFeatureTags from "@/components/blog/BlogPostFeatureTags";
 import BlogPostHtml from "@/components/blog/BlogPostHtml";
 import BlogPostProse from "@/components/blog/BlogPostProse";
+import { BOLD_HEADING } from "@/components/home/bright-styles";
 import { getRepoBlogFeatureTags, getRepoBlogPost } from "@/content/blog/registry";
 import { pageMetadata } from "@/lib/metadata";
 import { buildBreadcrumbs } from "@/lib/seo";
@@ -82,7 +82,7 @@ export default async function BlogPostPage({ params }: PageProps) {
     : null;
 
   return (
-    <>
+    <HomeShell className="bg-white">
       <BreadcrumbJsonLd items={breadcrumbs} />
       <ArticleJsonLd
         headline={post.seoTitle}
@@ -94,17 +94,18 @@ export default async function BlogPostPage({ params }: PageProps) {
           url: WEBSITE_BLOG_AUTHOR.profileUrl,
         }}
       />
-      <Navbar />
-      <main className="bg-bg min-h-screen">
-        <article className="pt-[140px] pb-20">
-          <div className="max-w-[720px] mx-auto px-6 lg:px-16">
+      <article className="bg-white px-3 pb-20 pt-28 md:pt-32 lg:px-6">
+        <div className="mx-auto max-w-[1400px] px-3 md:px-6 lg:px-10">
+          <div className="mx-auto max-w-[720px]">
             {publishedLabel ? (
-              <p className="text-xs font-semibold uppercase tracking-widest text-text-faint font-secondary">
+              <p className="font-secondary text-[13px] font-semibold uppercase tracking-widest text-clay">
                 {publishedLabel}
               </p>
             ) : null}
             <BlogPostFeatureTags tags={featureTags} className="mt-4" />
-            <h1 className="font-display text-[clamp(1.75rem,3.5vw,2.5rem)] leading-[1.1] text-text mt-4">
+            <h1
+              className={`mt-4 text-[clamp(1.75rem,3.5vw,2.5rem)] ${BOLD_HEADING}`}
+            >
               {post.title}
             </h1>
             <BlogPostByline />
@@ -118,9 +119,8 @@ export default async function BlogPostPage({ params }: PageProps) {
               )}
             </div>
           </div>
-        </article>
-      </main>
-      <Footer />
-    </>
+        </div>
+      </article>
+    </HomeShell>
   );
 }

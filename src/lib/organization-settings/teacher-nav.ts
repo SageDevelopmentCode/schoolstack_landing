@@ -39,7 +39,11 @@ export function normalizeTeacherNavOrder(keys: string[]): string[] {
   const result = [...without];
 
   if (hasForms) {
-    result.splice(Math.min(FORMS_DOCUMENTS_PRIMARY_INDEX, result.length), 0, "forms_documents");
+    result.splice(
+      Math.min(FORMS_DOCUMENTS_PRIMARY_INDEX, result.length),
+      0,
+      "forms_documents",
+    );
   }
   if (hasHours) {
     result.splice(Math.min(MY_HOURS_MORE_INDEX, result.length), 0, "my_hours");

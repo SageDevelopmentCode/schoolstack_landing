@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Linking,
   Platform,
   StyleSheet,
   Text,
@@ -9,23 +8,26 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { WebView, type WebViewProps } from 'react-native-webview';
-import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 
 import { ParentEmbeddedPdfLoadingPlaceholder } from '@/components/parent/shared/parent-embedded-pdf-loading-placeholder';
 import { StoryButton } from '@/components/story/story-button';
 import { StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
+import { openExternalUrlSafely } from '@/lib/open-external-url';
 import { isAllowedAndroidPdfWebViewNavigation } from '@/lib/pdf/mobile-pdf-webview-navigation';
 import {
   buildAndroidPdfViewerLoadMessage,
   getAndroidPdfWebViewSource,
   getMobilePdfExternalOpenUrl,
   getMobilePdfWebViewSource,
+  parseAndroidPdfViewerMessage,
   stripViewerFragment,
   usesAndroidPdfJsHtml,
 } from '@/lib/pdf/mobile-pdf-webview-source';
 import { useAndroidPdfViewerAssets } from '@/lib/pdf/use-android-pdf-viewer-assets';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
+/** Time allowed for the viewer to show the first page (pdf.js renders later pages on demand). */
 const LOAD_TIMEOUT_MS = 45_000;
 
 type ParentEmbeddedPdfWebViewProps = {
@@ -34,7 +36,22 @@ type ParentEmbeddedPdfWebViewProps = {
   scrollEnabled?: boolean;
   pointerEvents?: WebViewProps['pointerEvents'];
   startInLoadingState?: boolean;
+  /** Android only: render just page 1 (non-interactive inline preview). */
+  firstPageOnly?: boolean;
+  /** Included in operational error reports (for example `curriculum` + its id). */
+  reportEntityType?: string;
+  reportEntityId?: string;
 };
+
+function describeUrlTarget(url: string): string {
+  if (url.startsWith('data:')) return 'data';
+  if (url.startsWith('file:')) return 'file';
+  try {
+    return new URL(url).host || 'unknown';
+  } catch {
+    return 'invalid_url';
+  }
+}
 
 export function ParentEmbeddedPdfWebView({
   url,
@@ -42,12 +59,18 @@ export function ParentEmbeddedPdfWebView({
   scrollEnabled = true,
   pointerEvents,
   startInLoadingState = false,
+  firstPageOnly = false,
+  reportEntityType,
+  reportEntityId,
 }: ParentEmbeddedPdfWebViewProps) {
   const androidPdfJs = usesAndroidPdfJsHtml(url);
   const documentUrl = useMemo(() => stripViewerFragment(url), [url]);
-  const { assetUris, assetsFailed, assetsReady } = useAndroidPdfViewerAssets(androidPdfJs);
+  const { assetUris, assetsError, assetsFailed, assetsReady } =
+    useAndroidPdfViewerAssets(androidPdfJs);
+  const { reportError } = useMobileErrorReporter();
   const webViewRef = useRef<WebView>(null);
   const [viewerReady, setViewerReady] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const source = useMemo(() => {
     if (!androidPdfJs) {
@@ -64,28 +87,86 @@ export function ParentEmbeddedPdfWebView({
 
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading');
 
+  // Diagnostics for operational reports (read from refs so callbacks stay stable).
+  const loadStartedAtRef = useRef(0);
+  const viewerReadyRef = useRef(false);
+  const firstPageShownRef = useRef(false);
+  const reportedKeysRef = useRef<Set<string>>(new Set());
+
   useEffect(() => {
     setPhase('loading');
     setViewerReady(false);
-  }, [url]);
+    loadStartedAtRef.current = Date.now();
+    viewerReadyRef.current = false;
+    firstPageShownRef.current = false;
+    reportedKeysRef.current = new Set();
+  }, [url, reloadKey]);
+
+  /** Reports each distinct failure once per document load so a bad file cannot flood Discord. */
+  const reportViewerFailure = useCallback(
+    (operation: string, err: unknown, extra?: Record<string, unknown>) => {
+      const dedupeKey = `${operation}:${extra?.stage ?? ''}`;
+      if (reportedKeysRef.current.has(dedupeKey)) return;
+      reportedKeysRef.current.add(dedupeKey);
+
+      reportError(operation, err, {
+        entityType: reportEntityType,
+        entityId: reportEntityId,
+        metadata: {
+          viewer: androidPdfJs ? 'android_pdfjs' : 'native_webview',
+          platform: Platform.OS,
+          osVersion: String(Platform.Version),
+          urlTarget: describeUrlTarget(url),
+          firstPageOnly,
+          viewerReady: viewerReadyRef.current,
+          firstPageShown: firstPageShownRef.current,
+          elapsedMs: Date.now() - loadStartedAtRef.current,
+          ...(extra ?? {}),
+        },
+      });
+    },
+    [androidPdfJs, firstPageOnly, reportEntityId, reportEntityType, reportError, url],
+  );
 
   useEffect(() => {
     if (phase !== 'loading') return;
-    const timer = setTimeout(() => setPhase('error'), LOAD_TIMEOUT_MS);
+    const timer = setTimeout(() => {
+      reportViewerFailure(
+        'parent_pdf_viewer_load_timeout',
+        new Error(
+          `PDF viewer did not show the first page within ${LOAD_TIMEOUT_MS / 1000}s.`,
+        ),
+        { assetsReady, timeoutMs: LOAD_TIMEOUT_MS },
+      );
+      setPhase('error');
+    }, LOAD_TIMEOUT_MS);
     return () => clearTimeout(timer);
-  }, [phase, url]);
+    // `assetsReady` is diagnostic only; do not restart the timer when it flips.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, url, reloadKey, reportViewerFailure]);
+
+  useEffect(() => {
+    if (!androidPdfJs || !assetsFailed) return;
+    reportViewerFailure(
+      'parent_pdf_viewer_assets_failed',
+      assetsError instanceof Error ? assetsError : new Error('Bundled pdf.js assets failed to load.'),
+    );
+  }, [androidPdfJs, assetsError, assetsFailed, reportViewerFailure]);
 
   const postLoadDocument = useCallback(() => {
     if (!androidPdfJs || !documentUrl) return;
-    webViewRef.current?.postMessage(buildAndroidPdfViewerLoadMessage(documentUrl));
-  }, [androidPdfJs, documentUrl]);
+    webViewRef.current?.postMessage(
+      buildAndroidPdfViewerLoadMessage(documentUrl, { firstPageOnly }),
+    );
+  }, [androidPdfJs, documentUrl, firstPageOnly]);
 
   useEffect(() => {
     if (!androidPdfJs || !viewerReady) return;
     postLoadDocument();
-  }, [androidPdfJs, documentUrl, postLoadDocument, viewerReady]);
+  }, [androidPdfJs, documentUrl, postLoadDocument, viewerReady, reloadKey]);
 
   const markReady = useCallback(() => {
+    firstPageShownRef.current = true;
     setPhase('ready');
   }, []);
 
@@ -95,30 +176,87 @@ export function ParentEmbeddedPdfWebView({
 
   const handleMessage = useCallback(
     (event: { nativeEvent: { data: string } }) => {
-      const data = event.nativeEvent.data;
-      if (data === 'pdf-viewer-ready') {
-        setViewerReady(true);
-        return;
-      }
-      if (data === 'pdf-loaded') {
-        markReady();
-      } else if (data === 'pdf-error') {
-        markError();
+      const message = parseAndroidPdfViewerMessage(event.nativeEvent.data);
+      switch (message.type) {
+        case 'ready':
+          viewerReadyRef.current = true;
+          setViewerReady(true);
+          return;
+        case 'loaded':
+          markReady();
+          return;
+        case 'error': {
+          const error = new Error(`${message.name}: ${message.message}`);
+          reportViewerFailure(
+            message.fatal ? 'parent_pdf_viewer_error' : 'parent_pdf_viewer_non_fatal_error',
+            error,
+            { stage: message.stage, fatal: message.fatal },
+          );
+          if (message.fatal) {
+            markError();
+          }
+          return;
+        }
+        default:
+          return;
       }
     },
-    [markError, markReady],
+    [markError, markReady, reportViewerFailure],
+  );
+
+  const handleWebViewError = useCallback(
+    (event: { nativeEvent: { description?: string; code?: number; domain?: string } }) => {
+      const { description, code, domain } = event.nativeEvent;
+      reportViewerFailure(
+        'parent_pdf_viewer_webview_error',
+        new Error(description?.trim() || 'WebView failed to load the document.'),
+        { stage: 'webview_error', code, domain },
+      );
+      markError();
+    },
+    [markError, reportViewerFailure],
+  );
+
+  const handleHttpError = useCallback(
+    (event: { nativeEvent: { statusCode?: number; description?: string; url?: string } }) => {
+      const { statusCode, description } = event.nativeEvent;
+      reportViewerFailure(
+        'parent_pdf_viewer_http_error',
+        new Error(`PDF request failed with HTTP ${statusCode ?? 'unknown'}`),
+        { stage: 'http_error', statusCode, description },
+      );
+      markError();
+    },
+    [markError, reportViewerFailure],
+  );
+
+  const handleRenderProcessGone = useCallback(
+    (event: { nativeEvent?: object }) => {
+      const didCrash = (event?.nativeEvent as { didCrash?: boolean } | undefined)?.didCrash;
+      reportViewerFailure(
+        'parent_pdf_viewer_render_process_gone',
+        new Error('The PDF viewer process was terminated (likely out of memory).'),
+        { stage: 'render_process_gone', didCrash },
+      );
+      markError();
+    },
+    [markError, reportViewerFailure],
   );
 
   const openExternally = useCallback(async () => {
     const openUrl = getMobilePdfExternalOpenUrl(url);
-    if (openUrl.startsWith('data:')) {
-      await Linking.openURL(openUrl);
-      return;
-    }
-    await openBrowserAsync(openUrl, {
-      presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
+    await openExternalUrlSafely(openUrl, reportError, {
+      operation: 'parent_pdf_viewer_open_external',
+      entityType: reportEntityType,
+      entityId: reportEntityId,
+      errorTitle: 'Could not open document',
+      errorMessage: 'Please check your connection and try again.',
     });
-  }, [url]);
+  }, [reportEntityId, reportEntityType, reportError, url]);
+
+  const retry = useCallback(() => {
+    setReloadKey((key) => key + 1);
+  }, []);
 
   const bundledAssetUris = useMemo(
     () => (assetUris ? [assetUris.pdfModuleUri, assetUris.workerModuleUri] : []),
@@ -140,6 +278,7 @@ export function ParentEmbeddedPdfWebView({
       <View style={[styles.fallback, style]}>
         <Text style={styles.fallbackText}>This document could not be shown in the app.</Text>
         <StoryButton label="Open document" previewSafe onPress={() => void openExternally()} />
+        <StoryButton label="Try again" variant="outline" previewSafe onPress={retry} />
       </View>
     );
   }
@@ -155,6 +294,7 @@ export function ParentEmbeddedPdfWebView({
   return (
     <View style={[styles.wrap, style]}>
       <WebView
+        key={reloadKey}
         ref={webViewRef}
         source={source}
         style={styles.webView}
@@ -169,8 +309,10 @@ export function ParentEmbeddedPdfWebView({
         startInLoadingState={startInLoadingState}
         onMessage={androidPdfJs ? handleMessage : undefined}
         onLoadEnd={androidPdfJs ? undefined : markReady}
-        onError={markError}
-        onHttpError={markError}
+        onError={handleWebViewError}
+        onHttpError={handleHttpError}
+        onRenderProcessGone={handleRenderProcessGone}
+        onContentProcessDidTerminate={handleRenderProcessGone}
         onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
       />
       {phase === 'loading' || (androidPdfJs && !assetsReady) ? (

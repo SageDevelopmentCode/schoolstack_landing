@@ -1,20 +1,23 @@
 import type { ReactNode } from "react";
+import { DEMO_EYEBROW } from "./bright-demo-theme";
 
 export default function DemoWebsiteSectionKicker({
   children,
   className = "",
+  onDark = false,
 }: {
   children: ReactNode;
   className?: string;
+  onDark?: boolean;
 }) {
   return (
     <span
-      className={`inline-block rounded-full px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] font-secondary ${className}`}
-      style={{
-        backgroundColor: "var(--demo-primary-soft)",
-        color: "var(--demo-primary)",
-      }}
+      className={`inline-flex items-center gap-2 ${DEMO_EYEBROW} ${onDark ? "text-white/70!" : ""} ${className}`}
     >
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${onDark ? "bg-white/70" : "bg-[var(--demo-primary)]"}`}
+        aria-hidden
+      />
       {children}
     </span>
   );

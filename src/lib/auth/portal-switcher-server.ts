@@ -106,7 +106,7 @@ export async function listSchoolPortalOptionsForUser(
 ): Promise<SchoolPortalOption[]> {
   const org =
     known.org === undefined
-      ? await fetchOrganizationWithSettings(supabase, slug)
+      ? await fetchOrganizationWithSettings(slug)
       : known.org;
   if (!org) {
     return [];

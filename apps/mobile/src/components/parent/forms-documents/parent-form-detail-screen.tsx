@@ -4,7 +4,6 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
-  Linking,
   Platform,
   StyleSheet,
   Text,
@@ -41,6 +40,7 @@ import {
   fetchParentFormDownloadUrl,
   submitParentFormResponse,
 } from '@/lib/parent/parent-portal-api';
+import { openExternalUrlSafely } from '@/lib/open-external-url';
 import { buildEmbeddedPdfViewerUrl } from '@/lib/school-bulletin/bulletin-format';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
@@ -153,7 +153,12 @@ export function ParentFormDetailScreen({
   const handleOpenDocx = async () => {
     try {
       const download = await fetchParentFormDownloadUrl(organizationId, formId);
-      await Linking.openURL(download.signedUrl);
+      await openExternalUrlSafely(download.signedUrl, reportError, {
+        operation: 'parent_forms_documents.open_docx_link',
+        entityType: 'parent_form',
+        entityId: formId,
+        errorTitle: 'Could not open document',
+      });
     } catch (openError) {
       reportError('parent_forms_documents.open_docx', openError);
       Alert.alert(
@@ -257,6 +262,8 @@ export function ParentFormDetailScreen({
               url={previewUrl}
               title={detail.form.title}
               minHeight={webViewMinHeight}
+              reportEntityType="parent_form"
+              reportEntityId={formId}
             />
           ) : (
             <View style={styles.docxBanner}>

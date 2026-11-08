@@ -39,8 +39,12 @@ function createGalleryBatchMockSupabase(options: {
           state.removedPaths.push(...paths);
           return { error: null };
         },
-        createSignedUrl: async () => ({
-          data: { signedUrl: "https://example.com/signed" },
+        createSignedUrls: async (paths: string[]) => ({
+          data: paths.map((path) => ({
+            path,
+            signedUrl: "https://example.com/signed",
+            error: null,
+          })),
           error: null,
         }),
       }),

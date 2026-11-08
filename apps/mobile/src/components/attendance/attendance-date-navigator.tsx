@@ -29,10 +29,10 @@ export function AttendanceDateNavigator({
 }: AttendanceDateNavigatorProps) {
   const theme = useParentTheme();
   const viewingToday = isToday(activeDate);
-  const subcopy = summary
-    ? formatDashboardAttendanceSubcopy(summary)
-    : loading
-      ? 'Loading roster summary…'
+  const subcopy = loading
+    ? 'Loading roster…'
+    : summary
+      ? formatDashboardAttendanceSubcopy(summary)
       : error ?? 'Summary unavailable';
 
   return (
@@ -41,10 +41,10 @@ export function AttendanceDateNavigator({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Previous day"
-          disabled={loading}
+          hitSlop={8}
           onPress={() => onDateChange(shiftDate(activeDate, -1))}
           style={({ pressed }) => [styles.chevron, pressed && styles.pressed]}>
-          <Ionicons name="chevron-back" size={18} color={theme.muted} />
+          <Ionicons name="chevron-back" size={18} color={theme.ink} />
         </Pressable>
 
         <View style={styles.center}>
@@ -55,10 +55,10 @@ export function AttendanceDateNavigator({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Next day"
-          disabled={loading}
+          hitSlop={8}
           onPress={() => onDateChange(shiftDate(activeDate, 1))}
           style={({ pressed }) => [styles.chevron, pressed && styles.pressed]}>
-          <Ionicons name="chevron-forward" size={18} color={theme.muted} />
+          <Ionicons name="chevron-forward" size={18} color={theme.ink} />
         </Pressable>
       </View>
 
@@ -88,8 +88,11 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   chevron: {
-    padding: Spacing.one,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
   },
   pressed: {
     opacity: 0.7,

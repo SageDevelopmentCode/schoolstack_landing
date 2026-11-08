@@ -14,7 +14,7 @@ export const rootedMeadowsConfig: SchoolWebsiteDemoConfig = {
     muted: "#6B6560",
     badgeBg: "#F5F0E8",
     accentText: "#b3b462",
-    pageBg: "#FAF8F4",
+    pageBg: "#FFFFFF",
   },
   logo: ROOTED_MEADOWS_ADMIN_LOGO,
   hero: {

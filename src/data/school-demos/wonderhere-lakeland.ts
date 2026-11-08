@@ -14,7 +14,7 @@ export const wonderhereLakelandConfig: SchoolWebsiteDemoConfig = {
     muted: "#6B7B6E",
     badgeBg: "#EDF4EA",
     accentText: "#5C9FD4",
-    pageBg: "#FBFAF6",
+    pageBg: "#FFFFFF",
   },
   logo: WONDERHERE_LOGO,
   hero: {

@@ -14,7 +14,7 @@ export const brazosValleyHonorAcademyConfig: SchoolWebsiteDemoConfig = {
     muted: "#55616B",
     badgeBg: "rgba(123, 30, 43, 0.12)",
     accentText: "#C9A24A",
-    pageBg: "#F7F2E8",
+    pageBg: "#FFFFFF",
   },
   logo: BVHA_LOGO,
   hero: {

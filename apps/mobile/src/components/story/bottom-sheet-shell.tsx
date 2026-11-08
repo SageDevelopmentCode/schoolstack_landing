@@ -143,6 +143,7 @@ export function BottomSheetShell({
           {keyboardAvoiding ? (
             <KeyboardAvoidingView
               behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+              pointerEvents="box-none"
               style={styles.keyboardAvoiding}>
               {sheetContent}
             </KeyboardAvoidingView>
@@ -167,6 +168,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   keyboardAvoiding: {
+    flex: 1,
     justifyContent: 'flex-end',
   },
   backdrop: {

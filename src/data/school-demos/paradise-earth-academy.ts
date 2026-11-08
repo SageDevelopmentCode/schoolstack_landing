@@ -14,7 +14,7 @@ export const paradiseEarthAcademyConfig: SchoolWebsiteDemoConfig = {
     muted: "#666666",
     badgeBg: "rgba(235, 132, 68, 0.12)",
     accentText: "#BE4B8E",
-    pageBg: "#F9F7F2",
+    pageBg: "#FFFFFF",
   },
   logo: PARADISE_EARTH_ACADEMY_LOGO,
   hero: {

@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 import { StyleSheet, View } from 'react-native';
 
 import { PrimaryButton } from '@/components/primary-button';
@@ -8,7 +7,9 @@ import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
 import { schoolApplyUrl } from '@/lib/admissions/school-apply-url';
+import { openExternalUrlSafely } from '@/lib/open-external-url';
 import { adminCardShadow } from '@/lib/organization-settings/build-admin-theme';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type ParentPlaceholderScreenProps = {
   slug: string;
@@ -26,10 +27,12 @@ export function ParentPlaceholderScreen({
   showApplicationsCta = false,
 }: ParentPlaceholderScreenProps) {
   const theme = useAdminTheme();
+  const { reportError } = useMobileErrorReporter();
 
   const handleOpenApplications = async () => {
-    await openBrowserAsync(schoolApplyUrl(slug), {
-      presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
+    await openExternalUrlSafely(schoolApplyUrl(slug), reportError, {
+      operation: 'parent_placeholder_open_applications',
+      errorTitle: 'Could not open applications',
     });
   };
 

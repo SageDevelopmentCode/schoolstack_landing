@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Navbar from "@/components/sections/Navbar";
-import Footer from "@/components/sections/Footer";
+import HomeShell from "@/components/home/HomeShell";
+import HomeBookDemoSection from "@/components/sections/HomeBookDemoSection";
 import SagefieldHero from "@/components/sections/customers/sagefield/SagefieldHero";
 import SagefieldChallenge from "@/components/sections/customers/sagefield/SagefieldChallenge";
 import SagefieldTimeline from "@/components/sections/customers/sagefield/SagefieldTimeline";
@@ -17,11 +17,11 @@ import { pageMetadata } from "@/lib/metadata";
 import { buildBreadcrumbs } from "@/lib/seo";
 
 const GALLERY = [
-  { src: '/images/sagefield/classroom-main.jpg', alt: 'Sage Field main classroom' },
-  { src: '/images/sagefield/classroom-primary.jpg', alt: 'Sage Field primary classroom' },
-  { src: '/images/sagefield/garden.jpg', alt: 'Sage Field outdoor garden' },
-  { src: '/images/sagefield/mud-kitchen.jpg', alt: 'Sage Field mud kitchen' },
-]
+  { src: "/images/sagefield/classroom-main.jpg", alt: "Sage Field main classroom" },
+  { src: "/images/sagefield/classroom-primary.jpg", alt: "Sage Field primary classroom" },
+  { src: "/images/sagefield/garden.jpg", alt: "Sage Field outdoor garden" },
+  { src: "/images/sagefield/mud-kitchen.jpg", alt: "Sage Field mud kitchen" },
+];
 
 export const metadata: Metadata = pageMetadata({
   title: "Sage Field Case Study",
@@ -42,7 +42,7 @@ const ARTICLE_DESCRIPTION =
 
 export default function SagefieldPage() {
   return (
-    <>
+    <HomeShell className="bg-white">
       <BreadcrumbJsonLd items={BREADCRUMBS} />
       <ArticleJsonLd
         headline="Sage Field Case Study"
@@ -50,62 +50,58 @@ export default function SagefieldPage() {
         path="/customers/sagefield"
         image="/images/sagefield/classroom-main.jpg"
       />
-      <Navbar />
-      <main>
-        <SagefieldHero />
-        <SagefieldChallenge />
-        <SagefieldTimeline />
-        <SagefieldLiveWebsite />
-        <SagefieldOutcomes />
-        <SagefieldBeforeAfter />
-        <SagefieldWhyItWorked />
+      <SagefieldHero />
+      <SagefieldChallenge />
+      <SagefieldTimeline />
+      <SagefieldLiveWebsite />
+      <SagefieldOutcomes />
+      <SagefieldBeforeAfter />
+      <SagefieldWhyItWorked />
 
-        {/* Campus photo gallery */}
-        <section className="bg-bg pb-20">
-          <div className="max-w-[1100px] mx-auto px-6 lg:px-16">
-            <p className="text-[11px] font-secondary font-semibold uppercase tracking-widest text-text-faint mb-5">
-              Campus photos
-            </p>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              {GALLERY.map(({ src, alt }) => (
-                <div key={src} className="rounded-xl overflow-hidden h-[180px] lg:h-[220px]">
-                  <Image
-                    src={src}
-                    alt={alt}
-                    width={400}
-                    height={300}
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 flex items-center gap-2">
-              <div className="w-5 h-5 shrink-0 flex items-center justify-center">
+      <section className="bg-white px-3 pb-16 lg:px-6">
+        <div className="mx-auto max-w-[1400px] px-3 md:px-6 lg:px-10">
+          <p className="mb-5 font-secondary text-[13px] font-semibold uppercase tracking-widest text-clay">
+            Campus photos
+          </p>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {GALLERY.map(({ src, alt }) => (
+              <div key={src} className="h-[180px] overflow-hidden rounded-[24px] lg:h-[220px]">
                 <Image
-                  src="/images/SageFieldLogo.png"
-                  alt="Sage Field logo"
-                  width={20}
-                  height={20}
-                  className="w-full h-full object-contain"
+                  src={src}
+                  alt={alt}
+                  width={400}
+                  height={300}
+                  className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
                 />
               </div>
-              <a
-                href="https://www.sagefield.co"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[12px] font-secondary text-accent hover:text-accent-hover transition-colors duration-150 underline underline-offset-2"
-              >
-                sagefield.co
-              </a>
-              <span className="text-[12px] font-secondary text-text-faint">· Round Rock, TX</span>
-            </div>
+            ))}
           </div>
-        </section>
+          <div className="mt-4 flex items-center gap-2">
+            <div className="flex h-5 w-5 shrink-0 items-center justify-center">
+              <Image
+                src="/images/SageFieldLogo.png"
+                alt="Sage Field logo"
+                width={20}
+                height={20}
+                className="h-full w-full object-contain"
+              />
+            </div>
+            <a
+              href="https://www.sagefield.co"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-secondary text-[12px] text-clay underline underline-offset-2 transition-colors hover:underline"
+            >
+              sagefield.co
+            </a>
+            <span className="font-secondary text-[12px] text-[#1d1a16]/50">· Round Rock, TX</span>
+          </div>
+        </div>
+      </section>
 
-        <SagefieldBuyerRelevance />
-      </main>
-      <Footer />
+      <SagefieldBuyerRelevance />
+      <HomeBookDemoSection />
       <SagefieldStickyRail />
-    </>
-  )
+    </HomeShell>
+  );
 }

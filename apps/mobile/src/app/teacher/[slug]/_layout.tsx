@@ -1,3 +1,4 @@
+import { useObserve } from 'expo-observe';
 import { Slot, useIsFocused, useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
@@ -93,6 +94,12 @@ function TeacherLayoutContent() {
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
   const organizationId =
     selectedSchool?.slug === slug ? (selectedSchool?.id ?? '') : '';
+  const { markInteractive } = useObserve();
+
+  const organization = useMemo(() => {
+    if (selectedSchool?.slug === slug) return selectedSchool;
+    return null;
+  }, [selectedSchool, slug]);
 
   useMobileFeatureVisitTracking({
     surface: 'teacher_portal',
@@ -145,6 +152,11 @@ function TeacherLayoutContent() {
     user,
   ]);
 
+  useEffect(() => {
+    if (isLoading || !organization) return;
+    markInteractive();
+  }, [isLoading, markInteractive, organization]);
+
   const handleTabChange = (tab: TeacherTab) => {
     if (!slug) return;
     if (tab === 'more') {
@@ -183,11 +195,6 @@ function TeacherLayoutContent() {
       }
     }
   };
-
-  const organization = useMemo(() => {
-    if (selectedSchool?.slug === slug) return selectedSchool;
-    return null;
-  }, [selectedSchool, slug]);
 
   if (isLoading || !organization) {
     return (

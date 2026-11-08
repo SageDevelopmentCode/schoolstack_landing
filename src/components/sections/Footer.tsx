@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { BookOpen, Info, Layers, Users, Wrench } from "lucide-react";
+import { ArrowRight, BookOpen, Info, Layers, Users, Wrench } from "lucide-react";
 import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
 import {
   FREE_TOOLS_HUB_PATH,
@@ -18,12 +18,11 @@ const NAV_LINKS = [
 
 export default function Footer() {
   return (
-    <footer className="bg-sage-900 border-t border-white/8 py-16">
-      <div className="max-w-[1200px] mx-auto px-6 lg:px-16">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-10">
-          {/* Brand */}
+    <footer className="bg-white px-3 pb-10 pt-6 lg:px-6">
+      <div className="mx-auto max-w-[1400px] rounded-[40px] bg-[#1d1a16] px-6 py-12 md:px-10 lg:px-14 lg:py-14">
+        <div className="flex flex-col items-start justify-between gap-10 md:flex-row md:items-center">
           <div>
-            <Link href="/" className="flex items-center gap-2 shrink-0">
+            <Link href="/" className="flex shrink-0 items-center gap-2">
               <Image
                 src="/images/Logo.webp"
                 alt="MudKitchen"
@@ -33,11 +32,11 @@ export default function Footer() {
                 sizes="120px"
                 className="h-10 w-auto object-contain"
               />
-              <span className="font-display font-semibold text-[20px] text-white/90">
+              <span className="font-secondary text-[20px] font-bold tracking-tight text-white/95">
                 MudKitchen
               </span>
             </Link>
-            <p className="text-sm text-white/50 mt-3 max-w-[240px] leading-relaxed">
+            <p className="mt-3 max-w-[260px] font-secondary text-sm leading-relaxed text-white/60">
               Software built to run a real microschool.
             </p>
             <MobileAppDownloadBadges
@@ -46,16 +45,15 @@ export default function Footer() {
             />
           </div>
 
-          {/* Nav links */}
           <nav
-            className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-4 sm:gap-8"
+            className="flex flex-col items-start gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-8"
             aria-label="Footer navigation"
           >
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="flex items-center gap-1.5 text-sm font-medium text-white/55 hover:text-white/90 transition-colors duration-150"
+                className="flex items-center gap-1.5 font-secondary text-sm font-medium text-white/60 transition-colors duration-150 hover:text-white/90"
               >
                 <link.icon size={14} className="shrink-0" />
                 {link.label}
@@ -63,68 +61,53 @@ export default function Footer() {
             ))}
             <a
               href={BOOK_DEMO_HREF}
-              className="inline-flex items-center gap-1.5 bg-white/10 text-white text-sm font-medium rounded-pill px-[18px] h-9 hover:bg-white/15 transition-all duration-200"
+              className="font-secondary inline-flex h-10 items-center gap-2 rounded-pill bg-white px-5 text-sm font-semibold text-[#1d1a16] transition-colors hover:bg-[#F8DDCF]"
             >
               Book a Demo
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 14 14"
-                fill="none"
-                aria-hidden="true"
-              >
-                <path
-                  d="M2.5 7H11.5M11.5 7L7.5 3M11.5 7L7.5 11"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <ArrowRight size={14} aria-hidden />
             </a>
           </nav>
         </div>
 
-        {/* Bottom bar */}
-        <div className="border-t border-white/10 mt-12 pt-6 flex flex-col md:flex-row items-center justify-between gap-3">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-            <p className="text-xs text-white/70">
+        <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 md:flex-row">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <p className="font-secondary text-xs text-white/60">
               © 2026 MudKitchen. All rights reserved.
             </p>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
               <Link
                 href="/support"
-                className="text-xs text-white/70 hover:text-white/90 transition-colors"
+                className="font-secondary text-xs text-white/60 transition-colors hover:text-white/90"
               >
                 Support
               </Link>
               <Link
                 href="/account-deletion"
-                className="text-xs text-white/70 hover:text-white/90 transition-colors"
+                className="font-secondary text-xs text-white/60 transition-colors hover:text-white/90"
               >
                 Delete account
               </Link>
               <Link
                 href="/privacy"
-                className="text-xs text-white/70 hover:text-white/90 transition-colors"
+                className="font-secondary text-xs text-white/60 transition-colors hover:text-white/90"
               >
                 Privacy Policy
               </Link>
               <Link
                 href="/terms"
-                className="text-xs text-white/70 hover:text-white/90 transition-colors"
+                className="font-secondary text-xs text-white/60 transition-colors hover:text-white/90"
               >
                 Terms of Use
               </Link>
               <Link
                 href="/dpa"
-                className="text-xs text-white/70 hover:text-white/90 transition-colors"
+                className="font-secondary text-xs text-white/60 transition-colors hover:text-white/90"
               >
                 DPA
               </Link>
             </div>
           </div>
-          <p className="text-xs text-white/70">
+          <p className="font-secondary text-center text-xs text-white/60 md:text-right">
             🏫 Made for microschool founders, by people who get it.
           </p>
         </div>

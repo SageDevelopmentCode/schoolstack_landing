@@ -14,7 +14,7 @@ export const littleSprigsTampaConfig: SchoolWebsiteDemoConfig = {
     muted: "#6E7D44",
     badgeBg: "rgba(110, 125, 68, 0.12)",
     accentText: "#B96645",
-    pageBg: "#F7F1E5",
+    pageBg: "#FFFFFF",
   },
   logo: LITTLE_SPRIGS_TAMPA_LOGO,
   hero: {

@@ -34,10 +34,7 @@ describe("admin communication nav defaults", () => {
       routeFeature: "my_school",
       routeSubtab: "newsletters",
     });
-    assert.equal(
-      href,
-      "/school/rooted-meadows/admin/my_school/newsletters",
-    );
+    assert.equal(href, "/school/rooted-meadows/admin/my_school/newsletters");
   });
 
   it("hoists my_school nested communication into root communication on merge", () => {
@@ -75,7 +72,8 @@ describe("admin communication nav defaults", () => {
 
   it("shows communication at root after my_school and hides committees/messages", () => {
     const groups = buildAdminNavGroups(DEFAULT_FEATURES.admin, undefined);
-    const mainItems = groups.find((group) => group.label === "Main")?.items ?? [];
+    const mainItems =
+      groups.find((group) => group.label === "Main")?.items ?? [];
     const rootKeys = mainItems.map((item) => item.key);
 
     const mySchoolIndex = rootKeys.indexOf("my_school");
@@ -86,8 +84,14 @@ describe("admin communication nav defaults", () => {
     assert.ok(!rootKeys.includes("messages"));
     assert.ok(rootKeys.includes("notifications"));
 
-    const communication = mainItems.find((item) => item.key === "communication");
-    assert.ok(communication?.children?.some((child) => child.key === "messages"));
-    assert.ok(communication?.children?.some((child) => child.key === "committees"));
+    const communication = mainItems.find(
+      (item) => item.key === "communication",
+    );
+    assert.ok(
+      communication?.children?.some((child) => child.key === "messages"),
+    );
+    assert.ok(
+      communication?.children?.some((child) => child.key === "committees"),
+    );
   });
 });

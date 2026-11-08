@@ -33,11 +33,12 @@ import {
   totalEnrollmentFromGroups,
   type EnrollmentTuitionGroup,
 } from "@/lib/marketing/enrollment-tuition-groups";
-import { MUDKITCHEN_MARKETING_STORY_THEME } from "@/lib/marketing/mudkitchen-story-theme";
+import { MARKETING_TOOL_BRIGHT_THEME } from "@/components/marketing/free-tools/free-tools-hub-theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import MarketingToolHero from "@/components/marketing/shared/MarketingToolHero";
+import { ACCENT_HIGHLIGHT, OUTLINE_PILL } from "@/components/home/bright-styles";
 import ParentButton from "@/components/school-parent/ui/ParentButton";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
-import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
 import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
 import ParentTextLink from "@/components/school-parent/ui/ParentTextLink";
 
@@ -53,16 +54,9 @@ function starterCategories(): ExpenseCategory[] {
   return STARTER_EXPENSE_CATEGORIES.map((category) => ({ ...category }));
 }
 
-function calculatorTheme(): ParentThemeTokens {
-  return {
-    ...MUDKITCHEN_MARKETING_STORY_THEME,
-    fontDisplay: "var(--font-fraunces), Georgia, serif",
-    fontBody: "var(--font-dm-sans), system-ui, sans-serif",
-  };
-}
+const theme = MARKETING_TOOL_BRIGHT_THEME;
 
 export default function EnrollmentCalculatorExperience() {
-  const theme = calculatorTheme();
   const [tuitionGroups, setTuitionGroups] = useState(() =>
     starterEnrollmentGroups(EXAMPLE.tuitionCents, EXAMPLE.currentEnrollment),
   );
@@ -156,36 +150,34 @@ export default function EnrollmentCalculatorExperience() {
         })}
       </p>
 
-      <header className="mb-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-        <div className="max-w-[40rem]">
-          <ParentDisplayHeading theme={theme} as="h1" className="!text-[clamp(1.875rem,4vw,2.7rem)]">
-            {CALCULATOR_COPY.title}
-          </ParentDisplayHeading>
-          <p
-            className="mt-3 text-[14px] leading-relaxed"
-            style={{ color: theme.muted, fontFamily: theme.fontBody }}
-          >
-            {CALCULATOR_COPY.subtitle}
-          </p>
-        </div>
-        <div className="calculator-print-hide flex shrink-0 items-center gap-4">
+      <div className="mb-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <MarketingToolHero
+          eyebrow="Free tool"
+          title={
+            <>
+              Can your school <span className={ACCENT_HIGHLIGHT}>pay you?</span>
+            </>
+          }
+          description={CALCULATOR_COPY.subtitle}
+          className="mb-0 flex-1"
+        />
+        <div className="calculator-print-hide flex shrink-0 flex-wrap items-center gap-3">
           <button
             type="button"
             onClick={() => setResetOpen(true)}
-            className={`inline-flex items-center gap-1.5 text-[13px] font-bold ${calculatorFocusClass}`}
-            style={{ color: theme.muted, fontFamily: theme.fontBody, borderRadius: theme.radiusButton }}
+            className={`font-secondary text-[13px] font-semibold text-[#1d1a16]/60 hover:text-[#1d1a16] ${calculatorFocusClass}`}
           >
-            <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-            {CALCULATOR_COPY.startFresh}
-          </button>
-          <ParentButton theme={theme} variant="outline" onClick={() => window.print()}>
             <span className="inline-flex items-center gap-1.5">
-              <Download className="h-3.5 w-3.5" aria-hidden="true" />
-              {CALCULATOR_COPY.savePrint}
+              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+              {CALCULATOR_COPY.startFresh}
             </span>
-          </ParentButton>
+          </button>
+          <button type="button" onClick={() => window.print()} className={OUTLINE_PILL}>
+            <Download className="h-3.5 w-3.5" aria-hidden="true" />
+            {CALCULATOR_COPY.savePrint}
+          </button>
         </div>
-      </header>
+      </div>
 
       <div className="grid items-start gap-6 lg:grid-cols-2 lg:gap-[25px]">
         <ParentCard theme={theme} style={{ overflow: "visible" }}>

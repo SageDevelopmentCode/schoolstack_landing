@@ -14,7 +14,7 @@ export const wildHeartsAdventureConfig: SchoolWebsiteDemoConfig = {
     muted: "#5A6B7D",
     badgeBg: "rgba(140, 164, 184, 0.18)",
     accentText: "#1A2E4C",
-    pageBg: "#F0F3F6",
+    pageBg: "#FFFFFF",
   },
   logo: WILD_HEARTS_ADVENTURE_LOGO,
   hero: {

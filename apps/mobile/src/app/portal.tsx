@@ -1,4 +1,5 @@
-import { useRouter } from 'expo-router';
+import { useObserve } from 'expo-observe';
+import { useRouter, type Href } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -43,6 +44,7 @@ export default function PortalScreen() {
   const [schoolResolveRetry, setSchoolResolveRetry] = useState(0);
   const restoreAttemptedRef = useRef(false);
   const completeAccessibleSchoolAttemptedRef = useRef(false);
+  const { markInteractive } = useObserve();
 
   const recoveryDecision = useMemo(
     () =>
@@ -130,7 +132,7 @@ export default function PortalScreen() {
     }
 
     if (recoveryDecision.action === 'navigate') {
-      router.replace(recoveryDecision.route);
+      router.replace(recoveryDecision.route as Href);
     }
   }, [
     recoveryDecision,
@@ -141,6 +143,12 @@ export default function PortalScreen() {
     user,
     schoolResolveRetry,
   ]);
+
+  useEffect(() => {
+    if (recoveryDecision.action === 'navigate') return;
+    if (shouldShowPortalLoadingSpinner(recoveryDecision)) return;
+    markInteractive();
+  }, [markInteractive, recoveryDecision]);
 
   if (accessibleSchoolError) {
     return (

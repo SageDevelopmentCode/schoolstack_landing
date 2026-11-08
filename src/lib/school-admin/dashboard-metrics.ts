@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { reportRpcPermissionDenied } from "@/lib/rpc-permission-errors";
 
 export type DashboardApplicationMetrics = {
   activeApplications: number;
@@ -54,6 +55,12 @@ export async function fetchDashboardAggregateMetrics(
   });
 
   if (error) {
+    await reportRpcPermissionDenied({
+      functionName: "admin_dashboard_metrics",
+      organizationId,
+      error,
+      surface: "school_admin",
+    });
     return null;
   }
 

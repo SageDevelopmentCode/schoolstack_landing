@@ -198,8 +198,8 @@ export default function SagefieldTimeline() {
   const ActiveIcon = STEPS[active].icon
 
   return (
-    <section className="bg-dark-panel py-28 overflow-hidden">
-      <div className="max-w-[1100px] mx-auto px-6 lg:px-16">
+    <section className="overflow-hidden bg-white px-3 py-8 lg:px-6">
+      <div className="mx-auto max-w-[1400px] rounded-[40px] bg-[#1d1a16] px-6 py-16 md:px-10 lg:px-12 lg:py-20">
         {/* Heading */}
         <div className="text-center max-w-[560px] mx-auto">
           <FadeInView>
@@ -211,13 +211,10 @@ export default function SagefieldTimeline() {
             </span>
           </FadeInView>
           <FadeInView delay={0.08}>
-            <h2
-              className="font-display text-[clamp(1.9rem,3.5vw,2.75rem)] leading-[1.05] mt-5"
-              style={{ color: '#F7F1E7' }}
-            >
+            <h2 className="font-secondary! mt-5 text-[clamp(1.9rem,3.5vw,2.75rem)] font-bold! leading-[1.05]! tracking-[-0.04em]! text-white">
               From idea to operating school.
               <br />
-              <em style={{ color: '#E8D5C8', fontStyle: 'italic' }}>Four steps.</em>
+              <span className="text-clay">Four steps.</span>
             </h2>
           </FadeInView>
           <FadeInView delay={0.14}>
@@ -341,10 +338,7 @@ export default function SagefieldTimeline() {
                 </div>
 
                 {/* Title + outcome + body */}
-                <h3
-                  className="font-display text-[1.5rem] font-medium leading-snug"
-                  style={{ color: '#F7F1E7' }}
-                >
+                <h3 className="font-secondary! text-[1.5rem] font-bold! leading-snug tracking-[-0.02em]! text-white">
                   {STEPS[active].title}
                 </h3>
                 <p

@@ -14,7 +14,7 @@ export const theWoodlandsMicroschoolConfig: SchoolWebsiteDemoConfig = {
     muted: "#6A6F73",
     badgeBg: "rgba(51, 90, 57, 0.12)",
     accentText: "#335A39",
-    pageBg: "#F7F3E8",
+    pageBg: "#FFFFFF",
   },
   logo: THE_WOODLANDS_LOGO,
   hero: {

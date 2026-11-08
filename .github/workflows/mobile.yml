@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       mobile: ${{ steps.filter.outputs.mobile }}
+      sheets: ${{ steps.filter.outputs.sheets }}
     steps:
       - uses: actions/checkout@v4
 
@@ -20,6 +21,18 @@ jobs:
               - 'apps/mobile/**'
               - 'package-lock.json'
               - '.github/workflows/mobile.yml'
+            sheets:
+              - 'apps/mobile/src/components/story/**'
+              - 'apps/mobile/src/components/parent/parent-bottom-sheet.tsx'
+              - 'apps/mobile/src/components/**/messages/**'
+              - 'apps/mobile/src/components/dev/**'
+              - 'apps/mobile/src/components/school-admin/student-teacher-assign-picker.tsx'
+              - 'apps/mobile/src/hooks/use-bottom-sheet*'
+              - 'apps/mobile/src/hooks/use-keyboard-height.ts'
+              - 'apps/mobile/src/constants/**'
+              - 'apps/mobile/.maestro/sheet-gallery.yaml'
+              - 'apps/mobile/scripts/compare-sheet-gallery.mjs'
+              - 'apps/mobile/visual-baselines/**'
 
   mobile-checks:
     needs: changes
@@ -38,6 +51,12 @@ jobs:
 
       - name: Check mobile operational error reporting
         run: npm run check:mobile-operational-errors
+
+      - name: Install ripgrep
+        run: command -v rg >/dev/null || (sudo apt-get update && sudo apt-get install -y ripgrep)
+
+      - name: Check mobile keyboard patterns
+        run: npm run check:mobile-keyboard-patterns
 
       - name: Lint mobile app
         run: npm run lint:errors --workspace @schoolstack/mobile
@@ -58,7 +77,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      MAESTRO_FLOWS: ${{ github.event_name == 'pull_request' && 'school-admin-logged-in.yaml dashboard.yaml' || '.maestro' }}
+      # PRs: smoke flows, plus the sheet gallery visual diff when shared sheet code changes.
+      # Pushes to main: every flow in .maestro (message flows, gallery, everything else).
+      MAESTRO_FLOWS: ${{ github.event_name == 'pull_request' && format('school-admin-logged-in.yaml dashboard.yaml{0}', needs.changes.outputs.sheets == 'true' && ' sheet-gallery.yaml' || '') || '.maestro' }}
+      RUN_SHEET_GALLERY: ${{ (github.event_name == 'push' || needs.changes.outputs.sheets == 'true') && 'true' || 'false' }}
       E2E_APK_CACHE_KEY: ${{ hashFiles('package-lock.json', 'apps/mobile/package.json', 'apps/mobile/app.json', 'apps/mobile/src/**', 'apps/mobile/.maestro/**', 'apps/mobile/scripts/build-android-debug-ci.sh') }}
 
     steps:
@@ -193,6 +215,19 @@ jobs:
           disable-animations: true
           script: bash apps/mobile/scripts/run-e2e-android-ci.sh
 
+      - name: Compare sheet gallery screenshots
+        if: env.RUN_SHEET_GALLERY == 'true'
+        run: node apps/mobile/scripts/compare-sheet-gallery.mjs --platform android
+
+      - name: Upload sheet gallery screenshots
+        if: always() && env.RUN_SHEET_GALLERY == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sheet-gallery-android
+          path: apps/mobile/.artifacts/sheet-gallery/android
+          retention-days: 14
+          if-no-files-found: ignore
+
       - name: Upload Maestro debug output
         if: failure()
         uses: actions/upload-artifact@v4
@@ -295,6 +330,18 @@ jobs:
 
       - name: Build and run Maestro E2E on iOS simulator
         run: bash apps/mobile/scripts/run-e2e-ios-ci.sh
+
+      - name: Compare sheet gallery screenshots
+        run: node apps/mobile/scripts/compare-sheet-gallery.mjs --platform ios
+
+      - name: Upload sheet gallery screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sheet-gallery-ios
+          path: apps/mobile/.artifacts/sheet-gallery/ios
+          retention-days: 14
+          if-no-files-found: ignore
 
       - name: Upload Maestro debug output
         if: failure()

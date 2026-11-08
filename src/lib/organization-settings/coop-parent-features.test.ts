@@ -8,7 +8,10 @@ import {
   isCoopOnlyParentFeature,
   resolveCoopAutoEnabledOrgParentFlags,
 } from "./coop-parent-features";
-import { resolveMainParentOrganizationFeatures, resolveProgramParentFeatures } from "./resolve-program-parent-features";
+import {
+  resolveMainParentOrganizationFeatures,
+  resolveProgramParentFeatures,
+} from "./resolve-program-parent-features";
 
 describe("coop-parent-features", () => {
   it("identifies co-op-only and auto-enabled parent features", () => {

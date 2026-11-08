@@ -78,9 +78,12 @@ export default function ParentClassroomSignupSidebar({
 
       let fetchResponse: Response | undefined;
       try {
-        const query = new URLSearchParams({ organizationId }).toString();
+        const queryParams = new URLSearchParams({ organizationId });
+        if (initialFamilyResponse?.studentId) {
+          queryParams.set("studentId", initialFamilyResponse.studentId);
+        }
         fetchResponse = await fetch(
-          `/api/parent-portal/classroom-signups/${encodeURIComponent(activeSignupId)}?${query}`,
+          `/api/parent-portal/classroom-signups/${encodeURIComponent(activeSignupId)}?${queryParams.toString()}`,
         );
         const payload = (await fetchResponse.json()) as {
           responses?: ClassroomSignupResponse[];

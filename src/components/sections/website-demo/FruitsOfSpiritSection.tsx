@@ -1,69 +1,47 @@
 "use client";
 
 import { motion } from "framer-motion";
-import DemoWebsiteCard from "./DemoWebsiteCard";
-import DemoWebsiteSectionKicker from "./DemoWebsiteSectionKicker";
+import { Quote } from "lucide-react";
 import type { DemoFruitsOfSpiritSection } from "@/data/school-demos/types";
+import { DEMO_BLOCK, DEMO_BODY, DEMO_GUTTER, DEMO_INK, STORY_EASE } from "./bright-demo-theme";
+import SiteSectionHeader from "./sections/SiteSectionHeader";
 
-export default function FruitsOfSpiritSection({
-  section,
-}: {
-  section: DemoFruitsOfSpiritSection;
-}) {
+export default function FruitsOfSpiritSection({ section }: { section: DemoFruitsOfSpiritSection }) {
   return (
-    <section
-      id="signature"
-      className="py-24 px-8 sm:px-12 lg:px-16"
-      style={{ backgroundColor: "var(--demo-paper)" }}
-    >
-      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-16 items-start">
-        <motion.div
-          className="w-full lg:w-5/12 lg:sticky lg:top-28"
-          initial={{ opacity: 0, x: -24 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7 }}
-        >
-          <div className="mb-6">
-            <DemoWebsiteSectionKicker>{section.eyebrow}</DemoWebsiteSectionKicker>
+    <section id="signature" className={`scroll-mt-[88px] py-3 ${DEMO_GUTTER}`}>
+      <div className={`${DEMO_BLOCK} bg-[var(--demo-tint-1)]`}>
+        <div className="grid gap-10 @5xl/site:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] @5xl/site:gap-14">
+          <div className="@5xl/site:sticky @5xl/site:top-28 @5xl/site:self-start">
+            <SiteSectionHeader eyebrow={section.eyebrow} heading={section.heading} subtitle={section.intro} />
+            {section.quote ? (
+              <div className="relative mt-8 overflow-hidden rounded-[28px] bg-[var(--demo-ink)] p-7 text-white">
+                <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[var(--demo-glow)] blur-2xl" aria-hidden />
+                <Quote className="relative h-7 w-7 text-[var(--demo-primary-light)]" aria-hidden />
+                <p className="font-secondary relative mt-4 text-[17px] font-medium italic leading-relaxed text-white/90">
+                  {section.quote}
+                </p>
+              </div>
+            ) : null}
           </div>
-          <h2
-            className="text-3xl md:text-4xl font-bold font-heading leading-tight mb-5"
-            style={{ color: "var(--demo-ink)" }}
-          >
-            {section.heading}
-          </h2>
-          <p className="mb-6 text-base font-secondary leading-relaxed" style={{ color: "var(--demo-muted)" }}>
-            {section.intro}
-          </p>
-          {section.quote && (
-            <blockquote className="border-l-4 border-[var(--demo-primary)] py-1 pl-5">
-              <p className="text-sm font-secondary italic leading-relaxed" style={{ color: "var(--demo-ink)" }}>
-                &ldquo;{section.quote}&rdquo;
-              </p>
-            </blockquote>
-          )}
-        </motion.div>
 
-        <div className="w-full lg:w-7/12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {section.fruits.map((fruit, i) => (
-            <motion.div
-              key={fruit.name}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.05 }}
-            >
-              <DemoWebsiteCard className="h-full bg-[var(--demo-cream)]">
-                <p className="mb-1.5 text-sm font-bold font-heading" style={{ color: "var(--demo-ink)" }}>
-                  {fruit.name}
-                </p>
-                <p className="text-xs font-secondary leading-relaxed" style={{ color: "var(--demo-muted)" }}>
-                  {fruit.desc}
-                </p>
-              </DemoWebsiteCard>
-            </motion.div>
-          ))}
+          <div className="grid gap-3 @2xl/site:grid-cols-2 @5xl/site:grid-cols-3">
+            {section.fruits.map((fruit, i) => (
+              <motion.div
+                key={fruit.name}
+                className="group rounded-[24px] bg-white p-5 ring-1 ring-black/[0.04] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--demo-shadow-card)]"
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.45, delay: i * 0.04, ease: STORY_EASE }}
+              >
+                <span className="font-secondary flex h-9 w-9 items-center justify-center rounded-full bg-[var(--demo-tint-1)] text-[13px] font-bold text-[var(--demo-accent)] transition-colors group-hover:bg-[var(--demo-ink)] group-hover:text-white">
+                  {i + 1}
+                </span>
+                <p className={`font-secondary mt-4 text-[17px] font-bold ${DEMO_INK}`}>{fruit.name}</p>
+                <p className={`${DEMO_BODY} mt-1 text-[14px]`}>{fruit.desc}</p>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

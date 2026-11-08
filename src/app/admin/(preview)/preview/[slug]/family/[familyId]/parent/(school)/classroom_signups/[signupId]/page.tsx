@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { familyPreviewBasePath } from "@/lib/admissions/family-preview-access";
@@ -7,7 +6,6 @@ import {
   parentClassroomSignupPath,
 } from "@/lib/organization-settings/parent-routes";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
-import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -17,9 +15,7 @@ type PageProps = {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org || !isParentFeatureEnabled(org.features, "classroom_signups")) {
     return { title: "Preview Not Found" };
@@ -34,9 +30,7 @@ export default async function FamilyPreviewClassroomSignupPage({
   params,
 }: PageProps) {
   const { slug, familyId, signupId } = await params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org || !isParentFeatureEnabled(org.features, "classroom_signups")) {
     notFound();

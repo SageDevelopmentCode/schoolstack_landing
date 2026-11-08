@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
   RefreshControl,
@@ -13,6 +13,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { AttendanceDateNavigator } from '@/components/attendance/attendance-date-navigator';
 import { AttendanceDetailSheet } from '@/components/attendance/attendance-detail-sheet';
 import { AttendancePickupSheet } from '@/components/attendance/attendance-pickup-sheet';
+import { AttendanceStudentRowSkeleton } from '@/components/attendance/attendance-skeleton-blocks';
 import { AttendanceScreenSkeleton } from '@/components/attendance/attendance-screen-skeleton';
 import {
   AttendanceStatusFilters,
@@ -58,11 +59,22 @@ export function AttendanceRosterPanel({
   const [search, setSearch] = useState('');
   const [detailStudent, setDetailStudent] = useState<AttendanceRosterStudent | null>(null);
   const [pickupStudent, setPickupStudent] = useState<AttendanceRosterStudent | null>(null);
+  const hasLoadedRosterRef = useRef(false);
 
   useEffect(() => {
     if (!active) return;
     void loadRoster();
   }, [active, loadRoster]);
+
+  useEffect(() => {
+    if (!isLoading && !isRefreshing) {
+      hasLoadedRosterRef.current = true;
+    }
+  }, [isLoading, isRefreshing]);
+
+  const rosterLoading = isLoading && !isRefreshing;
+  const showDateNavLoading = rosterLoading;
+  const showListSkeleton = rosterLoading && students.length === 0 && hasLoadedRosterRef.current;
 
   const filteredStudents = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -111,7 +123,7 @@ export function AttendanceRosterPanel({
       <AttendanceDateNavigator
         activeDate={activeDate}
         summary={summary}
-        loading={isLoading}
+        loading={showDateNavLoading}
         error={error}
         onDateChange={handleDateChange}
       />
@@ -134,7 +146,8 @@ export function AttendanceRosterPanel({
 
       <AttendanceStatusFilters
         activeFilter={statusFilter}
-        summary={summary}
+        summary={rosterLoading ? null : summary}
+        disabled={rosterLoading}
         onChange={setStatusFilter}
       />
     </View>
@@ -144,7 +157,7 @@ export function AttendanceRosterPanel({
     return <View style={styles.screen} />;
   }
 
-  if (isLoading && students.length === 0) {
+  if (rosterLoading && students.length === 0 && !hasLoadedRosterRef.current) {
     return (
       <View style={styles.screen}>
         <AttendanceScreenSkeleton embedded={embedded} />
@@ -164,13 +177,21 @@ export function AttendanceRosterPanel({
         ]}
         ListHeaderComponent={listHeader}
         ListEmptyComponent={
-          <Text style={[styles.empty, { color: theme.muted }]}>
-            {error
-              ? error
-              : students.length === 0
-                ? 'No students have Attendance enabled for their program yet.'
-                : 'No students match your search or filter.'}
-          </Text>
+          showListSkeleton ? (
+            <View style={styles.skeletonList}>
+              {Array.from({ length: 6 }, (_, index) => (
+                <AttendanceStudentRowSkeleton key={index} />
+              ))}
+            </View>
+          ) : (
+            <Text style={[styles.empty, { color: theme.muted }]}>
+              {error
+                ? error
+                : students.length === 0
+                  ? 'No students have Attendance enabled for their program yet.'
+                  : 'No students match your search or filter.'}
+            </Text>
+          )
         }
         refreshControl={
           <RefreshControl
@@ -247,5 +268,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     paddingVertical: Spacing.four,
+  },
+  skeletonList: {
+    gap: Spacing.two,
   },
 });

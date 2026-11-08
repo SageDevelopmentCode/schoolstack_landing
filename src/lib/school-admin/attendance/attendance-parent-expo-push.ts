@@ -1,7 +1,11 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { logSettledNotificationFailures } from "@/lib/admissions/notification-logging";
+import { messageFromCause } from "@/lib/api/error-serialization";
+import {
+  logSettledNotificationFailures,
+  resolveOrganizationContextForNotification,
+} from "@/lib/admissions/notification-logging";
 import type { MobilePushNotificationKind } from "@/lib/notifications/mobile-push-catalog";
 import { sendExpoPushToUsers } from "@/lib/notifications/expo-push";
 import { resolveFamilyGuardianPushRecipients } from "@/lib/notifications/push-recipients";
@@ -25,7 +29,7 @@ async function loadAttendancePushContext(
         .maybeSingle(),
       admin
         .from("students")
-        .select("first_name, last_name, preferred_name")
+        .select("first_name, last_name")
         .eq("id", studentId)
         .eq("organization_id", organizationId)
         .maybeSingle(),
@@ -35,13 +39,10 @@ async function loadAttendancePushContext(
   if (studentError) throw studentError;
   if (!org?.slug || !student) return null;
 
-  const preferred =
-    typeof student.preferred_name === "string" ? student.preferred_name.trim() : "";
   const first =
     typeof student.first_name === "string" ? student.first_name.trim() : "";
   const last = typeof student.last_name === "string" ? student.last_name.trim() : "";
-  const studentName =
-    preferred || [first, last].filter(Boolean).join(" ") || "Your child";
+  const studentName = [first, last].filter(Boolean).join(" ") || "Your child";
 
   return {
     organizationName: String(org.name ?? "Your school"),
@@ -149,20 +150,27 @@ export function fireAttendanceParentExpoPush(
   },
 ): void {
   void promise.catch((err) => {
-    void reportOperationalError({
-      supabase: admin,
-      surface: "system",
-      organizationId: input.organizationId,
-      operation: input.operation,
-      error:
-        err instanceof Error
-          ? err.message
-          : "Failed to send attendance push notification.",
-      entityType: "student",
-      entityId: input.studentId,
-      actor: { type: "system" },
-      cause: err,
-    });
+    void (async () => {
+      const orgContext = await resolveOrganizationContextForNotification(
+        admin,
+        input.organizationId,
+      );
+
+      await reportOperationalError({
+        supabase: admin,
+        surface: "system",
+        organizationId: input.organizationId,
+        organizationName: orgContext.organizationName,
+        organizationSlug: orgContext.organizationSlug,
+        operation: input.operation,
+        error:
+          messageFromCause(err) ?? "Failed to send attendance push notification.",
+        entityType: "student",
+        entityId: input.studentId,
+        actor: { type: "system" },
+        cause: err,
+      });
+    })();
   });
 }
 

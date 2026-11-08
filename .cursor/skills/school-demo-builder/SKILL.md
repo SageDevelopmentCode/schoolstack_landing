@@ -48,7 +48,10 @@ flowchart TD
 2. Scrape the live site — homepage, programs, FAQ, events, stories; supplement guide gaps.
 3. Reconcile brand colors — cross-check guide hex values against logo + live CSS. WP/Kadence scrapes often mislabel roles (e.g. `#efad1f` labeled "purple" but is gold). Pick corrected palette: primary CTA, hover, heading accent, text, soft bg. See [reference.md](reference.md#color-reconciliation).
 4. Logo handling — reverse/dark logos go on dark nav/hero bands; set width/height in config.
-5. Pick fonts from guide/site (Google Fonts in layout).
+5. Document live-site fonts in the redesign guide for brand tone. Demo routes use
+   Poppins via `SchoolDemoWebsiteFonts` and
+   [`bright-demo-theme.ts`](../../src/components/sections/website-demo/bright-demo-theme.ts)
+   — do not add per-school Google font pairs to `layout.tsx`.
 
 ## Phase 1 — Data layer
 

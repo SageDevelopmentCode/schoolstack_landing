@@ -27,7 +27,10 @@ export function buildParentQuickActions(
 
   const record = parentFeatures as Record<string, boolean>;
   const enabledKeys = Object.keys(record).filter((key) => record[key]);
-  const portalNav = mergePortalFeatureNav("parent", features.feature_nav?.parent);
+  const portalNav = mergePortalFeatureNav(
+    "parent",
+    features.feature_nav?.parent,
+  );
   const orderedKeys = resolvePortalFeatureOrder(
     "parent",
     enabledKeys,

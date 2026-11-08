@@ -47,14 +47,14 @@ function FlowStepNav({ theme, activeStep }: { theme: ParentThemeTokens; activeSt
             {index > 0 ? (
               <span
                 className="w-[22px] h-px shrink-0"
-                style={{ backgroundColor: "#DCE4D8" }}
+                style={{ backgroundColor: theme.line }}
                 aria-hidden
               />
             ) : null}
             <span
               className="flex items-center gap-2 text-[11px] whitespace-nowrap shrink-0"
               style={{
-                color: isActive ? theme.primary : "#87948B",
+                color: isActive ? theme.ink : theme.muted,
                 fontWeight: isActive ? 700 : 400,
                 fontFamily: theme.fontBody,
               }}
@@ -65,7 +65,7 @@ function FlowStepNav({ theme, activeStep }: { theme: ParentThemeTokens; activeSt
                 style={{
                   backgroundColor: isActive ? theme.primary : theme.white,
                   color: isActive ? theme.white : theme.ink,
-                  borderColor: isActive ? theme.primary : "#DDE5D8",
+                  borderColor: isActive ? theme.primary : theme.line,
                 }}
               >
                 {step.id + 1}
@@ -100,7 +100,7 @@ export default function GetStartedIntroductionForm({
       className="max-w-[760px] mx-auto bg-white overflow-hidden"
       style={{
         borderRadius: theme.radiusCard,
-        border: `1px solid #E0E7E0`,
+        border: `1px solid ${theme.line}`,
         boxShadow: theme.shadowCard,
         fontFamily: theme.fontBody,
       }}
@@ -108,7 +108,7 @@ export default function GetStartedIntroductionForm({
     >
       <header
         className="flex items-center justify-between gap-5 px-6 sm:px-8 py-5 border-b"
-        style={{ borderColor: theme.line, backgroundColor: "#FCFDFB" }}
+        style={{ borderColor: theme.line, backgroundColor: theme.white }}
       >
         <FlowStepNav theme={theme} activeStep={0} />
       </header>
@@ -121,14 +121,14 @@ export default function GetStartedIntroductionForm({
           />
 
           <div
-            className="text-[10px] font-extrabold uppercase tracking-[0.13em]"
-            style={{ color: theme.sage }}
+            className="font-secondary text-[13px] font-semibold uppercase tracking-widest"
+            style={{ color: theme.coral }}
           >
             {copy.kicker}
           </div>
           <h1
-            className="text-[clamp(27px,4.5vw,35px)] font-semibold leading-[1.15] mt-2.5 tracking-[-0.035em]"
-            style={{ fontFamily: theme.fontDisplay, color: theme.ink }}
+            className="font-secondary! mt-2.5 text-[clamp(27px,4.5vw,35px)] font-bold! leading-[1.12]! tracking-[-0.04em]!"
+            style={{ color: theme.ink }}
           >
             {copy.title}
           </h1>
@@ -248,7 +248,7 @@ export default function GetStartedIntroductionForm({
         >
           <button
             type="submit"
-            className="w-full flex justify-center items-center gap-2.5 border-0 rounded-xl text-white py-4 px-4 text-[13px] font-extrabold transition-[opacity,transform] hover:opacity-90 hover:-translate-y-px"
+            className="font-secondary flex w-full items-center justify-center gap-2.5 rounded-pill border-0 px-4 py-4 text-[15px] font-semibold text-white transition-[opacity,transform,background-color] hover:-translate-y-px hover:bg-clay"
             style={{ backgroundColor: theme.primary, fontFamily: theme.fontBody }}
           >
             {copy.submit}

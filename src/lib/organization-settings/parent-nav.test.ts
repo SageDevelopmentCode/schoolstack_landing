@@ -2,10 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { mergeFeatures } from "./merge";
 import { DEFAULT_FEATURES } from "./catalog";
-import {
-  buildParentNavItems,
-  splitParentNavForHeader,
-} from "./parent-nav";
+import { buildParentNavItems, splitParentNavForHeader } from "./parent-nav";
 import { resolveMainParentOrganizationFeatures } from "./resolve-program-parent-features";
 import { isSchoolGalleryEnabled } from "@/lib/school-gallery/gallery-enabled";
 import { injectSchoolGalleryParentNavItem } from "@/lib/school-gallery/gallery-nav";
@@ -43,8 +40,14 @@ describe("splitParentNavForHeader", () => {
       primary.some((item) => item.key === "forms_documents"),
       false,
     );
-    assert.equal(primary.some((item) => item.key === "children"), false);
-    assert.equal(more.some((item) => item.key === "children"), true);
+    assert.equal(
+      primary.some((item) => item.key === "children"),
+      false,
+    );
+    assert.equal(
+      more.some((item) => item.key === "children"),
+      true,
+    );
   });
 
   it("routes friday_branch to More instead of primary nav", () => {
@@ -60,8 +63,14 @@ describe("splitParentNavForHeader", () => {
 
     const { primary, more } = splitParentNavForHeader(items);
 
-    assert.equal(primary.some((item) => item.key === "friday_branch"), false);
-    assert.equal(more.some((item) => item.key === "friday_branch"), true);
+    assert.equal(
+      primary.some((item) => item.key === "friday_branch"),
+      false,
+    );
+    assert.equal(
+      more.some((item) => item.key === "friday_branch"),
+      true,
+    );
   });
 
   it("omits curriculum from main portal nav when org flag is enabled", () => {
@@ -84,9 +93,18 @@ describe("splitParentNavForHeader", () => {
       orgWithCurriculum.parent,
     );
 
-    assert.equal(items.some((item) => item.key === "curriculum"), false);
-    assert.equal(items.some((item) => item.key === "supply_list"), false);
-    assert.equal(items.some((item) => item.key === "teaching_schedule"), false);
+    assert.equal(
+      items.some((item) => item.key === "curriculum"),
+      false,
+    );
+    assert.equal(
+      items.some((item) => item.key === "supply_list"),
+      false,
+    );
+    assert.equal(
+      items.some((item) => item.key === "teaching_schedule"),
+      false,
+    );
   });
 
   it("routes committees to More and teaching_schedule to primary in co-op mode", () => {
@@ -104,13 +122,30 @@ describe("splitParentNavForHeader", () => {
       attendance: true,
     });
 
-    const { primary, more } = splitParentNavForHeader(items, { coopMode: true });
+    const { primary, more } = splitParentNavForHeader(items, {
+      coopMode: true,
+    });
 
-    assert.equal(primary.some((item) => item.key === "teaching_schedule"), true);
-    assert.equal(primary.some((item) => item.key === "committees"), false);
-    assert.equal(more.some((item) => item.key === "committees"), true);
-    assert.equal(primary.some((item) => item.key === "children"), false);
-    assert.equal(more.some((item) => item.key === "children"), true);
+    assert.equal(
+      primary.some((item) => item.key === "teaching_schedule"),
+      true,
+    );
+    assert.equal(
+      primary.some((item) => item.key === "committees"),
+      false,
+    );
+    assert.equal(
+      more.some((item) => item.key === "committees"),
+      true,
+    );
+    assert.equal(
+      primary.some((item) => item.key === "children"),
+      false,
+    );
+    assert.equal(
+      more.some((item) => item.key === "children"),
+      true,
+    );
   });
 
   it("keeps committees in primary for main portal when school gallery Photos is enabled (Rooted Meadows–like flags)", () => {
@@ -147,15 +182,31 @@ describe("splitParentNavForHeader", () => {
       isSchoolGalleryEnabled(features),
     );
 
-    const { primary, more } = splitParentNavForHeader(items, { coopMode: false });
+    const { primary, more } = splitParentNavForHeader(items, {
+      coopMode: false,
+    });
 
-    assert.equal(primary.some((item) => item.key === "committees"), true);
-    assert.equal(more.some((item) => item.key === "committees"), false);
-    assert.equal(primary.some((item) => item.key === "photos"), false);
-    assert.equal(more.some((item) => item.key === "photos"), true);
+    assert.equal(
+      primary.some((item) => item.key === "committees"),
+      true,
+    );
+    assert.equal(
+      more.some((item) => item.key === "committees"),
+      false,
+    );
+    assert.equal(
+      primary.some((item) => item.key === "photos"),
+      false,
+    );
+    assert.equal(
+      more.some((item) => item.key === "photos"),
+      true,
+    );
 
     const calendarIndex = primary.findIndex((item) => item.key === "calendar");
-    const committeesIndex = primary.findIndex((item) => item.key === "committees");
+    const committeesIndex = primary.findIndex(
+      (item) => item.key === "committees",
+    );
     assert.ok(calendarIndex >= 0 && committeesIndex > calendarIndex);
   });
 });

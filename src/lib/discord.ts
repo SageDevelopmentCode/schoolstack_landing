@@ -882,6 +882,9 @@ export async function notifyMobileOperationalError(payload: {
   entityType?: string;
   entityId?: string;
   platform?: string;
+  appVersion?: string;
+  /** Compact `key=value` diagnostics from the client (stage, viewer, elapsedMs, ...). */
+  context?: string;
 }) {
   const fields: DiscordEmbedField[] = [
     embedField("Operation", truncate(payload.operation), true),
@@ -891,6 +894,14 @@ export async function notifyMobileOperationalError(payload: {
 
   if (payload.platform) {
     fields.push(embedField("Platform", truncate(payload.platform), true));
+  }
+
+  if (payload.appVersion) {
+    fields.push(embedField("App version", truncate(payload.appVersion), true));
+  }
+
+  if (payload.context) {
+    fields.push(embedField("Context", truncate(payload.context)));
   }
 
   if (payload.organizationId) {

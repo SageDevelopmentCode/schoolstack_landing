@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AdminPageContentShell from "@/components/school-admin/AdminPageContentShell";
@@ -6,7 +5,6 @@ import { getFirstAdminNavPath } from "@/lib/organization-settings/admin-nav";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
-import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -21,9 +19,7 @@ export default async function SchoolAdminPreviewPage({
 }: PageProps) {
   const { slug } = await params;
   const { familyId } = await searchParams;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org) {
     notFound();

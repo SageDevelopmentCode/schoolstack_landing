@@ -6,10 +6,6 @@ import {
   freeToolsStageSectionId,
   toolsByStage,
 } from "@/lib/marketing/free-tools-hub-content";
-import { FREE_TOOLS_HUB_THEME } from "@/components/marketing/free-tools/free-tools-hub-theme";
-
-const theme = FREE_TOOLS_HUB_THEME;
-
 const FULL_BLEED =
   "relative left-1/2 z-0 w-screen max-w-[100vw] -translate-x-1/2 scroll-mt-24";
 
@@ -34,8 +30,7 @@ export default function FreeToolsByStageView() {
               <div className="mx-auto max-w-[1180px] px-4 py-8 sm:px-7 lg:px-8">
                 <h3
                   id={`free-tools-stage-heading-${stage.id}`}
-                  className="flex items-center gap-3 font-heading text-[19px] font-medium tracking-[-0.035em] sm:text-[21px]"
-                  style={{ fontFamily: theme.fontDisplay, color: theme.ink }}
+                  className="font-secondary! flex items-center gap-3 text-[19px] font-bold! tracking-[-0.03em]! text-[#1d1a16] sm:text-[21px]"
                 >
                   <FreeToolsStageIconTile stage={stage} />
                   {stage.label}

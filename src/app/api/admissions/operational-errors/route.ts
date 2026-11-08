@@ -6,6 +6,10 @@ import {
 } from "@/lib/admissions/application-auth";
 import { requireAuthenticatedUser } from "@/lib/admissions/application-auth-server";
 import { apiError } from "@/lib/api/route-errors";
+import {
+  sanitizeClientErrorFields,
+  shouldNotifyClientError,
+} from "@/lib/client-operational-error-input";
 import { reportOperationalError } from "@/lib/operational-errors";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -21,7 +25,6 @@ type OperationalErrorBody = {
   entityType?: string;
   entityId?: string;
   metadata?: Record<string, unknown>;
-  notify?: boolean;
 };
 
 async function userCanReportApplyError(
@@ -73,8 +76,9 @@ export async function POST(request: Request) {
   }
 
   const organizationId = body.organizationId?.trim();
-  const operation = body.operation?.trim();
-  const error = body.error?.trim();
+  const fields = sanitizeClientErrorFields(body);
+  const operation = fields?.operation;
+  const error = fields?.error;
   const applicationId =
     body.entityType === "application" ? body.entityId?.trim() : undefined;
 
@@ -119,12 +123,13 @@ export async function POST(request: Request) {
       organizationSlug: organization?.slug ?? null,
       operation,
       error,
-      code: body.code ?? null,
-      details: body.details ?? null,
-      entityType: body.entityType ?? null,
-      entityId: body.entityId ?? null,
-      metadata: body.metadata,
-      notify: body.notify ?? true,
+      code: fields?.code ?? null,
+      details: fields?.details ?? null,
+      entityType: fields?.entityType ?? null,
+      entityId: fields?.entityId ?? null,
+      metadata: fields?.metadata,
+      // Server decides: client `notify` is ignored; throttled per user + organization.
+      notify: shouldNotifyClientError(user.id, organizationId),
       actor: {
         type: "parent",
         userId: user.id,

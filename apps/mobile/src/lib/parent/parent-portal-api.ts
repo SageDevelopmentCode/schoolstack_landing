@@ -50,6 +50,7 @@ import type { OrganizationBranding } from '@/lib/organization-settings/types';
 import type { OrganizationEvent, ParentCalendarInitialData } from '@/lib/school-events/types';
 import type { BulletinPost } from '@/lib/school-bulletin/types';
 import { adaptParentDocumentationGuidesForMobile } from '@/lib/parent/parent-documentation-mobile';
+import { buildParentCoopCurriculumPdfUrlApiPath } from '@/lib/pdf/build-parent-portal-pdf-request';
 
 const siteUrl = process.env.EXPO_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https://trymudkitchen.com';
 
@@ -991,8 +992,9 @@ export async function submitParentClassroomSignupResponse(
 export async function withdrawParentClassroomSignupResponse(
   organizationId: string,
   signupId: string,
+  studentId: string,
 ): Promise<ClassroomSignupResponse> {
-  const query = new URLSearchParams({ organizationId }).toString();
+  const query = new URLSearchParams({ organizationId, studentId }).toString();
   const payload = await fetchParentApi<{ response: ClassroomSignupResponse }>(
     `/api/parent-portal/classroom-signups/${encodeURIComponent(signupId)}?${query}`,
     { method: 'DELETE' },
@@ -1284,6 +1286,28 @@ export type ParentCoopTeachingSchedulePageData = {
   currentFamilyLabel: string;
   familyNameMap: Record<string, string>;
 };
+
+export type ParentCoopCurriculumPdfUrl = {
+  url: string;
+  fileName: string;
+  fileSizeBytes: number | null;
+  expiresInSeconds: number;
+};
+
+/** Short-lived signed URL for a curriculum PDF (range-request friendly; no full download). */
+export async function fetchParentCoopCurriculumPdfUrl(
+  organizationId: string,
+  programId: string,
+  curriculumId: string,
+): Promise<ParentCoopCurriculumPdfUrl> {
+  const payload = await fetchParentApi<ParentCoopCurriculumPdfUrl>(
+    buildParentCoopCurriculumPdfUrlApiPath(organizationId, programId, curriculumId),
+  );
+  if (!payload?.url) {
+    throw new Error('Failed to load curriculum PDF.');
+  }
+  return payload;
+}
 
 export async function fetchParentCoopCurriculumPageData(
   organizationId: string,

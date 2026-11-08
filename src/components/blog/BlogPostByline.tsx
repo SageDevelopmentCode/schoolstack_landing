@@ -3,7 +3,7 @@ import { WEBSITE_BLOG_AUTHOR } from "@/lib/website-blog/author";
 
 export default function BlogPostByline() {
   return (
-    <p className="mt-3 text-sm font-secondary text-text-muted">
+    <p className="mt-3 font-secondary text-sm text-[#1d1a16]/65">
       <a
         href={WEBSITE_BLOG_AUTHOR.profileUrl}
         target="_blank"

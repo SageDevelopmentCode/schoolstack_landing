@@ -9,6 +9,7 @@ import {
   listOrgScheduledVisitsForAdminList,
   type AdminScheduledVisit,
 } from "@/lib/admissions/admin-scheduled-visits";
+import { reportRpcPermissionDenied } from "@/lib/rpc-permission-errors";
 
 export type SchedulePageMeta = {
   timezone: string;
@@ -47,7 +48,15 @@ export async function fetchSchedulePageMetaFromRpc(
     p_month: month,
   });
 
-  if (error) return null;
+  if (error) {
+    await reportRpcPermissionDenied({
+      functionName: "admin_schedule_page_meta",
+      organizationId,
+      error,
+      surface: "school_admin",
+    });
+    return null;
+  }
 
   return parseAdminSchedulePageMetaRow(
     (data ?? null) as AdminSchedulePageMetaRow | null,

@@ -5,7 +5,7 @@ import { Info } from "lucide-react";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 const tipFocusClass =
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2E4A3C]";
+  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay";
 
 type CalculatorInfoTipProps = {
   theme: ParentThemeTokens;

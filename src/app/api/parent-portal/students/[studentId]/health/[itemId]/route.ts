@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
+import { withParentPortalRoute } from "@/lib/parent-portal/with-parent-portal-route";
 import { authorizeParentStudentHealthAccess } from "@/lib/student-health/authorize-parent-student";
-import {
-  allergyPayload,
-  medicationPayload,
-  updatePayload,
-} from "@/lib/student-health/map-row";
+import { allergyPayload, medicationPayload, updatePayload } from "@/lib/student-health/map-row";
 import {
   deleteStudentHealthItem,
   getStudentDisplayName,
@@ -19,17 +16,10 @@ import {
   validateHealthItemInput,
 } from "@/lib/student-health/validate";
 import { createAdminClient } from "@/utils/supabase/admin";
-import {
-  createClientFromRequest,
-  getUserFromRequest,
-  signedInErrorForRequest,
-} from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/parent-portal/students/[studentId]/health/[itemId]";
 
-type RouteContext = {
-  params: Promise<{ studentId: string; itemId: string }>;
-};
+type ItemParams = { studentId: string; itemId: string };
 
 type MutationBody = {
   organizationId?: string;
@@ -50,196 +40,151 @@ function payloadForNotification(
   return updatePayload(input.values);
 }
 
-export async function PATCH(request: Request, context: RouteContext) {
-  const { studentId, itemId } = await context.params;
-  const supabase = await createClientFromRequest(request);
+export const PATCH = withParentPortalRoute<MutationBody, ItemParams>(
+  {
+    route: ROUTE,
+    organizationFrom: "body",
+    enforceAccess: false,
+    fallbackErrorMessage: "Failed to update health item.",
+  },
+  async ({ request, supabase, user, organizationId, access, body, params }) => {
+    const { studentId, itemId } = params;
 
-  const {
-    data: { user },
-    error: authError,
-  } = await getUserFromRequest(supabase, request);
-
-  if (!user) {
-    return apiError(ROUTE, {
-      request,
-      status: 401,
-      error: await signedInErrorForRequest(request, authError),
-      code: "unauthorized",
-    });
-  }
-
-  let body: MutationBody;
-  try {
-    body = await request.json();
-  } catch {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "Invalid request body.",
-      code: "invalid_body",
-    });
-  }
-
-  const organizationId = body.organizationId?.trim() ?? "";
-  if (!organizationId) {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "organizationId is required.",
-      code: "missing_fields",
-    });
-  }
-
-  const access = await authorizeParentStudentHealthAccess(
-    supabase,
-    user,
-    organizationId,
-    studentId,
-  );
-
-  if (!access.ok) {
-    return apiError(ROUTE, {
-      request,
-      status: 403,
-      error: "You do not have permission to update this student's health profile.",
-      code: "forbidden",
-    });
-  }
-
-  let input;
-  try {
-    const itemType = parseHealthItemType(body.itemType);
-    input = validateHealthItemInput(itemType, body.values ?? {});
-  } catch (error) {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error:
-        error instanceof StudentHealthValidationError
-          ? error.message
-          : "Invalid health item.",
-      code: "validation_failed",
-    });
-  }
-
-  const admin = createAdminClient();
-
-  try {
-    const [item, studentName] = await Promise.all([
-      updateStudentHealthItem(
-        admin,
-        {
-          organizationId,
-          studentId,
-          userId: user.id,
-          guardianId: access.guardian.id,
-        },
-        itemId,
-        input,
-      ),
-      getStudentDisplayName(admin, organizationId, studentId),
-    ]);
-
-    await sendStudentHealthItemNotifications(admin, {
+    const healthAccess = await authorizeParentStudentHealthAccess(
+      supabase,
+      user,
       organizationId,
       studentId,
-      studentName,
-      itemId: item.id,
-      itemType: input.itemType,
-      payload: payloadForNotification(input.itemType, input),
-      action: "updated",
-      actorType: "parent",
-      actorUserId: user.id,
-      actorName: access.guardian.displayName,
-      actorEmail: access.guardian.email,
-    });
+      access,
+    );
 
-    return NextResponse.json({ item });
-  } catch (error) {
-    return apiError(ROUTE, {
-      request,
-      status: 500,
-      error: "Failed to update health item.",
-      cause: error,
-      code: "update_failed",
-    });
-  }
-}
+    if (!healthAccess.ok) {
+      return apiError(ROUTE, {
+        request,
+        status: 403,
+        error: "You do not have permission to update this student's health profile.",
+        code: "forbidden",
+      });
+    }
 
-export async function DELETE(request: Request, context: RouteContext) {
-  const { studentId, itemId } = await context.params;
-  const supabase = await createClientFromRequest(request);
+    let input;
+    try {
+      const itemType = parseHealthItemType(body.itemType);
+      input = validateHealthItemInput(itemType, body.values ?? {});
+    } catch (error) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error:
+          error instanceof StudentHealthValidationError
+            ? error.message
+            : "Invalid health item.",
+        code: "validation_failed",
+      });
+    }
 
-  const {
-    data: { user },
-    error: authError,
-  } = await getUserFromRequest(supabase, request);
+    const admin = createAdminClient();
 
-  if (!user) {
-    return apiError(ROUTE, {
-      request,
-      status: 401,
-      error: await signedInErrorForRequest(request, authError),
-      code: "unauthorized",
-    });
-  }
+    try {
+      const [item, studentName] = await Promise.all([
+        updateStudentHealthItem(
+          admin,
+          {
+            organizationId,
+            studentId,
+            userId: user.id,
+            guardianId: healthAccess.guardian.id,
+          },
+          itemId,
+          input,
+        ),
+        getStudentDisplayName(admin, organizationId, studentId),
+      ]);
 
-  const organizationId = new URL(request.url).searchParams.get("organizationId")?.trim() ?? "";
-  if (!organizationId) {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "organizationId is required.",
-      code: "missing_fields",
-    });
-  }
+      await sendStudentHealthItemNotifications(admin, {
+        organizationId,
+        studentId,
+        studentName,
+        itemId: item.id,
+        itemType: input.itemType,
+        payload: payloadForNotification(input.itemType, input),
+        action: "updated",
+        actorType: "parent",
+        actorUserId: user.id,
+        actorName: healthAccess.guardian.displayName,
+        actorEmail: healthAccess.guardian.email,
+      });
 
-  const access = await authorizeParentStudentHealthAccess(
-    supabase,
-    user,
-    organizationId,
-    studentId,
-  );
+      return NextResponse.json({ item });
+    } catch (error) {
+      return apiError(ROUTE, {
+        request,
+        status: 500,
+        error: "Failed to update health item.",
+        cause: error,
+        code: "update_failed",
+      });
+    }
+  },
+);
 
-  if (!access.ok) {
-    return apiError(ROUTE, {
-      request,
-      status: 403,
-      error: "You do not have permission to update this student's health profile.",
-      code: "forbidden",
-    });
-  }
+export const DELETE = withParentPortalRoute<undefined, ItemParams>(
+  {
+    route: ROUTE,
+    enforceAccess: false,
+    fallbackErrorMessage: "Failed to delete health item.",
+  },
+  async ({ request, supabase, user, organizationId, access, params }) => {
+    const { studentId, itemId } = params;
 
-  const admin = createAdminClient();
-
-  try {
-    const [deletedRow, studentName] = await Promise.all([
-      deleteStudentHealthItem(admin, organizationId, studentId, itemId),
-      getStudentDisplayName(admin, organizationId, studentId),
-    ]);
-
-    await sendStudentHealthItemNotifications(admin, {
+    const healthAccess = await authorizeParentStudentHealthAccess(
+      supabase,
+      user,
       organizationId,
       studentId,
-      studentName,
-      itemId: deletedRow.id,
-      itemType: deletedRow.item_type,
-      payload: (deletedRow.payload ?? {}) as Record<string, unknown>,
-      action: "deleted",
-      actorType: "parent",
-      actorUserId: user.id,
-      actorName: access.guardian.displayName,
-      actorEmail: access.guardian.email,
-    });
+      access,
+    );
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return apiError(ROUTE, {
-      request,
-      status: 500,
-      error: "Failed to delete health item.",
-      cause: error,
-      code: "delete_failed",
-    });
-  }
-}
+    if (!healthAccess.ok) {
+      return apiError(ROUTE, {
+        request,
+        status: 403,
+        error: "You do not have permission to update this student's health profile.",
+        code: "forbidden",
+      });
+    }
+
+    const admin = createAdminClient();
+
+    try {
+      const [deletedRow, studentName] = await Promise.all([
+        deleteStudentHealthItem(admin, organizationId, studentId, itemId),
+        getStudentDisplayName(admin, organizationId, studentId),
+      ]);
+
+      await sendStudentHealthItemNotifications(admin, {
+        organizationId,
+        studentId,
+        studentName,
+        itemId: deletedRow.id,
+        itemType: deletedRow.item_type,
+        payload: (deletedRow.payload ?? {}) as Record<string, unknown>,
+        action: "deleted",
+        actorType: "parent",
+        actorUserId: user.id,
+        actorName: healthAccess.guardian.displayName,
+        actorEmail: healthAccess.guardian.email,
+      });
+
+      return NextResponse.json({ success: true });
+    } catch (error) {
+      return apiError(ROUTE, {
+        request,
+        status: 500,
+        error: "Failed to delete health item.",
+        cause: error,
+        code: "delete_failed",
+      });
+    }
+  },
+);

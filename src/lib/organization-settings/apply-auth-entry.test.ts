@@ -6,7 +6,9 @@ import { mergeApplyAuthEntry } from "@/lib/organization-settings/apply-auth-entr
 describe("mergeApplyAuthEntry", () => {
   it("defaults tour option to disabled", () => {
     const merged = mergeApplyAuthEntry(null);
-    const tour = merged.options.find((option) => option.type === "schedule_campus_tour");
+    const tour = merged.options.find(
+      (option) => option.type === "schedule_campus_tour",
+    );
     assert.ok(tour);
     assert.equal(tour.enabled, false);
   });
@@ -23,7 +25,9 @@ describe("mergeApplyAuthEntry", () => {
         },
       ],
     });
-    const tour = merged.options.find((option) => option.type === "schedule_campus_tour");
+    const tour = merged.options.find(
+      (option) => option.type === "schedule_campus_tour",
+    );
     assert.ok(tour);
     assert.equal(tour.enabled, true);
     assert.equal(tour.label, "Book a tour");

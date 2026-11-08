@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { BookOpen, Info, Layers, Users, Wrench } from "lucide-react";
 import NavbarFrame from "./NavbarFrame";
-import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
+import { GET_STARTED_PAGE_PATH } from "@/lib/marketing/book-demo";
 import {
   FREE_TOOLS_HUB_PATH,
   FREE_TOOLS_NAV_LABEL,
@@ -65,8 +65,8 @@ export default function Navbar() {
         </nav>
 
         <div className="hidden md:flex items-center gap-2.5 shrink-0">
-          <a
-            href={BOOK_DEMO_HREF}
+          <Link
+            href={GET_STARTED_PAGE_PATH}
             className="inline-flex items-center gap-1.5 whitespace-nowrap bg-clay text-white text-sm font-medium rounded-pill px-[18px] h-9 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
           >
             Book a Demo
@@ -79,7 +79,7 @@ export default function Navbar() {
                 strokeLinejoin="round"
               />
             </svg>
-          </a>
+          </Link>
           <Link
             href={FREE_TOOLS_HUB_PATH}
             className="inline-flex items-center gap-1.5 whitespace-nowrap border border-clay/35 bg-white text-clay text-sm font-medium rounded-pill px-[18px] h-9 hover:bg-clay/5 transition-all duration-200"

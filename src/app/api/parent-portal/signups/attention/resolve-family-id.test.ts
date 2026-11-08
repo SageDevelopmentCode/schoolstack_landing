@@ -7,13 +7,19 @@ const FOREIGN_FAMILY_ID = "family-foreign";
 
 describe("resolveSignupAttentionFamilyId", () => {
   it("allows the user's own familyId", () => {
-    const result = resolveSignupAttentionFamilyId([OWN_FAMILY_ID], OWN_FAMILY_ID);
+    const result = resolveSignupAttentionFamilyId(
+      [OWN_FAMILY_ID],
+      OWN_FAMILY_ID,
+    );
 
     assert.deepEqual(result, { familyId: OWN_FAMILY_ID });
   });
 
   it("rejects a foreign familyId", () => {
-    const result = resolveSignupAttentionFamilyId([OWN_FAMILY_ID], FOREIGN_FAMILY_ID);
+    const result = resolveSignupAttentionFamilyId(
+      [OWN_FAMILY_ID],
+      FOREIGN_FAMILY_ID,
+    );
 
     assert.deepEqual(result, { error: "forbidden" });
   });

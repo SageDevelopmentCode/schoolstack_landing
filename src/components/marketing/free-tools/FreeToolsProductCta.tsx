@@ -1,44 +1,29 @@
-import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
-import ParentButtonLink from "@/components/school-parent/ui/ParentButtonLink";
-import { FREE_TOOLS_HUB_THEME } from "@/components/marketing/free-tools/free-tools-hub-theme";
-
-const theme = FREE_TOOLS_HUB_THEME;
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
 
 export default function FreeToolsProductCta() {
   return (
-    <section
-      className="my-9 flex flex-col items-start justify-between gap-6 rounded-[18px] border p-6 sm:flex-row sm:items-center sm:gap-8 sm:p-7"
-      style={{
-        borderColor: "#C7DFCB",
-        background: "linear-gradient(135deg, #E5F0E9, #F4F6EB)",
-      }}
-    >
+    <section className="mt-12 rounded-[40px] bg-[#1d1a16] px-6 py-10 sm:flex sm:items-center sm:justify-between sm:gap-8 sm:px-10">
       <div>
-        <ParentSectionKicker theme={theme}>When you’re ready for the school day</ParentSectionKicker>
-        <h2
-          className="mt-1.5 font-heading text-[25px] font-medium tracking-[-0.035em]"
-          style={{ fontFamily: theme.fontDisplay, color: theme.ink }}
-        >
+        <p className="font-secondary text-[13px] font-semibold uppercase tracking-widest text-clay">
+          When you&apos;re ready for the school day
+        </p>
+        <h2 className="font-secondary! mt-2 text-[clamp(1.4rem,3vw,1.6rem)] font-bold! leading-[1.06]! tracking-[-0.04em]! text-white">
           Planning is one part. Running school is the rest.
         </h2>
-        <p
-          className="mt-2 max-w-[720px] text-xs leading-[1.8]"
-          style={{ color: theme.muted, fontFamily: theme.fontBody }}
-        >
-          Explore how MudKitchen brings enrollment, tuition, family communication, and
-          school operations into a shared workspace.
+        <p className="mt-2 max-w-[720px] font-secondary text-[15px] leading-relaxed text-white/65">
+          Explore how MudKitchen brings enrollment, tuition, family communication, and school
+          operations into a shared workspace.
         </p>
       </div>
-      <ParentButtonLink
-        theme={theme}
-        href="/get-started"
-        variant="outline"
-        showArrow
-        fullWidth={false}
-        className="w-full shrink-0 sm:w-auto"
+      <Link
+        href={BOOK_DEMO_HREF}
+        className="font-secondary mt-6 inline-flex h-12 shrink-0 items-center gap-2 rounded-pill bg-white px-7 text-[15px] font-semibold text-[#1d1a16] transition-colors hover:bg-[#F8DDCF] sm:mt-0"
       >
         See MudKitchen
-      </ParentButtonLink>
+        <ArrowRight size={16} aria-hidden />
+      </Link>
     </section>
   );
 }

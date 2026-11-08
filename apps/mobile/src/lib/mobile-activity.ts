@@ -50,18 +50,26 @@ function mobilePlatform(): 'ios' | 'android' | undefined {
 }
 
 function mobileAppVersion(): string | undefined {
-  const version = Constants.expoConfig?.version?.trim();
+  const version =
+    Constants.expoConfig?.version?.trim() || Constants.nativeAppVersion?.trim();
   return version || undefined;
+}
+
+function mobileNativeBuildVersion(): string | undefined {
+  const build = Constants.nativeBuildVersion?.trim();
+  return build || undefined;
 }
 
 export function mobileClientMetadata(): Record<string, unknown> {
   const platform = mobilePlatform();
   const appVersion = mobileAppVersion();
+  const buildNumber = mobileNativeBuildVersion();
 
   return {
     client: 'mobile',
     ...(platform ? { platform } : {}),
     ...(appVersion ? { appVersion } : {}),
+    ...(buildNumber ? { buildNumber } : {}),
   };
 }
 

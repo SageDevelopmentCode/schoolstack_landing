@@ -39,7 +39,7 @@ async function createStorageState(
     { timeout: 15_000 },
   );
 
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("load");
 
   await context.storageState({ path: outputPath });
   await browser.close();
@@ -86,7 +86,7 @@ async function createStaffStorageState(): Promise<void> {
     { timeout: 15_000 },
   );
 
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("load");
 
   await context.storageState({ path: AUTH_STATE_PATHS.staff });
   await browser.close();

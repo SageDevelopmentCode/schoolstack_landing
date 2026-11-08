@@ -125,22 +125,48 @@ test("full tuition setup to parent billing smoke", async ({
     { data: { status: "accepted" } },
   );
   expect(acceptResponse.status()).toBe(200);
+  const acceptBody = (await acceptResponse.json()) as { status?: string };
 
-  const enrollResponse = await request.post(
-    `/api/admissions/applications/${applicationId}/mark-enrolled`,
-    { data: { note: "E2E tuition smoke" } },
-  );
-  expect(enrollResponse.status()).toBe(200);
+  let enrollmentId: string;
+  if (acceptBody.status === "enrolled") {
+    const { data: enrolledApplication, error: enrolledApplicationError } = await admin
+      .from("applications")
+      .select("student_id, program_id")
+      .eq("id", applicationId)
+      .single();
+    expect(enrolledApplicationError).toBeNull();
 
-  const enrollBody = (await enrollResponse.json()) as { enrollmentId?: string };
-  expect(enrollBody.enrollmentId).toBeTruthy();
+    const { data: enrollmentRow, error: enrollmentLookupError } = await admin
+      .from("enrollments")
+      .select("id")
+      .eq("student_id", enrolledApplication!.student_id)
+      .eq("program_id", enrolledApplication!.program_id)
+      .eq("status", "enrolled")
+      .maybeSingle();
+    expect(enrollmentLookupError).toBeNull();
+    expect(enrollmentRow?.id).toBeTruthy();
+    enrollmentId = String(enrollmentRow!.id);
+  } else {
+    expect(acceptBody.status).toBe("accepted");
 
-  await finalizeEnrollmentBilling(admin, enrollBody.enrollmentId!);
+    const markEnrolledResponse = await request.post(
+      `/api/admissions/applications/${applicationId}/mark-enrolled`,
+      { data: { note: "E2E tuition smoke", completeChecklist: false } },
+    );
+    expect(markEnrolledResponse.status()).toBe(200);
+    const markEnrolledBody = (await markEnrolledResponse.json()) as {
+      enrollmentId?: string;
+    };
+    expect(markEnrolledBody.enrollmentId).toBeTruthy();
+    enrollmentId = String(markEnrolledBody.enrollmentId);
+  }
+
+  await finalizeEnrollmentBilling(admin, enrollmentId);
 
   const { data: assignment } = await admin
     .from("tuition_enrollment_assignments")
     .select("id")
-    .eq("enrollment_id", enrollBody.enrollmentId!)
+    .eq("enrollment_id", enrollmentId)
     .eq("status", "active")
     .maybeSingle();
 
@@ -157,7 +183,7 @@ test("full tuition setup to parent billing smoke", async ({
   await expect(parentPage.getByTestId("parent-billing-charge-row").first()).toBeVisible();
   await expect(parentPage.getByTestId("parent-billing-child-detail-panel")).toBeVisible();
   await expect(
-    parentPage.getByTestId(`parent-billing-child-pay-${enrollBody.enrollmentId}`),
+    parentPage.getByTestId(`parent-billing-child-pay-${enrollmentId}`),
   ).toBeVisible();
 
   await parentContext.close();

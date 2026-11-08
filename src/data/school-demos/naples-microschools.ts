@@ -14,7 +14,7 @@ export const naplesMicroschoolsConfig: SchoolWebsiteDemoConfig = {
     muted: "#5C6B62",
     badgeBg: "rgba(79, 123, 80, 0.12)",
     accentText: "#B96846",
-    pageBg: "#F8F4E9",
+    pageBg: "#FFFFFF",
   },
   logo: NAPLES_MICROSCHOOLS_LOGO,
   hero: {

@@ -157,7 +157,12 @@ export function ParentClassroomSignupResponseForm({
     setFeedback(null);
 
     try {
-      const response = await withdrawParentClassroomSignupResponse(organizationId, signup.id);
+      const withdrawStudentId = existingResponse?.studentId ?? studentId;
+      const response = await withdrawParentClassroomSignupResponse(
+        organizationId,
+        signup.id,
+        withdrawStudentId,
+      );
       const familyId = existingResponse?.familyId ?? response.familyId;
       const nextResponses = allResponses.filter((entry) => entry.familyId !== familyId);
 

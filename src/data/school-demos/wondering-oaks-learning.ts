@@ -14,7 +14,7 @@ export const wonderingOaksLearningConfig: SchoolWebsiteDemoConfig = {
     muted: "#5F6360",
     badgeBg: "#EDF4EA",
     accentText: "#8B6B4A",
-    pageBg: "#FBF8F3",
+    pageBg: "#FFFFFF",
   },
   logo: WONDERING_OAKS_LOGO,
   hero: {

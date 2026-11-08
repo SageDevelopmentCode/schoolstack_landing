@@ -1,72 +1,33 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
-import { markThreadRead, assertParentCanAccessThread, userHasEnrolledAccess } from "@/lib/messages/api-helpers";
-import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
+import { markThreadRead, assertParentCanAccessThread } from "@/lib/messages/api-helpers";
+import { withParentPortalRoute } from "@/lib/parent-portal/with-parent-portal-route";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/messages/threads/[threadId]/read";
 
-type RouteContext = { params: Promise<{ threadId: string }> };
+export const POST = withParentPortalRoute<unknown, { threadId: string }>(
+  {
+    route: ROUTE,
+    organizationFrom: "body",
+    forbiddenMessage: "You do not have access to messages.",
+    fallbackErrorMessage: "Failed to mark thread read.",
+  },
+  async ({ request, user, organizationId, access, params }) => {
+    try {
+      const admin = createAdminClient();
+      await assertParentCanAccessThread(admin, access, organizationId, params.threadId);
+      await markThreadRead(admin, params.threadId, user.id);
 
-export async function POST(request: Request, context: RouteContext) {
-  const supabase = await createClientFromRequest(request);
-  const { threadId } = await context.params;
-
-  const {
-    data: { user },
-    error: authError,
-  } = await getUserFromRequest(supabase, request);
-
-  if (!user) {
-    return apiError(ROUTE, {
-      request,
-      status: 401,
-      error: await signedInErrorForRequest(request, authError),
-      code: "unauthorized",
-    });
-  }
-
-  try {
-    const body = (await request.json()) as { organizationId?: string };
-    const organizationId = body.organizationId?.trim() ?? "";
-
-    if (!organizationId) {
+      return NextResponse.json({ ok: true });
+    } catch (err) {
       return apiError(ROUTE, {
         request,
-        status: 400,
-        error: "organizationId is required.",
-        code: "missing_fields",
+        status: 500,
+        error: "Failed to mark thread read.",
+        cause: err,
+        code: "internal_error",
       });
     }
-
-    const hasAccess = await userHasEnrolledAccess(supabase, user.id, organizationId);
-    if (!hasAccess) {
-      return apiError(ROUTE, {
-        request,
-        status: 403,
-        error: "You do not have access to messages.",
-        code: "forbidden",
-      });
-    }
-
-    const admin = createAdminClient();
-    await assertParentCanAccessThread(
-      admin,
-      supabase,
-      organizationId,
-      user.id,
-      threadId,
-    );
-    await markThreadRead(admin, threadId, user.id);
-
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    return apiError(ROUTE, {
-      request,
-      status: 500,
-      error: "Failed to mark thread read.",
-      cause: err,
-      code: "internal_error",
-    });
-  }
-}
+  },
+);

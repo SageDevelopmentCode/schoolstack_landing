@@ -18,6 +18,8 @@ import {
   PLANNER_SUPPORT,
 } from "@/components/marketing/tuition-planner/planner-copy";
 import { plannerFocusClass, TUITION_PLANNER_THEME } from "@/components/marketing/tuition-planner/planner-theme";
+import MarketingToolHero from "@/components/marketing/shared/MarketingToolHero";
+import { ACCENT_HIGHLIGHT, OUTLINE_PILL } from "@/components/home/bright-styles";
 import ParentButton from "@/components/school-parent/ui/ParentButton";
 import { compareScenario, computeScenario, selectedLiveSummary } from "@/lib/marketing/tuition-scenario-planner";
 import {
@@ -137,40 +139,23 @@ export default function TuitionPlannerExperience() {
         {liveText}
       </p>
 
-      <header className="mb-7 flex items-end justify-between gap-7 max-[760px]:block">
-        <div>
-          <p className="mb-3 text-[10px] font-extrabold uppercase tracking-[0.13em]" style={{ color: "#729077" }}>
-            {PLANNER_KICKER}
-          </p>
-          <h1
-            className="font-medium leading-[1.08] tracking-[-0.035em]"
-            style={{
-              color: theme.ink,
-              fontFamily: theme.fontDisplay,
-              fontSize: "clamp(32px, 4.4vw, 46px)",
-            }}
-          >
-            {PLANNER_HEADING}
-          </h1>
-          <p
-            className="mt-3.5 max-w-[590px] text-[14px] leading-[1.8]"
-            style={{ color: theme.muted, fontFamily: theme.fontBody }}
-          >
-            {PLANNER_SUPPORT}
-          </p>
-        </div>
-        <div className="flex shrink-0 justify-end max-[760px]:mt-4">
-          <button
-            type="button"
-            onClick={() => setConfirmReset(true)}
-            className={`inline-flex items-center gap-1.5 rounded-[9px] border px-2.5 py-2 text-[11px] font-bold ${plannerFocusClass}`}
-            style={{ color: theme.muted, borderColor: theme.line, backgroundColor: "transparent", fontFamily: theme.fontBody }}
-          >
-            <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-            Start over
-          </button>
-        </div>
-      </header>
+      <div className="mb-7 flex flex-col gap-4 max-[760px]:block sm:flex-row sm:items-end sm:justify-between">
+        <MarketingToolHero
+          eyebrow={PLANNER_KICKER}
+          title={
+            <>
+              What would your annual tuition revenue{" "}
+              <span className={ACCENT_HIGHLIGHT}>be?</span>
+            </>
+          }
+          description={PLANNER_SUPPORT}
+          className="mb-0 flex-1"
+        />
+        <button type="button" onClick={() => setConfirmReset(true)} className={OUTLINE_PILL}>
+          <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+          Start over
+        </button>
+      </div>
 
       {!planner || !baseline || !result ? (
         <p className="text-[15px]" style={{ color: theme.muted, fontFamily: theme.fontBody }}>
@@ -242,12 +227,12 @@ export default function TuitionPlannerExperience() {
           <section
             className="mb-11 mt-8 flex items-center justify-between gap-6 rounded-2xl border px-6 py-5 max-[480px]:block"
             style={{
-              background: "linear-gradient(135deg, #EAF2EB, #F4F7EE)",
+              background: "#FFF4EC",
               borderColor: "#C7DFCB",
             }}
           >
             <div>
-              <p className="mb-1.5 text-[10px] font-extrabold uppercase tracking-[0.13em]" style={{ color: "#729077" }}>
+              <p className="mb-1.5 font-secondary text-[10px] font-semibold uppercase tracking-widest text-clay">
                 {NEXT_KICKER}
               </p>
               <h2

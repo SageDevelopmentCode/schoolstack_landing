@@ -146,13 +146,18 @@ export function listSchoolDemoOptions(): { slug: string; label: string }[] {
   }));
 }
 
+/** App route folder when it differs from `SchoolWebsiteDemoConfig.slug`. */
+const DEMO_ROUTE_SLUG_OVERRIDES: Record<string, string> = {
+  "monarch-hills-education": "monarch-hills",
+};
+
 export function listSchoolDemos() {
   return Object.values(schoolDemoRegistry).map((config) => ({
     slug: config.slug,
     schoolName: config.schoolName,
     logo: config.logo,
     description: config.hero.subheadline,
-    href: `/demo/${config.slug}`,
+    href: `/demo/${DEMO_ROUTE_SLUG_OVERRIDES[config.slug] ?? config.slug}`,
     themePrimary: config.theme.primary,
   }));
 }

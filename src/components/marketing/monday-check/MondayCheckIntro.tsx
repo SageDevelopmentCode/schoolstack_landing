@@ -1,10 +1,9 @@
 import { ClipboardCheck } from "lucide-react";
 import OpsCheckBreadcrumbs from "@/components/marketing/monday-check/OpsCheckBreadcrumbs";
-import ParentButton from "@/components/school-parent/ui/ParentButton";
-import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
-import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
-import ParentTextLink from "@/components/school-parent/ui/ParentTextLink";
 import MondayCheckFaqAccordion from "@/components/marketing/monday-check/MondayCheckFaqAccordion";
+import MarketingToolHero from "@/components/marketing/shared/MarketingToolHero";
+import { ACCENT_HIGHLIGHT, DARK_PILL } from "@/components/home/bright-styles";
+import ParentTextLink from "@/components/school-parent/ui/ParentTextLink";
 import { MONDAY_CHECK_INTRO_FAQS } from "@/lib/marketing/microschool-monday-check";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
@@ -17,53 +16,31 @@ export default function MondayCheckIntro({ theme, onStart }: MondayCheckIntroPro
   return (
     <div>
       <OpsCheckBreadcrumbs theme={theme} />
-      <ParentSectionKicker theme={theme}>Free assessment</ParentSectionKicker>
-      <ParentDisplayHeading theme={theme} as="h1" size="display" className="mb-3 mt-2">
-        Microschool Ops Check
-      </ParentDisplayHeading>
-      <p
-        className="mb-6 max-w-[560px] text-[14px] leading-[1.8]"
-        style={{ color: theme.muted, fontFamily: theme.fontBody }}
-      >
-        A quick operations snapshot for founders—admissions, enrollment, tuition, and parent
-        communication. Ten questions, about three minutes, instant results.
-      </p>
+      <MarketingToolHero
+        eyebrow="Free assessment"
+        title={
+          <>
+            Microschool Ops Check — know where your{" "}
+            <span className={ACCENT_HIGHLIGHT}>ops stand.</span>
+          </>
+        }
+        description="A quick operations snapshot for founders—admissions, enrollment, tuition, and parent communication. Ten questions, about three minutes, instant results."
+        className="mt-2"
+      />
 
-      <div
-        className="mb-5 overflow-hidden rounded-[22px] border shadow-sm"
-        style={{
-          borderColor: "#E0E7E0",
-          backgroundColor: theme.white,
-          boxShadow: theme.shadowCard,
-        }}
-      >
-        <div
-          className="border-b px-6 py-6 sm:px-8"
-          style={{ borderColor: theme.line, backgroundColor: theme.cream }}
-        >
-          <p
-            className="text-center text-[14px] leading-[1.8] sm:text-left"
-            style={{ color: theme.ink, fontFamily: theme.fontBody }}
-          >
+      <div className="mb-5 overflow-hidden rounded-[24px] border border-black/8 bg-white shadow-[0_12px_40px_rgba(30,60,30,0.06)]">
+        <div className="border-b border-black/8 bg-[#F4F1EC] px-6 py-6 sm:px-8">
+          <p className="text-center font-secondary text-[14px] leading-relaxed text-[#1d1a16] sm:text-left">
             See where admissions, tuition, and parent comms are solid—and where they still cost you
             time.
           </p>
         </div>
         <div className="flex flex-col items-center px-6 py-6 sm:items-start sm:px-8">
-          <ParentButton
-            theme={theme}
-            type="button"
-            onClick={onStart}
-            className="inline-flex w-full max-w-full items-center justify-center gap-2 px-6 py-3.5 text-[15px] sm:w-auto"
-            style={{ boxShadow: theme.shadowCard }}
-          >
+          <button type="button" onClick={onStart} className={DARK_PILL}>
             <ClipboardCheck className="h-4 w-4 shrink-0" aria-hidden />
             Start the check
-          </ParentButton>
-          <p
-            className="mt-3 text-center text-[13px] sm:text-left"
-            style={{ color: theme.muted, fontFamily: theme.fontBody }}
-          >
+          </button>
+          <p className="mt-3 text-center font-secondary text-[13px] text-[#1d1a16]/60 sm:text-left">
             No email required.
           </p>
         </div>

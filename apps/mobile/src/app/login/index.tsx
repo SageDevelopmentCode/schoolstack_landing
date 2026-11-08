@@ -1,4 +1,6 @@
+import { useObserve } from 'expo-observe';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -7,6 +9,11 @@ import { Story } from '@/constants/story-theme';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
+  const { markInteractive } = useObserve();
+
+  useEffect(() => {
+    markInteractive();
+  }, [markInteractive]);
 
   return (
     <SafeAreaView style={styles.container}>

@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -9,7 +8,6 @@ import {
   teacherDocumentationPath,
 } from "@/lib/organization-settings/teacher-routes";
 import { staffPreviewBasePath } from "@/lib/staff/staff-preview-access";
-import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -19,9 +17,7 @@ type PageProps = {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org || !isTeacherPortalEnabled(org.features)) {
     return { title: "Preview Not Found" };
@@ -36,9 +32,7 @@ export default async function StaffTeacherPreviewDocumentationPage({
   params,
 }: PageProps) {
   const { slug, staffMemberId } = await params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org || !isTeacherPortalEnabled(org.features)) {
     notFound();

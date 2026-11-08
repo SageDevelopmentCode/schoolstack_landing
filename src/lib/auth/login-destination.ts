@@ -16,9 +16,18 @@ export type LoginDestinationResult =
   | { ok: true; href: string }
   | { ok: false; error: "unauthenticated" | "not_found" | "forbidden"; message: string };
 
+export const PLATFORM_ADMIN_LOGIN_HREF = "/admin/organizations";
+
 export type AuthenticatedLoginResult =
   | LoginDestinationResult
-  | { ok: true; needsSchoolSelection: true; accessibleSlugs: string[] };
+  | {
+      ok: true;
+      href: string;
+      /** Set when the school was detected (no slug passed in). */
+      resolvedSlug?: string;
+    }
+  | { ok: true; needsSchoolSelection: true; accessibleSlugs: string[] }
+  | { ok: true; noAccess: true };
 
 async function listLiveOrganizationSlugs(
   supabase: SupabaseClient,
@@ -306,7 +315,7 @@ export async function resolveLoginDestination(
   userId: string,
   slug: string,
 ): Promise<LoginDestinationResult> {
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(slug);
 
   if (!org) {
     return {
@@ -355,10 +364,26 @@ export async function resolveAuthenticatedLogin(
     return resolveLoginDestination(supabase, userId, slug);
   }
 
+  // Platform admins are not tied to one school (matches the mobile app).
+  if (await isPlatformAdmin(supabase, userId)) {
+    return { ok: true, href: PLATFORM_ADMIN_LOGIN_HREF };
+  }
+
   const accessibleSlugs = await listAccessibleLiveOrganizations(supabase, userId);
 
+  if (accessibleSlugs.length === 0) {
+    return { ok: true, noAccess: true };
+  }
+
   if (accessibleSlugs.length === 1) {
-    return resolveLoginDestination(supabase, userId, accessibleSlugs[0]);
+    const resolved = await resolveLoginDestination(
+      supabase,
+      userId,
+      accessibleSlugs[0],
+    );
+    return resolved.ok
+      ? { ok: true, href: resolved.href, resolvedSlug: accessibleSlugs[0] }
+      : resolved;
   }
 
   return {

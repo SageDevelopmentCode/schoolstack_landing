@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import * as WebBrowser from 'expo-web-browser';
 import type { ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -14,6 +13,8 @@ import { PORTAL_MESSAGE_DELETED_PREVIEW } from '@/lib/messages/constants';
 import type { MessagesLayoutVariant } from '@/lib/messages/messages-layout-variant';
 import { isStoryMessagesVariant } from '@/lib/messages/messages-layout-variant';
 import type { PortalMessage } from '@/lib/messages/types';
+import { openExternalUrlSafely } from '@/lib/open-external-url';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 const BUBBLE_RADIUS = Radius.lg;
 const BUBBLE_TAIL_RADIUS = 4;
@@ -297,6 +298,14 @@ function AttachmentRow({
   labelColor: string;
 }) {
   const isImage = attachment.mimeType?.startsWith('image/');
+  const { reportError } = useMobileErrorReporter();
+  const openAttachmentUrl = (url: string) =>
+    openExternalUrlSafely(url, reportError, {
+      operation: 'message_attachment_open',
+      entityType: 'message_attachment',
+      entityId: attachment.id,
+      errorTitle: 'Could not open attachment',
+    });
 
   if (isImage && attachment.url) {
     return (
@@ -304,7 +313,7 @@ function AttachmentRow({
         accessibilityRole="button"
         onPress={() => {
           if (attachment.url) {
-            void WebBrowser.openBrowserAsync(attachment.url);
+            void openAttachmentUrl(attachment.url);
           }
         }}>
         <Image source={{ uri: attachment.url }} style={styles.imageAttachment} contentFit="cover" />
@@ -317,7 +326,7 @@ function AttachmentRow({
       accessibilityRole="button"
       onPress={() => {
         if (attachment.url) {
-          void WebBrowser.openBrowserAsync(attachment.url);
+          void openAttachmentUrl(attachment.url);
         }
       }}
       style={styles.fileAttachment}>

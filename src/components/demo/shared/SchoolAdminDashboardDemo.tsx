@@ -26,6 +26,8 @@ import DemoAdminProgramsPage from "@/components/demo/shared/DemoAdminProgramsPag
 import DemoAdminStaffPage from "@/components/demo/shared/DemoAdminStaffPage";
 import DemoAdminStudentsPage from "@/components/demo/shared/DemoAdminStudentsPage";
 import DemoAdminTuitionPage from "@/components/demo/shared/DemoAdminTuitionPage";
+import DemoAdminEnrollmentFlowsPage from "@/components/demo/shared/DemoAdminEnrollmentFlowsPage";
+import { resolveDemoEnrollmentFlowSelection } from "@/data/school-demos/demo-admin-admissions-fixtures";
 import DemoApplicationSubmissionsTab from "@/components/demo/shared/DemoApplicationSubmissionsTab";
 import DemoApplicationSubmissionDetailPanel from "@/components/demo/shared/DemoApplicationSubmissionDetailPanel";
 import {
@@ -6318,8 +6320,11 @@ function AdmissionsPage({
     <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
       <AnimatePresence mode="wait">
         {activeTab === "flows" && (
-          <motion.div key="flows" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="h-full">
-            <EnrollmentFlowsTab initialSelectedFlowId={initialSelectedFlowId} />
+          <motion.div key="flows" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="h-full min-h-0">
+            <DemoAdminEnrollmentFlowsPage
+              initialFlowSelection={resolveDemoEnrollmentFlowSelection(initialSelectedFlowId)}
+              wrapOutlineLabels
+            />
           </motion.div>
         )}
         {activeTab === "submissions" && (
