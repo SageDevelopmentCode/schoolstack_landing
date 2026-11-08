@@ -74,7 +74,7 @@ Repo check: `npm run check:mobile-keyboard-patterns` from the monorepo root (als
 - Run `npm run mobile:visual:capture -- school-admin-messages` (and `parent-messages`, `teacher-messages`); these open New message and type into its search.
 - Open at least one sheet per affected combination on a physical iPhone and type into every field.
 
-PR CI runs `.maestro/*-messages-new-conversation.yaml`, which fails if the New message search cannot be focused and typed into.
+`.maestro/*-messages-new-conversation.yaml` log in as each portal and fail if the New message search cannot be focused and typed into. They run on Android and iOS after merge to `main` (not on PRs, to keep PR CI short); run them locally with `maestro test` when changing messages.
 
 ### Sheet gallery visual diff
 
@@ -82,7 +82,7 @@ PR CI runs `.maestro/*-messages-new-conversation.yaml`, which fails if the New m
 
 - `.maestro/sheet-gallery.yaml` screenshots each case, with the keyboard open for cases that have text fields.
 - `scripts/compare-sheet-gallery.mjs` diffs them against `visual-baselines/sheet-gallery/<platform>/`. It ignores the status bar and fails when more than 1% of pixels change. Red-highlighted diffs are written to `.artifacts/sheet-gallery/<platform>/diff/`.
-- CI runs both on Android for every PR and on iOS for pushes to `main`, and uploads the `sheet-gallery-<platform>` artifact (current screenshots, diffs, summary).
+- On PRs, Android runs the gallery only when shared sheet code changes (the `sheets` path filter in `.github/workflows/mobile.yml`: `components/story/**`, `**/messages/**`, `use-bottom-sheet*`, `constants/**`, the gallery itself, and similar). After merge to `main` it always runs on Android and iOS. Each run uploads the `sheet-gallery-<platform>` artifact (current screenshots, diffs, summary).
 - Local: `npm run mobile:visual:gallery -- ios` with the app running on a simulator (no backend needed). Local devices differ from CI, so a size mismatch is a warning locally.
 
 **Intentional UI change or first run (no baselines yet):** download the `sheet-gallery-android` artifact from the PR's Mobile run, review the PNGs, then commit them with:

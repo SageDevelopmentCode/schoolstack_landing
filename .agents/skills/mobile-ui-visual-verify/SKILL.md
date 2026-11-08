@@ -111,7 +111,7 @@ npm run mobile:typecheck
 
 ## 5. CI
 
-Golden feature captures are **agent-local** only. PR CI runs functional Maestro plus the **sheet gallery visual diff** ([`.github/workflows/mobile.yml`](../../.github/workflows/mobile.yml)): `.maestro/sheet-gallery.yaml` is compared against `apps/mobile/visual-baselines/sheet-gallery/<platform>/` by `apps/mobile/scripts/compare-sheet-gallery.mjs`. Run it locally with `npm run mobile:visual:gallery -- ios` after changing any bottom sheet. Baseline workflow: "Sheet gallery visual diff" in [apps/mobile/AGENTS.md](../../apps/mobile/AGENTS.md).
+Golden feature captures are **agent-local** only. PR CI runs smoke Maestro flows, plus the **sheet gallery visual diff** when shared sheet code changes (all flows run after merge to `main`) ([`.github/workflows/mobile.yml`](../../.github/workflows/mobile.yml)): `.maestro/sheet-gallery.yaml` is compared against `apps/mobile/visual-baselines/sheet-gallery/<platform>/` by `apps/mobile/scripts/compare-sheet-gallery.mjs`. Run it locally with `npm run mobile:visual:gallery -- ios` after changing any bottom sheet. Baseline workflow: "Sheet gallery visual diff" in [apps/mobile/AGENTS.md](../../apps/mobile/AGENTS.md).
 
 ## Dry-run (no simulator)
 
