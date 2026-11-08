@@ -80,6 +80,7 @@ Whenever PNGs were produced:
 1. **Read** `apps/mobile/.artifacts/responsive/{feature}-ios.png` (and `-android.png` if captured).
 2. Apply the checklist for that feature.
 3. Task summary: **Visual review** with **Pass** or **Issue** per platform; any Issue → fix, re-capture, re-read.
+4. **Cleanup (default):** After **Pass** on every platform you captured, run `npm run clean:mobile-artifacts`. If any **Issue**, keep PNGs. Skip when the user wants to keep files or `KEEP_MOBILE_ARTIFACTS=1` is set.
 
 ### Feature checklists
 
@@ -119,5 +120,6 @@ If Maestro/simulator is unavailable, document the blocker in the task summary an
 ## Local cleanup
 
 ```bash
-rm -rf apps/mobile/.artifacts
+npm run clean:mobile-artifacts
+KEEP_MOBILE_ARTIFACTS=1 npm run clean:mobile-artifacts   # no-op unless --force
 ```

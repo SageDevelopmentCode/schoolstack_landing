@@ -30,6 +30,8 @@
     "test:e2e:setup": "supabase db reset",
     "test:e2e:install": "playwright install chromium",
     "verify:responsive-artifacts": "node scripts/verify-responsive-artifacts.mjs",
+    "clean:web-artifacts": "node scripts/clean-web-artifacts.mjs",
+    "clean:mobile-artifacts": "node scripts/clean-mobile-artifacts.mjs",
     "portal-qa:scope": "bash .agents/skills/portal-qa/scripts/portal-qa-scope.sh",
     "test:qa:portal": "PORTAL_QA_RUN=1 playwright test e2e/qa/portal-qa-capture.spec.ts --project=qa",
     "verify:portal-qa-artifacts": "node scripts/verify-portal-qa-artifacts.mjs",

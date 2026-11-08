@@ -36,7 +36,7 @@ npm run test:e2e:ui      # interactive mode
 
 **Skip Playwright’s web server** (you already have something on 3100): `PLAYWRIGHT_SKIP_WEBSERVER=1 npm run test:e2e`
 
-**Responsive screenshots + agent visual review:** Layout specs write PNGs to `e2e/.artifacts/responsive/`. Agents must **Read and analyze** those images per [portal-responsive-verify SKILL](../.agents/skills/portal-responsive-verify/SKILL.md). Check files exist with `npm run verify:responsive-artifacts -- committee-messages` (or `parent-messages`).
+**Responsive screenshots + agent visual review:** Layout specs write PNGs to `e2e/.artifacts/responsive/` (gitignored). Agents must **Read and analyze** those images per [portal-responsive-verify SKILL](../.agents/skills/portal-responsive-verify/SKILL.md). Check files exist with `npm run verify:responsive-artifacts -- committee-messages` (or `parent-messages`). After a passing review, `npm run clean:web-artifacts` removes responsive PNGs locally; `npm run clean:web-artifacts -- --all` clears all of `e2e/.artifacts/`.
 
 **On-demand portal QA (branch-scoped):** [portal-qa SKILL](../.agents/skills/portal-qa/SKILL.md) — scope routes from git diff, capture golden scenarios, vision review + report.
 
