@@ -175,8 +175,12 @@ export default function ParentClassroomSignupResponseForm({
 
     let response: Response | undefined;
     try {
+      const withdrawStudentId = existingResponse?.studentId ?? studentId;
       response = await fetch(
-        `/api/parent-portal/classroom-signups/${signup.id}?organizationId=${encodeURIComponent(organizationId)}`,
+        `/api/parent-portal/classroom-signups/${signup.id}?${new URLSearchParams({
+          organizationId,
+          studentId: withdrawStudentId,
+        }).toString()}`,
         { method: "DELETE" },
       );
       const payload = (await response.json()) as { error?: string };

@@ -9,7 +9,7 @@ import { FREE_TOOLS_HUB_PATH, FREE_TOOLS_NAV_LABEL } from "@/lib/marketing/free-
 
 const LINKS = [
   { label: "About", href: "/about" },
-  { label: "Product", href: "#product" },
+  { label: "Product", href: "/#product" },
   { label: "Customers", href: "/customers" },
   { label: "Blog", href: "/blog" },
 ];

@@ -15,6 +15,10 @@ import {
 import { getParentVisibleClassroomSignup } from "@/lib/classroom-signups/load-parent-signups";
 import { toParentVisibleSignupResponses } from "@/lib/classroom-signups/parent-response-visibility";
 import {
+  resolveAuthorizedFamilyIdForStudent,
+  resolveParentClassroomSignupContext,
+} from "@/lib/classroom-signups/resolve-parent-signup-family";
+import {
   ClassroomSignupSubmitError,
   upsertClassroomSignupResponse,
   withdrawClassroomSignupResponse,
@@ -37,8 +41,7 @@ export const GET = withParentPortalRoute<undefined, SignupParams>(
 
     try {
       const familyIds = access.familyIds;
-      const familyId = familyIds[0];
-      if (!familyId) {
+      if (familyIds.length === 0) {
         return apiError(ROUTE, {
           request,
           status: 404,
@@ -48,13 +51,32 @@ export const GET = withParentPortalRoute<undefined, SignupParams>(
       }
 
       const admin = createAdminClient();
-      const signup = await getParentVisibleClassroomSignup(
+      const studentId =
+        new URL(request.url).searchParams.get("studentId")?.trim() ?? null;
+      const context = await resolveParentClassroomSignupContext(
         admin,
         organizationId,
-        familyId,
+        familyIds,
         signupId,
+        studentId,
       );
-      if (!signup) {
+      if (!context) {
+        if (studentId) {
+          const familyForStudent = await resolveAuthorizedFamilyIdForStudent(
+            admin,
+            organizationId,
+            familyIds,
+            studentId,
+          );
+          if (!familyForStudent) {
+            return apiError(ROUTE, {
+              request,
+              status: 403,
+              error: "That student is not part of your family.",
+              code: "invalid_student",
+            });
+          }
+        }
         return apiError(ROUTE, {
           request,
           status: 404,
@@ -62,6 +84,8 @@ export const GET = withParentPortalRoute<undefined, SignupParams>(
           code: "not_found",
         });
       }
+
+      const { familyId, signup } = context;
 
       const [responses, familyResponse, studentOptions] = await Promise.all([
         listClassroomSignupResponses(admin, organizationId, signupId),
@@ -161,17 +185,13 @@ export const POST = withParentPortalRoute<ResponseBody, SignupParams>(
 
       const admin = createAdminClient();
 
-      // The student must belong to one of the user's families (including linked logins);
-      // the response is saved for that student's family.
-      const { data: studentRow, error: studentError } = await admin
-        .from("students")
-        .select("family_id")
-        .eq("id", studentId)
-        .eq("organization_id", organizationId)
-        .in("family_id", familyIds)
-        .maybeSingle();
-      if (studentError) throw studentError;
-      if (!studentRow) {
+      const familyId = await resolveAuthorizedFamilyIdForStudent(
+        admin,
+        organizationId,
+        familyIds,
+        studentId,
+      );
+      if (!familyId) {
         return apiError(ROUTE, {
           request,
           status: 403,
@@ -179,7 +199,6 @@ export const POST = withParentPortalRoute<ResponseBody, SignupParams>(
           code: "invalid_student",
         });
       }
-      const familyId = String(studentRow.family_id);
 
       const signup = await getParentVisibleClassroomSignup(
         admin,
@@ -270,13 +289,12 @@ export const DELETE = withParentPortalRoute<undefined, SignupParams>(
     enforceAccess: false,
     fallbackErrorMessage: "Failed to withdraw response.",
   },
-  async ({ request, user, organizationId, access, params }) => {
+  async ({ request, organizationId, access, params }) => {
     const { signupId } = params;
 
     try {
       const familyIds = access.familyIds;
-      const familyId = familyIds[0];
-      if (!familyId) {
+      if (familyIds.length === 0) {
         return apiError(ROUTE, {
           request,
           status: 404,
@@ -285,7 +303,37 @@ export const DELETE = withParentPortalRoute<undefined, SignupParams>(
         });
       }
 
+      const studentId =
+        new URL(request.url).searchParams.get("studentId")?.trim() ?? "";
       const admin = createAdminClient();
+      let familyId: string;
+
+      if (familyIds.length === 1) {
+        familyId = familyIds[0]!;
+      } else if (!studentId) {
+        return apiError(ROUTE, {
+          request,
+          status: 400,
+          error: "organizationId and studentId are required.",
+          code: "missing_fields",
+        });
+      } else {
+        const resolvedFamilyId = await resolveAuthorizedFamilyIdForStudent(
+          admin,
+          organizationId,
+          familyIds,
+          studentId,
+        );
+        if (!resolvedFamilyId) {
+          return apiError(ROUTE, {
+            request,
+            status: 403,
+            error: "That student is not part of your family.",
+            code: "invalid_student",
+          });
+        }
+        familyId = resolvedFamilyId;
+      }
       const response = await withdrawClassroomSignupResponse(
         admin,
         organizationId,

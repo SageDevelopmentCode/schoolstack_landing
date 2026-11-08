@@ -51,18 +51,10 @@ export const GET = withParentPortalRoute(
         });
       }
 
-      let url: string;
-      try {
-        url = await createProgramCoopCurriculumSignedUrl(supabase, curriculum.storagePath);
-      } catch (signError) {
-        return apiError(ROUTE, {
-          request,
-          status: 403,
-          error: "You do not have access to this curriculum.",
-          code: "forbidden",
-          cause: signError,
-        });
-      }
+      const url = await createProgramCoopCurriculumSignedUrl(
+        supabase,
+        curriculum.storagePath,
+      );
 
       return NextResponse.json(
         {

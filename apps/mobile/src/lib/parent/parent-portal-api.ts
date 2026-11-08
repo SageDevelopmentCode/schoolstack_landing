@@ -992,8 +992,9 @@ export async function submitParentClassroomSignupResponse(
 export async function withdrawParentClassroomSignupResponse(
   organizationId: string,
   signupId: string,
+  studentId: string,
 ): Promise<ClassroomSignupResponse> {
-  const query = new URLSearchParams({ organizationId }).toString();
+  const query = new URLSearchParams({ organizationId, studentId }).toString();
   const payload = await fetchParentApi<{ response: ClassroomSignupResponse }>(
     `/api/parent-portal/classroom-signups/${encodeURIComponent(signupId)}?${query}`,
     { method: 'DELETE' },

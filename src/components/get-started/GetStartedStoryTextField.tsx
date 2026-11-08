@@ -107,16 +107,29 @@ export default function GetStartedStoryTextField({
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       <label
+        htmlFor={id}
         className="text-[13px] font-semibold"
         style={{ color: theme.muted, fontFamily: theme.fontBody }}
       >
         {label}
+        {optionalHint ? (
+          <span className="text-[11px] font-normal text-[#849087]"> {optionalHint}</span>
+        ) : null}
       </label>
       <input
+        id={id}
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        autoComplete={autoComplete}
+        maxLength={maxLength}
+        aria-invalid={hasError}
+        aria-describedby={
+          [helperText && id ? `${id}-helper` : null, errorText && id ? `${id}-error` : null]
+            .filter(Boolean)
+            .join(" ") || undefined
+        }
         className="h-12 w-full px-4 text-[14px] outline-none transition-colors duration-150 focus:ring-2"
         style={{
           fontFamily: theme.fontBody,
@@ -134,6 +147,24 @@ export default function GetStartedStoryTextField({
           e.currentTarget.style.boxShadow = "none";
         }}
       />
+      {helperText ? (
+        <p
+          id={id ? `${id}-helper` : undefined}
+          className="text-[11px] leading-[1.8]"
+          style={{ color: theme.muted, fontFamily: theme.fontBody }}
+        >
+          {helperText}
+        </p>
+      ) : null}
+      {hasError && errorText ? (
+        <p
+          id={id ? `${id}-error` : undefined}
+          className="text-[11px] leading-snug"
+          style={{ color: "#B5594A", fontFamily: theme.fontBody }}
+        >
+          {errorText}
+        </p>
+      ) : null}
     </div>
   );
 }
