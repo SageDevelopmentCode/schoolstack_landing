@@ -2,7 +2,8 @@
 
 import { Fragment, useCallback, useMemo, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { BarChart3, Clock } from "lucide-react";
+import { BarChart3, ClipboardList, Clock, Settings } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 import SchoolAdminDatePicker, {
   schoolAdminDateRangeBounds,
@@ -43,6 +44,8 @@ import {
   formatHoursMinutes,
 } from "@/lib/school-teacher/my-hours/format-duration";
 import { StaffHoursLiveElapsed } from "@/components/school-admin/staff-hours/StaffHoursLiveElapsed";
+import StaffHoursRequestsPanel from "@/components/school-admin/staff-hours/StaffHoursRequestsPanel";
+import StaffHoursSettingsPanel from "@/components/school-admin/staff-hours/StaffHoursSettingsPanel";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
@@ -55,7 +58,19 @@ type StaffHoursPageProps = {
   initialData: AdminStaffHoursPageData;
 };
 
-type ViewMode = "live" | "summary";
+type ViewMode = "live" | "summary" | "requests" | "settings";
+
+function viewFromQuery(value: string | null): ViewMode {
+  if (value === "summary" || value === "requests" || value === "settings") return value;
+  return "live";
+}
+
+function viewAriaLabel(view: ViewMode): string {
+  if (view === "summary") return "Staff hours summary";
+  if (view === "requests") return "Hour adjustment requests";
+  if (view === "settings") return "Staff hours settings";
+  return "Live staff hours";
+}
 
 function FilterLabel({ theme, children }: { theme: ParentThemeTokens; children: string }) {
   return (
@@ -157,7 +172,17 @@ export default function StaffHoursPage({
   } = staffHoursViewPanelMotion(reducedMotion);
   const rowMotion = staffHoursExpandRowMotion(reducedMotion);
   const dateBounds = schoolAdminDateRangeBounds();
-  const [view, setView] = useState<ViewMode>("live");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const viewFromUrl = viewFromQuery(searchParams.get("view"));
+  const [view, setView] = useState<ViewMode>(viewFromUrl);
+  const [urlView, setUrlView] = useState(viewFromUrl);
+  if (viewFromUrl !== urlView) {
+    setUrlView(viewFromUrl);
+    setView(viewFromUrl);
+  }
+  const focusRequestId = searchParams.get("request");
   const [pageData, setPageData] = useState(initialData);
   const [summaryFrom, setSummaryFrom] = useState(initialData.summaryFrom);
   const [summaryTo, setSummaryTo] = useState(initialData.summaryTo);
@@ -206,10 +231,28 @@ export default function StaffHoursPage({
     }
   }, [organizationId, summaryFrom, summaryTo, staffFilter]);
 
+  const selectView = useCallback(
+    (nextView: ViewMode) => {
+      setView(nextView);
+      const params = new URLSearchParams(searchParams.toString());
+      if (nextView === "live") {
+        params.delete("view");
+        params.delete("request");
+      } else {
+        params.set("view", nextView);
+        if (nextView !== "requests") params.delete("request");
+      }
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+      if (nextView === "live") void reload();
+    },
+    [pathname, reload, router, searchParams],
+  );
+
   const applySummary = useCallback(async () => {
     await reload();
-    setView("summary");
-  }, [reload]);
+    selectView("summary");
+  }, [reload, selectView]);
 
   const sessionsForStaff = useCallback(
     (staffMemberId: string) =>
@@ -269,13 +312,21 @@ export default function StaffHoursPage({
               icon: <BarChart3 className="h-3.5 w-3.5" aria-hidden />,
               testId: "staff-hours-tab-summary",
             },
+            {
+              key: "requests",
+              label: "Requests",
+              icon: <ClipboardList className="h-3.5 w-3.5" aria-hidden />,
+              testId: "staff-hours-tab-requests",
+            },
+            {
+              key: "settings",
+              label: "Settings",
+              icon: <Settings className="h-3.5 w-3.5" aria-hidden />,
+              testId: "staff-hours-tab-settings",
+            },
           ]}
           activeKey={view}
-          onChange={(key) => {
-            const nextView = key as ViewMode;
-            setView(nextView);
-            if (nextView === "live") void reload();
-          }}
+          onChange={(key) => selectView(key as ViewMode)}
           ariaLabel="Staff hours views"
           data-testid="staff-hours-tab-nav"
         />
@@ -285,7 +336,7 @@ export default function StaffHoursPage({
         <motion.div
           key={view}
           role="tabpanel"
-          aria-label={view === "live" ? "Live staff hours" : "Staff hours summary"}
+          aria-label={viewAriaLabel(view)}
           aria-busy={loading}
           className="mt-6 w-full min-w-0"
           variants={viewPanelVariants}
@@ -294,7 +345,27 @@ export default function StaffHoursPage({
           exit="exit"
           transition={viewPanelTransition}
         >
-          {view === "live" ? (
+          {view === "requests" ? (
+            <StaffHoursRequestsPanel
+              theme={theme}
+              organizationId={organizationId}
+              requests={pageData.adjustmentRequests ?? []}
+              focusRequestId={focusRequestId}
+              onPageData={setPageData}
+            />
+          ) : view === "settings" ? (
+            <StaffHoursSettingsPanel
+              theme={theme}
+              organizationId={organizationId}
+              adjustmentsRequireApproval={pageData.adjustmentsRequireApproval !== false}
+              onChange={(requireApproval) =>
+                setPageData((current) => ({
+                  ...current,
+                  adjustmentsRequireApproval: requireApproval,
+                }))
+              }
+            />
+          ) : view === "live" ? (
         loading ? (
           <StaffHoursLiveLoadingSkeleton theme={theme} C={C} />
         ) : (

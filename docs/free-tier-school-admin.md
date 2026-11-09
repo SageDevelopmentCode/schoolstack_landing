@@ -1,6 +1,6 @@
 # Free tier for school admin — design notes
 
-Status: proposal (Nov 2026). Nothing here is implemented yet.
+Status: Phases 1–5 are implemented in the app (Nov 2026). Phase 6 is not. Signup is not necessarily live in production yet.
 
 ## Goal
 
@@ -14,7 +14,7 @@ One codebase, one database, a `plan` on each organization that caps which featur
 
 ## Free tier v1 scope: dashboard only
 
-After onboarding, a free school's admin has **only the Dashboard tab**. Every other admin feature is off. Teacher and parent portals are off too (a dashboard-only school has no families or staff to use them).
+After onboarding, a free school can use **only the Dashboard**. The sidebar still shows the default admin tabs, locked, and clicking one opens an upgrade popup. A direct link to a locked tab returns to the Dashboard and opens that same popup. Teacher and parent portals are off (a dashboard-only school has no families or staff to use them).
 
 | Portal | Free v1 |
 |---|---|
@@ -52,6 +52,8 @@ Each phase is shippable on its own. Phases 1 and 2 must not change anything for 
 
 ## Phase 1 — Plan foundation (no user-visible change)
 
+**Shipped.** `organizations.plan` is `free` or `custom` (default `custom`). `applyPlanToFeatures` caps free schools inside organization fetch and the public apply cache. A missing `plan` column is treated as `custom`.
+
 **Goal:** organizations have a plan, and the app computes usable features from it. Paid schools behave exactly as today.
 
 1. **Add `plan` to organizations.**
@@ -83,6 +85,8 @@ Each phase is shippable on its own. Phases 1 and 2 must not change anything for 
 
 ## Phase 2 — Dashboard-only experience for free schools
 
+**Shipped.** `free-tier-school` is seeded as `plan = 'free'`. The free dashboard hides the setup bar, uses a neutral empty sentence, and drops how-to guides that are not tied to an enabled feature. Parent, apply, teacher login, and public forms 404 only when `plan` is `free`.
+
 **Goal:** a free school (created by hand for now) sees a clean, working dashboard with nothing broken.
 
 1. **Create a test free school** in local seeds / E2E with `plan = 'free'`.
@@ -99,6 +103,8 @@ Each phase is shippable on its own. Phases 1 and 2 must not change anything for 
 **Done when:** the free test school's admin is the dashboard only, every visible link works, and paid schools' dashboards are unchanged.
 
 ## Phase 3 — Self-serve signup ("Try for free")
+
+**Shipped.** `/try` asks for a school name and email, confirms with a 6-digit code on the same page, then creates an `onboarding` school with `plan = 'free'`, empty features, and an owner membership. A signed-in visitor is redirected the same way as login. Broadcast, visit-confirmation, and Friday roster email routes return 403 for free schools.
 
 **Goal:** anyone can create a free school in about 30 seconds.
 
@@ -131,6 +137,7 @@ Verify the email **before** granting access. Unverified accounts are how spam en
 
 - Slugs are unique (`organizations_slug_key`); auto-suffix on collision.
 - Block names and slugs that impersonate existing customers (e.g. a fake "Rooted Meadows").
+- Block an email that already has an active `owner` or `admin` membership. Parents and teachers can still start a free school. At the next login, two schools show the "Choose your school" step: the parent school opens the parent portal (or apply), and the free school opens that school's admin.
 - Rate-limit signups per IP / email domain.
 
 ### Server-side guards (minimum for launch)
@@ -146,15 +153,19 @@ Verify the email **before** granting access. Unverified accounts are how spam en
 
 ## Phase 4 — Navbar and marketing entry point
 
+**Shipped.** Try for free is the filled navbar button and links to `/try` on the home nav and the older nav. Book a Demo is the outline button. Free tools stays in the footer and still links to `/tools`.
+
 **Goal:** send traffic to signup.
 
 - Rename the navbar's secondary CTA from "Free tools" to **Try for free** (`FREE_TOOLS_NAV_LABEL` in `src/lib/marketing/free-tools.ts`, used in `src/components/sections/Navbar.tsx`) and point it at the signup page.
 - It currently links to `/tools` (`FREE_TOOLS_HUB_PATH`), the free tools hub, which is a separate thing and may drive search traffic. Move that link to the footer or a Resources menu rather than dropping it.
 - Decide which CTA is primary. Today "Book a Demo" is the filled button.
 
-Ship this only after Phase 3 is live in production.
+The navbar change is in the app. It was originally held until signup was live in production; that wait is no longer in effect.
 
 ## Phase 5 — Upgrade path
+
+**Shipped.** A free school sees the default admin tabs. Only Dashboard opens. Clicking a locked tab, or opening its URL, shows an upgrade popup with the school-demo booking calendar. After the call, a platform admin sets the plan to Custom on the organizations page. That unlocks the default features in place. There is no Stripe checkout. Paid schools do not see the locks or the popup. School-admin API routes for paid features return 403 only when `plan` is `free`.
 
 **Goal:** a free school can become a paying school without moving any data.
 
@@ -163,6 +174,8 @@ Ship this only after Phase 3 is live in production.
 - Complete server-side feature guards across all paid-only `api/school-admin/*` routes.
 
 ## Phase 6 — Grow the free tier
+
+**Not started.**
 
 Only once Phases 1–5 are stable:
 
@@ -197,10 +210,10 @@ Signup can't take existing URLs: slugs are unique (`organizations_slug_key`), an
 
 ## Open questions
 
-- What `status` should a new free school get: `onboarding` or `live`?
+- New free schools use `status = 'onboarding'` (decided in Phase 3). `live` stays the status for schools that are open to families.
 - Which features join the free tier after the dashboard, and in what order?
 - Does the free tier eventually have usage limits, or only a smaller feature set?
-- Upgrade path: self-serve Stripe checkout, or a sales conversation that flips the plan?
-- Should "Try for free" replace "Book a Demo" as the primary navbar CTA?
+- Upgrade path: a booked call, then a manual plan flip to Custom (decided in Phase 5). No Stripe checkout.
+- Try for free is the primary navbar CTA (decided in Phase 4). Book a Demo is the outline button.
 - Sample data: loaded automatically, or behind a button?
 - Is a no-signup demo school worth building?

@@ -9,6 +9,7 @@ import {
   Bell,
   ChevronDown,
   ExternalLink,
+  Lock,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -78,6 +79,7 @@ function AdminNavChildLinks({
   onToggleOpen,
   messagesUnreadCount,
   fridayBranchParentPortalPaused,
+  onLockedSelect,
 }: {
   slug: string;
   parentFeature: string;
@@ -88,6 +90,7 @@ function AdminNavChildLinks({
   onToggleOpen: (key: string) => void;
   messagesUnreadCount: number;
   fridayBranchParentPortalPaused: boolean;
+  onLockedSelect?: (label: string) => void;
 }) {
   const { theme } = useSchoolAdminStoryTheme();
 
@@ -115,6 +118,24 @@ function AdminNavChildLinks({
             <div key={child.key} className="py-[2px]">
               <div className="flex items-center gap-0.5">
                 {firstLeafHref ? (
+                  onLockedSelect ? (
+                    <button
+                      type="button"
+                      title={`${child.name}, locked`}
+                      aria-haspopup="dialog"
+                      onClick={() => onLockedSelect(child.name)}
+                      className="min-w-0 flex-1 truncate py-[5px] text-left text-[11px] transition-colors"
+                      style={{
+                        color: "#7B898D",
+                        fontWeight: 500,
+                      }}
+                    >
+                      <span className="inline-flex min-w-0 items-center gap-1">
+                        <Lock className="h-3 w-3 shrink-0" aria-hidden />
+                        <span className="truncate">{child.name}</span>
+                      </span>
+                    </button>
+                  ) : (
                   <Link
                     href={firstLeafHref}
                     title={child.name}
@@ -127,6 +148,7 @@ function AdminNavChildLinks({
                   >
                     {child.name}
                   </Link>
+                  )
                 ) : (
                   <span
                     className="min-w-0 flex-1 truncate py-[5px] text-[11px] font-medium"
@@ -170,6 +192,7 @@ function AdminNavChildLinks({
                       onToggleOpen={onToggleOpen}
                       messagesUnreadCount={messagesUnreadCount}
                       fridayBranchParentPortalPaused={fridayBranchParentPortalPaused}
+                      onLockedSelect={onLockedSelect}
                     />
                   </div>
                 </div>
@@ -180,6 +203,29 @@ function AdminNavChildLinks({
 
         const childHref = resolveAdminNavChildHref(slug, parentFeature, child);
         const leafActive = pathname === childHref || pathname.startsWith(`${childHref}/`);
+
+        if (onLockedSelect) {
+          return (
+            <button
+              key={child.key}
+              type="button"
+              title={`${child.name}, locked`}
+              aria-haspopup="dialog"
+              onClick={() => onLockedSelect(child.name)}
+              className="block w-full py-[5px] text-left text-[11px] transition-colors"
+              style={{
+                color: "#7B898D",
+                fontWeight: 500,
+                paddingLeft: depth > 0 ? 4 : 0,
+              }}
+            >
+              <span className="flex min-w-0 items-center gap-1.5">
+                <Lock className="h-3 w-3 shrink-0" aria-hidden />
+                <span className="truncate">{child.name}</span>
+              </span>
+            </button>
+          );
+        }
 
         return (
           <Link
@@ -226,6 +272,7 @@ function SidebarNavItem({
   onToggleNestedOpen,
   messagesUnreadCount,
   fridayBranchParentPortalPaused = false,
+  onLockedSelect,
 }: {
   slug: string;
   item: AdminNavItem;
@@ -237,6 +284,7 @@ function SidebarNavItem({
   onToggleNestedOpen: (key: string) => void;
   messagesUnreadCount: number;
   fridayBranchParentPortalPaused?: boolean;
+  onLockedSelect?: (label: string) => void;
 }) {
   const { theme, C } = useSchoolAdminStoryTheme();
   const Icon = item.icon;
@@ -248,11 +296,40 @@ function SidebarNavItem({
       schoolAdminPath(slug, item.key))
     : schoolAdminPath(slug, item.key);
 
+  const locked = Boolean(onLockedSelect) && item.key !== "dashboard";
+
   const activeRowStyle = (active: boolean) => ({
     ...outlineActiveRowStyle(active, theme),
     color: active ? theme.primary : C.textSecondary,
     textDecoration: "none" as const,
   });
+
+  if (!hasChildren && locked) {
+    return (
+      <button
+        type="button"
+        title={`${item.name}, locked`}
+        aria-haspopup="dialog"
+        onClick={() => onLockedSelect?.(item.name)}
+        className="relative mb-0.5 flex w-full items-center rounded-[10px] border px-2.5 py-2 text-left text-[13px] transition-colors"
+        style={{
+          justifyContent: isExpanded ? "flex-start" : "center",
+          gap: isExpanded ? "8px" : 0,
+          ...activeRowStyle(false),
+          fontWeight: 500,
+          opacity: 0.72,
+        }}
+      >
+        <Icon className="h-4 w-4 shrink-0" style={{ color: iconColor }} />
+        {isExpanded ? (
+          <span className="flex min-w-0 flex-1 items-center gap-1 truncate">
+            {item.name}
+            <Lock className="h-3 w-3 shrink-0" aria-hidden />
+          </span>
+        ) : null}
+      </button>
+    );
+  }
 
   if (!hasChildren) {
     const active = pathname === parentHref;
@@ -297,6 +374,32 @@ function SidebarNavItem({
         className="flex items-center rounded-[10px] border transition-colors"
         style={activeRowStyle(parentActive)}
       >
+        {locked ? (
+          <button
+            type="button"
+            title={`${item.name}, locked`}
+            aria-haspopup="dialog"
+            onClick={() => onLockedSelect?.(item.name)}
+            className="flex min-w-0 flex-1 items-center text-left"
+            style={{
+              justifyContent: isExpanded ? "flex-start" : "center",
+              gap: isExpanded ? "8px" : 0,
+              padding: isExpanded ? "8px 10px" : "8px 0",
+              color: C.textSecondary,
+              fontWeight: 500,
+              fontSize: "13px",
+              opacity: 0.72,
+            }}
+          >
+            <Icon className="h-4 w-4 shrink-0" style={{ color: iconColor }} />
+            {isExpanded ? (
+              <span className="flex min-w-0 items-center gap-1 truncate">
+                {item.name}
+                <Lock className="h-3 w-3 shrink-0" aria-hidden />
+              </span>
+            ) : null}
+          </button>
+        ) : (
         <Link
           href={parentHref}
           title={item.name}
@@ -314,6 +417,7 @@ function SidebarNavItem({
           <Icon className="h-4 w-4 shrink-0" style={{ color: iconColor }} />
           {isExpanded ? <span className="truncate">{item.name}</span> : null}
         </Link>
+        )}
         {isExpanded ? (
           <button
             type="button"
@@ -350,6 +454,7 @@ function SidebarNavItem({
                 onToggleOpen={onToggleNestedOpen}
                 messagesUnreadCount={messagesUnreadCount}
                 fridayBranchParentPortalPaused={fridayBranchParentPortalPaused}
+                onLockedSelect={locked ? onLockedSelect : undefined}
               />
             </div>
           </div>
@@ -377,6 +482,7 @@ type SchoolAdminStorySidebarProps = {
   previewMode?: boolean;
   pathnameOverride?: string;
   fridayBranchParentPortalPaused?: boolean;
+  onLockedFeature?: (label: string) => void;
 };
 
 export default function SchoolAdminStorySidebar({
@@ -397,6 +503,7 @@ export default function SchoolAdminStorySidebar({
   previewMode = false,
   pathnameOverride,
   fridayBranchParentPortalPaused = false,
+  onLockedFeature,
 }: SchoolAdminStorySidebarProps) {
   const routerPathname = usePathname();
   const pathname = pathnameOverride ?? routerPathname;
@@ -501,6 +608,7 @@ export default function SchoolAdminStorySidebar({
                       [key]: !prev[key],
                     }))
                   }
+                  onLockedSelect={onLockedFeature}
                 />
               ))}
             </div>

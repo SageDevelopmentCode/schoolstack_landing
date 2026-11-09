@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Menu, Wrench, X } from "lucide-react";
+import { ArrowRight, Menu, X } from "lucide-react";
 import { GET_STARTED_PAGE_PATH } from "@/lib/marketing/book-demo";
-import { FREE_TOOLS_HUB_PATH, FREE_TOOLS_NAV_LABEL } from "@/lib/marketing/free-tools";
+import { TRY_FREE_NAV_LABEL, TRY_FREE_PATH } from "@/lib/marketing/free-tools";
 
 const LINKS = [
   { label: "About", href: "/about" },
@@ -79,17 +79,16 @@ export default function BrightNavbar() {
 
         <div className="hidden items-center gap-2.5 md:flex">
           <Link
-            href={FREE_TOOLS_HUB_PATH}
-            className={`hidden h-10 items-center gap-1.5 rounded-pill px-4 text-sm font-medium transition-all duration-200 lg:inline-flex ${t.secondary}`}
-          >
-            <Wrench size={14} aria-hidden />
-            {FREE_TOOLS_NAV_LABEL}
-          </Link>
-          <Link
             href={GET_STARTED_PAGE_PATH}
-            className={`inline-flex h-10 items-center gap-1.5 rounded-pill px-5 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 ${t.cta}`}
+            className={`hidden h-10 items-center rounded-pill px-4 text-sm font-medium transition-all duration-200 lg:inline-flex ${t.secondary}`}
           >
             Book a Demo
+          </Link>
+          <Link
+            href={TRY_FREE_PATH}
+            className={`inline-flex h-10 items-center gap-1.5 rounded-pill px-5 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 ${t.cta}`}
+          >
+            {TRY_FREE_NAV_LABEL}
             <ArrowRight size={14} aria-hidden />
           </Link>
         </div>
@@ -123,20 +122,19 @@ export default function BrightNavbar() {
             </a>
           ))}
           <Link
-            href={GET_STARTED_PAGE_PATH}
+            href={TRY_FREE_PATH}
             onClick={() => setOpen(false)}
             className={`mt-2 flex h-12 items-center justify-center gap-2 rounded-pill text-sm font-semibold ${t.cta}`}
           >
-            Book a Demo
+            {TRY_FREE_NAV_LABEL}
             <ArrowRight size={14} aria-hidden />
           </Link>
           <Link
-            href={FREE_TOOLS_HUB_PATH}
+            href={GET_STARTED_PAGE_PATH}
             onClick={() => setOpen(false)}
-            className={`mt-2 flex h-12 items-center justify-center gap-2 rounded-pill text-sm font-medium ${t.secondary}`}
+            className={`mt-2 flex h-12 items-center justify-center rounded-pill text-sm font-medium ${t.secondary}`}
           >
-            <Wrench size={16} aria-hidden />
-            {FREE_TOOLS_NAV_LABEL}
+            Book a Demo
           </Link>
         </nav>
       ) : null}

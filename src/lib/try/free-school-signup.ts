@@ -55,6 +55,28 @@ export function isValidSignupEmail(email: string): boolean {
   return normalized.length <= 254 && EMAIL_PATTERN.test(normalized);
 }
 
+type AuthAdminUser = { id?: string; email?: string | null };
+
+/** Exact email match from a GoTrue admin user list. The filter is a substring search. */
+export function authUserIdFromAdminList(body: unknown, email: string): string | null {
+  const users = Array.isArray(body)
+    ? body
+    : body && typeof body === "object" && Array.isArray((body as { users?: unknown }).users)
+      ? (body as { users: unknown[] }).users
+      : [];
+
+  const normalized = email.trim().toLowerCase();
+  for (const entry of users) {
+    if (!entry || typeof entry !== "object") continue;
+    const user = entry as AuthAdminUser;
+    if (user.email?.trim().toLowerCase() !== normalized) continue;
+    const id = user.id?.trim();
+    if (id) return id;
+  }
+
+  return null;
+}
+
 export function emailDomain(email: string): string | null {
   const normalized = email.trim().toLowerCase();
   const at = normalized.lastIndexOf("@");

@@ -14,6 +14,7 @@ import {
 import { recordPublicFormSubmissionEvent } from "@/lib/public-forms/rate-limit";
 import { getRequestIp } from "@/lib/public-forms/request-ip";
 import {
+  assertMayStartFreeSchool,
   createFreeSchool,
   domainRateLimitMessage,
   emailDomainHourlyCount,
@@ -114,6 +115,8 @@ export async function POST(request: Request) {
         });
       }
     }
+
+    await assertMayStartFreeSchool(admin, user.id);
 
     const created = await createFreeSchool(admin, {
       schoolName,

@@ -13,7 +13,7 @@ import PublicFormHoneypotField from "@/components/public-forms/PublicFormHoneypo
 import { PUBLIC_FORM_HONEYPOT_FIELD } from "@/lib/public-forms/honeypot";
 import { GET_STARTED_PAGE_PATH } from "@/lib/marketing/book-demo";
 import {
-  nextQuestionIds,
+  questionChatGroups,
   questionChatDraft,
   QUESTION_CHAT_ACTIONS,
   QUESTION_CHAT_COVERED,
@@ -29,6 +29,12 @@ const fieldClassName =
 
 const chipClassName =
   "font-secondary max-w-full rounded-pill border border-black/15 bg-white px-4 py-2 text-left text-[14px] font-semibold text-[#1d1a16] transition-colors hover:border-black/35";
+
+const followUpChipClassName =
+  "font-secondary max-w-full rounded-pill border border-dashed border-[#1d1a16]/30 bg-[#F7F5F2] px-4 py-2 text-left text-[14px] font-semibold text-[#1d1a16] transition-colors hover:border-[#1d1a16]/55";
+
+const sendQuestionClassName =
+  "font-secondary inline-flex rounded-pill border border-dashed border-clay bg-clay/10 px-4 py-2 text-left text-[14px] font-semibold text-clay transition-colors hover:bg-clay/20";
 
 const actionPrimaryClassName =
   "font-secondary inline-flex h-9 items-center rounded-pill bg-[#1d1a16] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-clay";
@@ -82,7 +88,7 @@ function AnswerActions({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: motionOn ? 0.12 : 0, ease: "easeOut" }}
     >
-      {visible.map((action) => {
+      {visible.map((action, index) => {
         const isDemo = action.id === "demo";
         const href = isDemo && pathname === GET_STARTED_PAGE_PATH ? GET_STARTED_DEMO_HASH : action.href;
         return (
@@ -97,7 +103,7 @@ function AnswerActions({
               }
               onNavigate();
             }}
-            className={isDemo ? actionPrimaryClassName : actionSecondaryClassName}
+            className={index === 0 ? actionPrimaryClassName : actionSecondaryClassName}
           >
             {action.label}
           </Link>
@@ -152,10 +158,15 @@ export default function FloatingQuestionButton() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [companyWebsite, setCompanyWebsite] = useState("");
 
-  const chips = nextQuestionIds(turns)
-    .map((id) => QUESTION_CHAT_NODES[id])
-    .filter((node): node is QuestionChatNode => Boolean(node));
-  const covered = turns.length > 0 && chips.length === 0;
+  const groups = questionChatGroups(turns);
+  const toNodes = (ids: readonly string[]) =>
+    ids
+      .map((id) => QUESTION_CHAT_NODES[id])
+      .filter((node): node is QuestionChatNode => Boolean(node));
+  const followUps = toNodes(groups.followUps);
+  const otherQuestions = toNodes(groups.others);
+  const hasSuggestions = followUps.length > 0 || otherQuestions.length > 0;
+  const covered = turns.length > 0 && !hasSuggestions;
   const canSubmit =
     question.trim().length > 0 && name.trim().length > 0 && email.trim().length > 0;
 
@@ -403,14 +414,16 @@ export default function FloatingQuestionButton() {
                         >
                           <ChatBubble from="bot">
                             {turn.answer}
-                            <AnswerActions
-                              actions={turn.actions}
-                              pathname={pathname}
-                              reduceMotion={reduceMotion}
-                              animateIn={isLatest}
-                              onDemo={goToGetStartedDemo}
-                              onNavigate={closeForNavigation}
-                            />
+                            {turn.actions.length > 0 ? (
+                              <AnswerActions
+                                actions={turn.actions}
+                                pathname={pathname}
+                                reduceMotion={reduceMotion}
+                                animateIn={isLatest}
+                                onDemo={goToGetStartedDemo}
+                                onNavigate={closeForNavigation}
+                              />
+                            ) : null}
                           </ChatBubble>
                         </motion.div>
                       )}
@@ -535,28 +548,47 @@ export default function FloatingQuestionButton() {
                 ref={footerRef}
                 className="max-h-[46%] shrink-0 overflow-y-auto border-t border-black/10 px-4 py-3"
               >
-                {!pendingReplyId && chips.length > 0 ? (
+                {!pendingReplyId && hasSuggestions ? (
                   <motion.div
                     initial={reduceMotion ? false : { opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: reduceMotion ? 0 : 0.12, ease: "easeOut" }}
                   >
-                    <div role="group" aria-label="Suggested questions" className="flex flex-wrap gap-2">
-                      {chips.map((node) => (
-                        <button
-                          key={node.id}
-                          type="button"
-                          onClick={() => pickQuestion(node)}
-                          className={chipClassName}
-                        >
-                          {node.question}
-                        </button>
-                      ))}
-                    </div>
+                    {followUps.length > 0 ? (
+                      <div role="group" aria-label="Follow-up questions" className="flex flex-wrap gap-2">
+                        {followUps.map((node) => (
+                          <button
+                            key={node.id}
+                            type="button"
+                            onClick={() => pickQuestion(node)}
+                            className={followUpChipClassName}
+                          >
+                            {node.question}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                    {followUps.length > 0 && otherQuestions.length > 0 ? (
+                      <div className="my-3 border-t border-black/10" role="separator" />
+                    ) : null}
+                    {otherQuestions.length > 0 ? (
+                      <div role="group" aria-label="Other questions" className="flex flex-wrap gap-2">
+                        {otherQuestions.map((node) => (
+                          <button
+                            key={node.id}
+                            type="button"
+                            onClick={() => pickQuestion(node)}
+                            className={chipClassName}
+                          >
+                            {node.question}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                     <button
                       type="button"
                       onClick={openDirectQuestion}
-                      className="font-secondary mt-3 text-[13px] font-semibold text-clay"
+                      className={`${sendQuestionClassName} mt-3`}
                     >
                       Send us a question
                     </button>
@@ -565,7 +597,7 @@ export default function FloatingQuestionButton() {
                   <button
                     type="button"
                     onClick={openDirectQuestion}
-                    className="font-secondary text-[13px] font-semibold text-clay"
+                    className={sendQuestionClassName}
                   >
                     Send us a question
                   </button>

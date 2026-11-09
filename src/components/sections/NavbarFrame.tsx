@@ -2,12 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { BookOpen, Info, Layers, Menu, Users, Wrench, X } from "lucide-react";
+import { BookOpen, Info, Layers, Menu, Users, X } from "lucide-react";
 import { GET_STARTED_PAGE_PATH } from "@/lib/marketing/book-demo";
-import {
-  FREE_TOOLS_HUB_PATH,
-  FREE_TOOLS_NAV_LABEL,
-} from "@/lib/marketing/free-tools";
+import { TRY_FREE_NAV_LABEL, TRY_FREE_PATH } from "@/lib/marketing/free-tools";
 
 const MOBILE_LINKS = [
   { label: "About", href: "/about", icon: Info },
@@ -91,11 +88,11 @@ export default function NavbarFrame({ children }: { children: React.ReactNode })
             ))}
 
             <Link
-              href={GET_STARTED_PAGE_PATH}
+              href={TRY_FREE_PATH}
               onClick={() => setMenuOpen(false)}
               className="mt-2 flex h-12 items-center justify-center gap-2 rounded-pill bg-clay text-sm font-medium text-white transition-all duration-200 hover:opacity-90"
             >
-              Book a Demo
+              {TRY_FREE_NAV_LABEL}
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                 <path
                   d="M2.5 7H11.5M11.5 7L7.5 3M11.5 7L7.5 11"
@@ -108,12 +105,11 @@ export default function NavbarFrame({ children }: { children: React.ReactNode })
             </Link>
 
             <Link
-              href={FREE_TOOLS_HUB_PATH}
+              href={GET_STARTED_PAGE_PATH}
               onClick={() => setMenuOpen(false)}
-              className="mt-2 flex h-12 items-center justify-center gap-2 rounded-pill border border-clay/35 bg-white text-sm font-medium text-clay transition-all duration-200 hover:bg-clay/5"
+              className="mt-2 flex h-12 items-center justify-center rounded-pill border border-clay/35 bg-white text-sm font-medium text-clay transition-all duration-200 hover:bg-clay/5"
             >
-              <Wrench size={16} className="shrink-0" aria-hidden />
-              {FREE_TOOLS_NAV_LABEL}
+              Book a Demo
             </Link>
           </div>
         </nav>

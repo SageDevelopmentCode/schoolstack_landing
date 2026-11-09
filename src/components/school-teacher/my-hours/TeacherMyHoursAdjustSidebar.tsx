@@ -32,6 +32,8 @@ type TeacherMyHoursAdjustSidebarProps = {
   showError: boolean;
   openSessionLabel: string | null;
   previewMode?: boolean;
+  saving?: boolean;
+  saveLabel?: string;
   onClose: () => void;
   onSave: () => void;
   onNoteChange: (note: string) => void;
@@ -110,6 +112,8 @@ export default function TeacherMyHoursAdjustSidebar({
   showError,
   openSessionLabel,
   previewMode = false,
+  saving = false,
+  saveLabel,
   onClose,
   onSave,
   onNoteChange,
@@ -256,22 +260,39 @@ export default function TeacherMyHoursAdjustSidebar({
                         {...rowMotion}
                       >
                         <div className="flex items-center justify-between gap-3">
-                          <p
-                            className="text-[11px] font-bold uppercase tracking-wider"
-                            style={{ color: theme.muted }}
-                          >
-                            Session {sessionIndex + 1}
-                          </p>
-                          {sessions.length > 1 ? (
-                            <button
-                              type="button"
-                              className="text-xs font-semibold"
+                          <div className="shrink-0">
+                            <p
+                              className="text-[11px] font-bold uppercase tracking-wider"
                               style={{ color: theme.muted }}
-                              onClick={() => onRemoveSession(session.key)}
                             >
-                              Remove
-                            </button>
-                          ) : null}
+                              Session {sessionIndex + 1}
+                            </p>
+                            {sessions.length > 1 ? (
+                              <button
+                                type="button"
+                                className="mt-1 text-xs font-semibold"
+                                style={{ color: theme.muted }}
+                                onClick={() => onRemoveSession(session.key)}
+                              >
+                                Remove
+                              </button>
+                            ) : null}
+                          </div>
+                          <AnimatePresence mode="wait" initial={false}>
+                            {duration.invalid ? null : (
+                              <motion.span
+                                key={durationKey}
+                                className="inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-bold tabular-nums"
+                                style={{
+                                  backgroundColor: theme.primarySoft,
+                                  color: theme.primary,
+                                }}
+                                {...fadeUp}
+                              >
+                                {duration.text}
+                              </motion.span>
+                            )}
+                          </AnimatePresence>
                         </div>
                         {session.originalLabel ? (
                           <p className="mt-1 text-xs" style={{ color: theme.muted }}>
@@ -314,20 +335,6 @@ export default function TeacherMyHoursAdjustSidebar({
                             />
                           </div>
                         </div>
-                        <AnimatePresence mode="wait" initial={false}>
-                          <motion.p
-                            key={durationKey}
-                            className="mt-2 text-sm font-semibold tabular-nums"
-                            style={{
-                              color: duration.invalid ? theme.muted : theme.primary,
-                            }}
-                            {...fadeUp}
-                          >
-                            {duration.invalid
-                              ? duration.text
-                              : `${formatAdjustTimeLabel(session.clockIn)} – ${formatAdjustTimeLabel(session.clockOut)} · ${duration.text}`}
-                          </motion.p>
-                        </AnimatePresence>
                       </motion.div>
                     );
                   })}
@@ -394,12 +401,12 @@ export default function TeacherMyHoursAdjustSidebar({
               <ParentButton
                 theme={theme}
                 variant="primary"
-                disabled={previewMode}
+                disabled={previewMode || saving}
                 className="inline-flex w-full items-center justify-center sm:w-auto"
                 onClick={onSave}
                 data-testid="teacher-my-hours-adjust-save"
               >
-                {mode === "adjust" ? "Save changes" : "Save"}
+                {saveLabel ?? (mode === "adjust" ? "Save changes" : "Save")}
               </ParentButton>
             </div>
           </motion.aside>

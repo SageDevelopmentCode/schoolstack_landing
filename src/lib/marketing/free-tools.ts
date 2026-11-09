@@ -37,3 +37,6 @@ export const MARKETING_FREE_TOOLS: MarketingFreeTool[] = [
 ];
 
 export const FREE_TOOLS_NAV_LABEL = "Free tools";
+
+export const TRY_FREE_PATH = "/try";
+export const TRY_FREE_NAV_LABEL = "Try for free";

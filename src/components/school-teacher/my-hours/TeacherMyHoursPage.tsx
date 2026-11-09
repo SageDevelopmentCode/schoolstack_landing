@@ -23,6 +23,7 @@ import {
   toDateKey,
 } from "@/lib/school-teacher/my-hours/format-duration";
 import {
+  postTeacherMyHoursAdjustment,
   postTeacherMyHoursClockIn,
   postTeacherMyHoursClockOut,
 } from "@/lib/school-teacher/my-hours/fetch-teacher-my-hours";
@@ -195,6 +196,47 @@ export default function TeacherMyHoursPage({
     organizationId,
   ]);
 
+  const handleAdjustSubmit = useCallback(
+    async (input: {
+      dateKey: string;
+      note: string;
+      sessions: { clockIn: string; clockOut: string }[];
+    }) => {
+      if (previewMode) return;
+      try {
+        const result = await postTeacherMyHoursAdjustment({
+          organizationId,
+          dateKey: input.dateKey,
+          note: input.note,
+          sessions: input.sessions,
+        });
+        setPageData(result.pageData);
+        parentToast.success(
+          result.requireApproval
+            ? "Sent to your school for approval."
+            : "Hours saved.",
+        );
+      } catch (error) {
+        parentToast.error(
+          error instanceof Error ? error.message : "Could not save hours.",
+        );
+        void reportPortalOperationalError(
+          "teacher_portal",
+          {
+            organizationId,
+            operation: "my_hours.adjust",
+            error: "",
+          },
+          error,
+          portalJsonApiErrorStatus(error),
+          portalJsonApiErrorCode(error),
+        );
+        throw error;
+      }
+    },
+    [previewMode, organizationId],
+  );
+
   const shiftFocusDate = useCallback(
     (delta: number) => {
       setFocusDate((current) => {
@@ -297,8 +339,15 @@ export default function TeacherMyHoursPage({
                 referenceDate={referenceDate}
                 timezone={pageData.timezone}
                 sessionsByDateKey={pageData.sessionsByDateKey}
+                pendingAdjustmentsByDateKey={
+                  pageData.pendingAdjustmentsByDateKey ?? {}
+                }
+                adjustmentsRequireApproval={
+                  pageData.adjustmentsRequireApproval !== false
+                }
                 activeSession={pageData.activeSession}
                 previewMode={previewMode}
+                onSubmit={handleAdjustSubmit}
               />
             ) : null}
           </motion.div>

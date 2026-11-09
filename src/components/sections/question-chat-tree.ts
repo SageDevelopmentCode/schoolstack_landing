@@ -13,6 +13,9 @@ export const QUESTION_CHAT_ACTIONS: readonly QuestionChatAction[] = [
   { id: "try", label: "Try it free", href: TRY_FREE_PATH },
 ];
 
+const DEMO_ACTION = QUESTION_CHAT_ACTIONS.filter((action) => action.id === "demo");
+const TRY_ACTION = QUESTION_CHAT_ACTIONS.filter((action) => action.id === "try");
+
 export type QuestionChatNode = {
   id: string;
   question: string;
@@ -36,9 +39,10 @@ export const QUESTION_CHAT_STARTERS = [
 ] as const;
 
 function node(
-  entry: Omit<QuestionChatNode, "actions">,
+  entry: Omit<QuestionChatNode, "actions"> & { actions?: readonly QuestionChatAction[] },
 ): QuestionChatNode {
-  return { ...entry, actions: QUESTION_CHAT_ACTIONS };
+  const { actions = [], ...rest } = entry;
+  return { ...rest, actions };
 }
 
 export const QUESTION_CHAT_NODES: Record<string, QuestionChatNode> = {
@@ -48,6 +52,7 @@ export const QUESTION_CHAT_NODES: Record<string, QuestionChatNode> = {
     answer:
       "It’s the one place to run your microschool — enrollment, tuition, parent updates, and the daily work, together.",
     followUpIds: ["replaces", "website-enrollment", "who-for"],
+    actions: TRY_ACTION,
   }),
   "who-for": node({
     id: "who-for",
@@ -71,13 +76,15 @@ export const QUESTION_CHAT_NODES: Record<string, QuestionChatNode> = {
       "feat-setup",
       "custom-setup",
     ],
+    actions: TRY_ACTION,
   }),
   "get-started": node({
     id: "get-started",
     question: "How do we get started?",
     answer:
-      "Book a free 30-minute walkthrough of your school. No pitch, just whether MudKitchen fits.",
+      "Start a free dashboard and look around, or book a 30-minute walkthrough of your school.",
     followUpIds: ["setup-1", "setup-2", "setup-3"],
+    actions: [...TRY_ACTION, ...DEMO_ACTION],
   }),
   replaces: node({
     id: "replaces",
@@ -95,14 +102,14 @@ export const QUESTION_CHAT_NODES: Record<string, QuestionChatNode> = {
   }),
   launching: node({
     id: "launching",
-    question: "We’re launching a new school",
+    question: "What if we’re launching a new school?",
     answer:
       "If you’re opening a new school, we set it up with you so enrollment, billing, and parent updates start in one place.",
     followUpIds: [],
   }),
   "already-running": node({
     id: "already-running",
-    question: "We already run a school",
+    question: "What if we already run a school?",
     answer:
       "If the school is already running, forms, records, follow-ups, and billing come into one shared place as you grow.",
     followUpIds: [],
@@ -166,6 +173,7 @@ export const QUESTION_CHAT_NODES: Record<string, QuestionChatNode> = {
     question: "How does guided setup work?",
     answer: "We move the important pieces over with you, then walk the team through going live.",
     followUpIds: [],
+    actions: DEMO_ACTION,
   }),
   "custom-setup": node({
     id: "custom-setup",
@@ -173,24 +181,28 @@ export const QUESTION_CHAT_NODES: Record<string, QuestionChatNode> = {
     answer:
       "Growing schools can add tour booking, custom tuition, or workflows that match how you already run.",
     followUpIds: [],
+    actions: DEMO_ACTION,
   }),
   "setup-1": node({
     id: "setup-1",
-    question: "Show us how your school runs now.",
+    question: "What happens in the first conversation?",
+    actions: DEMO_ACTION,
     answer:
       "We look at your forms, spreadsheets, and payments so the move is as clean as it can be.",
     followUpIds: [],
   }),
   "setup-2": node({
     id: "setup-2",
-    question: "We build your setup inside MudKitchen.",
+    question: "Do we have to start from scratch?",
+    actions: DEMO_ACTION,
     answer:
       "We set up the essentials inside MudKitchen and bring over what matters, so you don’t start from zero.",
     followUpIds: [],
   }),
   "setup-3": node({
     id: "setup-3",
-    question: "Go live with support.",
+    question: "What does going live look like?",
+    actions: DEMO_ACTION,
     answer: "We walk you through going live and stay with your team while everyone gets comfortable.",
     followUpIds: [],
   }),
@@ -216,19 +228,28 @@ export const QUESTION_CHAT_NODES: Record<string, QuestionChatNode> = {
   }),
 };
 
-export function nextQuestionIds(
+export function questionChatGroups(
   asked: readonly { id: string; followUpIds: readonly string[] }[],
-): string[] {
+): { followUps: string[]; others: string[] } {
   const visited = new Set(asked.map((item) => item.id));
+  let followUps: string[] = [];
 
   for (let index = asked.length - 1; index >= 0; index -= 1) {
     const pending = asked[index].followUpIds.filter(
       (id) => !visited.has(id) && QUESTION_CHAT_NODES[id],
     );
-    if (pending.length > 0) return pending;
+    if (pending.length > 0) {
+      followUps = pending;
+      break;
+    }
   }
 
-  return QUESTION_CHAT_STARTERS.filter((id) => !visited.has(id));
+  const followUpSet = new Set(followUps);
+  const others = QUESTION_CHAT_STARTERS.filter(
+    (id) => !visited.has(id) && !followUpSet.has(id),
+  );
+
+  return { followUps, others };
 }
 
 export function questionChatDraft(questions: readonly string[]): string {

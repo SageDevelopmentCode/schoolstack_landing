@@ -2,6 +2,7 @@ import { ACTIVITY_ACTIONS, logActivityEvent } from "@/lib/activity-log";
 import { reportOperationalError } from "@/lib/operational-errors";
 import { revalidateOrganizationSettings } from "@/lib/organization-settings/revalidate";
 import {
+  authUserIdFromAdminList,
   emailDomain,
   FREE_SCHOOL_PLAN,
   FREE_SCHOOL_STATUS,
@@ -15,6 +16,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 const SLUG_ATTEMPTS = 8;
 const DOMAIN_HOURLY_CAP = 10;
+
+export const EXISTING_SCHOOL_ADMIN_MESSAGE =
+  "This email already manages a school. Sign in instead.";
 
 export class FreeSchoolSignupError extends Error {
   status: number;
@@ -81,6 +85,78 @@ export async function emailDomainHourlyCount(
 export function domainRateLimitMessage(count: number): string | null {
   if (count < DOMAIN_HOURLY_CAP) return null;
   return "Too many signups from this email domain. Please try again later.";
+}
+
+async function findAuthUserIdByEmail(email: string): Promise<string | null> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new FreeSchoolSignupError(
+      "Unable to check that email right now.",
+      500,
+      "admin_lookup_failed",
+    );
+  }
+
+  const url = new URL("/auth/v1/admin/users", supabaseUrl);
+  url.searchParams.set("filter", email);
+  url.searchParams.set("per_page", "200");
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${serviceRoleKey}`,
+      apikey: serviceRoleKey,
+    },
+  });
+
+  if (!response.ok) {
+    throw new FreeSchoolSignupError(
+      "Unable to check that email right now.",
+      500,
+      "admin_lookup_failed",
+    );
+  }
+
+  return authUserIdFromAdminList(await response.json(), email);
+}
+
+/** Parents and teachers may start a free school. An owner or admin may not. */
+export async function assertMayStartFreeSchool(
+  admin: SupabaseClient,
+  userId: string,
+): Promise<void> {
+  const { data, error } = await admin
+    .from("organization_memberships")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .in("role", ["owner", "admin"])
+    .limit(1);
+
+  if (error) {
+    throw new FreeSchoolSignupError(
+      "Unable to check that email right now.",
+      500,
+      "admin_lookup_failed",
+    );
+  }
+
+  if ((data ?? []).length > 0) {
+    throw new FreeSchoolSignupError(
+      EXISTING_SCHOOL_ADMIN_MESSAGE,
+      409,
+      "already_administers_school",
+    );
+  }
+}
+
+export async function assertEmailMayStartFreeSchool(
+  admin: SupabaseClient,
+  email: string,
+): Promise<void> {
+  const userId = await findAuthUserIdByEmail(email);
+  if (!userId) return;
+  await assertMayStartFreeSchool(admin, userId);
 }
 
 export async function createFreeSchool(

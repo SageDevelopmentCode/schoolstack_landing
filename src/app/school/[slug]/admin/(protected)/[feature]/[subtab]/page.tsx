@@ -1,6 +1,6 @@
 import nextDynamic from "next/dynamic";
 import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import AdminPageSkeleton from "@/components/school-admin/AdminPageSkeleton";
@@ -18,6 +18,10 @@ import { fetchSubmissionPageMeta } from "@/lib/school-admin/submissions-page-met
 import StudentsPageShell from "@/components/school-admin/students/StudentsPageShell";
 import StudentsTableLoader from "@/components/school-admin/students/StudentsTableLoader";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import {
+  freePlanLockedUpgradeLabel,
+  freePlanUpgradePath,
+} from "@/lib/school-admin/free-plan-upgrade";
 import { isSchoolGalleryEnabled } from "@/lib/school-gallery/gallery-enabled";
 import { loadNewsletterWorkspaceForAdmin } from "@/lib/school-admin/newsletter/newsletter-db";
 import { newsletterPrimaryFromBranding } from "@/lib/school-admin/newsletter/newsletter-branding-meta";
@@ -99,7 +103,15 @@ export async function generateMetadata({
   const { slug, feature, subtab } = await params;
   const org = await fetchOrganizationWithSettings(slug);
 
-  if (!org || !isAdminNavPathEnabled(org.features, feature, subtab)) {
+  if (!org) {
+    return { title: "School Not Found" };
+  }
+
+  if (freePlanLockedUpgradeLabel(org.plan, feature, subtab)) {
+    return { title: `Upgrade · ${org.name} Admin` };
+  }
+
+  if (!isAdminNavPathEnabled(org.features, feature, subtab)) {
     return { title: "School Not Found" };
   }
 
@@ -135,7 +147,16 @@ export default async function SchoolAdminSubtabPage({
   const supabase = createClient(cookieStore);
   const org = await fetchOrganizationWithSettings(slug);
 
-  if (!org || !isAdminNavPathEnabled(org.features, feature, subtab)) {
+  if (!org) {
+    notFound();
+  }
+
+  const upgradePath = freePlanUpgradePath(slug, org.plan, feature, subtab);
+  if (upgradePath) {
+    redirect(upgradePath);
+  }
+
+  if (!isAdminNavPathEnabled(org.features, feature, subtab)) {
     notFound();
   }
 
@@ -339,12 +360,14 @@ export default async function SchoolAdminSubtabPage({
     const initialData = await loadAdminStaffHoursPageData(admin, org.id);
 
     return (
-      <StaffHoursPage
-        organizationId={org.id}
-        slug={slug}
-        branding={org.branding}
-        initialData={initialData}
-      />
+      <Suspense>
+        <StaffHoursPage
+          organizationId={org.id}
+          slug={slug}
+          branding={org.branding}
+          initialData={initialData}
+        />
+      </Suspense>
     );
   }
 

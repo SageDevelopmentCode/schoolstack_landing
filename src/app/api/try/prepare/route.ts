@@ -15,6 +15,7 @@ import { readPublicFormHoneypot } from "@/lib/public-forms/honeypot";
 import { recordPublicFormSubmissionEvent } from "@/lib/public-forms/rate-limit";
 import { getRequestIp } from "@/lib/public-forms/request-ip";
 import {
+  assertEmailMayStartFreeSchool,
   domainRateLimitMessage,
   emailDomainHourlyCount,
   FreeSchoolSignupError,
@@ -117,6 +118,8 @@ export async function POST(request: Request) {
         });
       }
     }
+
+    await assertEmailMayStartFreeSchool(admin, email);
 
     const existing = await listSchoolIdentities(admin);
     const blocked = signupImpersonationMessage(schoolName, existing);

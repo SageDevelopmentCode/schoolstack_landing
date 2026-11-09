@@ -78,16 +78,23 @@ function settingsEditorViewForTab(
   return "overview";
 }
 
+type OrganizationPlanValue = "free" | "custom";
+
 type Organization = {
   id: string;
   slug: string;
   name: string;
   status: OrganizationStatus;
+  plan?: OrganizationPlanValue;
   timezone: string;
   crm_school_id: string | null;
   created_at: string;
   updated_at: string;
 };
+
+function organizationPlan(org: Organization): OrganizationPlanValue {
+  return org.plan === "free" ? "free" : "custom";
+}
 
 const STATUSES: OrganizationStatus[] = [
   "onboarding",
@@ -245,7 +252,7 @@ export default function AdminOrganizationsPage() {
   const updateOrganization = useCallback(
     async (
       id: string,
-      patch: Pick<Organization, "status" | "timezone">,
+      patch: Partial<Pick<Organization, "status" | "timezone" | "plan">>,
     ) => {
       setSaving(true);
       const { error: updateError } = await supabase
@@ -272,6 +279,12 @@ export default function AdminOrganizationsPage() {
     },
     [supabase],
   );
+
+  const planColumnReady =
+    organizations.length > 0 &&
+    organizations.every(
+      (org) => org.plan === "free" || org.plan === "custom",
+    );
 
   const filtered = organizations.filter(
     (org) => !statusFilter || org.status === statusFilter,
@@ -453,6 +466,31 @@ export default function AdminOrganizationsPage() {
                       </option>
                     ))}
                   </AdminSelect>
+                </label>
+                <label className="block space-y-1">
+                  <span className="text-xs text-admin-muted ">
+                    Plan
+                  </span>
+                  <AdminSelect
+                    value={organizationPlan(selected)}
+                    disabled={saving || !planColumnReady}
+                    onChange={(e) => {
+                      if (!planColumnReady) return;
+                      updateOrganization(selected.id, {
+                        plan: e.target.value as OrganizationPlanValue,
+                      });
+                    }}
+                    className="w-full"
+                    aria-label="Organization plan"
+                  >
+                    <option value="free">Free</option>
+                    <option value="custom">Custom</option>
+                  </AdminSelect>
+                  <span className="block text-[11px] text-admin-faint">
+                    {planColumnReady
+                      ? "Custom unlocks the default features. Status stays as it is."
+                      : "Plan column is not in the database yet."}
+                  </span>
                 </label>
                 <label className="block space-y-1">
                   <span className="text-xs text-admin-muted ">

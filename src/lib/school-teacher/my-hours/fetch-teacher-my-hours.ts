@@ -1,5 +1,8 @@
 import { throwPortalJsonApiError } from "@/lib/portal-json-api-error";
-import type { TeacherMyHoursPageData } from "@/lib/school-teacher/my-hours/types";
+import type {
+  MyHoursAdjustmentSession,
+  TeacherMyHoursPageData,
+} from "@/lib/school-teacher/my-hours/types";
 
 export { PortalJsonApiError as TeacherMyHoursApiError } from "@/lib/portal-json-api-error";
 
@@ -77,5 +80,37 @@ export async function postTeacherMyHoursClockOut(
   return {
     pageData: data.pageData,
     sessionMinutes: data.session?.minutes ?? 0,
+  };
+}
+
+export async function postTeacherMyHoursAdjustment(input: {
+  organizationId: string;
+  dateKey: string;
+  note: string;
+  sessions: MyHoursAdjustmentSession[];
+}): Promise<{ pageData: TeacherMyHoursPageData; requireApproval: boolean }> {
+  const response = await fetch("/api/teacher-portal/my-hours/adjustments", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | { pageData: TeacherMyHoursPageData; requireApproval?: boolean }
+    | { error?: string; code?: string }
+    | null;
+
+  if (!response.ok) {
+    throwPortalJsonApiError(payload, response.status, "Failed to save hours.");
+  }
+
+  const data = payload as {
+    pageData: TeacherMyHoursPageData;
+    requireApproval?: boolean;
+  };
+  return {
+    pageData: data.pageData,
+    requireApproval: data.requireApproval !== false,
   };
 }

@@ -19,6 +19,10 @@ import AdminMessagesPageShell from "@/components/school-admin/messages/AdminMess
 import AdminMessagesInboxLoader from "@/components/school-admin/messages/AdminMessagesInboxLoader";
 import SchoolAdminComingSoon from "@/components/school-admin/SchoolAdminComingSoon";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import {
+  freePlanLockedUpgradeLabel,
+  freePlanUpgradePath,
+} from "@/lib/school-admin/free-plan-upgrade";
 import { loadAdminMessagesViewerContext } from "@/lib/messages/admin-messages";
 import { getRequestUser } from "@/lib/auth/session";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -56,7 +60,15 @@ export async function generateMetadata({
   const { slug, feature } = await params;
   const org = await fetchOrganizationWithSettings(slug);
 
-  if (!org || !isAdminFeatureEnabled(org.features, feature)) {
+  if (!org) {
+    return { title: "School Not Found" };
+  }
+
+  if (freePlanLockedUpgradeLabel(org.plan, feature)) {
+    return { title: `Upgrade · ${org.name} Admin` };
+  }
+
+  if (!isAdminFeatureEnabled(org.features, feature)) {
     return { title: "School Not Found" };
   }
 
@@ -76,7 +88,16 @@ export default async function SchoolAdminFeaturePage({ params }: PageProps) {
   const supabase = createClient(cookieStore);
   const org = await fetchOrganizationWithSettings(slug);
 
-  if (!org || !isAdminFeatureEnabled(org.features, feature)) {
+  if (!org) {
+    notFound();
+  }
+
+  const upgradePath = freePlanUpgradePath(slug, org.plan, feature);
+  if (upgradePath) {
+    redirect(upgradePath);
+  }
+
+  if (!isAdminFeatureEnabled(org.features, feature)) {
     notFound();
   }
 

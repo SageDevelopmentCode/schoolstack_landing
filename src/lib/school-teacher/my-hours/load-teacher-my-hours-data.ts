@@ -9,6 +9,10 @@ import {
   STAFF_WORK_TIME_ENTRY_COLUMNS,
   type StaffWorkTimeEntryRow,
 } from "@/lib/school-teacher/my-hours/my-hours-db-types";
+import {
+  loadPendingAdjustmentsForStaff,
+  loadStaffHoursAdjustmentsRequireApproval,
+} from "@/lib/school-teacher/my-hours/my-hours-adjustments";
 import { parseMyHoursDateKey } from "@/lib/school-teacher/my-hours/my-hours-mutations";
 import {
   buildDayLogFromRows,
@@ -66,6 +70,8 @@ export function emptyTeacherMyHoursPageData(
     entriesByDateKey: {},
     sessionsByDateKey: {},
     sidebar: buildSidebarSummary([], referenceDateKey),
+    pendingAdjustmentsByDateKey: {},
+    adjustmentsRequireApproval: true,
   };
 }
 
@@ -158,6 +164,11 @@ export async function loadTeacherMyHoursPageData(
     timezone,
     now,
   );
+  const [pendingAdjustmentsByDateKey, adjustmentsRequireApproval] =
+    await Promise.all([
+      loadPendingAdjustmentsForStaff(admin, organizationId, staffMemberId),
+      loadStaffHoursAdjustmentsRequireApproval(admin, organizationId),
+    ]);
 
   return {
     timezone,
@@ -168,6 +179,8 @@ export async function loadTeacherMyHoursPageData(
     entriesByDateKey,
     sessionsByDateKey,
     sidebar: buildSidebarSummary(rows, referenceDateKey),
+    pendingAdjustmentsByDateKey,
+    adjustmentsRequireApproval,
   };
 }
 

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  authUserIdFromAdminList,
   signupImpersonationMessage,
   slugFromSchoolName,
   suffixedSlug,
@@ -23,6 +24,20 @@ describe("suffixedSlug", () => {
 
   it("adds a numeric suffix that still fits the slug limit", () => {
     assert.equal(suffixedSlug("oak-pine", 1), "oak-pine-2");
+  });
+});
+
+describe("authUserIdFromAdminList", () => {
+  it("returns the id only when the email matches exactly", () => {
+    const body = {
+      users: [
+        { id: "partial", email: "ada@example.com.other" },
+        { id: "exact", email: "Ada@Example.com" },
+      ],
+    };
+
+    assert.equal(authUserIdFromAdminList(body, "ada@example.com"), "exact");
+    assert.equal(authUserIdFromAdminList(body, "missing@example.com"), null);
   });
 });
 

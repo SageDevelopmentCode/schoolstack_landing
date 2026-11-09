@@ -1,5 +1,6 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { userIsOrgAdmin } from "@/lib/admissions/application-auth";
+import { freePlanSchoolAdminApiDenial } from "@/lib/school-admin/free-plan-api-guard";
 import {
   getBearerAccessToken,
   signedInErrorMessage,
@@ -89,6 +90,16 @@ export async function requireSchoolAdminUser(
       "forbidden",
       403,
     );
+  }
+
+  if (request) {
+    const denial = await freePlanSchoolAdminApiDenial({
+      organizationId,
+      pathname: new URL(request.url).pathname,
+    });
+    if (denial) {
+      throw new SchoolAdminAuthError(denial, "forbidden", 403);
+    }
   }
 
   return user;

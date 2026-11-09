@@ -1585,6 +1585,52 @@ export function buildStaffHoursWeeklyAdminDigestHtml(payload: {
   });
 }
 
+export async function sendStaffHoursAdjustmentRequestedEmail(payload: {
+  email: string;
+  schoolName: string;
+  staffName: string;
+  dateLabel: string;
+  proposedLabel: string;
+  note: string | null;
+  reviewUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
+}): Promise<{ ok: boolean }> {
+  const noteLine = payload.note?.trim()
+    ? emailParagraph(`Note: ${escapeHtml(payload.note.trim())}`)
+    : "";
+  const content = composeEmail({
+    preheader: `${payload.staffName} submitted hour changes for ${payload.dateLabel}.`,
+    contentHtml: `
+      ${emailBadge("Staff hours")}
+      ${emailHeading(`${escapeHtml(payload.staffName)} adjusted their hours.`)}
+      ${emailParagraph(
+        `${escapeHtml(payload.staffName)} submitted hour changes for ${escapeHtml(payload.dateLabel)} at ${escapeHtml(payload.schoolName)}.`,
+      )}
+      ${emailParagraph(escapeHtml(payload.proposedLabel))}
+      ${noteLine}
+      ${emailCta({ label: "Review adjustment", href: payload.reviewUrl })}
+      ${emailSignOff()}
+    `,
+  });
+  try {
+    await deliverZohoEmail({
+      channel: "Staff hours adjustment",
+      toAddress: payload.email,
+      subject: `${payload.staffName} adjusted hours — ${payload.schoolName}`,
+      content,
+      discord: schoolOutboundDiscord(
+        "staff_hours_adjustment_requested",
+        "school_admin",
+        payload.schoolName,
+        payload.notificationContext,
+      ),
+    });
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
 export async function sendStaffHoursWeeklyAdminDigestEmail(payload: {
   email: string;
   schoolName: string;

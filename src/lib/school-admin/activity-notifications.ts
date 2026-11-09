@@ -70,6 +70,7 @@ export const SCHOOL_ADMIN_NOTIFICATION_ACTIONS = [
   ACTIVITY_ACTIONS.FRIDAY_BRANCH_CLASS_ENROLLED,
   ACTIVITY_ACTIONS.FRIDAY_BRANCH_CLASS_WITHDRAWN,
   ACTIVITY_ACTIONS.SCHOOL_GALLERY_PHOTOS_UPLOADED,
+  ACTIVITY_ACTIONS.STAFF_HOURS_ADJUSTMENT_REQUESTED,
 ] as const;
 
 export type ActivityNotificationCategory =
@@ -167,6 +168,7 @@ const NOTIFICATION_TITLE_BY_ACTION: Partial<Record<string, string>> = {
   [ACTIVITY_ACTIONS.FRIDAY_BRANCH_CLASS_ENROLLED]: "Program sign-up",
   [ACTIVITY_ACTIONS.FRIDAY_BRANCH_CLASS_WITHDRAWN]: "Program withdrawal",
   [ACTIVITY_ACTIONS.SCHOOL_GALLERY_PHOTOS_UPLOADED]: "Photos uploaded",
+  [ACTIVITY_ACTIONS.STAFF_HOURS_ADJUSTMENT_REQUESTED]: "Hours adjustment requested",
 };
 
 const DEFAULT_NOTIFICATION_DAYS = 30;
@@ -1394,6 +1396,17 @@ export async function resolveActivityNotificationLink(
     return {
       href: schoolAdminPath(slug, "photos"),
       ctaLabel: "View photos",
+    };
+  }
+
+  if (event.action === ACTIVITY_ACTIONS.STAFF_HOURS_ADJUSTMENT_REQUESTED) {
+    const requestId =
+      metadataString(event.metadata, "requestId") ?? event.entity_id;
+    const params = new URLSearchParams({ view: "requests" });
+    if (requestId) params.set("request", requestId);
+    return {
+      href: `${schoolAdminPath(slug, "my_school", "staff_hours")}?${params.toString()}`,
+      ctaLabel: "Review adjustment",
     };
   }
 

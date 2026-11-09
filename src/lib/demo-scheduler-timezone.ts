@@ -12,7 +12,7 @@ function pad2(n: number) {
 }
 
 /** Wall-clock in `timeZone` → UTC instant (no external tz library). */
-function zonedWallClockToUtc(
+export function zonedWallClockToUtc(
   date: string,
   minutesSinceMidnight: number,
   timeZone: string,

@@ -67,6 +67,7 @@ export default function SchoolAdminPreviewLayoutClient({
         userProfile={userProfile}
         portalOptions={portalOptions}
         previewMode
+        plan={org.plan}
       >
         {children}
       </SchoolAdminBaseline>

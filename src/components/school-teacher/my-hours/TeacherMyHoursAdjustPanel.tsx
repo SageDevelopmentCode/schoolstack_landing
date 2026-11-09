@@ -22,15 +22,11 @@ import {
 } from "@/lib/school-teacher/my-hours/format-duration";
 import { MY_HOURS_CALENDAR_LINE } from "@/lib/school-teacher/my-hours/calendar-styles";
 import type {
+  MyHoursPendingAdjustment,
   MyHoursSession,
   TeacherMyHoursActiveSession,
 } from "@/lib/school-teacher/my-hours/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
-
-type DayDraft = {
-  sessions: AdjustSessionDraft[];
-  note: string;
-};
 
 type EditorState = {
   dateKey: string;
@@ -45,8 +41,15 @@ type TeacherMyHoursAdjustPanelProps = {
   referenceDate: Date;
   timezone: string;
   sessionsByDateKey: Record<string, MyHoursSession[]>;
+  pendingAdjustmentsByDateKey: Record<string, MyHoursPendingAdjustment>;
+  adjustmentsRequireApproval: boolean;
   activeSession: TeacherMyHoursActiveSession | null;
   previewMode?: boolean;
+  onSubmit: (input: {
+    dateKey: string;
+    note: string;
+    sessions: { clockIn: string; clockOut: string }[];
+  }) => Promise<void>;
 };
 
 const DEFAULT_CLOCK_IN = "08:00";
@@ -65,25 +68,21 @@ function timeInputValue(iso: string, timeZone: string): string {
   return `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
 }
 
-function cloneDraft(draft: DayDraft): DayDraft {
-  return {
-    note: draft.note,
-    sessions: draft.sessions.map((session) => ({ ...session })),
-  };
-}
-
 export default function TeacherMyHoursAdjustPanel({
   theme,
   focusDate,
   referenceDate,
   timezone,
   sessionsByDateKey,
+  pendingAdjustmentsByDateKey,
+  adjustmentsRequireApproval,
   activeSession,
   previewMode = false,
+  onSubmit,
 }: TeacherMyHoursAdjustPanelProps) {
   const keyRef = useRef(0);
-  const [savedDrafts, setSavedDrafts] = useState<Record<string, DayDraft>>({});
   const [editor, setEditor] = useState<EditorState | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const weekStart = startOfWeekMonday(focusDate);
   const weekKey = toDateKey(weekStart);
@@ -115,18 +114,24 @@ export default function TeacherMyHoursAdjustPanel({
 
   const openEditor = (dateKey: string) => {
     if (editor?.dateKey === dateKey) return;
-    const saved = savedDrafts[dateKey];
-    if (saved) {
-      const draft = cloneDraft(saved);
+    const closed = closedSessionsFor(dateKey);
+    const pending = pendingAdjustmentsByDateKey[dateKey];
+    if (pending && pending.sessions.length > 0) {
       setEditor({
         dateKey,
-        sessions: draft.sessions,
-        note: draft.note,
+        sessions: pending.sessions.map((session, index) => ({
+          key: nextKey(),
+          clockIn: session.clockIn,
+          clockOut: session.clockOut,
+          originalLabel: closed[index]
+            ? `Was ${closed[index].clockIn} – ${closed[index].clockOut}`
+            : null,
+        })),
+        note: pending.note,
         showError: false,
       });
       return;
     }
-    const closed = closedSessionsFor(dateKey);
     setEditor({
       dateKey,
       sessions:
@@ -192,8 +197,8 @@ export default function TeacherMyHoursAdjustPanel({
     });
   };
 
-  const saveEditor = () => {
-    if (!editor || previewMode) return;
+  const saveEditor = async () => {
+    if (!editor || previewMode || saving) return;
     const invalid = editor.sessions.some((session) =>
       isAdjustSessionInvalid(session.clockIn, session.clockOut),
     );
@@ -201,19 +206,29 @@ export default function TeacherMyHoursAdjustPanel({
       setEditor({ ...editor, showError: true });
       return;
     }
-    setSavedDrafts((current) => ({
-      ...current,
-      [editor.dateKey]: {
+    setSaving(true);
+    try {
+      await onSubmit({
+        dateKey: editor.dateKey,
         note: editor.note,
-        sessions: editor.sessions.map((session) => ({ ...session })),
-      },
-    }));
-    setEditor(null);
+        sessions: editor.sessions.map((session) => ({
+          clockIn: session.clockIn,
+          clockOut: session.clockOut,
+        })),
+      });
+      setEditor(null);
+    } catch {
+      // The page shows the error toast.
+    } finally {
+      setSaving(false);
+    }
   };
 
   const editorDateKey = visibleEditor?.dateKey ?? null;
   const editorClosedCount = editorDateKey ? closedSessionsFor(editorDateKey).length : 0;
-  const editorHasSaved = editorDateKey ? savedDrafts[editorDateKey] != null : false;
+  const editorHasPending = editorDateKey
+    ? pendingAdjustmentsByDateKey[editorDateKey] != null
+    : false;
   const editorOpenSession =
     editorDateKey && activeSession?.workDate === editorDateKey ? activeSession : null;
 
@@ -229,7 +244,9 @@ export default function TeacherMyHoursAdjustPanel({
           Week of {formatShortWeekdayDate(weekStart)}
         </h2>
         <p className="mt-1 text-sm" style={{ color: theme.muted }}>
-          Changes stay on this screen until saving hours is turned on.
+          {adjustmentsRequireApproval
+            ? "Submitted days stay pending until your school approves them."
+            : "Saved days update your hours right away."}
         </p>
       </div>
       <ul>
@@ -239,23 +256,23 @@ export default function TeacherMyHoursAdjustPanel({
           const isToday = dateKey === referenceKey;
           const isFuture = dateKey > referenceKey;
           const closedSessions = closedSessionsFor(dateKey);
-          const saved = savedDrafts[dateKey] ?? null;
+          const pending = pendingAdjustmentsByDateKey[dateKey] ?? null;
           const openOnDay = activeSession?.workDate === dateKey ? activeSession : null;
           const openStartedLabel = openOnDay
             ? formatDemoTimeLabelInTimezone(new Date(openOnDay.clockInAt), timezone)
             : null;
-          const canEdit = !isFuture && (closedSessions.length > 0 || saved != null || !openOnDay);
+          const canEdit = !isFuture && !openOnDay;
           const actionLabel =
-            saved || closedSessions.length > 0 ? "Adjust" : "Add hours";
+            pending || closedSessions.length > 0 ? "Adjust" : "Add hours";
 
           let summary = "Not logged";
           if (isFuture) {
             summary = "Upcoming";
-          } else if (saved) {
-            const count = saved.sessions.length;
-            const total = formatHoursMinutes(adjustDraftMinutes(saved.sessions));
+          } else if (pending) {
+            const count = pending.sessions.length;
+            const total = formatHoursMinutes(adjustDraftMinutes(pending.sessions));
             if (count === 1) {
-              const session = saved.sessions[0];
+              const session = pending.sessions[0];
               summary = `${formatAdjustTimeLabel(session.clockIn)} – ${formatAdjustTimeLabel(session.clockOut)} · ${total}`;
             } else {
               summary = `${total} · ${count} sessions`;
@@ -286,9 +303,9 @@ export default function TeacherMyHoursAdjustPanel({
                         Today
                       </ParentChip>
                     ) : null}
-                    {saved ? (
+                    {pending ? (
                       <ParentChip theme={theme} tone="warning">
-                        Draft
+                        Pending
                       </ParentChip>
                     ) : null}
                     {openOnDay ? (
@@ -300,9 +317,9 @@ export default function TeacherMyHoursAdjustPanel({
                   <p className="mt-1 text-sm" style={{ color: theme.muted }}>
                     {summary}
                   </p>
-                  {openOnDay && !canEdit ? (
+                  {openOnDay ? (
                     <p className="mt-1 text-sm" style={{ color: theme.muted }}>
-                      Clock out before changing this open session.
+                      Clock out before changing this day.
                     </p>
                   ) : null}
                 </div>
@@ -328,7 +345,7 @@ export default function TeacherMyHoursAdjustPanel({
       theme={theme}
       open={visibleEditor != null}
       dateLabel={editorDateKey ? formatLongWeekdayDate(parseDateKey(editorDateKey)) : ""}
-      mode={editorHasSaved || editorClosedCount > 0 ? "adjust" : "add"}
+      mode={editorHasPending || editorClosedCount > 0 ? "adjust" : "add"}
       sessions={visibleEditor?.sessions ?? []}
       note={visibleEditor?.note ?? ""}
       showError={visibleEditor?.showError ?? false}
@@ -338,8 +355,18 @@ export default function TeacherMyHoursAdjustPanel({
           : null
       }
       previewMode={previewMode}
+      saving={saving}
+      saveLabel={
+        saving
+          ? "Saving…"
+          : adjustmentsRequireApproval
+            ? "Submit for approval"
+            : editorHasPending || editorClosedCount > 0
+              ? "Save changes"
+              : "Save"
+      }
       onClose={() => setEditor(null)}
-      onSave={saveEditor}
+      onSave={() => void saveEditor()}
       onNoteChange={(nextNote) =>
         setEditor((current) => (current ? { ...current, note: nextNote } : current))
       }

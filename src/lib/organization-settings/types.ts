@@ -87,6 +87,7 @@ export type ParentFeatures = {
 export type AdditionalFeatures = {
   observation_booking: boolean;
   homeschool_drop_in: boolean;
+  staff_hours_adjustments_require_approval: boolean;
 };
 
 export type ParentHomeFeatures = {

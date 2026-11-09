@@ -36,3 +36,48 @@ export async function fetchAdminStaffHoursPageData(
 
   return payload as AdminStaffHoursPageData;
 }
+
+export async function postAdminStaffHoursAdjustmentReview(input: {
+  organizationId: string;
+  requestId: string;
+  decision: "approved" | "denied";
+}): Promise<AdminStaffHoursPageData> {
+  const response = await fetch("/api/school-admin/staff-hours/adjustments/review", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | AdminStaffHoursPageData
+    | { error?: string; code?: string }
+    | null;
+
+  if (!response.ok) {
+    throwPortalJsonApiError(payload, response.status, "Failed to review the adjustment.");
+  }
+
+  return payload as AdminStaffHoursPageData;
+}
+
+export async function patchAdminStaffHoursAdjustmentSettings(input: {
+  organizationId: string;
+  adjustmentsRequireApproval: boolean;
+}): Promise<void> {
+  const response = await fetch("/api/school-admin/staff-hours/adjustments/settings", {
+    method: "PATCH",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | { adjustmentsRequireApproval?: boolean }
+    | { error?: string; code?: string }
+    | null;
+
+  if (!response.ok) {
+    throwPortalJsonApiError(payload, response.status, "Failed to save staff hours settings.");
+  }
+}
