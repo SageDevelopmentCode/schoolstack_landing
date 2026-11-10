@@ -13,7 +13,8 @@ export type ExpoPushChannelId =
   | "committees"
   | "bulletin"
   | "gallery"
-  | "attendance";
+  | "attendance"
+  | "staff_hours";
 
 export type MessageExpoPushData = {
   kind: "message";
@@ -61,13 +62,20 @@ export type AttendanceExpoPushData = {
   intent: "present" | "pickup";
 };
 
+export type StaffHoursExpoPushData = {
+  kind: "staff_hours";
+  portal: "teacher";
+  organizationSlug: string;
+};
+
 export type ExpoPushData =
   | MessageExpoPushData
   | CommitteeExpoPushData
   | BulletinExpoPushData
   | GalleryExpoPushData
   | NewsletterExpoPushData
-  | AttendanceExpoPushData;
+  | AttendanceExpoPushData
+  | StaffHoursExpoPushData;
 
 export type ExpoPushPayload = {
   organizationId: string;
@@ -135,6 +143,8 @@ function resolveChannelId(payload: ExpoPushPayload): ExpoPushChannelId {
       return "bulletin";
     case "attendance":
       return "attendance";
+    case "staff_hours":
+      return "staff_hours";
     case "message":
     default:
       return "messages";
@@ -176,6 +186,8 @@ function resolveFailureOperation(payload: ExpoPushPayload): string {
       return "gallery.expo_push_delivery";
     case "attendance":
       return "attendance.expo_push_delivery";
+    case "staff_hours":
+      return "staff_hours.expo_push_delivery";
     case "message":
     default:
       return "messages.expo_push_delivery";

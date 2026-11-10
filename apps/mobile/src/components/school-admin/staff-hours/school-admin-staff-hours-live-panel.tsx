@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { StoryCard } from '@/components/story/story-card';
+import { StaffHoursRequestList } from '@/components/school-admin/staff-hours/school-admin-staff-hours-requests';
 import { SchoolAdminStaffHoursSessionRow } from '@/components/school-admin/staff-hours/school-admin-staff-hours-session-row';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { formatLiveElapsed } from '@/lib/teacher/my-hours/format-duration';
@@ -19,7 +20,9 @@ const ACCENT_SKY = '#8ABAC6';
 const ACCENT_FOREST = '#315E4F';
 
 type SchoolAdminStaffHoursLivePanelProps = {
+  organizationId: string;
   pageData: AdminStaffHoursPageData;
+  onPageData: (pageData: AdminStaffHoursPageData) => void;
 };
 
 function MetricCard({
@@ -91,7 +94,11 @@ function EmptyCopy({ message }: { message: string }) {
   return <Text style={[styles.emptyCopy, { color: theme.muted }]}>{message}</Text>;
 }
 
-export function SchoolAdminStaffHoursLivePanel({ pageData }: SchoolAdminStaffHoursLivePanelProps) {
+export function SchoolAdminStaffHoursLivePanel({
+  organizationId,
+  pageData,
+  onPageData,
+}: SchoolAdminStaffHoursLivePanelProps) {
   const clockedInCount = String(pageData.liveRows.length);
   const sessionsTodayCount = String(pageData.todayClosedSessions.length);
 
@@ -100,6 +107,19 @@ export function SchoolAdminStaffHoursLivePanel({ pageData }: SchoolAdminStaffHou
       <Animated.View entering={FadeInDown.duration(350)} style={styles.metricRow}>
         <MetricCard value={clockedInCount} label="Clocked in now" accent={ACCENT_SKY} />
         <MetricCard value={sessionsTodayCount} label="Sessions today" accent={ACCENT_FOREST} />
+      </Animated.View>
+
+      <Animated.View entering={FadeInDown.delay(20).duration(350)}>
+        <StaffHoursRequestList
+          organizationId={organizationId}
+          title="Pending requests"
+          emptyMessage="No hour adjustments are waiting."
+          requests={(pageData.adjustmentRequests ?? []).filter(
+            (request) => request.status === 'pending',
+          )}
+          showActions
+          onPageData={onPageData}
+        />
       </Animated.View>
 
       <Animated.View entering={FadeInDown.delay(40).duration(350)}>

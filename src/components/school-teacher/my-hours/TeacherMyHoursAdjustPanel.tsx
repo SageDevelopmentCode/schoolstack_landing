@@ -357,13 +357,11 @@ export default function TeacherMyHoursAdjustPanel({
       previewMode={previewMode}
       saving={saving}
       saveLabel={
-        saving
-          ? "Saving…"
-          : adjustmentsRequireApproval
-            ? "Submit for approval"
-            : editorHasPending || editorClosedCount > 0
-              ? "Save changes"
-              : "Save"
+        adjustmentsRequireApproval
+          ? "Submit for approval"
+          : editorHasPending || editorClosedCount > 0
+            ? "Save changes"
+            : "Save"
       }
       onClose={() => setEditor(null)}
       onSave={() => void saveEditor()}

@@ -25,3 +25,30 @@ export async function fetchStaffHoursPageData(
     `/api/school-admin/staff-hours?${params.toString()}`,
   );
 }
+
+export async function postStaffHoursAdjustmentReview(input: {
+  organizationId: string;
+  requestId: string;
+  decision: 'approved' | 'denied';
+}): Promise<AdminStaffHoursPageData> {
+  return fetchSchoolAdminApi<AdminStaffHoursPageData>(
+    '/api/school-admin/staff-hours/adjustments/review',
+    {
+      method: 'POST',
+      body: input,
+    },
+  );
+}
+
+export async function patchStaffHoursAdjustmentSettings(input: {
+  organizationId: string;
+  adjustmentsRequireApproval: boolean;
+}): Promise<void> {
+  await fetchSchoolAdminApi(
+    '/api/school-admin/staff-hours/adjustments/settings',
+    {
+      method: 'PATCH',
+      body: input,
+    },
+  );
+}

@@ -1,5 +1,5 @@
 import { useFonts } from 'expo-font';
-import { Observe, ObserveRoot } from 'expo-observe';
+import { Observe, ObserveRoot } from '@/lib/mobile-observe';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { LogBox, View } from 'react-native';

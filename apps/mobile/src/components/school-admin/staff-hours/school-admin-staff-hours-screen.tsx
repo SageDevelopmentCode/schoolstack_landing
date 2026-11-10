@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SchoolAdminStaffHoursLivePanel } from '@/components/school-admin/staff-hours/school-admin-staff-hours-live-panel';
+import { StaffHoursRequestsPanel } from '@/components/school-admin/staff-hours/school-admin-staff-hours-requests';
+import { SchoolAdminStaffHoursSettings } from '@/components/school-admin/staff-hours/school-admin-staff-hours-settings';
 import { SchoolAdminStaffHoursSkeleton } from '@/components/school-admin/staff-hours/school-admin-staff-hours-skeleton';
 import { SchoolAdminStaffHoursStaffPickerSheet } from '@/components/school-admin/staff-hours/school-admin-staff-hours-staff-picker-sheet';
 import { SchoolAdminStaffHoursStoryHeader } from '@/components/school-admin/staff-hours/school-admin-staff-hours-story-header';
@@ -18,11 +20,11 @@ import {
 import { fetchStaffHoursPageData } from '@/lib/school-admin/staff-hours/staff-hours-api';
 import type { AdminStaffHoursPageData } from '@/lib/school-admin/staff-hours/staff-hours-types';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
-import { Story } from '@/constants/story-theme';
+import { Story, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 
-type StaffHoursView = 'live' | 'summary';
+type StaffHoursView = 'live' | 'summary' | 'requests' | 'settings';
 
 type SchoolAdminStaffHoursScreenProps = {
   organizationId: string;
@@ -167,6 +169,10 @@ export function SchoolAdminStaffHoursScreen({
     return match?.name ?? 'All staff';
   }, [pageData?.staffOptions, staffFilter]);
 
+  const pendingRequestCount = (pageData?.adjustmentRequests ?? []).filter(
+    (request) => request.status === 'pending',
+  ).length;
+
   const pillItems = useMemo(
     () => [
       { key: 'live', label: 'Live', icon: 'time-outline' as const, testID: 'staff-hours-tab-live' },
@@ -176,8 +182,26 @@ export function SchoolAdminStaffHoursScreen({
         icon: 'bar-chart-outline' as const,
         testID: 'staff-hours-tab-summary',
       },
+      {
+        key: 'requests',
+        label: 'Requests',
+        icon: 'clipboard-outline' as const,
+        testID: 'staff-hours-tab-requests',
+        suffix:
+          pendingRequestCount > 0 ? (
+            <View style={[styles.countBadge, { backgroundColor: theme.primary }]}>
+              <Text style={[styles.countText, { color: theme.white }]}>{pendingRequestCount}</Text>
+            </View>
+          ) : null,
+      },
+      {
+        key: 'settings',
+        label: 'Settings',
+        icon: 'settings-outline' as const,
+        testID: 'staff-hours-tab-settings',
+      },
     ],
-    [],
+    [pendingRequestCount, theme.primary, theme.white],
   );
 
   const showInitialSkeleton = loading && !pageData;
@@ -204,7 +228,6 @@ export function SchoolAdminStaffHoursScreen({
             items={pillItems}
             activeKey={view}
             onChange={handleViewChange}
-            fullWidth
             size="comfortable"
             accessibilityLabel="Staff hours views"
           />
@@ -218,7 +241,29 @@ export function SchoolAdminStaffHoursScreen({
           showPanelSkeleton ? (
             <SchoolAdminStaffHoursSkeleton variant={view} />
           ) : view === 'live' ? (
-            <SchoolAdminStaffHoursLivePanel pageData={pageData} />
+            <SchoolAdminStaffHoursLivePanel
+              organizationId={organizationId}
+              pageData={pageData}
+              onPageData={setPageData}
+            />
+          ) : view === 'requests' ? (
+            <StaffHoursRequestsPanel
+              organizationId={organizationId}
+              requests={pageData.adjustmentRequests ?? []}
+              onPageData={setPageData}
+            />
+          ) : view === 'settings' ? (
+            <SchoolAdminStaffHoursSettings
+              organizationId={organizationId}
+              adjustmentsRequireApproval={pageData.adjustmentsRequireApproval !== false}
+              onChange={(requireApproval) =>
+                setPageData((current) =>
+                  current
+                    ? { ...current, adjustmentsRequireApproval: requireApproval }
+                    : current,
+                )
+              }
+            />
           ) : (
             <SchoolAdminStaffHoursSummaryPanel
               pageData={pageData}
@@ -261,5 +306,18 @@ const styles = StyleSheet.create({
   },
   pillNav: {
     marginTop: Spacing.one,
+  },
+  countBadge: {
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  countText: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 10,
+    fontWeight: '700',
   },
 });

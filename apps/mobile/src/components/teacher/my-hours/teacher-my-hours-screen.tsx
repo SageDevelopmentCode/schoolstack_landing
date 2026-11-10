@@ -18,6 +18,7 @@ import { StoryErrorBanner } from '@/components/story/story-error-banner';
 import { StorySectionKicker } from '@/components/story/story-section-kicker';
 import { MY_HOURS_CARD_BODY_PADDING } from '@/components/teacher/my-hours/teacher-my-hours-theme';
 import { TEACHER_FLOATING_TAB_BAR_HEIGHT } from '@/components/teacher/teacher-floating-tab-bar';
+import { TeacherMyHoursAdjustPanel } from '@/components/teacher/my-hours/teacher-my-hours-adjust-panel';
 import { TeacherMyHoursDayPanel } from '@/components/teacher/my-hours/teacher-my-hours-day-panel';
 import { TeacherMyHoursMonthPanel } from '@/components/teacher/my-hours/teacher-my-hours-month-panel';
 import { TeacherMyHoursSkeleton } from '@/components/teacher/my-hours/teacher-my-hours-skeleton';
@@ -51,6 +52,7 @@ import {
 } from '@/lib/school-admin/committees/committee-workspace-load';
 import {
   fetchTeacherMyHoursPageData,
+  postTeacherMyHoursAdjustment,
   postTeacherMyHoursClockIn,
   postTeacherMyHoursClockOut,
 } from '@/lib/teacher/my-hours/teacher-my-hours-api';
@@ -277,7 +279,7 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
     if (view === 'month') {
       shiftMonth(-1);
     } else {
-      shiftFocusDate(view === 'week' ? -7 : -1);
+      shiftFocusDate(view === 'week' || view === 'adjust' ? -7 : -1);
     }
   }, [shiftFocusDate, shiftMonth, view]);
 
@@ -285,9 +287,34 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
     if (view === 'month') {
       shiftMonth(1);
     } else {
-      shiftFocusDate(view === 'week' ? 7 : 1);
+      shiftFocusDate(view === 'week' || view === 'adjust' ? 7 : 1);
     }
   }, [shiftFocusDate, shiftMonth, view]);
+
+  const handleAdjustSubmit = useCallback(
+    async (input: {
+      dateKey: string;
+      note: string;
+      sessions: { clockIn: string; clockOut: string }[];
+    }) => {
+      try {
+        const result = await postTeacherMyHoursAdjustment({
+          organizationId,
+          dateKey: input.dateKey,
+          note: input.note,
+          sessions: input.sessions,
+        });
+        setPageData(result.pageData);
+        Alert.alert(
+          result.requireApproval ? 'Sent to your school for approval.' : 'Hours saved.',
+        );
+      } catch (error) {
+        void reportError('my_hours.adjust', error);
+        throw error;
+      }
+    },
+    [organizationId, reportError],
+  );
 
   const handleBack = () => {
     goBackOrReplace(router, teacherTabRoute(slug, 'home'));
@@ -432,6 +459,20 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
             monthDate={monthDate}
             referenceDate={referenceDate}
             onDaySelect={openDayDetail}
+          />
+        ) : null}
+
+        {view === 'adjust' ? (
+          <TeacherMyHoursAdjustPanel
+            {...dateNavProps}
+            focusDate={focusDate}
+            referenceDate={referenceDate}
+            timezone={pageData.timezone}
+            sessionsByDateKey={pageData.sessionsByDateKey}
+            pendingAdjustmentsByDateKey={pageData.pendingAdjustmentsByDateKey ?? {}}
+            adjustmentsRequireApproval={pageData.adjustmentsRequireApproval !== false}
+            activeSession={pageData.activeSession}
+            onSubmit={handleAdjustSubmit}
           />
         ) : null}
 

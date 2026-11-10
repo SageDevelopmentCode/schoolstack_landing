@@ -1,5 +1,8 @@
 import { fetchTeacherApi } from '@/lib/teacher/teacher-portal-api';
-import type { TeacherMyHoursPageData } from '@/lib/teacher/my-hours/types';
+import type {
+  MyHoursAdjustmentSession,
+  TeacherMyHoursPageData,
+} from '@/lib/teacher/my-hours/types';
 
 export async function fetchTeacherMyHoursPageData(
   organizationId: string,
@@ -46,5 +49,29 @@ export async function postTeacherMyHoursClockOut(
   return {
     pageData: payload.pageData,
     sessionMinutes: payload.session?.minutes ?? 0,
+  };
+}
+
+export async function postTeacherMyHoursAdjustment(input: {
+  organizationId: string;
+  dateKey: string;
+  note: string;
+  sessions: MyHoursAdjustmentSession[];
+}): Promise<{ pageData: TeacherMyHoursPageData; requireApproval: boolean }> {
+  const payload = await fetchTeacherApi<{
+    pageData?: TeacherMyHoursPageData;
+    requireApproval?: boolean;
+  }>('/api/teacher-portal/my-hours/adjustments', {
+    method: 'POST',
+    body: input,
+  });
+
+  if (!payload.pageData) {
+    throw new Error('Failed to save hours.');
+  }
+
+  return {
+    pageData: payload.pageData,
+    requireApproval: payload.requireApproval !== false,
   };
 }

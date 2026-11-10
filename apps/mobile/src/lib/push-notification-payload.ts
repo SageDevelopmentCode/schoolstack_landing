@@ -56,13 +56,20 @@ export type AttendancePushNotificationData = {
   intent: 'present' | 'pickup';
 };
 
+export type StaffHoursPushNotificationData = {
+  kind: 'staff_hours';
+  portal: 'teacher';
+  organizationSlug: string;
+};
+
 export type PushNotificationData =
   | MessagePushNotificationData
   | CommitteePushNotificationData
   | BulletinPushNotificationData
   | GalleryPushNotificationData
   | NewsletterPushNotificationData
-  | AttendancePushNotificationData;
+  | AttendancePushNotificationData
+  | StaffHoursPushNotificationData;
 
 function parsePushPortal(value: unknown): PushPortal | null {
   if (value === 'parent' || value === 'teacher' || value === 'admin') {
@@ -159,6 +166,15 @@ export function parsePushNotificationData(
       portal: 'parent',
       organizationSlug,
       editionId: editionId.trim(),
+    };
+  }
+
+  if (kind === 'staff_hours') {
+    if (data.portal !== 'teacher') return null;
+    return {
+      kind: 'staff_hours',
+      portal: 'teacher',
+      organizationSlug,
     };
   }
 

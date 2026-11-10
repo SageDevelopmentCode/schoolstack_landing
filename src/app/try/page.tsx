@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import HomeShell from "@/components/home/HomeShell";
-import { BOLD_HEADING, BRIGHT_NAV_OFFSET } from "@/components/home/bright-styles";
+import { BRIGHT_NAV_OFFSET } from "@/components/home/bright-styles";
+import TryFreeHeadline from "@/components/try/TryFreeHeadline";
 import TryFreeSchoolForm from "@/components/try/TryFreeSchoolForm";
 import { resolveAuthenticatedLogin } from "@/lib/auth/login-destination";
 import { createClient } from "@/utils/supabase/server";
@@ -42,9 +43,7 @@ export default async function TryPage() {
   return (
     <HomeShell className="bg-white">
       <main className={`${BRIGHT_NAV_OFFSET} mx-auto w-full max-w-lg px-5 pb-24 sm:px-6`}>
-        <h1 className={`${BOLD_HEADING} text-[2.4rem] sm:text-5xl`}>
-          Try MudKitchen for free
-        </h1>
+        <TryFreeHeadline />
         <p className="mt-4 text-base leading-relaxed text-[#5c564e] sm:text-lg">
           Tell us your school name and email. We&apos;ll send a 6-digit code to this
           page, then open your dashboard.

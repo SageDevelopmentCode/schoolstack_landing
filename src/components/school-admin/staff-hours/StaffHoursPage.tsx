@@ -44,7 +44,9 @@ import {
   formatHoursMinutes,
 } from "@/lib/school-teacher/my-hours/format-duration";
 import { StaffHoursLiveElapsed } from "@/components/school-admin/staff-hours/StaffHoursLiveElapsed";
-import StaffHoursRequestsPanel from "@/components/school-admin/staff-hours/StaffHoursRequestsPanel";
+import StaffHoursRequestsPanel, {
+  StaffHoursPendingRequestsSection,
+} from "@/components/school-admin/staff-hours/StaffHoursRequestsPanel";
 import StaffHoursSettingsPanel from "@/components/school-admin/staff-hours/StaffHoursSettingsPanel";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
@@ -263,6 +265,10 @@ export default function StaffHoursPage({
   const useLiveRowMotion =
     !reducedMotion && pageData.liveRows.length > 0 && pageData.liveRows.length <= 20;
 
+  const pendingRequestCount = (pageData.adjustmentRequests ?? []).filter(
+    (request) => request.status === "pending",
+  ).length;
+
   const liveMetrics = useMemo(
     () =>
       [
@@ -317,6 +323,16 @@ export default function StaffHoursPage({
               label: "Requests",
               icon: <ClipboardList className="h-3.5 w-3.5" aria-hidden />,
               testId: "staff-hours-tab-requests",
+              suffix:
+                pendingRequestCount > 0 ? (
+                  <span
+                    className="inline-flex min-h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none"
+                    style={{ backgroundColor: theme.primary, color: theme.white }}
+                    data-testid="staff-hours-requests-count"
+                  >
+                    {pendingRequestCount}
+                  </span>
+                ) : null,
             },
             {
               key: "settings",
@@ -385,6 +401,13 @@ export default function StaffHoursPage({
               </motion.div>
             ))}
           </div>
+
+          <StaffHoursPendingRequestsSection
+            theme={theme}
+            organizationId={organizationId}
+            requests={pageData.adjustmentRequests ?? []}
+            onPageData={setPageData}
+          />
 
           <StaffHoursSectionCard theme={theme} title="Active sessions">
             {pageData.liveRows.length === 0 ? (

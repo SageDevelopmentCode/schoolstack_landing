@@ -1631,6 +1631,53 @@ export async function sendStaffHoursAdjustmentRequestedEmail(payload: {
   }
 }
 
+export async function sendStaffHoursAdjustmentReviewedEmail(payload: {
+  email: string;
+  schoolName: string;
+  dateLabel: string;
+  approved: boolean;
+  hoursUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
+}): Promise<{ ok: boolean }> {
+  const heading = payload.approved
+    ? `Your hours for ${payload.dateLabel} were approved.`
+    : `Your hours for ${payload.dateLabel} were not approved.`;
+  const detail = payload.approved
+    ? `Your hour change for ${payload.dateLabel} at ${payload.schoolName} is now on your record.`
+    : `Your hour change for ${payload.dateLabel} at ${payload.schoolName} was not approved. The hours already logged for that day are unchanged.`;
+  const content = composeEmail({
+    preheader: heading,
+    contentHtml: `
+      ${emailBadge("Staff hours")}
+      ${emailHeading(escapeHtml(heading))}
+      ${emailParagraph(escapeHtml(detail))}
+      ${emailCta({ label: "View My Hours", href: payload.hoursUrl })}
+      ${emailSignOff()}
+    `,
+  });
+  try {
+    await deliverZohoEmail({
+      channel: "Staff hours adjustment",
+      toAddress: payload.email,
+      subject: payload.approved
+        ? `Hours approved — ${payload.schoolName}`
+        : `Hours not approved — ${payload.schoolName}`,
+      content,
+      discord: schoolOutboundDiscord(
+        payload.approved
+          ? "staff_hours_adjustment_approved"
+          : "staff_hours_adjustment_denied",
+        "teacher",
+        payload.schoolName,
+        payload.notificationContext,
+      ),
+    });
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
 export async function sendStaffHoursWeeklyAdminDigestEmail(payload: {
   email: string;
   schoolName: string;

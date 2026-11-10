@@ -29,6 +29,7 @@ const COMMITTEES_CHANNEL_ID = 'committees';
 const BULLETIN_CHANNEL_ID = 'bulletin';
 const GALLERY_CHANNEL_ID = 'gallery';
 const ATTENDANCE_CHANNEL_ID = 'attendance';
+const STAFF_HOURS_CHANNEL_ID = 'staff_hours';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -83,6 +84,13 @@ async function ensureAndroidNotificationChannels(): Promise<void> {
 
   await Notifications.setNotificationChannelAsync(ATTENDANCE_CHANNEL_ID, {
     name: 'Attendance',
+    importance: Notifications.AndroidImportance.DEFAULT,
+    sound: 'default',
+    vibrationPattern: [0, 250, 250, 250],
+  });
+
+  await Notifications.setNotificationChannelAsync(STAFF_HOURS_CHANNEL_ID, {
+    name: 'Staff hours',
     importance: Notifications.AndroidImportance.DEFAULT,
     sound: 'default',
     vibrationPattern: [0, 250, 250, 250],

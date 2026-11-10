@@ -30,6 +30,7 @@ type StoryButtonProps = PressableProps & {
   fullWidth?: boolean;
   /** Allow presses while in read-only portal preview (e.g. retry / navigation). */
   previewSafe?: boolean;
+  loading?: boolean;
 };
 
 type StoryIconButtonProps = PressableProps & {
@@ -96,6 +97,7 @@ export function StoryButton({
   style,
   disabled,
   previewSafe = false,
+  loading = false,
   onPressIn,
   onPressOut,
   testID,
@@ -103,7 +105,7 @@ export function StoryButton({
   ...rest
 }: StoryButtonProps) {
   const readOnly = usePortalReadOnly();
-  const effectiveDisabled = disabled || (readOnly && !previewSafe);
+  const effectiveDisabled = disabled || loading || (readOnly && !previewSafe);
   const { backgroundColor, labelColor, borderColor } = getButtonColors(variant, effectiveDisabled);
   const scale = useSharedValue(1);
 
@@ -134,8 +136,9 @@ export function StoryButton({
         },
       ]}>
       <View style={styles.contentRow}>
+        {loading ? <ActivityIndicator color={labelColor} size="small" /> : null}
         <Text style={[styles.label, { color: labelColor }]}>{label}</Text>
-        {trailingIcon}
+        {loading ? null : trailingIcon}
       </View>
     </View>
   );

@@ -55,23 +55,45 @@ function statusLabel(status: AdminStaffHoursAdjustmentRequest["status"]): string
   return "Pending";
 }
 
-export default function StaffHoursRequestsPanel({
+export function StaffHoursPendingRequestsSection({
   theme,
   organizationId,
   requests,
-  focusRequestId,
+  focusRequestId = null,
+  title = "Pending requests",
+  emptyMessage = "No hour adjustments are waiting.",
   onPageData,
-}: StaffHoursRequestsPanelProps) {
-  const [busyId, setBusyId] = useState<string | null>(null);
+}: {
+  theme: ParentThemeTokens;
+  organizationId: string;
+  requests: AdminStaffHoursAdjustmentRequest[];
+  focusRequestId?: string | null;
+  title?: string;
+  emptyMessage?: string;
+  onPageData: (pageData: AdminStaffHoursPageData) => void;
+}) {
   const pending = requests.filter((request) => request.status === "pending");
-  const history = requests.filter((request) => request.status !== "pending");
+  const { busyId, review } = useAdjustmentReview(organizationId, onPageData);
 
-  useEffect(() => {
-    if (!focusRequestId) return;
-    document
-      .getElementById(`staff-hours-request-${focusRequestId}`)
-      ?.scrollIntoView({ block: "center" });
-  }, [focusRequestId, requests]);
+  return (
+    <RequestSection
+      theme={theme}
+      title={title}
+      emptyMessage={emptyMessage}
+      requests={pending}
+      focusRequestId={focusRequestId}
+      busyId={busyId}
+      showActions
+      onReview={review}
+    />
+  );
+}
+
+function useAdjustmentReview(
+  organizationId: string,
+  onPageData: (pageData: AdminStaffHoursPageData) => void,
+) {
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const review = async (
     requestId: string,
@@ -107,17 +129,35 @@ export default function StaffHoursRequestsPanel({
     }
   };
 
+  return { busyId, review };
+}
+
+export default function StaffHoursRequestsPanel({
+  theme,
+  organizationId,
+  requests,
+  focusRequestId,
+  onPageData,
+}: StaffHoursRequestsPanelProps) {
+  const history = requests.filter((request) => request.status !== "pending");
+
+  useEffect(() => {
+    if (!focusRequestId) return;
+    document
+      .getElementById(`staff-hours-request-${focusRequestId}`)
+      ?.scrollIntoView({ block: "center" });
+  }, [focusRequestId, requests]);
+
   return (
     <div className="space-y-6" data-testid="staff-hours-requests-panel">
-      <RequestSection
+      <StaffHoursPendingRequestsSection
         theme={theme}
+        organizationId={organizationId}
+        requests={requests}
+        focusRequestId={focusRequestId}
         title="Pending"
         emptyMessage="No hour adjustments are waiting for approval."
-        requests={pending}
-        focusRequestId={focusRequestId}
-        busyId={busyId}
-        showActions
-        onReview={review}
+        onPageData={onPageData}
       />
       <RequestSection
         theme={theme}
@@ -125,9 +165,9 @@ export default function StaffHoursRequestsPanel({
         emptyMessage="Approved and denied adjustments will show up here."
         requests={history}
         focusRequestId={focusRequestId}
-        busyId={busyId}
+        busyId={null}
         showActions={false}
-        onReview={review}
+        onReview={() => undefined}
       />
     </div>
   );

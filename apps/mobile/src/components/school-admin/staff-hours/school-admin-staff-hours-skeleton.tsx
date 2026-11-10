@@ -7,7 +7,7 @@ import { Spacing } from '@/constants/theme';
 const SHIMMER = '#E8EDE9';
 
 type SchoolAdminStaffHoursSkeletonProps = {
-  variant: 'live' | 'summary';
+  variant: 'live' | 'summary' | 'requests' | 'settings';
 };
 
 function ShimmerBlock({ height, style }: { height: number; style?: object }) {

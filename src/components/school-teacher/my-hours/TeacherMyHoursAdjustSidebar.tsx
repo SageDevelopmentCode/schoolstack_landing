@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Clock, X } from "lucide-react";
 import PopupTimePicker from "@/components/school-events/PopupTimePicker";
 import ParentButton from "@/components/school-parent/ui/ParentButton";
+import ButtonLoadingLabel from "@/components/ui/ButtonLoadingLabel";
 import { MY_HOURS_CALENDAR_LINE } from "@/lib/school-teacher/my-hours/calendar-styles";
 import { formatHoursMinutes } from "@/lib/school-teacher/my-hours/format-duration";
 import {
@@ -402,11 +403,14 @@ export default function TeacherMyHoursAdjustSidebar({
                 theme={theme}
                 variant="primary"
                 disabled={previewMode || saving}
-                className="inline-flex w-full items-center justify-center sm:w-auto"
+                aria-busy={saving || undefined}
+                className="inline-flex w-full items-center justify-center gap-2 sm:w-auto"
                 onClick={onSave}
                 data-testid="teacher-my-hours-adjust-save"
               >
-                {saveLabel ?? (mode === "adjust" ? "Save changes" : "Save")}
+                <ButtonLoadingLabel loading={saving} loadingLabel="Saving…">
+                  {saveLabel ?? (mode === "adjust" ? "Save changes" : "Save")}
+                </ButtonLoadingLabel>
               </ParentButton>
             </div>
           </motion.aside>

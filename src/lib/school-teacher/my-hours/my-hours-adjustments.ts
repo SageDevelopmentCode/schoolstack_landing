@@ -8,7 +8,9 @@ import {
 import {
   buildEmailNotificationContext,
   sendStaffHoursAdjustmentRequestedEmail,
+  sendStaffHoursAdjustmentReviewedEmail,
 } from "@/lib/emails";
+import { sendExpoPushToUsers } from "@/lib/notifications/expo-push";
 import { mergeFeatures } from "@/lib/organization-settings/merge";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { revalidateOrganizationSettingsById } from "@/lib/organization-settings/revalidate";
@@ -294,7 +296,9 @@ export async function reviewStaffHoursAdjustment(
 ): Promise<void> {
   const { data, error } = await admin
     .from("staff_hours_adjustment_requests")
-    .select("id, staff_member_id, work_date, status, proposed_sessions")
+    .select(
+      "id, staff_member_id, work_date, status, proposed_sessions, submitted_by_user_id",
+    )
     .eq("id", input.requestId)
     .eq("organization_id", input.organizationId)
     .maybeSingle();
@@ -344,6 +348,144 @@ export async function reviewStaffHoursAdjustment(
     .eq("id", input.requestId)
     .eq("status", "pending");
   if (updateError) throw updateError;
+
+  await notifyStaffOfAdjustmentReview(admin, {
+    organizationId: input.organizationId,
+    staffMemberId: String(data.staff_member_id),
+    submittedByUserId:
+      typeof data.submitted_by_user_id === "string" ? data.submitted_by_user_id : null,
+    requestId: input.requestId,
+    workDate: String(data.work_date).slice(0, 10),
+    approved: input.decision === "approved",
+  });
+}
+
+async function notifyStaffOfAdjustmentReview(
+  admin: SupabaseClient,
+  input: {
+    organizationId: string;
+    staffMemberId: string;
+    submittedByUserId: string | null;
+    requestId: string;
+    workDate: string;
+    approved: boolean;
+  },
+): Promise<void> {
+  try {
+    await deliverStaffAdjustmentReviewNotice(admin, input);
+  } catch (err) {
+    await logNotificationFailure(admin, {
+      organizationId: input.organizationId,
+      operation: "staff_hours_adjustment_reviewed",
+      error: err instanceof Error ? err.message : "Could not notify the staff member.",
+      entityType: "staff_hours_adjustment_request",
+      entityId: input.requestId,
+    });
+  }
+}
+
+async function deliverStaffAdjustmentReviewNotice(
+  admin: SupabaseClient,
+  input: {
+    organizationId: string;
+    staffMemberId: string;
+    submittedByUserId: string | null;
+    requestId: string;
+    workDate: string;
+    approved: boolean;
+  },
+): Promise<void> {
+  const [{ data: org }, { data: staff }] = await Promise.all([
+    admin
+      .from("organizations")
+      .select("name, slug")
+      .eq("id", input.organizationId)
+      .maybeSingle(),
+    admin
+      .from("staff_members")
+      .select("user_id, email, first_name, last_name")
+      .eq("id", input.staffMemberId)
+      .maybeSingle(),
+  ]);
+
+  const schoolName = org?.name?.trim() || "Your school";
+  const slug = org?.slug?.trim() || "";
+  const email = typeof staff?.email === "string" ? staff.email.trim() : "";
+  const userId =
+    input.submittedByUserId?.trim() ||
+    (typeof staff?.user_id === "string" ? staff.user_id.trim() : "");
+  const dateLabel = formatWorkDateLabel(input.workDate);
+  const heading = input.approved
+    ? `Your hours for ${dateLabel} were approved.`
+    : `Your hours for ${dateLabel} were not approved.`;
+
+  if (email) {
+    try {
+      const result = await sendStaffHoursAdjustmentReviewedEmail({
+        email,
+        schoolName,
+        dateLabel,
+        approved: input.approved,
+        hoursUrl: slug
+          ? `${getRuntimeSiteUrl()}/school/${slug}/teacher/my_hours`
+          : getRuntimeSiteUrl(),
+        notificationContext: buildEmailNotificationContext({
+          organizationId: input.organizationId,
+          organizationSlug: slug,
+          surface: "web",
+          entityType: "staff_hours_adjustment_request",
+          entityId: input.requestId,
+        }),
+      });
+      if (!result.ok) {
+        await logNotificationFailure(admin, {
+          organizationId: input.organizationId,
+          operation: "staff_hours_adjustment_reviewed",
+          error: "Staff hours review email did not send.",
+          entityType: "staff_hours_adjustment_request",
+          entityId: input.requestId,
+        });
+      }
+    } catch (err) {
+      await logNotificationFailure(admin, {
+        organizationId: input.organizationId,
+        operation: "staff_hours_adjustment_reviewed",
+        error: err instanceof Error ? err.message : "Staff hours review email failed.",
+        entityType: "staff_hours_adjustment_request",
+        entityId: input.requestId,
+      });
+    }
+  }
+
+  if (!userId || !slug) return;
+
+  try {
+    await sendExpoPushToUsers(admin, {
+      organizationId: input.organizationId,
+      organizationName: schoolName,
+      userIds: [userId],
+      title: input.approved ? "Hours approved" : "Hours not approved",
+      body: heading,
+      channelId: "staff_hours",
+      recipientPortal: "teacher",
+      recipientEmail: email || null,
+      notificationKind: "staff_hours.adjustment_reviewed",
+      failureOperation: "staff_hours.adjustment_reviewed_push",
+      data: {
+        kind: "staff_hours",
+        portal: "teacher",
+        organizationSlug: slug,
+      },
+    });
+  } catch (err) {
+    await logNotificationFailure(admin, {
+      organizationId: input.organizationId,
+      operation: "staff_hours.adjustment_reviewed_push",
+      error: err instanceof Error ? err.message : "Staff hours review push failed.",
+      entityType: "staff_hours_adjustment_request",
+      entityId: input.requestId,
+    });
+  }
 }
 
 async function replaceClosedSessions(input: {

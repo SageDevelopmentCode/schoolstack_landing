@@ -36,6 +36,26 @@ export type AdminStaffHoursSummaryRow = {
 
 export type AdminStaffHoursView = 'live' | 'summary' | 'all';
 
+export type AdminStaffHoursAdjustmentSession = {
+  clockIn: string;
+  clockOut: string;
+};
+
+export type AdminStaffHoursAdjustmentStatus = 'pending' | 'approved' | 'denied';
+
+export type AdminStaffHoursAdjustmentRequest = {
+  id: string;
+  staffMemberId: string;
+  staffName: string;
+  workDate: string;
+  status: AdminStaffHoursAdjustmentStatus;
+  note: string;
+  proposedSessions: AdminStaffHoursAdjustmentSession[];
+  previousSessions: AdminStaffHoursAdjustmentSession[];
+  createdAt: string;
+  reviewedAt: string | null;
+};
+
 export type AdminStaffHoursPageData = {
   timezone: string;
   referenceDateKey: string;
@@ -46,4 +66,6 @@ export type AdminStaffHoursPageData = {
   summaryRows: AdminStaffHoursSummaryRow[];
   sessions: AdminStaffHoursSessionRow[];
   staffOptions: AdminStaffHoursStaffOption[];
+  adjustmentsRequireApproval?: boolean;
+  adjustmentRequests?: AdminStaffHoursAdjustmentRequest[];
 };
