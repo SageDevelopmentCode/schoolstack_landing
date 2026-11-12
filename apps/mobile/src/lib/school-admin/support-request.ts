@@ -32,6 +32,34 @@ export type SubmitAdminSupportRequestInput = {
   attachments?: StagedSupportAttachment[];
 };
 
+/**
+ * Non-sensitive attachment diagnostics for operational error reports (no file names or paths), so
+ * a failed upload can be tied to a URI scheme (`file` vs `content`) or MIME type on Android.
+ */
+export function describeSupportAttachments(
+  attachments: StagedSupportAttachment[] | undefined,
+): Record<string, string | number> {
+  const files = attachments ?? [];
+  const schemes = new Set<string>();
+  const mimeTypes = new Set<string>();
+  let totalBytes = 0;
+  for (const file of files) {
+    schemes.add(/^([a-z][a-z0-9+.-]*):/i.exec(file.uri)?.[1]?.toLowerCase() ?? 'unknown');
+    mimeTypes.add(file.mimeType ?? 'unknown');
+    totalBytes += file.size ?? 0;
+  }
+  return {
+    attachmentCount: files.length,
+    ...(files.length > 0
+      ? {
+          attachmentUriSchemes: [...schemes].join(','),
+          attachmentMimeTypes: [...mimeTypes].join(','),
+          attachmentTotalBytes: totalBytes,
+        }
+      : {}),
+  };
+}
+
 export function supportRequestTopicLabel(topic: SupportRequestTopic): string {
   return SUPPORT_REQUEST_TOPIC_OPTIONS.find((option) => option.value === topic)?.label ?? topic;
 }

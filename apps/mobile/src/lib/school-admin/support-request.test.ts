@@ -1,5 +1,8 @@
 import { fetchSchoolAdminApiFormData } from '@/lib/school-admin-api';
-import { submitAdminSupportRequest } from '@/lib/school-admin/support-request';
+import {
+  describeSupportAttachments,
+  submitAdminSupportRequest,
+} from '@/lib/school-admin/support-request';
 
 jest.mock('@/lib/school-admin-api', () => ({
   fetchSchoolAdminApiFormData: jest.fn(),
@@ -64,5 +67,27 @@ describe('submitAdminSupportRequest', () => {
     const [, formData] = fetchMock.mock.calls[0];
     expect(formData.get('sourcePagePath')).toBeNull();
     expect(formData.getAll('attachments')).toHaveLength(0);
+  });
+});
+
+describe('describeSupportAttachments', () => {
+  it('reports zero attachments without extra keys', () => {
+    expect(describeSupportAttachments(undefined)).toEqual({ attachmentCount: 0 });
+  });
+
+  it('summarizes URI schemes, MIME types, and size without file names or paths', () => {
+    const result = describeSupportAttachments([
+      { uri: 'file:///data/user/0/cache/DocumentPicker/a.png', name: 'a.png', mimeType: 'image/png', size: 100 },
+      { uri: 'content://media/external/images/1', name: 'b.jpg', mimeType: null, size: null },
+    ]);
+
+    expect(result).toEqual({
+      attachmentCount: 2,
+      attachmentUriSchemes: 'file,content',
+      attachmentMimeTypes: 'image/png,unknown',
+      attachmentTotalBytes: 100,
+    });
+    expect(JSON.stringify(result)).not.toContain('a.png');
+    expect(JSON.stringify(result)).not.toContain('DocumentPicker');
   });
 });

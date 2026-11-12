@@ -88,6 +88,10 @@ export async function freePlanSchoolAdminApiDenial(opts: {
   const plan = parseOrganizationPlan(organization.plan);
   if (plan !== "free") return null;
 
+  // Newsletters does not use these routes. Keep students, tuition, and the
+  // rest of My School closed even though that flag is on for the newsletter page.
+  if (gate.feature === "my_school") return FREE_PLAN_FEATURE_DENIED_MESSAGE;
+
   const { data: settings } = await admin
     .from("organization_settings")
     .select("features")

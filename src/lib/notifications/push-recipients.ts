@@ -5,6 +5,7 @@ import type { ExpoPushPortal } from "@/lib/notifications/expo-push";
 import {
   resolveBulletinParentFamilyIds,
   resolveBulletinStaffEmails,
+  resolveStaffMemberEmail,
 } from "@/lib/school-bulletin/bulletin-notification-audience";
 import type { BulletinAudience } from "@/lib/school-bulletin/types";
 
@@ -55,47 +56,58 @@ async function resolveTeacherPushRecipientsByEmails(
   ];
   if (normalizedEmails.length === 0) return [];
 
+  const emailSet = new Set(normalizedEmails);
+
   const { data: memberships, error: membershipError } = await admin
     .from("organization_memberships")
-    .select("user_id, email")
+    .select("user_id")
     .eq("organization_id", organizationId)
     .eq("status", "active")
     .in("role", ["teacher", "staff"]);
 
   if (membershipError) throw membershipError;
 
-  const emailSet = new Set(normalizedEmails);
-  const byUserId = new Map<string, ExpoPushRecipient>();
+  const userIds = [
+    ...new Set(
+      (memberships ?? [])
+        .map((row) => (row.user_id ? String(row.user_id) : null))
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
 
-  for (const row of memberships ?? []) {
-    const email = row.email?.trim().toLowerCase() ?? "";
-    const userId = row.user_id ? String(row.user_id) : null;
-    if (!userId || !email || !emailSet.has(email)) continue;
-
-    byUserId.set(userId, {
-      userId,
-      portal: "teacher",
-      email: row.email,
-    });
-  }
+  if (userIds.length === 0) return [];
 
   const { data: staffRows, error: staffError } = await admin
     .from("staff_members")
-    .select("user_id, email")
+    .select("email, user_id")
     .eq("organization_id", organizationId)
-    .not("user_id", "is", null);
+    .in("user_id", userIds);
 
   if (staffError) throw staffError;
 
+  const staffByUserId = new Map<string, { email: string | null; user_id: string | null }>();
   for (const row of staffRows ?? []) {
-    const email = row.email?.trim().toLowerCase() ?? "";
-    const userId = row.user_id ? String(row.user_id) : null;
-    if (!userId || !email || !emailSet.has(email)) continue;
+    if (row.user_id) {
+      staffByUserId.set(String(row.user_id), {
+        email: typeof row.email === "string" ? row.email : null,
+        user_id: String(row.user_id),
+      });
+    }
+  }
+
+  const byUserId = new Map<string, ExpoPushRecipient>();
+  for (const userId of userIds) {
+    const staff = staffByUserId.get(userId) ?? { email: null, user_id: userId };
+    const resolvedEmail = await resolveStaffMemberEmail(admin, staff);
+    if (!resolvedEmail || !emailSet.has(resolvedEmail)) continue;
 
     byUserId.set(userId, {
       userId,
       portal: "teacher",
-      email: typeof row.email === "string" ? row.email : null,
+      email:
+        typeof staff.email === "string" && staff.email.trim()
+          ? staff.email
+          : resolvedEmail,
     });
   }
 

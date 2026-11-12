@@ -13,7 +13,7 @@ export const PLAN_FEATURE_ALLOW_LIST: Record<
 > = {
   custom: null,
   free: {
-    admin: ["dashboard"],
+    admin: ["dashboard", "schedule", "admissions", "my_school"],
     teacher: [],
     parent: [],
   },

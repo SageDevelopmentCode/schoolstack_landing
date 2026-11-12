@@ -10,6 +10,8 @@ description: >-
 
 # Bright Marketing Design (home page look and feel)
 
+> **Superseded for new work.** The home page now uses the **Garden** system (`.agents/skills/mudkitchen-garden-design`). Use Garden for new marketing pages and when restyling one; this skill stays as the reference for pages not yet migrated.
+
 The home page at `/` is the reference implementation. Its components live in
 `src/components/home/`, and the page is assembled in `src/app/page.tsx`.
 When in doubt, open the matching component and copy the pattern instead of

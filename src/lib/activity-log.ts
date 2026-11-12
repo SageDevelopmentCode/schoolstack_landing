@@ -409,6 +409,15 @@ export type AuthActivityMetadata = {
   client?: "web" | "mobile";
   platform?: "ios" | "android";
   appVersion?: string;
+  /** Store binary build (iOS CFBundleVersion / Android versionCode). Mobile only. */
+  buildNumber?: string;
+  /** Active EAS OTA update id; absent on the embedded (store) bundle. Mobile only. */
+  updateId?: string;
+  updateChannel?: string;
+  runtimeVersion?: string;
+  isEmbeddedLaunch?: boolean;
+  osVersion?: string;
+  deviceModel?: string;
   freshSignIn?: boolean;
 };
 

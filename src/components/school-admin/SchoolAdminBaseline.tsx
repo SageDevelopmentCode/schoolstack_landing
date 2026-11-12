@@ -119,7 +119,7 @@ function SchoolAdminBaselineInner({
   const closeUpgrade = useCallback(() => {
     setPickedUpgradeLabel(null);
     if (upgradeFromUrl) {
-      router.replace(schoolAdminPath(slug, "dashboard"));
+      router.replace(schoolAdminPath(slug, "home"));
     }
   }, [router, slug, upgradeFromUrl]);
 
@@ -228,6 +228,7 @@ function SchoolAdminBaselineInner({
             unreadCount={unreadCount}
             messagesUnreadCount={messagesUnreadCount}
             fridayBranchParentPortalPaused={fridayBranchParentPortalPaused}
+            plan={plan}
             onLockedFeature={
               plan === "free" ? setPickedUpgradeLabel : undefined
             }

@@ -9,6 +9,7 @@ import {
   Bell,
   ChevronDown,
   ExternalLink,
+  House,
   Lock,
   PanelLeftClose,
   PanelLeftOpen,
@@ -39,7 +40,17 @@ import {
 } from "@/lib/auth/portal-switcher-types";
 import type { SchoolAdminUserProfile } from "@/lib/school-admin/access";
 import { getAdminNavIconColor } from "@/lib/organization-settings/admin-feature-icon-styles";
+import { DEFAULT_BRANDING } from "@/lib/organization-settings/catalog";
+import type { OrganizationPlan } from "@/lib/organization-settings/plans";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import {
+  isFreePlanAdminPathOpen,
+  isFreePlanNavChildOpen,
+} from "@/lib/school-admin/free-plan-upgrade";
+import {
+  MUDKITCHEN_LOGO_ALT,
+  MUDKITCHEN_LOGO_PATH,
+} from "@/lib/school-admin/newsletter/newsletter-branding";
 import FridayBranchPausedBadge from "@/components/school-admin/friday-branch/FridayBranchPausedBadge";
 
 function formatNavGroupLabel(label: string): string {
@@ -52,6 +63,28 @@ function formatUnreadBadgeCount(count: number): string {
   if (count <= 0) return "";
   if (count > 9) return "9+";
   return String(count);
+}
+
+function firstOpenAdminChildHref(
+  slug: string,
+  parentFeature: string,
+  navChildren: AdminNavChildItem[],
+): string | null {
+  for (const child of navChildren) {
+    if (child.children?.length) {
+      const nested = firstOpenAdminChildHref(
+        slug,
+        parentFeature,
+        child.children,
+      );
+      if (nested) return nested;
+      continue;
+    }
+    if (isFreePlanNavChildOpen(parentFeature, child)) {
+      return resolveAdminNavChildHref(slug, parentFeature, child);
+    }
+  }
+  return null;
 }
 
 function isAdminChildPathActive(
@@ -105,6 +138,9 @@ function AdminNavChildLinks({
           parentFeature,
           child,
         );
+        const childLocked =
+          Boolean(onLockedSelect) &&
+          !isFreePlanNavChildOpen(parentFeature, child);
 
         if (hasNested) {
           const isOpen = openParents[nestedKey] ?? childActive;
@@ -118,12 +154,12 @@ function AdminNavChildLinks({
             <div key={child.key} className="py-[2px]">
               <div className="flex items-center gap-0.5">
                 {firstLeafHref ? (
-                  onLockedSelect ? (
+                  childLocked ? (
                     <button
                       type="button"
                       title={`${child.name}, locked`}
                       aria-haspopup="dialog"
-                      onClick={() => onLockedSelect(child.name)}
+                      onClick={() => onLockedSelect?.(child.name)}
                       className="min-w-0 flex-1 truncate py-[5px] text-left text-[11px] transition-colors"
                       style={{
                         color: "#7B898D",
@@ -204,14 +240,14 @@ function AdminNavChildLinks({
         const childHref = resolveAdminNavChildHref(slug, parentFeature, child);
         const leafActive = pathname === childHref || pathname.startsWith(`${childHref}/`);
 
-        if (onLockedSelect) {
+        if (childLocked) {
           return (
             <button
               key={child.key}
               type="button"
               title={`${child.name}, locked`}
               aria-haspopup="dialog"
-              onClick={() => onLockedSelect(child.name)}
+              onClick={() => onLockedSelect?.(child.name)}
               className="block w-full py-[5px] text-left text-[11px] transition-colors"
               style={{
                 color: "#7B898D",
@@ -292,11 +328,20 @@ function SidebarNavItem({
   const hasChildren = Boolean(item.children?.length);
   const parentActive = adminNavItemMatchesPath(slug, pathname, item);
   const parentHref = hasChildren
-    ? (getFirstAdminNavChildPath(slug, item.key, item.children!) ??
-      schoolAdminPath(slug, item.key))
+    ? (onLockedSelect
+        ? firstOpenAdminChildHref(slug, item.key, item.children!)
+        : null) ??
+      getFirstAdminNavChildPath(slug, item.key, item.children!) ??
+      schoolAdminPath(slug, item.key)
     : schoolAdminPath(slug, item.key);
 
-  const locked = Boolean(onLockedSelect) && item.key !== "dashboard";
+  const hasOpenChild = item.children?.some((child) =>
+    isFreePlanNavChildOpen(item.key, child),
+  );
+  const locked =
+    Boolean(onLockedSelect) &&
+    !isFreePlanAdminPathOpen(item.key) &&
+    !hasOpenChild;
 
   const activeRowStyle = (active: boolean) => ({
     ...outlineActiveRowStyle(active, theme),
@@ -454,7 +499,7 @@ function SidebarNavItem({
                 onToggleOpen={onToggleNestedOpen}
                 messagesUnreadCount={messagesUnreadCount}
                 fridayBranchParentPortalPaused={fridayBranchParentPortalPaused}
-                onLockedSelect={locked ? onLockedSelect : undefined}
+                onLockedSelect={onLockedSelect}
               />
             </div>
           </div>
@@ -483,6 +528,7 @@ type SchoolAdminStorySidebarProps = {
   pathnameOverride?: string;
   fridayBranchParentPortalPaused?: boolean;
   onLockedFeature?: (label: string) => void;
+  plan?: OrganizationPlan;
 };
 
 export default function SchoolAdminStorySidebar({
@@ -504,11 +550,28 @@ export default function SchoolAdminStorySidebar({
   pathnameOverride,
   fridayBranchParentPortalPaused = false,
   onLockedFeature,
+  plan = "custom",
 }: SchoolAdminStorySidebarProps) {
   const routerPathname = usePathname();
   const pathname = pathnameOverride ?? routerPathname;
   const { theme, C } = useSchoolAdminStoryTheme();
   const { logo } = branding;
+  const isFree = plan === "free";
+  const storedLogoSrc = logo.src.trim();
+  const showMudKitchenLogo =
+    isFree &&
+    (!storedLogoSrc || storedLogoSrc === DEFAULT_BRANDING.logo.src);
+  const logoSrc = showMudKitchenLogo ? MUDKITCHEN_LOGO_PATH : storedLogoSrc;
+  const logoAlt = showMudKitchenLogo
+    ? MUDKITCHEN_LOGO_ALT
+    : logo.alt || schoolName;
+  const logoTitle = isFree
+    ? showMudKitchenLogo
+      ? "MudKitchen, Free"
+      : `${schoolName}, Free`
+    : logoAlt;
+  const homeHref = schoolAdminPath(slug, "home");
+  const homeActive = pathname === homeHref || pathname.startsWith(`${homeHref}/`);
   const [openParents, setOpenParents] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -542,18 +605,23 @@ export default function SchoolAdminStorySidebar({
       }}
     >
       <div
-        className="flex items-center overflow-hidden"
+        className="flex overflow-hidden"
         style={{
+          flexDirection: isExpanded && isFree ? "column" : "row",
+          alignItems: "center",
+          gap: isExpanded && isFree ? 8 : 0,
+          width: isExpanded && isFree ? "100%" : undefined,
           padding: isExpanded ? "14px 16px" : "14px 0",
-          justifyContent: isExpanded ? "flex-start" : "center",
+          justifyContent: isExpanded && !isFree ? "flex-start" : "center",
         }}
       >
-        {logo.src.trim() ? (
+        {logoSrc ? (
           <Image
-            src={logo.src.trim()}
-            alt={logo.alt || schoolName}
-            width={isExpanded ? (logo.width ?? 160) : 36}
-            height={logo.height ?? 40}
+            src={logoSrc}
+            alt={logoAlt}
+            title={logoTitle}
+            width={isExpanded ? (showMudKitchenLogo ? 132 : (logo.width ?? 160)) : 36}
+            height={showMudKitchenLogo ? 40 : (logo.height ?? 40)}
             className="shrink-0 object-contain"
             style={{ maxHeight: 40 }}
           />
@@ -561,14 +629,37 @@ export default function SchoolAdminStorySidebar({
           <span
             className="truncate text-sm font-semibold"
             style={{ color: C.accentDark }}
-            title={schoolName}
+            title={logoTitle}
           >
-            {logo.alt.trim() || schoolName}
+            {logoAlt}
           </span>
         )}
+        {isFree && isExpanded ? (
+          <span className="rounded-full bg-[#FDEFE4] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#1d1a16]">
+            Free
+          </span>
+        ) : null}
       </div>
 
       <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {isFree ? (
+          <Link
+            href={homeHref}
+            title="Home"
+            className="relative mb-3 flex w-full items-center rounded-[10px] border px-2.5 py-2 text-[13px] transition-colors"
+            style={{
+              justifyContent: isExpanded ? "flex-start" : "center",
+              gap: isExpanded ? "8px" : 0,
+              ...outlineActiveRowStyle(homeActive, theme),
+              color: homeActive ? theme.primary : C.textSecondary,
+              textDecoration: "none",
+              fontWeight: homeActive ? 700 : 500,
+            }}
+          >
+            <House className="h-4 w-4 shrink-0" aria-hidden />
+            {isExpanded ? <span className="truncate">Home</span> : null}
+          </Link>
+        ) : null}
         {navGroups.map((group) => (
           <div key={group.label} className="mb-3">
             {isExpanded ? (

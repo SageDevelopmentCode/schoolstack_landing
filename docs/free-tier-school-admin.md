@@ -14,11 +14,11 @@ One codebase, one database, a `plan` on each organization that caps which featur
 
 ## Free tier v1 scope: dashboard only
 
-After onboarding, a free school can use **only the Dashboard**. The sidebar still shows the default admin tabs, locked, and clicking one opens an upgrade popup. A direct link to a locked tab returns to the Dashboard and opens that same popup. Teacher and parent portals are off (a dashboard-only school has no families or staff to use them).
+After onboarding, a free school lands on **Home** and can enter their name. The sidebar shows the MudKitchen logo and a Free badge until the school sets its own logo. Schedule, Admissions Programs, Enrollment Flows, Submissions, and Newsletters are open. The other default tabs, including Dashboard and Admissions Payments, stay visible and locked. Clicking one, or opening its URL, returns to Home and opens an upgrade popup. Teacher and parent portals are off.
 
 | Portal | Free v1 |
 |---|---|
-| School admin | `dashboard` only |
+| School admin | Home, Schedule, Programs, Enrollment Flows, Submissions, and Newsletters. Other default tabs stay visible and locked |
 | Teacher portal | Off |
 | Parent portal / apply flow | Off |
 
@@ -70,7 +70,7 @@ Each phase is shippable on its own. Phases 1 and 2 must not change anything for 
 
 2. **Define plan allow-lists** in one module (e.g. `src/lib/organization-settings/plans.ts`):
    - `custom`: no cap (everything allowed).
-   - `free`: `admin: ["dashboard"]`, `teacher: []`, `parent: []`.
+   - `free`: `admin: ["dashboard", "schedule", "admissions", "my_school"]`, `teacher: []`, `parent: []`. `my_school` is on so Newsletters can render. Students, tuition, and the other My School pages stay locked in the UI, and their school-admin APIs stay denied.
 
 3. **Compute usable features in one function**, e.g. `applyPlanToFeatures(features, plan)`, and call it inside `fetchOrganizationWithSettings` so admin, teacher, parent, and apply all see the same result.
    - For `custom` it must return the input unchanged.
@@ -78,7 +78,7 @@ Each phase is shippable on its own. Phases 1 and 2 must not change anything for 
 
 4. **Tests.**
    - Unit: for `custom`, output deep-equals input (the "paid schools unchanged" guarantee).
-   - Unit: for `free`, only `admin.dashboard` is true, regardless of stored features or defaults.
+   - Unit: for `free`, only `admin.dashboard`, `admin.schedule`, `admin.admissions`, and `admin.my_school` stay true.
    - Existing `admin-routes.test.ts` / parent-nav tests still pass.
 
 **Done when:** migration is applied, all existing schools are `custom`, and nothing visible changed.
@@ -165,7 +165,7 @@ The navbar change is in the app. It was originally held until signup was live in
 
 ## Phase 5 — Upgrade path
 
-**Shipped.** A free school sees the default admin tabs. Only Dashboard opens. Clicking a locked tab, or opening its URL, shows an upgrade popup with the school-demo booking calendar. After the call, a platform admin sets the plan to Custom on the organizations page. That unlocks the default features in place. There is no Stripe checkout. Paid schools do not see the locks or the popup. School-admin API routes for paid features return 403 only when `plan` is `free`.
+**Shipped.** A free school sees the default admin tabs. Home, Schedule, Programs, Enrollment Flows, Submissions, and Newsletters are open. The other tabs, including Dashboard, stay locked. Clicking a locked tab, or opening its URL, returns to Home and shows an upgrade popup with the school-demo booking calendar. After the call, a platform admin sets the plan to Custom on the organizations page. That unlocks the default features in place. There is no Stripe checkout. Paid schools do not see the locks or the popup. School-admin API routes for paid features return 403 only when `plan` is `free`. My School routes stay closed on the free plan so Newsletters can use that page without opening students or tuition.
 
 **Goal:** a free school can become a paying school without moving any data.
 

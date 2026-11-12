@@ -6,13 +6,9 @@ import Link from "next/link";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { GET_STARTED_PAGE_PATH } from "@/lib/marketing/book-demo";
 import { TRY_FREE_NAV_LABEL, TRY_FREE_PATH } from "@/lib/marketing/free-tools";
+import { MARKETING_NAV_LINKS } from "@/lib/marketing/nav-links";
 
-const LINKS = [
-  { label: "About", href: "/about" },
-  { label: "Product", href: "/#product" },
-  { label: "Customers", href: "/customers" },
-  { label: "Blog", href: "/blog" },
-];
+const LINKS = MARKETING_NAV_LINKS;
 
 const T = {
   top: "bg-transparent",

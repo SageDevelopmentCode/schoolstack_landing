@@ -9,6 +9,7 @@ import {
 } from "@/lib/emails";
 import { mergeFeatures } from "@/lib/organization-settings/merge";
 import { schoolParentRootPath } from "@/lib/organization-settings/parent-routes";
+import { parseOperationalError } from "@/lib/operational-errors-client";
 import { reportOperationalError } from "@/lib/operational-errors";
 import { getRuntimeSiteUrl } from "@/lib/site";
 import {
@@ -257,15 +258,18 @@ export async function sendBulletinPublishedEmailNotifications(
     organizationSlug: org.schoolSlug,
     post: input.post,
   }).catch((err) => {
+    const parsed = parseOperationalError(err);
     void reportOperationalError({
       supabase: admin,
       surface: "system",
       organizationId: input.organizationId,
+      organizationName: org.schoolName,
+      organizationSlug: org.schoolSlug,
       operation: "bulletin.published.expo_push",
       error:
-        err instanceof Error
-          ? err.message
-          : "Failed to send bulletin published push notifications.",
+        parsed.message ||
+        "Failed to send bulletin published push notifications.",
+      code: parsed.code,
       entityType: "school_bulletin_post",
       entityId: input.post.id,
       actor: { type: "system" },

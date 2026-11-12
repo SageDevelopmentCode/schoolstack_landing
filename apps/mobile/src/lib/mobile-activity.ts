@@ -1,7 +1,7 @@
-import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 import { isBenignClientNetworkError } from '@/lib/client-network-errors';
+import { getMobileBuildInfo } from '@/lib/mobile-build-info';
 import { resetMobileFeatureVisitSession } from '@/lib/mobile-feature-visit-session';
 import { fetchWithAuth, postJsonWithAccessToken } from '@/lib/auth/auth-session';
 import { consumePendingAuthDiagnostics } from '@/lib/mobile-auth-diagnostics';
@@ -49,27 +49,13 @@ function mobilePlatform(): 'ios' | 'android' | undefined {
   return undefined;
 }
 
-function mobileAppVersion(): string | undefined {
-  const version =
-    Constants.expoConfig?.version?.trim() || Constants.nativeAppVersion?.trim();
-  return version || undefined;
-}
-
-function mobileNativeBuildVersion(): string | undefined {
-  const build = Constants.nativeBuildVersion?.trim();
-  return build || undefined;
-}
-
 export function mobileClientMetadata(): Record<string, unknown> {
   const platform = mobilePlatform();
-  const appVersion = mobileAppVersion();
-  const buildNumber = mobileNativeBuildVersion();
 
   return {
     client: 'mobile',
     ...(platform ? { platform } : {}),
-    ...(appVersion ? { appVersion } : {}),
-    ...(buildNumber ? { buildNumber } : {}),
+    ...getMobileBuildInfo(),
   };
 }
 

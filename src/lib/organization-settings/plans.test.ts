@@ -107,16 +107,26 @@ describe("applyPlanToFeatures", () => {
     assert.deepEqual(output, input);
   });
 
-  it("leaves only admin.dashboard on for free defaults", () => {
+  it("leaves the free admin tabs on for free defaults", () => {
     const output = applyPlanToFeatures(DEFAULT_FEATURES, "free");
-    assert.deepEqual(trueBooleanPaths(output), ["admin.dashboard"]);
+    assert.deepEqual(trueBooleanPaths(output), [
+      "admin.admissions",
+      "admin.dashboard",
+      "admin.my_school",
+      "admin.schedule",
+    ]);
   });
 
   it("forces stored and unknown flags off for free", () => {
     const input = withEveryFlagOn(DEFAULT_FEATURES);
     const output = applyPlanToFeatures(input, "free");
 
-    assert.deepEqual(trueBooleanPaths(output), ["admin.dashboard"]);
+    assert.deepEqual(trueBooleanPaths(output), [
+      "admin.admissions",
+      "admin.dashboard",
+      "admin.my_school",
+      "admin.schedule",
+    ]);
     assert.equal(
       (output.admin as Record<string, boolean>).future_widget,
       false,
@@ -132,6 +142,10 @@ describe("applyPlanToFeatures", () => {
     input.admin.dashboard = false;
     const output = applyPlanToFeatures(input, "free");
     assert.equal(output.admin.dashboard, false);
-    assert.deepEqual(trueBooleanPaths(output), []);
+    assert.deepEqual(trueBooleanPaths(output), [
+      "admin.admissions",
+      "admin.my_school",
+      "admin.schedule",
+    ]);
   });
 });

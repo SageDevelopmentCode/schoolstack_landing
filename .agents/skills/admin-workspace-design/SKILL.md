@@ -9,6 +9,8 @@ description: >-
 
 # Admin Workspace — School Day Story Design
 
+> MudKitchen-owned surfaces inside the admin (upgrade prompts, onboarding, empty states, celebrations) and the shared focus-ring standard: see `.agents/skills/mudkitchen-garden-design/in-app.md`.
+
 ## When to use
 
 - Redesigning **school admin** page content under `src/app/school/[slug]/admin/`
