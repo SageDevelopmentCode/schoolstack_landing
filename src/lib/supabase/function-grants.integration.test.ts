@@ -87,6 +87,46 @@ const SERVICE_ONLY_FUNCTIONS: Array<{ name: string; args: Record<string, unknown
     name: "record_public_form_submission_if_allowed",
     args: { p_form: "grants_test", p_ip: "203.0.113.1", p_email: "grants@example.test" },
   },
+  {
+    name: "replace_staff_work_time_closed_sessions_atomic",
+    args: {
+      p_organization_id: ZERO,
+      p_staff_member_id: ZERO,
+      p_work_date: "2026-01-01",
+      p_recorded_by_user_id: ZERO,
+      p_entries: [],
+    },
+  },
+  {
+    name: "review_staff_hours_adjustment_request_atomic",
+    args: {
+      p_organization_id: ZERO,
+      p_request_id: ZERO,
+      p_decision: "denied",
+      p_reviewer_user_id: ZERO,
+      p_timezone: "America/Denver",
+    },
+  },
+  {
+    name: "upsert_staff_hours_adjustment_request_atomic",
+    args: {
+      p_organization_id: ZERO,
+      p_staff_member_id: ZERO,
+      p_work_date: "2026-01-01",
+      p_note: null,
+      p_proposed_sessions: [{ clockIn: "09:00", clockOut: "17:00" }],
+      p_previous_sessions: [],
+      p_submitted_by_user_id: ZERO,
+    },
+  },
+  {
+    name: "create_free_school_atomic",
+    args: {
+      p_user_id: ZERO,
+      p_school_name: "Grants Test School",
+      p_timezone: "America/Chicago",
+    },
+  },
 ];
 
 /** Functions with an internal caller check: a signed-in user with no membership is rejected. */

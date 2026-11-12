@@ -149,7 +149,6 @@ const BILLING_GOTO_TIMEOUT_MS = 60_000;
 
 export async function gotoBillingPage(page: Page): Promise<void> {
   await page.goto(`/school/${TEST_ORG_SLUG}/parent/billing`, {
-    waitUntil: process.env.CI ? "domcontentloaded" : "load",
     timeout: BILLING_GOTO_TIMEOUT_MS,
   });
   await waitForBillingPage(page);

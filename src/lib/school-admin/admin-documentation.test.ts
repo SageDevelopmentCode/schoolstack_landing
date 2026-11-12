@@ -14,7 +14,7 @@ describe("buildAdminDocumentationGuides", () => {
     assert.ok(guides.some((guide) => guide.id === "create-programs"));
   });
 
-  it("drops unscoped and admissions guides for a free plan", () => {
+  it("drops unscoped setup guide for a free plan but keeps feature-scoped guides", () => {
     const guides = buildAdminDocumentationGuides(
       "school",
       DEFAULT_FEATURES,
@@ -24,6 +24,6 @@ describe("buildAdminDocumentationGuides", () => {
       guides.some((guide) => guide.id === "complete-setup-checklist"),
       false,
     );
-    assert.equal(guides.some((guide) => guide.id === "create-programs"), false);
+    assert.ok(guides.some((guide) => guide.id === "create-programs"));
   });
 });

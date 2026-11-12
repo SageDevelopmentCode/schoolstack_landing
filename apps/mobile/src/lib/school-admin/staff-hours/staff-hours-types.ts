@@ -41,7 +41,11 @@ export type AdminStaffHoursAdjustmentSession = {
   clockOut: string;
 };
 
-export type AdminStaffHoursAdjustmentStatus = 'pending' | 'approved' | 'denied';
+export type AdminStaffHoursAdjustmentStatus =
+  | 'pending'
+  | 'approved'
+  | 'denied'
+  | 'superseded';
 
 export type AdminStaffHoursAdjustmentRequest = {
   id: string;

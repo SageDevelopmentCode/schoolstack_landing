@@ -95,6 +95,8 @@ export default function RolePanels() {
                 {/* Open content: fixed at the open panel's inner width (4.5 of 6.5 flex parts, less the gaps and border) so it never reflows mid-grow. */}
                 <div
                   id={`role-panel-${r.id}`}
+                  inert={!isOpen ? true : undefined}
+                  aria-hidden={!isOpen ? true : undefined}
                   className={`grid grid-cols-1 gap-8 px-7 pb-8 pt-6 transition-opacity duration-500 xl:absolute xl:bottom-0 xl:left-0 xl:top-20 xl:w-[calc((100cqw_-_2.5rem)_*_4.5_/_6.5_-_4px)] xl:grid-cols-[0.95fr_1.05fr] xl:gap-7 xl:pb-10 ${
                     isOpen ? "opacity-100 delay-200" : "xl:pointer-events-none xl:opacity-0"
                   } ${isOpen ? "" : "max-xl:hidden"}`}
@@ -115,7 +117,7 @@ export default function RolePanels() {
                       </ul>
                     ) : null}
                     <div className="mt-auto pt-7 xl:pt-4">
-                      <a href={BOOK_DEMO_HASH_HREF} className={btnPop} tabIndex={isOpen ? 0 : -1}>
+                      <a href={BOOK_DEMO_HASH_HREF} className={btnPop}>
                         {r.copy.cta}
                       </a>
                     </div>

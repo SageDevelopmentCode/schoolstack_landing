@@ -143,7 +143,7 @@ export default function MyPage() {
 | Path | What's in it |
 |---|---|
 | `src/components/garden/garden.css` | tokens, utility classes, the global-type reset |
-| `src/components/garden/fonts.ts` | Bricolage / Nunito / Gochi via `next/font/google` |
+| `src/components/garden/fonts.ts` | Bricolage / Nunito / Gochi via vendored `next/font/local` |
 | `src/components/garden/GardenRoot.tsx` | scope wrapper (server) |
 | `src/components/garden/HomeGardenShell.tsx`, `GardenNavbar.tsx`, `SmoothScroll.tsx` | page chrome |
 | `src/components/garden/gsap.ts` | `gsap`, `ScrollTrigger`, `useGSAP`, `MQ_MOTION`, `MQ_DESKTOP_MOTION` |

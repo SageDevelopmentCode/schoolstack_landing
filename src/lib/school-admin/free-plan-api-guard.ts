@@ -35,6 +35,18 @@ const FEATURE_PREFIXES: { prefix: string; feature: string }[] = [
   { prefix: "/api/school-admin/notifications", feature: "notifications" },
 ];
 
+const SCHOOL_SLUG_OPEN_SUFFIXES = ["/newsletters"] as const;
+
+const SCHOOL_SLUG_FEATURE_SUFFIXES: { suffix: string; feature: string }[] = [
+  { suffix: "/staff", feature: "my_school" },
+  { suffix: "/classrooms", feature: "my_school" },
+  { suffix: "/students", feature: "my_school" },
+  { suffix: "/gallery", feature: "photos" },
+  { suffix: "/bulletin", feature: "bulletin" },
+];
+
+const SCHOOL_SLUG_API_PATH = /^\/api\/school\/[^/]+(\/.*)?$/;
+
 export const FREE_PLAN_FEATURE_DENIED_MESSAGE =
   "This isn't included on the free plan.";
 
@@ -44,24 +56,47 @@ function matchesPrefix(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
+function classifySchoolSlugApiSuffix(
+  suffix: string,
+): SchoolAdminApiPlanGate | null {
+  for (const open of SCHOOL_SLUG_OPEN_SUFFIXES) {
+    if (matchesPrefix(suffix, open)) return "open";
+  }
+
+  for (const row of SCHOOL_SLUG_FEATURE_SUFFIXES) {
+    if (matchesPrefix(suffix, row.suffix)) return { feature: row.feature };
+  }
+
+  return null;
+}
+
 /**
- * `null` means the path is not a school-admin API route, or it is one this
- * map does not classify. `"open"` is intentionally available on the free plan.
+ * `null` means the path is not a gated school-admin API route, or it is one this
+ * map does not classify. Covers `/api/school-admin/*` and `/api/school/{slug}/*`.
+ * `"open"` is intentionally available on the free plan.
  */
 export function classifySchoolAdminApiPath(
   pathname: string,
 ): SchoolAdminApiPlanGate | null {
-  if (!pathname.startsWith("/api/school-admin/")) return null;
+  if (pathname.startsWith("/api/school-admin/")) {
+    for (const prefix of OPEN_PREFIXES) {
+      if (matchesPrefix(pathname, prefix)) return "open";
+    }
 
-  for (const prefix of OPEN_PREFIXES) {
-    if (matchesPrefix(pathname, prefix)) return "open";
+    for (const row of FEATURE_PREFIXES) {
+      if (matchesPrefix(pathname, row.prefix)) return { feature: row.feature };
+    }
+
+    return null;
   }
 
-  for (const row of FEATURE_PREFIXES) {
-    if (matchesPrefix(pathname, row.prefix)) return { feature: row.feature };
-  }
+  const slugMatch = pathname.match(SCHOOL_SLUG_API_PATH);
+  if (!slugMatch) return null;
 
-  return null;
+  const suffix = slugMatch[1] ?? "";
+  if (!suffix) return null;
+
+  return classifySchoolSlugApiSuffix(suffix);
 }
 
 /**

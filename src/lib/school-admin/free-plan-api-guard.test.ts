@@ -37,6 +37,17 @@ describe("school admin API plan gates", () => {
     }
   });
 
+  it("classifies every slug-scoped school admin route as open or a feature", () => {
+    const root = path.join(process.cwd(), "src/app/api/school");
+    const urls = walk(root).map(routeUrl);
+    assert.ok(urls.length > 0);
+
+    for (const url of urls) {
+      const gate = classifySchoolAdminApiPath(url);
+      assert.notEqual(gate, null, `${url} is not classified`);
+    }
+  });
+
   it("keeps dashboard chrome open and gates paid prefixes", () => {
     assert.equal(
       classifySchoolAdminApiPath("/api/school-admin/dashboard-summary"),
@@ -57,5 +68,44 @@ describe("school admin API plan gates", () => {
       { feature: "messages" },
     );
     assert.equal(classifySchoolAdminApiPath("/api/admissions/applications"), null);
+  });
+
+  it("maps slug-scoped my_school, photos, bulletin, and open newsletters paths", () => {
+    assert.deepEqual(
+      classifySchoolAdminApiPath("/api/school/demo/staff"),
+      { feature: "my_school" },
+    );
+    assert.deepEqual(
+      classifySchoolAdminApiPath("/api/school/demo/staff/[staffMemberId]"),
+      { feature: "my_school" },
+    );
+    assert.deepEqual(
+      classifySchoolAdminApiPath("/api/school/demo/classrooms"),
+      { feature: "my_school" },
+    );
+    assert.deepEqual(
+      classifySchoolAdminApiPath("/api/school/demo/students/[studentId]/health"),
+      { feature: "my_school" },
+    );
+    assert.deepEqual(
+      classifySchoolAdminApiPath("/api/school/demo/gallery"),
+      { feature: "photos" },
+    );
+    assert.deepEqual(
+      classifySchoolAdminApiPath("/api/school/demo/gallery/[photoId]"),
+      { feature: "photos" },
+    );
+    assert.deepEqual(
+      classifySchoolAdminApiPath("/api/school/demo/bulletin"),
+      { feature: "bulletin" },
+    );
+    assert.equal(
+      classifySchoolAdminApiPath("/api/school/demo/newsletters/template"),
+      "open",
+    );
+    assert.equal(
+      classifySchoolAdminApiPath("/api/school/demo/newsletters/editions/[editionId]/publish"),
+      "open",
+    );
   });
 });

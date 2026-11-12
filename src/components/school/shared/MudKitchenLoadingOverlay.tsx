@@ -30,7 +30,7 @@ export default function MudKitchenLoadingOverlay({
           width={72}
           height={72}
           className="h-[72px] w-[72px] object-contain"
-          priority
+          unoptimized
         />
       </div>
     </div>,

@@ -11,7 +11,6 @@ const ENROLLMENT_GOTO_TIMEOUT_MS = 60_000;
 
 function enrollmentPageGotoOptions() {
   return {
-    waitUntil: (process.env.CI ? "domcontentloaded" : "load") as "domcontentloaded" | "load",
     timeout: ENROLLMENT_GOTO_TIMEOUT_MS,
   };
 }

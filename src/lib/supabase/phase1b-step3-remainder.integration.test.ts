@@ -105,27 +105,21 @@ describeIntegration("phase 1b step 3 remainder", () => {
       admin.from("organizations").select("id").eq("slug", TEST_ORG_SLUG).maybeSingle(),
     );
 
-    const { data: existingProgram, error: programError } = await admin
-      .from("programs")
-      .select("id")
-      .eq("organization_id", organizationId)
-      .limit(1)
-      .maybeSingle();
-    if (programError) throw new Error(programError.message);
-    programId = existingProgram
-      ? String(existingProgram.id)
-      : await mustId(
-          admin
-            .from("programs")
-            .insert({
-              organization_id: organizationId,
-              name: "Remainder Test Program",
-              type: "school_year",
-              status: "open",
-            })
-            .select("id")
-            .single(),
-        );
+    // Seeded programs often already have an active checklist; use a dedicated program
+    // so the per-program unique index allows our published template.
+    programId = await mustId(
+      admin
+        .from("programs")
+        .insert({
+          organization_id: organizationId,
+          name: "Remainder Test Program",
+          portal_slug: `remainder-test-${randomUUID().slice(0, 8)}`,
+          type: "school_year",
+          status: "open",
+        })
+        .select("id")
+        .single(),
+    );
 
     parent = await createUser(admin, "s3b-parent");
     linkedPeer = await createUser(admin, "s3b-linked");
@@ -479,6 +473,7 @@ describeIntegration("phase 1b step 3 remainder", () => {
       .delete()
       .eq("template_id", checklistTemplateId);
     await admin.from("enrollment_checklist_templates").delete().eq("id", checklistTemplateId);
+    await admin.from("programs").delete().eq("id", programId);
     await admin
       .from("document_templates")
       .delete()

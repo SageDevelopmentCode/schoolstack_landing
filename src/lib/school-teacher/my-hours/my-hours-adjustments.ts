@@ -41,6 +41,50 @@ import type {
 
 const NOTE_MAX = 500;
 
+type StaffHoursAdjustmentRpcFailure =
+  | "not_found"
+  | "already_reviewed"
+  | "invalid_sessions";
+
+const STAFF_HOURS_ADJUSTMENT_RPC_FAILURES: StaffHoursAdjustmentRpcFailure[] = [
+  "not_found",
+  "already_reviewed",
+  "invalid_sessions",
+];
+
+function parseStaffHoursAdjustmentRpcFailure(
+  message: string | null | undefined,
+): StaffHoursAdjustmentRpcFailure | null {
+  if (!message) return null;
+  return (
+    STAFF_HOURS_ADJUSTMENT_RPC_FAILURES.find((reason) =>
+      message.includes(`staff_hours_adjustment:${reason}`),
+    ) ?? null
+  );
+}
+
+function throwStaffHoursAdjustmentRpcError(rpcError: { message?: string }): never {
+  const reason = parseStaffHoursAdjustmentRpcFailure(rpcError.message);
+  if (reason === "not_found") {
+    throw new MyHoursMutationError("That request was not found.", "not_found", 404);
+  }
+  if (reason === "already_reviewed") {
+    throw new MyHoursMutationError(
+      "That request was already reviewed.",
+      "already_reviewed",
+      409,
+    );
+  }
+  if (reason === "invalid_sessions") {
+    throw new MyHoursMutationError(
+      "That request has no times to save.",
+      "invalid_sessions",
+      400,
+    );
+  }
+  throw rpcError;
+}
+
 export {
   formatAdjustmentSessionsLabel,
   parseAdjustmentSessions,
@@ -52,7 +96,7 @@ type AdjustmentRequestRow = {
   organization_id: string;
   staff_member_id: string;
   work_date: string;
-  status: "pending" | "approved" | "denied";
+  status: "pending" | "approved" | "denied" | "superseded";
   note: string | null;
   proposed_sessions: unknown;
   previous_sessions: unknown;
@@ -258,6 +302,12 @@ export async function submitStaffHoursAdjustment(
       sessions,
       recordedByUserId: input.userId,
     });
+    await supersedePendingAdjustmentForDirectSave(admin, {
+      organizationId: input.organizationId,
+      staffMemberId: input.staffMemberId,
+      workDate,
+      actorUserId: input.userId,
+    });
     return { requireApproval: false, requestId: null };
   }
 
@@ -294,69 +344,36 @@ export async function reviewStaffHoursAdjustment(
     reviewerUserId: string;
   },
 ): Promise<void> {
-  const { data, error } = await admin
-    .from("staff_hours_adjustment_requests")
-    .select(
-      "id, staff_member_id, work_date, status, proposed_sessions, submitted_by_user_id",
-    )
-    .eq("id", input.requestId)
-    .eq("organization_id", input.organizationId)
-    .maybeSingle();
-  if (error) throw error;
-  if (!data) {
-    throw new MyHoursMutationError("That request was not found.", "not_found", 404);
-  }
-  if (data.status !== "pending") {
-    throw new MyHoursMutationError(
-      "That request was already reviewed.",
-      "already_reviewed",
-      409,
-    );
-  }
-
-  if (input.decision === "approved") {
-    const timezone = await loadOrganizationTimezoneForStaffHours(
+  const timezone = await loadOrganizationTimezoneForStaffHours(
     admin,
     input.organizationId,
   );
-    const sessions = readStoredAdjustmentSessions(data.proposed_sessions);
-    if (sessions.length === 0) {
-      throw new MyHoursMutationError(
-        "That request has no times to save.",
-        "invalid_sessions",
-        400,
-      );
-    }
-    await replaceClosedSessions({
-      admin,
-      organizationId: input.organizationId,
-      staffMemberId: String(data.staff_member_id),
-      workDate: String(data.work_date).slice(0, 10),
-      timezone,
-      sessions,
-      recordedByUserId: input.reviewerUserId,
-    });
-  }
 
-  const { error: updateError } = await admin
-    .from("staff_hours_adjustment_requests")
-    .update({
-      status: input.decision,
-      reviewed_by_user_id: input.reviewerUserId,
-      reviewed_at: new Date().toISOString(),
-    })
-    .eq("id", input.requestId)
-    .eq("status", "pending");
-  if (updateError) throw updateError;
+  const { data, error } = await admin.rpc(
+    "review_staff_hours_adjustment_request_atomic",
+    {
+      p_organization_id: input.organizationId,
+      p_request_id: input.requestId,
+      p_decision: input.decision,
+      p_reviewer_user_id: input.reviewerUserId,
+      p_timezone: timezone,
+    },
+  );
+  if (error) throwStaffHoursAdjustmentRpcError(error);
+
+  const row = data as Record<string, unknown> | null;
+  if (!row || typeof row !== "object") {
+    throw new Error("Could not review the adjustment.");
+  }
 
   await notifyStaffOfAdjustmentReview(admin, {
     organizationId: input.organizationId,
-    staffMemberId: String(data.staff_member_id),
+    staffMemberId: String(row.staff_member_id),
     submittedByUserId:
-      typeof data.submitted_by_user_id === "string" ? data.submitted_by_user_id : null,
+      typeof row.submitted_by_user_id === "string" ? row.submitted_by_user_id : null,
     requestId: input.requestId,
-    workDate: String(data.work_date).slice(0, 10),
-    approved: input.decision === "approved",
+    workDate: String(row.work_date).slice(0, 10),
+    approved: row.approved === true,
   });
 }
 
@@ -488,25 +505,12 @@ async function deliverStaffAdjustmentReviewNotice(
   }
 }
 
-async function replaceClosedSessions(input: {
-  admin: SupabaseClient;
-  organizationId: string;
-  staffMemberId: string;
+function buildClosedSessionRpcEntries(input: {
   workDate: string;
   timezone: string;
   sessions: MyHoursAdjustmentSession[];
-  recordedByUserId: string;
-}): Promise<void> {
-  const { error: deleteError } = await input.admin
-    .from("staff_work_time_entries")
-    .delete()
-    .eq("organization_id", input.organizationId)
-    .eq("staff_member_id", input.staffMemberId)
-    .eq("work_date", input.workDate)
-    .not("clock_out_at", "is", null);
-  if (deleteError) throw deleteError;
-
-  const rows = input.sessions.map((session) => {
+}): Array<{ clock_in_at: string; clock_out_at: string }> {
+  return input.sessions.map((session) => {
     const start = parseTimeToMinutes(session.clockIn);
     const end = parseTimeToMinutes(session.clockOut);
     if (start == null || end == null || end <= start) {
@@ -517,19 +521,38 @@ async function replaceClosedSessions(input: {
       );
     }
     return {
-      organization_id: input.organizationId,
-      staff_member_id: input.staffMemberId,
-      work_date: input.workDate,
       clock_in_at: zonedWallClockToUtc(input.workDate, start, input.timezone).toISOString(),
       clock_out_at: zonedWallClockToUtc(input.workDate, end, input.timezone).toISOString(),
-      recorded_by_user_id: input.recordedByUserId,
     };
   });
+}
 
-  const { error: insertError } = await input.admin
-    .from("staff_work_time_entries")
-    .insert(rows);
-  if (insertError) throw insertError;
+async function replaceClosedSessions(input: {
+  admin: SupabaseClient;
+  organizationId: string;
+  staffMemberId: string;
+  workDate: string;
+  timezone: string;
+  sessions: MyHoursAdjustmentSession[];
+  recordedByUserId: string;
+}): Promise<void> {
+  const entries = buildClosedSessionRpcEntries({
+    workDate: input.workDate,
+    timezone: input.timezone,
+    sessions: input.sessions,
+  });
+
+  const { error } = await input.admin.rpc(
+    "replace_staff_work_time_closed_sessions_atomic",
+    {
+      p_organization_id: input.organizationId,
+      p_staff_member_id: input.staffMemberId,
+      p_work_date: input.workDate,
+      p_recorded_by_user_id: input.recordedByUserId,
+      p_entries: entries,
+    },
+  );
+  if (error) throw error;
 }
 
 async function loadClosedSessionTimes(
@@ -560,6 +583,29 @@ async function loadClosedSessionTimes(
   });
 }
 
+async function supersedePendingAdjustmentForDirectSave(
+  admin: SupabaseClient,
+  input: {
+    organizationId: string;
+    staffMemberId: string;
+    workDate: string;
+    actorUserId: string;
+  },
+): Promise<void> {
+  const { error } = await admin
+    .from("staff_hours_adjustment_requests")
+    .update({
+      status: "superseded",
+      reviewed_by_user_id: input.actorUserId,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("organization_id", input.organizationId)
+    .eq("staff_member_id", input.staffMemberId)
+    .eq("work_date", input.workDate)
+    .eq("status", "pending");
+  if (error) throw error;
+}
+
 async function upsertPendingRequest(
   admin: SupabaseClient,
   input: {
@@ -572,64 +618,31 @@ async function upsertPendingRequest(
     userId: string;
   },
 ): Promise<string> {
-  const payload = {
-    note: input.note || null,
-    proposed_sessions: input.sessions,
-    previous_sessions: input.previousSessions,
-    submitted_by_user_id: input.userId,
-  };
-
-  const { data: existing, error: existingError } = await admin
-    .from("staff_hours_adjustment_requests")
-    .select("id")
-    .eq("organization_id", input.organizationId)
-    .eq("staff_member_id", input.staffMemberId)
-    .eq("work_date", input.workDate)
-    .eq("status", "pending")
-    .maybeSingle();
-  if (existingError) throw existingError;
-
-  if (existing?.id) {
-    const { error } = await admin
-      .from("staff_hours_adjustment_requests")
-      .update(payload)
-      .eq("id", existing.id);
-    if (error) throw error;
-    return String(existing.id);
+  const { data, error } = await admin.rpc(
+    "upsert_staff_hours_adjustment_request_atomic",
+    {
+      p_organization_id: input.organizationId,
+      p_staff_member_id: input.staffMemberId,
+      p_work_date: input.workDate,
+      p_note: input.note,
+      p_proposed_sessions: input.sessions,
+      p_previous_sessions: input.previousSessions,
+      p_submitted_by_user_id: input.userId,
+    },
+  );
+  if (error) {
+    const reason = parseStaffHoursAdjustmentRpcFailure(error.message);
+    if (reason === "invalid_sessions") {
+      throw new MyHoursMutationError(
+        "Check the times before saving.",
+        "invalid_sessions",
+        400,
+      );
+    }
+    throwStaffHoursAdjustmentRpcError(error);
   }
-
-  const { data, error } = await admin
-    .from("staff_hours_adjustment_requests")
-    .insert({
-      organization_id: input.organizationId,
-      staff_member_id: input.staffMemberId,
-      work_date: input.workDate,
-      status: "pending",
-      ...payload,
-    })
-    .select("id")
-    .single();
-
-  if (error?.code === "23505") {
-    const { data: raced, error: racedError } = await admin
-      .from("staff_hours_adjustment_requests")
-      .select("id")
-      .eq("organization_id", input.organizationId)
-      .eq("staff_member_id", input.staffMemberId)
-      .eq("work_date", input.workDate)
-      .eq("status", "pending")
-      .maybeSingle();
-    if (racedError) throw racedError;
-    if (!raced?.id) throw error;
-    const { error: updateError } = await admin
-      .from("staff_hours_adjustment_requests")
-      .update(payload)
-      .eq("id", raced.id);
-    if (updateError) throw updateError;
-    return String(raced.id);
-  }
-  if (error || !data) throw error ?? new Error("Could not save the adjustment.");
-  return String(data.id);
+  if (data == null) throw new Error("Could not save the adjustment.");
+  return String(data);
 }
 
 async function notifySchoolAdminsOfAdjustment(

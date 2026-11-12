@@ -295,7 +295,6 @@ export async function openNewApplicationForm(page: Page): Promise<void> {
   });
 
   await page.goto(`/school/${TEST_ORG_SLUG}/forms/apply?new=1`, {
-    waitUntil: process.env.CI ? "domcontentloaded" : "load",
     timeout: APPLY_FORM_TIMEOUT_MS,
   });
 

@@ -31,10 +31,12 @@ export default function TryFreeSchoolForm() {
   const [email, setEmail] = useState("");
   const [companyWebsite, setCompanyWebsite] = useState("");
   const [code, setCode] = useState("");
+  const [emailVerified, setEmailVerified] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const timezone = browserTimezone();
+  const normalizedEmail = email.trim().toLowerCase();
 
   async function prepareSignup() {
     const response = await fetch("/api/try/prepare", {
@@ -70,6 +72,7 @@ export default function TryFreeSchoolForm() {
     setError(null);
     try {
       await sendCode();
+      setEmailVerified(false);
       setPhase("verify");
       setCode("");
     } catch (submitError) {
@@ -83,6 +86,54 @@ export default function TryFreeSchoolForm() {
     }
   }
 
+  async function hasConfirmedSessionForEmail(): Promise<boolean> {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return (
+      Boolean(user?.email_confirmed_at) &&
+      (user?.email?.trim().toLowerCase() ?? "") === normalizedEmail
+    );
+  }
+
+  async function ensureEmailVerified(token: string) {
+    if (emailVerified || (await hasConfirmedSessionForEmail())) {
+      setEmailVerified(true);
+      return;
+    }
+
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      email: normalizedEmail,
+      token,
+      type: "email",
+    });
+    if (verifyError) {
+      throw new Error(verifyError.message);
+    }
+    setEmailVerified(true);
+  }
+
+  async function completeFreeSchool() {
+    const response = await fetch("/api/try/complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        schoolName: schoolName.trim(),
+        timezone,
+      }),
+    });
+    const payload = (await response.json().catch(() => null)) as {
+      error?: string;
+      slug?: string;
+    } | null;
+    if (!response.ok || !payload?.slug) {
+      throw new Error(payload?.error || "Could not create your school.");
+    }
+
+    router.replace(`/school/${payload.slug}/admin`);
+    router.refresh();
+  }
+
   async function handleVerifySubmit(event: React.FormEvent) {
     event.preventDefault();
     setIsSubmitting(true);
@@ -90,38 +141,24 @@ export default function TryFreeSchoolForm() {
     const token = code.replace(/\D/g, "").slice(0, 6);
 
     try {
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        email: email.trim().toLowerCase(),
-        token,
-        type: "email",
-      });
-      if (verifyError) {
-        throw new Error(verifyError.message);
-      }
-
-      const response = await fetch("/api/try/complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          schoolName: schoolName.trim(),
-          timezone,
-        }),
-      });
-      const payload = (await response.json().catch(() => null)) as {
-        error?: string;
-        slug?: string;
-      } | null;
-      if (!response.ok || !payload?.slug) {
-        throw new Error(payload?.error || "Could not create your school.");
-      }
-
-      router.replace(`/school/${payload.slug}/admin`);
-      router.refresh();
+      await ensureEmailVerified(token);
     } catch (submitError) {
       setError(
         submitError instanceof Error
           ? submitError.message
           : "Could not verify that code.",
+      );
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      await completeFreeSchool();
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Could not create your school.",
       );
     } finally {
       setIsSubmitting(false);
@@ -194,7 +231,10 @@ export default function TryFreeSchoolForm() {
           <button
             type="submit"
             className={`${DARK_PILL} w-full justify-center disabled:cursor-not-allowed disabled:opacity-60`}
-            disabled={isSubmitting || code.replace(/\D/g, "").length < 6}
+            disabled={
+              isSubmitting ||
+              (!emailVerified && code.replace(/\D/g, "").length < 6)
+            }
           >
             <span className={BUTTON_LOADING_LAYOUT_CLASS}>
               <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Creating school">
@@ -208,6 +248,7 @@ export default function TryFreeSchoolForm() {
             disabled={isSubmitting}
             onClick={() => {
               setPhase("details");
+              setEmailVerified(false);
               setCode("");
               setError(null);
             }}

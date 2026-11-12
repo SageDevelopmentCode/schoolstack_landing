@@ -12,6 +12,10 @@ import TeacherMyHoursAdjustSidebar, {
   type AdjustSessionDraft,
 } from "@/components/school-teacher/my-hours/TeacherMyHoursAdjustSidebar";
 import {
+  adjustmentSessionsOverlap,
+  defaultNextAdjustmentSession,
+} from "@/lib/school-teacher/my-hours/my-hours-adjustment-rules";
+import {
   addDays,
   formatHoursMinutes,
   formatLongWeekdayDate,
@@ -21,6 +25,7 @@ import {
   toDateKey,
 } from "@/lib/school-teacher/my-hours/format-duration";
 import { MY_HOURS_CALENDAR_LINE } from "@/lib/school-teacher/my-hours/calendar-styles";
+import { isDateKeyInLoadedRange } from "@/lib/school-teacher/my-hours/my-hours-range-merge";
 import type {
   MyHoursPendingAdjustment,
   MyHoursSession,
@@ -40,6 +45,9 @@ type TeacherMyHoursAdjustPanelProps = {
   focusDate: Date;
   referenceDate: Date;
   timezone: string;
+  rangeFrom: string;
+  rangeTo: string;
+  weekLoading?: boolean;
   sessionsByDateKey: Record<string, MyHoursSession[]>;
   pendingAdjustmentsByDateKey: Record<string, MyHoursPendingAdjustment>;
   adjustmentsRequireApproval: boolean;
@@ -73,6 +81,9 @@ export default function TeacherMyHoursAdjustPanel({
   focusDate,
   referenceDate,
   timezone,
+  rangeFrom,
+  rangeTo,
+  weekLoading = false,
   sessionsByDateKey,
   pendingAdjustmentsByDateKey,
   adjustmentsRequireApproval,
@@ -89,10 +100,6 @@ export default function TeacherMyHoursAdjustPanel({
   const weekEndKey = toDateKey(addDays(weekStart, 6));
   const days = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
   const referenceKey = toDateKey(referenceDate);
-  const visibleEditor =
-    editor && editor.dateKey >= weekKey && editor.dateKey <= weekEndKey
-      ? editor
-      : null;
 
   const nextKey = () => {
     keyRef.current += 1;
@@ -101,6 +108,18 @@ export default function TeacherMyHoursAdjustPanel({
 
   const closedSessionsFor = (dateKey: string) =>
     (sessionsByDateKey[dateKey] ?? []).filter((session) => session.clockOutAt != null);
+
+  const sessionsKnownFor = (dateKey: string) =>
+    isDateKeyInLoadedRange(dateKey, rangeFrom, rangeTo);
+
+  const visibleEditor =
+    editor &&
+    editor.dateKey >= weekKey &&
+    editor.dateKey <= weekEndKey &&
+    !weekLoading &&
+    sessionsKnownFor(editor.dateKey)
+      ? editor
+      : null;
 
   const seedFromSessions = (sessions: MyHoursSession[]): AdjustSessionDraft[] =>
     sessions.map((session) => ({
@@ -113,6 +132,7 @@ export default function TeacherMyHoursAdjustPanel({
     }));
 
   const openEditor = (dateKey: string) => {
+    if (weekLoading || !sessionsKnownFor(dateKey)) return;
     if (editor?.dateKey === dateKey) return;
     const closed = closedSessionsFor(dateKey);
     const pending = pendingAdjustmentsByDateKey[dateKey];
@@ -170,6 +190,7 @@ export default function TeacherMyHoursAdjustPanel({
   const addSession = () => {
     setEditor((current) => {
       if (!current) return current;
+      const next = defaultNextAdjustmentSession(current.sessions);
       return {
         ...current,
         showError: false,
@@ -177,8 +198,8 @@ export default function TeacherMyHoursAdjustPanel({
           ...current.sessions,
           {
             key: nextKey(),
-            clockIn: DEFAULT_CLOCK_IN,
-            clockOut: DEFAULT_CLOCK_OUT,
+            clockIn: next.clockIn,
+            clockOut: next.clockOut,
             originalLabel: null,
           },
         ],
@@ -202,7 +223,7 @@ export default function TeacherMyHoursAdjustPanel({
     const invalid = editor.sessions.some((session) =>
       isAdjustSessionInvalid(session.clockIn, session.clockOut),
     );
-    if (invalid) {
+    if (invalid || adjustmentSessionsOverlap(editor.sessions)) {
       setEditor({ ...editor, showError: true });
       return;
     }
@@ -261,13 +282,17 @@ export default function TeacherMyHoursAdjustPanel({
           const openStartedLabel = openOnDay
             ? formatDemoTimeLabelInTimezone(new Date(openOnDay.clockInAt), timezone)
             : null;
-          const canEdit = !isFuture && !openOnDay;
+          const daySessionsKnown = sessionsKnownFor(dateKey);
+          const canEdit =
+            !isFuture && !openOnDay && daySessionsKnown && !weekLoading;
           const actionLabel =
             pending || closedSessions.length > 0 ? "Adjust" : "Add hours";
 
           let summary = "Not logged";
           if (isFuture) {
             summary = "Upcoming";
+          } else if (!daySessionsKnown || weekLoading) {
+            summary = "Loading…";
           } else if (pending) {
             const count = pending.sessions.length;
             const total = formatHoursMinutes(adjustDraftMinutes(pending.sessions));
@@ -333,6 +358,10 @@ export default function TeacherMyHoursAdjustPanel({
                   >
                     {actionLabel}
                   </ParentButton>
+                ) : !isFuture && !openOnDay && (weekLoading || !daySessionsKnown) ? (
+                  <p className="text-sm" style={{ color: theme.muted }}>
+                    Loading…
+                  </p>
                 ) : null}
               </div>
             </li>

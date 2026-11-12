@@ -38,12 +38,14 @@ function sessionLabel(sessions: AdminStaffHoursAdjustmentSession[]): string {
 function statusLabel(status: AdminStaffHoursAdjustmentRequest['status']): string {
   if (status === 'approved') return 'Approved';
   if (status === 'denied') return 'Denied';
+  if (status === 'superseded') return 'Superseded';
   return 'Pending';
 }
 
 function statusTone(status: AdminStaffHoursAdjustmentRequest['status']) {
   if (status === 'approved') return 'success' as const;
   if (status === 'denied') return 'alert' as const;
+  if (status === 'superseded') return 'neutral' as const;
   return 'warning' as const;
 }
 

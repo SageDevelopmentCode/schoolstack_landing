@@ -5,17 +5,88 @@ import {
   authUserIdFromAdminList,
   emailDomain,
   FREE_SCHOOL_PLAN,
-  FREE_SCHOOL_STATUS,
   normalizeSchoolName,
   signupImpersonationMessage,
-  slugFromSchoolName,
-  suffixedSlug,
   type ExistingSchoolIdentity,
 } from "@/lib/try/free-school-signup";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-const SLUG_ATTEMPTS = 8;
 const DOMAIN_HOURLY_CAP = 10;
+
+type FreeSchoolAtomicFailureReason =
+  | "already_administers"
+  | "slug_exhausted"
+  | "invalid_name"
+  | "invalid_timezone"
+  | "invalid_user"
+  | "organization_insert_failed";
+
+const FREE_SCHOOL_ATOMIC_FAILURES: readonly FreeSchoolAtomicFailureReason[] = [
+  "already_administers",
+  "slug_exhausted",
+  "invalid_name",
+  "invalid_timezone",
+  "invalid_user",
+  "organization_insert_failed",
+];
+
+type CreateFreeSchoolAtomicResult = {
+  organization_id: string;
+  slug: string;
+  idempotent: boolean;
+};
+
+function parseFreeSchoolAtomicFailure(
+  message: string | null | undefined,
+): FreeSchoolAtomicFailureReason | null {
+  if (!message) return null;
+  return (
+    FREE_SCHOOL_ATOMIC_FAILURES.find((reason) => message === `free_school:${reason}`) ?? null
+  );
+}
+
+function freeSchoolSignupErrorForAtomicReason(
+  reason: FreeSchoolAtomicFailureReason,
+): FreeSchoolSignupError {
+  switch (reason) {
+    case "already_administers":
+      return new FreeSchoolSignupError(
+        EXISTING_SCHOOL_ADMIN_MESSAGE,
+        409,
+        "already_administers_school",
+      );
+    case "slug_exhausted":
+      return new FreeSchoolSignupError(
+        "That school name is already in use. Try a different name.",
+        409,
+        "slug_exhausted",
+      );
+    case "invalid_name":
+      return new FreeSchoolSignupError("Enter your school name.", 400, "missing_school_name");
+    case "invalid_timezone":
+      return new FreeSchoolSignupError(
+        "We couldn't read your timezone. Refresh and try again.",
+        400,
+        "invalid_timezone",
+      );
+    case "invalid_user":
+      return new FreeSchoolSignupError(
+        "Confirm your email with the code we sent, then try again.",
+        401,
+        "email_unverified",
+      );
+    case "organization_insert_failed":
+      return new FreeSchoolSignupError(
+        "Could not create your school. Please try again.",
+        500,
+        "organization_insert_failed",
+      );
+    default: {
+      const exhaustive: never = reason;
+      return exhaustive;
+    }
+  }
+}
 
 export const EXISTING_SCHOOL_ADMIN_MESSAGE =
   "This email already manages a school. Sign in instead.";
@@ -175,33 +246,15 @@ export async function createFreeSchool(
     throw new FreeSchoolSignupError(blocked, 409, "name_taken");
   }
 
-  const base = slugFromSchoolName(schoolName);
-  let organizationId: string | null = null;
-  let slug = base;
+  const { data, error: rpcError } = await admin.rpc("create_free_school_atomic", {
+    p_user_id: input.userId,
+    p_school_name: schoolName,
+    p_timezone: input.timezone,
+  });
 
-  for (let attempt = 0; attempt < SLUG_ATTEMPTS; attempt += 1) {
-    slug = suffixedSlug(base, attempt);
-    const { data, error } = await admin
-      .from("organizations")
-      .insert({
-        slug,
-        name: schoolName,
-        status: FREE_SCHOOL_STATUS,
-        timezone: input.timezone,
-        plan: FREE_SCHOOL_PLAN,
-      })
-      .select("id")
-      .single();
-
-    if (!error && data?.id) {
-      organizationId = String(data.id);
-      break;
-    }
-
-    if (error && "code" in error && error.code === "23505") {
-      continue;
-    }
-
+  if (rpcError) {
+    const reason = parseFreeSchoolAtomicFailure(rpcError.message);
+    if (reason) throw freeSchoolSignupErrorForAtomicReason(reason);
     throw new FreeSchoolSignupError(
       "Could not create your school. Please try again.",
       500,
@@ -209,62 +262,39 @@ export async function createFreeSchool(
     );
   }
 
-  if (!organizationId) {
-    throw new FreeSchoolSignupError(
-      "That school name is already in use. Try a different name.",
-      409,
-      "slug_exhausted",
-    );
-  }
+  const created = data as CreateFreeSchoolAtomicResult | null;
+  const organizationId = created?.organization_id?.trim();
+  const slug = created?.slug?.trim();
+  const idempotent = created?.idempotent === true;
 
-  const { error: settingsError } = await admin.from("organization_settings").insert({
-    organization_id: organizationId,
-    features: {},
-  });
-
-  if (settingsError) {
-    await admin.from("organizations").delete().eq("id", organizationId);
+  if (!organizationId || !slug) {
     throw new FreeSchoolSignupError(
       "Could not create your school. Please try again.",
       500,
-      "settings_insert_failed",
-    );
-  }
-
-  const { error: membershipError } = await admin.from("organization_memberships").insert({
-    organization_id: organizationId,
-    user_id: input.userId,
-    role: "owner",
-    status: "active",
-  });
-
-  if (membershipError) {
-    await admin.from("organizations").delete().eq("id", organizationId);
-    throw new FreeSchoolSignupError(
-      "Could not create your school. Please try again.",
-      500,
-      "membership_insert_failed",
+      "organization_insert_failed",
     );
   }
 
   revalidateOrganizationSettings(slug);
 
-  await logActivityEvent(admin, {
-    organizationId,
-    actorType: "school_admin",
-    actorUserId: input.userId,
-    actorEmail: input.email,
-    surface: "api",
-    action: ACTIVITY_ACTIONS.ORGANIZATION_FREE_CREATED,
-    entityType: "organization",
-    entityId: organizationId,
-    summary: `Free school created: ${schoolName}`,
-    metadata: {
-      plan: FREE_SCHOOL_PLAN,
-      slug,
-      timezone: input.timezone,
-    },
-  });
+  if (!idempotent) {
+    await logActivityEvent(admin, {
+      organizationId,
+      actorType: "school_admin",
+      actorUserId: input.userId,
+      actorEmail: input.email,
+      surface: "api",
+      action: ACTIVITY_ACTIONS.ORGANIZATION_FREE_CREATED,
+      entityType: "organization",
+      entityId: organizationId,
+      summary: `Free school created: ${schoolName}`,
+      metadata: {
+        plan: FREE_SCHOOL_PLAN,
+        slug,
+        timezone: input.timezone,
+      },
+    });
+  }
 
   return { organizationId, slug };
 }

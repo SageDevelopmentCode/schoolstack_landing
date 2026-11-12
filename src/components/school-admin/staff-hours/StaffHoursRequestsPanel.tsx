@@ -52,6 +52,7 @@ function sessionLabel(sessions: AdminStaffHoursAdjustmentSession[]): string {
 function statusLabel(status: AdminStaffHoursAdjustmentRequest["status"]): string {
   if (status === "approved") return "Approved";
   if (status === "denied") return "Denied";
+  if (status === "superseded") return "Superseded";
   return "Pending";
 }
 
