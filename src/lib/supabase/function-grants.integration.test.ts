@@ -120,6 +120,10 @@ const SERVICE_ONLY_FUNCTIONS: Array<{ name: string; args: Record<string, unknown
     },
   },
   {
+    name: "list_staff_hours_adjustment_requests_for_org",
+    args: { p_organization_id: ZERO, p_history_limit: 100 },
+  },
+  {
     name: "create_free_school_atomic",
     args: {
       p_user_id: ZERO,

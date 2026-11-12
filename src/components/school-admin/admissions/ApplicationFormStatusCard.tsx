@@ -221,10 +221,10 @@ export default function ApplicationFormStatusCard({
       />
 
       <div
-        className="pointer-events-none fixed left-[-10000px] top-0 w-[800px]"
+        className="pointer-events-none fixed left-0 top-0 z-[-1] w-[800px] opacity-0"
         aria-hidden="true"
       >
-        <div ref={printRef}>
+        <div ref={printRef} data-testid="application-pdf-print-root">
           <ApplicationReadOnlyView
             branding={branding}
             schoolName={schoolName}

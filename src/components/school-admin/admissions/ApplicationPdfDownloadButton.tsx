@@ -24,7 +24,10 @@ export default function ApplicationPdfDownloadButton({
 
   const handleDownloadPdf = useCallback(async () => {
     const element = getElement();
-    if (!element) return;
+    if (!element) {
+      setDownloadError("Failed to generate PDF. Please try again.");
+      return;
+    }
 
     setDownloading(true);
     setDownloadError(null);

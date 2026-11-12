@@ -105,15 +105,35 @@ test("admin can change application status", async ({ page }) => {
 });
 
 test("admin can download application PDF", async ({ page }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(90_000);
 
   await gotoSubmissions(page);
   await openSubmissionByStudent(page, "Alpha Child");
 
-  const downloadPromise = page.waitForEvent("download", { timeout: 30_000 });
-  await page.getByRole("button", { name: "Download PDF" }).click();
-  const download = await downloadPromise;
+  await expect(
+    page.getByTestId("application-pdf-print-root"),
+  ).toBeAttached({ timeout: 15_000 });
+  await expect(
+    page.getByRole("button", { name: "View application answers" }),
+  ).toBeVisible();
 
-  expect(download.suggestedFilename()).toMatch(/\.pdf$/i);
-  await expect(page.getByText("Failed to generate PDF")).toHaveCount(0);
+  const downloadButton = page.getByRole("button", { name: "Download PDF" });
+  const pdfError = page.getByText("Failed to generate PDF");
+
+  const downloadPromise = page.waitForEvent("download", { timeout: 60_000 });
+  await downloadButton.click();
+
+  const outcome = await Promise.race([
+    downloadPromise.then((download) => ({ kind: "download" as const, download })),
+    pdfError.waitFor({ state: "visible", timeout: 60_000 }).then(() => ({
+      kind: "error" as const,
+    })),
+  ]);
+
+  if (outcome.kind === "error") {
+    throw new Error("Application PDF export failed in the browser.");
+  }
+
+  expect(outcome.download.suggestedFilename()).toMatch(/\.pdf$/i);
+  await expect(pdfError).toHaveCount(0);
 });
