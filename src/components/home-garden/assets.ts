@@ -12,6 +12,13 @@ export const SAGEFIELD_PHOTOS = {
   mudKitchen: { src: "/images/sagefield/mud-kitchen.jpg", alt: "Kids playing at the outdoor mud kitchen at Sage Field", w: 576, h: 1024 },
 } satisfies Record<string, Photo>;
 
+/** Stock photos (not Sage Field). Used where the page asks for generic school-life imagery. */
+export const STOCK_PHOTOS = {
+  family: { src: "/images/stock/ImageTen.webp", alt: "Three kids with backpacks walking hand in hand", w: 1600, h: 1067 },
+  admin: { src: "/images/stock/Homeschool.webp", alt: "A woman working on a laptop at a kitchen table", w: 1600, h: 1066 },
+  teacher: { src: "/images/stock/Homeschool3.webp", alt: "An adult reading with a child at a table", w: 1600, h: 900 },
+} satisfies Record<string, Photo>;
+
 export const SAGEFIELD_LIST: Photo[] = Object.values(SAGEFIELD_PHOTOS);
 
 export const SAGEFIELD_LOGO = "/images/SageFieldLogo.png";

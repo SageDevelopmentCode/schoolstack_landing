@@ -3,7 +3,11 @@
   "configurations": [
     {
       "name": "landing-dev",
-      "url": "http://localhost:3000",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev:next"
+      ],
       "port": 3000
     }
   ]

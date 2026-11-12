@@ -1,6 +1,6 @@
 import { ADMIN_COPY, FAMILY_COPY, TEACHER_COPY } from "@/components/home/home-copy";
 import type { DemoStageKey } from "@/components/home/DemoStage";
-import { ILLUSTRATIONS, SAGEFIELD_PHOTOS, type Photo } from "./assets";
+import { ILLUSTRATIONS, STOCK_PHOTOS, type Photo } from "./assets";
 
 export const ROLES_HEADING = "Built for every role";
 
@@ -32,7 +32,7 @@ export const ROLES: Role[] = [
     label: "Parent View",
     emoji: "🏡",
     copy: FAMILY_COPY,
-    photo: SAGEFIELD_PHOTOS.entrance,
+    photo: STOCK_PHOTOS.family,
     illustration: ILLUSTRATIONS.backpack,
     tint: "bg-[var(--sf-sky)]",
     tintSoft: "bg-[var(--sf-sky)]/60",
@@ -44,7 +44,7 @@ export const ROLES: Role[] = [
     label: "Admin View",
     emoji: "🗂️",
     copy: ADMIN_COPY,
-    photo: SAGEFIELD_PHOTOS.classroom,
+    photo: STOCK_PHOTOS.admin,
     illustration: ILLUSTRATIONS.folder,
     tint: "bg-[var(--sf-peach)]",
     tintSoft: "bg-[var(--sf-peach)]/60",
@@ -56,7 +56,7 @@ export const ROLES: Role[] = [
     label: "Teacher View",
     emoji: "🍎",
     copy: TEACHER_COPY,
-    photo: SAGEFIELD_PHOTOS.primary,
+    photo: STOCK_PHOTOS.teacher,
     illustration: ILLUSTRATIONS.notebook,
     tint: "bg-[var(--sf-mint)]",
     tintSoft: "bg-[var(--sf-mint)]/60",

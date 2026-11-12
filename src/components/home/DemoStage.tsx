@@ -22,12 +22,14 @@ export type DemoStageKey =
   | "tuition"
   | "attendance"
   | "timeclock"
-  | "marketing";
+  | "marketing"
+  | "messages";
 
 const PREFETCH: Record<DemoStageKey, () => void> = {
   parent: prefetchParentDemo,
   enrollment: prefetchParentDemo,
   tuition: prefetchParentDemo,
+  messages: prefetchTeacherDemo,
   teacher: prefetchTeacherDemo,
   attendance: prefetchTeacherDemo,
   timeclock: prefetchTeacherDemo,
@@ -70,6 +72,11 @@ function renderDemo(key: DemoStageKey, tour: boolean): ReactNode {
     case "marketing":
       return (
         <LazyAdminDashboardDemo initialPage="marketing" disableTour hideNav />
+      );
+    case "messages":
+      // The teacher inbox is a working demo; the parent Messages tab is still "Coming soon".
+      return (
+        <LazyTeacherDashboardDemo initialTab="messages" disableTour hideNav />
       );
   }
 }

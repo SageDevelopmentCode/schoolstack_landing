@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { HERO_COPY } from "@/components/home/home-copy";
 import { STICKERS_BY_DEMO } from "@/components/home/FloatingStickers";
@@ -10,7 +9,6 @@ import { BOOK_DEMO_HASH_HREF } from "@/lib/marketing/book-demo";
 import { gsap, useGSAP, MQ_MOTION } from "@/components/garden/gsap";
 import { Magnetic, WordsReveal } from "@/components/garden/motion";
 import { Arrow, Draw, Leaf, Squiggle, Sun, btnOutline, btnPop } from "@/components/garden/ui";
-import { SAGEFIELD_PHOTOS } from "../assets";
 import GardenDemoFrame from "../GardenDemoFrame";
 import StickerNote from "../StickerNote";
 
@@ -33,7 +31,6 @@ export default function Hero() {
       mm.add(MQ_MOTION, () => {
         gsap.from("[data-hero-in]", { y: 40, opacity: 0, duration: 1, ease: "power3.out", stagger: 0.1, delay: 0.35 });
         gsap.from("[data-hero-frame]", { y: 120, rotate: 8, opacity: 0, duration: 1.3, ease: "back.out(1.2)", delay: 0.2 });
-        gsap.from("[data-hero-blob]", { scale: 0, rotate: -40, duration: 1.2, ease: "back.out(1.6)", delay: 0.7 });
       });
       return () => mm.revert();
     },
@@ -51,7 +48,7 @@ export default function Hero() {
           <p data-hero-in className="sf-hand text-2xl text-[var(--sf-forest)]">
             hello, founders! 👋
           </p>
-          <h1 className="sf-display mt-3 text-[12.5vw] leading-[0.9] text-[var(--sf-ink)] sm:text-7xl lg:text-[4.2rem] xl:text-[4.75rem]">
+          <h1 className="sf-display mt-3 text-[11vw] leading-[0.9] text-[var(--sf-ink)] sm:text-6xl lg:text-[3.5rem] xl:text-[4.1rem]">
             <WordsReveal as="span" text={HERO_COPY.headlineLead} immediate />{" "}
             <span className="relative isolate inline-block text-[var(--sf-clay)]">
               <Draw className="pointer-events-none absolute -bottom-2 left-0 -z-10 w-full" delay={0.6}>
@@ -81,11 +78,6 @@ export default function Hero() {
 
         {/* Live product */}
         <div className="relative">
-          <div data-hero-blob className="absolute -right-6 -top-16 hidden h-56 w-56 lg:block xl:-right-10 xl:h-64 xl:w-64" aria-hidden="true">
-            <div className="sf-blob absolute inset-0 overflow-hidden border-[3px] border-[var(--sf-ink)]">
-              <Image src={SAGEFIELD_PHOTOS.running.src} alt="" fill className="object-cover" sizes="256px" preload />
-            </div>
-          </div>
           <Draw className="absolute -left-4 bottom-[-3.5rem] hidden w-14 lg:block" delay={1.2}>
             <Leaf />
           </Draw>

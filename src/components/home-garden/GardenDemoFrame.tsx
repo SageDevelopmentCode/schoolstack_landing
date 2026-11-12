@@ -14,6 +14,7 @@ export const DEMO_LABELS: Record<DemoStageKey, string> = {
   attendance: "Attendance",
   timeclock: "Timeclock",
   marketing: "Marketing",
+  messages: "Messages",
 };
 
 /**
