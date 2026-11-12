@@ -17,6 +17,25 @@ export function weekRangeNeedsFetch(
   return weekStartKey < rangeFrom || weekEndKey > rangeTo;
 }
 
+export function nextLoadedAdjustWeekToken(
+  adjustWeekStartKey: string | null,
+  adjustWeekEndKey: string | null,
+  pageData: TeacherMyHoursPageData,
+): string | null {
+  if (adjustWeekStartKey == null || adjustWeekEndKey == null) {
+    return null;
+  }
+  const token = `${adjustWeekStartKey}:${adjustWeekEndKey}`;
+  return weekRangeNeedsFetch(
+    adjustWeekStartKey,
+    adjustWeekEndKey,
+    pageData.rangeFrom,
+    pageData.rangeTo,
+  )
+    ? null
+    : token;
+}
+
 export function mergeTeacherMyHoursPageData(
   base: TeacherMyHoursPageData,
   patch: TeacherMyHoursPageData,

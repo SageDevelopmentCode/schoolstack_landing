@@ -40,6 +40,10 @@ import type {
 } from "@/lib/school-teacher/my-hours/types";
 
 const NOTE_MAX = 500;
+const STAFF_HOURS_ADJUSTMENT_HISTORY_LIMIT = 100;
+
+const STAFF_HOURS_ADJUSTMENT_REQUEST_LIST_COLUMNS =
+  "id, staff_member_id, work_date, status, note, proposed_sessions, previous_sessions, reviewed_at, created_at";
 
 type StaffHoursAdjustmentRpcFailure =
   | "not_found"
@@ -190,17 +194,28 @@ export async function listStaffHoursAdjustmentRequests(
   admin: SupabaseClient,
   organizationId: string,
 ): Promise<AdminStaffHoursAdjustmentRequest[]> {
-  const { data, error } = await admin
-    .from("staff_hours_adjustment_requests")
-    .select(
-      "id, staff_member_id, work_date, status, note, proposed_sessions, previous_sessions, reviewed_at, created_at",
-    )
-    .eq("organization_id", organizationId)
-    .order("created_at", { ascending: false })
-    .limit(100);
-  if (error) throw error;
+  const [pendingResult, historyResult] = await Promise.all([
+    admin
+      .from("staff_hours_adjustment_requests")
+      .select(STAFF_HOURS_ADJUSTMENT_REQUEST_LIST_COLUMNS)
+      .eq("organization_id", organizationId)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false }),
+    admin
+      .from("staff_hours_adjustment_requests")
+      .select(STAFF_HOURS_ADJUSTMENT_REQUEST_LIST_COLUMNS)
+      .eq("organization_id", organizationId)
+      .neq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(STAFF_HOURS_ADJUSTMENT_HISTORY_LIMIT),
+  ]);
+  if (pendingResult.error) throw pendingResult.error;
+  if (historyResult.error) throw historyResult.error;
 
-  const rows = (data ?? []) as AdjustmentRequestRow[];
+  const rows = [
+    ...(pendingResult.data ?? []),
+    ...(historyResult.data ?? []),
+  ] as AdjustmentRequestRow[];
   const staffIds = [...new Set(rows.map((row) => row.staff_member_id))];
   const names = new Map<string, string>();
   if (staffIds.length > 0) {

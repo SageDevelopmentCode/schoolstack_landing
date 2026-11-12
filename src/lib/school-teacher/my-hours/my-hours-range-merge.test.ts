@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   isDateKeyInLoadedRange,
   mergeTeacherMyHoursPageData,
+  nextLoadedAdjustWeekToken,
   weekRangeNeedsFetch,
 } from "@/lib/school-teacher/my-hours/my-hours-range-merge";
 import type { TeacherMyHoursPageData } from "@/lib/school-teacher/my-hours/types";
@@ -38,6 +39,34 @@ test("isDateKeyInLoadedRange respects inclusive bounds", () => {
   assert.equal(isDateKeyInLoadedRange("2025-11-12", "2025-11-12", "2026-11-12"), true);
   assert.equal(isDateKeyInLoadedRange("2025-11-11", "2025-11-12", "2026-11-12"), false);
   assert.equal(isDateKeyInLoadedRange("2026-11-13", "2025-11-12", "2026-11-12"), false);
+});
+
+test("nextLoadedAdjustWeekToken returns null when week keys are missing", () => {
+  const pageData = emptyPageData();
+  assert.equal(nextLoadedAdjustWeekToken(null, "2025-11-09", pageData), null);
+  assert.equal(nextLoadedAdjustWeekToken("2025-11-03", null, pageData), null);
+});
+
+test("nextLoadedAdjustWeekToken returns token when week is inside loaded range", () => {
+  const pageData = emptyPageData({
+    rangeFrom: "2025-11-12",
+    rangeTo: "2026-11-12",
+  });
+  assert.equal(
+    nextLoadedAdjustWeekToken("2025-11-17", "2025-11-23", pageData),
+    "2025-11-17:2025-11-23",
+  );
+});
+
+test("nextLoadedAdjustWeekToken returns null when week needs fetch", () => {
+  const pageData = emptyPageData({
+    rangeFrom: "2025-11-12",
+    rangeTo: "2026-11-12",
+  });
+  assert.equal(
+    nextLoadedAdjustWeekToken("2025-11-03", "2025-11-09", pageData),
+    null,
+  );
 });
 
 test("weekRangeNeedsFetch is true when the week extends outside the loaded window", () => {

@@ -32,6 +32,7 @@ import {
 } from "@/lib/school-teacher/my-hours/fetch-teacher-my-hours";
 import {
   mergeTeacherMyHoursPageData,
+  nextLoadedAdjustWeekToken,
   weekRangeNeedsFetch,
 } from "@/lib/school-teacher/my-hours/my-hours-range-merge";
 import { myHoursViewTransition } from "@/lib/school-teacher/my-hours/my-hours-motion";
@@ -239,6 +240,9 @@ export default function TeacherMyHoursPage({
     try {
       const next = await postTeacherMyHoursClockIn(organizationId);
       setPageData(next);
+      setLoadedAdjustWeekToken(
+        nextLoadedAdjustWeekToken(adjustWeekStartKey, adjustWeekEndKey, next),
+      );
       const clockInAt = next.activeSession?.clockInAt;
       parentToast.success(
         clockInAt
@@ -263,11 +267,13 @@ export default function TeacherMyHoursPage({
     } finally {
       setClockActionPending(null);
     }
-  }, [
+  },     [
     previewMode,
     activeSessionStartedAt,
     clockActionPending,
     organizationId,
+    adjustWeekStartKey,
+    adjustWeekEndKey,
   ]);
 
   const handleClockOut = useCallback(async () => {
@@ -277,6 +283,9 @@ export default function TeacherMyHoursPage({
       const { pageData: next, sessionMinutes } =
         await postTeacherMyHoursClockOut(organizationId);
       setPageData(next);
+      setLoadedAdjustWeekToken(
+        nextLoadedAdjustWeekToken(adjustWeekStartKey, adjustWeekEndKey, next),
+      );
       parentToast.success(
         `Session saved · ${formatHoursMinutes(Math.max(1, sessionMinutes))}`,
       );
@@ -303,6 +312,8 @@ export default function TeacherMyHoursPage({
     activeSessionStartedAt,
     clockActionPending,
     organizationId,
+    adjustWeekStartKey,
+    adjustWeekEndKey,
   ]);
 
   const handleAdjustSubmit = useCallback(
@@ -342,21 +353,13 @@ export default function TeacherMyHoursPage({
           );
         }
         setPageData(nextPageData);
-        if (
-          adjustWeekToken &&
-          adjustWeekStartKey != null &&
-          adjustWeekEndKey != null &&
-          !weekRangeNeedsFetch(
+        setLoadedAdjustWeekToken(
+          nextLoadedAdjustWeekToken(
             adjustWeekStartKey,
             adjustWeekEndKey,
-            nextPageData.rangeFrom,
-            nextPageData.rangeTo,
-          )
-        ) {
-          setLoadedAdjustWeekToken(adjustWeekToken);
-        } else {
-          setLoadedAdjustWeekToken(null);
-        }
+            nextPageData,
+          ),
+        );
         parentToast.success(
           result.requireApproval
             ? "Sent to your school for approval."
@@ -385,7 +388,6 @@ export default function TeacherMyHoursPage({
       organizationId,
       focusDate,
       loadAdjustWeekIntoPageData,
-      adjustWeekToken,
       adjustWeekStartKey,
       adjustWeekEndKey,
     ],

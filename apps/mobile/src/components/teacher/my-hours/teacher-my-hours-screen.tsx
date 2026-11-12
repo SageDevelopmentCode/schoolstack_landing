@@ -44,6 +44,7 @@ import {
 } from '@/lib/teacher/my-hours/format-duration';
 import {
   mergeTeacherMyHoursPageData,
+  nextLoadedAdjustWeekToken,
   weekRangeNeedsFetch,
 } from '@/lib/teacher/my-hours/my-hours-range-merge';
 import {
@@ -102,6 +103,8 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
   const [loadedAdjustWeekToken, setLoadedAdjustWeekToken] = useState<string | null>(
     null,
   );
+  const loadedAdjustWeekStartKeyRef = useRef<string | null>(null);
+  const loadedAdjustWeekEndKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     void ensureHomeLoaded();
@@ -122,6 +125,13 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
           fetchTeacherMyHoursPageData(organizationId, slug),
         );
         setPageData(next);
+        setLoadedAdjustWeekToken(
+          nextLoadedAdjustWeekToken(
+            loadedAdjustWeekStartKeyRef.current,
+            loadedAdjustWeekEndKeyRef.current,
+            next,
+          ),
+        );
         const ref = referenceDateFromKey(next.referenceDateKey);
         setFocusDate(ref);
         setMonthDate(new Date(ref.getFullYear(), ref.getMonth(), 1));
@@ -178,6 +188,9 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
     adjustWeekStartKey != null && adjustWeekEndKey != null
       ? `${adjustWeekStartKey}:${adjustWeekEndKey}`
       : null;
+
+  loadedAdjustWeekStartKeyRef.current = adjustWeekStartKey;
+  loadedAdjustWeekEndKeyRef.current = adjustWeekEndKey;
 
   const needsAdjustWeekFetch =
     pageData != null &&
@@ -297,6 +310,9 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
     try {
       const next = await postTeacherMyHoursClockIn(organizationId, slug);
       setPageData(next);
+      setLoadedAdjustWeekToken(
+        nextLoadedAdjustWeekToken(adjustWeekStartKey, adjustWeekEndKey, next),
+      );
       const clockInAt = next.activeSession?.clockInAt;
       Alert.alert(
         'Clocked in',
@@ -318,6 +334,8 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
     organizationId,
     slug,
     reportError,
+    adjustWeekStartKey,
+    adjustWeekEndKey,
   ]);
 
   const handleClockOut = useCallback(async () => {
@@ -329,6 +347,9 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
         slug,
       );
       setPageData(next);
+      setLoadedAdjustWeekToken(
+        nextLoadedAdjustWeekToken(adjustWeekStartKey, adjustWeekEndKey, next),
+      );
       Alert.alert(
         'Session saved',
         `Logged ${formatHoursMinutes(Math.max(1, sessionMinutes))}`,
@@ -347,6 +368,8 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
     organizationId,
     slug,
     reportError,
+    adjustWeekStartKey,
+    adjustWeekEndKey,
   ]);
 
   const shiftFocusDate = useCallback(
@@ -417,21 +440,13 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
           void reportError('my_hours.adjust_week_load', reloadError);
         }
         setPageData(nextPageData);
-        if (
-          adjustWeekToken &&
-          adjustWeekStartKey != null &&
-          adjustWeekEndKey != null &&
-          !weekRangeNeedsFetch(
+        setLoadedAdjustWeekToken(
+          nextLoadedAdjustWeekToken(
             adjustWeekStartKey,
             adjustWeekEndKey,
-            nextPageData.rangeFrom,
-            nextPageData.rangeTo,
-          )
-        ) {
-          setLoadedAdjustWeekToken(adjustWeekToken);
-        } else {
-          setLoadedAdjustWeekToken(null);
-        }
+            nextPageData,
+          ),
+        );
         Alert.alert(
           result.requireApproval ? 'Sent to your school for approval.' : 'Hours saved.',
         );
@@ -445,7 +460,6 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
       focusDate,
       loadAdjustWeekIntoPageData,
       reportError,
-      adjustWeekToken,
       adjustWeekStartKey,
       adjustWeekEndKey,
     ],

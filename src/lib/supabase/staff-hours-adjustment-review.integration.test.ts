@@ -47,16 +47,15 @@ describeIntegration("review_staff_hours_adjustment_request_atomic", () => {
         ? org.timezone.trim()
         : "America/Denver";
 
-    const { data: membership, error: membershipError } = await admin
-      .from("organization_memberships")
-      .select("user_id")
-      .eq("organization_id", organizationId)
-      .limit(1)
-      .maybeSingle();
-    if (membershipError || !membership?.user_id) {
-      throw new Error(membershipError?.message ?? "No org admin user for review test.");
+    const email = `hours-review-${randomUUID()}@example.test`;
+    const { data: createdUser, error: createUserError } = await admin.auth.admin.createUser({
+      email,
+      email_confirm: true,
+    });
+    if (createUserError || !createdUser.user?.id) {
+      throw createUserError ?? new Error("createUser failed");
     }
-    reviewerUserId = String(membership.user_id);
+    reviewerUserId = createdUser.user.id;
 
     staffMemberId = await mustId(
       admin
@@ -88,10 +87,15 @@ describeIntegration("review_staff_hours_adjustment_request_atomic", () => {
   });
 
   after(async () => {
-    if (!admin || !requestId) return;
-    await admin.from("staff_work_time_entries").delete().eq("staff_member_id", staffMemberId);
-    await admin.from("staff_hours_adjustment_requests").delete().eq("id", requestId);
-    await admin.from("staff_members").delete().eq("id", staffMemberId);
+    if (!admin) return;
+    if (requestId) {
+      await admin.from("staff_work_time_entries").delete().eq("staff_member_id", staffMemberId);
+      await admin.from("staff_hours_adjustment_requests").delete().eq("id", requestId);
+      await admin.from("staff_members").delete().eq("id", staffMemberId);
+    }
+    if (reviewerUserId) {
+      await admin.auth.admin.deleteUser(reviewerUserId);
+    }
   });
 
   it("allows only one concurrent review", async () => {
