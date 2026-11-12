@@ -17,12 +17,12 @@ import {
   parentPortalAccessHasProgram,
   type ParentPortalAccess,
 } from "@/lib/parent-portal/parent-portal-access-rpc";
-import { getRequestUser } from "@/lib/auth/session";
+import { getRequestUserFromClaims } from "@/lib/auth/session";
 import type { ParentPortalContextOption } from "@/lib/organization-settings/resolve-program-parent-features";
 import type { OrganizationFeatures } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/server";
 
-const getCachedRequestUser = cache(async () => getRequestUser());
+const getCachedRequestUser = cache(async () => getRequestUserFromClaims());
 
 const getRequestSupabase = cache(async () => {
   const cookieStore = await cookies();

@@ -7,7 +7,6 @@ import {
   CalendarGrid,
   type CalendarGridColors,
 } from "@/components/scheduler/CalendarGrid";
-import { DemoBookingContextColumn } from "@/components/scheduler/DemoBookingContextColumn";
 import { DemoBookingFooter } from "@/components/scheduler/DemoBookingFooter";
 import { DemoTimezoneSelect } from "@/components/scheduler/DemoTimezoneSelect";
 import ButtonLoadingLabel, {
@@ -680,55 +679,52 @@ function DemoSchedulerCalendar({
   if (storyTheme) {
     return (
       <div
-        className="grid lg:grid-cols-[260px_minmax(0,1fr)] overflow-hidden min-h-[500px] bg-white"
+        className="flex flex-col overflow-hidden min-h-[500px] min-w-0 bg-white"
         style={{
           borderRadius: storyTheme.radiusCard,
           boxShadow: storyTheme.shadowCard,
           border: `1px solid ${storyTheme.line}`,
         }}
       >
-        <DemoBookingContextColumn theme={storyTheme} />
-        <div className="flex flex-col min-w-0">
-          <DemoSchedulerStoryHeader
-            theme={storyTheme}
-            displayTimezone={displayTimezone}
-            timezoneOptions={timezoneOptions}
-            onDisplayTimezoneChange={handleDisplayTimezoneChange}
-          />
-          <div className="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_300px] flex-1 min-h-0">
-            <div
-              className="p-5 md:px-7 md:py-6 lg:border-r min-w-0"
-              style={{ borderColor: storyTheme.line }}
-            >
-              {calendarPane}
-            </div>
-            <div className="hidden lg:block min-w-0 border-l" style={{ borderColor: storyTheme.line }}>
-              <TimeSlotList {...timeSlotListProps} />
-            </div>
-            <AnimatePresence>
-              {selectedDate && (
-                <motion.div
-                  key="times-col-mobile"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto", transition: { duration: 0.28, ease } }}
-                  exit={{ opacity: 0, height: 0, transition: { duration: 0.2 } }}
-                  className="lg:hidden w-full border-t overflow-hidden"
-                  style={{ borderColor: storyTheme.line }}
-                >
-                  <TimeSlotList {...timeSlotListProps} dateStr={selectedDate} />
-                </motion.div>
-              )}
-            </AnimatePresence>
+        <DemoSchedulerStoryHeader
+          theme={storyTheme}
+          displayTimezone={displayTimezone}
+          timezoneOptions={timezoneOptions}
+          onDisplayTimezoneChange={handleDisplayTimezoneChange}
+        />
+        <div className="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_300px] flex-1 min-h-0">
+          <div
+            className="p-5 md:px-7 md:py-6 lg:border-r min-w-0"
+            style={{ borderColor: storyTheme.line }}
+          >
+            {calendarPane}
           </div>
-          <DemoBookingFooter
-            theme={storyTheme}
-            selectedBooking={selectedBooking}
-            onConfirm={onConfirm}
-            isSubmitting={isSubmitting}
-            preview={preview}
-            confirmDisabled={confirmDisabled}
-          />
+          <div className="hidden lg:block min-w-0 border-l" style={{ borderColor: storyTheme.line }}>
+            <TimeSlotList {...timeSlotListProps} />
+          </div>
+          <AnimatePresence>
+            {selectedDate && (
+              <motion.div
+                key="times-col-mobile"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto", transition: { duration: 0.28, ease } }}
+                exit={{ opacity: 0, height: 0, transition: { duration: 0.2 } }}
+                className="lg:hidden w-full border-t overflow-hidden"
+                style={{ borderColor: storyTheme.line }}
+              >
+                <TimeSlotList {...timeSlotListProps} dateStr={selectedDate} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
+        <DemoBookingFooter
+          theme={storyTheme}
+          selectedBooking={selectedBooking}
+          onConfirm={onConfirm}
+          isSubmitting={isSubmitting}
+          preview={preview}
+          confirmDisabled={confirmDisabled}
+        />
       </div>
     );
   }

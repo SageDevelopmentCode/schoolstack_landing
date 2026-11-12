@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useObserve } from 'expo-observe';
+import { useObserve } from '@/lib/mobile-observe';
 import { Redirect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';

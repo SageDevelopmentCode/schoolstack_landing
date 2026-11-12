@@ -3,11 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   buildAdminNavGroups,
 } from "@/lib/organization-settings/admin-nav";
-import { isAdminMessagesPath } from "@/lib/organization-settings/admin-routes";
+import { DEFAULT_FEATURES } from "@/lib/organization-settings/catalog";
+import { isAdminMessagesPath, schoolAdminPath } from "@/lib/organization-settings/admin-routes";
+import type { OrganizationPlan } from "@/lib/organization-settings/plans";
+import { FREE_PLAN_UPGRADE_QUERY } from "@/lib/school-admin/free-plan-upgrade";
 import {
   schoolAdminLoginPath,
   type SchoolAdminUserProfile,
@@ -42,6 +45,10 @@ const AdminActivityNotificationsPanel = dynamic(
   () => import("@/components/school-admin/AdminActivityNotificationsPanel"),
   { ssr: false },
 );
+const FreePlanUpgradeDialog = dynamic(
+  () => import("@/components/school-admin/FreePlanUpgradeDialog"),
+  { ssr: false },
+);
 
 type SchoolAdminBaselineProps = {
   slug: string;
@@ -61,6 +68,7 @@ type SchoolAdminBaselineProps = {
   /** Use `h-full` instead of `h-dvh` when nested in a fixed-height marketing frame. */
   fillParentHeight?: boolean;
   fridayBranchParentPortalPaused?: boolean;
+  plan?: OrganizationPlan;
   children: ReactNode;
 };
 
@@ -80,6 +88,7 @@ function SchoolAdminBaselineInner({
   previewPathname,
   fillParentHeight = false,
   fridayBranchParentPortalPaused = false,
+  plan = "custom",
   children,
 }: SchoolAdminBaselineProps) {
   const routerPathname = usePathname();
@@ -90,14 +99,29 @@ function SchoolAdminBaselineInner({
   const supabase = useMemo(() => createClient(), []);
   const { C } = useSchoolAdminStoryTheme();
 
+  const searchParams = useSearchParams();
+  const upgradeFromUrl =
+    plan === "free" ? searchParams.get(FREE_PLAN_UPGRADE_QUERY) : null;
+  const [pickedUpgradeLabel, setPickedUpgradeLabel] = useState<string | null>(null);
+  const upgradeLabel = pickedUpgradeLabel ?? upgradeFromUrl;
+
   const navGroups = useMemo(
     () =>
-      buildAdminNavGroups(
-        features.admin,
-        features.feature_nav?.admin,
-      ),
-    [features.admin, features.feature_nav?.admin],
+      plan === "free"
+        ? buildAdminNavGroups(DEFAULT_FEATURES.admin)
+        : buildAdminNavGroups(
+            features.admin,
+            features.feature_nav?.admin,
+          ),
+    [features.admin, features.feature_nav?.admin, plan],
   );
+
+  const closeUpgrade = useCallback(() => {
+    setPickedUpgradeLabel(null);
+    if (upgradeFromUrl) {
+      router.replace(schoolAdminPath(slug, "home"));
+    }
+  }, [router, slug, upgradeFromUrl]);
 
   const [sidebarExpanded, setSidebarExpanded] = useState(initialSidebarExpanded);
   const [supportOpen, setSupportOpen] = useState(false);
@@ -204,7 +228,24 @@ function SchoolAdminBaselineInner({
             unreadCount={unreadCount}
             messagesUnreadCount={messagesUnreadCount}
             fridayBranchParentPortalPaused={fridayBranchParentPortalPaused}
+            plan={plan}
+            onLockedFeature={
+              plan === "free" ? setPickedUpgradeLabel : undefined
+            }
           />
+
+          {plan === "free" ? (
+            <FreePlanUpgradeDialog
+              open={Boolean(upgradeLabel)}
+              featureLabel={upgradeLabel ?? ""}
+              schoolName={schoolName}
+              slug={slug}
+              userName={userProfile?.displayName ?? ""}
+              userEmail={userProfile?.email ?? ""}
+              previewMode={previewMode}
+              onClose={closeUpgrade}
+            />
+          ) : null}
 
           {supportOpen ? (
             <AdminSupportRequestModal

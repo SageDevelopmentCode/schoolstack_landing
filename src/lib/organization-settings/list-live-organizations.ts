@@ -47,7 +47,7 @@ export async function listLiveOrganizations(
   return hydrateOrganizationOptions(supabase, data ?? []);
 }
 
-/** Live organizations for specific slugs (e.g. the schools a signed-in user can access). */
+/** Live or onboarding organizations for specific slugs (the schools a signed-in user can open). */
 export async function listLiveOrganizationsBySlugs(
   supabase: SupabaseClient,
   slugs: string[],
@@ -57,7 +57,7 @@ export async function listLiveOrganizationsBySlugs(
   const { data, error } = await supabase
     .from("organizations")
     .select("id, slug, name")
-    .eq("status", "live")
+    .in("status", ["live", "onboarding"])
     .in("slug", slugs)
     .order("name", { ascending: true });
 

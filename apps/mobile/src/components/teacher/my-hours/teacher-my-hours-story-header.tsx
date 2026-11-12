@@ -10,9 +10,10 @@ type TeacherMyHoursViewNavProps = {
 };
 
 const VIEW_ITEMS = [
-  { key: 'day', label: 'Day', testID: 'teacher-my-hours-view-day' },
-  { key: 'week', label: 'Week', testID: 'teacher-my-hours-view-week' },
-  { key: 'month', label: 'Month', testID: 'teacher-my-hours-view-month' },
+  { key: 'day', label: 'Day', icon: 'sunny-outline' as const, testID: 'teacher-my-hours-view-day' },
+  { key: 'week', label: 'Week', icon: 'calendar-outline' as const, testID: 'teacher-my-hours-view-week' },
+  { key: 'month', label: 'Month', icon: 'calendar-number-outline' as const, testID: 'teacher-my-hours-view-month' },
+  { key: 'adjust', label: 'Adjust', icon: 'pencil-outline' as const, testID: 'teacher-my-hours-view-adjust' },
 ] as const;
 
 export function TeacherMyHoursViewNav({ view, onViewChange }: TeacherMyHoursViewNavProps) {
@@ -23,7 +24,6 @@ export function TeacherMyHoursViewNav({ view, onViewChange }: TeacherMyHoursView
         activeKey={view}
         onChange={(key) => onViewChange(key as MyHoursView)}
         accessibilityLabel="Hours view"
-        fullWidth
       />
     </View>
   );

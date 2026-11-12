@@ -28,7 +28,9 @@ import {
   teacherBulletinDetailRoute,
   teacherCommitteeWorkspaceRoute,
   teacherMessageThreadRoute,
+  teacherMoreRoute,
 } from '@/lib/teacher/teacher-nav';
+import type { StaffHoursPushNotificationData } from '@/lib/push-notification-payload';
 
 function messageThreadRoute(data: MessagePushNotificationData): Href | null {
   if (data.portal === 'parent') {
@@ -92,6 +94,10 @@ function attendanceRoute(_data: AttendancePushNotificationData): Href | null {
   return parentMoreRoute(_data.organizationSlug, 'attendance');
 }
 
+function staffHoursRoute(data: StaffHoursPushNotificationData): Href | null {
+  return teacherMoreRoute(data.organizationSlug, 'my-hours');
+}
+
 function pushNotificationRoute(data: PushNotificationData): Href | null {
   switch (data.kind) {
     case 'message':
@@ -106,6 +112,8 @@ function pushNotificationRoute(data: PushNotificationData): Href | null {
       return newsletterRoute(data);
     case 'attendance':
       return attendanceRoute(data);
+    case 'staff_hours':
+      return staffHoursRoute(data);
     default:
       return null;
   }

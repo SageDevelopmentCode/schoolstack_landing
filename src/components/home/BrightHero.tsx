@@ -91,11 +91,14 @@ export default function BrightHero() {
           </div>
         </div>
 
-        <div className="hero-frame-enter relative mx-auto mt-12 max-w-[1120px] lg:mt-14" style={{ perspective: tilt ? 1600 : undefined }}>
+        <div
+          className="hero-frame-enter relative mx-auto mt-12 max-w-[1120px] max-sm:-mx-5 max-sm:max-w-none max-sm:w-[calc(100%+2.5rem)] lg:mt-14"
+          style={{ perspective: tilt ? 1600 : undefined }}
+        >
           <motion.div style={tilt ? { rotateX, scale, y, transformOrigin: "50% 0%" } : undefined} className="relative">
             <FloatingStickers stickers={STICKERS_BY_DEMO[active]} />
             <motion.div
-              className="pointer-events-none absolute -inset-8 rounded-[48px] bg-[radial-gradient(closest-side,rgba(253,214,190,0.9),rgba(220,232,253,0.7),transparent)] blur-2xl"
+              className="pointer-events-none absolute -inset-8 rounded-[48px] bg-[radial-gradient(closest-side,rgba(253,214,190,0.9),rgba(220,232,253,0.7),transparent)] blur-2xl max-sm:hidden"
               style={{ opacity: tilt ? glow : 0.7 }}
               aria-hidden="true"
             />
@@ -104,7 +107,7 @@ export default function BrightHero() {
               tour
               designHeight={680}
               minScale={0.42}
-              className="relative rounded-[28px] border border-black/10 bg-white shadow-[0_50px_120px_rgba(20,20,40,0.16)]"
+              className="relative max-sm:rounded-none max-sm:border-x-0 bg-white sm:rounded-[28px] sm:border sm:border-black/10 shadow-[0_24px_64px_rgba(20,20,40,0.12)] sm:shadow-[0_50px_120px_rgba(20,20,40,0.16)]"
             />
           </motion.div>
         </div>

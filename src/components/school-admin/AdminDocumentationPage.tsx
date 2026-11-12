@@ -11,6 +11,7 @@ import {
 } from "@/lib/school-admin/admin-documentation";
 import { searchAdminDocumentationGuides } from "@/lib/school-admin/admin-documentation-search";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { OrganizationPlan } from "@/lib/organization-settings/plans";
 import type {
   OrganizationBranding,
   OrganizationFeatures,
@@ -21,6 +22,7 @@ type AdminDocumentationPageProps = {
   schoolName: string;
   branding: OrganizationBranding;
   features: OrganizationFeatures;
+  plan: OrganizationPlan;
 };
 
 function GuideCard({
@@ -68,13 +70,14 @@ export default function AdminDocumentationPage({
   schoolName,
   branding,
   features,
+  plan,
 }: AdminDocumentationPageProps) {
   const searchParams = useSearchParams();
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
 
   const allGuides = useMemo(
-    () => buildAdminDocumentationGuides(slug, features),
-    [slug, features],
+    () => buildAdminDocumentationGuides(slug, features, plan),
+    [slug, features, plan],
   );
 
   const [query, setQuery] = useState(() => searchParams.get("q") ?? "");

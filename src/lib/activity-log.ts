@@ -46,6 +46,7 @@ export const ACTIVITY_ACTIONS = {
   AUTH_OTP_FAILED: "auth.otp_failed",
   AUTH_ACCOUNT_CREATED: "auth.account_created",
   AUTH_SIGNED_IN: "auth.signed_in",
+  ORGANIZATION_FREE_CREATED: "organization.free_created",
   AUTH_SIGNED_OUT: "auth.signed_out",
   AUTH_SESSION_RESTORED: "auth.session_restored",
   AUTH_SESSION_CLEARED: "auth.session_cleared",
@@ -121,6 +122,7 @@ export const ACTIVITY_ACTIONS = {
   TEACHER_PARENT_FORM_RESPONSE_SIGNED: "teacher_parent_form.response_signed",
   BULLETIN_POST_PUBLISHED: "bulletin.post_published",
   SCHOOL_GALLERY_PHOTOS_UPLOADED: "school_gallery.photos_uploaded",
+  STAFF_HOURS_ADJUSTMENT_REQUESTED: "staff_hours.adjustment_requested",
   STAFF_CREATED: "staff.created",
   STAFF_UPDATED: "staff.updated",
   STAFF_PORTAL_ACCESS_DEACTIVATED: "staff.portal_access_deactivated",
@@ -290,6 +292,7 @@ const ACTION_LABELS: Record<string, string> = {
   [ACTIVITY_ACTIONS.AUTH_OTP_FAILED]: "Verification code failed",
   [ACTIVITY_ACTIONS.AUTH_ACCOUNT_CREATED]: "Account created",
   [ACTIVITY_ACTIONS.AUTH_SIGNED_IN]: "Signed in",
+  [ACTIVITY_ACTIONS.ORGANIZATION_FREE_CREATED]: "Free school created",
   [ACTIVITY_ACTIONS.AUTH_SIGNED_OUT]: "Signed out",
   [ACTIVITY_ACTIONS.AUTH_SESSION_RESTORED]: "Session restored",
   [ACTIVITY_ACTIONS.AUTH_SESSION_CLEARED]: "Session cleared unexpectedly",
@@ -364,6 +367,7 @@ const ACTION_LABELS: Record<string, string> = {
   [ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_RESPONSE_SIGNED]: "Teacher form signed",
   [ACTIVITY_ACTIONS.BULLETIN_POST_PUBLISHED]: "Bulletin published",
   [ACTIVITY_ACTIONS.SCHOOL_GALLERY_PHOTOS_UPLOADED]: "Photos uploaded",
+  [ACTIVITY_ACTIONS.STAFF_HOURS_ADJUSTMENT_REQUESTED]: "Hours adjustment requested",
   [ACTIVITY_ACTIONS.STAFF_CREATED]: "Staff member added",
   [ACTIVITY_ACTIONS.STAFF_UPDATED]: "Staff member updated",
   [ACTIVITY_ACTIONS.STAFF_PORTAL_ACCESS_DEACTIVATED]: "Staff portal access deactivated",
@@ -405,6 +409,15 @@ export type AuthActivityMetadata = {
   client?: "web" | "mobile";
   platform?: "ios" | "android";
   appVersion?: string;
+  /** Store binary build (iOS CFBundleVersion / Android versionCode). Mobile only. */
+  buildNumber?: string;
+  /** Active EAS OTA update id; absent on the embedded (store) bundle. Mobile only. */
+  updateId?: string;
+  updateChannel?: string;
+  runtimeVersion?: string;
+  isEmbeddedLaunch?: boolean;
+  osVersion?: string;
+  deviceModel?: string;
   freshSignIn?: boolean;
 };
 

@@ -8,6 +8,8 @@ description: >-
 
 # Parent Portal — School Day Story Design
 
+> MudKitchen-owned surfaces (onboarding, empty states, celebrations) and the shared focus-ring standard: see `.agents/skills/mudkitchen-garden-design/in-app.md`.
+
 ## When to use
 
 - Redesigning or building a **parent portal** page under `src/app/school/[slug]/parent/`

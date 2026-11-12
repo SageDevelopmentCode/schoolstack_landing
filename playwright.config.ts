@@ -23,13 +23,17 @@ const config: PlaywrightTestConfig = {
   testDir: "./e2e",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 1 : 0,
+  // Stop a systemically broken CI run early instead of letting every test time out.
+  maxFailures: process.env.CI ? 15 : undefined,
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   globalSetup: require.resolve("./e2e/global-setup"),
   use: {
     baseURL,
     trace: "on-first-retry",
+    // A stuck subresource (it blocks the `load` event) fails the navigation fast in CI.
+    navigationTimeout: process.env.CI ? 20_000 : undefined,
   },
   projects: [
     {

@@ -112,6 +112,7 @@ export default async function SchoolAdminProtectedLayout({
       initialActivityUnreadCount={initialActivityUnreadCount}
       openPortalLinksInNewTab={openPortalLinksInNewTab}
       fridayBranchParentPortalPaused={org.fridayBranchSettings.parent_portal_paused}
+      plan={org.plan}
     >
       {children}
     </SchoolAdminBaseline>

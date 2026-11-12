@@ -7,6 +7,12 @@ import { createClient } from "@/utils/supabase/server";
 import { organizationSettingsTag } from "./cache-tags";
 import { mergeBranding, mergeFeatures } from "./merge";
 import {
+  applyPlanToFeatures,
+  isMissingOrganizationPlanColumnError,
+  parseOrganizationPlan,
+  type OrganizationPlan,
+} from "./plans";
+import {
   parseOrganizationFridayBranchSettings,
   type OrganizationFridayBranchSettings,
 } from "@/lib/school-admin/friday-branch/friday-branch-org-settings";
@@ -16,6 +22,7 @@ export type OrganizationWithSettings = {
   id: string;
   slug: string;
   name: string;
+  plan: OrganizationPlan;
   branding: OrganizationBranding;
   features: OrganizationFeatures;
   fridayBranchSettings: OrganizationFridayBranchSettings;
@@ -25,13 +32,32 @@ export async function fetchOrganizationWithSettingsUncached(
   supabase: SupabaseClient,
   slug: string,
 ): Promise<OrganizationWithSettings | null> {
-  const { data: org, error: orgError } = await supabase
+  const selected = await supabase
     .from("organizations")
-    .select("id, slug, name")
+    .select("id, slug, name, plan")
     .eq("slug", slug)
     .maybeSingle();
 
-  if (orgError || !org) return null;
+  let org: { id: string; slug: string; name: string } | null = null;
+  let plan: OrganizationPlan = "custom";
+
+  if (
+    selected.error &&
+    isMissingOrganizationPlanColumnError(selected.error)
+  ) {
+    const fallback = await supabase
+      .from("organizations")
+      .select("id, slug, name")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (fallback.error || !fallback.data) return null;
+    org = fallback.data;
+  } else if (selected.error || !selected.data) {
+    return null;
+  } else {
+    org = selected.data;
+    plan = parseOrganizationPlan(selected.data.plan);
+  }
 
   const { data: settings } = await supabase
     .from("organization_settings_public")
@@ -43,11 +69,15 @@ export async function fetchOrganizationWithSettingsUncached(
     id: org.id,
     slug: org.slug,
     name: org.name,
+    plan,
     branding: mergeBranding(
       settings?.branding as Record<string, unknown> | null | undefined,
     ),
-    features: mergeFeatures(
-      settings?.features as Record<string, unknown> | null | undefined,
+    features: applyPlanToFeatures(
+      mergeFeatures(
+        settings?.features as Record<string, unknown> | null | undefined,
+      ),
+      plan,
     ),
     fridayBranchSettings: parseOrganizationFridayBranchSettings(
       settings?.friday_branch as Record<string, unknown> | null | undefined,

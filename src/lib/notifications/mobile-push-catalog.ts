@@ -14,6 +14,7 @@ export const MOBILE_PUSH_NOTIFICATION_KINDS = [
   "newsletter.published",
   "attendance.present",
   "attendance.pickup",
+  "staff_hours.adjustment_reviewed",
 ] as const;
 
 export type MobilePushNotificationKind =
@@ -132,6 +133,14 @@ export const MOBILE_PUSH_CATALOG: MobilePushCatalogEntry[] = [
       "Sent to linked guardians when pickup is recorded for a present student. Opens attendance in the parent mobile app (payload kind: attendance, intent: pickup).",
     channel: "attendance",
     recipientPortals: ["parent"],
+  },
+  {
+    kind: "staff_hours.adjustment_reviewed",
+    label: "Hour adjustment reviewed",
+    description:
+      "Sent to a staff member when a school admin approves or denies an hour adjustment. Opens My Hours in the teacher mobile app (payload kind: staff_hours).",
+    channel: "staff_hours",
+    recipientPortals: ["teacher"],
   },
 ];
 

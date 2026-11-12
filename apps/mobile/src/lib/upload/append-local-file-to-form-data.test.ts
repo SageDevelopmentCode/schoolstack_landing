@@ -45,4 +45,26 @@ describe('appendLocalFileToFormData', () => {
       }),
     ).rejects.toBeInstanceOf(LocalFileReadError);
   });
+  it.each(['content://media/external/images/media/1', 'file:///data/user/0/app/cache/a.png'])(
+    'reads %s through fetch and appends a Blob, never a { uri } part',
+    async (uri) => {
+      const blob = new Blob(['bytes'], { type: 'image/png' });
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        blob: () => Promise.resolve(blob),
+      }) as typeof fetch;
+
+      const formData = new FormData();
+      await appendLocalFileToFormData(formData, 'attachments', {
+        uri,
+        name: 'a.png',
+        type: 'image/png',
+      });
+
+      const part = formData.getAll('attachments')[0];
+      expect(part).toBeInstanceOf(Blob);
+      expect(part).not.toHaveProperty('uri');
+      expect(global.fetch).toHaveBeenCalledWith(uri);
+    },
+  );
 });

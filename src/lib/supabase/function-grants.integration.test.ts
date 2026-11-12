@@ -74,6 +74,63 @@ const SERVICE_ONLY_FUNCTIONS: Array<{ name: string; args: Record<string, unknown
   { name: "latest_messages_for_threads", args: { p_thread_ids: [ZERO] } },
   { name: "thread_unread_counts", args: { p_user_id: ZERO, p_thread_ids: [ZERO] } },
   { name: "count_admin_unread_messages", args: { p_organization_id: ZERO, p_user_id: ZERO } },
+  // 20261152: the public-form rate limiter is called with the service role only.
+  {
+    name: "check_public_form_submission_allowed",
+    args: { p_form: "grants_test", p_ip: "203.0.113.1", p_email: "grants@example.test" },
+  },
+  {
+    name: "record_public_form_submission_event",
+    args: { p_form: "grants_test", p_ip: "203.0.113.1", p_email: "grants@example.test" },
+  },
+  {
+    name: "record_public_form_submission_if_allowed",
+    args: { p_form: "grants_test", p_ip: "203.0.113.1", p_email: "grants@example.test" },
+  },
+  {
+    name: "replace_staff_work_time_closed_sessions_atomic",
+    args: {
+      p_organization_id: ZERO,
+      p_staff_member_id: ZERO,
+      p_work_date: "2026-01-01",
+      p_recorded_by_user_id: ZERO,
+      p_entries: [],
+    },
+  },
+  {
+    name: "review_staff_hours_adjustment_request_atomic",
+    args: {
+      p_organization_id: ZERO,
+      p_request_id: ZERO,
+      p_decision: "denied",
+      p_reviewer_user_id: ZERO,
+      p_timezone: "America/Denver",
+    },
+  },
+  {
+    name: "upsert_staff_hours_adjustment_request_atomic",
+    args: {
+      p_organization_id: ZERO,
+      p_staff_member_id: ZERO,
+      p_work_date: "2026-01-01",
+      p_note: null,
+      p_proposed_sessions: [{ clockIn: "09:00", clockOut: "17:00" }],
+      p_previous_sessions: [],
+      p_submitted_by_user_id: ZERO,
+    },
+  },
+  {
+    name: "list_staff_hours_adjustment_requests_for_org",
+    args: { p_organization_id: ZERO, p_history_limit: 100 },
+  },
+  {
+    name: "create_free_school_atomic",
+    args: {
+      p_user_id: ZERO,
+      p_school_name: "Grants Test School",
+      p_timezone: "America/Chicago",
+    },
+  },
 ];
 
 /** Functions with an internal caller check: a signed-in user with no membership is rejected. */
@@ -85,6 +142,16 @@ const GUARDED_FUNCTIONS: Array<{ name: string; args: Record<string, unknown> }> 
   { name: "admin_tuition_page_meta", args: { p_organization_id: ZERO } },
   { name: "parent_billing_page_meta", args: { p_organization_id: ZERO, p_family_id: ZERO } },
   { name: "parent_portal_home_meta", args: { p_organization_id: ZERO, p_family_id: ZERO } },
+];
+
+/**
+ * RLS helpers (20261155). Policies call them, so a signed-in user may execute them.
+ * They only answer yes/no for the caller; anon stays revoked.
+ */
+const RLS_HELPER_FUNCTIONS: Array<{ name: string; args: Record<string, unknown> }> = [
+  { name: "user_can_read_scheduled_visit", args: { p_visit_id: ZERO } },
+  { name: "user_can_read_observation_slot", args: { p_slot_id: ZERO } },
+  { name: "user_can_read_checklist_template", args: { p_template_id: ZERO } },
 ];
 
 /** Already guarded internally by an earlier migration (platform admin / org admin only). */
@@ -178,6 +245,18 @@ describeIntegration("function grants lockdown", () => {
     it(`${fn.name} rejects a signed-in user without membership`, async () => {
       const { error } = await signedIn.rpc(fn.name, fn.args);
       assert.equal(error?.code, PERMISSION_DENIED, `${fn.name}: ${error?.message ?? "no error"}`);
+    });
+  }
+
+  for (const fn of RLS_HELPER_FUNCTIONS) {
+    it(`${fn.name} is not callable with the public key`, async () => {
+      const { error } = await anon.rpc(fn.name, fn.args);
+      assert.equal(error?.code, PERMISSION_DENIED, `${fn.name}: ${error?.message ?? "no error"}`);
+    });
+
+    it(`${fn.name} is callable by a signed-in user`, async () => {
+      const { error } = await signedIn.rpc(fn.name, fn.args);
+      assert.notEqual(error?.code, PERMISSION_DENIED, `${fn.name}: ${error?.message ?? ""}`);
     });
   }
 

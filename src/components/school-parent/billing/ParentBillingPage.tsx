@@ -29,15 +29,9 @@ import TuitionPayAmountField, {
   type TuitionPayAmountMode,
 } from "@/components/school-parent/billing/TuitionPayAmountField";
 import PaymentMethodSelectionModal from "@/components/admissions/PaymentMethodSelectionModal";
-import {
-  filterChargesForFamilyGuardian,
-  listChargesForFamily,
-} from "@/lib/tuition/charges";
-import { chargeRemainingCents, listBillingSplits } from "@/lib/tuition/billing-splits";
+import { chargeRemainingCents } from "@/lib/tuition/billing-splits";
 import { isChargePayable } from "@/lib/tuition/charge-payability";
-import { listAdjustmentsForFamily } from "@/lib/tuition/adjustments";
 import {
-  listParentTuitionPaymentHistory,
   listPendingTuitionPaymentsForFamily,
   resolveLastPaymentDaySummary,
 } from "@/lib/tuition/payments";
@@ -50,27 +44,16 @@ import {
 import { formatCents } from "@/lib/tuition/pricing";
 import { pickRecentLateFeeNotice } from "@/lib/tuition/late-fee-notice";
 import { formatCentsForInput } from "@/lib/admissions/application-form-schema";
-import {
-  getAutopayEnabledForGuardian,
-} from "@/lib/tuition/payment-settlement";
-import {
-  getDefaultPaymentMethodForGuardian,
-  type SavedPaymentMethodSummary,
-} from "@/lib/tuition/payment-methods";
-import { rowToBillingAccount } from "@/lib/tuition/row-mappers";
+import type { SavedPaymentMethodSummary } from "@/lib/tuition/payment-methods";
 import {
   childFirstNameFromFullName,
   countOpenChargesOnEarliestDueDate,
-  fetchParentBillingFamilySummary,
   listOpenChargesOnEarliestDueDate,
   pickNextPendingChildKey,
   resolveFamilyPayNowLabel,
   type ParentBillingFamilySummary,
 } from "@/lib/tuition/parent-billing-summary";
-import {
-  fetchFamilyBillingReadiness,
-  type FamilyBillingReadiness,
-} from "@/lib/tuition/tuition-readiness";
+import type { FamilyBillingReadiness } from "@/lib/tuition/tuition-readiness";
 import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
@@ -166,7 +149,6 @@ function ParentBillingPageContent({
   const [pendingAutopayEnabled, setPendingAutopayEnabled] = useState(false);
   const [autopaySaving, setAutopaySaving] = useState(false);
   const [paymentMethodLoading, setPaymentMethodLoading] = useState(false);
-  const [guardianId] = useState<string | null>(initialData?.guardianId ?? null);
   const [hasBillingSplit] = useState(initialData?.hasBillingSplit ?? false);
   const [initialLoading, setInitialLoading] = useState(!hasInitialData || billingDeferred);
   const [refreshing, setRefreshing] = useState(false);
@@ -311,40 +293,32 @@ function ParentBillingPageContent({
       setInitialLoading(true);
     }
     try {
-      const billingSplits = await listBillingSplits(supabase, familyId);
-      const splitActive = billingSplits.length > 0;
-      const [allChargeRows, paymentRows, pendingPaymentRows, adjustmentRows, readinessState] =
-        await Promise.all([
-          listChargesForFamily(supabase, familyId),
-          listParentTuitionPaymentHistory(supabase, familyId),
-          listPendingTuitionPaymentsForFamily(supabase, familyId),
-          listAdjustmentsForFamily(supabase, familyId),
-          fetchFamilyBillingReadiness(supabase, {
-            organizationId,
-            familyId,
-            slug,
-          }),
-        ]);
+      const params = new URLSearchParams({ organizationId, familyId, slug });
+      const [billingResponse, pendingPaymentRows] = await Promise.all([
+        fetch(`/api/parent-portal/billing?${params}`),
+        listPendingTuitionPaymentsForFamily(supabase, familyId),
+      ]);
+      const payload = (await billingResponse.json().catch(() => ({}))) as Partial<
+        ParentBillingInitialData
+      > & { error?: string };
 
-      const chargeRows = filterChargesForFamilyGuardian(
-        allChargeRows,
-        guardianId,
-        { hasBillingSplit: splitActive },
-      );
+      if (!billingResponse.ok || !payload.familySummary || !payload.readiness) {
+        throw new Error(
+          typeof payload.error === "string" && payload.error
+            ? payload.error
+            : "Failed to load billing data.",
+        );
+      }
 
-      const summary = await fetchParentBillingFamilySummary(supabase, {
-        organizationId,
-        familyId,
-        charges: chargeRows,
-        allFamilyCharges: splitActive ? allChargeRows : undefined,
-      });
-
-      setCharges(chargeRows);
-      setPayments(paymentRows);
+      const summary = payload.familySummary;
+      setCharges(payload.charges ?? []);
+      setPayments(payload.payments ?? []);
       setPendingTuitionPayments(pendingPaymentRows);
-      setAdjustments(adjustmentRows);
-      setReadiness(readinessState);
+      setAdjustments(payload.adjustments ?? []);
+      setReadiness(payload.readiness);
       setFamilySummary(summary);
+      setAutopayEnabledState(payload.autopayEnabled ?? false);
+      setSavedPaymentMethod(payload.savedPaymentMethod ?? null);
       setActiveTabKey((prev) => {
         if (prev && summary.children.some((child) => child.childKey === prev)) {
           return prev;
@@ -354,31 +328,6 @@ function ParentBillingPageContent({
         }
         return PARENT_BILLING_SUMMARY_TAB;
       });
-
-      const { data: account } = await supabase
-        .from("tuition_billing_accounts")
-        .select("*")
-        .eq("organization_id", organizationId)
-        .eq("family_id", familyId)
-        .maybeSingle();
-
-      const billingAccount = account ? rowToBillingAccount(account) : null;
-      setAutopayEnabledState(
-        billingAccount
-          ? getAutopayEnabledForGuardian(billingAccount, guardianId)
-          : false,
-      );
-
-      if (billingAccount) {
-        const method = await getDefaultPaymentMethodForGuardian(supabase, {
-          billingAccountId: billingAccount.id,
-          guardianId,
-          defaultPaymentMethodId: billingAccount.defaultPaymentMethodId,
-        });
-        setSavedPaymentMethod(method);
-      } else {
-        setSavedPaymentMethod(null);
-      }
 
       hasLoadedBillingRef.current = true;
       return summary;
@@ -397,7 +346,7 @@ function ParentBillingPageContent({
       setInitialLoading(false);
       setRefreshing(false);
     }
-  }, [familyId, guardianId, organizationId, previewMode, slug, supabase]);
+  }, [familyId, organizationId, previewMode, slug, supabase]);
 
   const fetchDeferredBillingLists = useCallback(async () => {
     if (previewMode || isProgramParentPortalPreviewFamilyId(familyId)) return;

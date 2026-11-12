@@ -19,7 +19,7 @@ import ParentSupplyListPage from "@/components/school-parent/supply-list/ParentS
 import ParentTeachingSchedulePage from "@/components/school-parent/teaching-schedule/ParentTeachingSchedulePage";
 import ParentMessagesInboxLoader from "@/components/school-parent/messages/ParentMessagesInboxLoader";
 import ParentMessagesPageShell from "@/components/school-parent/messages/ParentMessagesPageShell";
-import { getRequestUser } from "@/lib/auth/session";
+import { getRequestUserFromClaims } from "@/lib/auth/session";
 import ParentClassroomSignupsPage from "@/components/classroom-signups/parent/ParentClassroomSignupsPage";
 import ParentFormsDocumentsPage from "@/components/school-parent/forms-documents/ParentFormsDocumentsPage";
 import ParentNewslettersPage from "@/components/school-parent/newsletters/ParentNewslettersPage";
@@ -210,7 +210,7 @@ export async function renderSchoolParentFeaturePage(
     schoolSlug: context.slug,
   });
 
-  const user = await getRequestUser();
+  const user = await getRequestUserFromClaims();
   if (!user) {
     notFound();
   }

@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import ParentAuthPage from "@/components/admissions/ParentAuthPage";
-import { getRequestUser } from "@/lib/auth/session";
+import { getRequestUserFromClaims } from "@/lib/auth/session";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
 import { getCachedParentPortalEnrolledAccess } from "@/lib/parent-portal/parent-portal-server-cache";
@@ -25,10 +25,13 @@ export default async function SchoolParentProtectedLayout({
   }
 
   if (!isParentPortalEnabled(org.features)) {
+    if (org.plan === "free") {
+      notFound();
+    }
     redirect(`/school/${slug}/apply`);
   }
 
-  const user = await getRequestUser();
+  const user = await getRequestUserFromClaims();
 
   if (!user) {
     return (

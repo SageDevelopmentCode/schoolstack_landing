@@ -22,16 +22,20 @@ export type Sticker = {
   color: string;
 };
 
+const PARENT_STICKERS: [Sticker, Sticker] = [
+  { id: "p1", icon: CreditCard, title: "Tuition paid", subtitle: "October \u00b7 autopay", color: "#059669" },
+  { id: "p2", icon: MessageSquare, title: "New message", subtitle: "From Ms. Rivera", color: "#0284C7" },
+];
+
+const TEACHER_STICKERS: [Sticker, Sticker] = [
+  { id: "t1", icon: CalendarCheck, title: "Attendance logged", subtitle: "14 of 15 present", color: "#10b981" },
+  { id: "t2", icon: MessageSquare, title: "Parent replied", subtitle: "Field trip form", color: "#0284C7" },
+];
+
 /** Sample notifications that echo what each demo surface does. */
 export const STICKERS_BY_DEMO: Record<DemoStageKey, [Sticker, Sticker]> = {
-  parent: [
-    { id: "p1", icon: CreditCard, title: "Tuition paid", subtitle: "October \u00b7 autopay", color: "#059669" },
-    { id: "p2", icon: MessageSquare, title: "New message", subtitle: "From Ms. Rivera", color: "#0284C7" },
-  ],
-  teacher: [
-    { id: "t1", icon: CalendarCheck, title: "Attendance logged", subtitle: "14 of 15 present", color: "#10b981" },
-    { id: "t2", icon: MessageSquare, title: "Parent replied", subtitle: "Field trip form", color: "#0284C7" },
-  ],
+  parent: PARENT_STICKERS,
+  teacher: TEACHER_STICKERS,
   admin: [
     { id: "a1", icon: UserPlus, title: "New application", subtitle: "Grade 2 \u00b7 Fall", color: "#f97316" },
     { id: "a2", icon: CheckCircle2, title: "Enrollment complete", subtitle: "All forms signed", color: "#4A6B52" },
@@ -60,6 +64,7 @@ export const STICKERS_BY_DEMO: Record<DemoStageKey, [Sticker, Sticker]> = {
     { id: "m1", icon: Mail, title: "Campaign sent", subtitle: "Open house invite", color: "#f97316" },
     { id: "m2", icon: UserPlus, title: "Lead nurtured", subtitle: "Tour scheduled", color: "#A05C45" },
   ],
+  messages: [PARENT_STICKERS[1], TEACHER_STICKERS[1]],
 };
 
 type FloatingStickersProps = {

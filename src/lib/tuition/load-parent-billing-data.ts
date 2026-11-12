@@ -28,6 +28,7 @@ import type { ParentFormListItem } from "@/lib/school-parent/forms-documents/typ
 import type { FamilyBillingReadiness } from "@/lib/tuition/tuition-readiness";
 import type { TuitionCharge, TuitionAdjustment } from "@/lib/tuition/types";
 import type { ParentTuitionPaymentRecord } from "@/lib/tuition/payments";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 
@@ -59,6 +60,8 @@ export async function loadParentBillingInitialDataWithClient(
     userId: string;
   },
 ): Promise<ParentBillingInitialData> {
+  // Catalog tables are staff-only. Callers check family access before this runs.
+  const catalogClient = createAdminClient();
   const guardianId = await resolveGuardianIdForUser(supabase, {
     familyId: input.familyId,
     userId: input.userId,
@@ -71,11 +74,15 @@ export async function loadParentBillingInitialDataWithClient(
       listChargesForFamily(supabase, input.familyId),
       listParentTuitionPaymentHistory(supabase, input.familyId),
       listAdjustmentsForFamily(supabase, input.familyId),
-      fetchFamilyBillingReadiness(supabase, {
-        organizationId: input.organizationId,
-        familyId: input.familyId,
-        slug: input.slug,
-      }),
+      fetchFamilyBillingReadiness(
+        supabase,
+        {
+          organizationId: input.organizationId,
+          familyId: input.familyId,
+          slug: input.slug,
+        },
+        { catalogClient },
+      ),
       loadParentTuitionAgreements(supabase, input.organizationId, input.familyId),
     ]);
 
@@ -85,12 +92,16 @@ export async function loadParentBillingInitialDataWithClient(
     { hasBillingSplit },
   );
 
-  const familySummary = await fetchParentBillingFamilySummary(supabase, {
-    organizationId: input.organizationId,
-    familyId: input.familyId,
-    charges: chargeRows,
-    allFamilyCharges,
-  });
+  const familySummary = await fetchParentBillingFamilySummary(
+    supabase,
+    {
+      organizationId: input.organizationId,
+      familyId: input.familyId,
+      charges: chargeRows,
+      allFamilyCharges,
+    },
+    { catalogClient },
+  );
 
   const { data: account } = await supabase
     .from("tuition_billing_accounts")

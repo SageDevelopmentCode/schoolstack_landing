@@ -174,6 +174,7 @@ export const DEFAULT_FEATURES: OrganizationFeatures = {
   },
   observation_booking: true,
   homeschool_drop_in: false,
+  staff_hours_adjustments_require_approval: true,
 };
 
 export const DEFAULT_APPLY_AUTH_ENTRY_OPTIONS: ApplyAuthEntryOption[] = [

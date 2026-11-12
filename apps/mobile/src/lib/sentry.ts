@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react-native';
 import Constants from 'expo-constants';
 
 import { isMobileE2e } from '@/lib/e2e';
+import { mobileSentryDist, mobileSentryTags } from '@/lib/mobile-build-info';
 import { reportUnhandledRejectionFromSentryEvent } from '@/lib/mobile-global-error-reporting';
 
 let sentryInitialized = false;
@@ -30,6 +31,7 @@ export function initMobileSentry(): void {
     dsn,
     environment: __DEV__ ? 'development' : 'production',
     release: appVersion ? `mudkitchen-mobile@${appVersion}` : undefined,
+    dist: mobileSentryDist(),
     tracesSampleRate: __DEV__ ? 1.0 : 0.1,
     enableAutoPerformanceTracing: true,
     enableNativeFramesTracking: !isMobileE2e,
@@ -45,6 +47,8 @@ export function initMobileSentry(): void {
     },
     tracePropagationTargets: [/trymudkitchen\.com/i, /localhost/i, /127\.0\.0\.1/i],
   });
+
+  Sentry.setTags(mobileSentryTags());
 
   sentryInitialized = true;
 }

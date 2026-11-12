@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -18,6 +18,7 @@ import { StoryErrorBanner } from '@/components/story/story-error-banner';
 import { StorySectionKicker } from '@/components/story/story-section-kicker';
 import { MY_HOURS_CARD_BODY_PADDING } from '@/components/teacher/my-hours/teacher-my-hours-theme';
 import { TEACHER_FLOATING_TAB_BAR_HEIGHT } from '@/components/teacher/teacher-floating-tab-bar';
+import { TeacherMyHoursAdjustPanel } from '@/components/teacher/my-hours/teacher-my-hours-adjust-panel';
 import { TeacherMyHoursDayPanel } from '@/components/teacher/my-hours/teacher-my-hours-day-panel';
 import { TeacherMyHoursMonthPanel } from '@/components/teacher/my-hours/teacher-my-hours-month-panel';
 import { TeacherMyHoursSkeleton } from '@/components/teacher/my-hours/teacher-my-hours-skeleton';
@@ -37,8 +38,15 @@ import {
   formatMonthYear,
   formatWallClockTime,
   isSameDay,
+  parseDateKey,
+  startOfWeekMonday,
   toDateKey,
 } from '@/lib/teacher/my-hours/format-duration';
+import {
+  mergeTeacherMyHoursPageData,
+  nextLoadedAdjustWeekToken,
+  weekRangeNeedsFetch,
+} from '@/lib/teacher/my-hours/my-hours-range-merge';
 import {
   activeSessionLoggedMinutesForFocusDay,
   activeSessionStartedAtForFocusDay,
@@ -51,6 +59,7 @@ import {
 } from '@/lib/school-admin/committees/committee-workspace-load';
 import {
   fetchTeacherMyHoursPageData,
+  postTeacherMyHoursAdjustment,
   postTeacherMyHoursClockIn,
   postTeacherMyHoursClockOut,
 } from '@/lib/teacher/my-hours/teacher-my-hours-api';
@@ -90,6 +99,12 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const adjustWeekFetchRef = useRef(0);
+  const [loadedAdjustWeekToken, setLoadedAdjustWeekToken] = useState<string | null>(
+    null,
+  );
+  const loadedAdjustWeekStartKeyRef = useRef<string | null>(null);
+  const loadedAdjustWeekEndKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     void ensureHomeLoaded();
@@ -110,6 +125,13 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
           fetchTeacherMyHoursPageData(organizationId, slug),
         );
         setPageData(next);
+        setLoadedAdjustWeekToken(
+          nextLoadedAdjustWeekToken(
+            loadedAdjustWeekStartKeyRef.current,
+            loadedAdjustWeekEndKeyRef.current,
+            next,
+          ),
+        );
         const ref = referenceDateFromKey(next.referenceDateKey);
         setFocusDate(ref);
         setMonthDate(new Date(ref.getFullYear(), ref.getMonth(), 1));
@@ -151,6 +173,99 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
   const elapsedSeconds = useLiveElapsed(activeSessionStartedAt);
 
   const focusDateKey = toDateKey(focusDate);
+
+  const adjustWeekStartKey = useMemo(() => {
+    if (view !== 'adjust') return null;
+    return toDateKey(startOfWeekMonday(focusDate));
+  }, [view, focusDate]);
+
+  const adjustWeekEndKey = useMemo(() => {
+    if (adjustWeekStartKey == null) return null;
+    return toDateKey(addDays(parseDateKey(adjustWeekStartKey), 6));
+  }, [adjustWeekStartKey]);
+
+  const adjustWeekToken =
+    adjustWeekStartKey != null && adjustWeekEndKey != null
+      ? `${adjustWeekStartKey}:${adjustWeekEndKey}`
+      : null;
+
+  loadedAdjustWeekStartKeyRef.current = adjustWeekStartKey;
+  loadedAdjustWeekEndKeyRef.current = adjustWeekEndKey;
+
+  const needsAdjustWeekFetch =
+    pageData != null &&
+    view === 'adjust' &&
+    adjustWeekStartKey != null &&
+    adjustWeekEndKey != null &&
+    weekRangeNeedsFetch(
+      adjustWeekStartKey,
+      adjustWeekEndKey,
+      pageData.rangeFrom,
+      pageData.rangeTo,
+    );
+
+  const adjustWeekLoading =
+    needsAdjustWeekFetch &&
+    adjustWeekToken != null &&
+    loadedAdjustWeekToken !== adjustWeekToken;
+
+  const loadAdjustWeekIntoPageData = useCallback(
+    async (
+      base: TeacherMyHoursPageData,
+      weekStartKey: string,
+      weekEndKey: string,
+    ): Promise<TeacherMyHoursPageData> => {
+      if (!weekRangeNeedsFetch(weekStartKey, weekEndKey, base.rangeFrom, base.rangeTo)) {
+        return base;
+      }
+      const patch = await fetchTeacherMyHoursPageData(organizationId, slug, {
+        from: weekStartKey,
+        to: weekEndKey,
+      });
+      return mergeTeacherMyHoursPageData(base, patch);
+    },
+    [organizationId, slug],
+  );
+
+  useEffect(() => {
+    if (
+      !needsAdjustWeekFetch ||
+      adjustWeekStartKey == null ||
+      adjustWeekEndKey == null ||
+      adjustWeekToken == null ||
+      loadedAdjustWeekToken === adjustWeekToken
+    ) {
+      return;
+    }
+
+    const fetchId = ++adjustWeekFetchRef.current;
+
+    void (async () => {
+      try {
+        const patch = await fetchTeacherMyHoursPageData(organizationId, slug, {
+          from: adjustWeekStartKey,
+          to: adjustWeekEndKey,
+        });
+        if (fetchId !== adjustWeekFetchRef.current) return;
+        setPageData((current) =>
+          current ? mergeTeacherMyHoursPageData(current, patch) : current,
+        );
+        setLoadedAdjustWeekToken(adjustWeekToken);
+      } catch (err) {
+        if (fetchId !== adjustWeekFetchRef.current) return;
+        void reportError('my_hours.adjust_week_load', err);
+      }
+    })();
+  }, [
+    needsAdjustWeekFetch,
+    adjustWeekStartKey,
+    adjustWeekEndKey,
+    adjustWeekToken,
+    loadedAdjustWeekToken,
+    organizationId,
+    slug,
+    reportError,
+  ]);
 
   const dayLog = useMemo(
     () =>
@@ -195,6 +310,9 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
     try {
       const next = await postTeacherMyHoursClockIn(organizationId, slug);
       setPageData(next);
+      setLoadedAdjustWeekToken(
+        nextLoadedAdjustWeekToken(adjustWeekStartKey, adjustWeekEndKey, next),
+      );
       const clockInAt = next.activeSession?.clockInAt;
       Alert.alert(
         'Clocked in',
@@ -216,6 +334,8 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
     organizationId,
     slug,
     reportError,
+    adjustWeekStartKey,
+    adjustWeekEndKey,
   ]);
 
   const handleClockOut = useCallback(async () => {
@@ -227,6 +347,9 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
         slug,
       );
       setPageData(next);
+      setLoadedAdjustWeekToken(
+        nextLoadedAdjustWeekToken(adjustWeekStartKey, adjustWeekEndKey, next),
+      );
       Alert.alert(
         'Session saved',
         `Logged ${formatHoursMinutes(Math.max(1, sessionMinutes))}`,
@@ -245,6 +368,8 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
     organizationId,
     slug,
     reportError,
+    adjustWeekStartKey,
+    adjustWeekEndKey,
   ]);
 
   const shiftFocusDate = useCallback(
@@ -277,7 +402,7 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
     if (view === 'month') {
       shiftMonth(-1);
     } else {
-      shiftFocusDate(view === 'week' ? -7 : -1);
+      shiftFocusDate(view === 'week' || view === 'adjust' ? -7 : -1);
     }
   }, [shiftFocusDate, shiftMonth, view]);
 
@@ -285,9 +410,60 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
     if (view === 'month') {
       shiftMonth(1);
     } else {
-      shiftFocusDate(view === 'week' ? 7 : 1);
+      shiftFocusDate(view === 'week' || view === 'adjust' ? 7 : 1);
     }
   }, [shiftFocusDate, shiftMonth, view]);
+
+  const handleAdjustSubmit = useCallback(
+    async (input: {
+      dateKey: string;
+      note: string;
+      sessions: { clockIn: string; clockOut: string }[];
+    }) => {
+      try {
+        const result = await postTeacherMyHoursAdjustment({
+          organizationId,
+          dateKey: input.dateKey,
+          note: input.note,
+          sessions: input.sessions,
+        });
+        const weekStartKey = toDateKey(startOfWeekMonday(focusDate));
+        const weekEndKey = toDateKey(addDays(parseDateKey(weekStartKey), 6));
+        let nextPageData = result.pageData;
+        try {
+          nextPageData = await loadAdjustWeekIntoPageData(
+            result.pageData,
+            weekStartKey,
+            weekEndKey,
+          );
+        } catch (reloadError) {
+          void reportError('my_hours.adjust_week_load', reloadError);
+        }
+        setPageData(nextPageData);
+        setLoadedAdjustWeekToken(
+          nextLoadedAdjustWeekToken(
+            adjustWeekStartKey,
+            adjustWeekEndKey,
+            nextPageData,
+          ),
+        );
+        Alert.alert(
+          result.requireApproval ? 'Sent to your school for approval.' : 'Hours saved.',
+        );
+      } catch (error) {
+        void reportError('my_hours.adjust', error);
+        throw error;
+      }
+    },
+    [
+      organizationId,
+      focusDate,
+      loadAdjustWeekIntoPageData,
+      reportError,
+      adjustWeekStartKey,
+      adjustWeekEndKey,
+    ],
+  );
 
   const handleBack = () => {
     goBackOrReplace(router, teacherTabRoute(slug, 'home'));
@@ -432,6 +608,23 @@ export function TeacherMyHoursScreen({ organizationId, slug }: TeacherMyHoursScr
             monthDate={monthDate}
             referenceDate={referenceDate}
             onDaySelect={openDayDetail}
+          />
+        ) : null}
+
+        {view === 'adjust' ? (
+          <TeacherMyHoursAdjustPanel
+            {...dateNavProps}
+            focusDate={focusDate}
+            referenceDate={referenceDate}
+            timezone={pageData.timezone}
+            rangeFrom={pageData.rangeFrom}
+            rangeTo={pageData.rangeTo}
+            weekLoading={adjustWeekLoading}
+            sessionsByDateKey={pageData.sessionsByDateKey}
+            pendingAdjustmentsByDateKey={pageData.pendingAdjustmentsByDateKey ?? {}}
+            adjustmentsRequireApproval={pageData.adjustmentsRequireApproval !== false}
+            activeSession={pageData.activeSession}
+            onSubmit={handleAdjustSubmit}
           />
         ) : null}
 

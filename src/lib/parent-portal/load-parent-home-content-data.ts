@@ -29,7 +29,7 @@ import type { ParentFormAttentionItem } from "@/lib/school-parent/forms-document
 import { buildParentFormHomeSnapshotFromBundle } from "@/lib/school-parent/forms-documents/load-parent-form-home-snapshot";
 import type { ParentFormHomeSnapshot } from "@/lib/school-parent/forms-documents/load-parent-form-home-snapshot";
 import { loadParentFormsDocumentsPageBundle } from "@/lib/school-parent/forms-documents/load-parent-forms";
-import { getRequestUser } from "@/lib/auth/session";
+import { getRequestUserFromClaims } from "@/lib/auth/session";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -106,7 +106,7 @@ export async function loadParentHomeContentData(input: {
   supabase?: SupabaseClient;
   fridayBranchSettings?: import("@/lib/school-admin/friday-branch/friday-branch-org-settings").OrganizationFridayBranchSettings | null;
 }): Promise<ParentHomeContentData> {
-  const user = await getRequestUser();
+  const user = await getRequestUserFromClaims();
   if (!user) {
     return emptyParentHomeContentData();
   }

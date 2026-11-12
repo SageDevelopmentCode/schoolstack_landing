@@ -60,6 +60,20 @@ const FAMILIES = [
     version: "",
     weights: ["400"],
   },
+  {
+    dir: "bricolage-grotesque",
+    prefix: "bricolage-grotesque",
+    package: "bricolage-grotesque@5.2.8",
+    version: "",
+    weights: ["800"],
+  },
+  {
+    dir: "gochi-hand",
+    prefix: "gochi-hand",
+    package: "gochi-hand@5.2.8",
+    version: "",
+    weights: ["400"],
+  },
 ];
 
 async function download(url, dest) {

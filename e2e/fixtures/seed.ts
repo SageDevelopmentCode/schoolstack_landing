@@ -1067,6 +1067,44 @@ function writeSeedManifest(manifest: E2eSeedManifest): void {
   fs.writeFileSync(SEED_MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
 }
 
+const FREE_TIER_SCHOOL_SLUG = "free-tier-school";
+
+async function ensureFreeTierSchoolOwner(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+): Promise<void> {
+  const { data, error } = await admin
+    .from("organizations")
+    .select("id")
+    .eq("slug", FREE_TIER_SCHOOL_SLUG)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data?.id) {
+    throw new Error(
+      `E2E seed aborted: organization "${FREE_TIER_SCHOOL_SLUG}" not found. Run supabase db reset.`,
+    );
+  }
+
+  runDbQuery(`
+    insert into public.organization_memberships (
+      organization_id,
+      user_id,
+      role,
+      status
+    )
+    values (
+      '${data.id}',
+      '${userId}',
+      'owner',
+      'active'
+    )
+    on conflict (organization_id, user_id) do update
+    set role = excluded.role,
+        status = excluded.status;
+  `);
+}
+
 export async function seedE2eDatabase(): Promise<void> {
   const admin = createAdminClient();
   const organizationId = await getOrganizationId(admin);
@@ -1139,6 +1177,8 @@ export async function seedE2eDatabase(): Promise<void> {
     set role = excluded.role,
         status = excluded.status;
   `);
+
+  await ensureFreeTierSchoolOwner(admin, adminUserId);
 
   runDbQuery(`
     insert into public.organization_memberships (

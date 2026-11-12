@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import SchoolParentComingSoon from "@/components/school-parent/SchoolParentComingSoon";
 import SchoolParentPageShell from "@/components/school-parent/SchoolParentPageShell";
-import { getRequestUser } from "@/lib/auth/session";
+import { getRequestUserFromClaims } from "@/lib/auth/session";
 import { loadProgramParentPortalContext } from "@/lib/admissions/program-parent-portal-access";
 import { getFamilyUserProfile } from "@/lib/admissions/parent-portal-access";
 import {
@@ -89,7 +89,7 @@ export default async function SchoolProgramParentSubtabPage({ params }: PageProp
     programContext.effectiveFeatures.feature_nav?.parent,
   );
 
-  const user = await getRequestUser();
+  const user = await getRequestUserFromClaims();
 
   if (!user) {
     notFound();

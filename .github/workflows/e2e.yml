@@ -23,11 +23,36 @@ jobs:
         with:
           version: 2.109.1
 
-      - name: Start local Supabase
-        run: supabase start
+      # Start Supabase in the background so it overlaps with npm ci and the Playwright install.
+      # A fresh `supabase start` applies all migrations and seed.sql, so no separate db reset is needed.
+      # Excluded containers are unused by the app and E2E (no Studio, edge functions or image transforms).
+      - name: Start local Supabase (background)
+        run: |
+          (
+            supabase start -x studio,meta,imgproxy,edge-runtime,analytics,vector \
+              && touch "$RUNNER_TEMP/supabase.ok" \
+              || touch "$RUNNER_TEMP/supabase.fail"
+          ) > "$RUNNER_TEMP/supabase-start.log" 2>&1 &
 
-      - name: Reset database
-        run: supabase db reset
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium
+
+      - name: Wait for Supabase
+        run: |
+          for _ in $(seq 1 150); do
+            if [ -f "$RUNNER_TEMP/supabase.ok" ] || [ -f "$RUNNER_TEMP/supabase.fail" ]; then
+              break
+            fi
+            sleep 2
+          done
+          cat "$RUNNER_TEMP/supabase-start.log"
+          if [ ! -f "$RUNNER_TEMP/supabase.ok" ]; then
+            echo "::error::supabase start failed or timed out"
+            exit 1
+          fi
 
       - name: Load local Supabase keys
         run: |
@@ -38,12 +63,6 @@ jobs:
           echo "PLAYWRIGHT_BASE_URL=http://localhost:3100" >> "$GITHUB_ENV"
           echo "DISABLE_OUTBOUND_EMAIL=1" >> "$GITHUB_ENV"
           echo "CI=true" >> "$GITHUB_ENV"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright Chromium
-        run: npx playwright install chromium
 
       - name: Build app for E2E
         run: npm run test:e2e:build

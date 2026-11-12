@@ -1,4 +1,4 @@
-export type MyHoursView = "day" | "week" | "month";
+export type MyHoursView = "day" | "week" | "month" | "adjust";
 
 export type MyHoursDayLog = {
   dateKey: string;
@@ -48,6 +48,18 @@ export type TeacherMyHoursActiveSession = {
   workDate: string;
 };
 
+export type MyHoursAdjustmentSession = {
+  clockIn: string;
+  clockOut: string;
+};
+
+export type MyHoursPendingAdjustment = {
+  id: string;
+  dateKey: string;
+  note: string;
+  sessions: MyHoursAdjustmentSession[];
+};
+
 export type TeacherMyHoursPageData = {
   timezone: string;
   referenceDateKey: string;
@@ -57,4 +69,6 @@ export type TeacherMyHoursPageData = {
   entriesByDateKey: Record<string, MyHoursDayLog>;
   sessionsByDateKey: Record<string, MyHoursSession[]>;
   sidebar: MyHoursSidebarSummary;
+  pendingAdjustmentsByDateKey: Record<string, MyHoursPendingAdjustment>;
+  adjustmentsRequireApproval: boolean;
 };

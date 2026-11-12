@@ -1,4 +1,4 @@
-import { useObserve } from 'expo-observe';
+import { useObserve } from '@/lib/mobile-observe';
 import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
 import { StyleSheet } from 'react-native';

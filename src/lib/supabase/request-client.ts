@@ -9,7 +9,10 @@ import {
   signedInErrorForRequest,
 } from '@/lib/supabase/resolve-request-access-token';
 
-export { getUserFromRequest } from '@/lib/supabase/get-user-from-request';
+export {
+  getUserFromRequest,
+  getUserFromRequestClaims,
+} from '@/lib/supabase/get-user-from-request';
 export { signedInErrorForRequest };
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

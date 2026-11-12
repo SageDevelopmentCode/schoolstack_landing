@@ -15,9 +15,20 @@ function isSchoolAdminPath(pathname: string): boolean {
   return /^\/school\/[^/]+\/admin(\/.*)?$/.test(pathname);
 }
 
+/**
+ * Parent portal and apply pages never redirect on `user` here (their layouts handle login), so the
+ * middleware only needs to refresh the cookie session. Verify the JWT locally for them instead of
+ * one GoTrue round trip per page, RSC prefetch and navigation.
+ */
+function usesLocalSessionVerification(pathname: string): boolean {
+  return /^\/school\/[^/]+\/(parent|apply)(\/.*)?$/.test(pathname);
+}
+
 export async function middleware(request: NextRequest) {
-  const { response, user } = await updateSession(request);
   const { pathname } = request.nextUrl;
+  const { response, user } = await updateSession(request, {
+    verify: usesLocalSessionVerification(pathname) ? "claims" : "server",
+  });
 
   const isAdminRoute = pathname.startsWith("/admin");
   const isPlatformLoginRoute = pathname === "/admin/login";

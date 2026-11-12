@@ -12,6 +12,10 @@ import {
   defaultAdminStaffHoursSummaryRange,
   loadOrganizationTimezoneForStaffHours,
 } from "@/lib/school-admin/staff-hours/staff-hours-org-utils";
+import {
+  listStaffHoursAdjustmentRequests,
+  loadStaffHoursAdjustmentsRequireApproval,
+} from "@/lib/school-teacher/my-hours/my-hours-adjustments";
 
 export type LoadAdminStaffHoursOptions = {
   from?: string;
@@ -57,7 +61,8 @@ export async function loadAdminStaffHoursPageData(
     todayClosedSessions: [] as AdminStaffHoursPageData["todayClosedSessions"],
   };
 
-  const [live, summary] = await Promise.all([
+  const [live, summary, adjustmentsRequireApproval, adjustmentRequests] =
+    await Promise.all([
     view === "summary"
       ? Promise.resolve(emptyLive)
       : loadAdminStaffHoursLive(
@@ -76,6 +81,8 @@ export async function loadAdminStaffHoursPageData(
           staffMemberId,
           timezone,
         }),
+    loadStaffHoursAdjustmentsRequireApproval(admin, organizationId),
+    listStaffHoursAdjustmentRequests(admin, organizationId),
   ]);
 
   return {
@@ -88,5 +95,7 @@ export async function loadAdminStaffHoursPageData(
     summaryRows: summary.summaryRows,
     sessions: summary.sessions,
     staffOptions,
+    adjustmentsRequireApproval,
+    adjustmentRequests,
   };
 }

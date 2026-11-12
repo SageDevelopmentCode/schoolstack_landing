@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
+import TeacherMyHoursAdjustPanel from "@/components/school-teacher/my-hours/TeacherMyHoursAdjustPanel";
 import TeacherMyHoursDayPanel from "@/components/school-teacher/my-hours/TeacherMyHoursDayPanel";
 import TeacherMyHoursMonthPanel from "@/components/school-teacher/my-hours/TeacherMyHoursMonthPanel";
 import TeacherMyHoursStoryHeader from "@/components/school-teacher/my-hours/TeacherMyHoursStoryHeader";
@@ -19,12 +20,21 @@ import {
   addDays,
   formatHoursMinutes,
   formatWallClockTime,
+  parseDateKey,
+  startOfWeekMonday,
   toDateKey,
 } from "@/lib/school-teacher/my-hours/format-duration";
 import {
+  fetchTeacherMyHoursPageData,
+  postTeacherMyHoursAdjustment,
   postTeacherMyHoursClockIn,
   postTeacherMyHoursClockOut,
 } from "@/lib/school-teacher/my-hours/fetch-teacher-my-hours";
+import {
+  mergeTeacherMyHoursPageData,
+  nextLoadedAdjustWeekToken,
+  weekRangeNeedsFetch,
+} from "@/lib/school-teacher/my-hours/my-hours-range-merge";
 import { myHoursViewTransition } from "@/lib/school-teacher/my-hours/my-hours-motion";
 import {
   activeSessionLoggedMinutesForFocusDay,
@@ -74,6 +84,108 @@ export default function TeacherMyHoursPage({
   const [clockActionPending, setClockActionPending] = useState<ClockActionPending>(
     null,
   );
+  const adjustWeekFetchRef = useRef(0);
+  const [loadedAdjustWeekToken, setLoadedAdjustWeekToken] = useState<
+    string | null
+  >(null);
+
+  const adjustWeekStartKey = useMemo(() => {
+    if (view !== "adjust") return null;
+    return toDateKey(startOfWeekMonday(focusDate));
+  }, [view, focusDate]);
+
+  const adjustWeekEndKey = useMemo(() => {
+    if (adjustWeekStartKey == null) return null;
+    return toDateKey(addDays(parseDateKey(adjustWeekStartKey), 6));
+  }, [adjustWeekStartKey]);
+
+  const adjustWeekToken =
+    adjustWeekStartKey != null && adjustWeekEndKey != null
+      ? `${adjustWeekStartKey}:${adjustWeekEndKey}`
+      : null;
+
+  const needsAdjustWeekFetch =
+    view === "adjust" &&
+    adjustWeekStartKey != null &&
+    adjustWeekEndKey != null &&
+    weekRangeNeedsFetch(
+      adjustWeekStartKey,
+      adjustWeekEndKey,
+      pageData.rangeFrom,
+      pageData.rangeTo,
+    );
+
+  const adjustWeekLoading =
+    needsAdjustWeekFetch &&
+    adjustWeekToken != null &&
+    loadedAdjustWeekToken !== adjustWeekToken;
+
+  const loadAdjustWeekIntoPageData = useCallback(
+    async (
+      base: TeacherMyHoursPageData,
+      weekStartKey: string,
+      weekEndKey: string,
+    ): Promise<TeacherMyHoursPageData> => {
+      if (!weekRangeNeedsFetch(weekStartKey, weekEndKey, base.rangeFrom, base.rangeTo)) {
+        return base;
+      }
+      const patch = await fetchTeacherMyHoursPageData(organizationId, {
+        from: weekStartKey,
+        to: weekEndKey,
+      });
+      return mergeTeacherMyHoursPageData(base, patch);
+    },
+    [organizationId],
+  );
+
+  useEffect(() => {
+    if (
+      !needsAdjustWeekFetch ||
+      adjustWeekStartKey == null ||
+      adjustWeekEndKey == null ||
+      adjustWeekToken == null ||
+      loadedAdjustWeekToken === adjustWeekToken
+    ) {
+      return;
+    }
+
+    const fetchId = ++adjustWeekFetchRef.current;
+
+    void (async () => {
+      try {
+        const patch = await fetchTeacherMyHoursPageData(organizationId, {
+          from: adjustWeekStartKey,
+          to: adjustWeekEndKey,
+        });
+        if (fetchId !== adjustWeekFetchRef.current) return;
+        setPageData((current) => mergeTeacherMyHoursPageData(current, patch));
+        setLoadedAdjustWeekToken(adjustWeekToken);
+      } catch (error) {
+        if (fetchId !== adjustWeekFetchRef.current) return;
+        parentToast.error(
+          error instanceof Error ? error.message : "Could not load this week.",
+        );
+        void reportPortalOperationalError(
+          "teacher_portal",
+          {
+            organizationId,
+            operation: "my_hours.adjust_week_load",
+            error: "",
+          },
+          error,
+          portalJsonApiErrorStatus(error),
+          portalJsonApiErrorCode(error),
+        );
+      }
+    })();
+  }, [
+    needsAdjustWeekFetch,
+    adjustWeekStartKey,
+    adjustWeekEndKey,
+    adjustWeekToken,
+    loadedAdjustWeekToken,
+    organizationId,
+  ]);
 
   const activeSessionStartedAt = useMemo(() => {
     if (!pageData.activeSession) return null;
@@ -128,6 +240,9 @@ export default function TeacherMyHoursPage({
     try {
       const next = await postTeacherMyHoursClockIn(organizationId);
       setPageData(next);
+      setLoadedAdjustWeekToken(
+        nextLoadedAdjustWeekToken(adjustWeekStartKey, adjustWeekEndKey, next),
+      );
       const clockInAt = next.activeSession?.clockInAt;
       parentToast.success(
         clockInAt
@@ -152,11 +267,13 @@ export default function TeacherMyHoursPage({
     } finally {
       setClockActionPending(null);
     }
-  }, [
+  },     [
     previewMode,
     activeSessionStartedAt,
     clockActionPending,
     organizationId,
+    adjustWeekStartKey,
+    adjustWeekEndKey,
   ]);
 
   const handleClockOut = useCallback(async () => {
@@ -166,6 +283,9 @@ export default function TeacherMyHoursPage({
       const { pageData: next, sessionMinutes } =
         await postTeacherMyHoursClockOut(organizationId);
       setPageData(next);
+      setLoadedAdjustWeekToken(
+        nextLoadedAdjustWeekToken(adjustWeekStartKey, adjustWeekEndKey, next),
+      );
       parentToast.success(
         `Session saved · ${formatHoursMinutes(Math.max(1, sessionMinutes))}`,
       );
@@ -192,7 +312,86 @@ export default function TeacherMyHoursPage({
     activeSessionStartedAt,
     clockActionPending,
     organizationId,
+    adjustWeekStartKey,
+    adjustWeekEndKey,
   ]);
+
+  const handleAdjustSubmit = useCallback(
+    async (input: {
+      dateKey: string;
+      note: string;
+      sessions: { clockIn: string; clockOut: string }[];
+    }) => {
+      if (previewMode) return;
+      try {
+        const result = await postTeacherMyHoursAdjustment({
+          organizationId,
+          dateKey: input.dateKey,
+          note: input.note,
+          sessions: input.sessions,
+        });
+        const weekStartKey = toDateKey(startOfWeekMonday(focusDate));
+        const weekEndKey = toDateKey(addDays(parseDateKey(weekStartKey), 6));
+        let nextPageData = result.pageData;
+        try {
+          nextPageData = await loadAdjustWeekIntoPageData(
+            result.pageData,
+            weekStartKey,
+            weekEndKey,
+          );
+        } catch (reloadError) {
+          void reportPortalOperationalError(
+            "teacher_portal",
+            {
+              organizationId,
+              operation: "my_hours.adjust_week_load",
+              error: "",
+            },
+            reloadError,
+            portalJsonApiErrorStatus(reloadError),
+            portalJsonApiErrorCode(reloadError),
+          );
+        }
+        setPageData(nextPageData);
+        setLoadedAdjustWeekToken(
+          nextLoadedAdjustWeekToken(
+            adjustWeekStartKey,
+            adjustWeekEndKey,
+            nextPageData,
+          ),
+        );
+        parentToast.success(
+          result.requireApproval
+            ? "Sent to your school for approval."
+            : "Hours saved.",
+        );
+      } catch (error) {
+        parentToast.error(
+          error instanceof Error ? error.message : "Could not save hours.",
+        );
+        void reportPortalOperationalError(
+          "teacher_portal",
+          {
+            organizationId,
+            operation: "my_hours.adjust",
+            error: "",
+          },
+          error,
+          portalJsonApiErrorStatus(error),
+          portalJsonApiErrorCode(error),
+        );
+        throw error;
+      }
+    },
+    [
+      previewMode,
+      organizationId,
+      focusDate,
+      loadAdjustWeekIntoPageData,
+      adjustWeekStartKey,
+      adjustWeekEndKey,
+    ],
+  );
 
   const shiftFocusDate = useCallback(
     (delta: number) => {
@@ -238,14 +437,14 @@ export default function TeacherMyHoursPage({
           if (view === "month") {
             shiftMonth(-1);
           } else {
-            shiftFocusDate(view === "week" ? -7 : -1);
+            shiftFocusDate(view === "week" || view === "adjust" ? -7 : -1);
           }
         }}
         onNextDate={() => {
           if (view === "month") {
             shiftMonth(1);
           } else {
-            shiftFocusDate(view === "week" ? 7 : 1);
+            shiftFocusDate(view === "week" || view === "adjust" ? 7 : 1);
           }
         }}
       />
@@ -287,6 +486,27 @@ export default function TeacherMyHoursPage({
                 onPreviousMonth={() => shiftMonth(-1)}
                 onNextMonth={() => shiftMonth(1)}
                 onDaySelect={openDayDetail}
+              />
+            ) : null}
+            {view === "adjust" ? (
+              <TeacherMyHoursAdjustPanel
+                theme={theme}
+                focusDate={focusDate}
+                referenceDate={referenceDate}
+                timezone={pageData.timezone}
+                rangeFrom={pageData.rangeFrom}
+                rangeTo={pageData.rangeTo}
+                weekLoading={adjustWeekLoading}
+                sessionsByDateKey={pageData.sessionsByDateKey}
+                pendingAdjustmentsByDateKey={
+                  pageData.pendingAdjustmentsByDateKey ?? {}
+                }
+                adjustmentsRequireApproval={
+                  pageData.adjustmentsRequireApproval !== false
+                }
+                activeSession={pageData.activeSession}
+                previewMode={previewMode}
+                onSubmit={handleAdjustSubmit}
               />
             ) : null}
           </motion.div>

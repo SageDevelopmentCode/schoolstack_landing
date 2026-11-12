@@ -1,4 +1,4 @@
-import { getRequestUser } from "@/lib/auth/session";
+import { getRequestUserFromClaims } from "@/lib/auth/session";
 import { loadParentBillingStreamedData } from "@/lib/tuition/load-parent-billing-data";
 import ParentBillingData from "./ParentBillingData";
 
@@ -13,7 +13,7 @@ export default async function ParentBillingDataLoader({
   familyId,
   slug,
 }: ParentBillingDataLoaderProps) {
-  const user = await getRequestUser();
+  const user = await getRequestUserFromClaims();
   if (!user) return null;
 
   const billingData = await loadParentBillingStreamedData({

@@ -18,6 +18,10 @@ export default async function SchoolAdminPage({ params }: PageProps) {
     return null;
   }
 
+  if (org.plan === "free") {
+    redirect(schoolAdminPath(slug, "home"));
+  }
+
   const firstPath = getFirstAdminNavPath(
     org.features.admin,
     org.features.feature_nav?.admin,

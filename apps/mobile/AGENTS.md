@@ -8,7 +8,7 @@ After mobile UI changes: visual screenshot capture + agent review — [`.agents/
 
 ## Expo Observe (production performance)
 
-The app uses **`expo-observe`** for [Expo Observe](https://docs.expo.dev/eas/observe/introduction/) (startup and per-route metrics). It does **not** run in **Expo Go**; use a **development build** or **production EAS build** to send metrics.
+The app uses **`expo-observe`** for [Expo Observe](https://docs.expo.dev/eas/observe/introduction/) (startup and per-route metrics). App code imports **`@/lib/mobile-observe`**, not `expo-observe` directly — in **Expo Go** (e.g. `npm run mobile`) Observe is a no-op so the app still starts; metrics are sent only from a **development build** or **production EAS build** that includes the native `ExpoAppMetrics` / `ExpoObserve` modules.
 
 - **Dashboard:** project on [expo.dev](https://expo.dev) → **Observe** tab.
 - **Verify after changing instrumentation:** run a new EAS build (`npm run build:production:ios` / `build:production:android` from `apps/mobile` or your usual profile), install the build, open the app, then confirm data appears in Observe (allow a short delay).

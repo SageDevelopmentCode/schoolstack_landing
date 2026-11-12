@@ -1,0 +1,179 @@
+/* MudKitchen "Garden" design system — warm, playful, premium.
+   Ported from the Sage Field Garden kit and re-tinted to the MudKitchen brand
+   (forest anchor, clay action color, pastel papers on cream).
+   Everything is scoped to .sf-garden (applied by GardenRoot), so pages opt in. */
+
+.sf-garden {
+  --sf-cream: #f7f1e7;
+  --sf-paper: #fffaf4;
+  --sf-ink: #2b241d;
+  --sf-soft: #6d6257;
+  --sf-clay: #a05c45;
+  --sf-clay-deep: #7e4533;
+  --sf-forest: #2e4a3c;
+  --sf-forest-deep: #1f3329;
+  --sf-moss: #a6b89a;
+  --sf-butter: #ffe58a;
+  --sf-mint: #ddebd5;
+  --sf-sky: #e3edfb;
+  --sf-lav: #ece2f3;
+  --sf-peach: #f8ddcf;
+  font-family: var(--font-sf-body), ui-rounded, system-ui, sans-serif;
+  background: var(--sf-cream);
+  color: var(--sf-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* globals.css styles h1–h3, p and button with unlayered element rules, which
+   beat Tailwind's layered utilities. Inside Garden pages, hand those properties
+   back to the layered cascade so utilities (and .sf-display) win. The live
+   product demos keep the global rules they were designed against. */
+.sf-garden :where(h1, h2, h3, h4, p, button):not(.sf-demo *) {
+  font-family: revert-layer;
+  font-weight: revert-layer;
+  letter-spacing: revert-layer;
+  line-height: revert-layer;
+}
+
+/* Live product demos keep the app's own type. */
+.sf-garden .sf-demo {
+  font-family: var(--font-body);
+  color: var(--color-text);
+}
+
+@layer components {
+  .sf-display {
+    font-family: var(--font-sf-display), ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.035em;
+    font-weight: 800;
+    line-height: 0.95;
+  }
+
+  .sf-hand {
+    font-family: var(--font-sf-hand), "Comic Sans MS", cursive;
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+
+  /* Polaroid */
+  .sf-polaroid {
+    background: #fff;
+    padding: 10px 10px 14px;
+    border-radius: 6px;
+    box-shadow: 0 1px 2px rgba(43, 36, 29, 0.06), 0 18px 40px -18px rgba(43, 36, 29, 0.45);
+  }
+
+  /* Morphing organic blob mask */
+  .sf-blob {
+    border-radius: 58% 42% 38% 62% / 52% 38% 62% 48%;
+    animation: sf-blob 14s ease-in-out infinite;
+  }
+
+  /* Notebook paper */
+  .sf-paper {
+    background-color: #fffdf8;
+    background-image: linear-gradient(rgba(46, 74, 60, 0.1) 1px, transparent 1px);
+    background-size: 100% 34px;
+  }
+
+  /* Dotted grid paper (graph-paper feel for product sections) */
+  .sf-grid {
+    background-image: radial-gradient(rgba(43, 36, 29, 0.13) 1.2px, transparent 1.2px);
+    background-size: 22px 22px;
+  }
+
+  /* Ticket notches */
+  .sf-ticket {
+    -webkit-mask:
+      radial-gradient(circle 18px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle 18px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
+    mask:
+      radial-gradient(circle 18px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle 18px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
+  }
+
+  /* Flip cards */
+  .sf-flip {
+    perspective: 1400px;
+  }
+  .sf-flip-inner {
+    transform-style: preserve-3d;
+    transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .sf-flip[data-flipped="true"] .sf-flip-inner {
+    transform: rotateY(180deg);
+  }
+  .sf-face {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .sf-back {
+    transform: rotateY(180deg);
+  }
+
+  .sf-wiggle:hover,
+  .sf-wiggle:focus-visible {
+    animation: sf-wiggle 0.5s ease-in-out infinite;
+  }
+
+  .sf-spin-slow {
+    animation: sf-spin 40s linear infinite;
+  }
+
+  .sf-no-scrollbar {
+    scrollbar-width: none;
+  }
+  .sf-no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (hover: hover) {
+  .sf-flip:hover .sf-flip-inner,
+  .sf-flip:focus-within .sf-flip-inner {
+    transform: rotateY(180deg);
+  }
+}
+
+@keyframes sf-blob {
+  0%,
+  100% {
+    border-radius: 58% 42% 38% 62% / 52% 38% 62% 48%;
+  }
+  33% {
+    border-radius: 40% 60% 62% 38% / 44% 58% 42% 56%;
+  }
+  66% {
+    border-radius: 62% 38% 46% 54% / 60% 46% 54% 40%;
+  }
+}
+
+@keyframes sf-wiggle {
+  0%,
+  100% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+@keyframes sf-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sf-blob,
+  .sf-spin-slow {
+    animation: none;
+  }
+  .sf-wiggle:hover,
+  .sf-wiggle:focus-visible {
+    animation: none;
+  }
+  .sf-flip-inner {
+    transition: none;
+  }
+}

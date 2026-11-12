@@ -18,6 +18,7 @@ import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
 import { MESSAGE_ATTACHMENT_MIME_TYPES } from '@/lib/messages/constants';
 import {
+  describeSupportAttachments,
   MAX_SUPPORT_REQUEST_FILE_BYTES,
   MAX_SUPPORT_REQUEST_FILES,
   SUPPORT_REQUEST_TOPIC_OPTIONS,
@@ -151,7 +152,7 @@ export function PortalSupportRequestSheet({
       setSubmitted(true);
     } catch (error) {
       reportError(errorOperation, error, {
-        metadata: { topic },
+        metadata: { topic, ...describeSupportAttachments(attachments) },
       });
       setSubmitError(
         error instanceof Error ? error.message : 'Failed to submit your request. Please try again.',

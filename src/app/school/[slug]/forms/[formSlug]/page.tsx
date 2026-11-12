@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug, formSlug } = await params;
   const org = await fetchPublicApplyOrganization(slug);
 
-  if (!org) {
+  if (!org || org.plan === "free") {
     return { title: "School Not Found" };
   }
 
@@ -74,7 +74,7 @@ export default async function PublicApplicationFormPage({ params }: PageProps) {
   void userPromise.catch(() => undefined);
   const org = await fetchPublicApplyOrganization(slug);
 
-  if (!org) {
+  if (!org || org.plan === "free") {
     notFound();
   }
 

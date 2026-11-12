@@ -1,4 +1,4 @@
-import { useObserve } from 'expo-observe';
+import { useObserve } from '@/lib/mobile-observe';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';

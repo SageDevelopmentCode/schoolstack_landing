@@ -99,7 +99,7 @@ export async function resolveBulletinParentFamilyIds(
   return familyIdsForAllEnrolled(admin, organizationId);
 }
 
-async function resolveStaffMemberEmail(
+export async function resolveStaffMemberEmail(
   admin: SupabaseClient,
   staffMember: { email: string | null; user_id: string | null },
 ): Promise<string | null> {
