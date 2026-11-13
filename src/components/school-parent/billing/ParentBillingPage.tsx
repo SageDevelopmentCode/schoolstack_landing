@@ -11,7 +11,15 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { CircleAlert, Loader2 } from "lucide-react";
+import {
+  ArrowRight,
+  CircleAlert,
+  CreditCard,
+  Hourglass,
+  Loader2,
+  ReceiptText,
+  RefreshCw,
+} from "lucide-react";
 import ParentBillingUpcomingChargesPanel from "@/components/school-parent/billing/ParentBillingUpcomingChargesPanel";
 import ParentBillingPaymentReceiptPanel from "@/components/school-parent/billing/ParentBillingPaymentReceiptPanel";
 import ParentBillingStoryHeader from "@/components/school-parent/billing/ParentBillingStoryHeader";
@@ -69,6 +77,25 @@ import { isProgramParentPortalPreviewFamilyId } from "@/lib/admissions/program-p
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { parentToast } from "@/lib/school-parent/parent-toast";
 import { createClient } from "@/utils/supabase/client";
+import ParentGardenFrame from "@/components/school-parent/garden/ParentGardenFrame";
+import BillingSetupCard from "@/components/school-parent/billing/garden/BillingSetupCard";
+import { PARENT_BILLING_NEXT_PAYMENT_ID } from "@/components/school-parent/billing/ParentBillingDueCard";
+import { PORTAL_EASE, useCelebrate } from "@/components/school-parent/garden/motion";
+import {
+  GCard,
+  GIcon,
+  GSkeleton,
+  gBtnOnAccent,
+  gBtnOutlineSm,
+  gBtnPopSm,
+  gLinkSm,
+} from "@/components/school-parent/garden/ui";
+import {
+  buildParentBillingSetupSteps,
+  type ParentBillingSetupStepKey,
+} from "@/lib/tuition/parent-billing-setup-steps";
+import { formatPaymentMethodLabel } from "@/lib/tuition/payment-methods";
+import { PORTAL_HOME_CONTAINER_CLASS } from "@/lib/portal-home/layout";
 
 type ParentBillingPageProps = {
   organizationId: string;
@@ -82,13 +109,32 @@ type ParentBillingPageProps = {
 };
 
 function ParentBillingPageFallback() {
+  const { theme } = useParentTheme();
   return (
-    <div
-      className="flex items-center justify-center gap-2 p-6 text-sm"
-      style={{ color: "#65777F" }}
-    >
-      <Loader2 className="w-4 h-4 animate-spin" />
-      Loading billing…
+    <div className="min-h-0 flex-1 overflow-y-auto">
+      <ParentGardenFrame theme={theme}>
+        <div className={PORTAL_HOME_CONTAINER_CLASS}>
+          <div className="flex flex-col gap-3">
+            <GSkeleton className="h-3 w-36 !rounded-full" />
+            <GSkeleton className="h-10 w-72 max-w-full !rounded-2xl" />
+            <p
+              role="status"
+              className="m-0 inline-flex items-center gap-2 text-[15px] font-semibold text-[var(--sf-soft)]"
+            >
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              Loading billing…
+            </p>
+          </div>
+          <div className="grid items-start gap-5 lg:grid-cols-[1.55fr_1fr]">
+            <GSkeleton className="h-72" />
+            <div className="flex flex-col gap-5">
+              <GSkeleton className="h-56" />
+              <GSkeleton className="h-44" />
+            </div>
+          </div>
+          <GSkeleton className="h-48" />
+        </div>
+      </ParentGardenFrame>
     </div>
   );
 }
@@ -189,6 +235,21 @@ function ParentBillingPageContent({
   const [tuitionAgreements, setTuitionAgreements] = useState<ParentFormListItem[]>(
     initialData?.tuitionAgreements ?? [],
   );
+  const [loadFailed, setLoadFailed] = useState(false);
+  /** Set after a confirmed card payment: drives the "payment received" moment. */
+  const [paymentReceivedKey, setPaymentReceivedKey] = useState<string | null>(null);
+
+  useCelebrate(
+    paymentReceivedKey != null && !previewMode,
+    theme,
+    paymentReceivedKey ?? "parent-billing-paid",
+  );
+
+  useEffect(() => {
+    if (!paymentReceivedKey) return;
+    const timer = window.setTimeout(() => setPaymentReceivedKey(null), 8000);
+    return () => window.clearTimeout(timer);
+  }, [paymentReceivedKey]);
 
   const adjustmentsByAssignment = useMemo(() => {
     const map = new Map<string, TuitionAdjustment[]>();
@@ -330,8 +391,13 @@ function ParentBillingPageContent({
       });
 
       hasLoadedBillingRef.current = true;
+      setLoadFailed(false);
       return summary;
     } catch (error) {
+      setLoadFailed(true);
+      if (hasLoadedBillingRef.current) {
+        parentToast.error("We couldn't refresh billing. Please try again.");
+      }
       void reportPortalOperationalError(
         "parent_portal",
         {
@@ -711,6 +777,7 @@ function ParentBillingPageContent({
         }
 
         if (payload.checkoutUrl) {
+          parentToast.info("Opening secure checkout…");
           window.location.href = payload.checkoutUrl;
           return;
         }
@@ -781,6 +848,7 @@ function ParentBillingPageContent({
       }
 
       if (payload.checkoutUrl) {
+        parentToast.info("Opening secure checkout…");
         window.location.href = payload.checkoutUrl;
         return;
       }
@@ -834,9 +902,18 @@ function ParentBillingPageContent({
       if (!response.ok) {
         throw new Error(payload.error ?? "Failed to update autopay.");
       }
-      setAutopayEnabledState(Boolean(payload.autopayEnabled));
+      const nowEnabled = Boolean(payload.autopayEnabled);
+      setAutopayEnabledState(nowEnabled);
       setSavedPaymentMethod(payload.savedPaymentMethod ?? null);
       setAutopayModalOpen(false);
+      const cardLabel = formatPaymentMethodLabel(payload.savedPaymentMethod ?? null);
+      parentToast.success(
+        nowEnabled
+          ? cardLabel
+            ? `Autopay is on. We'll charge ${cardLabel} on each due date.`
+            : "Autopay is on. Add a card so it can run on each due date."
+          : "Autopay is off. You'll pay each charge yourself.",
+      );
     } catch (error) {
       parentToast.error(
         error instanceof Error ? error.message : "Failed to update autopay.",
@@ -868,6 +945,7 @@ function ParentBillingPageContent({
       });
       const payload = (await response.json()) as { checkoutUrl?: string; error?: string };
       if (payload.checkoutUrl) {
+        parentToast.info("Opening secure card setup…");
         window.location.href = payload.checkoutUrl;
         return;
       }
@@ -894,7 +972,8 @@ function ParentBillingPageContent({
     if (previewMode || cardSaved !== "1") return;
 
     queueMicrotask(() => {
-      void loadBilling().then(() => {
+      void loadBilling().then((summary) => {
+        if (summary) parentToast.success("Payment method saved.");
         router.replace(pathname, { scroll: false });
       });
     });
@@ -921,6 +1000,9 @@ function ParentBillingPageContent({
                 );
               } else {
                 parentToast.success("Payment received. Thank you!");
+                setPaymentReceivedKey(
+                  `parent-billing-paid-${checkoutSessionId.trim()}`,
+                );
               }
             }
           } catch {
@@ -943,15 +1025,34 @@ function ParentBillingPageContent({
 
   const handleScheduleComplete = async () => {
     const currentKey = activeTabKey;
+    const completedChild =
+      childViews.find((child) => child.childKey === resolvedActiveTabKey) ??
+      (childViews.length === 1 ? childViews[0] : undefined);
     const summary = await loadBilling();
+    if (summary && completedChild) {
+      parentToast.success(
+        `${childFirstNameFromFullName(completedChild.studentName)}'s payment schedule is confirmed.`,
+      );
+    }
     if (
       currentKey &&
       currentKey !== PARENT_BILLING_SUMMARY_TAB &&
       summary
     ) {
-      setActiveTabKey(
-        pickNextPendingChildKey(summary.children, currentKey) ?? currentKey,
-      );
+      const nextKey =
+        pickNextPendingChildKey(summary.children, currentKey) ?? currentKey;
+      setActiveTabKey(nextKey);
+      const nextChild =
+        nextKey !== currentKey
+          ? summary.children.find(
+              (child) => child.childKey === nextKey && child.status === "needs_schedule",
+            )
+          : undefined;
+      if (nextChild) {
+        parentToast.info(
+          `Next up: choose ${childFirstNameFromFullName(nextChild.studentName)}'s plan.`,
+        );
+      }
     }
   };
 
@@ -968,122 +1069,208 @@ function ParentBillingPageContent({
     ? displayChild.totalRemainingCents
     : (familySummary?.totalRemainingCents ?? 0);
 
+  const setupProgress = familySummary
+    ? buildParentBillingSetupSteps({
+        familySummary,
+        readinessState: readiness?.state ?? null,
+        hasAgreements,
+        pendingAgreementCount,
+        savedPaymentMethod,
+        autopayEnabled,
+      })
+    : null;
+
+  const focusNextPaymentButton = () => {
+    const card = document.getElementById(PARENT_BILLING_NEXT_PAYMENT_ID);
+    card?.scrollIntoView({ behavior: "smooth", block: "center" });
+    window.setTimeout(() => {
+      card?.querySelector<HTMLButtonElement>("[data-pay-primary]")?.focus({
+        preventScroll: true,
+      });
+    }, 350);
+  };
+
+  const handleSetupStep = (key: ParentBillingSetupStepKey) => {
+    if (previewMode) return;
+    switch (key) {
+      case "plan": {
+        const target = setupProgress?.firstPendingChildKey;
+        if (target && target !== resolvedActiveTabKey) {
+          handleSelectTab(target);
+          window.setTimeout(scrollToScheduleSelector, 450);
+        } else {
+          scrollToScheduleSelector();
+        }
+        return;
+      }
+      case "agreements":
+        handleSelectTab(PARENT_BILLING_AGREEMENTS_TAB);
+        return;
+      case "payment_method":
+        void handleManagePaymentMethod();
+        return;
+      case "pay":
+        if (isAgreementsTab) {
+          handleSelectTab(
+            hasMultipleChildren
+              ? PARENT_BILLING_SUMMARY_TAB
+              : (childViews[0]?.childKey ?? PARENT_BILLING_SUMMARY_TAB),
+          );
+          window.setTimeout(focusNextPaymentButton, 450);
+        } else {
+          focusNextPaymentButton();
+        }
+        return;
+    }
+  };
+
+  const setupCard = setupProgress ? (
+    <BillingSetupCard
+      progress={setupProgress}
+      onStepAction={handleSetupStep}
+      readOnly={previewMode}
+    />
+  ) : null;
+
+  const noteMotion = {
+    initial: { opacity: 0, y: -6 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, height: 0, marginTop: 0 },
+    transition: { duration: 0.25, ease: PORTAL_EASE },
+  } as const;
+
   const pageBanners = hasPageBanners ? (
-    <div className="flex flex-col gap-4">
-      {scheduleWarningMessage ? (
-        <div
-          className="rounded-xl p-5 flex flex-col gap-3"
-          style={{
-            backgroundColor: C.warningBg,
-            border: `1px solid ${C.warningBorder}`,
-          }}
-          data-testid="parent-billing-schedule-warning"
-        >
-          <div className="flex items-start gap-3">
-            <CircleAlert
-              className="mt-0.5 h-5 w-5 shrink-0"
-              style={{ color: C.warning }}
-              aria-hidden
-            />
-            <div>
-              <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-                {scheduleWarningMessage.title}
-              </p>
-              <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
-                {scheduleWarningMessage.body}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={scrollToScheduleSelector}
-            className="inline-flex self-start px-4 py-2 rounded-lg text-sm font-medium"
-            style={{ backgroundColor: C.warning, color: "#fff" }}
-          >
-            Review options below
-          </button>
-        </div>
-      ) : null}
-
-      {readinessMessage ? (
-        <div
-          className="rounded-xl p-5 flex flex-col gap-3"
-          style={{ backgroundColor: C.accentLight, border: `1px solid ${C.border}` }}
-          data-testid="parent-billing-readiness"
-        >
-          <div>
-            <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-              {readinessMessage.title}
-            </p>
-            <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
-              {readinessMessage.body}
-            </p>
-          </div>
-          {readinessMessage.href && readinessMessage.cta ? (
-            <Link
-              href={readinessMessage.href}
-              className="inline-flex self-start px-4 py-2 rounded-lg text-sm font-medium"
-              style={{ backgroundColor: C.accent, color: "#fff" }}
+    <div className="flex flex-col gap-3">
+      <AnimatePresence initial={false}>
+        {scheduleWarningMessage ? (
+          <motion.div key="schedule" {...noteMotion}>
+            <div
+              className="flex flex-col gap-4 rounded-[20px] bg-[var(--sf-clay)] p-5 text-white sm:flex-row sm:items-center"
+              data-testid="parent-billing-schedule-warning"
             >
-              {readinessMessage.cta}
-            </Link>
-          ) : null}
-        </div>
-      ) : null}
+              <GIcon size="sm" className="!ring-white/70">
+                <CircleAlert />
+              </GIcon>
+              <div className="min-w-0 flex-1">
+                <p className="m-0 text-[17px] font-extrabold leading-snug">
+                  {scheduleWarningMessage.title}
+                </p>
+                <p className="m-0 mt-0.5 text-sm font-semibold text-white/85">
+                  {scheduleWarningMessage.body}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={scrollToScheduleSelector}
+                className={`${gBtnOnAccent} hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/60`}
+              >
+                Review options below <ArrowRight className="h-4 w-4" aria-hidden />
+              </button>
+            </div>
+          </motion.div>
+        ) : null}
 
-      {lateFeeNotice && !dismissedLateFeeNotice ? (
-        <div
-          className="rounded-xl p-4 flex items-start justify-between gap-3"
-          style={{ backgroundColor: C.accentLight, border: `1px solid ${C.border}` }}
-          data-testid="parent-billing-late-fee-banner"
-        >
-          <div>
-            <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-              A late fee was added to your balance
-            </p>
-            <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
-              {formatCents(lateFeeNotice.totalCents)} was added
-              {lateFeeNotice.labels.length === 1
-                ? ` for ${lateFeeNotice.labels[0]}`
-                : ` across ${lateFeeNotice.labels.length} late fees`}
-              . Pay below to stay current.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="text-xs shrink-0"
-            style={{ color: C.textSecondary }}
-            onClick={() => setDismissedLateFeeNotice(true)}
-          >
-            Dismiss
-          </button>
-        </div>
-      ) : null}
+        {readinessMessage ? (
+          <motion.div key="readiness" {...noteMotion}>
+            <div
+              className="flex flex-col gap-3 rounded-[20px] bg-[var(--sf-sky)] p-5 sm:flex-row sm:items-center sm:gap-4"
+              data-testid="parent-billing-readiness"
+            >
+              <GIcon size="sm">
+                <Hourglass />
+              </GIcon>
+              <div className="min-w-0 flex-1">
+                <p className="m-0 text-[15px] font-extrabold text-[var(--sf-ink)]">
+                  {readinessMessage.title}
+                </p>
+                <p className="m-0 mt-0.5 text-[13px] font-semibold leading-snug text-[var(--sf-ink)]/70">
+                  {readinessMessage.body}
+                </p>
+              </div>
+              {readinessMessage.href && readinessMessage.cta ? (
+                <Link href={readinessMessage.href} className={`${gBtnOutlineSm} shrink-0`}>
+                  {readinessMessage.cta} <ArrowRight className="h-4 w-4" aria-hidden />
+                </Link>
+              ) : null}
+            </div>
+          </motion.div>
+        ) : null}
 
-      {recentAutopayFailure && !dismissedAutopayFailure ? (
-        <div
-          className="rounded-xl p-4 flex items-start justify-between gap-3"
-          style={{ backgroundColor: C.accentLight, border: `1px solid ${C.border}` }}
-          data-testid="parent-billing-autopay-failure-banner"
-        >
-          <div>
-            <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-              Autopay could not process your last payment
-            </p>
-            <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
-              {recentAutopayFailure.summary} Update your card or pay manually to stay current.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="text-xs shrink-0"
-            style={{ color: C.textSecondary }}
-            onClick={() => setDismissedAutopayFailure(true)}
-          >
-            Dismiss
-          </button>
-        </div>
-      ) : null}
+        {lateFeeNotice && !dismissedLateFeeNotice ? (
+          <motion.div key="late-fee" {...noteMotion}>
+            <div
+              className="flex flex-col gap-3 rounded-[20px] bg-[var(--sf-peach)] p-4 sm:flex-row sm:items-center sm:gap-4"
+              data-testid="parent-billing-late-fee-banner"
+            >
+              <GIcon size="sm">
+                <ReceiptText />
+              </GIcon>
+              <div className="min-w-0 flex-1">
+                <p className="m-0 text-[15px] font-extrabold text-[var(--sf-ink)]">
+                  A late fee was added to your balance
+                </p>
+                <p className="m-0 mt-0.5 text-[13px] font-semibold text-[var(--sf-ink)]/70">
+                  {formatCents(lateFeeNotice.totalCents)} was added
+                  {lateFeeNotice.labels.length === 1
+                    ? ` for ${lateFeeNotice.labels[0]}`
+                    : ` across ${lateFeeNotice.labels.length} late fees`}
+                  . Pay below to stay current.
+                </p>
+              </div>
+              <button
+                type="button"
+                className={`${gLinkSm} shrink-0 self-start sm:self-center`}
+                onClick={() => setDismissedLateFeeNotice(true)}
+              >
+                Dismiss
+              </button>
+            </div>
+          </motion.div>
+        ) : null}
+
+        {recentAutopayFailure && !dismissedAutopayFailure ? (
+          <motion.div key="autopay-failure" {...noteMotion}>
+            <div
+              className="flex flex-col gap-3 rounded-[20px] bg-[var(--sf-peach)] p-4 sm:flex-row sm:items-center sm:gap-4"
+              data-testid="parent-billing-autopay-failure-banner"
+            >
+              <GIcon size="sm">
+                <CreditCard />
+              </GIcon>
+              <div className="min-w-0 flex-1">
+                <p className="m-0 text-[15px] font-extrabold text-[var(--sf-ink)]">
+                  Autopay could not process your last payment
+                </p>
+                <p className="m-0 mt-0.5 text-[13px] font-semibold text-[var(--sf-ink)]/70">
+                  {recentAutopayFailure.summary} Update your card or pay manually to stay current.
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                {!previewMode ? (
+                  <button
+                    type="button"
+                    className={gBtnOutlineSm}
+                    disabled={paymentMethodLoading}
+                    onClick={() => void handleManagePaymentMethod()}
+                  >
+                    {paymentMethodLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    ) : null}
+                    Update card
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className={gLinkSm}
+                  onClick={() => setDismissedAutopayFailure(true)}
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   ) : null;
 
@@ -1099,7 +1286,8 @@ function ParentBillingPageContent({
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto flex max-w-[1250px] flex-col gap-6 px-4 py-6 sm:gap-8 sm:py-8 md:px-9">
+      <ParentGardenFrame theme={theme}>
+      <div className={PORTAL_HOME_CONTAINER_CLASS}>
         {familySummary && childViews.length > 0 ? (
           <ParentBillingStoryHeader
             theme={theme}
@@ -1107,6 +1295,7 @@ function ParentBillingPageContent({
             activeTabKey={resolvedActiveTabKey}
             pendingTabKey={pendingTabKey}
             loadingTabKey={refreshing ? resolvedActiveTabKey : null}
+            refreshing={refreshing}
             childViews={childViews}
             openChargeCount={headerOpenChargeCount}
             totalRemainingCents={headerTotalRemainingCents}
@@ -1118,6 +1307,30 @@ function ParentBillingPageContent({
 
         {pageBanners}
 
+        {!familySummary && loadFailed && !previewMode ? (
+          <GCard
+            index={1}
+            kicker="Billing"
+            title="We couldn't load your billing"
+            data-testid="parent-billing-load-error"
+          >
+            <p className="m-0 text-[15px] font-semibold text-[var(--sf-soft)]">
+              Check your connection and try again.
+            </p>
+            <div className="mt-5">
+              <button
+                type="button"
+                className={gBtnPopSm}
+                disabled={refreshing || initialLoading}
+                onClick={() => void loadBilling()}
+              >
+                <RefreshCw className="h-4 w-4" aria-hidden />
+                Try again
+              </button>
+            </div>
+          </GCard>
+        ) : null}
+
         {showBillingContent ? (
           <div className="relative min-h-[120px]">
             {pendingTabKey ? (
@@ -1125,10 +1338,7 @@ function ParentBillingPageContent({
                 className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
                 aria-hidden
               >
-                <Loader2
-                  className="h-5 w-5 animate-spin"
-                  style={{ color: theme.muted }}
-                />
+                <Loader2 className="h-5 w-5 animate-spin text-[var(--sf-soft)]" />
               </div>
             ) : null}
             <AnimatePresence mode="wait">
@@ -1145,6 +1355,15 @@ function ParentBillingPageContent({
                   readOnly={previewMode}
                   initialFormId={deepLinkFormId}
                   onAgreementUpdated={(detail: ParentFormDetail) => {
+                    const wasSigned = tuitionAgreements.some(
+                      (item) => item.form.id === detail.form.id && item.listStatus === "signed",
+                    );
+                    if (
+                      !wasSigned &&
+                      classifyParentFormListStatus(detail.response.status) === "signed"
+                    ) {
+                      parentToast.success(`Signed: ${detail.form.title}`);
+                    }
                     setTuitionAgreements((current) =>
                       current.map((item) =>
                         item.form.id === detail.form.id
@@ -1180,6 +1399,8 @@ function ParentBillingPageContent({
                     showTaxCreditPaymentBanner && !dismissedTaxCreditBanner
                   }
                   taxCreditChargeId={nextChargeRecord?.id ?? null}
+                  setupCard={setupCard}
+                  paymentReceived={paymentReceivedKey != null}
                   onDismissTaxCreditBanner={() => setDismissedTaxCreditBanner(true)}
                   onApplyTaxCredit={handlePayExtra}
                   readOnly={previewMode}
@@ -1216,6 +1437,8 @@ function ParentBillingPageContent({
                   readOnly={previewMode}
                   onPay={handlePay}
                   onPayExtra={handlePayExtra}
+                  setupCard={setupCard}
+                  paymentReceived={paymentReceivedKey != null}
                   onScheduleComplete={() => void handleScheduleComplete()}
                   onOpenUpcomingCharges={() => setManualUpcomingChargesPanelOpen(true)}
                   onPaymentClick={(paymentId) => {
@@ -1229,6 +1452,7 @@ function ParentBillingPageContent({
           </div>
         ) : null}
       </div>
+      </ParentGardenFrame>
 
       <div
         id="parent-billing-child-panel"
@@ -1239,6 +1463,15 @@ function ParentBillingPageContent({
 
       <ParentAutopayConfirmModal
         C={C}
+        theme={theme}
+        onAddPaymentMethod={
+          previewMode
+            ? undefined
+            : () => {
+                setAutopayModalOpen(false);
+                void handleManagePaymentMethod();
+              }
+        }
         open={autopayModalOpen}
         enabling={pendingAutopayEnabled}
         savedPaymentMethod={savedPaymentMethod}
@@ -1249,6 +1482,8 @@ function ParentBillingPageContent({
 
       <PaymentMethodSelectionModal
         C={C}
+        appearance="parent-garden"
+        theme={theme}
         open={
           paymentModalOpen &&
           (pendingPayCharge != null ||

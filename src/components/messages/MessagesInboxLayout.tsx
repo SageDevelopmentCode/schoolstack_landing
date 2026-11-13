@@ -46,6 +46,12 @@ import {
   isStoryMessagesVariant,
 } from "@/lib/messages/messages-layout-variant";
 import { parentMessagesViewTransition } from "@/components/school-parent/messages/parent-messages-view-transition";
+import ParentGardenMessagesView from "@/components/school-parent/messages/garden/ParentGardenMessagesView";
+import type {
+  MessagesFeedbackEvent,
+  MessagesFeedbackHandler,
+  MessagesInboxViewModel,
+} from "./messages-inbox-view-model";
 import TeacherStudentDetailPanel from "@/components/school-teacher/TeacherStudentDetailPanel";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { AdminEnrolledStudentSummary } from "@/lib/school-admin/enrolled-students";
@@ -206,6 +212,7 @@ export default function MessagesInboxLayout({
   onRegisterActions,
   initialThreadId = null,
   fillHeight = false,
+  onFeedback,
 }: {
   api: MessagesApiConfig;
   initialInbox?: MessagesInboxData;
@@ -220,6 +227,8 @@ export default function MessagesInboxLayout({
   onRegisterActions?: (actions: MessagesInboxActions) => void;
   initialThreadId?: string | null;
   fillHeight?: boolean;
+  /** Opt-in feedback events (toasts). Inline error behaviour is unchanged. */
+  onFeedback?: MessagesFeedbackHandler;
 }) {
   const searchParams = useSearchParams();
   const reportMessagesError = useCallback(
@@ -237,6 +246,13 @@ export default function MessagesInboxLayout({
     },
     [api.organizationId, api.viewer],
   );
+  const onFeedbackRef = useRef(onFeedback);
+  useEffect(() => {
+    onFeedbackRef.current = onFeedback;
+  }, [onFeedback]);
+  const emitFeedback = useCallback((event: MessagesFeedbackEvent) => {
+    onFeedbackRef.current?.(event);
+  }, []);
   const [threads, setThreads] = useState<MessageThreadSummary[]>(initialInbox?.threads ?? []);
   const [contacts, setContacts] = useState<MessageContact[]>(initialInbox?.contacts ?? []);
   const [viewerContext, setViewerContext] = useState(initialInbox?.viewerContext);
@@ -300,6 +316,10 @@ export default function MessagesInboxLayout({
     enabled: !readOnly,
   });
   const handledThreadParam = useRef<string | null>(null);
+  const activeThreadIdRef = useRef(activeThreadId);
+  useEffect(() => {
+    activeThreadIdRef.current = activeThreadId;
+  }, [activeThreadId]);
   const optimisticSendRef = useRef(createOptimisticSendTracker());
   const loadGenerationRef = useRef(createLoadGenerationGuard());
   const hasLoadedThreadsRef = useRef((initialInbox?.threads.length ?? 0) > 0);
@@ -378,12 +398,22 @@ export default function MessagesInboxLayout({
       setContacts(data.contacts);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load contacts.");
+      const message = err instanceof Error ? err.message : "Failed to load contacts.";
+      setError(message);
+      emitFeedback({ type: "load_failed", scope: "contacts", message });
       reportMessagesError("messages.load_contacts", err);
     } finally {
       setLoadingContacts(false);
     }
-  }, [api.basePath, contacts.length, deferContactsLoad, loadingContacts, query, reportMessagesError]);
+  }, [
+    api.basePath,
+    contacts.length,
+    deferContactsLoad,
+    emitFeedback,
+    loadingContacts,
+    query,
+    reportMessagesError,
+  ]);
 
   const handleOpenNewConversation = useCallback(async () => {
     if (deferContactsLoad) {
@@ -436,7 +466,11 @@ export default function MessagesInboxLayout({
         void loadInbox({ silent: true });
       } catch (err) {
         if (!loadGenerationRef.current.isLatest(generation)) return;
-        setError(err instanceof Error ? err.message : "Failed to load conversation.");
+        const message = err instanceof Error ? err.message : "Failed to load conversation.";
+        setError(message);
+        if (!options?.silent) {
+          emitFeedback({ type: "load_failed", scope: "thread", message });
+        }
         reportMessagesError("messages.load_thread", err);
       } finally {
         if (loadGenerationRef.current.isLatest(generation) && !options?.silent) {
@@ -444,7 +478,7 @@ export default function MessagesInboxLayout({
         }
       }
     },
-    [api.basePath, loadInbox, query, reportMessagesError],
+    [api.basePath, emitFeedback, loadInbox, query, reportMessagesError],
   );
 
   const selectThread = useCallback(
@@ -529,8 +563,11 @@ export default function MessagesInboxLayout({
         });
         setActiveThreadId(data.threadId);
         await loadThread(data.threadId, { silent: true });
+        emitFeedback({ type: "conversation_started", name: contact.name });
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to start conversation.");
+        const message = err instanceof Error ? err.message : "Failed to start conversation.";
+        setError(message);
+        emitFeedback({ type: "load_failed", scope: "start_conversation", message });
         reportMessagesError("messages.start_conversation", err);
         setActiveThread(null);
         setActiveThreadId(null);
@@ -546,6 +583,7 @@ export default function MessagesInboxLayout({
       api.organizationId,
       api.programId,
       api.viewer,
+      emitFeedback,
       loadThread,
       readOnly,
       reportMessagesError,
@@ -812,7 +850,17 @@ export default function MessagesInboxLayout({
               }
             : prev,
         );
-        setError(err instanceof Error ? err.message : "Failed to send message.");
+        const message = err instanceof Error ? err.message : "Failed to send message.";
+        // Give the parent/teacher/admin their words and files back so nothing is lost.
+        const stillOnThread =
+          activeThreadIdRef.current === threadIdForSend ||
+          activeThreadIdRef.current === activeThreadId;
+        if (stillOnThread) {
+          setInput((current) => (current.trim() ? current : body));
+          setStagedFiles((current) => (current.length > 0 ? current : filesToSend));
+        }
+        setError(message);
+        emitFeedback({ type: "send_failed", message, restored: stillOnThread });
         reportMessagesError("messages.send", err, responseStatus);
       }
     } finally {
@@ -827,6 +875,7 @@ export default function MessagesInboxLayout({
     api.programId,
     api.schoolName,
     api.viewer,
+    emitFeedback,
     input,
     loadInbox,
     loadThread,
@@ -877,8 +926,9 @@ export default function MessagesInboxLayout({
         }
         return { ...prev, messages };
       });
+      emitFeedback({ type: "edited" });
     },
-    [activeThreadId, api.basePath, api.organizationId, api.schoolName, readOnly],
+    [activeThreadId, api.basePath, api.organizationId, api.schoolName, emitFeedback, readOnly],
   );
 
   const handleRequestDelete = useCallback((messageId: string) => {
@@ -923,8 +973,11 @@ export default function MessagesInboxLayout({
         return { ...prev, messages };
       });
       setDeleteTargetId(null);
+      emitFeedback({ type: "deleted" });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete message.");
+      const message = err instanceof Error ? err.message : "Failed to delete message.";
+      setError(message);
+      emitFeedback({ type: "delete_failed", message });
       reportMessagesError("messages.delete", err);
     } finally {
       setDeletingMessage(false);
@@ -935,6 +988,7 @@ export default function MessagesInboxLayout({
     api.organizationId,
     api.schoolName,
     deleteTargetId,
+    emitFeedback,
     readOnly,
     reportMessagesError,
   ]);
@@ -1136,6 +1190,91 @@ export default function MessagesInboxLayout({
   const activeKey = activeThreadId;
   const reducedMotion = useReducedMotion() ?? false;
 
+  const emptyInboxDescription =
+    api.viewer === "parent" && api.programId
+      ? "No conversations yet. Message a co-op family from the home page, or start a new conversation with the school office."
+      : api.viewer === "parent"
+        ? "No conversations yet. Start a new conversation with the school office or your child's teachers."
+        : api.viewer === "teacher"
+          ? "No conversations yet. Message MudKitchen Support or start a conversation with families and colleagues."
+          : "No conversations yet. Start a new conversation to reach families and colleagues.";
+
+  const newMessageDisabled = deferContactsLoad ? loadingContacts : contacts.length === 0;
+
+  if (variant === "parent-garden" && theme) {
+    const gardenModel: MessagesInboxViewModel = {
+      viewer: api.viewer,
+      schoolName: api.schoolName,
+      readOnly,
+      loadingInbox,
+      isRefetchingInbox,
+      error,
+      threads: threadsForList,
+      allThreads: listedThreads,
+      activeThread,
+      activeThreadId,
+      mobileView,
+      loadingMessages,
+      inboxSearch,
+      contacts,
+      loadingContacts,
+      contactKeysWithThreads,
+      newConversationOpen,
+      newMessageDisabled,
+      emptyInboxDescription,
+      input,
+      stagedFiles,
+      sending,
+      deleteTargetId,
+      deletingMessage,
+      attachmentDiscardDialogOpen,
+      attachmentRouteLeaveDialogOpen,
+      actions: {
+        selectThread: handleSelect,
+        setSearch: setInboxSearch,
+        openNewConversation: () => {
+          void handleOpenNewConversation();
+        },
+        closeNewConversation: () => setNewConversationOpen(false),
+        selectNewConversationContact: handleNewConversationSelect,
+        setInput,
+        setStagedFiles,
+        send: () => {
+          void handleSend();
+        },
+        backToList: () =>
+          requestComposerNavigation(() => {
+            setMobileView("list");
+          }),
+        editMessage: readOnly ? undefined : handleEditMessage,
+        requestDelete: readOnly ? undefined : handleRequestDelete,
+        confirmDelete: () => {
+          void handleConfirmDelete();
+        },
+        cancelDelete: () => {
+          if (!deletingMessage) setDeleteTargetId(null);
+        },
+        confirmDiscardAttachments,
+        cancelDiscardAttachments,
+        confirmRouteLeave: () => {
+          setStagedFiles([]);
+          confirmAttachmentRouteLeave();
+        },
+        cancelRouteLeave: cancelAttachmentRouteLeave,
+        dismissError: () => setError(null),
+        retry: () => {
+          void loadInbox();
+          if (activeThreadId && !isMudKitchenSupportPlaceholder(activeThreadId)) {
+            void loadThread(activeThreadId);
+          }
+        },
+        notify: emitFeedback,
+      },
+    };
+
+    return <ParentGardenMessagesView model={gardenModel} theme={theme} C={C} />;
+  }
+
   if (loadingInbox) {
     if (splitPane) {
       return (
@@ -1221,15 +1360,6 @@ export default function MessagesInboxLayout({
     );
   }
 
-  const emptyInboxDescription =
-    api.viewer === "parent" && api.programId
-      ? "No conversations yet. Message a co-op family from the home page, or start a new conversation with the school office."
-      : api.viewer === "parent"
-        ? "No conversations yet. Start a new conversation with the school office or your child's teachers."
-        : api.viewer === "teacher"
-          ? "No conversations yet. Message MudKitchen Support or start a conversation with families and colleagues."
-          : "No conversations yet. Start a new conversation to reach families and colleagues.";
-
   if (
     !loadingInbox &&
     api.viewer !== "parent" &&
@@ -1309,7 +1439,7 @@ export default function MessagesInboxLayout({
               onNewMessage={() => {
                 void handleOpenNewConversation();
               }}
-              newMessageDisabled={deferContactsLoad ? loadingContacts : contacts.length === 0}
+              newMessageDisabled={newMessageDisabled}
               readOnly={readOnly}
             />
           ) : adminStory && theme ? (

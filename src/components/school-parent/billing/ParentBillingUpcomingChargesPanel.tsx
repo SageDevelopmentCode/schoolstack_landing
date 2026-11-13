@@ -63,11 +63,10 @@ export default function ParentBillingUpcomingChargesPanel({
 
   const subtitle = (
     <>
-      {studentName ? <p>{studentName}</p> : null}
+      {studentName ? <p className="m-0">{studentName}</p> : null}
       {totalRemainingCents > 0 ? (
         <p
-          className="font-medium"
-          style={{ color: theme.primary }}
+          className="m-0 mt-1 inline-flex rounded-full bg-[var(--sf-accent-wash)] px-2.5 py-0.5 text-xs font-extrabold text-[var(--sf-clay-deep)]"
           data-testid="parent-billing-upcoming-total-remaining"
         >
           Total remaining: {formatCents(totalRemainingCents)}
@@ -81,13 +80,14 @@ export default function ParentBillingUpcomingChargesPanel({
       theme={theme}
       open={open}
       title="Payment schedule"
+      kicker="Upcoming charges"
       subtitle={studentName || totalRemainingCents > 0 ? subtitle : undefined}
       onClose={onClose}
       testId="parent-billing-upcoming-charges-panel"
       panelId="parent-billing-upcoming-charges-panel"
     >
       {scheduleCharges.length > 0 ? (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2.5">
           {scheduleCharges.map((charge) => (
             <ParentBillingChargeRow
               key={charge.id}
@@ -108,7 +108,7 @@ export default function ParentBillingUpcomingChargesPanel({
           ))}
         </div>
       ) : (
-        <p className="text-sm" style={{ color: theme.muted }}>
+        <p className="m-0 text-[15px] font-semibold text-[var(--sf-soft)]">
           No upcoming charges yet.
         </p>
       )}

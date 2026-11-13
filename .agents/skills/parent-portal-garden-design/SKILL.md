@@ -146,6 +146,13 @@ These are what separate this from the marketing site. Each one was a correction 
 | `G_FOCUS` | The focus ring (accent at 35%). Add it to every custom interactive element. |
 | `SPRINGY` | Springy transition for hover lifts. |
 | `NOTE_TINTS`, `PANEL_TINTS`, `TAPE_COLORS` | Literal tint classes and colours. |
+| `GTabBar` | Segmented `role="tablist"` with a gliding accent pill (Billing tabs, Messages All/Unread). |
+
+From `school-parent/garden/GDialog.tsx`:
+- `GDialog`: portalled Garden dialog (own `ParentGardenFrame`, bottom sheet on phones, Escape, focus trap + return). Safe to mount from inside a page frame.
+- `GConfirmDialog`: outline Cancel + one toy confirm (spinner + `aria-busy` while `loading`; `destructive` for deletes/discards).
+
+Toasts: the parent portal mounts `ParentToaster appearance="garden"` (`garden/GardenToaster.tsx`). Call `parentToast.success|error|info(title, { description, action, id })` from `src/lib/school-parent/parent-toast.ts`: title = what happened, description = what it means / what to do next. Teacher and the apply portal keep the story toaster.
 
 From the shared Garden kit (`@/components/garden/ui`):
 - `Tick` for done states.
@@ -188,6 +195,8 @@ From the shared Garden kit (`@/components/garden/ui`):
 | **Notebook list**: `.sf-paper` list with `Tick` (done) / empty ring (to do), title + meta, chevron; counts as `GChip`s above | `home/garden/HomeLowerCards.tsx` › `HomeFormsCard` | Forms, documents, receipts, payment history |
 | **Index of help**: category columns of button rows that open a side panel | `HomeLowerCards.tsx` › `HomeGuidesCard` | How-to guides, FAQs |
 | **Legacy block**: `PortalIsland` around an unmigrated component | `HomeLowerCards.tsx` › `HomeProgramSections` | Anything not yet migrated |
+| **Full-height app tab** (exception to §3.2/§3.4): the tab IS the page — full-bleed panes (list \| detail \| xl details rail) with 1.5px ink/10 dividers, no page header (sr-only `h1`), primary actions in the list column header; shared layout hands a view-model to a Garden view via a new variant | `messages/garden/ParentGardenMessagesView.tsx` (`MessagesInboxLayout variant="parent-garden"`) | Inbox-style tabs (committees chat, curriculum discussion) |
+| **Numbered "how it works" steps** with the current step on the accent wash | `messages/garden/GardenThreadPane.tsx` › `StartHere`, `billing/garden/BillingSetupCard.tsx` | First-run / empty detail panes, multi-step flows |
 
 ## 7. Migrating a tab (checklist)
 

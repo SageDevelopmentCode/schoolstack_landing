@@ -320,7 +320,12 @@ function SchoolParentBaselineInner({
           iconOnly={isParentCurriculumPath(pathname)}
         />
 
-        <ParentToaster C={C} helpButtonVisible={showHelpButton} />
+        <ParentToaster
+          C={C}
+          theme={theme}
+          appearance="garden"
+          helpButtonVisible={showHelpButton}
+        />
 
         <Suspense fallback={null}>
           <CommitteeWorkspaceSearchParamSync

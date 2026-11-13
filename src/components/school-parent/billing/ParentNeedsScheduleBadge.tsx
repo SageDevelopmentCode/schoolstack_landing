@@ -4,13 +4,14 @@ import { CircleAlert } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 type ParentNeedsScheduleBadgeProps = {
-  C: AdminThemeTokens;
+  /** Kept for call-site compatibility; the badge now uses Garden tokens. */
+  C?: AdminThemeTokens;
   label: string;
   size?: "sm" | "md";
 };
 
+/** "Schedule needed" warning chip (Garden butter). Renders inside ParentGardenFrame. */
 export default function ParentNeedsScheduleBadge({
-  C,
   label,
   size = "md",
 }: ParentNeedsScheduleBadgeProps) {
@@ -18,14 +19,9 @@ export default function ParentNeedsScheduleBadge({
 
   return (
     <span
-      className={`inline-flex shrink-0 items-center gap-1 rounded-full font-medium ${
-        isSmall ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-0.5 text-[11px]"
+      className={`inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--sf-butter)] font-extrabold text-[#6b4f00] ${
+        isSmall ? "px-1.5 py-0.5 text-[10px]" : "px-2.5 py-0.5 text-xs"
       }`}
-      style={{
-        backgroundColor: C.warningBg,
-        color: C.warning,
-        border: `1px solid ${C.warningBorder}`,
-      }}
       data-testid="parent-billing-needs-schedule-badge"
     >
       <CircleAlert className={isSmall ? "h-3 w-3" : "h-3.5 w-3.5"} aria-hidden />

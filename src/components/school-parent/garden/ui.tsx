@@ -455,3 +455,83 @@ export function GStatTile({
     </button>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/* Tabs                                                               */
+/* ------------------------------------------------------------------ */
+
+export type GTabBarItem = {
+  key: string;
+  label: string;
+  icon?: ReactNode;
+  suffix?: ReactNode;
+  disabled?: boolean;
+  ariaBusy?: boolean;
+  testId?: string;
+};
+
+/**
+ * Garden segmented tab bar (role="tablist"): the active tab sits on an
+ * accent pill that glides between tabs (framer layoutId). Scrolls inside
+ * itself on phones so it never widens the page.
+ */
+export function GTabBar({
+  items,
+  activeKey,
+  onChange,
+  ariaLabel,
+  className = "",
+  "data-testid": testId,
+}: {
+  items: GTabBarItem[];
+  activeKey: string;
+  onChange: (key: string) => void;
+  ariaLabel: string;
+  className?: string;
+  "data-testid"?: string;
+}) {
+  const reduce = useReducedMotion() === true;
+  const pillId = useId();
+  return (
+    <div
+      role="tablist"
+      aria-label={ariaLabel}
+      data-testid={testId}
+      className={`inline-flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-full border-[1.5px] border-[var(--sf-ink)]/12 bg-white p-1 shadow-[0_3px_0_0_rgba(43,36,29,0.08)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${className}`}
+    >
+      {items.map((item) => {
+        const active = item.key === activeKey;
+        return (
+          <button
+            key={item.key}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            aria-current={active ? "true" : undefined}
+            aria-busy={item.ariaBusy || undefined}
+            disabled={item.disabled}
+            data-testid={item.testId}
+            onClick={() => onChange(item.key)}
+            className={`relative inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-2 text-[13px] font-extrabold transition-colors duration-200 disabled:cursor-wait disabled:opacity-70 ${
+              active ? "text-white" : "text-[var(--sf-ink)]/65 hover:bg-[var(--sf-accent-wash)] hover:text-[var(--sf-ink)]"
+            } ${G_FOCUS} focus-visible:ring-offset-0`}
+          >
+            {active ? (
+              <motion.span
+                layoutId={`g-tab-pill-${pillId}`}
+                aria-hidden="true"
+                className="absolute inset-0 rounded-full bg-[var(--sf-clay)] shadow-[0_2px_0_0_var(--sf-ink)]"
+                transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
+              />
+            ) : null}
+            <span className="relative inline-flex items-center gap-1.5">
+              {item.icon}
+              {item.label}
+              {item.suffix}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
