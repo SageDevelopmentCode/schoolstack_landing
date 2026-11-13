@@ -41,6 +41,18 @@
   color: var(--color-text);
 }
 
+/* Parent portal "Garden dashboard" (ParentGardenFrame). The parent Home also
+   renders inside marketing demos (.sf-demo), where the reset above is skipped,
+   so the portal scope re-applies it. Not-yet-migrated portal blocks wrapped in
+   PortalIsland (.sf-demo inside the frame) keep the portal's own type.
+   Skill: .agents/skills/parent-portal-garden-design */
+.sf-parent-garden :where(h1, h2, h3, h4, p, button):not(.sf-parent-garden .sf-demo *) {
+  font-family: revert-layer;
+  font-weight: revert-layer;
+  letter-spacing: revert-layer;
+  line-height: revert-layer;
+}
+
 @layer components {
   .sf-display {
     font-family: var(--font-sf-display), ui-sans-serif, system-ui, sans-serif;

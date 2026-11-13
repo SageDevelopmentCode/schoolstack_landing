@@ -82,7 +82,8 @@ export default function SmoothScroll({ children }: { children: ReactNode }) {
     lenis.on("scroll", ScrollTrigger.update);
     const tick = (time: number) => lenis.raf(time * 1000);
     gsap.ticker.add(tick);
-    gsap.ticker.lagSmoothing(0);
+    // Keep GSAP's default lag smoothing: with lagSmoothing(0), a busy main thread (e.g. a demo
+    // mounting) made every running reveal jump straight to its end state instead of animating.
 
     return () => {
       lenisRef.current = null;

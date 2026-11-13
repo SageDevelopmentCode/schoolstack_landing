@@ -155,9 +155,13 @@ export function WordsReveal({
         if (!words.length) return;
         gsap.fromTo(
           words,
-          { yPercent: 110, rotate: 4 },
+          // `y: 0` on both ends: GSAP otherwise reads the pre-hide CSS transform
+          // (translate3d(0, 110%, 0), see garden.css) as the base `y`, and the words finish
+          // the tween still pushed below their mask until onComplete clears it.
+          { yPercent: 110, y: 0, rotate: 4 },
           {
             yPercent: 0,
+            y: 0,
             rotate: 0,
             duration: 1.1,
             delay,

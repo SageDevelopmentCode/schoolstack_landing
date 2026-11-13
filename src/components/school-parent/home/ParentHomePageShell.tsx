@@ -14,18 +14,8 @@ import type { ParentSignupAttentionItem } from "@/lib/classroom-signups/types";
 import type { OrganizationEvent } from "@/lib/school-events/types";
 import type { BulletinPost } from "@/lib/school-bulletin/types";
 import type { ResolvedParentFeatureAnnouncement } from "@/lib/parent-portal/parent-feature-announcements";
-import dynamic from "next/dynamic";
 import ParentHomePage from "@/components/school-parent/ParentHomePage";
 import { ParentHomePageContext } from "./parent-home-page-context";
-
-/** Temporary home-lab redesign variants (`/parent/home-lab/[variant]`). */
-export type ParentHomeLabVariant = "a" | "b" | "c";
-
-const HOME_LAB_VARIANTS = {
-  a: dynamic(() => import("@/components/school-parent/home-lab/ParentHomeVariantToday")),
-  b: dynamic(() => import("@/components/school-parent/home-lab/ParentHomeVariantBoard")),
-  c: dynamic(() => import("@/components/school-parent/home-lab/ParentHomeVariantTimeline")),
-} as const;
 
 type ParentHomePageShellProps = {
   branding: OrganizationBranding;
@@ -51,7 +41,6 @@ type ParentHomePageShellProps = {
   featureAnnouncements?: ResolvedParentFeatureAnnouncement[];
   fridayBranchSettings?: import("@/lib/school-admin/friday-branch/friday-branch-org-settings").OrganizationFridayBranchSettings | null;
   children?: React.ReactNode;
-  variant?: ParentHomeLabVariant;
 };
 
 export default function ParentHomePageShell({
@@ -78,9 +67,7 @@ export default function ParentHomePageShell({
   featureAnnouncements = [],
   fridayBranchSettings,
   children,
-  variant,
 }: ParentHomePageShellProps) {
-  const HomeComponent = variant ? HOME_LAB_VARIANTS[variant] : ParentHomePage;
   const [homeContent, setHomeContent] = useState<ParentHomeContentData | null>(null);
   const [contentHydrated, setContentHydrated] = useState(!familyId);
   const [streamedBulletinPosts, setStreamedBulletinPosts] = useState<
@@ -106,7 +93,7 @@ export default function ParentHomePageShell({
 
   return (
     <ParentHomePageContext.Provider value={contextValue}>
-      <HomeComponent
+      <ParentHomePage
         branding={branding}
         schoolSlug={schoolSlug}
         organizationId={organizationId}

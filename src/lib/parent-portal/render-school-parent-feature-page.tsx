@@ -11,9 +11,7 @@ import ParentCalendarEventsLoader from "@/components/school-parent/calendar/Pare
 import ParentCalendarPageShell from "@/components/school-parent/calendar/ParentCalendarPageShell";
 import ParentCommitteesPageShell from "@/components/school-parent/committees/ParentCommitteesPageShell";
 import ParentHomeContentLoader from "@/components/school-parent/home/ParentHomeContentLoader";
-import ParentHomePageShell, {
-  type ParentHomeLabVariant,
-} from "@/components/school-parent/home/ParentHomePageShell";
+import ParentHomePageShell from "@/components/school-parent/home/ParentHomePageShell";
 import ParentAttendancePage from "@/components/school-parent/attendance/ParentAttendancePage";
 import ParentChildrenPage from "@/components/school-parent/ParentChildrenPage";
 import ParentCurriculumPage from "@/components/school-parent/curriculum/ParentCurriculumPage";
@@ -96,8 +94,6 @@ export type SchoolParentFeaturePageContext = {
   searchParams: Record<string, string | string[] | undefined>;
   programSlug?: string;
   parentNavBasePath?: string;
-  /** Temporary: render a home-lab redesign variant for the `portal` feature. */
-  homeVariant?: ParentHomeLabVariant;
 };
 
 function featurePath(
@@ -326,7 +322,6 @@ export async function renderSchoolParentFeaturePage(
           programSlug={context.programSlug}
           parentNavBasePath={parentNavBasePath}
           fridayBranchSettings={org.fridayBranchSettings}
-          variant={context.homeVariant}
         >
           <Suspense fallback={null}>
             <ParentHomeContentLoader

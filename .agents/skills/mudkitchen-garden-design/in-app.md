@@ -12,10 +12,12 @@ The school admin, parent and teacher portals (web and mobile) are **white-labell
 - **Tokens:** `buildParentThemeTokens(branding)` (`src/lib/organization-settings/parent-theme.ts`) takes each school's `branding.colors.accent*` as `primary*` and its `typography.bodyFont`.
 - **Shell:** `SchoolAdminStoryShell` (`src/components/school-admin/SchoolAdminStoryShell.tsx`) and `ParentThemeContext` (`src/components/school-parent/ParentThemeContext.tsx`) hand those tokens to the primitives as JS values. They're applied mostly as inline `style={{}}`.
 - **Fonts:** Fraunces (display) and DM Sans (body).
-- **Rules:** that system is **School Day Story**, documented in `.agents/skills/admin-workspace-design` and `.agents/skills/parent-portal-story-design`. Those skills stay authoritative for portal content.
+- **Rules:** the admin and teacher portals (and every portal on mobile) use **School Day Story**, documented in `.agents/skills/admin-workspace-design`. The **parent portal on web** has moved to the **Garden dashboard**, documented in `.agents/skills/parent-portal-garden-design`. Those skills stay authoritative for portal content.
 
 So:
-- **Never put Garden colours on school-branded content.** No clay buttons, butter notes, Bricolage headings or tilted cards inside a school's parent home, billing, roster or messages. A family at "Rooted Meadows" sees Rooted Meadows' purple, not MudKitchen clay.
+- **Never put MudKitchen clay on school-branded content.** A family at "Rooted Meadows" sees Rooted Meadows' purple, not MudKitchen clay.
+  - **Parent portal (web):** Garden type and materials are allowed, but only inside `ParentGardenFrame`, which maps the school accent onto `--sf-clay*`. Follow `parent-portal-garden-design`: portal density, no tilt on data, one toy button per view.
+  - **Admin and teacher portals, and mobile:** no butter notes, Bricolage headings or tilted cards; use School Day Story.
 - **MudKitchen-owned surfaces** (where MudKitchen, not the school, is speaking) use **Calm Garden**.
 - **Portal changes ripple into marketing.** The marketing demos (`src/components/demo/shared/*`, `demo-story-theme.ts`, `DemoStage`) render the *real* portal components. Restyle a portal primitive and every demo on the home page changes too. Re-check `/` and `/demo/*` after any portal change.
 
@@ -29,7 +31,8 @@ So:
 | First-run onboarding, product tours, "what's new" | Calm Garden | `AdminFeatureAnnouncementsCard`, `AdminDashboardHowToGuidesCard` (`src/components/school-admin/ui/story/`) |
 | Empty states | School Day Story layout, plus the Garden empty-state treatment below | `src/components/school-admin/SchoolAdminEmptyState.tsx`, parent and teacher equivalents |
 | Success moments (enrollment complete, first payment, setup finished) | School Day Story, plus a Garden celebration | inline in features |
-| Dashboards, lists, tables, forms, billing, messages, calendars | **School Day Story only** | `Admin*` primitives (`src/components/school-admin/ui/story/`), `Parent*` primitives (`src/components/school-parent/ui/`) |
+| Parent portal pages (web): home, billing, messages, calendars, forms | **Garden dashboard** (`parent-portal-garden-design`) | `src/components/school-parent/garden/*`. Tabs not yet migrated still use the `Parent*` primitives in `src/components/school-parent/ui/`. |
+| Admin and teacher dashboards, lists, tables, forms, billing, messages, calendars | **School Day Story only** | `Admin*` primitives (`src/components/school-admin/ui/story/`) |
 | Internal superadmin | `.admin-app` slate | `src/components/admin/AdminShell.tsx`; don't restyle |
 | Mobile: auth, onboarding, MudKitchen account and upgrade screens | Calm Garden (mobile) | `apps/mobile/src/app/*` |
 | Mobile: parent, teacher and admin portal screens | School Day Story (mobile `Story` / `MobileParentTheme`) | `apps/mobile/src/components/story/*` |

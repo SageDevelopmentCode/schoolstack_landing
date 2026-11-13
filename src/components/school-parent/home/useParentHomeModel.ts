@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ComponentProps } from "react";
-import type ParentHomePage from "@/components/school-parent/ParentHomePage";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ParentHomePageProps } from "./parent-home-types";
 import type { FamilyChildOverview } from "@/lib/admissions/parent-portal-access";
 import {
   buildParentThemeTokens,
@@ -24,11 +24,6 @@ import {
 } from "@/lib/parent-portal/parent-home-attention";
 import { formatChildProgramLine } from "@/components/school-parent/children/parent-children-utils";
 
-/**
- * Home-lab variants take exactly the same props as the live `ParentHomePage`,
- * so `ParentHomePageShell` can swap them in without touching data loading.
- */
-export type ParentHomeVariantProps = ComponentProps<typeof ParentHomePage>;
 
 export function firstName(displayName: string): string {
   const part = displayName.trim().split(/\s+/).filter(Boolean)[0];
@@ -84,10 +79,10 @@ export function childDetailsHref(
 }
 
 /**
- * All the derived state of the parent home, lifted out of `ParentHomePage`
- * (same rules, same links, same drawers) so every variant behaves identically.
+ * All the derived state of the parent Home: theme, attention items, onboarding
+ * progress, guides, hrefs and drawer state. Sections in `./garden/` read from it.
  */
-export function useParentHomeModel(props: ParentHomeVariantProps) {
+export function useParentHomeModel(props: ParentHomePageProps) {
   const {
     branding,
     schoolSlug,
