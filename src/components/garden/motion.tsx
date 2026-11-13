@@ -81,6 +81,11 @@ export function Reveal({
   id?: string;
 }) {
   const ref = useRef<HTMLElement>(null);
+  const revealStyle = {
+    ...style,
+    "--sf-reveal-y": `${y}px`,
+    "--sf-reveal-x": `${x}px`,
+  } as CSSProperties;
   useGSAP(
     () => {
       const mm = gsap.matchMedia();
@@ -88,23 +93,32 @@ export function Reveal({
         const el = ref.current!;
         const targets = selector ? el.querySelectorAll(selector) : el.children;
         if (!targets.length) return;
-        gsap.from(targets, {
-          y,
-          x,
-          opacity: 0,
-          duration,
-          delay,
-          stagger,
-          ease: "power3.out",
-          scrollTrigger: { trigger: el, start, once: true },
-        });
+        gsap.fromTo(
+          targets,
+          { autoAlpha: 0, y, x },
+          {
+            autoAlpha: 1,
+            y: 0,
+            x: 0,
+            duration,
+            delay,
+            stagger,
+            ease: "power3.out",
+            immediateRender: false,
+            scrollTrigger: { trigger: el, start, once: true, invalidateOnRefresh: true },
+            onComplete() {
+              gsap.set(targets, { clearProps: "opacity,visibility,transform" });
+              el.classList.add("sf-reveal-done");
+            },
+          },
+        );
       });
       return () => mm.revert();
     },
     { scope: ref },
   );
   return (
-    <Tag ref={ref} className={className} style={style} id={id}>
+    <Tag ref={ref} className={`sf-reveal${className ? ` ${className}` : ""}`} style={revealStyle} id={id}>
       {children}
     </Tag>
   );
@@ -137,15 +151,28 @@ export function WordsReveal({
     () => {
       const mm = gsap.matchMedia();
       mm.add(MQ_MOTION, () => {
-        gsap.from(ref.current!.querySelectorAll("[data-w]"), {
-          yPercent: 110,
-          rotate: 4,
-          duration: 1.1,
-          delay,
-          stagger,
-          ease: "power4.out",
-          scrollTrigger: immediate ? undefined : { trigger: ref.current, start, once: true },
-        });
+        const words = ref.current!.querySelectorAll("[data-w]");
+        if (!words.length) return;
+        gsap.fromTo(
+          words,
+          { yPercent: 110, rotate: 4 },
+          {
+            yPercent: 0,
+            rotate: 0,
+            duration: 1.1,
+            delay,
+            stagger,
+            ease: "power4.out",
+            immediateRender: false,
+            scrollTrigger: immediate
+              ? undefined
+              : { trigger: ref.current, start, once: true, invalidateOnRefresh: true },
+            onComplete() {
+              gsap.set(words, { clearProps: "opacity,visibility,transform" });
+              ref.current?.classList.add("sf-words-done");
+            },
+          },
+        );
       });
       return () => mm.revert();
     },
@@ -153,7 +180,7 @@ export function WordsReveal({
   );
   const words = text.split(" ");
   return (
-    <Tag ref={ref} className={className}>
+    <Tag ref={ref} className={`sf-words-reveal${className ? ` ${className}` : ""}`}>
       {words.map((w, i) => (
         <Fragment key={i}>
           <span className="inline-block overflow-hidden pb-[0.12em] -mb-[0.12em] align-bottom">

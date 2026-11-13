@@ -1,19 +1,9 @@
 import localFont from "next/font/local";
 
-export const lora = localFont({
-  src: [
-    { path: "../../fonts/lora/lora-latin-400-normal.woff2", weight: "400" },
-    { path: "../../fonts/lora/lora-latin-400-italic.woff2", weight: "400", style: "italic" },
-    { path: "../../fonts/lora/lora-latin-500-normal.woff2", weight: "500" },
-    { path: "../../fonts/lora/lora-latin-500-italic.woff2", weight: "500", style: "italic" },
-    { path: "../../fonts/lora/lora-latin-600-normal.woff2", weight: "600" },
-    { path: "../../fonts/lora/lora-latin-600-italic.woff2", weight: "600", style: "italic" },
-    { path: "../../fonts/lora/lora-latin-700-normal.woff2", weight: "700" },
-    { path: "../../fonts/lora/lora-latin-700-italic.woff2", weight: "700", style: "italic" },
-  ],
-  display: "swap",
-  variable: "--font-lora",
-});
+export { lora } from "./lora";
+
+// Demo and school-brand fonts. `preload: false` keeps them out of every page's <head>; the browser
+// still fetches a face as soon as a rendered element uses it.
 
 export const nunito = localFont({
   src: [
@@ -23,6 +13,7 @@ export const nunito = localFont({
     { path: "../../fonts/nunito/nunito-latin-700-normal.woff2", weight: "700" },
   ],
   display: "swap",
+  preload: false,
   variable: "--font-nunito",
 });
 
@@ -34,6 +25,7 @@ export const nunitoSans = localFont({
     { path: "../../fonts/nunito-sans/nunito-sans-latin-700-normal.woff2", weight: "700" },
   ],
   display: "swap",
+  preload: false,
   variable: "--font-nunito-sans",
 });
 
@@ -45,6 +37,7 @@ export const sourceSans3 = localFont({
     { path: "../../fonts/source-sans-3/source-sans-3-latin-700-normal.woff2", weight: "700" },
   ],
   display: "swap",
+  preload: false,
   variable: "--font-source-sans",
 });
 
@@ -56,6 +49,7 @@ export const cormorantGaramond = localFont({
     { path: "../../fonts/cormorant-garamond/cormorant-garamond-latin-700-normal.woff2", weight: "700" },
   ],
   display: "swap",
+  preload: false,
   variable: "--font-cormorant",
 });
 
@@ -71,6 +65,7 @@ export const playfairDisplay = localFont({
     { path: "../../fonts/playfair-display/playfair-display-latin-700-italic.woff2", weight: "700", style: "italic" },
   ],
   display: "swap",
+  preload: false,
   variable: "--font-playfair-display",
 });
 
@@ -82,6 +77,7 @@ export const raleway = localFont({
     { path: "../../fonts/raleway/raleway-latin-700-normal.woff2", weight: "700" },
   ],
   display: "swap",
+  preload: false,
   variable: "--font-raleway",
 });
 
@@ -93,6 +89,7 @@ export const lato = localFont({
     { path: "../../fonts/lato/lato-latin-700-italic.woff2", weight: "700", style: "italic" },
   ],
   display: "swap",
+  preload: false,
   variable: "--font-lato",
 });
 
@@ -104,6 +101,7 @@ export const openSans = localFont({
     { path: "../../fonts/open-sans/open-sans-latin-700-normal.woff2", weight: "700" },
   ],
   display: "swap",
+  preload: false,
   variable: "--font-open-sans",
 });
 
@@ -112,6 +110,7 @@ export const dmSerifDisplay = localFont({
     { path: "../../fonts/dm-serif-display/dm-serif-display-latin-400-normal.woff2", weight: "400" },
   ],
   display: "swap",
+  preload: false,
   variable: "--font-dm-serif-display",
 });
 
@@ -123,6 +122,7 @@ export const montserrat = localFont({
     { path: "../../fonts/montserrat/montserrat-latin-700-normal.woff2", weight: "700" },
   ],
   display: "swap",
+  preload: false,
   variable: "--font-montserrat",
 });
 
@@ -134,6 +134,7 @@ export const quicksand = localFont({
     { path: "../../fonts/quicksand/quicksand-latin-700-normal.woff2", weight: "700" },
   ],
   display: "swap",
+  preload: false,
   variable: "--font-quicksand",
 });
 
@@ -145,6 +146,7 @@ export const fraunces = localFont({
     { path: "../../fonts/fraunces/fraunces-latin-700-normal.woff2", weight: "700" },
   ],
   display: "swap",
+  preload: false,
   variable: "--font-fraunces",
 });
 
@@ -154,6 +156,7 @@ export const libreBaskerville = localFont({
     { path: "../../fonts/libre-baskerville/libre-baskerville-latin-700-normal.woff2", weight: "700" },
   ],
   display: "swap",
+  preload: false,
   variable: "--font-libre-baskerville",
 });
 
@@ -163,6 +166,7 @@ export const instrumentSerif = localFont({
     { path: "../../fonts/instrument-serif/instrument-serif-latin-400-italic.woff2", weight: "400", style: "italic" },
   ],
   display: "swap",
+  preload: false,
   variable: "--font-instrument-serif",
 });
 
@@ -174,6 +178,7 @@ export const workSans = localFont({
     { path: "../../fonts/work-sans/work-sans-latin-700-normal.woff2", weight: "700" },
   ],
   display: "swap",
+  preload: false,
   variable: "--font-work-sans",
 });
 
@@ -185,5 +190,6 @@ export const dmSans = localFont({
     { path: "../../fonts/dm-sans/dm-sans-latin-700-normal.woff2", weight: "700" },
   ],
   display: "swap",
+  preload: false,
   variable: "--font-dm-sans",
 });

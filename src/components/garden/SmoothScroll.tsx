@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import Lenis from "lenis";
 import "lenis/dist/lenis.css";
@@ -15,32 +15,54 @@ export default function SmoothScroll({ children }: { children: ReactNode }) {
   const lenisRef = useRef<Lenis | null>(null);
   const prevPathnameRef = useRef<string | null>(null);
 
+  useLayoutEffect(() => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const garden = document.querySelector(".sf-garden");
+    if (reduce || !garden) return;
+
+    garden.classList.add("sf-motion-ready");
+    return () => garden.classList.remove("sf-motion-ready");
+  }, []);
+
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    const refresh = () => ScrollTrigger.refresh();
+    let refreshRaf = 0;
+    const refresh = () => {
+      cancelAnimationFrame(refreshRaf);
+      refreshRaf = requestAnimationFrame(() => {
+        ScrollTrigger.refresh();
+        ScrollTrigger.update();
+      });
+    };
+
     window.addEventListener("load", refresh);
     // Fonts shift line lengths, which shifts trigger positions.
     document.fonts?.ready.then(refresh).catch(() => {});
 
-    // Lazy images and data-driven sections change the page height after triggers
-    // are measured; re-measure (debounced) whenever the document height changes.
-    let lastH = document.documentElement.scrollHeight;
+    const garden = document.querySelector(".sf-garden");
+    let lastH = garden?.scrollHeight ?? document.documentElement.scrollHeight;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const ro = new ResizeObserver(() => {
-      const h = document.documentElement.scrollHeight;
+      const h = garden?.scrollHeight ?? document.documentElement.scrollHeight;
       if (Math.abs(h - lastH) < 2) return;
       lastH = h;
       clearTimeout(timer);
       timer = setTimeout(() => {
         refresh();
-        lastH = document.documentElement.scrollHeight;
+        lastH = garden?.scrollHeight ?? document.documentElement.scrollHeight;
       }, 250);
     });
-    ro.observe(document.body);
+    if (garden) {
+      ro.observe(garden);
+    } else {
+      ro.observe(document.body);
+    }
+
     const stopObserving = () => {
       ro.disconnect();
       clearTimeout(timer);
+      cancelAnimationFrame(refreshRaf);
       window.removeEventListener("load", refresh);
     };
 
@@ -85,7 +107,10 @@ export default function SmoothScroll({ children }: { children: ReactNode }) {
       window.scrollTo(0, 0);
     }
 
-    requestAnimationFrame(() => ScrollTrigger.refresh());
+    requestAnimationFrame(() => {
+      ScrollTrigger.refresh();
+      ScrollTrigger.update();
+    });
   }, [pathname]);
 
   return <>{children}</>;

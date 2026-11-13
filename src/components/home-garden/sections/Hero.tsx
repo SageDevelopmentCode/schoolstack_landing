@@ -29,8 +29,42 @@ export default function Hero() {
     () => {
       const mm = gsap.matchMedia();
       mm.add(MQ_MOTION, () => {
-        gsap.from("[data-hero-in]", { y: 40, opacity: 0, duration: 1, ease: "power3.out", stagger: 0.1, delay: 0.35 });
-        gsap.from("[data-hero-frame]", { y: 120, rotate: 8, opacity: 0, duration: 1.3, ease: "back.out(1.2)", delay: 0.2 });
+        const copy = ref.current!.querySelectorAll("[data-hero-in]");
+        const frame = ref.current!.querySelector("[data-hero-frame]");
+        gsap.fromTo(
+          copy,
+          { autoAlpha: 0, y: 40 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 1,
+            ease: "power3.out",
+            stagger: 0.1,
+            delay: 0.35,
+            immediateRender: false,
+            onComplete() {
+              gsap.set(copy, { clearProps: "opacity,visibility,transform" });
+            },
+          },
+        );
+        if (frame) {
+          gsap.fromTo(
+            frame,
+            { autoAlpha: 0, y: 120, rotate: 8 },
+            {
+              autoAlpha: 1,
+              y: 0,
+              rotate: 0,
+              duration: 1.3,
+              ease: "back.out(1.2)",
+              delay: 0.2,
+              immediateRender: false,
+              onComplete() {
+                gsap.set(frame, { clearProps: "opacity,visibility,transform" });
+              },
+            },
+          );
+        }
       });
       return () => mm.revert();
     },
@@ -113,7 +147,7 @@ export default function Hero() {
           </div>
 
           <div data-hero-frame id="home2-hero-demo" role="tabpanel">
-            <GardenDemoFrame active={view} tilt={1.2} tape="var(--sf-mint)" tapeSide="left" designHeight={640}>
+            <GardenDemoFrame active={view} tilt={1.2} tape="var(--sf-mint)" tapeSide="left" designHeight={640} deferUntilIdle>
               <div className="pointer-events-none absolute -bottom-8 -left-4 z-20 hidden sm:block lg:-left-12" aria-hidden="true">
                 <AnimatePresence mode="popLayout">
                   <motion.div

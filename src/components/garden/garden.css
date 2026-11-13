@@ -128,6 +128,23 @@
   }
 }
 
+/* Client-only: SmoothScroll toggles .sf-motion-ready before paint so scroll
+   reveals do not flash at full opacity while GSAP initializes. */
+@media (prefers-reduced-motion: no-preference) {
+  .sf-garden.sf-motion-ready .sf-reveal:not(.sf-reveal-done) > * {
+    opacity: 0;
+    transform: translate3d(var(--sf-reveal-x, 0px), var(--sf-reveal-y, 40px), 0);
+  }
+
+  .sf-garden.sf-motion-ready .sf-words-reveal:not(.sf-words-done) [data-w] {
+    transform: translate3d(0, 110%, 0) rotate(4deg);
+  }
+}
+
+html:has(.lenis) {
+  scroll-behavior: auto;
+}
+
 @media (hover: hover) {
   .sf-flip:hover .sf-flip-inner,
   .sf-flip:focus-within .sf-flip-inner {

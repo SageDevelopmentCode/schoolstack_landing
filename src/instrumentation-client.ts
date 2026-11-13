@@ -21,9 +21,13 @@ function shouldSkipSessionReplay(): boolean {
 
 const skipReplay = shouldSkipSessionReplay();
 
+// Off in local dev; set NEXT_PUBLIC_SENTRY_DEV=1 to debug Sentry locally.
+const isDev = process.env.NODE_ENV === "development";
+
 Sentry.init({
   dsn: SENTRY_DSN,
-  tracesSampleRate: process.env.NODE_ENV === "development" ? 1.0 : 0.1,
+  enabled: !isDev || process.env.NEXT_PUBLIC_SENTRY_DEV === "1",
+  tracesSampleRate: isDev ? 0 : 0.1,
   replaysSessionSampleRate: skipReplay ? 0 : 0.1,
   replaysOnErrorSampleRate: skipReplay ? 0 : 1.0,
   enableLogs: true,

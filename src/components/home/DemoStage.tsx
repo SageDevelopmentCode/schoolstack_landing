@@ -98,6 +98,11 @@ type DemoStageProps = {
   style?: React.CSSProperties;
   /** Rendered above the scaled area, unscaled (e.g. browser chrome). */
   header?: ReactNode;
+  /**
+   * Above-the-fold demos: wait for page load + idle (or pointer/focus) before mounting the
+   * initial demo. Switching `active` mounts the new demo immediately.
+   */
+  deferUntilIdle?: boolean;
 };
 
 export default function DemoStage({
@@ -111,6 +116,7 @@ export default function DemoStage({
   className = "",
   style,
   header,
+  deferUntilIdle = false,
 }: DemoStageProps) {
   const measureRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -159,7 +165,11 @@ export default function DemoStage({
           className="relative w-full overflow-hidden"
           style={{ height: visibleHeight }}
         >
-          <InViewDemoGate className="absolute inset-0">
+          <InViewDemoGate
+            className="absolute inset-0"
+            // Once the visitor picks another view, stop deferring so it shows at once.
+            deferUntilIdle={deferUntilIdle && loaded.size === 1}
+          >
             <div
               className="absolute left-0 top-0 origin-top-left"
               style={{

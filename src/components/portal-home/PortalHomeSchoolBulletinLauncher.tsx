@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ArrowRight, Megaphone } from "lucide-react";
 import BulletinAllPostsSidebar from "@/components/bulletin/BulletinAllPostsSidebar";
 import BulletinAttachmentFullscreenViewer, {
@@ -15,6 +15,8 @@ type PortalHomeSchoolBulletinLauncherProps = {
   theme: ParentThemeTokens;
   bulletinEnabled: boolean;
   bulletinPosts: BulletinPost[];
+  /** Optional custom trigger; receives `open` to show the bulletin sidebar. */
+  renderTrigger?: (open: () => void) => ReactNode;
 };
 
 function buildViewerState(
@@ -35,6 +37,7 @@ export default function PortalHomeSchoolBulletinLauncher({
   theme,
   bulletinEnabled,
   bulletinPosts,
+  renderTrigger,
 }: PortalHomeSchoolBulletinLauncherProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<BulletinPost | null>(null);
@@ -68,6 +71,7 @@ export default function PortalHomeSchoolBulletinLauncher({
 
   return (
     <>
+      {renderTrigger ? renderTrigger(() => setSidebarOpen(true)) : (
       <button
         type="button"
         onClick={() => setSidebarOpen(true)}
@@ -82,6 +86,7 @@ export default function PortalHomeSchoolBulletinLauncher({
         School Bulletin
         <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
       </button>
+      )}
 
       <BulletinAllPostsSidebar
         theme={theme}

@@ -14,6 +14,7 @@ export const geist = localFont({
 export const fragmentMono = localFont({
   src: [{ path: "../../fonts/fragment-mono/fragment-mono-latin-400-normal.woff2", weight: "400" }],
   display: "swap",
+  preload: false,
   variable: "--font-fragment-mono",
 });
 
@@ -25,6 +26,7 @@ export const deliciousHandrawn = localFont({
     },
   ],
   display: "swap",
+  preload: false,
   variable: "--font-delicious",
 });
 
@@ -36,6 +38,7 @@ export const poppins = localFont({
     { path: "../../fonts/poppins/poppins-latin-600-normal.woff2", weight: "600" },
   ],
   display: "swap",
+  preload: false,
   variable: "--font-poppins",
 });
 
@@ -48,6 +51,7 @@ export const manrope = localFont({
     { path: "../../fonts/manrope/manrope-latin-800-normal.woff2", weight: "800" },
   ],
   display: "swap",
+  preload: false,
   variable: "--font-manrope",
 });
 
@@ -59,5 +63,6 @@ export const inter = localFont({
     { path: "../../fonts/inter/inter-latin-700-normal.woff2", weight: "700" },
   ],
   display: "swap",
+  preload: false,
   variable: "--font-inter",
 });
