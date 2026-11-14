@@ -3,8 +3,9 @@
 import { ArrowLeft, ClipboardList, FileText, Trash2 } from "lucide-react";
 import type { CSSProperties } from "react";
 import { SettingToggleRow } from "@/components/school-admin/notifications/NotificationChannelCard";
-import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
+import { CommitteeButton, CommitteeHeading, G_COMMITTEE_INPUT } from "@/components/school-admin/committees/committee-ui";
+import { useIsGardenCommittee } from "@/components/school-admin/committees/committee-surface";
+import { GKicker, GTabBar, gLinkSm } from "@/components/school-parent/garden/ui";
 import TuitionSubTabBar from "@/components/school-admin/tuition/TuitionSubTabBar";
 import CommitteeWorkspaceSectionFrame from "@/components/school-admin/committees/CommitteeWorkspaceSectionFrame";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -69,8 +70,36 @@ export default function CommitteeProjectDetailView({
   onRemoveSupplyItem,
   onDeleteProject,
 }: CommitteeProjectDetailViewProps) {
+  const garden = useIsGardenCommittee();
   return (
     <CommitteeWorkspaceSectionFrame width="full">
+      {garden ? (
+        <>
+          <button type="button" onClick={onBack} className={gLinkSm} data-testid="committee-project-back">
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+            All projects
+          </button>
+          <GKicker className="mt-4">Project</GKicker>
+          <h2 className="sf-display m-0 mt-1 text-[1.75rem] leading-[1.02] text-[var(--sf-ink)]">
+            {committeeProjectDisplayName(project)}
+          </h2>
+          <div className="mt-4">
+            <GTabBar
+              items={PROJECT_DETAIL_TABS.map((tab) => ({
+                key: tab.id,
+                label: tab.label,
+                icon: <tab.icon className="h-4 w-4" aria-hidden="true" />,
+                testId: `committee-project-tab-${tab.id}`,
+              }))}
+              activeKey={activeTab}
+              onChange={(key) => onTabChange(key as CommitteeProjectDetailTab)}
+              ariaLabel="Project sections"
+              data-testid="committee-project-tab-bar"
+            />
+          </div>
+        </>
+      ) : (
+      <>
       <button
         type="button"
         onClick={onBack}
@@ -82,9 +111,9 @@ export default function CommitteeProjectDetailView({
         All projects
       </button>
 
-      <AdminDisplayHeading theme={theme} as="h2" size="section" className="mt-4">
+      <CommitteeHeading theme={theme} as="h2" size="section" className="mt-4">
         {committeeProjectDisplayName(project)}
-      </AdminDisplayHeading>
+      </CommitteeHeading>
 
       <div className="mt-4">
         <TuitionSubTabBar
@@ -96,6 +125,8 @@ export default function CommitteeProjectDetailView({
           testIdPrefix="committee-project"
         />
       </div>
+      </>
+      )}
 
       <div className="mt-6">
         {activeTab === "supply_list" ? (
@@ -129,8 +160,8 @@ export default function CommitteeProjectDetailView({
                 value={project.name}
                 readOnly={readOnly}
                 onChange={(event) => onUpdateProject({ name: event.target.value })}
-                className="w-full px-3 py-2.5 outline-none focus:ring-2 focus:ring-offset-0"
-                style={controlStyle(C)}
+                className={garden ? G_COMMITTEE_INPUT : "w-full px-3 py-2.5 outline-none focus:ring-2 focus:ring-offset-0"}
+                style={garden ? undefined : controlStyle(C)}
                 placeholder="e.g. Fall festival booths"
               />
             </label>
@@ -146,8 +177,8 @@ export default function CommitteeProjectDetailView({
                 readOnly={readOnly}
                 onChange={(event) => onUpdateProject({ description: event.target.value })}
                 rows={3}
-                className="w-full resize-y px-3 py-2.5 outline-none focus:ring-2 focus:ring-offset-0"
-                style={controlStyle(C)}
+                className={garden ? `${G_COMMITTEE_INPUT} resize-y` : "w-full resize-y px-3 py-2.5 outline-none focus:ring-2 focus:ring-offset-0"}
+                style={garden ? undefined : controlStyle(C)}
                 placeholder="What is this project for?"
               />
             </label>
@@ -170,7 +201,7 @@ export default function CommitteeProjectDetailView({
                 </div>
                 {onDeleteProject ? (
                   <div className="border-t pt-4" style={{ borderColor: C.border }}>
-                    <AdminButton
+                    <CommitteeButton
                       theme={theme}
                       variant="danger"
                       onClick={onDeleteProject}
@@ -178,7 +209,7 @@ export default function CommitteeProjectDetailView({
                     >
                       <Trash2 className="h-4 w-4" />
                       Delete project
-                    </AdminButton>
+                    </CommitteeButton>
                   </div>
                 ) : null}
               </>

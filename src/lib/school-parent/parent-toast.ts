@@ -27,4 +27,6 @@ export const parentToast = {
   error: (message: string, options?: ParentToastOptions) =>
     toast.error(message, { duration: 7000, ...options }),
   info: (message: string, options?: ParentToastOptions) => toast(message, options),
+  /** Removes a toast by id (e.g. clear a stale error once the retry succeeds). */
+  dismiss: (id: string) => toast.dismiss(id),
 };

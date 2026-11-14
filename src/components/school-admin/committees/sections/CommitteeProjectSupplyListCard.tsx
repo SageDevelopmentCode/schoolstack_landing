@@ -29,15 +29,18 @@ import {
   type CoopSupplyListFilters,
 } from "@/lib/admissions/program-coop-supply-list-filters";
 import CoopSupplyListFilterBar from "@/components/admissions/CoopSupplyListFilterBar";
-import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
-import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import AdminCard from "@/components/school-admin/ui/story/AdminCard";
-import AdminChip from "@/components/school-admin/ui/story/AdminChip";
-import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
+import {
+  CommitteeButton,
+  CommitteeCard,
+  CommitteeChip,
+  CommitteeConfirmDialog,
+  CommitteeMetricCard,
+} from "@/components/school-admin/committees/committee-ui";
 import CoopSupplyColorLegendEditPanel from "@/components/school-admin/admissions/CoopSupplyColorLegendEditPanel";
 import CoopSupplyListItemDetailPanel from "@/components/school-admin/admissions/CoopSupplyListItemDetailPanel";
 import { BuilderSectionIntro } from "@/components/school-admin/admissions/builder-question-card";
-import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { formatActionError } from "@/lib/school-admin/admin-toast";
+import { useCommitteeNotify } from "@/components/school-admin/committees/committee-surface";
 
 type PendingSidebarAction =
   | { type: "selectRow"; id: string | null }
@@ -83,7 +86,7 @@ function CoopSupplyColorLegendCard({
   readOnly: boolean;
 }) {
   return (
-    <AdminCard theme={theme} className="p-3.5">
+    <CommitteeCard theme={theme} className="p-3.5">
       <div className="flex items-start gap-3">
         <div className="flex min-w-0 flex-1 flex-wrap gap-2">
           {legend.map((entry) => (
@@ -104,12 +107,12 @@ function CoopSupplyColorLegendCard({
           ))}
         </div>
         {!readOnly ? (
-          <AdminButton theme={theme} variant="soft" size="compact" className="shrink-0" onClick={onEditClick}>
+          <CommitteeButton theme={theme} variant="soft" size="compact" className="shrink-0" onClick={onEditClick}>
             Edit
-          </AdminButton>
+          </CommitteeButton>
         ) : null}
       </div>
-    </AdminCard>
+    </CommitteeCard>
   );
 }
 
@@ -127,6 +130,7 @@ export default function CommitteeProjectSupplyListCard({
   readOnly = false,
   loading = false,
 }: CommitteeProjectSupplyListCardProps) {
+  const notify = useCommitteeNotify();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pendingNewItem, setPendingNewItem] = useState<CoopSupplyListItem | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -174,7 +178,7 @@ export default function CommitteeProjectSupplyListCard({
       onItemsChange(items.map((item) => (item.id === persisted.id ? persisted : item)));
       return persisted;
     } catch (err) {
-      adminToast.error(
+      notify.error(
         formatActionError(
           err,
           isCreateMode ? "Failed to add supply item." : "Failed to save supply item.",
@@ -191,7 +195,7 @@ export default function CommitteeProjectSupplyListCard({
       setSelectedId((current) => (current === item.id ? null : current));
       setPanelDirty(false);
     } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to remove supply item."));
+      notify.error(formatActionError(err, "Failed to remove supply item."));
       throw err;
     }
   };
@@ -311,7 +315,7 @@ export default function CommitteeProjectSupplyListCard({
             subtitle="Track materials and who is bringing them for this committee project."
           />
           {!readOnly ? (
-            <AdminButton
+            <CommitteeButton
               theme={theme}
               variant="soft"
               size="compact"
@@ -320,14 +324,14 @@ export default function CommitteeProjectSupplyListCard({
             >
               <Plus className="h-4 w-4" />
               Add supply item
-            </AdminButton>
+            </CommitteeButton>
           ) : null}
         </div>
 
         <div className="grid grid-cols-1 gap-[13px] sm:grid-cols-2 xl:grid-cols-3">
-          <AdminMetricCard theme={theme} value={String(summary.itemCount)} label="Supply items" accent="forest" />
-          <AdminMetricCard theme={theme} value={String(summary.assignedCount)} label="Assigned" accent="sky" />
-          <AdminMetricCard
+          <CommitteeMetricCard theme={theme} value={String(summary.itemCount)} label="Supply items" accent="forest" />
+          <CommitteeMetricCard theme={theme} value={String(summary.assignedCount)} label="Assigned" accent="sky" />
+          <CommitteeMetricCard
             theme={theme}
             value={`~${formatSupplyPriceCents(summary.totalCents)}`}
             label="Estimated total"
@@ -354,7 +358,7 @@ export default function CommitteeProjectSupplyListCard({
           totalCount={items.length}
         />
 
-        <AdminCard theme={theme} padding="none" className="overflow-hidden">
+        <CommitteeCard theme={theme} padding="none" className="overflow-hidden">
           <div className="overflow-x-auto">
             {filteredItems.length === 0 ? (
               <p className="px-4 py-8 text-sm" style={{ color: C.textSecondary }}>
@@ -401,9 +405,9 @@ export default function CommitteeProjectSupplyListCard({
                           </div>
                         </td>
                         <td className="px-[15px] py-3">
-                          <AdminChip theme={theme} tone={supplyItemTypeChipTone(item.itemType)}>
+                          <CommitteeChip theme={theme} tone={supplyItemTypeChipTone(item.itemType)}>
                             {supplyItemTypeLabel(item.itemType)}
-                          </AdminChip>
+                          </CommitteeChip>
                         </td>
                         <td className="px-[15px] py-3 text-xs" style={{ color: "#607078" }}>
                           {supplyUsageTimingLabel(item)}
@@ -431,7 +435,7 @@ export default function CommitteeProjectSupplyListCard({
               </table>
             )}
           </div>
-        </AdminCard>
+        </CommitteeCard>
 
         {!readOnly ? (
           <button
@@ -486,7 +490,8 @@ export default function CommitteeProjectSupplyListCard({
         ) : null}
       </AnimatePresence>
 
-      <ConfirmDialog
+      <CommitteeConfirmDialog
+        theme={theme}
         C={C}
         open={discardDialogOpen}
         title="Unsaved changes"

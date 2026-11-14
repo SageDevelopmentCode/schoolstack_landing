@@ -6,8 +6,7 @@ import { Loader2 } from "lucide-react";
 import CreateCommitteeProjectModal, {
   type CreateCommitteeProjectFormInput,
 } from "@/components/school-admin/committees/modals/CreateCommitteeProjectModal";
-import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
-import AdminCard from "@/components/school-admin/ui/story/AdminCard";
+import { CommitteeCard, CommitteeConfirmDialog } from "@/components/school-admin/committees/committee-ui";
 import type { CommitteesApiNamespace } from "@/components/portal-committees/PortalCommitteesPage";
 import { committeesApiBaseForPortal } from "@/lib/committees/committees-api-base";
 import {
@@ -34,7 +33,8 @@ import type { Committee } from "@/lib/committees/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import type { CoopSupplyColorLegendEntry, CoopSupplyListItem } from "@/lib/admissions/program-coop-supply-list-mock";
-import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { formatActionError } from "@/lib/school-admin/admin-toast";
+import { useCommitteeNotify } from "@/components/school-admin/committees/committee-surface";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import CommitteeProjectDetailView, {
   type CommitteeProjectDetailTab,
@@ -89,6 +89,7 @@ export default function CommitteeProjectsSection({
   initialProjectId = null,
 }: CommitteeProjectsSectionProps) {
   const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
+  const notify = useCommitteeNotify();
   const [projects, setProjects] = useState<CommitteeProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<ProjectsView>("overview");
@@ -125,7 +126,7 @@ export default function CommitteeProjectsSection({
       const rows = await listCommitteeProjects(supabase, committee.id);
       setProjects(rows);
     } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to load projects."));
+      notify.error(formatActionError(err, "Failed to load projects."));
       void reportPortalOperationalError("school_admin", {
         organizationId,
         operation: "committees.projects.load",
@@ -135,7 +136,7 @@ export default function CommitteeProjectsSection({
     } finally {
       setLoading(false);
     }
-  }, [committee.id, organizationId, supabase]);
+  }, [committee.id, notify, organizationId, supabase]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -156,7 +157,7 @@ export default function CommitteeProjectsSection({
           ),
         );
       } catch (err) {
-        adminToast.error(formatActionError(err, "Failed to load supply list."));
+        notify.error(formatActionError(err, "Failed to load supply list."));
         void reportPortalOperationalError("school_admin", {
           organizationId,
           operation: "committees.projects.supply_load",
@@ -166,7 +167,7 @@ export default function CommitteeProjectsSection({
         setSupplyLoading(false);
       }
     },
-    [organizationId, supabase],
+    [notify, organizationId, supabase],
   );
 
   const handleOpenProject = useCallback(
@@ -213,7 +214,7 @@ export default function CommitteeProjectsSection({
       setCreateModalOpen(false);
       handleOpenProject(created.id);
     } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to create project."));
+      notify.error(formatActionError(err, "Failed to create project."), { title: "Couldn't create the project" });
       void reportPortalOperationalError("school_admin", {
         organizationId,
         operation: "committees.projects.create",
@@ -228,7 +229,7 @@ export default function CommitteeProjectsSection({
     (projectId: string, patch: Parameters<typeof updateCommitteeProject>[2]) => {
       if (readOnly) return;
       void updateCommitteeProject(supabase, projectId, patch).catch((err) => {
-        adminToast.error(formatActionError(err, "Failed to save project."));
+        notify.error(formatActionError(err, "Failed to save project."));
         void reportPortalOperationalError("school_admin", {
           organizationId,
           operation: "committees.projects.update",
@@ -236,7 +237,7 @@ export default function CommitteeProjectsSection({
         }, err);
       });
     },
-    [organizationId, readOnly, supabase],
+    [notify, organizationId, readOnly, supabase],
   );
 
   const flushPendingProjectSave = useCallback(() => {
@@ -345,7 +346,7 @@ export default function CommitteeProjectsSection({
       );
       return persisted;
     } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to add supply item."));
+      notify.error(formatActionError(err, "Failed to add supply item."));
       void reportPortalOperationalError("school_admin", {
         organizationId,
         operation: "committees.projects.supply_add",
@@ -406,9 +407,9 @@ export default function CommitteeProjectsSection({
         handleBackToOverview();
       }
       setDeleteTarget(null);
-      adminToast.success("Project deleted.");
+      notify.success("Project deleted.");
     } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to delete project."));
+      notify.error(formatActionError(err, "Failed to delete project."));
       void reportPortalOperationalError("school_admin", {
         organizationId,
         operation: "committees.projects.delete",
@@ -420,7 +421,8 @@ export default function CommitteeProjectsSection({
   };
 
   const deleteConfirmDialog = (
-    <ConfirmDialog
+    <CommitteeConfirmDialog
+      theme={theme}
       C={C}
       open={deleteTarget != null}
       title="Delete project?"
@@ -443,12 +445,12 @@ export default function CommitteeProjectsSection({
 
   if (loading) {
     return (
-      <AdminCard theme={theme} className="flex items-center justify-center gap-2 py-16">
+      <CommitteeCard theme={theme} className="flex items-center justify-center gap-2 py-16">
         <Loader2 className="h-4 w-4 animate-spin" />
         <span className="text-sm" style={{ color: C.textSecondary }}>
           Loading projects…
         </span>
-      </AdminCard>
+      </CommitteeCard>
     );
   }
 

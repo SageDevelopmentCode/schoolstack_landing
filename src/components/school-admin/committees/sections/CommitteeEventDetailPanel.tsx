@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { MapPin, Pencil, Trash2, X } from "lucide-react";
+import { CalendarDays, Clock, MapPin, Pencil, Trash2, X } from "lucide-react";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
 import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
@@ -10,6 +10,17 @@ import type { CommitteeEvent, CommitteeEventType, CommitteeMember } from "@/lib/
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { parseEventDate } from "@/lib/committees/calendar-utils";
 import { CommitteeAttributionLabel } from "@/components/school-admin/committees/CommitteeAttributionLabel";
+import { useIsGardenCommittee } from "@/components/school-admin/committees/committee-surface";
+import { gardenButtonClass } from "@/components/school-admin/committees/committee-ui";
+import CommitteeFormSidePanel from "@/components/school-admin/committees/sections/CommitteeFormSidePanel";
+import { GChip, type GChipTone } from "@/components/school-parent/garden/ui";
+
+const GARDEN_TYPE_TONE: Record<CommitteeEventType, GChipTone> = {
+  meeting: "neutral",
+  deadline: "warning",
+  service: "success",
+  event: "info",
+};
 
 const TYPE_COLORS: Record<CommitteeEventType, string> = {
   meeting: "bg-[#827096]/10 text-[#827096]",
@@ -46,13 +57,102 @@ export default function CommitteeEventDetailPanel({
   onDelete?: (eventId: string) => void;
   members?: CommitteeMember[];
 }) {
+  const garden = useIsGardenCommittee();
+  // Garden drawer keeps showing the last event while it slides out.
+  const [lastEvent, setLastEvent] = useState<CommitteeEvent | null>(event);
+  if (event && event !== lastEvent) setLastEvent(event);
+
   useEffect(() => {
+    if (garden) return; // the Garden drawer handles Escape itself
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape" && event) onClose();
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [event, onClose]);
+  }, [event, garden, onClose]);
+
+  if (garden) {
+    const shown = event ?? lastEvent;
+    const canAct = !readOnly && canManage && (onEdit || onDelete);
+    return (
+      <CommitteeFormSidePanel
+        open={event != null}
+        theme={theme}
+        kicker="Event"
+        title={shown?.title ?? ""}
+        icon={<CalendarDays className="h-[18px] w-[18px]" />}
+        onRequestClose={onClose}
+        footer={
+          canAct && shown ? (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              {onDelete ? (
+                <button type="button" className={gardenButtonClass("danger")} onClick={() => onDelete(shown.id)}>
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  Delete
+                </button>
+              ) : (
+                <span />
+              )}
+              {onEdit ? (
+                <button type="button" className={gardenButtonClass("primary")} onClick={onEdit}>
+                  <Pencil className="h-4 w-4" aria-hidden="true" />
+                  Edit event
+                </button>
+              ) : null}
+            </div>
+          ) : undefined
+        }
+      >
+        {shown ? (
+          <div className="space-y-4">
+            <GChip tone={GARDEN_TYPE_TONE[shown.type]} className="capitalize">
+              {shown.type}
+            </GChip>
+            <dl className="m-0 space-y-3 rounded-[18px] border-[1.5px] border-[var(--sf-ink)]/10 bg-[var(--sf-paper)] p-4">
+              <div className="flex items-start gap-3">
+                <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-[var(--sf-clay-deep)]" aria-hidden="true" />
+                <div>
+                  <dt className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[var(--sf-soft)]">Date</dt>
+                  <dd className="m-0 text-[15px] font-extrabold text-[var(--sf-ink)]">{formatEventDate(shown.date)}</dd>
+                </div>
+              </div>
+              {shown.time ? (
+                <div className="flex items-start gap-3">
+                  <Clock className="mt-0.5 h-4 w-4 shrink-0 text-[var(--sf-clay-deep)]" aria-hidden="true" />
+                  <div>
+                    <dt className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[var(--sf-soft)]">Time</dt>
+                    <dd className="m-0 text-[15px] font-bold text-[var(--sf-ink)]">{shown.time}</dd>
+                  </div>
+                </div>
+              ) : null}
+              {shown.location ? (
+                <div className="flex items-start gap-3">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--sf-clay-deep)]" aria-hidden="true" />
+                  <div>
+                    <dt className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[var(--sf-soft)]">Location</dt>
+                    <dd className="m-0 text-[15px] font-bold text-[var(--sf-ink)]">{shown.location}</dd>
+                  </div>
+                </div>
+              ) : null}
+            </dl>
+            <CommitteeAttributionLabel
+              theme={theme}
+              createdByMemberId={shown.createdByMemberId}
+              createdByName={shown.createdByName}
+              createdByRole={shown.createdByRole}
+              members={members}
+              className="text-[12.5px]"
+            />
+            {!readOnly && !canManage ? (
+              <p className="m-0 text-[13px] font-semibold text-[var(--sf-soft)]">
+                Only the person who added this event or the school can change it.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+      </CommitteeFormSidePanel>
+    );
+  }
 
   return (
     <AnimatePresence>

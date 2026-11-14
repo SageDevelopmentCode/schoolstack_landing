@@ -13,7 +13,7 @@ import { createTask, deleteTask, updateTask } from "@/lib/committees/tasks";
 import { getCommittee } from "@/lib/committees/committees";
 import { canMemberEditItem } from "@/lib/committees/attribution";
 import { TASK_STATUS_LABELS } from "@/lib/committees/task-utils";
-import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import CommitteeWorkspaceSectionFrame from "@/components/school-admin/committees/CommitteeWorkspaceSectionFrame";
 import {
@@ -27,6 +27,8 @@ import CommitteeTaskDetailPanel, {
 import type { CommitteesApiNamespace } from "@/components/portal-committees/PortalCommitteesPage";
 import { committeesApiBaseForPortal } from "@/lib/committees/committees-api-base";
 import { staggerContainer, staggerItem } from "@/components/school-admin/committees/committee-motion";
+import { useCommitteeNotify, useIsGardenCommittee } from "@/components/school-admin/committees/committee-surface";
+import GardenCommitteeTasks from "@/components/school-admin/committees/sections/garden/GardenCommitteeTasks";
 
 const COLUMNS: CommitteeTaskStatus[] = ["open", "claimed", "in_progress", "done"];
 
@@ -105,6 +107,8 @@ export default function CommitteeTasksSection({
   const [saving, setSaving] = useState(false);
   const reducedMotion = useReducedMotion() ?? false;
   const deepLinkHandledRef = useRef(false);
+  const garden = useIsGardenCommittee();
+  const notify = useCommitteeNotify();
 
   const taskGroups = committee.config.taskGroups ?? [{ id: "general", label: "General" }];
 
@@ -188,7 +192,10 @@ export default function CommitteeTasksSection({
           committeesApiBase,
         });
         savedTaskId = created.id;
-        adminToast.success("Task added");
+        notify.success("Task added", {
+          description: `“${data.title.trim()}” is in ${TASK_STATUS_LABELS[data.status]}.`,
+          id: "committee-task-save",
+        });
       } else if (panelState?.mode === "edit" && selectedTask) {
         await updateTask(supabase, selectedTask.id, {
           title: data.title.trim(),
@@ -199,7 +206,10 @@ export default function CommitteeTasksSection({
           dueDate: data.dueDate || null,
         });
         savedTaskId = selectedTask.id;
-        adminToast.success("Task updated");
+        notify.success("Task updated", {
+          description: `“${data.title.trim()}” is in ${TASK_STATUS_LABELS[data.status]}.`,
+          id: "committee-task-save",
+        });
       }
       closePanel();
       await refresh();
@@ -223,13 +233,18 @@ export default function CommitteeTasksSection({
         });
       }
     } catch (err) {
-      adminToast.error(
+      notify.error(
         formatActionError(
           err,
           panelState?.mode === "create"
             ? "Failed to add task."
             : "Failed to update task.",
         ),
+        {
+          title: panelState?.mode === "create" ? "Couldn't add the task" : "Couldn't save the task",
+          retry: () => void handleSave(data),
+          id: "committee-task-save",
+        },
       );
       void reportPortalOperationalError(
         committeeOperationalSurface(isAdmin),
@@ -255,9 +270,9 @@ export default function CommitteeTasksSection({
       await deleteTask(supabase, selectedTask.id);
       closePanel();
       await refresh();
-      adminToast.success("Task deleted");
+      notify.success("Task deleted", { description: `“${selectedTask.title}” was removed.` });
     } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to delete task."));
+      notify.error(formatActionError(err, "Failed to delete task."), { title: "Couldn't delete the task" });
       void reportPortalOperationalError(
         committeeOperationalSurface(isAdmin),
         {
@@ -285,6 +300,52 @@ export default function CommitteeTasksSection({
           currentMemberId,
           isAdmin,
         ));
+
+  const detailPanel = (
+    <CommitteeTaskDetailPanel
+      open={panelState != null}
+      mode={panelState?.mode ?? "create"}
+      task={selectedTask}
+      defaultStatus={
+        panelState?.mode === "create" ? panelState.status : "open"
+      }
+      taskGroups={taskGroups}
+      members={committee.members}
+      theme={theme}
+      readOnly={readOnly}
+      canEdit={panelCanEdit}
+      saving={saving}
+      pendingNavigation={pendingPanelState}
+      onClose={closePanel}
+      onSave={handleSave}
+      onDelete={
+        panelState?.mode === "edit" && panelCanEdit
+          ? handleDelete
+          : undefined
+      }
+      onDirtyChange={setPanelDirty}
+      onConfirmNavigation={handleConfirmNavigation}
+      onCancelNavigation={handleCancelNavigation}
+    />
+  );
+
+  if (garden) {
+    return (
+      <CommitteeWorkspaceSectionFrame width="full">
+        <GardenCommitteeTasks
+          committee={committee}
+          theme={theme}
+          readOnly={readOnly}
+          currentMemberId={currentMemberId}
+          columns={COLUMNS}
+          groupLabel={groupLabel}
+          onOpenTask={openEditPanel}
+          onCreateTask={openCreatePanel}
+        />
+        {detailPanel}
+      </CommitteeWorkspaceSectionFrame>
+    );
+  }
 
   return (
     <CommitteeWorkspaceSectionFrame width="full">
@@ -362,31 +423,7 @@ export default function CommitteeTasksSection({
           })}
         </motion.div>
 
-        <CommitteeTaskDetailPanel
-          open={panelState != null}
-          mode={panelState?.mode ?? "create"}
-          task={selectedTask}
-          defaultStatus={
-            panelState?.mode === "create" ? panelState.status : "open"
-          }
-          taskGroups={taskGroups}
-          members={committee.members}
-          theme={theme}
-          readOnly={readOnly}
-          canEdit={panelCanEdit}
-          saving={saving}
-          pendingNavigation={pendingPanelState}
-          onClose={closePanel}
-          onSave={handleSave}
-          onDelete={
-            panelState?.mode === "edit" && panelCanEdit
-              ? handleDelete
-              : undefined
-          }
-          onDirtyChange={setPanelDirty}
-          onConfirmNavigation={handleConfirmNavigation}
-          onCancelNavigation={handleCancelNavigation}
-        />
+        {detailPanel}
       </div>
     </CommitteeWorkspaceSectionFrame>
   );

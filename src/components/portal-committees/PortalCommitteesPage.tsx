@@ -2,17 +2,32 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
+import { formatMessagesUnreadBadge } from "@/components/messages/MessagesNavBadge";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import ParentCommitteeBrowseList from "@/components/school-parent/committees/ParentCommitteeBrowseList";
 import ParentCommitteeDetail from "@/components/school-parent/committees/ParentCommitteeDetail";
 import ParentCommitteeMineList from "@/components/school-parent/committees/ParentCommitteeMineList";
 import ParentCommitteeWorkspace from "@/components/school-parent/committees/ParentCommitteeWorkspace";
-import ParentCommitteesStoryHeader, {
+import GardenCommitteesRail from "@/components/school-parent/committees/garden/GardenCommitteesRail";
+import {
+  committeesSubtitle,
   type ParentCommitteesTab,
-} from "@/components/school-parent/committees/ParentCommitteesStoryHeader";
-import { parentCommitteesViewTransition } from "@/components/school-parent/committees/parent-committees-view-transition";
+} from "@/components/school-parent/committees/garden/committee-garden-shared";
+import { useCommitteesOverview } from "@/components/school-parent/committees/garden/useCommitteesOverview";
+import ParentGardenFrame from "@/components/school-parent/garden/ParentGardenFrame";
+import ParentGardenPageHeader from "@/components/school-parent/garden/ParentGardenPageHeader";
+import { PORTAL_EASE } from "@/components/school-parent/garden/motion";
+import {
+  GCard,
+  GSkeleton,
+  GTabBar,
+  gBtnOutlineSm,
+  type GTabBarItem,
+} from "@/components/school-parent/garden/ui";
+import { PORTAL_HOME_CONTAINER_CLASS } from "@/lib/portal-home/layout";
+import { parentToast } from "@/lib/school-parent/parent-toast";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { CommitteeActivityItem } from "@/lib/committees/activity-feed";
 import type {
@@ -301,6 +316,33 @@ function PortalCommitteesPageContent({
     [loadTabIfNeeded, setUrl],
   );
 
+  const reduce = useReducedMotion() === true;
+  const overview = useCommitteesOverview({
+    myCommittees,
+    browseCommittees,
+    unreadByCommitteeId,
+  });
+  const [retrying, setRetrying] = useState(false);
+
+  const retryLists = useCallback(async () => {
+    setRetrying(true);
+    try {
+      await reloadLists();
+    } finally {
+      setRetrying(false);
+    }
+  }, [reloadLists]);
+
+  // Same message as the inline alert, as a toast; the stable id stops repeats.
+  useEffect(() => {
+    if (!error) return;
+    parentToast.error("Couldn't load committees", {
+      id: "committees-list-error",
+      description: error,
+      action: { label: "Try again", onClick: () => void retryLists() },
+    });
+  }, [error, retryLists]);
+
   if (memberWorkspaceId) {
     return (
       <ParentCommitteeWorkspace
@@ -338,6 +380,7 @@ function PortalCommitteesPageContent({
   if (selectedBrowseCommittee && !selectedBrowseCommittee.isMember) {
     return (
       <ParentCommitteeDetail
+        key={selectedBrowseCommittee.id}
         committee={selectedBrowseCommittee}
         theme={theme}
         organizationId={organizationId}
@@ -352,82 +395,170 @@ function PortalCommitteesPageContent({
         onRequestSubmitted={() => {
           void reloadLists();
         }}
+        onOpenMyCommittees={() => handleSelectTab("mine")}
       />
     );
   }
 
+  const tabLoading = tab === "explore" ? loadingBrowse && !browseLoaded : loadingMine && !mineLoaded;
+  const pillSpinner = <Loader2 className="h-3 w-3 animate-spin" aria-hidden />;
+  const tabItems: GTabBarItem[] = [
+    {
+      key: "mine",
+      label: "My committees",
+      testId: "parent-committees-mine-nav",
+      suffix: loadingMine ? (
+        pillSpinner
+      ) : overview.unreadTotal > 0 ? (
+        <span
+          aria-label={`${overview.unreadTotal} unread`}
+          className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-extrabold leading-none ${
+            tab === "mine" ? "bg-white text-[var(--sf-clay-deep)]" : "bg-[var(--sf-clay)] text-white"
+          }`}
+        >
+          {formatMessagesUnreadBadge(overview.unreadTotal)}
+        </span>
+      ) : undefined,
+      ariaBusy: loadingMine,
+      disabled: loadingMine,
+    },
+    {
+      key: "explore",
+      label: "Explore",
+      testId: "parent-committees-explore-nav",
+      suffix: loadingBrowse ? pillSpinner : undefined,
+      ariaBusy: loadingBrowse,
+      disabled: loadingBrowse,
+    },
+  ];
+
   return (
-    <div className="min-h-full w-full" style={{ backgroundColor: theme.paper }}>
-      <div className="mx-auto flex max-w-[1250px] flex-col gap-6 px-4 py-6 sm:gap-8 sm:py-8 md:px-9">
-        <ParentCommitteesStoryHeader
-          theme={theme}
-          activeTab={tab}
-          exploreCount={browseCommittees.length}
-          myCount={myCommittees.length}
-          loadingExplore={loadingBrowse}
-          loadingMine={loadingMine}
-          onSelectTab={handleSelectTab}
-        />
-
-        {error && (
-          <p className="text-sm" style={{ color: theme.alert }}>
-            {error}
-          </p>
-        )}
-
-        <AnimatePresence mode="wait">
-          <motion.div key={tab} {...parentCommitteesViewTransition}>
-            {tab === "explore" && (
+    <ParentGardenFrame theme={theme}>
+      <div className={PORTAL_HOME_CONTAINER_CLASS}>
+        <div data-testid="parent-committees-story-header">
+          <ParentGardenPageHeader
+            kicker="Volunteer & committees"
+            title={
               <>
-                {loadingBrowse && !browseLoaded ? (
-                  <LoadingSpinner label="Loading committees…" muted={theme.muted} />
-                ) : (
-                  <ParentCommitteeBrowseList
-                    committees={browseCommittees}
-                    theme={theme}
-                    onOpenCommittee={(id) => {
-                      const committee = browseCommittees.find((entry) => entry.id === id);
-                      if (committee?.isMember) {
-                        setUrl({
-                          committee: id,
-                          section: "home",
-                          tab: "mine",
-                          explore: null,
-                        });
-                        return;
-                      }
-                      setUrl({ explore: id, tab: "explore" });
-                    }}
-                  />
-                )}
+                {tab === "explore" ? "Explore" : "Your"}{" "}
+                <span className="text-[var(--sf-clay)]">committees</span>
               </>
-            )}
+            }
+            subtitle={committeesSubtitle(tab, browseCommittees.length, myCommittees.length)}
+            actions={
+              <GTabBar
+                items={tabItems}
+                activeKey={tab}
+                onChange={(key) => handleSelectTab(key as ParentCommitteesTab)}
+                ariaLabel="Committee sections"
+                data-testid="parent-committees-nav"
+              />
+            }
+          />
+        </div>
 
-            {tab === "mine" && (
-              <>
-                {loadingMine && !mineLoaded ? (
-                  <LoadingSpinner label="Loading your committees…" muted={theme.muted} />
-                ) : (
-                  <ParentCommitteeMineList
-                    committees={myCommittees}
-                    theme={theme}
-                    unreadByCommitteeId={unreadByCommitteeId}
-                    unreadSectionLabelsByCommitteeId={unreadSectionLabelsByCommitteeId}
-                    onOpenCommittee={(id) =>
+        {error ? (
+          <div
+            role="alert"
+            data-testid="parent-committees-error"
+            className="flex flex-col gap-3 rounded-[20px] border-[1.5px] border-[var(--sf-clay)]/30 bg-[var(--sf-peach)] p-4 sm:flex-row sm:items-center"
+          >
+            <AlertCircle className="h-5 w-5 shrink-0 text-[var(--sf-clay-deep)]" aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <p className="m-0 text-[15px] font-extrabold text-[var(--sf-ink)]">{error}</p>
+              <p className="m-0 mt-0.5 text-[13px] font-semibold text-[var(--sf-ink)]/70">
+                Check your connection, then try again.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void retryLists()}
+              disabled={retrying}
+              aria-busy={retrying || undefined}
+              className={gBtnOutlineSm}
+            >
+              {retrying ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <RefreshCw className="h-4 w-4" aria-hidden />
+              )}
+              {retrying ? "Trying again…" : "Try again"}
+            </button>
+          </div>
+        ) : null}
+
+        <div className="grid items-start gap-5 lg:grid-cols-[1.55fr_1fr]">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={tab}
+              className="min-w-0"
+              initial={reduce ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduce ? { opacity: 0 } : { opacity: 0, y: -4 }}
+              transition={{ duration: 0.22, ease: PORTAL_EASE }}
+            >
+              {tabLoading ? (
+                <GCard index={1} kicker={tab === "explore" ? "Explore" : "My committees"}>
+                  <p
+                    role="status"
+                    className="m-0 mb-4 inline-flex items-center gap-2 text-[15px] font-semibold text-[var(--sf-soft)]"
+                  >
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    {tab === "explore" ? "Loading committees…" : "Loading your committees…"}
+                  </p>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {Array.from({ length: 4 }, (_, index) => (
+                      <GSkeleton key={index} className="h-44 !rounded-[20px]" />
+                    ))}
+                  </div>
+                </GCard>
+              ) : tab === "explore" ? (
+                <ParentCommitteeBrowseList
+                  committees={browseCommittees}
+                  onOpenCommittee={(id) => {
+                    const committee = browseCommittees.find((entry) => entry.id === id);
+                    if (committee?.isMember) {
                       setUrl({
                         committee: id,
                         section: "home",
                         tab: "mine",
                         explore: null,
-                      })
+                      });
+                      return;
                     }
-                  />
-                )}
-              </>
-            )}
-          </motion.div>
-        </AnimatePresence>
+                    setUrl({ explore: id, tab: "explore" });
+                  }}
+                />
+              ) : (
+                <ParentCommitteeMineList
+                  committees={myCommittees}
+                  unreadByCommitteeId={unreadByCommitteeId}
+                  unreadSectionLabelsByCommitteeId={unreadSectionLabelsByCommitteeId}
+                  onExplore={() => handleSelectTab("explore")}
+                  onOpenCommittee={(id) =>
+                    setUrl({
+                      committee: id,
+                      section: "home",
+                      tab: "mine",
+                      explore: null,
+                    })
+                  }
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
+
+          <GardenCommitteesRail
+            tab={tab}
+            myCount={myCommittees.length}
+            unreadTotal={overview.unreadTotal}
+            openTaskTotal={overview.openTaskTotal}
+            journeyStep={overview.journeyStep}
+            pendingCount={overview.pendingCount}
+            onSelectTab={handleSelectTab}
+          />
+        </div>
       </div>
-    </div>
+    </ParentGardenFrame>
   );
 }

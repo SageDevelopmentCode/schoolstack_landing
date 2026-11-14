@@ -1,26 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
-import { MapPin, X } from "lucide-react";
-import OrganizationEventsCalendar from "@/components/school-events-calendar/OrganizationEventsCalendar";
+import { useId } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { CalendarHeart, Loader2 } from "lucide-react";
 import type { CalendarViewMode } from "@/components/school-events-calendar/CalendarToolbar";
-import ParentCalendarAgendaPanel from "@/components/school-parent/calendar/ParentCalendarAgendaPanel";
+import GardenAgendaCard from "@/components/school-parent/calendar/garden/GardenAgendaCard";
+import GardenCalendarLegend from "@/components/school-parent/calendar/garden/GardenCalendarLegend";
+import GardenCalendarToolbar from "@/components/school-parent/calendar/garden/GardenCalendarToolbar";
+import GardenEventDrawer from "@/components/school-parent/calendar/garden/GardenEventDrawer";
+import GardenMonthGrid from "@/components/school-parent/calendar/garden/GardenMonthGrid";
+import GardenSelectedDayCard, { GardenDaySheet } from "@/components/school-parent/calendar/garden/GardenSelectedDayCard";
+import GardenWeekGrid from "@/components/school-parent/calendar/garden/GardenWeekGrid";
+import { pluralEvents } from "@/components/school-parent/calendar/garden/calendar-garden-shared";
+import { useParentCalendarModel } from "@/components/school-parent/calendar/garden/useParentCalendarModel";
+import ParentGardenFrame from "@/components/school-parent/garden/ParentGardenFrame";
+import { PORTAL_EASE } from "@/components/school-parent/garden/motion";
+import { GSkeleton } from "@/components/school-parent/garden/ui";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
-import ParentCard from "@/components/school-parent/ui/ParentCard";
-import ParentChip from "@/components/school-parent/ui/ParentChip";
-import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
-import {
-  eventTypeChipTone,
-  SCHOOL_EVENT_TYPE_LABELS,
-} from "@/components/school-parent/calendar/parent-calendar-agenda-utils";
-import { parseEventDate } from "@/lib/committees/calendar-utils";
-import { calendarEventWindowForMonth } from "@/lib/school-events/calendar-window";
-import { formatEventTimeRange } from "@/lib/school-events/calendar-time";
+import { dateKey } from "@/lib/committees/calendar-utils";
 import type { OrganizationEvent } from "@/lib/school-events/types";
-import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
-import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
 type ParentCalendarPageProps = {
@@ -37,205 +35,22 @@ type ParentCalendarPageProps = {
   previewAgendaAsOf?: string;
 };
 
-function formatEventDate(date: string) {
-  return parseEventDate(date).toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-}
+const NO_EVENTS_COPY =
+  "No events scheduled yet. Your school calendar will appear here when events are added.";
 
-function EventSidebar({
-  event,
-  theme,
-  onClose,
-}: {
-  event: OrganizationEvent;
-  theme: ParentThemeTokens;
-  onClose: () => void;
-}) {
-  return (
-    <>
-      <motion.div
-        key="event-backdrop"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="absolute inset-0 z-40 bg-black/20"
-        onClick={onClose}
-      />
-      <motion.div
-        key="event-panel"
-        initial={{ x: "100%" }}
-        animate={{ x: 0 }}
-        exit={{ x: "100%" }}
-        transition={{ type: "spring", damping: 30, stiffness: 280 }}
-        className="absolute inset-y-0 right-0 z-50 flex w-full max-w-full flex-col overflow-y-auto border-l bg-white shadow-2xl sm:max-w-[360px]"
-        style={{ borderColor: theme.line }}
-      >
-        <div
-          className="px-5 pb-4 pt-5"
-          style={{
-            backgroundColor: theme.primarySoft,
-            borderBottom: `1px solid ${theme.line}`,
-          }}
-        >
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <ParentChip
-                theme={theme}
-                tone={eventTypeChipTone(event.type)}
-                className="mb-2 !text-[10px]"
-              >
-                {SCHOOL_EVENT_TYPE_LABELS[event.type]}
-              </ParentChip>
-              <ParentDisplayHeading
-                theme={theme}
-                as="h2"
-                size="section"
-                className="!text-lg !leading-snug"
-              >
-                {event.title}
-              </ParentDisplayHeading>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="cursor-pointer rounded-full p-1.5 transition-colors hover:bg-black/5"
-              aria-label="Close"
-            >
-              <X className="h-4 w-4" style={{ color: theme.muted }} />
-            </button>
-          </div>
-        </div>
+const PANE_LINE = "border-[var(--sf-ink)]/10";
 
-        <div className="space-y-4 px-5 py-5">
-          <div>
-            <p
-              className="text-[11px] font-bold uppercase tracking-wide"
-              style={{ color: theme.muted }}
-            >
-              Date
-            </p>
-            <p className="mt-1 text-sm font-medium" style={{ color: theme.ink }}>
-              {formatEventDate(event.date)}
-            </p>
-          </div>
-
-          <div>
-            <p
-              className="text-[11px] font-bold uppercase tracking-wide"
-              style={{ color: theme.muted }}
-            >
-              Time
-            </p>
-            <p className="mt-1 text-sm" style={{ color: theme.ink }}>
-              {formatEventTimeRange(event)}
-            </p>
-          </div>
-
-          {event.location ? (
-            <div>
-              <p
-                className="text-[11px] font-bold uppercase tracking-wide"
-                style={{ color: theme.muted }}
-              >
-                Location
-              </p>
-              <p className="mt-1 flex items-start gap-1.5 text-sm" style={{ color: theme.ink }}>
-                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: theme.muted }} />
-                {event.location}
-              </p>
-            </div>
-          ) : null}
-
-          {event.description ? (
-            <div>
-              <p
-                className="text-[11px] font-bold uppercase tracking-wide"
-                style={{ color: theme.muted }}
-              >
-                Details
-              </p>
-              <p
-                className="mt-1 whitespace-pre-wrap text-sm leading-relaxed"
-                style={{ color: theme.muted }}
-              >
-                {event.description}
-              </p>
-            </div>
-          ) : null}
-        </div>
-      </motion.div>
-    </>
-  );
-}
-
-function EmptyDaySidebar({
-  date,
-  theme,
-  onClose,
-}: {
-  date: string;
-  theme: ParentThemeTokens;
-  onClose: () => void;
-}) {
-  return (
-    <>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="absolute inset-0 z-40 bg-black/20"
-        onClick={onClose}
-      />
-      <motion.div
-        initial={{ x: "100%" }}
-        animate={{ x: 0 }}
-        exit={{ x: "100%" }}
-        transition={{ type: "spring", damping: 30, stiffness: 280 }}
-        className="absolute inset-y-0 right-0 z-50 flex w-full max-w-full flex-col border-l bg-white px-5 py-6 shadow-2xl sm:max-w-[320px]"
-        style={{ borderColor: theme.line }}
-      >
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <p
-              className="text-[11px] font-bold uppercase tracking-wide"
-              style={{ color: theme.muted }}
-            >
-              Selected day
-            </p>
-            <ParentDisplayHeading
-              theme={theme}
-              as="h2"
-              size="section"
-              className="mt-1 !text-lg"
-            >
-              {formatEventDate(date)}
-            </ParentDisplayHeading>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="cursor-pointer rounded-full p-1.5 hover:bg-black/5"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" style={{ color: theme.muted }} />
-          </button>
-        </div>
-        <p className="mt-6 text-sm leading-relaxed" style={{ color: theme.muted }}>
-          Nothing scheduled for this day.
-        </p>
-      </motion.div>
-    </>
-  );
-}
-
+/**
+ * Parent Calendar tab — Garden "full-height app tab" (skill:
+ * parent-portal-garden-design, same recipe as Messages). The calendar IS the
+ * page: no visible header (sr-only h1), full-bleed panes split by thin
+ * dividers — calendar (toolbar · legend strip · grid) | rail (Selected day ·
+ * Next up). From `lg` each pane scrolls on its own; below it the page is one
+ * scrolling column. The event drawer and phone day sheet mount outside the
+ * frame. State and fetching live in `useParentCalendarModel`.
+ */
 export default function ParentCalendarPage({
   organizationId,
-  organizationSlug,
   events,
   eventsDeferred = false,
   previewMode = false,
@@ -245,206 +60,163 @@ export default function ParentCalendarPage({
   previewAnchorDate,
   previewAgendaAsOf,
 }: ParentCalendarPageProps) {
-  const { theme, adminCompat: C } = useParentTheme();
-  const searchParams = useSearchParams();
-  const deepLinkEventId = searchParams.get("eventId")?.trim() ?? "";
-  const deepLinkDate = searchParams.get("date")?.trim() ?? "";
-  const deepLinkHandledRef = useRef(false);
-  const deepLinkFetchStartedRef = useRef(false);
-  const [fetchedEvents, setFetchedEvents] = useState<OrganizationEvent[]>([]);
-  const loadedWindowsRef = useRef<Set<string>>(new Set());
-  const [view, setView] = useState<CalendarViewMode>(initialView ?? "week");
-  const calendarInitialDate = useMemo(
-    () => (previewAnchorDate ? parseEventDate(previewAnchorDate) : undefined),
-    [previewAnchorDate],
-  );
-  const [calendarAnchorDate, setCalendarAnchorDate] = useState<Date | undefined>(
-    () => {
-      if (deepLinkDate) {
-        return parseEventDate(deepLinkDate);
-      }
-      return previewAnchorDate ? parseEventDate(previewAnchorDate) : undefined;
-    },
-  );
-  const agendaAsOfDate = useMemo(
-    () => (previewAgendaAsOf ? parseEventDate(previewAgendaAsOf) : undefined),
-    [previewAgendaAsOf],
-  );
-  const [selectedEvent, setSelectedEvent] = useState<OrganizationEvent | null>(null);
-  const [selectedEmptyDay, setSelectedEmptyDay] = useState<string | null>(null);
-  const [periodKey, setPeriodKey] = useState("initial");
+  const { theme } = useParentTheme();
+  const reduce = useReducedMotion() === true;
+  const headingId = useId();
+  const model = useParentCalendarModel({
+    organizationId,
+    events,
+    eventsDeferred,
+    previewMode,
+    programId,
+    initialView,
+    previewAnchorDate,
+    previewAgendaAsOf,
+  });
+  const { nav, view } = model;
+  const selectedDate = nav.selectedDate ?? dateKey(new Date());
+  const selectedEventId = model.selectedEvent?.id ?? null;
 
-  const calendarEvents = useMemo(() => {
-    const byId = new Map(events.map((event) => [event.id, event]));
-    for (const event of fetchedEvents) {
-      byId.set(event.id, event);
-    }
-    return Array.from(byId.values()).sort((left, right) => {
-      if (left.date !== right.date) return left.date.localeCompare(right.date);
-      return left.sortOrder - right.sortOrder;
-    });
-  }, [events, fetchedEvents]);
-
-  const fetchEventsForMonth = useCallback(
-    async (year: number, month: number) => {
-      if (previewMode) return;
-
-      const { startDate, endDate } = calendarEventWindowForMonth(year, month);
-      const windowKey = `${startDate}:${endDate}`;
-      if (loadedWindowsRef.current.has(windowKey)) return;
-
-      try {
-        const params = new URLSearchParams({
-          organizationId,
-          start: startDate,
-          end: endDate,
-        });
-        if (programId) {
-          params.set("programId", programId);
-        }
-        const res = await fetch(`/api/parent-portal/calendar/events?${params}`);
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) return;
-
-        loadedWindowsRef.current.add(windowKey);
-        const nextEvents = (data.events ?? []) as OrganizationEvent[];
-        setFetchedEvents((prev) => {
-          const byId = new Map(prev.map((event) => [event.id, event]));
-          for (const event of nextEvents) {
-            byId.set(event.id, event);
-          }
-          return Array.from(byId.values());
-        });
-      } catch (err) {
-        // Keep showing the current window if a refetch fails.
-        void reportPortalOperationalError(
-          "parent_portal",
-          {
-            organizationId,
-            operation: "calendar.load_events",
-            error: "",
-          },
-          err,
-        );
-      }
-    },
-    [organizationId, previewMode, programId],
-  );
-
-  const handlePeriodChange = useCallback(
-    (year: number, month: number) => {
-      void fetchEventsForMonth(year, month);
-    },
-    [fetchEventsForMonth],
-  );
-
-  const handlePeriodMetaChange = useCallback(
-    (meta: { periodLabel: string; isCurrentPeriod: boolean }) => {
-      setPeriodKey(`${view}-${meta.periodLabel}`);
-    },
-    [view],
-  );
-
-  useEffect(() => {
-    if (previewMode || !deepLinkEventId || deepLinkFetchStartedRef.current) return;
-    deepLinkFetchStartedRef.current = true;
-    queueMicrotask(() => {
-      const now = new Date();
-      void fetchEventsForMonth(now.getFullYear(), now.getMonth());
-      if (deepLinkDate) {
-        const anchor = parseEventDate(deepLinkDate);
-        void fetchEventsForMonth(anchor.getFullYear(), anchor.getMonth());
-      }
-    });
-  }, [deepLinkDate, deepLinkEventId, fetchEventsForMonth, previewMode]);
-
-  useEffect(() => {
-    if (previewMode || !deepLinkEventId || deepLinkHandledRef.current) return;
-
-    const match = calendarEvents.find((entry) => entry.id === deepLinkEventId);
-    if (!match) return;
-
-    deepLinkHandledRef.current = true;
-    queueMicrotask(() => {
-      setSelectedEmptyDay(null);
-      setSelectedEvent(match);
-      setCalendarAnchorDate(parseEventDate(match.date));
-    });
-  }, [calendarEvents, deepLinkEventId, previewMode]);
-
-  const handleDayClick = (date: string) => {
-    const dayEvents = calendarEvents.filter((e) => e.date === date);
-    setSelectedEvent(null);
-    if (dayEvents.length > 0) {
-      setSelectedEmptyDay(null);
-      setSelectedEvent(dayEvents[0]);
-    } else {
-      setSelectedEmptyDay(date);
-    }
-  };
-
-  const handleEventClick = (event: OrganizationEvent) => {
-    setSelectedEmptyDay(null);
-    setSelectedEvent(event);
-  };
-
-  const closeSidebar = () => {
-    setSelectedEvent(null);
-    setSelectedEmptyDay(null);
-  };
+  const unit = view === "month" ? "month" : "week";
+  const where = nav.isCurrentPeriod ? `this ${unit}` : `in ${nav.periodLabel}`;
+  const summary = eventsDeferred
+    ? "Loading calendar events…"
+    : model.periodEventCount === 0
+      ? `Nothing on the calendar ${where} — tap any day to see its details.`
+      : `${pluralEvents(model.periodEventCount)} ${where} · tap a day or event for details.`;
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col">
-      <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-3 px-2 py-2 sm:px-3 sm:py-3 lg:gap-4">
-          <h1 className="sr-only">Calendar</h1>
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto lg:overflow-hidden">
+      <ParentGardenFrame theme={theme} className="flex min-h-0 flex-1 flex-col bg-white lg:overflow-hidden">
+        <h1 className="sr-only">Calendar</h1>
 
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.25fr_0.75fr] lg:gap-4">
-            <ParentCard theme={theme} className="!p-3 sm:!p-4">
-              <OrganizationEventsCalendar
-                key={calendarAnchorDate?.toISOString() ?? "parent-calendar-default"}
-                C={C}
-                events={calendarEvents}
+        <div className="flex flex-col lg:min-h-0 lg:flex-1 lg:flex-row">
+          {/* Calendar pane */}
+          <section
+            aria-labelledby={headingId}
+            data-testid="parent-calendar-grid-card"
+            className="flex min-w-0 flex-col bg-white lg:min-h-0 lg:flex-1"
+          >
+            <div className={`shrink-0 border-b-[1.5px] ${PANE_LINE} px-4 py-3.5 sm:px-6`}>
+              <GardenCalendarToolbar
                 view={view}
-                onViewChange={setView}
-                initialDate={calendarAnchorDate ?? calendarInitialDate}
-                readOnly
-                variant="parent-story"
-                parentTheme={theme}
-                emptyHint={
-                  eventsDeferred
-                    ? "Loading calendar events…"
-                    : "No events scheduled yet. Your school calendar will appear here when events are added."
-                }
-                selectedEventId={selectedEvent?.id ?? null}
-                onDayClick={handleDayClick}
-                onEventClick={handleEventClick}
-                onPeriodChange={handlePeriodChange}
-                onPeriodMetaChange={handlePeriodMetaChange}
+                periodLabel={nav.periodLabel}
+                isCurrentPeriod={nav.isCurrentPeriod}
+                loading={model.loadingPeriod}
+                onPrev={nav.goPrev}
+                onNext={nav.goNext}
+                onToday={nav.goToday}
+                onViewChange={nav.handleViewChange}
+                headingId={headingId}
+                summary={summary}
               />
-            </ParentCard>
+            </div>
 
-            <ParentCalendarAgendaPanel
-              theme={theme}
-              events={calendarEvents}
-              periodKey={periodKey}
-              selectedEventId={selectedEvent?.id ?? null}
-              onEventClick={handleEventClick}
-              agendaTitle={agendaTitle}
-              asOfDate={agendaAsOfDate}
-            />
-          </div>
+            {!eventsDeferred ? (
+              model.events.length === 0 ? (
+                <div
+                  className={`flex shrink-0 items-center gap-2.5 border-b-[1.5px] ${PANE_LINE} bg-[var(--sf-accent-wash)] px-4 py-2.5 sm:px-6`}
+                >
+                  <CalendarHeart className="h-[18px] w-[18px] shrink-0 text-[var(--sf-clay-deep)]" aria-hidden="true" />
+                  <p className="m-0 min-w-0 text-[13.5px] font-semibold text-[var(--sf-ink)]/80">{NO_EVENTS_COPY}</p>
+                </div>
+              ) : (
+                <div className={`shrink-0 border-b-[1.5px] ${PANE_LINE} bg-[var(--sf-paper)] px-4 py-2.5 sm:px-6`}>
+                  <GardenCalendarLegend events={model.events} />
+                </div>
+              )
+            ) : null}
+
+            <div className="flex flex-col lg:min-h-0 lg:flex-1 lg:overflow-auto">
+              {eventsDeferred ? (
+                <div className="flex flex-1 flex-col gap-3 p-4 sm:p-6">
+                  <p role="status" className="m-0 inline-flex items-center gap-2 text-[15px] font-semibold text-[var(--sf-soft)]">
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    Loading calendar events…
+                  </p>
+                  <GSkeleton className="min-h-[420px] flex-1 !rounded-[18px]" />
+                </div>
+              ) : (
+                <motion.div
+                  key={`${view}-${nav.periodLabel}`}
+                  className="flex flex-col lg:min-h-0 lg:flex-1"
+                  initial={reduce ? false : { opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.22, ease: PORTAL_EASE }}
+                >
+                  {view === "month" ? (
+                    <GardenMonthGrid
+                      year={nav.year}
+                      month={nav.month}
+                      eventsByDate={nav.eventsByDate}
+                      selectedDate={nav.selectedDate}
+                      selectedEventId={selectedEventId}
+                      onDayClick={nav.handleDayClick}
+                      onEventClick={model.openEvent}
+                    />
+                  ) : (
+                    <GardenWeekGrid
+                      weekDates={nav.weekDates}
+                      eventsByDate={nav.eventsByDate}
+                      selectedDate={nav.selectedDate}
+                      selectedEventId={selectedEventId}
+                      onDayClick={nav.handleDayClick}
+                      onEventClick={model.openEvent}
+                    />
+                  )}
+                </motion.div>
+              )}
+            </div>
+          </section>
+
+          {/* Rail */}
+          <aside
+            aria-label="Day details and upcoming events"
+            className={`flex shrink-0 flex-col border-t-[1.5px] ${PANE_LINE} bg-[var(--sf-paper)] lg:w-[360px] lg:overflow-y-auto lg:border-l-[1.5px] lg:border-t-0 xl:w-[400px]`}
+          >
+            {eventsDeferred ? (
+              <div className="flex flex-col gap-4 p-5 sm:p-6">
+                <GSkeleton className="h-36" />
+                <GSkeleton className="h-64" />
+              </div>
+            ) : (
+              <>
+                <GardenSelectedDayCard
+                  variant="rail"
+                  date={selectedDate}
+                  events={model.selectedDayEvents}
+                  selectedEventId={selectedEventId}
+                  onOpen={model.openEvent}
+                />
+                <div aria-hidden="true" className="mx-5 border-t-[1.5px] border-dashed border-[var(--sf-ink)]/15 sm:mx-6" />
+                <GardenAgendaCard
+                  variant="rail"
+                  title={agendaTitle ?? "Family agenda"}
+                  events={model.upcoming}
+                  selectedEventId={selectedEventId}
+                  onOpen={model.openEvent}
+                />
+              </>
+            )}
+          </aside>
         </div>
-      </div>
+      </ParentGardenFrame>
 
-      <AnimatePresence>
-        {selectedEvent ? (
-          <EventSidebar event={selectedEvent} theme={theme} onClose={closeSidebar} />
-        ) : null}
-        {selectedEmptyDay && !selectedEvent ? (
-          <EmptyDaySidebar date={selectedEmptyDay} theme={theme} onClose={closeSidebar} />
-        ) : null}
-      </AnimatePresence>
+      <GardenDaySheet
+        theme={theme}
+        open={model.daySheetOpen}
+        date={selectedDate}
+        events={model.selectedDayEvents}
+        selectedEventId={selectedEventId}
+        onOpen={model.openEvent}
+        onClose={model.closeDaySheet}
+      />
+      <GardenEventDrawer
+        theme={theme}
+        event={model.selectedEvent}
+        onClose={model.closeEvent}
+        previewMode={previewMode}
+      />
     </div>
   );
 }

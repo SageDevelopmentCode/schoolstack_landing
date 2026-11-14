@@ -15,6 +15,10 @@ import type { CommitteeProject } from "@/lib/committees/committee-project-mapper
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import CommitteeProjectStoryCard from "./CommitteeProjectStoryCard";
+import { CommitteeButton } from "@/components/school-admin/committees/committee-ui";
+import { useIsGardenCommittee } from "@/components/school-admin/committees/committee-surface";
+import { GardenSectionHeader, plural } from "./garden/committee-garden-section";
+import { gBtnPopSm } from "@/components/school-parent/garden/ui";
 
 type CommitteeProjectsOverviewProps = {
   theme: ParentThemeTokens;
@@ -38,9 +42,25 @@ export default function CommitteeProjectsOverview({
   onCreateProject,
 }: CommitteeProjectsOverviewProps) {
   const reducedMotion = useReducedMotion() ?? false;
+  const garden = useIsGardenCommittee();
 
   return (
     <CommitteeWorkspaceSectionFrame width="full">
+      {garden ? (
+        <GardenSectionHeader
+          kicker="Projects"
+          title={projects.length > 0 ? plural(projects.length, "project") : "Projects"}
+          description="Create projects for committee initiatives. Each project has a supply list so members know what to bring."
+          actions={
+            !readOnly ? (
+              <button type="button" className={gBtnPopSm} onClick={onCreateProject} data-testid="committee-project-new">
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                New project
+              </button>
+            ) : null
+          }
+        />
+      ) : (
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <AdminSectionKicker theme={theme}>Committee workspace</AdminSectionKicker>
@@ -65,9 +85,10 @@ export default function CommitteeProjectsOverview({
           </AdminButton>
         ) : null}
       </div>
+      )}
 
       {projects.length === 0 ? (
-        <div className="mt-6">
+        <div className={garden ? "" : "mt-6"}>
           <CommitteeSectionEmptyState
             theme={theme}
             icon={FolderKanban}
@@ -75,10 +96,10 @@ export default function CommitteeProjectsOverview({
             description="Create a project to organize supplies, assignments, and planning for committee work."
             action={
               readOnly ? undefined : (
-                <AdminButton theme={theme} variant="primary" onClick={onCreateProject}>
+                <CommitteeButton theme={theme} variant="primary" onClick={onCreateProject}>
                   <Plus className="h-4 w-4" />
                   Create project
-                </AdminButton>
+                </CommitteeButton>
               )
             }
           />
@@ -86,7 +107,7 @@ export default function CommitteeProjectsOverview({
       ) : (
         <motion.div
           key={projects.map((project) => project.id).join("-")}
-          className="mt-6 grid grid-cols-1 gap-[13px] md:grid-cols-2 lg:grid-cols-3"
+          className={garden ? "grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3" : "mt-6 grid grid-cols-1 gap-[13px] md:grid-cols-2 lg:grid-cols-3"}
           variants={staggerContainer(reducedMotion)}
           initial="initial"
           animate="animate"

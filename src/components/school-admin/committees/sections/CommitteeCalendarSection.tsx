@@ -25,10 +25,13 @@ import { getCommittee } from "@/lib/committees/committees";
 import type { Committee } from "@/lib/committees/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
-import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import type { CommitteesApiNamespace } from "@/components/portal-committees/PortalCommitteesPage";
 import { committeesApiBaseForPortal } from "@/lib/committees/committees-api-base";
+import { CommitteeConfirmDialog } from "@/components/school-admin/committees/committee-ui";
+import { useCommitteeNotify, useIsGardenCommittee } from "@/components/school-admin/committees/committee-surface";
+import GardenCommitteeCalendar from "@/components/school-admin/committees/sections/garden/GardenCommitteeCalendar";
 
 const EMPTY_ADD_EVENT_FORM: CommitteeAddEventFormState = {
   title: "",
@@ -77,6 +80,11 @@ export default function CommitteeCalendarSection({
   const [addForm, setAddForm] = useState<CommitteeAddEventFormState>(EMPTY_ADD_EVENT_FORM);
   const [editForm, setEditForm] = useState<CommitteeAddEventFormState>(EMPTY_ADD_EVENT_FORM);
   const [saving, setSaving] = useState(false);
+  const garden = useIsGardenCommittee();
+  const notify = useCommitteeNotify();
+  /** Garden only: event waiting for delete confirmation. */
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const calendarEvents = useMemo(
     () => committeeEventsToOrganizationEvents(committee.events, organizationId),
@@ -124,14 +132,21 @@ export default function CommitteeCalendarSection({
       setShowAdd(false);
       setAddForm(EMPTY_ADD_EVENT_FORM);
       await refresh();
-      adminToast.success("Event added");
+      notify.success("Event added", {
+        description: `“${addForm.title.trim()}” is on the committee calendar.`,
+        id: "committee-event-save",
+      });
     } catch (err) {
       void reportPortalOperationalError(committeeOperationalSurface(isAdmin), {
         organizationId,
         operation: "committees.calendar.add_event",
         error: "",
       }, err);
-      adminToast.error(formatActionError(err, "Failed to add event."));
+      notify.error(formatActionError(err, "Failed to add event."), {
+        title: "Couldn't add the event",
+        retry: () => void handleAdd(),
+        id: "committee-event-save",
+      });
     } finally {
       setSaving(false);
     }
@@ -163,14 +178,18 @@ export default function CommitteeCalendarSection({
       setShowEdit(false);
       setSelectedEventId(null);
       await refresh();
-      adminToast.success("Event updated");
+      notify.success("Event updated", { id: "committee-event-save" });
     } catch (err) {
       void reportPortalOperationalError(committeeOperationalSurface(isAdmin), {
         organizationId,
         operation: "committees.calendar.edit_event",
         error: "",
       }, err);
-      adminToast.error(formatActionError(err, "Failed to update event."));
+      notify.error(formatActionError(err, "Failed to update event."), {
+        title: "Couldn't save the event",
+        retry: () => void handleEdit(),
+        id: "committee-event-save",
+      });
     } finally {
       setSaving(false);
     }
@@ -181,14 +200,14 @@ export default function CommitteeCalendarSection({
       await deleteEvent(supabase, eventId);
       setSelectedEventId(null);
       await refresh();
-      adminToast.success("Event deleted");
+      notify.success("Event deleted");
     } catch (err) {
       void reportPortalOperationalError(committeeOperationalSurface(isAdmin), {
         organizationId,
         operation: "committees.calendar.delete_event",
         error: "",
       }, err);
-      adminToast.error(formatActionError(err, "Failed to delete event."));
+      notify.error(formatActionError(err, "Failed to delete event."), { title: "Couldn't delete the event" });
     }
   };
 
@@ -209,6 +228,93 @@ export default function CommitteeCalendarSection({
       setCalendarAnchorDate(parseEventDate(match.date));
     });
   }, [committee.events, initialEventId]);
+
+  const eventPanels = (
+    <>
+      <CommitteeEventDetailPanel
+        event={selectedCommitteeEvent}
+        theme={theme}
+        readOnly={readOnly}
+        canManage={canManageSelected}
+        members={committee.members}
+        onClose={() => setSelectedEventId(null)}
+        onEdit={readOnly || !canManageSelected ? undefined : openEditPanel}
+        onDelete={
+          readOnly || !canManageSelected
+            ? undefined
+            : garden
+              ? (eventId) => setConfirmDeleteId(eventId)
+              : (eventId) => void handleDelete(eventId)
+        }
+      />
+
+      <CommitteeAddEventPanel
+        open={showAdd}
+        theme={theme}
+        saving={saving}
+        form={addForm}
+        onChange={setAddForm}
+        onClose={() => setShowAdd(false)}
+        onSubmit={handleAdd}
+      />
+
+      <CommitteeAddEventPanel
+        open={showEdit}
+        theme={theme}
+        saving={saving}
+        form={editForm}
+        onChange={setEditForm}
+        onClose={() => setShowEdit(false)}
+        onSubmit={handleEdit}
+        title="Edit event"
+        submitLabel="Save changes"
+        formId="committee-edit-event-form"
+      />
+    </>
+  );
+
+  if (garden) {
+    const pendingDelete = findCommitteeEventById(committee.events, confirmDeleteId);
+    return (
+      <CommitteeWorkspaceSectionFrame width="full">
+        <GardenCommitteeCalendar
+          key={calendarAnchorDate?.toISOString() ?? "committee-calendar-default"}
+          events={calendarEvents}
+          view={view}
+          onViewChange={setView}
+          initialDate={calendarAnchorDate}
+          readOnly={readOnly}
+          selectedEventId={selectedEventId}
+          onDayClick={readOnly ? undefined : (nextDate) => openAddPanel(nextDate)}
+          onEventClick={(event) => setSelectedEventId(event.id)}
+          onAdd={() => openAddPanel()}
+          onPeriodMetaChange={handlePeriodMetaChange}
+        />
+        {eventPanels}
+        <CommitteeConfirmDialog
+          theme={theme}
+          C={C}
+          open={confirmDeleteId != null}
+          title={pendingDelete ? `Delete “${pendingDelete.title}”?` : "Delete event?"}
+          description="It will be removed from the committee calendar for everyone. This cannot be undone."
+          confirmLabel="Delete event"
+          variant="destructive"
+          loading={deleting}
+          onConfirm={() => {
+            if (!confirmDeleteId) return;
+            setDeleting(true);
+            void handleDelete(confirmDeleteId).finally(() => {
+              setDeleting(false);
+              setConfirmDeleteId(null);
+            });
+          }}
+          onClose={() => {
+            if (!deleting) setConfirmDeleteId(null);
+          }}
+        />
+      </CommitteeWorkspaceSectionFrame>
+    );
+  }
 
   return (
     <CommitteeWorkspaceSectionFrame width="full">
@@ -268,43 +374,7 @@ export default function CommitteeCalendarSection({
         onClose={() => setShowAgendaSidebar(false)}
       />
 
-      <CommitteeEventDetailPanel
-        event={selectedCommitteeEvent}
-        theme={theme}
-        readOnly={readOnly}
-        canManage={canManageSelected}
-        members={committee.members}
-        onClose={() => setSelectedEventId(null)}
-        onEdit={readOnly || !canManageSelected ? undefined : openEditPanel}
-        onDelete={
-          readOnly || !canManageSelected
-            ? undefined
-            : (eventId) => void handleDelete(eventId)
-        }
-      />
-
-      <CommitteeAddEventPanel
-        open={showAdd}
-        theme={theme}
-        saving={saving}
-        form={addForm}
-        onChange={setAddForm}
-        onClose={() => setShowAdd(false)}
-        onSubmit={handleAdd}
-      />
-
-      <CommitteeAddEventPanel
-        open={showEdit}
-        theme={theme}
-        saving={saving}
-        form={editForm}
-        onChange={setEditForm}
-        onClose={() => setShowEdit(false)}
-        onSubmit={handleEdit}
-        title="Edit event"
-        submitLabel="Save changes"
-        formId="committee-edit-event-form"
-      />
+      {eventPanels}
     </div>
     </CommitteeWorkspaceSectionFrame>
   );

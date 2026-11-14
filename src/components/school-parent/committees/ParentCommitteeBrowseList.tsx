@@ -1,122 +1,113 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, Heart } from "lucide-react";
+import { ArrowRight, Compass, UserRound } from "lucide-react";
+import { gFade } from "@/components/school-parent/garden/motion";
+import { GCard, GChip, GIcon, G_FOCUS, SPRINGY } from "@/components/school-parent/garden/ui";
 import {
-  fadeUp,
-  staggerContainer,
-  staggerItem,
-} from "@/components/school-admin/committees/committee-motion";
-import ParentCard from "@/components/school-parent/ui/ParentCard";
-import ParentChip from "@/components/school-parent/ui/ParentChip";
-import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+  RequestStatusChip,
+  exploreCallToAction,
+  plural,
+} from "@/components/school-parent/committees/garden/committee-garden-shared";
 import type { ParentCommitteeBrowseItem } from "@/lib/committees/types";
-import ParentCommitteeRequestStatus from "./ParentCommitteeRequestStatus";
 
+/*
+ * "Explore" (Garden): open committees as calm tiles. Each tile is one button
+ * and says what clicking it does (open the workspace, view the request, or
+ * request to join), so families always know the next step.
+ */
 export default function ParentCommitteeBrowseList({
   committees,
-  theme,
   onOpenCommittee,
 }: {
   committees: ParentCommitteeBrowseItem[];
-  theme: ParentThemeTokens;
   onOpenCommittee: (id: string) => void;
 }) {
-  const reducedMotion = useReducedMotion() ?? false;
+  const reduce = useReducedMotion() === true;
 
   if (committees.length === 0) {
     return (
-      <motion.div variants={fadeUp(reducedMotion)} initial="initial" animate="animate">
-        <ParentCard theme={theme} className="flex flex-col items-center justify-center py-12 text-center">
-          <div
-            className="mb-4 flex h-16 w-16 items-center justify-center rounded-full"
-            style={{ backgroundColor: theme.primarySoft }}
-          >
-            <Heart className="h-7 w-7" style={{ color: theme.primary }} />
-          </div>
-          <h3
-            className="mb-2 text-[17px] font-bold"
-            style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
-          >
-            No committees available
-          </h3>
-          <p className="max-w-xs text-[13px]" style={{ color: theme.muted }}>
+      <GCard index={1} kicker="Explore" title="No committees available" data-testid="parent-committees-explore-empty">
+        <div className="flex items-start gap-4">
+          <GIcon size="lg">
+            <Compass />
+          </GIcon>
+          <p className="m-0 text-[15px] font-semibold leading-relaxed text-[var(--sf-ink)]/80">
             When the school opens volunteer committees, they will appear here for you to explore.
           </p>
-        </ParentCard>
-      </motion.div>
+        </div>
+      </GCard>
     );
   }
 
+  const memberCount = committees.filter((c) => c.isMember).length;
+  const pendingCount = committees.filter((c) => !c.isMember && c.requestStatus === "pending").length;
+
   return (
-    <motion.div
-      key={committees.map((c) => c.id).join("-")}
-      className="grid grid-cols-1 gap-4 md:grid-cols-2"
-      variants={staggerContainer(reducedMotion)}
-      initial="initial"
-      animate="animate"
+    <GCard
+      index={1}
+      kicker="Open for volunteers"
+      title="Find a way to help"
+      action={
+        memberCount > 0 || pendingCount > 0 ? (
+          <span className="flex flex-wrap gap-1.5">
+            {memberCount > 0 ? <GChip tone="success">{memberCount} joined</GChip> : null}
+            {pendingCount > 0 ? <GChip tone="warning">{pendingCount} pending</GChip> : null}
+          </span>
+        ) : null
+      }
+      data-testid="parent-committees-explore-list"
     >
-      {committees.map((committee) => (
-        <motion.div key={committee.id} variants={staggerItem(reducedMotion)} className="h-full">
-          <button
-            type="button"
-            onClick={() => onOpenCommittee(committee.id)}
-            className="group h-full w-full cursor-pointer text-left"
-          >
-            <ParentCard
-              theme={theme}
-              className="flex h-full flex-col transition-shadow hover:shadow-md"
-            >
-              <div className="flex h-full flex-col">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <h3
-                        className="line-clamp-2 text-[15px] font-bold leading-snug"
-                        style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
-                      >
-                        {committee.name}
-                      </h3>
-                      <ParentChip theme={theme} tone="info">
-                        {committee.termLabel}
-                      </ParentChip>
-                    </div>
-                  </div>
-                  <ArrowRight
-                    className="mt-1 h-5 w-5 shrink-0 transition-colors group-hover:opacity-100"
-                    style={{ color: theme.primary, opacity: 0.5 }}
-                  />
-                </div>
-                <p
-                  className="line-clamp-3 flex-1 text-[13px] leading-relaxed"
-                  style={{ color: theme.muted }}
-                >
-                  {committee.description}
-                </p>
-                <div className="mt-3 flex min-h-[28px] flex-wrap items-center gap-2">
-                  {committee.isMember && (
-                    <ParentChip theme={theme} tone="success">
-                      Member
-                    </ParentChip>
-                  )}
-                  {committee.requestStatus && !committee.isMember && (
-                    <ParentCommitteeRequestStatus
-                      status={committee.requestStatus}
-                      theme={theme}
+      <p className="m-0 mb-4 text-[14px] font-semibold text-[var(--sf-soft)]">
+        Open a committee to read about its roles, then send a request to join.
+      </p>
+      <ul className="m-0 grid list-none gap-4 p-0 md:grid-cols-2" aria-label="Committees open for volunteers">
+        {committees.map((committee, index) => {
+          const cta = exploreCallToAction(committee);
+          return (
+            <motion.li key={committee.id} className="h-full" {...gFade(index + 2, reduce)}>
+              <button
+                type="button"
+                onClick={() => onOpenCommittee(committee.id)}
+                data-testid={`parent-committee-explore-card-${committee.id}`}
+                aria-label={`${committee.name}: ${cta}`}
+                className={`group flex h-full w-full flex-col rounded-[20px] border-[1.5px] border-[var(--sf-ink)]/10 bg-[var(--sf-paper)] p-4 text-left hover:-translate-y-0.5 hover:border-[var(--sf-ink)]/30 hover:bg-white hover:shadow-[0_12px_22px_-16px_rgba(43,36,29,0.55)] ${SPRINGY} ${G_FOCUS}`}
+              >
+                <span className="sf-display block line-clamp-2 text-[1.15rem] leading-[1.1] text-[var(--sf-ink)]">
+                  {committee.name}
+                </span>
+                <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <GChip tone="info">{committee.termLabel}</GChip>
+                  {committee.isMember ? <GChip tone="success">Member</GChip> : null}
+                  {committee.requestStatus && !committee.isMember ? (
+                    <RequestStatusChip status={committee.requestStatus} />
+                  ) : null}
+                </span>
+                {committee.description ? (
+                  <span className="mt-3 block line-clamp-3 text-[13.5px] font-semibold leading-relaxed text-[var(--sf-soft)]">
+                    {committee.description}
+                  </span>
+                ) : null}
+                {committee.dutyRoles.length > 0 ? (
+                  <span className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--sf-ink)]/70">
+                    <UserRound className="h-3.5 w-3.5" aria-hidden="true" />
+                    {plural(committee.dutyRoles.length, "role")}
+                  </span>
+                ) : null}
+                <span className="mt-auto block pt-3">
+                  <span className="flex items-center justify-between border-t-[1.5px] border-dashed border-[var(--sf-ink)]/12 pt-3 text-[13.5px] font-extrabold text-[var(--sf-clay-deep)]">
+                    {cta}
+                    <ArrowRight
+                      className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
+                      aria-hidden="true"
                     />
-                  )}
-                  {committee.dutyRoles.length > 0 && (
-                    <span className="text-[12px]" style={{ color: theme.muted }}>
-                      {committee.dutyRoles.length} role
-                      {committee.dutyRoles.length !== 1 ? "s" : ""}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </ParentCard>
-          </button>
-        </motion.div>
-      ))}
-    </motion.div>
+                  </span>
+                </span>
+              </button>
+            </motion.li>
+          );
+        })}
+      </ul>
+    </GCard>
   );
 }

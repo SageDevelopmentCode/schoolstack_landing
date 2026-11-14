@@ -21,9 +21,11 @@ import {
   SCHOOL_ADMIN_ATTRIBUTION,
 } from "@/lib/committees/attribution";
 import { colorForKey } from "@/lib/messages/format";
-import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { committeeOperationalSurface } from "@/components/school-admin/committees/CommitteeAttributionLabel";
+import { useCommitteeNotify, useIsGardenCommittee } from "@/components/school-admin/committees/committee-surface";
+import GardenCommitteeMessages from "@/components/school-admin/committees/sections/garden/GardenCommitteeMessages";
 
 function isOwnCommitteeMessage(
   msg: CommitteeMessage,
@@ -155,6 +157,10 @@ export default function CommitteeMessagesSection({
   const [files, setFiles] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const garden = useIsGardenCommittee();
+  const notify = useCommitteeNotify();
+  /** Garden: id of the message this person just sent (drives the "Sent" line). */
+  const [lastSentId, setLastSentId] = useState<string | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -175,9 +181,19 @@ export default function CommitteeMessagesSection({
         ...committee,
         messages: [...committee.messages, newMessage],
       });
-      adminToast.success("Message sent");
+      if (garden) {
+        // Garden: the "Sent" line under the conversation is the confirmation.
+        setLastSentId(newMessage.id);
+        notify.clearError(`committee-message-${committee.id}`);
+      } else {
+        notify.success("Message sent");
+      }
     } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to send message."));
+      notify.error(formatActionError(err, "Failed to send message."), {
+        title: "Couldn't send your message",
+        retry: () => void handleSend(),
+        id: `committee-message-${committee.id}`,
+      });
       void reportPortalOperationalError(committeeOperationalSurface(isAdmin), {
         organizationId,
         operation: "committees.messages.send",
@@ -187,6 +203,31 @@ export default function CommitteeMessagesSection({
       setSending(false);
     }
   };
+
+  if (garden) {
+    const lastMessage = committee.messages.at(-1);
+    return (
+      <CommitteeWorkspaceSectionFrame width="narrow" className="flex h-full min-h-0 flex-1 flex-col">
+        <GardenCommitteeMessages
+          committee={committee}
+          composeTokens={composeTokens}
+          readOnly={readOnly}
+          isOwn={(message) => isOwnCommitteeMessage(message, currentMemberId, isAdmin)}
+          senderLabel={senderLabel}
+          resolveAttachmentUrl={(attachment) => resolveCommitteeMessageAttachmentUrl(supabase, attachment)}
+          text={text}
+          onTextChange={setText}
+          files={files}
+          onFilesChange={setFiles}
+          sending={sending}
+          onSend={() => void handleSend()}
+          showSent={lastSentId != null && lastMessage?.id === lastSentId}
+          bottomRef={bottomRef}
+          panelTestId="committee-messages-panel"
+        />
+      </CommitteeWorkspaceSectionFrame>
+    );
+  }
 
   return (
     <CommitteeWorkspaceSectionFrame

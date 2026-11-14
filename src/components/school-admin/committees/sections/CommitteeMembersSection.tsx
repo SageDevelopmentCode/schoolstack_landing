@@ -14,12 +14,15 @@ import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme
 import { inviteCommitteeMember, removeCommitteeMember } from "@/lib/committees/members";
 import { getCommittee } from "@/lib/committees/committees";
 import { memberInitials } from "@/lib/committees/task-utils";
-import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import CommitteeModalShell from "@/components/school-admin/committees/CommitteeModalShell";
 import CommitteeSectionEmptyState from "@/components/school-admin/committees/CommitteeSectionEmptyState";
 import CommitteeWorkspaceSectionFrame from "@/components/school-admin/committees/CommitteeWorkspaceSectionFrame";
 import { committeeStoryInputStyle } from "@/components/school-admin/committees/committee-story-input-style";
+import { CommitteeButton, G_COMMITTEE_INPUT } from "@/components/school-admin/committees/committee-ui";
+import { useCommitteeNotify, useIsGardenCommittee } from "@/components/school-admin/committees/committee-surface";
+import GardenCommitteeMembers from "@/components/school-admin/committees/sections/garden/GardenCommitteeMembers";
 
 function DutyRoleReadOnlyCard({
   role,
@@ -95,6 +98,10 @@ export default function CommitteeMembersSection({
   const [role, setRole] = useState<CommitteeRole>("member");
   const [saving, setSaving] = useState(false);
   const inputStyle = useMemo(() => committeeStoryInputStyle(theme), [theme]);
+  const garden = useIsGardenCommittee();
+  const notify = useCommitteeNotify();
+  const inviteInputClass = garden ? G_COMMITTEE_INPUT : "w-full px-3 py-2 text-sm rounded-lg border";
+  const inviteInputStyle = garden ? undefined : inputStyle;
 
   const showGrade = committee.config.showGradeColumn;
 
@@ -116,9 +123,12 @@ export default function CommitteeMembersSection({
       setEmail("");
       setShowInvite(false);
       await refresh();
-      adminToast.success("Member invited");
+      notify.success("Member invited", { description: `${name.trim()} has been added to ${committee.name}.` });
     } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to invite member."));
+      notify.error(formatActionError(err, "Failed to invite member."), {
+        title: "Couldn't invite member",
+        retry: () => void handleInvite(),
+      });
       void reportPortalOperationalError("school_admin", {
         organizationId,
         operation: "committees.members.invite",
@@ -133,9 +143,9 @@ export default function CommitteeMembersSection({
     try {
       await removeCommitteeMember(supabase, memberId);
       await refresh();
-      adminToast.success("Member removed");
+      notify.success("Member removed");
     } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to remove member."));
+      notify.error(formatActionError(err, "Failed to remove member."), { title: "Couldn't remove member" });
       void reportPortalOperationalError("school_admin", {
         organizationId,
         operation: "committees.members.remove",
@@ -143,6 +153,80 @@ export default function CommitteeMembersSection({
       }, err);
     }
   };
+
+  const inviteModal = (
+    <AnimatePresence>
+        {showInvite && (
+          <CommitteeModalShell
+            theme={theme}
+            title="Invite member"
+            onClose={() => setShowInvite(false)}
+            footer={
+              <div className="flex justify-end gap-2">
+                <CommitteeButton theme={theme} variant="soft" onClick={() => setShowInvite(false)}>
+                  Cancel
+                </CommitteeButton>
+                <CommitteeButton
+                  theme={theme}
+                  variant="primary"
+                  onClick={() => void handleInvite()}
+                  disabled={saving || !name.trim()}
+                >
+                  {saving ? "Inviting…" : "Send invite"}
+                </CommitteeButton>
+              </div>
+            }
+          >
+            <div className="space-y-3">
+              <input
+                placeholder="Full name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className={inviteInputClass}
+                style={inviteInputStyle}
+              />
+              <input
+                placeholder="Email (optional)"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={inviteInputClass}
+                style={inviteInputStyle}
+              />
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as CommitteeRole)}
+                className={inviteInputClass}
+                style={inviteInputStyle}
+              >
+                {COMMITTEE_ASSIGNABLE_ROLE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </CommitteeModalShell>
+        )}
+    </AnimatePresence>
+  );
+
+  if (garden) {
+    const gardenContent = (
+      <>
+        <GardenCommitteeMembers
+          committee={committee}
+          theme={theme}
+          readOnly={readOnly}
+          showGrade={Boolean(showGrade)}
+          onInvite={() => setShowInvite(true)}
+          onRemove={(memberId) => void handleRemove(memberId)}
+        />
+        {inviteModal}
+      </>
+    );
+    if (skipFrame) return gardenContent;
+    return <CommitteeWorkspaceSectionFrame width="wide">{gardenContent}</CommitteeWorkspaceSectionFrame>;
+  }
 
   const content = (
     <div className="space-y-4">
@@ -257,59 +341,7 @@ export default function CommitteeMembersSection({
         </div>
       ) : null}
 
-      <AnimatePresence>
-        {showInvite && (
-          <CommitteeModalShell
-            theme={theme}
-            title="Invite member"
-            onClose={() => setShowInvite(false)}
-            footer={
-              <div className="flex justify-end gap-2">
-                <AdminButton theme={theme} variant="soft" onClick={() => setShowInvite(false)}>
-                  Cancel
-                </AdminButton>
-                <AdminButton
-                  theme={theme}
-                  variant="primary"
-                  onClick={() => void handleInvite()}
-                  disabled={saving || !name.trim()}
-                >
-                  {saving ? "Inviting…" : "Send invite"}
-                </AdminButton>
-              </div>
-            }
-          >
-            <div className="space-y-3">
-              <input
-                placeholder="Full name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-lg border"
-                style={inputStyle}
-              />
-              <input
-                placeholder="Email (optional)"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-lg border"
-                style={inputStyle}
-              />
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value as CommitteeRole)}
-                className="w-full px-3 py-2 text-sm rounded-lg border"
-                style={inputStyle}
-              >
-                {COMMITTEE_ASSIGNABLE_ROLE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </CommitteeModalShell>
-        )}
-      </AnimatePresence>
+      {inviteModal}
     </div>
   );
 

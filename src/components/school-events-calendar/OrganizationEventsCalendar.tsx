@@ -1,22 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { committeeTransition, viewSwap } from "@/components/school-admin/committees/committee-motion";
-import {
-  addDays,
-  addMonths,
-  addWeeks,
-  dateKey,
-  formatMonthLabel,
-  formatWeekRangeLabel,
-  getWeekDates,
-  isToday,
-  parseEventDate,
-} from "@/lib/committees/calendar-utils";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import { groupOrganizationEventsByDate } from "@/lib/school-events/events";
 import type { OrganizationEvent } from "@/lib/school-events/types";
 import CalendarSkeleton from "./CalendarSkeleton";
 import CalendarToolbar, {
@@ -25,6 +13,7 @@ import CalendarToolbar, {
 } from "./CalendarToolbar";
 import MonthGrid from "./MonthGrid";
 import WeekGrid from "./WeekGrid";
+import { useEventsCalendarNavigation } from "./useEventsCalendarNavigation";
 
 export type OrganizationEventsCalendarProps = {
   C: AdminThemeTokens;
@@ -77,142 +66,29 @@ export default function OrganizationEventsCalendar({
   const reducedMotion = useReducedMotion() ?? false;
   const viewDirection = view === "month" ? 1 : -1;
 
-  const [year, setYear] = useState(() => (initialDate ?? new Date()).getFullYear());
-  const [month, setMonth] = useState(() => (initialDate ?? new Date()).getMonth());
-  const [weekAnchor, setWeekAnchor] = useState(() => initialDate ?? new Date());
-  const [selectedDate, setSelectedDate] = useState<string | null>(() =>
-    dateKey(initialDate ?? new Date()),
-  );
-
-  const eventsByDate = useMemo(() => groupOrganizationEventsByDate(events), [events]);
-  const weekDates = useMemo(() => getWeekDates(weekAnchor), [weekAnchor]);
-
-  useEffect(() => {
-    onPeriodChange?.(year, month);
-  }, [month, onPeriodChange, year]);
-
-  const periodLabel =
-    view === "month" ? formatMonthLabel(year, month) : formatWeekRangeLabel(weekDates);
-
-  const isCurrentPeriod = useMemo(() => {
-    const today = new Date();
-    if (view === "month") {
-      return year === today.getFullYear() && month === today.getMonth();
-    }
-    return weekDates.some((day) => isToday(day));
-  }, [month, view, weekDates, year]);
-
-  useEffect(() => {
-    onPeriodMetaChange?.({ periodLabel, isCurrentPeriod });
-  }, [isCurrentPeriod, onPeriodMetaChange, periodLabel]);
-
-  const goToday = useCallback(() => {
-    const today = new Date();
-    setYear(today.getFullYear());
-    setMonth(today.getMonth());
-    setWeekAnchor(today);
-    setSelectedDate(dateKey(today));
-  }, []);
-
-  const goPrev = useCallback(() => {
-    if (view === "month") {
-      const next = addMonths(year, month, -1);
-      setYear(next.year);
-      setMonth(next.month);
-    } else {
-      setWeekAnchor((d) => addWeeks(d, -1));
-    }
-  }, [month, view, year]);
-
-  const goNext = useCallback(() => {
-    if (view === "month") {
-      const next = addMonths(year, month, 1);
-      setYear(next.year);
-      setMonth(next.month);
-    } else {
-      setWeekAnchor((d) => addWeeks(d, 1));
-    }
-  }, [month, view, year]);
-
-  const handleDayClick = useCallback(
-    (date: string) => {
-      setSelectedDate(date);
-      const d = parseEventDate(date);
-      setYear(d.getFullYear());
-      setMonth(d.getMonth());
-      setWeekAnchor(d);
-      onDayClick?.(date);
-    },
-    [onDayClick],
-  );
-
-  const handleViewChange = useCallback(
-    (next: CalendarViewMode) => {
-      onViewChange(next);
-      if (selectedDate) {
-        const d = parseEventDate(selectedDate);
-        setWeekAnchor(d);
-        setYear(d.getFullYear());
-        setMonth(d.getMonth());
-      }
-    },
-    [onViewChange, selectedDate],
-  );
-
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (!selectedDate) return;
-      const target = e.target as HTMLElement;
-      if (
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.tagName === "SELECT" ||
-        target.isContentEditable
-      ) {
-        return;
-      }
-
-      const current = parseEventDate(selectedDate);
-      let next: Date | null = null;
-
-      switch (e.key) {
-        case "ArrowLeft":
-          next = addDays(current, -1);
-          break;
-        case "ArrowRight":
-          next = addDays(current, 1);
-          break;
-        case "ArrowUp":
-          next = addDays(current, -7);
-          break;
-        case "ArrowDown":
-          next = addDays(current, 7);
-          break;
-        case "Enter":
-          e.preventDefault();
-          if (!readOnly && onDayClick) {
-            onDayClick(selectedDate);
-          } else {
-            const dayEvents = eventsByDate.get(selectedDate) ?? [];
-            if (dayEvents[0]) onEventClick?.(dayEvents[0]);
-          }
-          return;
-        default:
-          return;
-      }
-
-      if (!next) return;
-      e.preventDefault();
-      const key = dateKey(next);
-      setSelectedDate(key);
-      setYear(next.getFullYear());
-      setMonth(next.getMonth());
-      setWeekAnchor(next);
-    }
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [eventsByDate, onDayClick, onEventClick, readOnly, selectedDate]);
+  const {
+    year,
+    month,
+    weekAnchor,
+    selectedDate,
+    eventsByDate,
+    periodLabel,
+    goToday,
+    goPrev,
+    goNext,
+    handleDayClick,
+    handleViewChange,
+  } = useEventsCalendarNavigation({
+    events,
+    view,
+    onViewChange,
+    readOnly,
+    initialDate,
+    onDayClick,
+    onEventClick,
+    onPeriodChange,
+    onPeriodMetaChange,
+  });
 
   if (loading && loadingBehavior === "full") {
     return (

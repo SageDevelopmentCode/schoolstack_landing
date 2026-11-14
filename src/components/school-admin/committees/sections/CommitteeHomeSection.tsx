@@ -10,6 +10,8 @@ import AdminTextLink from "@/components/school-admin/ui/story/AdminTextLink";
 import CommitteeActivityFeed from "@/components/school-admin/committees/CommitteeActivityFeed";
 import CommitteeActivityFeedSkeleton from "@/components/school-admin/committees/CommitteeActivityFeedSkeleton";
 import CommitteeWorkspaceSectionFrame from "@/components/school-admin/committees/CommitteeWorkspaceSectionFrame";
+import { useIsGardenCommittee } from "@/components/school-admin/committees/committee-surface";
+import GardenCommitteeHome from "@/components/school-admin/committees/sections/garden/GardenCommitteeHome";
 import type { CommitteeActivityItem } from "@/lib/committees/activity-feed";
 import type { Committee, CommitteeWorkspaceSection } from "@/lib/committees/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
@@ -45,6 +47,7 @@ export default function CommitteeHomeSection({
     initialActivityItems ?? [],
   );
   const [loadingActivity, setLoadingActivity] = useState(false);
+  const garden = useIsGardenCommittee();
 
   const quickLinks = QUICK_LINKS.map(({ section, label, icon, accent }) => ({
     section,
@@ -118,6 +121,25 @@ export default function CommitteeHomeSection({
       cancelled = true;
     };
   }, [activitySurface, committee.id, initialActivityItems, organizationId, schoolSlug]);
+
+  if (garden) {
+    return (
+      <CommitteeWorkspaceSectionFrame width="wide">
+        <GardenCommitteeHome
+          committee={committee}
+          theme={theme}
+          upcomingEvents={upcomingEvents}
+          urgentTasks={urgentTasks}
+          leaders={leaders}
+          quickLinks={quickLinks}
+          activityItems={activityItems}
+          loadingActivity={loadingActivity}
+          showActivity={Boolean(organizationId)}
+          onNavigate={onNavigate}
+        />
+      </CommitteeWorkspaceSectionFrame>
+    );
+  }
 
   return (
     <CommitteeWorkspaceSectionFrame width="wide">

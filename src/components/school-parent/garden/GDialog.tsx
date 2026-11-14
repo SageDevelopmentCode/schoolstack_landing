@@ -225,6 +225,7 @@ export function GConfirmDialog({
   onConfirm,
   onClose,
   "data-testid": testId,
+  confirmTestId,
 }: {
   theme: ParentThemeTokens;
   open: boolean;
@@ -239,6 +240,8 @@ export function GConfirmDialog({
   onConfirm: () => void;
   onClose: () => void;
   "data-testid"?: string;
+  /** data-testid on the confirm button. */
+  confirmTestId?: string;
 }) {
   return (
     <GDialog
@@ -267,6 +270,7 @@ export function GConfirmDialog({
             onClick={onConfirm}
             disabled={loading}
             aria-busy={loading || undefined}
+            data-testid={confirmTestId}
             className={`${gBtnPopSm} ${destructive ? "!bg-[#b42318]" : ""}`}
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
