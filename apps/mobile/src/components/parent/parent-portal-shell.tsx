@@ -27,6 +27,7 @@ import {
   type ParentMoreMenuItemId,
   type ParentTab,
 } from '@/lib/parent/parent-nav';
+import { parentHomeLabRoute, type ParentHomeLabVariantId } from '@/lib/parent/home-lab';
 import { prefetchSchoolPortalOptions } from '@/lib/auth/use-school-portal-options';
 import { usePortalPreview, useExitPortalPreviewNavigation } from '@/lib/portal-preview-gating';
 import { useMobileFeatureVisitTracking } from '@/hooks/use-mobile-feature-visit-tracking';
@@ -158,6 +159,12 @@ export function ParentPortalShell() {
     }
   };
 
+  const handleSelectHomeLab = (variant: ParentHomeLabVariantId) => {
+    setMoreSheetOpen(false);
+    if (!slug) return;
+    router.push(parentHomeLabRoute(slug, variant));
+  };
+
   const coopBanner =
     showCoopTabBarBanner && activePortalFeatures?.programLabel ? (
       <ParentPortalCoopTabBarBanner programLabel={activePortalFeatures.programLabel} />
@@ -197,6 +204,7 @@ export function ParentPortalShell() {
         onClose={() => setMoreSheetOpen(false)}
         onSelect={handleSelectMoreItem}
         onSelectAccount={handleSelectAccount}
+        onSelectHomeLab={handleSelectHomeLab}
       />
     </>
   );

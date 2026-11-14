@@ -25,7 +25,7 @@ import type { ApplyTodo, BookingTarget } from "../useApplyDashboardModel";
  * child's full name as text: they carry an initials badge instead.
  */
 
-const MAX_TILES = 4;
+const MAX_TILES = 6;
 
 function todoIconType(todo: ApplyTodo): LucideIcon {
   switch (todo.tone) {
@@ -243,7 +243,7 @@ export default function ApplyNextStepCard({
       <LeadStrip todo={lead} onBook={onBook} />
 
       {tiles.length > 0 ? (
-        <ul className="m-0 mt-5 grid list-none gap-4 p-0 sm:grid-cols-2">
+        <ul className="m-0 mt-5 grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
           {tiles.map((todo, i) => (
             <li key={todo.key}>
               <TodoTile todo={todo} index={i} onBook={onBook} />

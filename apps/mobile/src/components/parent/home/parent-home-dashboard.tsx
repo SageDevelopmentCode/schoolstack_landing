@@ -3,11 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { HomeBulletinSheet } from '@/components/bulletin/home-bulletin-sheet';
-import {
-  buildPortalAttentionItems,
-  type ParentHomeAttentionItem,
-} from '@/components/parent/home/parent-home-attention';
+import type { ParentHomeAttentionItem } from '@/components/parent/home/parent-home-attention';
 import { ParentHomeChildStoryCard } from '@/components/parent/home/parent-home-child-story-card';
 import { ParentHomeCoopFamiliesCard } from '@/components/parent/home/parent-home-coop-families-card';
 import { ParentHomeEventsCard } from '@/components/parent/home/parent-home-events-card';
@@ -25,14 +21,10 @@ import {
   resolveParentHomeSubTabs,
   type ParentHomeSubTabId,
 } from '@/components/parent/home/parent-home-sub-tab-bar';
-import { ParentActivityNotificationsSheet } from '@/components/parent/parent-activity-notifications-sheet';
-import { ParentOnboardingSheet } from '@/components/parent/parent-onboarding-sheet';
-import { PortalAccountSheet } from '@/components/portal-account-sheet';
+import { ParentHomeSheets } from '@/components/parent/home/parent-home-sheets';
+import { useParentHomeDashboardModel } from '@/components/parent/home/use-parent-home-dashboard-model';
 import { ParentPortalMudKitchenSupportMessagesCard } from '@/components/parent/home/parent-portal-mudkitchen-support-messages-card';
 import { PortalNeedHelpCard } from '@/components/portal/portal-need-help-card';
-import { PortalSupportRequestSheet } from '@/components/portal/portal-support-request-sheet';
-import { useParentHome } from '@/contexts/parent-home-context';
-import { useParentPortalContext } from '@/contexts/parent-portal-context';
 import { StoryCard } from '@/components/story/story-card';
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { useParentTheme } from '@/contexts/parent-theme-context';
@@ -41,20 +33,17 @@ import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 import { resolveWebUrl, schoolApplyUrl } from '@/lib/admissions/school-apply-url';
 import {
-  isParentFeatureEnabled,
   isParentHomeFridayBranchEnabled,
   resolveFridayBranchSettingsFromHome,
 } from '@/lib/parent/parent-features';
 import type { ParentSignupAttentionItem } from '@/lib/parent/parent-classroom-signups-types';
 import {
-  submitParentSupportRequest,
   type ParentDocGuide,
   type ParentHomeData,
   type ProgramCoopFamily,
   type ResolvedParentFeatureAnnouncement,
   type ResolvedParentOnboardingItem,
 } from '@/lib/parent/parent-portal-api';
-import { buildParentActivityNotificationContext } from '@/lib/parent/fetch-activity-notifications';
 import { programPortalChildrenEmptyMessage } from '@/lib/parent/parent-children-utils';
 import { openExternalUrlSafely } from '@/lib/open-external-url';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
@@ -91,7 +80,8 @@ export type ParentHomeDashboardProps = {
   parentNavBasePath?: string;
 };
 
-export function ParentHomeDashboard({
+export function ParentHomeDashboard(props: ParentHomeDashboardProps) {
+  const {
   slug,
   programSlug,
   programPortalLabel,
@@ -105,11 +95,8 @@ export function ParentHomeDashboard({
   isRefreshing,
   notificationUnreadCount,
   signupAttentionItems,
-  sourcePagePath,
   onRefresh,
-  onMarkedNotificationsRead,
   onAttentionItem,
-  onOnboardingItem,
   onViewCalendar,
   onOpenMessages,
   onOpenChildDetails,
@@ -120,41 +107,27 @@ export function ParentHomeDashboard({
   onFeatureAnnouncement,
   onDocumentationStep,
   onCoopMessageThread,
-  parentNavBasePath,
-}: ParentHomeDashboardProps) {
+  } = props;
   const theme = useParentTheme();
-  const activityNotificationContext = useMemo(
-    () =>
-      buildParentActivityNotificationContext({
-        slug,
-        programSlug,
-        programId,
-        coopModeEnabled,
-        parentNavBasePath,
-      }),
-    [coopModeEnabled, parentNavBasePath, programId, programSlug, slug],
-  );
+  const model = useParentHomeDashboardModel(props);
+  const {
+    setOnboardingOpen,
+    setSupportSheetOpen,
+    setAccountSheetOpen,
+    setBulletinOpen,
+    setNotificationsOpen,
+    heroProfilePhotoUrl,
+    nextEvent,
+    enrollmentIncompleteBannerItems,
+    bulletinEnabled,
+    bulletinPosts,
+    messagesEnabled,
+    showCoopSchoolUpdates,
+  } = model;
   const [activeSubTab, setActiveSubTab] = useState<ParentHomeSubTabId>(PARENT_HOME_SUB_TAB_OVERVIEW);
   const [visitedSubTabs, setVisitedSubTabs] = useState<Set<ParentHomeSubTabId>>(
     () => new Set([PARENT_HOME_SUB_TAB_OVERVIEW]),
   );
-  const [onboardingOpen, setOnboardingOpen] = useState(false);
-  const [supportSheetOpen, setSupportSheetOpen] = useState(false);
-  const [accountSheetOpen, setAccountSheetOpen] = useState(false);
-  const [heroProfilePhotoUrl, setHeroProfilePhotoUrl] = useState<string | null>(
-    data.userProfile.profilePhotoUrl,
-  );
-  const { refresh: refreshParentHome } = useParentHome();
-  const {
-    contexts,
-    activeContext,
-    showSwitcher,
-    switchToContext,
-    isLoading: portalContextsLoading,
-    organizationId,
-  } = useParentPortalContext();
-  const [bulletinOpen, setBulletinOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const subTabs = useMemo(
     () => resolveParentHomeSubTabs(coopModeEnabled),
@@ -165,10 +138,6 @@ export function ParentHomeDashboard({
     setActiveSubTab(PARENT_HOME_SUB_TAB_OVERVIEW);
     setVisitedSubTabs(new Set([PARENT_HOME_SUB_TAB_OVERVIEW]));
   }, [coopModeEnabled, programSlug]);
-
-  useEffect(() => {
-    setHeroProfilePhotoUrl(data.userProfile.profilePhotoUrl);
-  }, [data.userProfile.profilePhotoUrl]);
 
   const handleSubTabChange = useCallback((tabId: ParentHomeSubTabId) => {
     setVisitedSubTabs((previous) => {
@@ -186,42 +155,6 @@ export function ParentHomeDashboard({
       operation: 'parent_home_open_web_url',
       metadata: { href },
     });
-  };
-
-  const nextEvent = data.upcomingEvents[0] ?? null;
-  const enrollmentIncompleteBannerItems = data.enrollmentIncompleteBannerItems ?? [];
-  const bulletinEnabled = data.bulletinEnabled ?? false;
-  const bulletinPosts = data.bulletinPosts ?? [];
-  const messagesEnabled = isParentFeatureEnabled(data.features, 'messages');
-  const showCoopSchoolUpdates =
-    coopModeEnabled && !bulletinEnabled && messagesEnabled;
-  const firstChildApplicationId =
-    data.familyChildren.find((child) => Boolean(child.studentId))?.applicationId ?? null;
-
-  const portalAttentionItems = useMemo(
-    () =>
-      buildPortalAttentionItems({
-        slug,
-        programSlug,
-        enrollmentAmendmentBannerItems: data.enrollmentAmendmentBannerItems,
-        enrollmentIncompleteBannerItems,
-        formAttentionItems: data.formAttentionItems ?? [],
-        signupAttentionItems,
-      }),
-    [
-      slug,
-      programSlug,
-      data.enrollmentAmendmentBannerItems,
-      enrollmentIncompleteBannerItems,
-      data.formAttentionItems,
-      signupAttentionItems,
-    ],
-  );
-
-  const handleOnboardingItem = async (item: ResolvedParentOnboardingItem) => {
-    setOnboardingOpen(false);
-    if (item.completed) return;
-    onOnboardingItem(item);
   };
 
   const renderFeatureAnnouncements = () =>
@@ -415,79 +348,7 @@ export function ParentHomeDashboard({
         </View>
       </View>
 
-      <HomeBulletinSheet
-        visible={bulletinOpen}
-        posts={bulletinPosts}
-        onClose={() => setBulletinOpen(false)}
-        onOpenPost={(postId) => {
-          setBulletinOpen(false);
-          onOpenBulletinPost(postId);
-        }}
-      />
-
-      <ParentActivityNotificationsSheet
-        visible={notificationsOpen}
-        onClose={() => setNotificationsOpen(false)}
-        organizationId={data.organizationId}
-        slug={slug}
-        programSlug={programSlug}
-        notificationContext={activityNotificationContext}
-        firstChildApplicationId={firstChildApplicationId}
-        onMarkedRead={onMarkedNotificationsRead}
-      />
-
-      <PortalSupportRequestSheet
-        visible={supportSheetOpen}
-        onClose={() => setSupportSheetOpen(false)}
-        organizationId={data.organizationId}
-        userEmail={data.userProfile.email}
-        sourcePagePath={sourcePagePath}
-        errorOperation="parent_portal_support_request_submit"
-        onSubmit={submitParentSupportRequest}
-      />
-
-      <PortalAccountSheet
-        visible={accountSheetOpen}
-        onClose={() => setAccountSheetOpen(false)}
-        displayName={data.userProfile.displayName}
-        photoUrl={heroProfilePhotoUrl}
-        organizationId={organizationId}
-        slug={slug}
-        onProfilePhotoUpdated={(url) => {
-          setHeroProfilePhotoUrl(url);
-          void refreshParentHome();
-        }}
-        programSwitcher={
-          portalContextsLoading || showSwitcher
-            ? {
-                contexts: contexts.map((context) => ({
-                  id: context.id,
-                  label: context.label,
-                })),
-                activeContextId: activeContext?.id ?? null,
-                loading: portalContextsLoading,
-                onSelect: (context) => {
-                  const match = contexts.find((item) => item.id === context.id);
-                  if (match) {
-                    switchToContext(match);
-                  }
-                },
-              }
-            : undefined
-        }
-      />
-
-      <ParentOnboardingSheet
-        visible={onboardingOpen}
-        items={data.onboardingItems}
-        attentionItems={portalAttentionItems}
-        onClose={() => setOnboardingOpen(false)}
-        onSelectItem={(item) => void handleOnboardingItem(item)}
-        onSelectAttentionItem={(item) => {
-          setOnboardingOpen(false);
-          onAttentionItem(item);
-        }}
-      />
+      <ParentHomeSheets props={props} model={model} />
     </>
   );
 }

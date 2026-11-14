@@ -19,6 +19,8 @@ export type ParentToastOptions = {
   /** Stable id: a repeat with the same id replaces the visible toast. */
   id?: string;
   duration?: number;
+  /** Per-toast placement, e.g. "top-center" so a toast never covers a dialog's action footer. */
+  position?: "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right";
 };
 
 export const parentToast = {

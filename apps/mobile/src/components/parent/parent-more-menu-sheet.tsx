@@ -48,12 +48,19 @@ import { ParentPortalMoreMenuItemsSkeleton } from '@/components/parent/parent-po
 import { StorySectionKicker } from '@/components/story/story-section-kicker';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
+import {
+  isParentHomeLabEnabled,
+  PARENT_HOME_LAB_VARIANTS,
+  type ParentHomeLabVariantId,
+} from '@/lib/parent/home-lab';
 
 type ParentMoreMenuSheetProps = {
   visible: boolean;
   onClose: () => void;
   onSelect: (itemId: ParentMoreMenuItemId) => void;
   onSelectAccount: () => void;
+  /** TEMPORARY Home redesign lab (dev / EXPO_PUBLIC_PARENT_HOME_LAB builds only). */
+  onSelectHomeLab?: (variant: ParentHomeLabVariantId) => void;
 };
 
 function getDisplayName(user: User): string {
@@ -73,6 +80,7 @@ export function ParentMoreMenuSheet({
   onClose,
   onSelect,
   onSelectAccount,
+  onSelectHomeLab,
 }: ParentMoreMenuSheetProps) {
   const theme = useParentTheme();
   const { user, portalType, previewSession } = useAuth();
@@ -254,6 +262,7 @@ export function ParentMoreMenuSheet({
   const showProgramPanel = useSectionTabs && activeTab === 'program';
 
   const currentPortalId = portalTypeToAccountPortalId(portalType);
+  const showHomeLab = Boolean(onSelectHomeLab) && isParentHomeLabEnabled() && !activeProgramSlug;
 
   return (
     <StoryMoreMenuSheetShell visible={visible} onClose={onClose}>
@@ -334,6 +343,33 @@ export function ParentMoreMenuSheet({
             </StoryMoreMenuItemsCard>
           )}
 
+          {showHomeLab && onSelectHomeLab ? (
+            <View style={styles.homeLab}>
+              <View style={styles.homeLabKicker}>
+                <StorySectionKicker>Home lab · temporary</StorySectionKicker>
+              </View>
+              <StoryMoreMenuItemsCard>
+                {PARENT_HOME_LAB_VARIANTS.map((variant, index) => (
+                  <StoryMoreMenuItemRow
+                    key={variant.id}
+                    isFirst={index === 0}
+                    label={variant.label}
+                    subtitle={variant.subtitle}
+                    accessibilityLabel={`Try ${variant.label}`}
+                    onPress={() => onSelectHomeLab(variant.id)}
+                    icon={
+                      <StoryMoreMenuIcon
+                        name={variant.icon}
+                        iconBg={variant.iconBg}
+                        iconColor={variant.iconColor}
+                      />
+                    }
+                  />
+                ))}
+              </StoryMoreMenuItemsCard>
+            </View>
+          ) : null}
+
           {user ? (
             <StoryCard compact style={styles.accountCard}>
               <Pressable
@@ -366,6 +402,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: StoryCardPadding,
     paddingTop: Spacing.two,
     paddingBottom: Spacing.one,
+  },
+  homeLab: {
+    gap: Spacing.one,
+  },
+  homeLabKicker: {
+    paddingHorizontal: Spacing.one,
+    paddingTop: Spacing.two,
   },
   accountCard: {
     padding: StoryCardPadding,

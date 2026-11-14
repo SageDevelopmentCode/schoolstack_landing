@@ -1,37 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
-import {
-  useAttendanceApiBasePath,
-  useAttendancePreviewMode,
-} from "@/components/school-admin/attendance/AttendanceApiContext";
 import AttendancePickupSheet from "@/components/school-admin/attendance/AttendancePickupSheet";
 import AttendanceStudentDetailSheet from "@/components/school-admin/attendance/AttendanceStudentDetailSheet";
 import ParentButtonLink from "@/components/school-parent/ui/ParentButtonLink";
 import ParentTextLink from "@/components/school-parent/ui/ParentTextLink";
 import TeacherDashboardAttendanceStudentCard from "@/components/school-teacher/home/TeacherDashboardAttendanceStudentCard";
-import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
-import { formatDashboardAttendanceSubcopy } from "@/lib/school-admin/attendance/dashboard-attendance";
-import {
-  buildAttendanceHref,
-  formatAttendanceDateLabel,
-  isToday,
-  parseDateKey,
-  shiftDate,
-  toDateKey,
-} from "@/lib/school-admin/attendance/attendance-date-utils";
-import { formatEnrolledStudentName } from "@/lib/school-admin/enrolled-students";
+import { useDashboardAttendanceModel } from "@/components/school-admin/attendance/useDashboardAttendanceModel";
+import { formatAttendanceDateLabel } from "@/lib/school-admin/attendance/attendance-date-utils";
 import type {
-  AttendanceAction,
-  AttendancePickupSelection,
-  AttendanceRosterResponse,
   AttendanceRosterStudent,
   AttendanceRosterSummary,
 } from "@/lib/school-admin/attendance/attendance-types";
-import { reportClientOperationalError } from "@/lib/operational-errors-client";
-import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import type { PortalOperationalSurface } from "@/lib/portal-operational-errors";
 
 export type DashboardAttendanceSectionContentProps = {
@@ -46,32 +27,6 @@ export type DashboardAttendanceSectionContentProps = {
   onSummaryChange?: (summary: AttendanceRosterSummary) => void;
 };
 
-function reportDashboardAttendanceError(
-  surface: PortalOperationalSurface,
-  organizationId: string,
-  operation: string,
-  error: string,
-) {
-  if (surface === "school_admin") {
-    void reportClientOperationalError({
-      organizationId,
-      operation,
-      error,
-    });
-    return;
-  }
-
-  void reportPortalOperationalError(
-    surface,
-    {
-      organizationId,
-      operation,
-      error,
-    },
-    error,
-  );
-}
-
 export function DashboardAttendanceSectionContent({
   organizationId,
   date,
@@ -83,180 +38,38 @@ export function DashboardAttendanceSectionContent({
   operationalErrorSurface = "teacher_portal",
   onSummaryChange,
 }: DashboardAttendanceSectionContentProps) {
-  const apiBasePath = useAttendanceApiBasePath();
-  const contextPreviewMode = useAttendancePreviewMode();
-  const readOnly = previewMode || contextPreviewMode;
   const { theme, C } = useSchoolAdminStoryTheme();
+  const {
+    readOnly,
+    activeDate,
+    activeDateKey,
+    viewingToday,
+    fullAttendanceHref,
+    students,
+    subcopy,
+    loading,
+    loadError,
+    retryLoad,
+    savingStudentId,
+    saveAttendanceAction,
+    goToPreviousDay,
+    goToNextDay,
+    jumpToToday,
+    detailStudent,
+    setDetailStudent,
+    pickupStudent,
+    setPickupStudent,
+  } = useDashboardAttendanceModel({
+    organizationId,
+    date,
+    students: initialStudents,
+    summary: initialSummary,
+    attendanceHref,
+    previewMode,
+    operationalErrorSurface,
+    onSummaryChange,
+  });
 
-  const [activeDate, setActiveDate] = useState(() => parseDateKey(date) ?? new Date());
-  const [students, setStudents] = useState(initialStudents);
-  const [summary, setSummary] = useState(initialSummary);
-  const [loading, setLoading] = useState(false);
-  const [savingStudentId, setSavingStudentId] = useState<string | null>(null);
-  const [detailStudent, setDetailStudent] = useState<AttendanceRosterStudent | null>(null);
-  const [pickupStudent, setPickupStudent] = useState<AttendanceRosterStudent | null>(null);
-
-  const activeDateKey = useMemo(() => toDateKey(activeDate), [activeDate]);
-  const viewingToday = isToday(activeDate);
-  const fullAttendanceHref = buildAttendanceHref(attendanceHref, activeDateKey);
-
-  useEffect(() => {
-    const nextDate = parseDateKey(date);
-    if (!nextDate) return;
-    queueMicrotask(() => {
-      setActiveDate(nextDate);
-      setStudents(initialStudents);
-      setSummary(initialSummary);
-    });
-  }, [date, initialStudents, initialSummary]);
-
-  useEffect(() => {
-    if (!detailStudent?.id) return;
-    const refreshed = students.find((student) => student.id === detailStudent.id);
-    if (!refreshed) return;
-
-    queueMicrotask(() => {
-      setDetailStudent((current) => {
-        if (!current || current.id !== refreshed.id) return current;
-        if (
-          current.attendanceStatus === refreshed.attendanceStatus &&
-          current.pickedUpByName === refreshed.pickedUpByName &&
-          current.presentAt === refreshed.presentAt &&
-          current.absentAt === refreshed.absentAt &&
-          current.pickedUpAt === refreshed.pickedUpAt
-        ) {
-          return current;
-        }
-        return refreshed;
-      });
-    });
-  }, [detailStudent?.id, students]);
-
-  const loadRoster = useCallback(
-    async (dateKey: string) => {
-      setLoading(true);
-      try {
-        const response = await fetch(
-          `${apiBasePath}?organizationId=${encodeURIComponent(organizationId)}&date=${encodeURIComponent(dateKey)}`,
-        );
-        const payload = (await response.json().catch(() => null)) as
-          | AttendanceRosterResponse
-          | { error?: string }
-          | null;
-
-        if (!response.ok) {
-          throw new Error(
-            payload && "error" in payload && payload.error
-              ? payload.error
-              : "Failed to load attendance roster.",
-          );
-        }
-
-        const roster = payload as AttendanceRosterResponse;
-        setStudents(roster.students);
-        setSummary(roster.summary);
-
-        if (isToday(parseDateKey(dateKey) ?? new Date())) {
-          onSummaryChange?.(roster.summary);
-        }
-
-        return roster;
-      } catch (err) {
-        const message = formatActionError(err, "Failed to load attendance roster.");
-        reportDashboardAttendanceError(
-          operationalErrorSurface,
-          organizationId,
-          "attendance.load_roster",
-          message,
-        );
-        adminToast.error(message);
-        return null;
-      } finally {
-        setLoading(false);
-      }
-    },
-    [apiBasePath, onSummaryChange, operationalErrorSurface, organizationId],
-  );
-
-  useEffect(() => {
-    if (activeDateKey === date) return;
-    queueMicrotask(() => {
-      void loadRoster(activeDateKey);
-    });
-  }, [activeDateKey, date, loadRoster]);
-
-  const refreshRoster = useCallback(async () => {
-    return loadRoster(activeDateKey);
-  }, [activeDateKey, loadRoster]);
-
-  const saveAttendanceAction = useCallback(
-    async (
-      student: AttendanceRosterStudent,
-      action: AttendanceAction,
-      pickupSelection?: AttendancePickupSelection,
-    ) => {
-      if (readOnly) return;
-
-      setSavingStudentId(student.id);
-      try {
-        const response = await fetch(`${apiBasePath}/records`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            organizationId,
-            studentId: student.id,
-            date: activeDateKey,
-            action,
-            pickupSource: pickupSelection?.source,
-            pickupContactId: pickupSelection?.contactId,
-          }),
-        });
-
-        const payload = (await response.json().catch(() => null)) as {
-          error?: string;
-        } | null;
-
-        if (!response.ok) {
-          throw new Error(payload?.error ?? "Failed to save attendance.");
-        }
-
-        await refreshRoster();
-
-        if (action === "pickup") {
-          setPickupStudent(null);
-        }
-
-        adminToast.success(
-          action === "present"
-            ? `${formatEnrolledStudentName(student)} marked present.`
-            : action === "absent"
-              ? `${formatEnrolledStudentName(student)} marked absent.`
-              : `Pickup recorded for ${formatEnrolledStudentName(student)}.`,
-        );
-      } catch (err) {
-        const message = formatActionError(err, "Failed to save attendance.");
-        reportDashboardAttendanceError(
-          operationalErrorSurface,
-          organizationId,
-          "attendance.save_record",
-          message,
-        );
-        adminToast.error(message);
-      } finally {
-        setSavingStudentId(null);
-      }
-    },
-    [
-      activeDateKey,
-      apiBasePath,
-      operationalErrorSurface,
-      organizationId,
-      readOnly,
-      refreshRoster,
-    ],
-  );
-
-  const subcopy = formatDashboardAttendanceSubcopy(summary);
   const hasStudents = students.length > 0;
   const sectionTitle = viewingToday ? "Today's attendance" : "Attendance";
 
@@ -289,7 +102,7 @@ export function DashboardAttendanceSectionContent({
           <div className="flex items-center justify-between gap-2">
             <button
               type="button"
-              onClick={() => setActiveDate((current) => shiftDate(current, -1))}
+              onClick={goToPreviousDay}
               className="rounded-lg p-1.5 transition-colors hover:bg-black/[0.04]"
               aria-label="Previous day"
               disabled={loading}
@@ -306,7 +119,7 @@ export function DashboardAttendanceSectionContent({
             </div>
             <button
               type="button"
-              onClick={() => setActiveDate((current) => shiftDate(current, 1))}
+              onClick={goToNextDay}
               className="rounded-lg p-1.5 transition-colors hover:bg-black/[0.04]"
               aria-label="Next day"
               disabled={loading}
@@ -319,7 +132,7 @@ export function DashboardAttendanceSectionContent({
             <div className="mt-1 text-center">
               <button
                 type="button"
-                onClick={() => setActiveDate(new Date())}
+                onClick={jumpToToday}
                 className="text-[11px] font-semibold underline-offset-2 hover:underline"
                 style={{ color: C.accent }}
               >
@@ -336,6 +149,18 @@ export function DashboardAttendanceSectionContent({
           >
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
             Loading attendance…
+          </div>
+        ) : loadError ? (
+          <div className="flex flex-col items-center gap-2 py-8 text-center text-sm" style={{ color: theme.muted }}>
+            <p className="m-0">{loadError}</p>
+            <button
+              type="button"
+              onClick={retryLoad}
+              className="font-semibold underline-offset-2 hover:underline"
+              style={{ color: C.accent }}
+            >
+              Try again
+            </button>
           </div>
         ) : hasStudents ? (
           <>

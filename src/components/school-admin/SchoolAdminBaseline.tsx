@@ -97,7 +97,7 @@ function SchoolAdminBaselineInner({
   const isMessagesPage = isAdminMessagesPath(pathname);
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
-  const { C } = useSchoolAdminStoryTheme();
+  const { C, theme: storyTheme } = useSchoolAdminStoryTheme();
 
   const searchParams = useSearchParams();
   const upgradeFromUrl =
@@ -269,7 +269,7 @@ function SchoolAdminBaselineInner({
             />
           ) : null}
 
-          <AdminToaster C={C} />
+          <AdminToaster C={C} theme={storyTheme} />
 
           <main
             className="min-w-0 flex-1 overflow-hidden"

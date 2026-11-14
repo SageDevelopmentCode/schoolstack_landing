@@ -13,11 +13,7 @@ import ApplyApplicationsCard from "@/components/admissions/apply-dashboard/garde
 import ApplyNextStepCard, {
   ApplyEnrolledCard,
 } from "@/components/admissions/apply-dashboard/garden/ApplyNextStepCard";
-import {
-  ApplyPortalStarterCard,
-  ApplySummaryCard,
-  ApplyVisitsCard,
-} from "@/components/admissions/apply-dashboard/garden/ApplyRailCards";
+import ApplyVisitsCard from "@/components/admissions/apply-dashboard/garden/ApplyVisitsCard";
 import {
   enrolledCelebrationStorageKey,
   useApplyDashboardModel,
@@ -49,9 +45,9 @@ import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
 /*
  * Apply dashboard ("Your applications") in the parent Garden design.
  * Skill: `.claude/skills/parent-portal-garden-design`.
- * Order: header → enrolled welcome → [next step, applications, required
- * actions | visits, at a glance, parent portal]. The booking dialog is
- * portalled (GDialog) and shared by the next-step strip and the steps.
+ * One full-width column: header → enrolled welcome → start here → campus
+ * visits → applications → required actions. The booking dialog is portalled
+ * (GDialog) and shared by the next-step strip and the steps.
  */
 
 type ApplyDashboardProps = {
@@ -179,7 +175,6 @@ export default function ApplyDashboard({
   const hasRows = model.rows.length > 0;
   const showNextStep = hasRows && !(model.showPortalStarter && model.todos.length === 0);
   const showVisits = upcomingCampusTours.length > 0 || showScheduleTourCta;
-  const showRail = showVisits || hasRows || model.showPortalStarter;
 
   const header = (
     <ParentGardenPageHeader
@@ -233,66 +228,46 @@ export default function ApplyDashboard({
             />
           ) : null}
 
-          <div
-            className={`grid items-start gap-5 ${showRail ? "lg:grid-cols-[1.55fr_1fr]" : ""}`}
-          >
-            <div className="flex min-w-0 flex-col gap-5">
-              {showNextStep ? (
-                <ApplyNextStepCard
-                  index={2}
-                  todos={model.todos}
-                  requiredDone={requiredDone}
-                  requiredTotal={requiredTasks.length}
-                  onBook={setBookingTarget}
-                  onSeeAllSteps={hasRequiredSection ? scrollToRequiredActions : undefined}
-                />
-              ) : null}
+          {showNextStep ? (
+            <ApplyNextStepCard
+              index={2}
+              todos={model.todos}
+              requiredDone={requiredDone}
+              requiredTotal={requiredTasks.length}
+              onBook={setBookingTarget}
+              onSeeAllSteps={hasRequiredSection ? scrollToRequiredActions : undefined}
+            />
+          ) : null}
 
-              <ApplyApplicationsCard
-                index={3}
-                rows={model.rows}
-                schoolName={schoolName}
-                hasUpcomingVisits={upcomingCampusTours.length > 0}
-                startApplicationHref={model.startApplicationHref}
-                previewMode={previewMode}
-                focusApplicationId={focusApplicationId}
-              />
+          {showVisits ? (
+            <ApplyVisitsCard
+              index={3}
+              visits={upcomingCampusTours}
+              showScheduleTourCta={showScheduleTourCta}
+              scheduleTourTitle={model.scheduleTourTitle}
+              scheduleTourSubtitle={model.scheduleTourSubtitle}
+              scheduleTourHref={model.scheduleTourHref}
+              previewMode={previewMode}
+            />
+          ) : null}
 
-              {hasRequiredSection ? (
-                <ApplyRequiredActionsSection
-                  index={4}
-                  applications={applicationsWithTasks}
-                  onSchedule={handleSchedule}
-                />
-              ) : null}
-            </div>
+          <ApplyApplicationsCard
+            index={4}
+            rows={model.rows}
+            schoolName={schoolName}
+            hasUpcomingVisits={upcomingCampusTours.length > 0}
+            startApplicationHref={model.startApplicationHref}
+            previewMode={previewMode}
+            focusApplicationId={focusApplicationId}
+          />
 
-            {showRail ? (
-              <div className="flex min-w-0 flex-col gap-5">
-                {showVisits ? (
-                  <ApplyVisitsCard
-                    index={3}
-                    visits={upcomingCampusTours}
-                    showScheduleTourCta={showScheduleTourCta}
-                    scheduleTourTitle={model.scheduleTourTitle}
-                    scheduleTourSubtitle={model.scheduleTourSubtitle}
-                    scheduleTourHref={model.scheduleTourHref}
-                    previewMode={previewMode}
-                  />
-                ) : null}
-                <ApplySummaryCard
-                  index={4}
-                  applicationCount={model.rows.length}
-                  enrolledCount={model.enrolledCount}
-                  pendingRequiredCount={model.pendingRequiredCount}
-                  onPendingClick={hasRequiredSection ? scrollToRequiredActions : undefined}
-                />
-                {model.showPortalStarter && parentPortalHref ? (
-                  <ApplyPortalStarterCard index={5} parentPortalHref={parentPortalHref} />
-                ) : null}
-              </div>
-            ) : null}
-          </div>
+          {hasRequiredSection ? (
+            <ApplyRequiredActionsSection
+              index={5}
+              applications={applicationsWithTasks}
+              onSchedule={handleSchedule}
+            />
+          ) : null}
         </div>
       </ParentGardenFrame>
 

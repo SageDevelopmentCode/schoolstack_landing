@@ -28,7 +28,8 @@ It must feel like a calm app a parent uses every day, not a marketing page:
 Related skills:
 - `.agents/skills/mudkitchen-garden-design/`: the Garden tokens, type and materials this builds on. Read §5–§7 of its `SKILL.md` for the palette and shapes.
 - `.agents/skills/portal-responsive-verify/`, `.agents/skills/portal-qa/`: verification.
-- `.agents/skills/admin-workspace-design/`: the admin and teacher portals still use School Day Story. Don't apply this skill there unless asked.
+- `.agents/skills/admin-portal-garden-design/`: the school admin portal's Garden rules (the admin Dashboard is the reference). Use it, not this skill, for admin pages.
+- `.agents/skills/admin-workspace-design/`: School Day Story. Admin pages that haven't moved to Garden, and the teacher portal, still use it.
 
 ---
 

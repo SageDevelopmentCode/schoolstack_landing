@@ -35,8 +35,22 @@ export function formatActionError(
   return sessionExpiredUserMessage(err) ?? (err instanceof Error ? err.message : fallback);
 }
 
+export type AdminToastOptions = {
+  /** What it means / what to do next. The title says what happened. */
+  description?: string;
+  action?: { label: string; onClick: () => void };
+  /** Stable id: a repeat with the same id replaces the visible toast. */
+  id?: string;
+  duration?: number;
+};
+
 export const adminToast = {
-  success: (message: string) => toast.success(message),
-  error: (message: string) => toast.error(message),
-  info: (message: string) => toast(message),
+  success: (message: string, options?: AdminToastOptions) =>
+    toast.success(message, options),
+  error: (message: string, options?: AdminToastOptions) =>
+    toast.error(message, options ? { duration: 7000, ...options } : undefined),
+  info: (message: string, options?: AdminToastOptions) => toast(message, options),
+  /** Show a spinner toast; update it later with the same id. */
+  loading: (message: string, options?: AdminToastOptions) => toast.loading(message, options),
+  dismiss: (id?: string) => toast.dismiss(id),
 };

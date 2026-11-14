@@ -8,9 +8,9 @@ import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme
 import type { TeacherParentForm } from "@/lib/school-teacher/forms-documents/types";
 import ParentButton from "@/components/school-parent/ui/ParentButton";
 
-const PREVIEW_UNAVAILABLE = "Document preview unavailable in preview mode.";
+export const PREVIEW_UNAVAILABLE = "Document preview unavailable in preview mode.";
 
-const STAFF_PREVIEW_PENDING = "Loading document preview…";
+export const STAFF_PREVIEW_PENDING = "Loading document preview…";
 
 type ParentFormDocumentPreviewProps = {
   theme: ParentThemeTokens;
@@ -26,19 +26,29 @@ type ParentFormDocumentPreviewProps = {
 
 type PreviewState =
   | { status: "loading" }
-  | { status: "ready"; url: string }
+  | { status: "ready"; url: string; rawUrl: string }
   | { status: "error"; message: string };
 
-export default function ParentFormDocumentPreview({
-  theme,
+/**
+ * Resolves the embeddable preview URL for an uploaded form (PDF): a minted
+ * preview URL, a local staff-preview URL, or a signed download URL. Shared by
+ * the story preview and the Garden signing dialog.
+ */
+export function useParentFormPreviewUrl({
   form,
   organizationId,
   readOnly = false,
   remoteDownloadEnabled = true,
   previewUrl = null,
   localPreviewUrl = null,
-  previewHeightClass = TEACHER_FORM_DOCUMENT_PREVIEW_HEIGHT_CLASS,
-}: ParentFormDocumentPreviewProps) {
+}: {
+  form: TeacherParentForm;
+  organizationId: string;
+  readOnly?: boolean;
+  remoteDownloadEnabled?: boolean;
+  previewUrl?: string | null;
+  localPreviewUrl?: string | null;
+}) {
   const [previewState, setPreviewState] = useState<PreviewState>({ status: "loading" });
 
   const loadPreview = useCallback(async () => {
@@ -51,6 +61,7 @@ export default function ParentFormDocumentPreview({
       setPreviewState({
         status: "ready",
         url: buildEmbeddedPdfViewerUrl(resolvedUrl),
+        rawUrl: resolvedUrl,
       });
       return;
     }
@@ -74,6 +85,7 @@ export default function ParentFormDocumentPreview({
       setPreviewState({
         status: "ready",
         url: buildEmbeddedPdfViewerUrl(signedUrl),
+        rawUrl: signedUrl,
       });
     } catch (error) {
       setPreviewState({
@@ -96,6 +108,28 @@ export default function ParentFormDocumentPreview({
       void loadPreview();
     });
   }, [loadPreview]);
+
+  return { previewState, loadPreview };
+}
+
+export default function ParentFormDocumentPreview({
+  theme,
+  form,
+  organizationId,
+  readOnly = false,
+  remoteDownloadEnabled = true,
+  previewUrl = null,
+  localPreviewUrl = null,
+  previewHeightClass = TEACHER_FORM_DOCUMENT_PREVIEW_HEIGHT_CLASS,
+}: ParentFormDocumentPreviewProps) {
+  const { previewState, loadPreview } = useParentFormPreviewUrl({
+    form,
+    organizationId,
+    readOnly,
+    remoteDownloadEnabled,
+    previewUrl,
+    localPreviewUrl,
+  });
 
   if (form.uploadFormat === "docx") {
     return (

@@ -9,6 +9,8 @@ description: >-
 
 # Admin Workspace — School Day Story Design
 
+> **Admin is moving to Garden.** The admin Dashboard now uses Garden (`src/components/school-admin/dashboard/garden/`). When you migrate or redesign an admin tab, use `.agents/skills/admin-portal-garden-design/`. This skill covers admin pages not yet migrated, and the story primitives that the marketing demos and the teacher portal still use.
+
 > MudKitchen-owned surfaces inside the admin (upgrade prompts, onboarding, empty states, celebrations) and the shared focus-ring standard: see `.agents/skills/mudkitchen-garden-design/in-app.md`.
 
 ## When to use

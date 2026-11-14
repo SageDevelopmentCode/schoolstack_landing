@@ -1,91 +1,75 @@
 "use client";
 
 import { ChevronRight } from "lucide-react";
-import ParentChip from "@/components/school-parent/ui/ParentChip";
-import type { ParentChipTone } from "@/components/school-parent/ui/ParentChip";
 import {
-  formatAttendanceHistoryDateLabel,
-  formatAttendanceHistoryTime,
-} from "@/lib/school-admin/attendance/attendance-history";
+  attendanceMetaLine,
+  attendanceRelativeDayLabel,
+  attendanceStatusLabel,
+  attendanceStatusTone,
+} from "@/components/school-parent/attendance/attendance-format";
+import { AttendanceStatusMark } from "@/components/school-parent/attendance/garden/attendance-garden-tones";
+import { GChip, G_FOCUS } from "@/components/school-parent/garden/ui";
+import { formatAttendanceHistoryDateLabel } from "@/lib/school-admin/attendance/attendance-history";
 import type { AttendanceHistoryEntry } from "@/lib/school-admin/attendance/attendance-types";
-import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type ParentAttendanceHistoryListItemProps = {
   entry: AttendanceHistoryEntry;
-  theme: ParentThemeTokens;
+  selected?: boolean;
   onSelect: (entry: AttendanceHistoryEntry) => void;
 };
 
-function statusChipTone(status: AttendanceHistoryEntry["status"]): ParentChipTone {
-  if (status === "present") return "success";
-  if (status === "absent") return "warning";
-  return "info";
-}
-
-function statusLabel(status: AttendanceHistoryEntry["status"]): string {
-  if (status === "present") return "Present";
-  if (status === "absent") return "Absent";
-  return "Picked up";
-}
-
-function compactMetaLine(entry: AttendanceHistoryEntry): string {
-  const time =
-    entry.status === "present"
-      ? formatAttendanceHistoryTime(entry.presentAt)
-      : entry.status === "absent"
-        ? formatAttendanceHistoryTime(entry.absentAt)
-        : formatAttendanceHistoryTime(entry.pickedUpAt);
-
-  const label = statusLabel(entry.status);
-  return time ? `${time} · ${label}` : label;
-}
-
+/** One notebook row: status mark, date + time · status, status chip, chevron. */
 export default function ParentAttendanceHistoryListItem({
   entry,
-  theme,
+  selected = false,
   onSelect,
 }: ParentAttendanceHistoryListItemProps) {
   const dateLabel = formatAttendanceHistoryDateLabel(entry.date);
-  const metaLine = compactMetaLine(entry);
+  const relative = attendanceRelativeDayLabel(entry.date);
+  const isRecent = relative === "Today" || relative === "Yesterday";
 
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(entry)}
-      className="flex w-full items-center justify-between gap-2 border-t py-1.5 text-left transition-colors first:border-t-0 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
-      style={{
-        borderColor: theme.line,
-        backgroundColor: "transparent",
-      }}
-      onMouseEnter={(event) => {
-        event.currentTarget.style.backgroundColor = theme.primarySoft;
-      }}
-      onMouseLeave={(event) => {
-        event.currentTarget.style.backgroundColor = "transparent";
-      }}
-      onFocus={(event) => {
-        event.currentTarget.style.backgroundColor = theme.primarySoft;
-      }}
-      onBlur={(event) => {
-        event.currentTarget.style.backgroundColor = "transparent";
-      }}
-      aria-label={`View attendance for ${dateLabel}`}
-      data-testid={`parent-attendance-history-item-${entry.date}`}
-    >
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[12px] font-semibold" style={{ color: theme.ink }}>
-          {dateLabel}
-        </p>
-        <p className="mt-0.5 truncate text-[10px]" style={{ color: theme.muted }}>
-          {metaLine}
-        </p>
-      </div>
-      <div className="flex shrink-0 items-center gap-1.5">
-        <ParentChip theme={theme} tone={statusChipTone(entry.status)} className="!px-1.5 !py-0.5 !text-[9px]">
-          {statusLabel(entry.status)}
-        </ParentChip>
-        <ChevronRight className="h-3.5 w-3.5" style={{ color: theme.muted }} aria-hidden />
-      </div>
-    </button>
+    <li className="border-t border-dashed border-[var(--sf-ink)]/12 first:border-t-0">
+      <button
+        type="button"
+        onClick={() => onSelect(entry)}
+        aria-label={`View attendance for ${dateLabel}`}
+        aria-current={selected ? "true" : undefined}
+        data-testid={`parent-attendance-history-item-${entry.date}`}
+        className={`group relative flex min-h-[56px] w-full items-center gap-3 rounded-[14px] px-2.5 py-2.5 text-left transition-colors duration-200 ${G_FOCUS} focus-visible:ring-inset focus-visible:ring-offset-0 ${
+          selected ? "bg-[var(--sf-accent-wash)]" : "hover:bg-[var(--sf-accent-wash)]"
+        }`}
+      >
+        {selected ? (
+          <span
+            aria-hidden="true"
+            className="absolute inset-y-2 left-0 w-1 rounded-full bg-[var(--sf-clay)]"
+          />
+        ) : null}
+        <AttendanceStatusMark status={entry.status} size="sm" />
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2">
+            <span className="truncate text-[15px] font-extrabold leading-tight text-[var(--sf-ink)]">
+              {dateLabel}
+            </span>
+            {isRecent ? (
+              <span className="shrink-0 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[var(--sf-clay-deep)]">
+                {relative}
+              </span>
+            ) : null}
+          </span>
+          <span className="mt-0.5 block truncate text-[13px] font-semibold text-[var(--sf-soft)]">
+            {attendanceMetaLine(entry)}
+          </span>
+        </span>
+        <GChip tone={attendanceStatusTone(entry.status)} className="hidden sm:inline-flex">
+          {attendanceStatusLabel(entry.status)}
+        </GChip>
+        <ChevronRight
+          className="h-4 w-4 shrink-0 text-[var(--sf-ink)]/40 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-[var(--sf-ink)]/70"
+          aria-hidden="true"
+        />
+      </button>
+    </li>
   );
 }

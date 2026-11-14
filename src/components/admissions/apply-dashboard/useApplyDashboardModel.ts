@@ -302,7 +302,6 @@ export function useApplyDashboardModel(input: ApplyDashboardModelInput) {
       applications.every((application) =>
         isEnrollmentComplete(application, enrollmentProgressByApplicationId[application.id]),
       );
-    const enrolledCount = rows.filter((row) => row.statusForDisplay === "enrolled").length;
 
     const header = allApplicationsEnrolled
       ? {
@@ -404,7 +403,6 @@ export function useApplyDashboardModel(input: ApplyDashboardModelInput) {
       rows,
       header,
       allApplicationsEnrolled,
-      enrolledCount,
       pendingRequiredCount,
       todos,
       scheduleTourHref,

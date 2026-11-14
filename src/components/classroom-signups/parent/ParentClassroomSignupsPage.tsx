@@ -1,27 +1,20 @@
 "use client";
 
-import { Suspense, useCallback, useMemo, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { motion, useReducedMotion } from "framer-motion";
-import { ClipboardList, Loader2 } from "lucide-react";
-import ParentClassroomSignupSidebar from "./ParentClassroomSignupSidebar";
+import { Suspense, useCallback } from "react";
+import { ClipboardList, Eye } from "lucide-react";
+import ParentGardenFrame from "@/components/school-parent/garden/ParentGardenFrame";
+import ParentGardenPageHeader from "@/components/school-parent/garden/ParentGardenPageHeader";
+import { useCelebrate } from "@/components/school-parent/garden/motion";
+import { GCard, GIcon, GSkeleton } from "@/components/school-parent/garden/ui";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
-import ParentButton from "@/components/school-parent/ui/ParentButton";
-import ParentCard from "@/components/school-parent/ui/ParentCard";
-import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
-import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
-import {
-  classifyParentClassroomSignupListItem,
-} from "@/lib/classroom-signups/load-parent-signups";
-import type {
-  ClassroomSignupResponse,
-  ParentClassroomSignupListItem,
-  ParentClassroomSignupListStatus,
-  ParentClassroomSignupsPageBundle,
-} from "@/lib/classroom-signups/types";
-import { SIGNUP_TYPE_LABELS } from "@/lib/classroom-signups/types";
-import { formatSignupDeadline } from "@/lib/classroom-signups/utils";
-import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import type { ParentClassroomSignupsPageBundle } from "@/lib/classroom-signups/types";
+import { PORTAL_HOME_CONTAINER_CLASS } from "@/lib/portal-home/layout";
+import GardenSignupDrawer from "./garden/GardenSignupDrawer";
+import SignupsListCard, { SIGNUPS_LIST_ID } from "./garden/SignupsListCard";
+import SignupsNextUpCard from "./garden/SignupsNextUpCard";
+import { HowSignupsWorkCard, UpcomingHelpCard } from "./garden/SignupsRailCards";
+import type { SignupFilter } from "./garden/signups-garden-ui";
+import { useParentClassroomSignupsModel } from "./useParentClassroomSignupsModel";
 
 type ParentClassroomSignupsPageProps = {
   organizationId: string;
@@ -32,82 +25,36 @@ type ParentClassroomSignupsPageProps = {
   initialSignupId?: string;
 };
 
-type FilterStatus = ParentClassroomSignupListStatus | "all";
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 12 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      delay: i * 0.05,
-      duration: 0.35,
-      ease: [0.16, 1, 0.3, 1] as const,
-    },
-  }),
-};
-
-function StoryFilterPill({
-  active,
-  label,
-  count,
-  onClick,
-  theme,
-}: {
-  active: boolean;
-  label: string;
-  count?: number;
-  onClick: () => void;
-  theme: ParentThemeTokens;
-}) {
-  const displayLabel = count != null ? `${label} · ${count}` : label;
-
+function SignupsPageSkeleton() {
+  const { theme } = useParentTheme();
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium transition-colors"
-      style={
-        active
-          ? {
-              backgroundColor: theme.primarySoft,
-              color: theme.primary,
-              borderColor: "#BCD4C1",
-            }
-          : {
-              backgroundColor: theme.white,
-              color: theme.muted,
-              borderColor: theme.line,
-            }
-      }
-    >
-      {displayLabel}
-    </button>
+    <ParentGardenFrame theme={theme}>
+      <div className={PORTAL_HOME_CONTAINER_CLASS} aria-busy="true" aria-label="Loading signups">
+        <span className="sr-only">Loading signups…</span>
+        <GSkeleton className="h-20 w-2/3 max-w-md" />
+        <div className="grid items-start gap-5 lg:grid-cols-[1.55fr_1fr]">
+          <GSkeleton className="h-72" />
+          <GSkeleton className="h-48" />
+        </div>
+      </div>
+    </ParentGardenFrame>
   );
 }
 
-export default function ParentClassroomSignupsPage(
-  props: ParentClassroomSignupsPageProps,
-) {
-  const { theme } = useParentTheme();
-
+export default function ParentClassroomSignupsPage(props: ParentClassroomSignupsPageProps) {
   return (
-    <Suspense
-      fallback={
-        <div
-          className="flex items-center justify-center gap-2 py-12 text-sm"
-          style={{ color: theme.muted }}
-        >
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Loading signups…
-        </div>
-      }
-    >
+    <Suspense fallback={<SignupsPageSkeleton />}>
       <ParentClassroomSignupsPageContent {...props} />
     </Suspense>
   );
 }
 
+/**
+ * Parent Classroom signups (Garden): the waiting requests up top (first one
+ * as the accent strip), every signup below, booked help + how-it-works in
+ * the rail. A signup opens in the Garden drawer via `?signup=`.
+ * Preview (readOnly) shows everything with responding disabled.
+ */
 function ParentClassroomSignupsPageContent({
   organizationId,
   initialBundle,
@@ -115,339 +62,97 @@ function ParentClassroomSignupsPageContent({
   initialSignupId,
 }: ParentClassroomSignupsPageProps) {
   const { theme } = useParentTheme();
-  const reducedMotion = useReducedMotion();
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const model = useParentClassroomSignupsModel({
+    initialItems: initialBundle.items,
+    initialSignupId,
+  });
+  const { setFilter } = model;
 
-  const [items, setItems] = useState(initialBundle.items);
-  const [filter, setFilter] = useState<FilterStatus>("all");
+  // No confetti in admin previews.
+  useCelebrate(model.justAnsweredAll && !readOnly, theme, "parent-signups-all-answered");
 
-  const signupParam =
-    searchParams.get("signup") ?? initialSignupId ?? null;
-
-  const selectedSignupId = useMemo(() => {
-    if (!signupParam) return null;
-    const visible = items.some((item) => item.signup.id === signupParam);
-    return visible ? signupParam : null;
-  }, [signupParam, items]);
-
-  const setSignupParam = useCallback(
-    (signupId: string | null) => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (signupId) params.set("signup", signupId);
-      else params.delete("signup");
-      const qs = params.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname);
+  const showFilter = useCallback(
+    (filter: SignupFilter) => {
+      setFilter(filter);
+      document.getElementById(SIGNUPS_LIST_ID)?.scrollIntoView({ behavior: "smooth", block: "start" });
     },
-    [pathname, router, searchParams],
+    [setFilter],
   );
 
-  const openSidebar = useCallback(
-    (signupId: string) => {
-      setSignupParam(signupId);
-    },
-    [setSignupParam],
-  );
-
-  const closeSidebar = useCallback(() => {
-    setSignupParam(null);
-  }, [setSignupParam]);
-
-  const selectedItem = useMemo(
-    () => items.find((item) => item.signup.id === selectedSignupId) ?? null,
-    [items, selectedSignupId],
-  );
-
-  const statusCounts = useMemo(() => {
-    return {
-      all: items.length,
-      needs_response: items.filter(
-        (item) => item.listStatus === "needs_response",
-      ).length,
-      signed_up: items.filter((item) => item.listStatus === "signed_up").length,
-      closed: items.filter((item) => item.listStatus === "closed").length,
-    };
-  }, [items]);
-
-  const filteredItems = useMemo(() => {
-    if (filter === "all") return items;
-    return items.filter((item) => item.listStatus === filter);
-  }, [items, filter]);
-
-  const groupedItems = useMemo(() => {
-    if (filter !== "all") return null;
-
-    const groups: {
-      key: ParentClassroomSignupListStatus;
-      label: string;
-      items: ParentClassroomSignupListItem[];
-    }[] = [
-      {
-        key: "needs_response",
-        label: "Needs your response",
-        items: items.filter((item) => item.listStatus === "needs_response"),
-      },
-      {
-        key: "signed_up",
-        label: "You're signed up",
-        items: items.filter((item) => item.listStatus === "signed_up"),
-      },
-      {
-        key: "closed",
-        label: "Past signups",
-        items: items.filter((item) => item.listStatus === "closed"),
-      },
-    ];
-
-    return groups.filter((group) => group.items.length > 0);
-  }, [items, filter]);
-
-  const handleSubmitted = useCallback(
-    (signupId: string, response: ClassroomSignupResponse) => {
-      setItems((current) => {
-        const existing = current.find((item) => item.signup.id === signupId);
-        if (!existing) return current;
-        const nextItem = classifyParentClassroomSignupListItem(
-          existing.signup,
-          response,
-        );
-        if (!nextItem) {
-          return current.filter((item) => item.signup.id !== signupId);
-        }
-        return current.map((item) =>
-          item.signup.id === signupId ? nextItem : item,
-        );
-      });
-    },
-    [],
-  );
-
-  const handleWithdrawn = useCallback((signupId: string) => {
-    setItems((current) => {
-      const existing = current.find((item) => item.signup.id === signupId);
-      if (!existing) return current;
-      const nextItem = classifyParentClassroomSignupListItem(
-        existing.signup,
-        null,
-      );
-      if (!nextItem) {
-        return current.filter((item) => item.signup.id !== signupId);
-      }
-      return current.map((item) =>
-        item.signup.id === signupId ? nextItem : item,
-      );
-    });
-  }, []);
-
-  const renderCardList = (
-    cardItems: ParentClassroomSignupListItem[],
-    startIndex = 0,
-  ) => (
-    <div className="space-y-3">
-      {cardItems.map((item, index) => (
-        <SignupListCard
-          key={item.signup.id}
-          item={item}
-          theme={theme}
-          index={startIndex + index}
-          reducedMotion={reducedMotion ?? false}
-          readOnly={readOnly}
-          onOpen={() => openSidebar(item.signup.id)}
-        />
-      ))}
-    </div>
-  );
+  const empty = model.items.length === 0;
 
   return (
-    <div
-      className="mx-auto max-w-3xl px-4 py-8 sm:px-6"
-      data-testid="parent-classroom-signups-page"
-    >
-      <ParentSectionKicker
-        theme={theme}
-        className="normal-case tracking-normal font-semibold"
-      >
-        Help in the classroom
-      </ParentSectionKicker>
-      <ParentDisplayHeading theme={theme}>Classroom signups</ParentDisplayHeading>
-      <p className="mt-1 mb-6 text-sm" style={{ color: theme.muted }}>
-        Help teachers by signing up for volunteer requests.
-      </p>
-
-      <div className="mb-6 flex flex-wrap gap-2">
-        {(
-          [
-            ["all", "All"],
-            ["needs_response", "Needs response"],
-            ["signed_up", "Signed up"],
-            ["closed", "Past"],
-          ] as const
-        ).map(([key, label]) => (
-          <StoryFilterPill
-            key={key}
-            theme={theme}
-            active={filter === key}
-            label={label}
-            count={statusCounts[key]}
-            onClick={() => setFilter(key)}
+    <>
+      <ParentGardenFrame theme={theme}>
+        <div className={PORTAL_HOME_CONTAINER_CLASS} data-testid="parent-classroom-signups-page">
+          <ParentGardenPageHeader
+            kicker="Help in the classroom"
+            title={
+              <>
+                Classroom <span className="text-[var(--sf-clay)]">signups</span>
+              </>
+            }
+            subtitle="Help teachers by signing up for volunteer requests."
+            data-testid="parent-classroom-signups-header"
           />
-        ))}
-      </div>
 
-      {items.length === 0 ? (
-        <ParentCard theme={theme} className="py-12 text-center">
-          <ClipboardList
-            className="mx-auto mb-3 h-10 w-10"
-            style={{ color: "#B8C4BC" }}
-          />
-          <p className="text-sm font-medium" style={{ color: theme.ink }}>
-            No classroom signups right now
-          </p>
-          <p className="mt-1 text-sm" style={{ color: theme.muted }}>
-            When a teacher posts a volunteer request for your family, it will
-            show up here.
-          </p>
-        </ParentCard>
-      ) : filter === "all" && groupedItems ? (
-        <div className="space-y-8">
-          {groupedItems.map((group, groupIndex) => (
-            <section key={group.key}>
-              <h2
-                className="mb-3 text-sm font-medium"
-                style={{ color: theme.muted }}
-              >
-                {group.label}
-              </h2>
-              {renderCardList(
-                group.items,
-                groupIndex > 0 ? groupedItems[groupIndex - 1].items.length : 0,
-              )}
-            </section>
-          ))}
+          {readOnly ? (
+            <p className="m-0 -mt-3 flex w-fit items-center gap-2 rounded-[12px] bg-[var(--sf-sky)] px-3 py-2 text-[12px] font-extrabold text-[#24507a]">
+              <Eye className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              Preview mode — signups can be opened but not answered here.
+            </p>
+          ) : null}
+
+          {empty ? (
+            <GCard index={1} kicker="Classroom signups" title="No classroom signups right now" data-testid="parent-signups-empty">
+              <div className="flex flex-col items-start gap-3 rounded-[18px] bg-[var(--sf-paper)] p-5 sm:flex-row sm:items-center">
+                <GIcon>
+                  <ClipboardList />
+                </GIcon>
+                <p className="m-0 text-[15px] font-semibold text-[var(--sf-soft)]">
+                  When a teacher posts a volunteer request for your family, it will show up here.
+                </p>
+              </div>
+            </GCard>
+          ) : (
+            <div className="grid items-start gap-5 lg:grid-cols-[1.55fr_1fr]">
+              <div className="flex min-w-0 flex-col gap-5">
+                <SignupsNextUpCard
+                  index={1}
+                  model={model}
+                  readOnly={readOnly}
+                  onShowNeeds={() => showFilter("needs_response")}
+                />
+                <SignupsListCard index={3} model={model} readOnly={readOnly} />
+              </div>
+              <div className="flex min-w-0 flex-col gap-5">
+                <UpcomingHelpCard
+                  index={2}
+                  model={model}
+                  onShowSignedUp={() => showFilter("signed_up")}
+                  onShowNeeds={() => showFilter("needs_response")}
+                />
+                <HowSignupsWorkCard index={4} model={model} />
+              </div>
+            </div>
+          )}
         </div>
-      ) : (
-        renderCardList(filteredItems)
-      )}
+      </ParentGardenFrame>
 
-      <ParentClassroomSignupSidebar
-        key={selectedSignupId ?? "closed"}
+      <GardenSignupDrawer
+        key={model.selectedSignupId ?? "closed"}
         theme={theme}
-        open={selectedSignupId != null && selectedItem != null}
+        open={model.selectedSignupId != null && model.selectedItem != null}
         organizationId={organizationId}
-        signupId={selectedSignupId}
-        signup={selectedItem?.signup ?? null}
-        initialFamilyResponse={selectedItem?.familyResponse ?? null}
+        signupId={model.selectedSignupId}
+        signup={model.selectedItem?.signup ?? null}
+        initialFamilyResponse={model.selectedItem?.familyResponse ?? null}
         studentOptions={initialBundle.studentOptions}
         readOnly={readOnly}
-        onClose={closeSidebar}
-        onSubmitted={handleSubmitted}
-        onWithdrawn={handleWithdrawn}
+        onClose={model.closeSignup}
+        onSubmitted={model.handleSubmitted}
+        onWithdrawn={model.handleWithdrawn}
       />
-    </div>
-  );
-}
-
-function SignupListCard({
-  item,
-  theme,
-  index,
-  reducedMotion,
-  readOnly,
-  onOpen,
-}: {
-  item: ParentClassroomSignupListItem;
-  theme: ParentThemeTokens;
-  index: number;
-  reducedMotion: boolean;
-  readOnly: boolean;
-  onOpen: () => void;
-}) {
-  const { signup, listStatus } = item;
-  const deadline = formatSignupDeadline(signup.responseDeadline);
-
-  const actionLabel =
-    listStatus === "needs_response"
-      ? "Sign up"
-      : listStatus === "signed_up"
-        ? "View signup"
-        : "View details";
-
-  const actionVariant =
-    listStatus === "needs_response"
-      ? "primary"
-      : listStatus === "signed_up"
-        ? "soft"
-        : "outline";
-
-  const showMeta = listStatus === "needs_response";
-  const cardVariant =
-    listStatus === "needs_response" ? "today" : "default";
-
-  const card = (
-    <ParentCard
-      theme={theme}
-      variant={cardVariant}
-      className="transition-shadow hover:shadow-md"
-    >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 flex-1 items-start gap-3">
-          {listStatus === "needs_response" ? (
-            <div
-              className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[13px]"
-              style={{ backgroundColor: theme.primarySoft, color: theme.primary }}
-            >
-              <ClipboardList className="h-4 w-4" aria-hidden />
-            </div>
-          ) : null}
-          <div className="min-w-0 flex-1">
-            <p
-              className="text-base font-semibold leading-snug"
-              style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
-            >
-              {signup.title}
-            </p>
-            <p className="mt-1 text-sm" style={{ color: theme.muted }}>
-              From {signup.teacherName}
-              {signup.classroomName ? ` · ${signup.classroomName}` : ""}
-            </p>
-            {showMeta ? (
-              <div
-                className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs"
-                style={{ color: theme.muted }}
-              >
-                <span>{SIGNUP_TYPE_LABELS[signup.signupType]}</span>
-                {deadline ? <span>Sign up by {deadline}</span> : null}
-              </div>
-            ) : null}
-          </div>
-        </div>
-        <ParentButton
-          theme={theme}
-          variant={actionVariant}
-          onClick={onOpen}
-          className="w-full shrink-0 sm:w-auto"
-        >
-          {readOnly && listStatus === "needs_response"
-            ? "Preview signup"
-            : actionLabel}
-        </ParentButton>
-      </div>
-    </ParentCard>
-  );
-
-  if (reducedMotion) {
-    return card;
-  }
-
-  return (
-    <motion.div
-      custom={index}
-      variants={fadeUp}
-      initial="hidden"
-      animate="visible"
-    >
-      {card}
-    </motion.div>
+    </>
   );
 }

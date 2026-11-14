@@ -4,8 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ChevronDown, ChevronRight, FileSignature } from "lucide-react";
 import { Tick } from "@/components/garden/ui";
-import ParentFormDetailModal from "@/components/school-parent/forms-documents/ParentFormDetailModal";
-import { PortalIsland } from "@/components/school-parent/garden/ParentGardenFrame";
+import GardenFormDetailDialog from "@/components/school-parent/forms-documents/garden/GardenFormDetailDialog";
 import { PORTAL_EASE } from "@/components/school-parent/garden/motion";
 import {
   GCard,
@@ -187,22 +186,19 @@ export default function ParentBillingTuitionAgreementsSection({
         ) : null}
       </GCard>
 
-      {/* Shared forms modal keeps the portal look (not yet migrated). */}
-      <PortalIsland>
-        <ParentFormDetailModal
-          theme={theme}
-          open={selectedAgreement != null}
-          organizationId={organizationId}
-          formId={selectedAgreement?.form.id ?? null}
-          initialItem={selectedAgreement}
-          readOnly={readOnly}
-          onClose={() => setSelectedAgreement(null)}
-          onSubmitted={(detail) => {
-            onAgreementUpdated(detail);
-            setSelectedAgreement(null);
-          }}
-        />
-      </PortalIsland>
+      <GardenFormDetailDialog
+        theme={theme}
+        open={selectedAgreement != null}
+        organizationId={organizationId}
+        formId={selectedAgreement?.form.id ?? null}
+        initialItem={selectedAgreement}
+        readOnly={readOnly}
+        onClose={() => setSelectedAgreement(null)}
+        onSubmitted={(detail) => {
+          onAgreementUpdated(detail);
+          setSelectedAgreement(null);
+        }}
+      />
     </>
   );
 }

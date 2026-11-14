@@ -45,6 +45,9 @@ export function GDialog({
   initialFocusRef,
   "data-testid": testId,
   hideCloseButton = false,
+  bodyRef,
+  headerExtra,
+  footerBordered = false,
 }: {
   theme: ParentThemeTokens;
   open: boolean;
@@ -55,12 +58,18 @@ export function GDialog({
   icon?: ReactNode;
   children?: ReactNode;
   footer?: ReactNode;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl" | "2xl";
   /** Blocks Escape/backdrop close while an action is running. */
   closeDisabled?: boolean;
   initialFocusRef?: React.RefObject<HTMLElement | null>;
   "data-testid"?: string;
   hideCloseButton?: boolean;
+  /** The scrolling body (e.g. an IntersectionObserver root). */
+  bodyRef?: React.RefObject<HTMLDivElement | null>;
+  /** Full-width content under the title row (steps, status strips). */
+  headerExtra?: ReactNode;
+  /** Separates a sticky action footer from long scrolling content. */
+  footerBordered?: boolean;
 }) {
   const reduce = useReducedMotion() === true;
   const isClient = useIsClient();
@@ -119,7 +128,9 @@ export function GDialog({
   if (!isClient) return null;
 
   const width =
-    size === "xl"
+    size === "2xl"
+      ? "sm:max-w-[56rem]"
+      : size === "xl"
       ? "sm:max-w-3xl"
       : size === "lg"
         ? "sm:max-w-xl"
@@ -198,11 +209,16 @@ export function GDialog({
                   </button>
                 )}
               </div>
+              {headerExtra ? <div className="shrink-0 px-5 pt-4 sm:px-6">{headerExtra}</div> : null}
               {children ? (
-                <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-4 sm:px-6">{children}</div>
+                <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto px-5 pt-4 sm:px-6">{children}</div>
               ) : null}
               {footer ? (
-                <div className="flex shrink-0 flex-col-reverse gap-2 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5 sm:flex-row sm:justify-end sm:px-6 sm:pb-6">
+                <div
+                  className={`flex shrink-0 flex-col-reverse gap-2 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6 sm:pb-6 ${
+                    footerBordered ? "border-t-[1.5px] border-[var(--sf-ink)]/10 bg-[var(--sf-paper)]/60 pt-4 sm:rounded-b-[24px]" : "pt-5"
+                  }`}
+                >
                   {footer}
                 </div>
               ) : (
