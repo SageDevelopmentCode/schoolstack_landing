@@ -1,7 +1,9 @@
+"use client";
+
 import {
+  ArrowRight,
   Bell,
   CalendarDays,
-  ChevronRight,
   ClipboardList,
   CreditCard,
   FileText,
@@ -14,6 +16,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import NavigationLink from "@/components/school/shared/NavigationLink";
+import { G_FOCUS, SPRINGY } from "@/components/school-parent/garden/ui";
 import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import {
   formatRelativeTime,
@@ -108,56 +111,106 @@ export function getParentNotificationVisual(
   }
 }
 
+/** Garden pastel for a notification's icon chip (literal classes for Tailwind). */
+function gardenNotificationTint(
+  category: ParentActivityNotificationCategory,
+  action?: string,
+): string {
+  if (action === ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_PUBLISHED) return "bg-[var(--sf-butter)]";
+  if (action === ACTIVITY_ACTIONS.SCHOOL_GALLERY_PHOTOS_UPLOADED) return "bg-[var(--sf-lav)]";
+  switch (category) {
+    case "announcements":
+      return "bg-[var(--sf-butter)]";
+    case "events":
+    case "payments":
+      return "bg-[var(--sf-sky)]";
+    case "enrollment":
+    case "coop":
+      return "bg-[var(--sf-mint)]";
+    case "messages":
+    case "applications":
+      return "bg-[var(--sf-lav)]";
+    case "committees":
+      return "bg-[var(--sf-peach)]";
+    case "other":
+    default:
+      return "bg-[var(--sf-ink)]/[0.06]";
+  }
+}
+
 type ParentActivityNotificationRowProps = {
   notification: ParentActivityNotification;
   theme: ParentThemeTokens;
   onClose: () => void;
   onNavigate?: (href: string) => void;
+  /** Arrived since the parent last opened notifications. */
+  isNew?: boolean;
 };
 
 function NotificationRowContent({
   notification,
   theme,
+  isNew,
 }: {
   notification: ParentActivityNotification;
   theme: ParentThemeTokens;
+  isNew: boolean;
 }) {
-  const { Icon, iconBg, iconColor } = getParentNotificationVisual(
+  const { Icon } = getParentNotificationVisual(
     notification.category,
     theme,
     notification.action,
   );
+  const when = formatRelativeTime(notification.createdAt);
 
   return (
     <>
-      <div
-        className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[13px]"
-        style={{ backgroundColor: iconBg }}
+      <span
+        aria-hidden="true"
+        className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full ring-[1.5px] ring-[var(--sf-ink)]/80 ${gardenNotificationTint(
+          notification.category,
+          notification.action,
+        )}`}
       >
-        <Icon className="h-4 w-4" style={{ color: iconColor }} aria-hidden />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p
-          className="text-sm font-semibold leading-snug"
-          style={{ color: theme.ink }}
-        >
-          {notification.title}
-        </p>
-        <p
-          className="mt-0.5 line-clamp-2 text-xs leading-relaxed"
-          style={{ color: theme.muted }}
-        >
-          {notification.detail}
-        </p>
-        <p className="mt-1.5 text-[11px]" style={{ color: theme.muted }}>
-          {formatRelativeTime(notification.createdAt)}
-        </p>
-      </div>
-      <ChevronRight
-        className="mt-0.5 h-4 w-4 shrink-0 opacity-30 transition-opacity group-hover:opacity-60"
-        style={{ color: theme.muted }}
-        aria-hidden
-      />
+        <Icon className="h-[18px] w-[18px] text-[var(--sf-ink)]" strokeWidth={2.3} />
+        {isNew ? (
+          <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full bg-[var(--sf-clay)] ring-2 ring-white" />
+        ) : null}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-start justify-between gap-2">
+          <span className="text-[15px] font-extrabold leading-snug text-[var(--sf-ink)]">
+            {notification.title}
+          </span>
+          {isNew ? (
+            <span className="mt-0.5 shrink-0 rounded-full bg-[var(--sf-clay)] px-2 py-0.5 text-[10.5px] font-extrabold uppercase tracking-[0.1em] text-white">
+              New
+            </span>
+          ) : null}
+        </span>
+        {notification.detail ? (
+          <span className="mt-0.5 line-clamp-2 block text-[13px] font-semibold leading-relaxed text-[var(--sf-soft)]">
+            {notification.detail}
+          </span>
+        ) : null}
+        <span className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] font-bold">
+          {when ? <span className="text-[var(--sf-soft)]">{when}</span> : null}
+          {when && notification.ctaLabel ? (
+            <span aria-hidden="true" className="text-[var(--sf-ink)]/25">
+              ·
+            </span>
+          ) : null}
+          {notification.ctaLabel ? (
+            <span className="inline-flex items-center gap-1 font-extrabold text-[var(--sf-clay-deep)] group-hover:underline group-hover:decoration-2 group-hover:underline-offset-4">
+              {notification.ctaLabel}
+              <ArrowRight
+                className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
+                aria-hidden
+              />
+            </span>
+          ) : null}
+        </span>
+      </span>
     </>
   );
 }
@@ -167,24 +220,13 @@ export default function ParentActivityNotificationRow({
   theme,
   onClose,
   onNavigate,
+  isNew = false,
 }: ParentActivityNotificationRowProps) {
-  const className =
-    "group flex w-full items-start gap-3 rounded-[14px] border px-3 py-3 text-left transition-colors hover:opacity-95";
-  const style = {
-    textDecoration: "none" as const,
-    color: "inherit" as const,
-    borderColor: theme.line,
-    backgroundColor: theme.white,
-  };
-
-  const hoverHandlers = {
-    onMouseEnter: (event: React.MouseEvent<HTMLElement>) => {
-      event.currentTarget.style.backgroundColor = theme.cream;
-    },
-    onMouseLeave: (event: React.MouseEvent<HTMLElement>) => {
-      event.currentTarget.style.backgroundColor = theme.white;
-    },
-  };
+  const className = `group flex w-full items-start gap-3 rounded-[18px] border-[1.5px] px-3.5 py-3.5 text-left hover:-translate-y-0.5 hover:border-[var(--sf-ink)]/25 hover:shadow-[0_3px_0_0_rgba(43,36,29,0.08)] ${SPRINGY} ${G_FOCUS} ${
+    isNew
+      ? "border-[var(--sf-clay)]/35 bg-[var(--sf-accent-wash)]"
+      : "border-[var(--sf-ink)]/10 bg-white"
+  }`;
 
   if (onNavigate) {
     return (
@@ -195,10 +237,9 @@ export default function ParentActivityNotificationRow({
           onNavigate(notification.href);
         }}
         className={className}
-        style={style}
-        {...hoverHandlers}
+        data-testid="parent-notification-row"
       >
-        <NotificationRowContent notification={notification} theme={theme} />
+        <NotificationRowContent notification={notification} theme={theme} isNew={isNew} />
       </button>
     );
   }
@@ -208,10 +249,9 @@ export default function ParentActivityNotificationRow({
       href={notification.href}
       onClick={onClose}
       className={className}
-      style={style}
-      {...hoverHandlers}
+      data-testid="parent-notification-row"
     >
-      <NotificationRowContent notification={notification} theme={theme} />
+      <NotificationRowContent notification={notification} theme={theme} isNew={isNew} />
     </NavigationLink>
   );
 }

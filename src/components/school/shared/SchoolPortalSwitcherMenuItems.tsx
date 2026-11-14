@@ -21,6 +21,33 @@ type SchoolPortalSwitcherMenuItemsProps = {
   openLinksInNewTab?: boolean;
 };
 
+/**
+ * Navigates to another account portal the way every portal switcher does:
+ * a new tab when `openLinksInNewTab`, otherwise the "Switching portal"
+ * loading overlay + client navigation. Returns how it opened.
+ */
+export function useSchoolPortalSwitchNavigate({
+  onNavigate,
+  openLinksInNewTab = false,
+}: {
+  onNavigate?: () => void;
+  openLinksInNewTab?: boolean;
+}) {
+  const router = useRouter();
+  const { startNavigation } = useNavigationLoading();
+
+  return (href: string): "new_tab" | "same_tab" => {
+    onNavigate?.();
+    if (openLinksInNewTab) {
+      window.open(href, "_blank", "noopener,noreferrer");
+      return "new_tab";
+    }
+    startNavigation("Switching portal");
+    router.push(href);
+    return "same_tab";
+  };
+}
+
 export default function SchoolPortalSwitcherMenuItems({
   C,
   options,
@@ -29,22 +56,14 @@ export default function SchoolPortalSwitcherMenuItems({
   sectionTitle = ACCOUNT_PORTAL_SWITCHER_SECTION_TITLE,
   openLinksInNewTab = false,
 }: SchoolPortalSwitcherMenuItemsProps) {
-  const router = useRouter();
-  const { startNavigation } = useNavigationLoading();
+  const handleNavigate = useSchoolPortalSwitchNavigate({
+    onNavigate,
+    openLinksInNewTab,
+  });
 
   if (!shouldShowPortalSwitcher(options)) {
     return null;
   }
-
-  const handleNavigate = (href: string) => {
-    onNavigate?.();
-    if (openLinksInNewTab) {
-      window.open(href, "_blank", "noopener,noreferrer");
-      return;
-    }
-    startNavigation("Switching portal");
-    router.push(href);
-  };
 
   return (
     <>

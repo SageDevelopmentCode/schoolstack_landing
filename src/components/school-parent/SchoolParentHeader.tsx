@@ -4,34 +4,31 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, LogOut, Bell } from "lucide-react";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
-import ButtonLoadingLabel from "@/components/ui/ButtonLoadingLabel";
 import ParentProfileMenuTrigger from "@/components/school-parent/ParentProfileMenuTrigger";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
-import StudentPhoto from "@/components/students/StudentPhoto";
 import NavigationLink from "@/components/school/shared/NavigationLink";
-import { MessagesNavBadge } from "@/components/messages/MessagesNavBadge";
+import { ParentGardenScope } from "@/components/school-parent/garden/ParentGardenFrame";
+import { G_FOCUS } from "@/components/school-parent/garden/ui";
+import GardenBellButton from "@/components/school-parent/header/GardenBellButton";
+import GardenHeaderPopover from "@/components/school-parent/header/GardenHeaderPopover";
+import ParentGardenNav from "@/components/school-parent/header/ParentGardenNav";
+import ParentGardenProfileMenu from "@/components/school-parent/header/ParentGardenProfileMenu";
 import { useMessagesUnreadCount } from "@/lib/messages/use-messages-unread-count";
 import type { CommitteeUnreadSummary } from "@/lib/committees/committee-unread-types";
 import { useCommitteeUnreadSummary } from "@/lib/committees/use-committee-unread-summary";
 import {
   buildParentNavItems,
-  isParentNavItemActive,
   splitParentNavForHeader,
-  type ParentNavItem,
 } from "@/lib/organization-settings/parent-nav";
+import { parentDocumentationPath } from "@/lib/organization-settings/parent-routes";
 import { isParentNavFridayBranchEnabled } from "@/lib/organization-settings/parent-home-features";
 import { isSchoolGalleryEnabled } from "@/lib/school-gallery/gallery-enabled";
 import { injectSchoolGalleryParentNavItem } from "@/lib/school-gallery/gallery-nav";
-import { getParentFeatureIconColor } from "@/lib/organization-settings/parent-feature-icon-styles";
 import {
   CLIENT_AUTH_ACTIVITY_ACTIONS,
   reportAuthActivityAndWait,
 } from "@/lib/activity-auth-client";
-import SchoolPortalSwitcherMenuItems from "@/components/school/shared/SchoolPortalSwitcherMenuItems";
-import ParentPortalContextSwitcherMenuItems from "@/components/school-parent/ParentPortalContextSwitcherMenuItems";
-import ParentHeaderMoreMenuPanel from "@/components/school-parent/ParentHeaderMoreMenuPanel";
 import ParentPortalContextTopBar from "@/components/school-parent/ParentPortalContextTopBar";
 import { useParentPortalContext } from "@/components/school-parent/ParentPortalContextProvider";
 import { usePreviewPortalOptions } from "@/components/admin/PreviewPortalOptionsProvider";
@@ -48,7 +45,6 @@ import type {
   OrganizationFeatures,
 } from "@/lib/organization-settings/types";
 import type { OrganizationFridayBranchSettings } from "@/lib/school-admin/friday-branch/friday-branch-org-settings";
-import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
   GuardianProfilePhotoClientError,
   uploadGuardianProfilePhotoFromParent,
@@ -86,80 +82,6 @@ type SchoolParentHeaderProps = {
   onOpenNotifications?: () => void;
   fridayBranchSettings?: OrganizationFridayBranchSettings | null;
 };
-
-const parentNavTextClass = "text-[13px] font-semibold";
-
-function NavLink({
-  item,
-  pathname,
-  theme,
-  adminCompat,
-  messagesUnreadCount,
-  committeesUnreadCount,
-  onNavigate,
-}: {
-  item: ParentNavItem;
-  pathname: string;
-  theme: ParentThemeTokens;
-  adminCompat: ReturnType<typeof useParentTheme>["adminCompat"];
-  messagesUnreadCount: number;
-  committeesUnreadCount: number;
-  onNavigate?: (href: string) => void;
-}) {
-  const Icon = item.icon;
-  const active = isParentNavItemActive(pathname, item);
-  const iconColorClass = getParentFeatureIconColor(item.iconSlug);
-  const className = `flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 transition-colors ${parentNavTextClass}`;
-  const style = {
-    backgroundColor: active ? theme.primaryLight : "transparent",
-  };
-
-  const inner = (
-    <>
-      <Icon className={`h-3.5 w-3.5 shrink-0 ${iconColorClass}`} />
-      <span style={{ color: active ? theme.primary : theme.muted }}>
-        {item.name}
-      </span>
-      {item.key === "messages" ? (
-        <MessagesNavBadge
-          count={messagesUnreadCount}
-          theme={{
-            accent: adminCompat.accent,
-            accentLight: adminCompat.accentLight,
-          }}
-        />
-      ) : null}
-      {item.key === "committees" ? (
-        <MessagesNavBadge
-          count={committeesUnreadCount}
-          theme={{
-            accent: adminCompat.accent,
-            accentLight: adminCompat.accentLight,
-          }}
-        />
-      ) : null}
-    </>
-  );
-
-  if (onNavigate) {
-    return (
-      <button
-        type="button"
-        onClick={() => onNavigate(item.href)}
-        className={className}
-        style={style}
-      >
-        {inner}
-      </button>
-    );
-  }
-
-  return (
-    <NavigationLink href={item.href} className={className} style={style}>
-      {inner}
-    </NavigationLink>
-  );
-}
 
 export default function SchoolParentHeader({
   slug,
@@ -200,17 +122,16 @@ export default function SchoolParentHeader({
   const showPreviewSwitcher =
     previewMode && shouldShowPortalSwitcher(resolvedPortalOptions);
   const supabase = useMemo(() => createClient(), []);
-  const [moreOpen, setMoreOpen] = useState(false);
-  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState(
     userProfile.profilePhotoUrl,
   );
   const [photoUploading, setPhotoUploading] = useState(false);
-  const moreRef = useRef<HTMLDivElement>(null);
-  const mobileMoreRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const profileTriggerRef = useRef<HTMLButtonElement>(null);
+  /** Last picked photo, so a failed upload can be retried from the toast. */
+  const lastPhotoRef = useRef<File | null>(null);
 
   const resolvedNavBasePath =
     parentNavBasePath ??
@@ -282,17 +203,29 @@ export default function SchoolParentHeader({
     navItems[0]?.href ?? `${resolvedNavBasePath}/portal`;
   const applicationsHref = previewBasePath ?? `/school/${slug}/apply`;
   const notificationsHref = `${resolvedMainParentBasePath}/notifications`;
-  const moreActive = more.some((item) => isParentNavItemActive(pathname, item));
+  const documentationHref = parentDocumentationPath(slug, {
+    previewBasePath,
+    parentNavBasePath,
+  });
+  const notificationsActive =
+    pathname === notificationsHref || pathname.startsWith(`${notificationsHref}/`);
   const canUploadPhoto = !previewMode;
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
+
+  // Close the account menu when the route changes (e.g. browser back).
+  useEffect(() => {
+    queueMicrotask(() => setMenuOpen(false));
+  }, [pathname]);
 
   useEffect(() => {
     queueMicrotask(() => setProfilePhotoUrl(userProfile.profilePhotoUrl));
   }, [userProfile.profilePhotoUrl]);
 
   const handlePhotoUpload = useCallback(
-    async (file: File) => {
+    async function upload(file: File) {
       if (previewMode) return;
 
+      lastPhotoRef.current = file;
       setPhotoUploading(true);
 
       try {
@@ -301,15 +234,29 @@ export default function SchoolParentHeader({
           file,
         );
         setProfilePhotoUrl(nextUrl);
-        parentToast.success("Profile photo updated.");
+        lastPhotoRef.current = null;
+        parentToast.success("Profile photo updated", {
+          description: "Your new photo is saved.",
+          id: "parent-profile-photo",
+        });
       } catch (error) {
-        parentToast.error(
-          error instanceof GuardianProfilePhotoClientError
-            ? error.message
-            : error instanceof Error
+        parentToast.error("Couldn't update your photo", {
+          description:
+            error instanceof GuardianProfilePhotoClientError
               ? error.message
-              : "Failed to upload photo.",
-        );
+              : error instanceof Error
+                ? error.message
+                : "Failed to upload photo.",
+          // No fixed id: clicking "Try again" dismisses this toast, and a
+          // reused id would let that dismissal swallow the next result.
+          action: {
+            label: "Try again",
+            onClick: () => {
+              const retryFile = lastPhotoRef.current;
+              if (retryFile) void upload(retryFile);
+            },
+          },
+        });
         void reportPortalOperationalError(
           "parent_portal",
           {
@@ -326,39 +273,6 @@ export default function SchoolParentHeader({
     [organizationId, previewMode],
   );
 
-  useEffect(() => {
-    if (!moreOpen) return;
-    const handler = (event: MouseEvent) => {
-      if (!moreRef.current?.contains(event.target as Node)) {
-        setMoreOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [moreOpen]);
-
-  useEffect(() => {
-    if (!mobileMoreOpen) return;
-    const handler = (event: MouseEvent) => {
-      if (!mobileMoreRef.current?.contains(event.target as Node)) {
-        setMobileMoreOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [mobileMoreOpen]);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handler = (event: MouseEvent) => {
-      if (!menuRef.current?.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [menuOpen]);
-
   const handleSignOut = async () => {
     setSigningOut(true);
     try {
@@ -371,26 +285,55 @@ export default function SchoolParentHeader({
           organizationSlug: slug,
         },
       });
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        parentToast.error("Couldn't log you out", {
+          description: "Check your connection and try again.",
+          id: "parent-sign-out",
+        });
+        return;
+      }
+      setMenuOpen(false);
       router.refresh();
+    } catch (error) {
+      parentToast.error("Couldn't log you out", {
+        description: "Check your connection and try again.",
+        id: "parent-sign-out",
+      });
+      void reportPortalOperationalError(
+        "parent_portal",
+        { organizationId, operation: "auth.sign_out", error: "" },
+        error,
+      );
     } finally {
       setSigningOut(false);
-      setMenuOpen(false);
     }
   };
 
-  return (
-    <header
-      className="relative z-40 shrink-0 border-b backdrop-blur-sm"
-      style={{
-        backgroundColor: coopModeEnabled
-          ? theme.primarySoft
-          : "rgba(255, 255, 255, 0.89)",
-        borderColor: coopModeEnabled ? theme.primaryLight : theme.line,
-        boxShadow: coopModeEnabled
-          ? `inset 0 -1px 0 ${theme.primary}33`
-          : undefined,
+  const wordmark = (
+    <SchoolDemoWordmark
+      logo={{
+        src: branding.logo.src,
+        alt: branding.logo.alt || schoolName,
+        width: branding.logo.width,
+        height: branding.logo.height,
+        text: branding.logo.src ? undefined : schoolName,
       }}
+      className="h-8 w-auto max-w-[min(120px,28vw)] object-contain sm:max-w-[min(180px,40vw)] sm:h-10"
+      sizes="(max-width: 640px) 160px, 200px"
+    />
+  );
+  const wordmarkClass = `min-w-0 shrink rounded-lg text-left transition-opacity hover:opacity-80 ${G_FOCUS}`;
+
+  return (
+    <ParentGardenScope
+      as="header"
+      theme={theme}
+      className={`relative z-40 shrink-0 border-b-[1.5px] backdrop-blur-md ${
+        coopModeEnabled
+          ? "!bg-[var(--sf-accent-wash)] border-[var(--sf-clay)]/25"
+          : "!bg-[var(--sf-paper)]/90 border-[var(--sf-ink)]/10"
+      }`}
     >
       <ParentPortalContextTopBar />
       <div className="mx-auto flex min-h-[64px] max-w-[1440px] items-center justify-between gap-3 overflow-visible px-4 sm:min-h-[78px] sm:gap-4 sm:px-7">
@@ -399,7 +342,7 @@ export default function SchoolParentHeader({
             href="/"
             target="_blank"
             rel="noopener noreferrer"
-            className="shrink-0 rounded-sm transition-opacity hover:opacity-80"
+            className={`shrink-0 rounded-lg transition-opacity hover:opacity-80 ${G_FOCUS}`}
           >
             <Image
               src="/images/schoolstack-logo.png"
@@ -411,130 +354,53 @@ export default function SchoolParentHeader({
             />
           </Link>
           <div
-            className="h-7 w-px shrink-0 sm:h-8"
-            style={{ backgroundColor: theme.line }}
+            className="h-7 w-[1.5px] shrink-0 rounded-full bg-[var(--sf-ink)]/12 sm:h-8"
             aria-hidden
           />
           {onPreviewNavigate ? (
             <button
               type="button"
               onClick={() => onPreviewNavigate(homeHref)}
-              className="min-w-0 shrink rounded-sm text-left transition-opacity hover:opacity-80"
+              className={wordmarkClass}
+              aria-label={`${schoolName} home`}
             >
-              <div className="min-w-0">
-                <SchoolDemoWordmark
-                  logo={{
-                    src: branding.logo.src,
-                    alt: branding.logo.alt || schoolName,
-                    width: branding.logo.width,
-                    height: branding.logo.height,
-                    text: branding.logo.src ? undefined : schoolName,
-                  }}
-                  className="h-8 w-auto max-w-[min(120px,28vw)] object-contain sm:max-w-[min(180px,40vw)] sm:h-10"
-                  sizes="(max-width: 640px) 160px, 200px"
-                />
-              </div>
+              <div className="min-w-0">{wordmark}</div>
             </button>
           ) : (
-          <NavigationLink href={homeHref} className="min-w-0 shrink rounded-sm transition-opacity hover:opacity-80">
-            <div className="min-w-0">
-              <SchoolDemoWordmark
-                logo={{
-                  src: branding.logo.src,
-                  alt: branding.logo.alt || schoolName,
-                  width: branding.logo.width,
-                  height: branding.logo.height,
-                  text: branding.logo.src ? undefined : schoolName,
-                }}
-                className="h-8 w-auto max-w-[min(120px,28vw)] object-contain sm:max-w-[min(180px,40vw)] sm:h-10"
-                sizes="(max-width: 640px) 160px, 200px"
-              />
-            </div>
-          </NavigationLink>
+            <NavigationLink href={homeHref} className={wordmarkClass}>
+              <div className="min-w-0">{wordmark}</div>
+            </NavigationLink>
           )}
         </div>
 
-        <nav className="hidden min-w-0 max-w-[min(100%,52rem)] items-center gap-1 lg:flex">
-          <div
-            className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
-            {primary.map((item) => (
-              <NavLink
-                key={item.key}
-                item={item}
-                pathname={pathname}
-                theme={theme}
-                adminCompat={C}
-                messagesUnreadCount={messagesUnreadCount}
-                committeesUnreadCount={committeesUnreadCount}
-                onNavigate={onPreviewNavigate}
-              />
-            ))}
-          </div>
-          {more.length > 0 ? (
-            <div className="relative shrink-0" ref={moreRef}>
-              <button
-                type="button"
-                onClick={() => setMoreOpen((open) => !open)}
-                className={`flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1.5 transition-colors ${parentNavTextClass}`}
-                style={{
-                  color: moreActive ? theme.primary : theme.muted,
-                  backgroundColor: moreActive ? theme.primaryLight : "transparent",
-                }}
-              >
-                More
-                <ChevronDown
-                  className={`h-3 w-3 transition-transform ${moreOpen ? "rotate-180" : ""}`}
-                />
-              </button>
-              {moreOpen ? (
-                <ParentHeaderMoreMenuPanel
-                  items={more}
-                  pathname={pathname}
-                  theme={theme}
-                  adminCompat={C}
-                  messagesUnreadCount={messagesUnreadCount}
-                  committeesUnreadCount={committeesUnreadCount}
-                  onClose={() => setMoreOpen(false)}
-                  onNavigate={onPreviewNavigate}
-                />
-              ) : null}
-            </div>
-          ) : null}
-        </nav>
+        <ParentGardenNav
+          variant="desktop"
+          primary={primary}
+          more={more}
+          pathname={pathname}
+          theme={theme}
+          messagesUnreadCount={messagesUnreadCount}
+          committeesUnreadCount={committeesUnreadCount}
+          documentationHref={documentationHref}
+          onNavigate={onPreviewNavigate}
+        />
 
-        <div className="relative z-[100] flex shrink-0 items-center gap-1.5" ref={menuRef}>
-          <button
-            type="button"
+        <div className="relative z-[100] flex shrink-0 items-center gap-2" ref={menuRef}>
+          <GardenBellButton
+            unreadCount={activityUnreadCount}
             onClick={() => onOpenNotifications?.()}
-            className="relative inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors"
-            style={{ color: theme.ink }}
-            aria-label={
-              activityUnreadCount > 0
-                ? `Notifications, ${activityUnreadCount} unread`
-                : "Notifications"
-            }
-          >
-            <Bell className="h-[18px] w-[18px]" aria-hidden />
-            {activityUnreadCount > 0 ? (
-              <span
-                className="absolute -right-0.5 -top-0.5 inline-flex min-w-[18px] items-center justify-center rounded-full px-1 py-0.5 text-[10px] font-semibold leading-none"
-                style={{
-                  backgroundColor: theme.primary,
-                  color: theme.white,
-                }}
-              >
-                {activityUnreadCount > 99 ? "99+" : activityUnreadCount}
-              </span>
-            ) : null}
-          </button>
+          />
           <ParentProfileMenuTrigger
+            ref={profileTriggerRef}
             displayName={userProfile.displayName}
             profilePhotoUrl={profilePhotoUrl}
             theme={C}
             parentTheme={theme}
-            variant="story"
+            variant="garden"
             menuOpen={menuOpen}
+            aria-haspopup="dialog"
+            aria-controls="parent-account-menu"
+            data-testid="parent-header-profile"
             contextLabel={
               showSwitcher && activeContext ? activeContext.label : undefined
             }
@@ -542,170 +408,57 @@ export default function SchoolParentHeader({
             coopProgramLabel={coopProgramLabel}
             onClick={() => setMenuOpen((open) => !open)}
           />
-          {menuOpen ? (
-            <div
-              className="absolute right-0 top-full z-[100] mt-1.5 w-64 rounded-xl py-1 shadow-lg"
-              style={{
-                border: `1px solid ${theme.line}`,
-                backgroundColor: theme.white,
-              }}
-              role="menu"
-            >
-              <div
-                className="border-b px-3 py-3"
-                style={{ borderColor: theme.line }}
-              >
-                <div className="flex items-start gap-3">
-                  <StudentPhoto
-                    name={userProfile.displayName}
-                    photoUrl={profilePhotoUrl}
-                    size="lg"
-                    theme={C}
-                    editable={canUploadPhoto}
-                    uploading={photoUploading}
-                    showEditHint={canUploadPhoto}
-                    onFileSelect={(file) => void handlePhotoUpload(file)}
-                  />
-                  <div className="min-w-0 flex-1 pt-0.5">
-                    <p
-                      className="truncate text-sm font-semibold"
-                      style={{ color: theme.ink }}
-                    >
-                      {userProfile.displayName}
-                    </p>
-                    {userProfile.email ? (
-                      <p
-                        className="mt-0.5 truncate text-xs"
-                        style={{ color: theme.muted }}
-                      >
-                        {userProfile.email}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-              {coopModeEnabled && coopProgramLabel ? (
-                <div
-                  className="border-b px-3 py-2.5"
-                  style={{
-                    borderColor: theme.line,
-                    backgroundColor: theme.primarySoft,
-                  }}
-                >
-                  <p
-                    className="text-xs font-semibold"
-                    style={{ color: theme.primary }}
-                  >
-                    Co-op mode · {coopProgramLabel}
-                  </p>
-                </div>
-              ) : null}
-              <ParentPortalContextSwitcherMenuItems
-                C={C}
-                themeInk={theme.ink}
-                themeMuted={theme.muted}
-                onNavigate={() => setMenuOpen(false)}
-              />
-              <SchoolPortalSwitcherMenuItems
-                C={C}
-                options={resolvedPortalOptions}
-                currentPortal={detectPortalFromPathname(pathname, slug)}
-                onNavigate={() => setMenuOpen(false)}
-                openLinksInNewTab={openPortalLinksInNewTab}
-              />
-              {!showPreviewSwitcher ? (
-                <NavigationLink
-                  href={applicationsHref}
-                  className="block px-3 py-2 text-sm transition-colors hover:opacity-80"
-                  style={{ color: theme.ink }}
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Your applications
-                </NavigationLink>
-              ) : null}
-              <NavigationLink
-                href={notificationsHref}
-                className="block px-3 py-2 text-sm transition-colors hover:opacity-80"
-                style={{ color: theme.ink }}
-                onClick={() => setMenuOpen(false)}
-              >
-                Notification settings
-              </NavigationLink>
-              {!previewMode ? (
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => void handleSignOut()}
-                  disabled={signingOut}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:opacity-80 disabled:opacity-60"
-                  style={{ color: theme.ink }}
-                >
-                  {!signingOut ? (
-                    <LogOut className="h-4 w-4" style={{ color: theme.muted }} />
-                  ) : null}
-                  <ButtonLoadingLabel loading={signingOut} loadingLabel="Signing out…">
-                    Log out
-                  </ButtonLoadingLabel>
-                </button>
-              ) : null}
-            </div>
-          ) : null}
+          <GardenHeaderPopover
+            open={menuOpen}
+            onClose={closeMenu}
+            theme={theme}
+            id="parent-account-menu"
+            triggerRef={profileTriggerRef}
+            anchorRef={menuRef}
+            label="Account menu"
+            sheetTitle="Your account"
+            align="right"
+            widthClass="w-[21rem]"
+          >
+            <ParentGardenProfileMenu
+              adminTheme={C}
+              displayName={userProfile.displayName}
+              email={userProfile.email}
+              profilePhotoUrl={profilePhotoUrl}
+              canUploadPhoto={canUploadPhoto}
+              photoUploading={photoUploading}
+              onPhotoSelect={(file) => void handlePhotoUpload(file)}
+              previewMode={previewMode}
+              coopModeEnabled={coopModeEnabled}
+              coopProgramLabel={coopProgramLabel}
+              portalOptions={resolvedPortalOptions}
+              currentPortal={detectPortalFromPathname(pathname, slug)}
+              openPortalLinksInNewTab={openPortalLinksInNewTab}
+              showApplicationsLink={!showPreviewSwitcher}
+              applicationsHref={applicationsHref}
+              notificationsHref={notificationsHref}
+              notificationsActive={notificationsActive}
+              signingOut={signingOut}
+              onSignOut={() => void handleSignOut()}
+              onClose={closeMenu}
+            />
+          </GardenHeaderPopover>
         </div>
       </div>
 
       {navItems.length > 0 ? (
-        <nav
-          className="flex items-center gap-1 overflow-visible border-t px-4 py-2 lg:hidden"
-          style={{ borderColor: theme.line }}
-        >
-          <div
-            className="flex min-w-0 flex-1 gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
-            {primary.map((item) => (
-              <NavLink
-                key={item.key}
-                item={item}
-                pathname={pathname}
-                theme={theme}
-                adminCompat={C}
-                messagesUnreadCount={messagesUnreadCount}
-                committeesUnreadCount={committeesUnreadCount}
-                onNavigate={onPreviewNavigate}
-              />
-            ))}
-          </div>
-          {more.length > 0 ? (
-            <div className="relative shrink-0" ref={mobileMoreRef}>
-              <button
-                type="button"
-                onClick={() => setMobileMoreOpen((open) => !open)}
-                className={`flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-lg px-3 py-1.5 transition-colors ${parentNavTextClass}`}
-                style={{
-                  color: moreActive ? theme.primary : theme.muted,
-                  backgroundColor: moreActive ? theme.primaryLight : "transparent",
-                }}
-              >
-                More
-                <ChevronDown
-                  className={`h-3 w-3 transition-transform ${mobileMoreOpen ? "rotate-180" : ""}`}
-                />
-              </button>
-              {mobileMoreOpen ? (
-                <ParentHeaderMoreMenuPanel
-                  items={more}
-                  pathname={pathname}
-                  theme={theme}
-                  adminCompat={C}
-                  messagesUnreadCount={messagesUnreadCount}
-                  committeesUnreadCount={committeesUnreadCount}
-                  onClose={() => setMobileMoreOpen(false)}
-                  onNavigate={onPreviewNavigate}
-                />
-              ) : null}
-            </div>
-          ) : null}
-        </nav>
+        <ParentGardenNav
+          variant="mobile"
+          primary={primary}
+          more={more}
+          pathname={pathname}
+          theme={theme}
+          messagesUnreadCount={messagesUnreadCount}
+          committeesUnreadCount={committeesUnreadCount}
+          documentationHref={documentationHref}
+          onNavigate={onPreviewNavigate}
+        />
       ) : null}
-    </header>
+    </ParentGardenScope>
   );
 }

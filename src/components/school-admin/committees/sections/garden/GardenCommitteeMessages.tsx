@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type ReactNode, type RefObject } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { MessageCircle, Users } from "lucide-react";
 import { Tick } from "@/components/garden/ui";
@@ -24,7 +24,8 @@ const STARTERS = [
 ];
 
 /**
- * Committee chat (Garden): one card with a header, Garden bubbles (grouped by
+ * Committee chat (Garden): a full-bleed pane (header bar, scrolling list,
+ * composer pinned at the bottom) with Garden bubbles (grouped by
  * sender, names on others' messages, a "Sent ✓" line after your latest send)
  * and the parent Garden composer. Normal sends stay quiet; failures toast with
  * Try again and the text stays in the composer.
@@ -43,7 +44,6 @@ export default function GardenCommitteeMessages({
   sending,
   onSend,
   showSent,
-  bottomRef,
   panelTestId,
 }: {
   committee: Committee;
@@ -59,13 +59,41 @@ export default function GardenCommitteeMessages({
   sending: boolean;
   onSend: () => void;
   showSent: boolean;
-  bottomRef: RefObject<HTMLDivElement | null>;
   panelTestId: string;
 }) {
   const reduce = useReducedMotion() === true;
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const messages = committee.messages;
   const activeMembers = committee.members.filter((member) => member.status === "active");
+
+  const contentRef = useRef<HTMLDivElement>(null);
+  /** True while the reader is at (or near) the newest message. */
+  const stickToBottomRef = useRef(true);
+
+  // Keep the newest message in view by scrolling only the list (scrollIntoView
+  // would also nudge the workspace's outer scroll containers).
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    stickToBottomRef.current = true;
+    list.scrollTo({ top: list.scrollHeight, behavior: reduce ? "auto" : "smooth" });
+  }, [messages.length, reduce]);
+
+  // The pane can mount hidden (scrollHeight 0) and images load after first
+  // paint: whenever the list or its content changes size, stay pinned to the
+  // bottom unless the reader has scrolled up.
+  useEffect(() => {
+    const list = listRef.current;
+    const content = contentRef.current;
+    if (!list || !content || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => {
+      if (stickToBottomRef.current) list.scrollTop = list.scrollHeight;
+    });
+    observer.observe(list);
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, []);
 
   const notify = (event: MessagesFeedbackEvent) => {
     const toast = describeParentMessagesFeedback(event);
@@ -150,13 +178,17 @@ export default function GardenCommitteeMessages({
                     />
                   ) : null}
                   {attachments.length > 0 ? (
-                    <MessageAttachments
-                      attachments={attachments}
-                      C={composeTokens}
-                      splitPane
-                      isOwn={own}
-                      resolveAttachmentUrl={resolveAttachmentUrl}
-                    />
+                    // Image thumbnails open the shared fullscreen viewer; give them a
+                    // Garden hover lift and focus ring (scoped here, shared component untouched).
+                    <div className="[&_button.cursor-zoom-in]:rounded-xl [&_button.cursor-zoom-in]:transition-transform [&_button.cursor-zoom-in:hover]:-translate-y-0.5 [&_button.cursor-zoom-in:hover_img]:brightness-95 [&_button.cursor-zoom-in:focus-visible]:outline-none [&_button.cursor-zoom-in:focus-visible]:ring-4 [&_button.cursor-zoom-in:focus-visible]:ring-[var(--sf-clay)]/35">
+                      <MessageAttachments
+                        attachments={attachments}
+                        C={composeTokens}
+                        splitPane
+                        isOwn={own}
+                        resolveAttachmentUrl={resolveAttachmentUrl}
+                      />
+                    </div>
                   ) : null}
                 </div>
                 <span className="mt-1 px-1 text-[11.5px] font-semibold text-[var(--sf-soft)]">
@@ -171,8 +203,8 @@ export default function GardenCommitteeMessages({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white shadow-[0_3px_0_0_rgba(43,36,29,0.08)]">
-      <div className="flex shrink-0 items-center gap-3 border-b-[1.5px] border-[var(--sf-ink)]/10 px-4 py-3 sm:px-5">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-white">
+      <div className="flex shrink-0 items-center gap-3 border-b-[1.5px] border-[var(--sf-ink)]/10 px-4 py-3 sm:px-8">
         <GIcon size="sm">
           <MessageCircle />
         </GIcon>
@@ -187,9 +219,15 @@ export default function GardenCommitteeMessages({
       </div>
 
       <div
-        className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[var(--sf-paper)] px-3 py-4 sm:px-5"
+        className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[var(--sf-paper)] px-4 py-5 sm:px-8"
+        ref={listRef}
         data-testid={panelTestId}
+        onScroll={(event) => {
+          const el = event.currentTarget;
+          stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+        }}
       >
+        <div ref={contentRef} className="flex flex-1 flex-col">
         {body}
         <p
           aria-live="polite"
@@ -204,7 +242,7 @@ export default function GardenCommitteeMessages({
             </>
           ) : null}
         </p>
-        <div ref={bottomRef} />
+        </div>
       </div>
 
       <GardenComposer

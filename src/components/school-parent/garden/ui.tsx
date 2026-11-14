@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useId, type ReactNode } from "react";
+import { useId, type CSSProperties, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { parseEventDate } from "@/lib/committees/calendar-utils";
 import { getFeatureIcon } from "@/lib/organization-settings/icon-registry";
@@ -65,6 +65,16 @@ export const gBtnButterSm = `inline-flex items-center justify-center gap-1.5 rou
 export const gBtnOnAccent = `inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full border-2 border-[var(--sf-ink)] bg-white px-4 py-2.5 text-sm font-extrabold text-[var(--sf-ink)] shadow-[0_4px_0_0_var(--sf-ink)] transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[0_5px_0_0_var(--sf-ink)]`;
 /** Inline text link / card-header action. */
 export const gLinkSm = `inline-flex items-center gap-1 rounded-md text-sm font-extrabold text-[var(--sf-clay-deep)] hover:underline hover:decoration-2 hover:underline-offset-4 ${G_FOCUS}`;
+
+/** Garden text input / textarea / select (16px on phones so iOS doesn't zoom). */
+export const G_INPUT =
+  "w-full rounded-[14px] border-2 border-[var(--sf-ink)]/15 bg-white px-3.5 py-2.5 text-[16px] font-semibold text-[var(--sf-ink)] outline-none transition-colors placeholder:font-medium placeholder:text-[var(--sf-ink)]/40 hover:border-[var(--sf-ink)]/30 focus:border-[var(--sf-clay)] focus:ring-4 focus:ring-[var(--sf-clay)]/15 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm";
+/** Garden form label (pairs with G_INPUT). */
+export const G_LABEL = "mb-1.5 block text-[13px] font-extrabold text-[var(--sf-ink)]";
+/** Garden toggle chip (severity, weekdays…): add G_TOGGLE_ON when selected. */
+export const G_TOGGLE = `inline-flex min-h-[36px] items-center justify-center rounded-full border-[1.5px] px-3.5 py-1.5 text-[13px] font-extrabold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${G_FOCUS}`;
+export const G_TOGGLE_ON = "border-[var(--sf-ink)] bg-[var(--sf-clay)] text-white shadow-[0_2px_0_0_var(--sf-ink)]";
+export const G_TOGGLE_OFF = "border-[var(--sf-ink)]/15 bg-white text-[var(--sf-ink)]/70 hover:border-[var(--sf-ink)]/35 hover:text-[var(--sf-ink)]";
 
 /* ------------------------------------------------------------------ */
 /* Structure                                                          */
@@ -219,8 +229,8 @@ export function GIcon({ children, size = "md", className = "" }: { children: Rea
 }
 
 /** Garden skeleton block for deferred content. */
-export function GSkeleton({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-[24px] bg-[var(--sf-ink)]/[0.06] ${className}`} aria-hidden="true" />;
+export function GSkeleton({ className = "", style }: { className?: string; style?: CSSProperties }) {
+  return <div className={`animate-pulse rounded-[24px] bg-[var(--sf-ink)]/[0.06] ${className}`} style={style} aria-hidden="true" />;
 }
 
 /* ------------------------------------------------------------------ */
@@ -351,19 +361,21 @@ export function ChildThumb({
   );
 }
 
-/** Postage-stamp date for an event (month / day / weekday). */
+/** Postage-stamp date for an event (month / day / weekday). Pass `date` (YYYY-MM-DD) instead of `event` for non-event dates. */
 export function DateStamp({
   event,
+  date,
   className = "",
   dark = false,
   size = "md",
 }: {
-  event: OrganizationEvent;
+  event?: Pick<OrganizationEvent, "date">;
+  date?: string;
   className?: string;
   dark?: boolean;
   size?: "sm" | "md";
 }) {
-  const d = parseEventDate(event.date);
+  const d = parseEventDate(date ?? event?.date ?? "");
   const sm = size === "sm";
   return (
     <div

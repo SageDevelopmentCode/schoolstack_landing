@@ -81,7 +81,7 @@ export default function GardenCommitteeWorkspaceLayout({
       <div className="flex h-full min-h-0 flex-1 flex-col lg:flex-row">
         <aside
           aria-label="Committee"
-          className={`shrink-0 border-b-[1.5px] ${PANE_LINE} bg-white lg:w-[272px] lg:overflow-y-auto lg:border-b-0 lg:border-r-[1.5px] xl:w-[300px]`}
+          className={`shrink-0 border-b-[1.5px] ${PANE_LINE} bg-white lg:w-[272px] lg:overflow-y-auto lg:overflow-x-hidden lg:border-b-0 lg:border-r-[1.5px] xl:w-[300px]`}
         >
           {/* Phones / tablets: compact bar + section sheet */}
           <div className="flex min-w-0 items-center gap-2 px-3 py-2.5 sm:px-4 lg:hidden">
@@ -143,13 +143,18 @@ export default function GardenCommitteeWorkspaceLayout({
           </div>
         </aside>
 
+        {/* Messages (fillContent) is a full-bleed pane: no gutters, no max width. */}
         <main
-          className={`flex min-h-0 flex-1 flex-col bg-[var(--sf-cream)] px-4 py-6 sm:px-6 md:px-9 ${
-            fillContent ? "min-h-[min(70dvh,100%)] overflow-hidden lg:min-h-0" : "overflow-y-auto"
+          className={`flex min-h-0 min-w-0 flex-1 flex-col ${
+            fillContent
+              ? "min-h-[min(70dvh,100%)] overflow-hidden bg-white lg:min-h-0"
+              : "overflow-y-auto bg-[var(--sf-cream)] px-4 py-6 sm:px-6 md:px-9"
           }`}
         >
           <div
-            className={`mx-auto w-full max-w-[1250px] ${fillContent ? "flex h-full min-h-0 flex-1 flex-col" : ""}`}
+            className={
+              fillContent ? "flex h-full min-h-0 w-full flex-1 flex-col" : "mx-auto w-full max-w-[1250px]"
+            }
           >
             {children}
           </div>

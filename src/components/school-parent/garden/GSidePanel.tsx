@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
 import ParentGardenFrame from "./ParentGardenFrame";
@@ -19,6 +19,12 @@ export type GSidePanelProps = {
   footer?: ReactNode;
   testId: string;
   panelId: string;
+  /** The scrolling body (e.g. IntersectionObserver root for infinite lists). */
+  bodyRef?: RefObject<HTMLDivElement | null>;
+  /** Extra content under the title row (chips, status). */
+  headerAside?: ReactNode;
+  /** Accessible label for the close button. */
+  closeLabel?: string;
 };
 
 /**
@@ -38,6 +44,9 @@ export default function GSidePanel({
   footer,
   testId,
   panelId,
+  bodyRef,
+  headerAside,
+  closeLabel = "Close",
 }: GSidePanelProps) {
   const reduce = useReducedMotion() === true;
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -107,19 +116,20 @@ export default function GSidePanel({
                       {subtitle}
                     </div>
                   ) : null}
+                  {headerAside ? <div className="mt-2.5">{headerAside}</div> : null}
                 </div>
                 <button
                   ref={closeRef}
                   type="button"
                   onClick={onClose}
-                  aria-label="Close"
+                  aria-label={closeLabel}
                   className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-[1.5px] border-[var(--sf-ink)]/20 bg-white text-[var(--sf-ink)]/70 transition-all hover:-translate-y-0.5 hover:border-[var(--sf-ink)]/50 hover:text-[var(--sf-ink)] ${G_FOCUS}`}
                 >
                   <X className="h-5 w-5" aria-hidden />
                 </button>
               </div>
 
-              <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6">
+              <div ref={bodyRef} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6">
                 {children}
               </div>
               {footer ? (

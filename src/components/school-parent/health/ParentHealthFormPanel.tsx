@@ -3,6 +3,15 @@
 import { useState } from "react";
 import ApplicationStepNotice from "@/components/admissions/ApplicationStepNotice";
 import ParentStoryPillNav from "@/components/school-parent/ui/ParentStoryPillNav";
+import { BellRing } from "lucide-react";
+import {
+  GTabBar,
+  G_INPUT,
+  G_LABEL,
+  G_TOGGLE,
+  G_TOGGLE_OFF,
+  G_TOGGLE_ON,
+} from "@/components/school-parent/garden/ui";
 import type {
   HealthAllergyItem,
   HealthAllergySeverity,
@@ -135,12 +144,27 @@ function FieldLabel({
   htmlFor,
   children,
   required,
+  garden = false,
 }: {
   theme: ParentThemeTokens;
   htmlFor: string;
   children: React.ReactNode;
   required?: boolean;
+  garden?: boolean;
 }) {
+  if (garden) {
+    return (
+      <label htmlFor={htmlFor} className={G_LABEL}>
+        {children}
+        {required ? (
+          <span className="text-[var(--sf-clay-deep)]" aria-hidden="true">
+            {" "}*
+          </span>
+        ) : null}
+        {required ? <span className="sr-only"> (required)</span> : null}
+      </label>
+    );
+  }
   return (
     <label htmlFor={htmlFor} className="mb-1.5 block text-xs font-bold" style={labelStyle(theme)}>
       {children}
@@ -306,6 +330,8 @@ type ParentHealthFormFieldsProps = {
   mode: "create" | "edit";
   readOnly?: boolean;
   form: ReturnType<typeof useParentHealthForm>;
+  /** "garden" = parent portal Garden drawer; "story" (default) = admin/teacher modal. */
+  appearance?: "story" | "garden";
 };
 
 export function ParentHealthFormFields({
@@ -314,7 +340,23 @@ export function ParentHealthFormFields({
   mode,
   readOnly = false,
   form,
+  appearance = "story",
 }: ParentHealthFormFieldsProps) {
+  const garden = appearance === "garden";
+  const fieldProps = garden
+    ? { className: G_INPUT }
+    : { className: inputClassName(theme), style: inputStyle(theme) };
+  const toggleProps = (active: boolean) =>
+    garden
+      ? { className: `${G_TOGGLE} ${active ? G_TOGGLE_ON : G_TOGGLE_OFF}`, "aria-pressed": active }
+      : {
+          className: "rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors disabled:opacity-60",
+          style: {
+            borderColor: active ? theme.primary : theme.line,
+            backgroundColor: active ? theme.primarySoft : theme.white,
+            color: active ? theme.primary : theme.muted,
+          },
+        };
   const {
     itemType,
     allergyValues,
@@ -329,7 +371,20 @@ export function ParentHealthFormFields({
 
   return (
     <div className="space-y-4" data-testid="parent-health-form-fields">
-      {mode === "create" ? (
+      {mode === "create" && garden ? (
+        <div>
+          <p className={G_LABEL} id="health-type-label">What would you like to add?</p>
+          <GTabBar
+            items={HEALTH_TYPE_OPTIONS}
+            activeKey={itemType}
+            onChange={handleTypeChange}
+            ariaLabel="Health item type"
+            data-testid="parent-health-form-type-nav"
+          />
+        </div>
+      ) : null}
+
+      {mode === "create" && !garden ? (
         <ParentStoryPillNav
           theme={theme}
           items={HEALTH_TYPE_OPTIONS}
@@ -343,7 +398,7 @@ export function ParentHealthFormFields({
       {itemType === "allergy" ? (
         <>
           <div>
-            <FieldLabel theme={theme} htmlFor="health-allergen" required>
+            <FieldLabel garden={garden} theme={theme} htmlFor="health-allergen" required>
               Allergen
             </FieldLabel>
             <input
@@ -355,12 +410,11 @@ export function ParentHealthFormFields({
               }
               placeholder="Food or environmental allergy"
               disabled={readOnly}
-              className={inputClassName(theme)}
-              style={inputStyle(theme)}
+              {...fieldProps}
             />
           </div>
           <div>
-            <FieldLabel theme={theme} htmlFor="health-severity">
+            <FieldLabel garden={garden} theme={theme} htmlFor="health-severity">
               Severity
             </FieldLabel>
             <div className="flex flex-wrap gap-2">
@@ -372,12 +426,7 @@ export function ParentHealthFormFields({
                     type="button"
                     disabled={readOnly}
                     onClick={() => setAllergyValues((prev) => ({ ...prev, severity }))}
-                      className="rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors disabled:opacity-60"
-                    style={{
-                      borderColor: active ? theme.primary : theme.line,
-                      backgroundColor: active ? theme.primarySoft : theme.white,
-                      color: active ? theme.primary : theme.muted,
-                    }}
+                    {...toggleProps(active)}
                   >
                     {SEVERITY_LABELS[severity]}
                   </button>
@@ -386,7 +435,7 @@ export function ParentHealthFormFields({
             </div>
           </div>
           <div>
-            <FieldLabel theme={theme} htmlFor="health-treatment">
+            <FieldLabel garden={garden} theme={theme} htmlFor="health-treatment">
               Treatment or reaction notes
             </FieldLabel>
             <textarea
@@ -398,8 +447,7 @@ export function ParentHealthFormFields({
               rows={3}
               placeholder="Treatment used in case of a reaction"
               disabled={readOnly}
-              className={inputClassName(theme)}
-              style={inputStyle(theme)}
+              {...fieldProps}
             />
           </div>
         </>
@@ -409,7 +457,7 @@ export function ParentHealthFormFields({
         <>
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <FieldLabel theme={theme} htmlFor="health-med-name" required>
+              <FieldLabel garden={garden} theme={theme} htmlFor="health-med-name" required>
                 Medication name
               </FieldLabel>
               <input
@@ -420,12 +468,11 @@ export function ParentHealthFormFields({
                   setMedicationValues((prev) => ({ ...prev, name: event.target.value }))
                 }
                 disabled={readOnly}
-                className={inputClassName(theme)}
-                style={inputStyle(theme)}
+                {...fieldProps}
               />
             </div>
             <div>
-              <FieldLabel theme={theme} htmlFor="health-med-dose">
+              <FieldLabel garden={garden} theme={theme} htmlFor="health-med-dose">
                 Dose
               </FieldLabel>
               <input
@@ -437,13 +484,12 @@ export function ParentHealthFormFields({
                 }
                 placeholder="e.g. 2 puffs, 5 ml"
                 disabled={readOnly}
-                className={inputClassName(theme)}
-                style={inputStyle(theme)}
+                {...fieldProps}
               />
             </div>
           </div>
           <div>
-            <FieldLabel theme={theme} htmlFor="health-med-time" required>
+            <FieldLabel garden={garden} theme={theme} htmlFor="health-med-time" required>
               Time at school
             </FieldLabel>
             <input
@@ -455,12 +501,11 @@ export function ParentHealthFormFields({
               }
               placeholder="e.g. 12:30 PM"
               disabled={readOnly}
-              className={inputClassName(theme)}
-              style={inputStyle(theme)}
+              {...fieldProps}
             />
           </div>
           <div>
-            <FieldLabel theme={theme} htmlFor="health-med-days">
+            <FieldLabel garden={garden} theme={theme} htmlFor="health-med-days">
               Days of the week
             </FieldLabel>
             <div className="flex flex-wrap gap-2">
@@ -472,12 +517,7 @@ export function ParentHealthFormFields({
                     type="button"
                     disabled={readOnly}
                     onClick={() => toggleMedicationDay(day)}
-                      className="rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors disabled:opacity-60"
-                    style={{
-                      borderColor: active ? theme.primary : theme.line,
-                      backgroundColor: active ? theme.primarySoft : theme.white,
-                      color: active ? theme.primary : theme.muted,
-                    }}
+                    {...toggleProps(active)}
                   >
                     {WEEKDAY_LABELS[day]}
                   </button>
@@ -487,7 +527,7 @@ export function ParentHealthFormFields({
           </div>
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <FieldLabel theme={theme} htmlFor="health-med-start">
+              <FieldLabel garden={garden} theme={theme} htmlFor="health-med-start">
                 Start date
               </FieldLabel>
               <input
@@ -498,12 +538,11 @@ export function ParentHealthFormFields({
                   setMedicationValues((prev) => ({ ...prev, startDate: event.target.value }))
                 }
                 disabled={readOnly}
-                className={inputClassName(theme)}
-                style={inputStyle(theme)}
+                {...fieldProps}
               />
             </div>
             <div>
-              <FieldLabel theme={theme} htmlFor="health-med-end">
+              <FieldLabel garden={garden} theme={theme} htmlFor="health-med-end">
                 End date
               </FieldLabel>
               <input
@@ -517,14 +556,21 @@ export function ParentHealthFormFields({
                   }))
                 }
                 disabled={readOnly || medicationValues.ongoing}
-                className={inputClassName(theme)}
-                style={inputStyle(theme)}
+                {...fieldProps}
               />
             </div>
           </div>
-          <label className="flex items-center gap-2 text-xs font-bold" style={labelStyle(theme)}>
+          <label
+            className={
+              garden
+                ? "flex min-h-[44px] cursor-pointer items-center gap-2.5 rounded-[14px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white px-3.5 py-2 text-[14px] font-extrabold text-[var(--sf-ink)]"
+                : "flex items-center gap-2 text-xs font-bold"
+            }
+            style={garden ? undefined : labelStyle(theme)}
+          >
             <input
               type="checkbox"
+              className={garden ? "h-4 w-4 accent-[var(--sf-clay)]" : undefined}
               checked={medicationValues.ongoing}
               onChange={(event) =>
                 setMedicationValues((prev) => ({
@@ -538,7 +584,7 @@ export function ParentHealthFormFields({
             Ongoing medication
           </label>
           <div>
-            <FieldLabel theme={theme} htmlFor="health-med-instructions">
+            <FieldLabel garden={garden} theme={theme} htmlFor="health-med-instructions">
               Instructions for staff
             </FieldLabel>
             <textarea
@@ -549,8 +595,7 @@ export function ParentHealthFormFields({
               }
               rows={2}
               disabled={readOnly}
-              className={inputClassName(theme)}
-              style={inputStyle(theme)}
+              {...fieldProps}
             />
           </div>
         </>
@@ -559,7 +604,7 @@ export function ParentHealthFormFields({
       {itemType === "update" ? (
         <>
           <div>
-            <FieldLabel theme={theme} htmlFor="health-update-title" required>
+            <FieldLabel garden={garden} theme={theme} htmlFor="health-update-title" required>
               Update title
             </FieldLabel>
             <input
@@ -571,12 +616,11 @@ export function ParentHealthFormFields({
               }
               placeholder="Short summary for teachers"
               disabled={readOnly}
-              className={inputClassName(theme)}
-              style={inputStyle(theme)}
+              {...fieldProps}
             />
           </div>
           <div>
-            <FieldLabel theme={theme} htmlFor="health-update-details">
+            <FieldLabel garden={garden} theme={theme} htmlFor="health-update-details">
               Details
             </FieldLabel>
             <textarea
@@ -587,13 +631,12 @@ export function ParentHealthFormFields({
               }
               rows={3}
               disabled={readOnly}
-              className={inputClassName(theme)}
-              style={inputStyle(theme)}
+              {...fieldProps}
             />
           </div>
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <FieldLabel theme={theme} htmlFor="health-update-start">
+              <FieldLabel garden={garden} theme={theme} htmlFor="health-update-start">
                 Effective from
               </FieldLabel>
               <input
@@ -604,12 +647,11 @@ export function ParentHealthFormFields({
                   setUpdateValues((prev) => ({ ...prev, startDate: event.target.value }))
                 }
                 disabled={readOnly}
-                className={inputClassName(theme)}
-                style={inputStyle(theme)}
+                {...fieldProps}
               />
             </div>
             <div>
-              <FieldLabel theme={theme} htmlFor="health-update-end">
+              <FieldLabel garden={garden} theme={theme} htmlFor="health-update-end">
                 Effective through
               </FieldLabel>
               <input
@@ -623,18 +665,24 @@ export function ParentHealthFormFields({
                   }))
                 }
                 disabled={readOnly}
-                className={inputClassName(theme)}
-                style={inputStyle(theme)}
+                {...fieldProps}
               />
             </div>
           </div>
         </>
       ) : null}
 
-      <ApplicationStepNotice
-        C={adminCompat}
-        body="This will notify assigned teachers and the school office."
-      />
+      {garden ? (
+        <p className="m-0 flex items-start gap-2.5 rounded-[14px] bg-[var(--sf-accent-wash)] px-3.5 py-3 text-[13px] font-semibold leading-snug text-[var(--sf-ink)]/80">
+          <BellRing className="mt-0.5 h-4 w-4 shrink-0 text-[var(--sf-clay-deep)]" aria-hidden="true" />
+          This will notify assigned teachers and the school office.
+        </p>
+      ) : (
+        <ApplicationStepNotice
+          C={adminCompat}
+          body="This will notify assigned teachers and the school office."
+        />
+      )}
     </div>
   );
 }

@@ -207,7 +207,7 @@ export default function CommitteeMessagesSection({
   if (garden) {
     const lastMessage = committee.messages.at(-1);
     return (
-      <CommitteeWorkspaceSectionFrame width="narrow" className="flex h-full min-h-0 flex-1 flex-col">
+      <div className="flex h-full min-h-0 flex-1 flex-col">
         <GardenCommitteeMessages
           committee={committee}
           composeTokens={composeTokens}
@@ -222,10 +222,9 @@ export default function CommitteeMessagesSection({
           sending={sending}
           onSend={() => void handleSend()}
           showSent={lastSentId != null && lastMessage?.id === lastSentId}
-          bottomRef={bottomRef}
           panelTestId="committee-messages-panel"
         />
-      </CommitteeWorkspaceSectionFrame>
+      </div>
     );
   }
 

@@ -118,6 +118,5 @@ export const COMMITTEE_SECTION_ICONS: Partial<Record<CommitteeWorkspaceSection, 
   members: Users,
 };
 
-/** Shared Garden text input (16px on phones so iOS doesn't zoom). */
-export const G_INPUT =
-  "w-full rounded-[14px] border-2 border-[var(--sf-ink)]/15 bg-white px-3.5 py-2.5 text-[16px] font-semibold text-[var(--sf-ink)] outline-none transition-colors placeholder:font-medium placeholder:text-[var(--sf-ink)]/40 hover:border-[var(--sf-ink)]/30 focus:border-[var(--sf-clay)] focus:ring-4 focus:ring-[var(--sf-clay)]/15 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm";
+/** Shared Garden text input (moved to the kit; re-exported for existing imports). */
+export { G_INPUT } from "@/components/school-parent/garden/ui";

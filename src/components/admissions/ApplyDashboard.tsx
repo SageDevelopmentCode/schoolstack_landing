@@ -1,38 +1,58 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
-import { Building2, FileText } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Plus } from "lucide-react";
 import ApplyPortalPageShell from "@/components/admissions/ApplyPortalPageShell";
 import { usePreviewPortalOptions } from "@/components/admin/PreviewPortalOptionsProvider";
-import ApplyRequiredActionsSection from "@/components/admissions/ApplyRequiredActionsSection";
-import EnrollmentAgreementAmendmentBanner from "@/components/admissions/EnrollmentAgreementAmendmentBanner";
-import ApplyApplicationStoryCard from "@/components/admissions/apply-dashboard/ApplyApplicationStoryCard";
-import ApplyDashboardStoryHeader from "@/components/admissions/apply-dashboard/ApplyDashboardStoryHeader";
-import ApplyEnrolledCelebrationCard from "@/components/admissions/apply-dashboard/ApplyEnrolledCelebrationCard";
-import ApplyPortalStarterCard from "@/components/admissions/apply-dashboard/ApplyPortalStarterCard";
-import { applyDashboardFadeUp } from "@/components/admissions/apply-dashboard/apply-dashboard-motion";
-import ParentButtonLink from "@/components/school-parent/ui/ParentButtonLink";
-import ParentCard from "@/components/school-parent/ui/ParentCard";
+import ApplyRequiredActionsSection, {
+  APPLY_REQUIRED_ACTIONS_ID,
+} from "@/components/admissions/ApplyRequiredActionsSection";
+import PostSubmitBookingModal from "@/components/admissions/PostSubmitBookingModal";
+import ApplyApplicationsCard from "@/components/admissions/apply-dashboard/garden/ApplyApplicationsCard";
+import ApplyNextStepCard, {
+  ApplyEnrolledCard,
+} from "@/components/admissions/apply-dashboard/garden/ApplyNextStepCard";
+import {
+  ApplyPortalStarterCard,
+  ApplySummaryCard,
+  ApplyVisitsCard,
+} from "@/components/admissions/apply-dashboard/garden/ApplyRailCards";
+import {
+  enrolledCelebrationStorageKey,
+  useApplyDashboardModel,
+  type BookingTarget,
+} from "@/components/admissions/apply-dashboard/useApplyDashboardModel";
+import ParentGardenFrame from "@/components/school-parent/garden/ParentGardenFrame";
+import ParentGardenPageHeader from "@/components/school-parent/garden/ParentGardenPageHeader";
+import { useCelebrate } from "@/components/school-parent/garden/motion";
+import { gBtnOutlineSm } from "@/components/school-parent/garden/ui";
+import NavigationLink from "@/components/school/shared/NavigationLink";
 import type { EnrollmentAgreementAmendmentBannerItem } from "@/lib/admissions/enrollment-agreement-amendment-banner";
 import type { EnrollmentAgreementIncompleteBannerItem } from "@/lib/admissions/enrollment-agreement-incomplete-banner";
-import {
-  type FamilyApplication,
-  type FamilyUserProfile,
+import type {
+  ApplicationPostSubmitTask,
+  FamilyApplication,
+  FamilyUserProfile,
 } from "@/lib/admissions/parent-portal-access";
 import type { EnrollmentProgressSummary } from "@/lib/admissions/enrollment-checklist-materialization";
-import { formatInstantInTimezone, formatScheduledVisitWhenLabel } from "@/lib/admissions/admissions-availability";
 import type { FamilyScheduledVisit } from "@/lib/admissions/family-tour-booking";
-import { POST_SUBMIT_ACTION_TEMPLATES } from "@/lib/admissions/post-submit-templates";
-import { fireEnrollmentConfetti } from "@/lib/enrollment-confetti";
 import {
   buildParentThemeTokens,
   parentThemeToAdminCompat,
 } from "@/lib/organization-settings/parent-theme";
+import { PORTAL_HOME_CONTAINER_CLASS } from "@/lib/portal-home/layout";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { ShadowDaySchedulingMode } from "@/lib/admissions/admissions-org-settings";
 import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
+
+/*
+ * Apply dashboard ("Your applications") in the parent Garden design.
+ * Skill: `.claude/skills/parent-portal-garden-design`.
+ * Order: header → enrolled welcome → [next step, applications, required
+ * actions | visits, at a glance, parent portal]. The booking dialog is
+ * portalled (GDialog) and shared by the next-step strip and the steps.
+ */
 
 type ApplyDashboardProps = {
   branding: OrganizationBranding;
@@ -62,141 +82,10 @@ type ApplyDashboardProps = {
   suppressHelpFab?: boolean;
 };
 
-function formatApplicationDate(
-  value: string | null,
-  timezone: string,
-): string | null {
-  if (!value) return null;
-  return formatInstantInTimezone(value, timezone);
-}
-
-function displayApplicationStatus(
-  application: FamilyApplication,
-  enrollmentProgress?: EnrollmentProgressSummary,
-): string {
-  if (application.status === "enrolled") return "enrolled";
-  if (
-    application.status === "enrolling" &&
-    enrollmentProgress?.checklistStatus === "completed"
-  ) {
-    return "enrolled";
-  }
-  return application.status;
-}
-
-function isEnrollmentComplete(
-  application: FamilyApplication,
-  enrollmentProgress?: EnrollmentProgressSummary,
-): boolean {
-  return displayApplicationStatus(application, enrollmentProgress) === "enrolled";
-}
-
-function applicationAction(
-  application: FamilyApplication,
-  schoolSlug: string,
-  enrollmentProgress?: EnrollmentProgressSummary,
-  previewBasePath?: string,
-): { label: string; href: string } {
-  if (application.status === "draft" && application.publicSlug) {
-    if (previewBasePath) {
-      return {
-        label: "View draft",
-        href: `${previewBasePath}/apply/${application.id}`,
-      };
-    }
-    return {
-      label: "Continue",
-      href: `/school/${schoolSlug}/forms/${application.publicSlug}`,
-    };
-  }
-
-  if (
-    application.status === "enrolled" ||
-    isEnrollmentComplete(application, enrollmentProgress)
-  ) {
-    const firstName = application.studentName?.split(" ")[0] ?? "enrollment";
-    return {
-      label: `View ${firstName}'s enrollment`,
-      href: previewBasePath
-        ? `${previewBasePath}/apply/${application.id}/enrollment`
-        : `/school/${schoolSlug}/apply/${application.id}/enrollment`,
-    };
-  }
-
-  if (application.status === "enrolling") {
-    const hasStarted = (enrollmentProgress?.completed ?? 0) > 0;
-    return {
-      label: hasStarted ? "Continue enrollment" : "Start enrollment",
-      href: previewBasePath
-        ? `${previewBasePath}/apply/${application.id}/enrollment`
-        : `/school/${schoolSlug}/apply/${application.id}/enrollment`,
-    };
-  }
-
-  return {
-    label: "View application",
-    href: previewBasePath
-      ? `${previewBasePath}/apply/${application.id}`
-      : `/school/${schoolSlug}/apply/${application.id}`,
-  };
-}
-
-function applicationSideStatusText(
-  application: FamilyApplication,
-  statusForDisplay: string,
-  enrollmentProgress?: EnrollmentProgressSummary,
-): string {
-  if (statusForDisplay === "enrolled") {
-    return "Enrollment complete";
-  }
-  if (application.status === "enrolling") {
-    if (enrollmentProgress && enrollmentProgress.total > 0) {
-      return `${enrollmentProgress.completed} of ${enrollmentProgress.total} checklist items`;
-    }
-    return "Enrollment in progress";
-  }
-  if (application.status === "draft") {
-    return "In progress";
-  }
-  if (
-    statusForDisplay === "submitted" ||
-    statusForDisplay === "under_review" ||
-    statusForDisplay === "observation" ||
-    statusForDisplay === "fee_pending"
-  ) {
-    return "Under review";
-  }
-  if (statusForDisplay === "accepted") {
-    return "Accepted — enrollment coming";
-  }
-  return applicationStatusFallbackSide(statusForDisplay);
-}
-
-function applicationStatusFallbackSide(status: string): string {
-  switch (status) {
-    case "declined":
-      return "Application declined";
-    case "withdrawn":
-      return "Application withdrawn";
-    default:
-      return "Application on file";
-  }
-}
-
-function familyKickerLabel(displayName: string): string {
-  const parts = displayName.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return `The ${parts[parts.length - 1]} family`;
-  }
-  if (parts.length === 1) {
-    return `The ${parts[0]} family`;
-  }
-  return "Your family";
-}
-
-function enrolledCelebrationStorageKey(schoolSlug: string) {
-  return `apply-dashboard-enrolled-celebration-v2:${schoolSlug}`;
-}
+const EMPTY_AMENDMENTS: EnrollmentAgreementAmendmentBannerItem[] = [];
+const EMPTY_INCOMPLETE: EnrollmentAgreementIncompleteBannerItem[] = [];
+const EMPTY_VISITS: FamilyScheduledVisit[] = [];
+const EMPTY_PORTALS: SchoolPortalOption[] = [];
 
 export default function ApplyDashboard({
   branding,
@@ -206,7 +95,7 @@ export default function ApplyDashboard({
   timezone,
   applications,
   applicationsWithTasks,
-  upcomingCampusTours = [],
+  upcomingCampusTours = EMPTY_VISITS,
   showScheduleTourCta = false,
   scheduleTourLabel,
   scheduleTourDescription,
@@ -214,10 +103,10 @@ export default function ApplyDashboard({
   parentPortalEnabled,
   parentPortalHref,
   enrollmentProgressByApplicationId,
-  enrollmentAmendmentBannerItems = [],
-  enrollmentIncompleteBannerItems = [],
+  enrollmentAmendmentBannerItems = EMPTY_AMENDMENTS,
+  enrollmentIncompleteBannerItems = EMPTY_INCOMPLETE,
   userProfile,
-  portalOptions = [],
+  portalOptions = EMPTY_PORTALS,
   openPortalLinksInNewTab = false,
   previewMode = false,
   previewBasePath,
@@ -233,30 +122,28 @@ export default function ApplyDashboard({
       : portalOptions
     : portalOptions;
   const theme = useMemo(() => buildParentThemeTokens(branding), [branding]);
-  const adminCompat = useMemo(
-    () => parentThemeToAdminCompat(theme),
-    [theme],
-  );
+  const adminCompat = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
   const previewHomeHref = previewBasePath ?? undefined;
+  const [bookingTarget, setBookingTarget] = useState<BookingTarget | null>(null);
 
-  const allApplicationsEnrolled =
-    applications.length > 0 &&
-    applications.every((application) =>
-      isEnrollmentComplete(
-        application,
-        enrollmentProgressByApplicationId[application.id],
-      ),
-    );
-
-  const headerKicker = allApplicationsEnrolled
-    ? "Admissions archive"
-    : familyKickerLabel(userProfile.displayName);
-  const headerTitle = allApplicationsEnrolled
-    ? "Your family's applications"
-    : "Your applications";
-  const headerSubtitle = allApplicationsEnrolled
-    ? "These applications are complete. You can revisit enrollment details whenever you need them."
-    : `Track submitted applications and continue drafts for ${schoolName}.`;
+  const model = useApplyDashboardModel({
+    schoolName,
+    schoolSlug,
+    timezone,
+    applications,
+    applicationsWithTasks,
+    showScheduleTourCta,
+    scheduleTourLabel,
+    scheduleTourDescription,
+    hasEnrolledAccess,
+    parentPortalEnabled,
+    parentPortalHref,
+    enrollmentProgressByApplicationId,
+    enrollmentAmendmentBannerItems,
+    enrollmentIncompleteBannerItems,
+    userProfile,
+    previewBasePath,
+  });
 
   useEffect(() => {
     if (!focusApplicationId || typeof window === "undefined") return;
@@ -264,28 +151,57 @@ export default function ApplyDashboard({
     element?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [focusApplicationId]);
 
-  useEffect(() => {
-    if (previewMode || !hasEnrolledAccess) return;
-    if (typeof window === "undefined") return;
-    const storageKey = enrolledCelebrationStorageKey(schoolSlug);
-    if (sessionStorage.getItem(storageKey)) return;
+  // Enrollment confetti: once per browser session per school, never in previews.
+  useCelebrate(
+    hasEnrolledAccess && !previewMode,
+    theme,
+    enrolledCelebrationStorageKey(schoolSlug),
+  );
 
-    sessionStorage.setItem(storageKey, "1");
-    fireEnrollmentConfetti();
-  }, [hasEnrolledAccess, previewMode, schoolSlug]);
+  const handleSchedule = useCallback(
+    (applicationId: string, task: ApplicationPostSubmitTask) =>
+      setBookingTarget({ applicationId, task }),
+    [],
+  );
 
-  const scheduleTourHref = previewBasePath
-    ? `${previewBasePath}/apply/schedule-tour`
-    : `/school/${schoolSlug}/apply/schedule-tour`;
-  const scheduleTourTitle =
-    scheduleTourLabel?.trim() ||
-    POST_SUBMIT_ACTION_TEMPLATES.schedule_campus_tour.label;
-  const scheduleTourSubtitle =
-    scheduleTourDescription?.trim() ||
-    POST_SUBMIT_ACTION_TEMPLATES.schedule_campus_tour.defaultInstructions;
+  const scrollToRequiredActions = useCallback(() => {
+    document
+      .getElementById(APPLY_REQUIRED_ACTIONS_ID)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
-  const showPortalStarter =
-    hasEnrolledAccess && parentPortalEnabled && Boolean(parentPortalHref);
+  const requiredTasks = applicationsWithTasks.flatMap((application) =>
+    application.postSubmitTasks.filter((task) => task.required),
+  );
+  const requiredDone = requiredTasks.filter((task) => task.status === "scheduled").length;
+  const hasRequiredSection = applicationsWithTasks.length > 0;
+
+  const hasRows = model.rows.length > 0;
+  const showNextStep = hasRows && !(model.showPortalStarter && model.todos.length === 0);
+  const showVisits = upcomingCampusTours.length > 0 || showScheduleTourCta;
+  const showRail = showVisits || hasRows || model.showPortalStarter;
+
+  const header = (
+    <ParentGardenPageHeader
+      kicker={model.header.kicker}
+      title={model.header.title}
+      subtitle={model.header.subtitle}
+      data-testid="apply-dashboard-header"
+      actions={
+        previewMode ? (
+          <span aria-disabled="true" className={`${gBtnOutlineSm} w-full cursor-not-allowed whitespace-nowrap opacity-50 sm:w-auto`}>
+            <Plus className="h-4 w-4 shrink-0" aria-hidden />
+            New application
+          </span>
+        ) : (
+          <NavigationLink href={model.newApplicationHref} className={`${gBtnOutlineSm} w-full whitespace-nowrap sm:w-auto`}>
+            <Plus className="h-4 w-4 shrink-0" aria-hidden />
+            New application
+          </NavigationLink>
+        )
+      }
+    />
+  );
 
   return (
     <ApplyPortalPageShell
@@ -301,240 +217,100 @@ export default function ApplyDashboard({
       previewMode={previewMode}
       previewHomeHref={previewHomeHref}
       suppressHelpFab={suppressHelpFab}
+      toasterAppearance="garden"
+      fullBleed
     >
-      <div className="flex flex-col gap-7">
-        {showPortalStarter && parentPortalHref ? (
-          <ApplyEnrolledCelebrationCard
-            theme={theme}
-            schoolName={schoolName}
-            parentPortalHref={parentPortalHref}
-          />
-        ) : null}
+      <ParentGardenFrame theme={theme} className="!min-h-[calc(100dvh-72px)] bg-[var(--sf-cream)]">
+        <div className={`${PORTAL_HOME_CONTAINER_CLASS} pb-28`}>
+          {header}
 
-        {enrollmentAmendmentBannerItems.length > 0 ||
-        enrollmentIncompleteBannerItems.length > 0 ? (
-          <EnrollmentAgreementAmendmentBanner
-            C={adminCompat}
-            items={enrollmentAmendmentBannerItems}
-            incompleteItems={enrollmentIncompleteBannerItems}
-          />
-        ) : null}
+          {model.showPortalStarter && parentPortalHref ? (
+            <ApplyEnrolledCard
+              index={1}
+              schoolName={schoolName}
+              parentPortalHref={parentPortalHref}
+              primary={model.todos.length === 0}
+            />
+          ) : null}
 
-        {upcomingCampusTours.length > 0 ? (
-          <motion.section
-            custom={1}
-            initial="hidden"
-            animate="visible"
-            variants={applyDashboardFadeUp}
+          <div
+            className={`grid items-start gap-5 ${showRail ? "lg:grid-cols-[1.55fr_1fr]" : ""}`}
           >
-            <h2
-              className="text-lg font-semibold"
-              style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
-            >
-              Upcoming visits
-            </h2>
-            <div className="mt-4 space-y-3">
-              {upcomingCampusTours.map((visit) => {
-                const whenLabel = formatScheduledVisitWhenLabel({
-                  schedulingMode: visit.schedulingMode,
-                  scheduledDate: visit.scheduledDate,
-                  startTimeSlot: visit.startTimeSlot,
-                  durationMinutes: visit.durationMinutes,
-                });
+            <div className="flex min-w-0 flex-col gap-5">
+              {showNextStep ? (
+                <ApplyNextStepCard
+                  index={2}
+                  todos={model.todos}
+                  requiredDone={requiredDone}
+                  requiredTotal={requiredTasks.length}
+                  onBook={setBookingTarget}
+                  onSeeAllSteps={hasRequiredSection ? scrollToRequiredActions : undefined}
+                />
+              ) : null}
 
-                return (
-                  <ParentCard key={visit.id} theme={theme} className="!p-5">
-                    <h3
-                      className="text-base font-semibold"
-                      style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
-                    >
-                      {visit.title}
-                    </h3>
-                    <p className="mt-1 text-sm" style={{ color: theme.muted }}>
-                      {whenLabel}
-                    </p>
-                  </ParentCard>
-                );
-              })}
+              <ApplyApplicationsCard
+                index={3}
+                rows={model.rows}
+                schoolName={schoolName}
+                hasUpcomingVisits={upcomingCampusTours.length > 0}
+                startApplicationHref={model.startApplicationHref}
+                previewMode={previewMode}
+                focusApplicationId={focusApplicationId}
+              />
+
+              {hasRequiredSection ? (
+                <ApplyRequiredActionsSection
+                  index={4}
+                  applications={applicationsWithTasks}
+                  onSchedule={handleSchedule}
+                />
+              ) : null}
             </div>
-          </motion.section>
-        ) : null}
 
-        {showScheduleTourCta ? (
-          <motion.section
-            custom={2}
-            initial="hidden"
-            animate="visible"
-            variants={applyDashboardFadeUp}
-          >
-            <ParentCard theme={theme} className="!p-5">
-              <div className="flex flex-col gap-4 showcase:flex-row showcase:items-center showcase:justify-between sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex min-w-0 items-start gap-3">
-                  <div
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
-                    style={{ backgroundColor: theme.warningBg, color: theme.warning }}
-                  >
-                    <Building2 className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <h2
-                      className="text-base font-semibold"
-                      style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
-                    >
-                      {scheduleTourTitle}
-                    </h2>
-                    <p className="mt-1 text-sm leading-relaxed" style={{ color: theme.muted }}>
-                      {scheduleTourSubtitle}
-                    </p>
-                  </div>
-                </div>
-                {previewMode ? (
-                  <span
-                    aria-disabled="true"
-                    className="inline-flex shrink-0 cursor-not-allowed items-center justify-center rounded-[10px] px-[15px] py-[11px] text-[13px] font-bold text-white opacity-50"
-                    style={{ backgroundColor: theme.primary }}
-                  >
-                    Schedule tour
-                  </span>
-                ) : (
-                  <ParentButtonLink
-                    theme={theme}
-                    href={scheduleTourHref}
-                    variant="primary"
-                    className="w-full shrink-0 sm:w-auto"
-                  >
-                    Schedule tour
-                  </ParentButtonLink>
-                )}
-              </div>
-            </ParentCard>
-          </motion.section>
-        ) : null}
-
-        <motion.section
-          custom={3}
-          initial="hidden"
-          animate="visible"
-          variants={applyDashboardFadeUp}
-          className="flex flex-col gap-5"
-        >
-          <ApplyDashboardStoryHeader
-            theme={theme}
-            kicker={headerKicker}
-            title={headerTitle}
-            subtitle={headerSubtitle}
-            schoolSlug={schoolSlug}
-            previewMode={previewMode}
-          />
-
-          {applications.length === 0 ? (
-            <ParentCard theme={theme} className="px-6 py-10 text-center">
-              <FileText className="mx-auto h-8 w-8" style={{ color: theme.primary }} />
-              <h2
-                className="mt-4 text-lg font-semibold"
-                style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
-              >
-                No applications yet
-              </h2>
-              <p className="mt-2 text-sm leading-relaxed" style={{ color: theme.muted }}>
-                {upcomingCampusTours.length > 0
-                  ? `When you're ready, start your application to ${schoolName}.`
-                  : `Start an application to apply to ${schoolName}.`}
-              </p>
-              {previewMode ? (
-                <span
-                  aria-disabled="true"
-                  className="mt-6 inline-flex cursor-not-allowed items-center justify-center rounded-[10px] px-[15px] py-[11px] text-[13px] font-bold text-white opacity-50"
-                  style={{ backgroundColor: theme.primary }}
-                >
-                  Start application
-                </span>
-              ) : (
-                <ParentButtonLink
-                  theme={theme}
-                  href={`/school/${schoolSlug}/forms/apply`}
-                  variant="primary"
-                  className="mt-6 inline-flex w-auto"
-                >
-                  Start application
-                </ParentButtonLink>
-              )}
-            </ParentCard>
-          ) : (
-            <div className="space-y-3.5">
-              {applications.map((application, index) => {
-                const enrollmentProgress =
-                  enrollmentProgressByApplicationId[application.id];
-                const action = applicationAction(
-                  application,
-                  schoolSlug,
-                  enrollmentProgress,
-                  previewBasePath,
-                );
-                const statusForDisplay = displayApplicationStatus(
-                  application,
-                  enrollmentProgress,
-                );
-                const submittedLabel = formatApplicationDate(
-                  application.submittedAt,
-                  timezone,
-                );
-                const createdLabel = formatApplicationDate(
-                  application.createdAt,
-                  timezone,
-                );
-                const dateLabel =
-                  application.status === "draft"
-                    ? createdLabel
-                      ? `Started ${createdLabel}`
-                      : null
-                    : submittedLabel
-                      ? `Submitted ${submittedLabel}`
-                      : null;
-
-                return (
-                  <ApplyApplicationStoryCard
-                    key={application.id}
-                    theme={theme}
-                    adminCompat={adminCompat}
-                    application={application}
-                    action={action}
-                    statusForDisplay={statusForDisplay}
-                    dateLabel={dateLabel}
-                    sideStatusText={applicationSideStatusText(
-                      application,
-                      statusForDisplay,
-                      enrollmentProgress,
-                    )}
-                    index={index}
-                    isFocused={focusApplicationId === application.id}
+            {showRail ? (
+              <div className="flex min-w-0 flex-col gap-5">
+                {showVisits ? (
+                  <ApplyVisitsCard
+                    index={3}
+                    visits={upcomingCampusTours}
+                    showScheduleTourCta={showScheduleTourCta}
+                    scheduleTourTitle={model.scheduleTourTitle}
+                    scheduleTourSubtitle={model.scheduleTourSubtitle}
+                    scheduleTourHref={model.scheduleTourHref}
+                    previewMode={previewMode}
                   />
-                );
-              })}
-            </div>
-          )}
-        </motion.section>
+                ) : null}
+                <ApplySummaryCard
+                  index={4}
+                  applicationCount={model.rows.length}
+                  enrolledCount={model.enrolledCount}
+                  pendingRequiredCount={model.pendingRequiredCount}
+                  onPendingClick={hasRequiredSection ? scrollToRequiredActions : undefined}
+                />
+                {model.showPortalStarter && parentPortalHref ? (
+                  <ApplyPortalStarterCard index={5} parentPortalHref={parentPortalHref} />
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </ParentGardenFrame>
 
-        {applicationsWithTasks.length > 0 ? (
-          <ApplyRequiredActionsSection
-            theme={theme}
-            adminCompat={adminCompat}
-            organizationId={organizationId}
-            timezone={timezone}
-            applications={applicationsWithTasks}
-            onBooked={() => router.refresh()}
-            previewMode={previewMode}
-            shadowDaySchedulingMode={shadowDaySchedulingMode}
-          />
-        ) : null}
-
-        {showPortalStarter && parentPortalHref ? (
-          <ApplyPortalStarterCard
-            theme={theme}
-            parentPortalHref={parentPortalHref}
-          />
-        ) : null}
-      </div>
+      {bookingTarget ? (
+        <PostSubmitBookingModal
+          C={adminCompat}
+          theme={theme}
+          organizationId={organizationId}
+          applicationId={bookingTarget.applicationId}
+          task={bookingTarget.task}
+          timezone={timezone}
+          open={Boolean(bookingTarget)}
+          onClose={() => setBookingTarget(null)}
+          onBooked={() => router.refresh()}
+          previewMode={previewMode}
+          shadowDaySchedulingMode={shadowDaySchedulingMode}
+        />
+      ) : null}
     </ApplyPortalPageShell>
   );
 }

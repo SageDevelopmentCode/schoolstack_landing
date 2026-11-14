@@ -20,16 +20,18 @@ export default function ParentGardenPageHeader({
   subtitle,
   actions,
   className = "",
+  "data-testid": testId,
 }: {
   kicker?: ReactNode;
   title: ReactNode;
   subtitle?: ReactNode;
   actions?: ReactNode;
   className?: string;
+  "data-testid"?: string;
 }) {
   const reduce = useReducedMotion() === true;
   return (
-    <motion.header {...gFade(0, reduce)} className={className}>
+    <motion.header {...gFade(0, reduce)} className={className} data-testid={testId}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           {kicker ? <GKicker className="mb-2">{kicker}</GKicker> : null}

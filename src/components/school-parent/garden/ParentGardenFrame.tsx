@@ -6,16 +6,28 @@ import "@/components/garden/garden.css";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 /**
- * Parent portal "Garden dashboard" scope.
- *
- * Wraps a parent tab's content (never the portal header/nav) in `.sf-garden`
- * with the Garden fonts, and maps the school's accent onto the Garden action
- * tokens so every `--sf-clay*` utility speaks in the school's colour:
+ * Maps the school's accent onto the Garden action tokens so every
+ * `--sf-clay*` utility speaks in the school's colour:
  *
  * - `--sf-clay`        → `theme.primary`      (primary actions, accent words)
  * - `--sf-clay-deep`   → `theme.primaryDark`  (small accent text, dark card)
  * - `--sf-peach`       → accent tint on paper (soft accent backgrounds)
  * - `--sf-accent-wash` → faint accent wash    (hover rows, call-outs)
+ */
+export function gardenScopeStyle(theme: ParentThemeTokens): CSSProperties {
+  return {
+    "--sf-clay": theme.primary,
+    "--sf-clay-deep": theme.primaryDark,
+    "--sf-peach": `color-mix(in srgb, ${theme.primary} 16%, #fffaf4)`,
+    "--sf-accent-wash": `color-mix(in srgb, ${theme.primary} 8%, #fffaf4)`,
+  } as CSSProperties;
+}
+
+/** Classes that turn on the Garden fonts, tokens and parent type reset. */
+export const GARDEN_SCOPE_CLASS = `${gardenFontVariables} sf-garden sf-parent-garden`;
+
+/**
+ * Parent portal "Garden dashboard" scope for a tab's page content.
  *
  * `sf-parent-garden` keeps the Garden type reset working even when the page
  * is rendered inside a marketing `.sf-demo` (see garden.css).
@@ -31,19 +43,42 @@ export default function ParentGardenFrame({
   children: ReactNode;
   className?: string;
 }) {
-  const style = {
-    "--sf-clay": theme.primary,
-    "--sf-clay-deep": theme.primaryDark,
-    "--sf-peach": `color-mix(in srgb, ${theme.primary} 16%, #fffaf4)`,
-    "--sf-accent-wash": `color-mix(in srgb, ${theme.primary} 8%, #fffaf4)`,
-  } as CSSProperties;
   return (
     <div
-      className={`${gardenFontVariables} sf-garden sf-parent-garden min-h-full w-full overflow-x-clip ${className}`}
-      style={style}
+      className={`${GARDEN_SCOPE_CLASS} min-h-full w-full overflow-x-clip ${className}`}
+      style={gardenScopeStyle(theme)}
     >
       {children}
     </div>
+  );
+}
+
+/**
+ * Garden scope for portal chrome (header, nav, popovers): same tokens and
+ * fonts as `ParentGardenFrame`, but it does not stretch to fill its parent
+ * and does not clip overflow (popovers hang off it).
+ */
+export function ParentGardenScope({
+  theme,
+  children,
+  className = "",
+  style,
+  as = "div",
+}: {
+  theme: ParentThemeTokens;
+  children: ReactNode;
+  className?: string;
+  style?: CSSProperties;
+  as?: "div" | "header";
+}) {
+  const Tag = as;
+  return (
+    <Tag
+      className={`${GARDEN_SCOPE_CLASS} ${className}`}
+      style={{ ...gardenScopeStyle(theme), ...style }}
+    >
+      {children}
+    </Tag>
   );
 }
 

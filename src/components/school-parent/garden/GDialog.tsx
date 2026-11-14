@@ -55,7 +55,7 @@ export function GDialog({
   icon?: ReactNode;
   children?: ReactNode;
   footer?: ReactNode;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
   /** Blocks Escape/backdrop close while an action is running. */
   closeDisabled?: boolean;
   initialFocusRef?: React.RefObject<HTMLElement | null>;
@@ -118,7 +118,14 @@ export function GDialog({
 
   if (!isClient) return null;
 
-  const width = size === "lg" ? "sm:max-w-xl" : size === "sm" ? "sm:max-w-sm" : "sm:max-w-md";
+  const width =
+    size === "xl"
+      ? "sm:max-w-3xl"
+      : size === "lg"
+        ? "sm:max-w-xl"
+        : size === "sm"
+          ? "sm:max-w-sm"
+          : "sm:max-w-md";
 
   return createPortal(
     <AnimatePresence>

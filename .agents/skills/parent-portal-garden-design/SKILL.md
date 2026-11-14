@@ -41,6 +41,7 @@ Related skills:
 | `src/components/school-parent/garden/motion.tsx` | `gFade`, `GCountUp`, `useCelebrate`, `PORTAL_EASE` |
 | `src/components/school-parent/garden/ParentGardenPageHeader.tsx` | The page header (the only `h1`) |
 | `src/components/school-parent/ParentHomePage.tsx` | Reference page composition |
+| `src/components/school-parent/header/*` | Garden portal header: `ParentGardenNav`, `ParentGardenMoreMenu`, `ParentGardenProfileMenu`, `ParentGardenPortalSwitcher`, `GardenBellButton`, `GardenHeaderPopover` |
 | `src/components/school-parent/home/garden/*` | Reference sections (§6 recipes) |
 | `src/components/school-parent/home/useParentHomeModel.ts` | Pattern for a page view-model hook (derived data + drawer state) |
 | `src/components/garden/garden.css` | Tokens, `.sf-paper`, `.sf-ticket`, `.sf-polaroid`, `.sf-blob`, and the `.sf-parent-garden` type reset |
@@ -72,7 +73,7 @@ return (
 - **Never hard-code Garden clay (`#A05C45`) or a school colour.** Use `var(--sf-clay)` and `var(--sf-clay-deep)`.
 
 **What stays outside the frame**
-- The portal header and nav (`SchoolParentHeader`) keep the portal style. Only the page content is Garden.
+- The portal header and nav (`SchoolParentHeader`) are Garden too, but they use `ParentGardenScope` (same tokens and fonts, no `min-h-full`, no overflow clip) instead of `ParentGardenFrame`. Don't wrap the header in a page frame. See the Header / nav recipe in §6.
 - Drawers, modals and side panels (`ParentOnboardingSidebar`, `ParentDocumentationGuidePanel`, bulletin sidebar/dialogs, billing side panels) render **outside** the frame until they're migrated. Otherwise the Garden type reset restyles their headings.
 
 **Not-yet-migrated blocks inside a page.** Wrap them in `<PortalIsland>`, which keeps the portal's Fraunces/DM Sans. The Home does this for Friday Branch and co-op families (`HomeProgramSections`).
@@ -152,7 +153,7 @@ From `school-parent/garden/GDialog.tsx`:
 - `GDialog`: portalled Garden dialog (own `ParentGardenFrame`, bottom sheet on phones, Escape, focus trap + return). Safe to mount from inside a page frame.
 - `GConfirmDialog`: outline Cancel + one toy confirm (spinner + `aria-busy` while `loading`; `destructive` for deletes/discards).
 
-Toasts: the parent portal mounts `ParentToaster appearance="garden"` (`garden/GardenToaster.tsx`). Call `parentToast.success|error|info(title, { description, action, id })` from `src/lib/school-parent/parent-toast.ts`: title = what happened, description = what it means / what to do next. Teacher and the apply portal keep the story toaster.
+Toasts: the parent portal mounts `ParentToaster appearance="garden"` (`garden/GardenToaster.tsx`). Call `parentToast.success|error|info(title, { description, action, id })` from `src/lib/school-parent/parent-toast.ts`: title = what happened, description = what it means / what to do next. Teacher keeps the story toaster. In the apply portal, `ApplyPortalPageShell toasterAppearance="garden"` turns on Garden toasts (the apply dashboard uses it; form and enrollment pages still use story).
 
 From the shared Garden kit (`@/components/garden/ui`):
 - `Tick` for done states.
@@ -196,7 +197,10 @@ From the shared Garden kit (`@/components/garden/ui`):
 | **Index of help**: category columns of button rows that open a side panel | `HomeLowerCards.tsx` › `HomeGuidesCard` | How-to guides, FAQs |
 | **Legacy block**: `PortalIsland` around an unmigrated component | `HomeLowerCards.tsx` › `HomeProgramSections` | Anything not yet migrated |
 | **Full-height app tab** (exception to §3.2/§3.4): the tab IS the page — full-bleed panes (list \| detail \| xl details rail) with 1.5px ink/10 dividers, no page header (sr-only `h1`), primary actions in the list column header; shared layout hands a view-model to a Garden view via a new variant | `messages/garden/ParentGardenMessagesView.tsx` (`MessagesInboxLayout variant="parent-garden"`) | Inbox-style tabs (committees chat, curriculum discussion) |
-| **Numbered "how it works" steps** with the current step on the accent wash | `messages/garden/GardenThreadPane.tsx` › `StartHere`, `billing/garden/BillingSetupCard.tsx` | First-run / empty detail panes, multi-step flows |
+| **Header / nav**: pill links with an accent pill that glides to the active tab (framer `layoutId`) and `aria-current="page"`; "More" shows the active hidden tab ("More · Photos") and the unread total of hidden tabs; More = pastel icon tiles with arrow-key grid nav and a "How-to guides" footer; account menu = "you" card, radio-style Program rows, account portals, settings links, log out. All popovers use `GardenHeaderPopover` (anchored card from `sm`, bottom sheet on phones, Escape + focus return, `[data-roving]` arrow keys, `[data-autofocus]` start item) | `school-parent/header/*` | Any portal chrome menu or switcher |
+| **Notifications drawer**: `GSidePanel` (with `bodyRef` as the infinite-scroll root and a `headerAside` status chip: "N new" → "✓ Marked as read", or the preview chip); rows grouped under sticky "Today / Yesterday / Earlier this week / Earlier" kickers; newest N rows (the bell count at open) get a "New" dot + chip; each row ends with the notification's own `ctaLabel` →; caught-up state on mint; dashed "That's everything…" end line; footer link to notification settings | `ParentActivityNotificationsPanel.tsx`, `ParentActivityNotificationRow.tsx` | Any activity/feed drawer |
+| **Numbered "how it works" steps** with the current step on the accent wash | `messages/garden/GardenThreadPane.tsx` › `StartHere`, `billing/garden/BillingSetupCard.tsx`, `admissions/PostSubmitStepCard.tsx` | First-run / empty detail panes, multi-step flows |
+| **Journey stepper**: 5 ticked dots joined by a line, reached stages in accent (forest when complete), labels under it from `sm` | `admissions/apply-dashboard/garden/ApplyJourneySteps.tsx` | Status pipelines (applications, enrollment) |
 
 ## 7. Migrating a tab (checklist)
 

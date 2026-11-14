@@ -215,7 +215,7 @@ export default function GardenComposer({
           placeholder={placeholder}
           disabled={readOnly || sending}
           aria-describedby="parent-garden-composer-hint"
-          className="max-h-[110px] min-h-[22px] flex-1 resize-none self-center bg-transparent py-2 text-[16px] font-semibold leading-[22px] text-[var(--sf-ink)] outline-none placeholder:font-semibold placeholder:text-[var(--sf-ink)]/40 disabled:cursor-not-allowed sm:text-[15px]"
+          className="max-h-[110px] min-h-[38px] flex-1 resize-none self-center bg-transparent py-2 text-[16px] font-semibold leading-[22px] text-[var(--sf-ink)] outline-none placeholder:font-semibold placeholder:text-[var(--sf-ink)]/40 disabled:cursor-not-allowed sm:text-[15px]"
         />
         <button
           type="button"

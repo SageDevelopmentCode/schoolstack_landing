@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { Car, Loader2, Trash2, X } from "lucide-react";
-import ParentButton from "@/components/school-parent/ui/ParentButton";
+import { Loader2, Trash2 } from "lucide-react";
+import GSidePanel from "@/components/school-parent/garden/GSidePanel";
+import { GConfirmDialog } from "@/components/school-parent/garden/GDialog";
+import { G_FOCUS, G_INPUT, G_LABEL, gBtnOutlineSm, gBtnPopSm } from "@/components/school-parent/garden/ui";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { formatPhoneNumberInput, stripPhoneDigits } from "@/lib/phone-format";
 
@@ -25,6 +26,8 @@ type ParentPickupContactFormSidebarProps = {
   onClose: () => void;
   onSave: (values: PickupContactFormValues) => void;
   onDelete?: () => void;
+  /** Child's first name for helper copy. */
+  studentFirstName?: string;
 };
 
 function pickupFormTitle(mode: "create" | "edit"): string {
@@ -58,28 +61,35 @@ function arePickupFormValuesEqual(
 }
 
 function FieldLabel({
-  theme,
   htmlFor,
   children,
   required,
+  hint,
 }: {
-  theme: ParentThemeTokens;
   htmlFor: string;
   children: React.ReactNode;
   required?: boolean;
+  hint?: string;
 }) {
   return (
-    <label htmlFor={htmlFor} className="mb-1.5 block text-xs font-bold" style={{ color: theme.ink }}>
+    <label htmlFor={htmlFor} className={G_LABEL}>
       {children}
-      {required ? <span style={{ color: theme.alert }}> *</span> : null}
+      {required ? (
+        <span className="text-[var(--sf-clay-deep)]" aria-hidden="true">
+          {" "}*
+        </span>
+      ) : null}
+      {required ? <span className="sr-only"> (required)</span> : null}
+      {hint ? <span className="mt-0.5 block text-xs font-semibold text-[var(--sf-soft)]">{hint}</span> : null}
     </label>
   );
 }
 
-function inputClassName(): string {
-  return "w-full rounded-lg border px-3 py-2.5 text-sm outline-none focus:ring-2";
-}
-
+/**
+ * Add / edit an authorized pickup contact (Garden drawer). Same values,
+ * dirty check, save and delete callbacks as before; delete and discard ask
+ * first in Garden confirm dialogs.
+ */
 export default function ParentPickupContactFormSidebar({
   theme,
   open,
@@ -90,13 +100,12 @@ export default function ParentPickupContactFormSidebar({
   onClose,
   onSave,
   onDelete,
+  studentFirstName,
 }: ParentPickupContactFormSidebarProps) {
   const [values, setValues] = useState<PickupContactFormValues>(initialValues);
   const [baselineValues, setBaselineValues] = useState<PickupContactFormValues>(initialValues);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
-  const titleId = "parent-pickup-contact-sidebar-title";
-  const discardTitleId = "parent-pickup-discard-dialog-title";
   const title = pickupFormTitle(mode);
 
   useEffect(() => {
@@ -118,6 +127,15 @@ export default function ParentPickupContactFormSidebar({
 
   const requestClose = useCallback(() => {
     if (saving) return;
+    // Escape while a confirm dialog is up closes just that dialog (as before).
+    if (discardDialogOpen) {
+      setDiscardDialogOpen(false);
+      return;
+    }
+    if (confirmDelete) {
+      setConfirmDelete(false);
+      return;
+    }
 
     if (!isDirty) {
       onClose();
@@ -125,24 +143,7 @@ export default function ParentPickupContactFormSidebar({
     }
 
     setDiscardDialogOpen(true);
-  }, [isDirty, onClose, saving]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !saving) {
-        if (discardDialogOpen) {
-          setDiscardDialogOpen(false);
-          return;
-        }
-        requestClose();
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [discardDialogOpen, open, requestClose, saving]);
+  }, [confirmDelete, discardDialogOpen, isDirty, onClose, saving]);
 
   const handleConfirmDiscard = () => {
     setDiscardDialogOpen(false);
@@ -151,305 +152,191 @@ export default function ParentPickupContactFormSidebar({
 
   const canSave =
     values.firstName.trim().length > 0 && values.lastName.trim().length > 0;
+  const childLabel = studentFirstName ? `${studentFirstName}` : "your child";
 
-  const inputStyle: React.CSSProperties = {
-    borderColor: theme.line,
-    backgroundColor: theme.white,
-    color: theme.ink,
+  const submit = () => {
+    if (readOnly || saving || !canSave) return;
+    onSave(values);
   };
 
   return (
-    <AnimatePresence>
-      {open ? (
-        <motion.div
-          className="fixed inset-0 z-[110]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          data-testid="parent-pickup-contact-sidebar"
-        >
-          <div
-            className="absolute inset-0"
-            style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
-            onClick={requestClose}
-            aria-hidden="true"
-          />
-          <motion.aside
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={titleId}
-            initial={{ x: "100%", opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: "100%", opacity: 0 }}
-            transition={{ type: "spring", damping: 28, stiffness: 300 }}
-            className="absolute inset-y-0 right-0 z-[15] flex w-[min(100%,28rem)] max-w-full flex-col overflow-hidden border-l"
-            style={{
-              backgroundColor: theme.white,
-              borderColor: theme.line,
-              boxShadow: theme.shadowCard,
-            }}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div
-              className="flex items-start justify-between gap-3 border-b px-5 py-4"
-              style={{ borderColor: theme.line }}
-            >
-              <div className="flex min-w-0 items-center gap-2.5">
-                <div
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-                  style={{ backgroundColor: theme.primarySoft }}
-                >
-                  <Car className="h-4 w-4" style={{ color: theme.primary }} aria-hidden />
-                </div>
-                <h2 id={titleId} className="text-sm font-semibold" style={{ color: theme.ink }}>
-                  {title}
-                </h2>
-              </div>
+    <>
+      <GSidePanel
+        theme={theme}
+        open={open}
+        title={title}
+        kicker="Authorized pickup"
+        subtitle={`People allowed to pick up ${childLabel}. They do not need a MudKitchen account.`}
+        onClose={requestClose}
+        testId="parent-pickup-contact-sidebar"
+        panelId="parent-pickup-contact-panel"
+        footer={
+          <div className="flex w-full flex-wrap items-center justify-between gap-3">
+            {mode === "edit" && onDelete && !readOnly ? (
               <button
                 type="button"
-                onClick={requestClose}
+                onClick={() => setConfirmDelete(true)}
                 disabled={saving}
-                aria-label="Close"
-                className="border-0 bg-transparent p-0 disabled:opacity-50"
+                className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1.5 text-sm font-extrabold text-[#b42318] hover:bg-[#b42318]/[0.08] disabled:opacity-50 ${G_FOCUS}`}
+                data-testid="parent-pickup-contact-remove"
               >
-                <X className="h-5 w-5" style={{ color: theme.muted }} />
+                <Trash2 className="h-4 w-4" aria-hidden />
+                Remove
+              </button>
+            ) : (
+              <span className="text-xs font-semibold text-[var(--sf-soft)]" aria-live="polite">
+                {!readOnly && !canSave ? "Add a first and last name to save." : ""}
+              </span>
+            )}
+            <div className="ml-auto flex flex-wrap gap-2">
+              <button type="button" className={gBtnOutlineSm} onClick={requestClose} disabled={saving}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={gBtnPopSm}
+                disabled={readOnly || saving || !canSave}
+                aria-busy={saving || undefined}
+                onClick={submit}
+                data-testid="parent-pickup-contact-save"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    Saving…
+                  </>
+                ) : (
+                  "Save contact"
+                )}
               </button>
             </div>
-
-            <div className="flex-1 overflow-y-auto px-5 py-4">
-              <div className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <FieldLabel theme={theme} htmlFor="pickup-first-name" required>
-                      What is their first name?
-                    </FieldLabel>
-                    <input
-                      id="pickup-first-name"
-                      type="text"
-                      value={values.firstName}
-                      onChange={(event) =>
-                        setValues((current) => ({ ...current, firstName: event.target.value }))
-                      }
-                      className={inputClassName()}
-                      style={inputStyle}
-                      disabled={readOnly || saving}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel theme={theme} htmlFor="pickup-last-name" required>
-                      What is their last name?
-                    </FieldLabel>
-                    <input
-                      id="pickup-last-name"
-                      type="text"
-                      value={values.lastName}
-                      onChange={(event) =>
-                        setValues((current) => ({ ...current, lastName: event.target.value }))
-                      }
-                      className={inputClassName()}
-                      style={inputStyle}
-                      disabled={readOnly || saving}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <FieldLabel theme={theme} htmlFor="pickup-relationship">
-                    How are they related to your child?
-                  </FieldLabel>
-                  <input
-                    id="pickup-relationship"
-                    type="text"
-                    value={values.relationship}
-                    onChange={(event) =>
-                      setValues((current) => ({ ...current, relationship: event.target.value }))
-                    }
-                    placeholder="e.g. Grandparent, Nanny"
-                    className={inputClassName()}
-                    style={inputStyle}
-                    disabled={readOnly || saving}
-                  />
-                </div>
-                <div>
-                  <FieldLabel theme={theme} htmlFor="pickup-phone">
-                    What is their phone number?
-                  </FieldLabel>
-                  <input
-                    id="pickup-phone"
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="tel"
-                    value={values.phone}
-                    onChange={(event) =>
-                      setValues((current) => ({
-                        ...current,
-                        phone: formatPhoneNumberInput(event.target.value),
-                      }))
-                    }
-                    className={inputClassName()}
-                    style={inputStyle}
-                    disabled={readOnly || saving}
-                  />
-                </div>
-                <div>
-                  <FieldLabel theme={theme} htmlFor="pickup-notes">
-                    Any notes for school staff?
-                  </FieldLabel>
-                  <textarea
-                    id="pickup-notes"
-                    value={values.notes}
-                    onChange={(event) =>
-                      setValues((current) => ({ ...current, notes: event.target.value }))
-                    }
-                    rows={3}
-                    className={inputClassName()}
-                    style={inputStyle}
-                    disabled={readOnly || saving}
-                  />
-                </div>
-              </div>
+          </div>
+        }
+      >
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            submit();
+          }}
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <FieldLabel htmlFor="pickup-first-name" required>
+                What is their first name?
+              </FieldLabel>
+              <input
+                id="pickup-first-name"
+                type="text"
+                autoComplete="given-name"
+                value={values.firstName}
+                onChange={(event) =>
+                  setValues((current) => ({ ...current, firstName: event.target.value }))
+                }
+                className={G_INPUT}
+                disabled={readOnly || saving}
+              />
             </div>
-
-            <div
-              className="border-t px-5 py-4"
-              style={{ borderColor: theme.line, backgroundColor: theme.paper }}
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap gap-2">
-                  <ParentButton
-                    theme={theme}
-                    variant="primary"
-                    type="button"
-                    disabled={readOnly || saving || !canSave}
-                    onClick={() => onSave(values)}
-                    data-testid="parent-pickup-contact-save"
-                  >
-                    {saving ? (
-                      <>
-                        <Loader2 className="mr-1.5 inline h-4 w-4 animate-spin" aria-hidden />
-                        Saving…
-                      </>
-                    ) : (
-                      "Save contact"
-                    )}
-                  </ParentButton>
-                  <ParentButton
-                    theme={theme}
-                    variant="outline"
-                    type="button"
-                    onClick={requestClose}
-                    disabled={saving}
-                  >
-                    Cancel
-                  </ParentButton>
-                </div>
-
-                {mode === "edit" && onDelete && !readOnly ? (
-                  confirmDelete ? (
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                      <span className="text-xs font-bold" style={{ color: theme.alert }}>
-                        Remove this contact?
-                      </span>
-                      <ParentButton
-                        theme={theme}
-                        variant="outline"
-                        onClick={onDelete}
-                        disabled={saving}
-                        style={{ color: theme.alert, borderColor: theme.alert }}
-                      >
-                        Confirm remove
-                      </ParentButton>
-                      <ParentButton
-                        theme={theme}
-                        variant="soft"
-                        onClick={() => setConfirmDelete(false)}
-                        disabled={saving}
-                      >
-                        Keep
-                      </ParentButton>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmDelete(true)}
-                      className="inline-flex items-center gap-1 border-0 bg-transparent text-xs font-bold"
-                      style={{ color: theme.alert }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                      Remove
-                    </button>
-                  )
-                ) : null}
-              </div>
+            <div>
+              <FieldLabel htmlFor="pickup-last-name" required>
+                What is their last name?
+              </FieldLabel>
+              <input
+                id="pickup-last-name"
+                type="text"
+                autoComplete="family-name"
+                value={values.lastName}
+                onChange={(event) =>
+                  setValues((current) => ({ ...current, lastName: event.target.value }))
+                }
+                className={G_INPUT}
+                disabled={readOnly || saving}
+              />
             </div>
-          </motion.aside>
+          </div>
+          <div>
+            <FieldLabel htmlFor="pickup-relationship">
+              How are they related to your child?
+            </FieldLabel>
+            <input
+              id="pickup-relationship"
+              type="text"
+              value={values.relationship}
+              onChange={(event) =>
+                setValues((current) => ({ ...current, relationship: event.target.value }))
+              }
+              placeholder="e.g. Grandparent, Nanny"
+              className={G_INPUT}
+              disabled={readOnly || saving}
+            />
+          </div>
+          <div>
+            <FieldLabel htmlFor="pickup-phone">
+              What is their phone number?
+            </FieldLabel>
+            <input
+              id="pickup-phone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              value={values.phone}
+              onChange={(event) =>
+                setValues((current) => ({
+                  ...current,
+                  phone: formatPhoneNumberInput(event.target.value),
+                }))
+              }
+              className={G_INPUT}
+              disabled={readOnly || saving}
+            />
+          </div>
+          <div>
+            <FieldLabel htmlFor="pickup-notes">
+              Any notes for school staff?
+            </FieldLabel>
+            <textarea
+              id="pickup-notes"
+              value={values.notes}
+              onChange={(event) =>
+                setValues((current) => ({ ...current, notes: event.target.value }))
+              }
+              rows={3}
+              className={`${G_INPUT} resize-y`}
+              disabled={readOnly || saving}
+            />
+          </div>
+          <button type="submit" hidden tabIndex={-1} aria-hidden="true" />
+        </form>
+      </GSidePanel>
 
-          <AnimatePresence>
-            {discardDialogOpen ? (
-              <motion.div
-                className="fixed inset-0 z-[120] flex items-center justify-center p-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                data-testid="parent-pickup-discard-dialog"
-              >
-                <button
-                  type="button"
-                  aria-label="Close discard dialog"
-                  className="absolute inset-0 border-0"
-                  style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
-                  onClick={() => setDiscardDialogOpen(false)}
-                />
-                <motion.div
-                  role="dialog"
-                  aria-modal="true"
-                  aria-labelledby={discardTitleId}
-                  className="relative w-full max-w-sm rounded-xl border p-5"
-                  style={{
-                    backgroundColor: theme.white,
-                    borderColor: theme.line,
-                    boxShadow: theme.shadowCard,
-                  }}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 12 }}
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  <h3
-                    id={discardTitleId}
-                    className="text-sm font-semibold"
-                    style={{ color: theme.ink }}
-                  >
-                    Unsaved changes
-                  </h3>
-                  <p className="mt-2 text-sm leading-relaxed" style={{ color: theme.muted }}>
-                    You have unsaved changes. If you close now, your changes will be lost.
-                  </p>
-                  <div className="mt-4 flex flex-wrap justify-end gap-2">
-                    <ParentButton
-                      theme={theme}
-                      variant="outline"
-                      type="button"
-                      onClick={() => setDiscardDialogOpen(false)}
-                    >
-                      Keep editing
-                    </ParentButton>
-                    <ParentButton
-                      theme={theme}
-                      variant="outline"
-                      type="button"
-                      onClick={handleConfirmDiscard}
-                      style={{ color: theme.alert, borderColor: theme.alert }}
-                    >
-                      Discard changes
-                    </ParentButton>
-                  </div>
-                </motion.div>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
+      <GConfirmDialog
+        theme={theme}
+        open={open && confirmDelete}
+        title="Remove this contact?"
+        description={`${[values.firstName, values.lastName].filter(Boolean).join(" ") || "This person"} will no longer be on ${childLabel}'s authorized pickup list.`}
+        confirmLabel="Remove"
+        loadingLabel="Removing…"
+        destructive
+        loading={saving}
+        onConfirm={() => onDelete?.()}
+        onClose={() => {
+          if (!saving) setConfirmDelete(false);
+        }}
+        data-testid="parent-pickup-remove-confirm"
+      />
+
+      <GConfirmDialog
+        theme={theme}
+        open={open && discardDialogOpen}
+        title="Unsaved changes"
+        description="You have unsaved changes. If you close now, your changes will be lost."
+        confirmLabel="Discard changes"
+        cancelLabel="Keep editing"
+        destructive
+        onConfirm={handleConfirmDiscard}
+        onClose={() => setDiscardDialogOpen(false)}
+        data-testid="parent-pickup-discard-dialog"
+      />
+    </>
   );
 }

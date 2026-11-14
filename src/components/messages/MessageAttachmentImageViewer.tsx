@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import {
@@ -39,23 +40,60 @@ export default function MessageAttachmentImageViewer({
 
   const showCarousel = previewableAttachments.length > 1;
 
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const [isClient, setIsClient] = useState(false);
+  const latest = useRef({ onClose, onChangeIndex, activeIndex, count: previewableAttachments.length });
+  useEffect(() => {
+    latest.current = { onClose, onChangeIndex, activeIndex, count: previewableAttachments.length };
+  });
+
+  useEffect(() => {
+    queueMicrotask(() => setIsClient(true));
+  }, []);
+
   useEffect(() => {
     if (!open) return;
 
+    // Focus moves into the viewer and returns to the image that opened it.
+    const opener = document.activeElement as HTMLElement | null;
+    const focusTimer = window.setTimeout(() => closeRef.current?.focus(), 30);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
     const handleKeyDown = (event: KeyboardEvent) => {
+      const { onClose: close, onChangeIndex: change, activeIndex: index, count } = latest.current;
       if (event.key === "Escape") {
-        onClose();
+        event.stopPropagation();
+        close();
+      } else if (count > 1 && event.key === "ArrowRight") {
+        event.preventDefault();
+        change((index + 1) % count);
+      } else if (count > 1 && event.key === "ArrowLeft") {
+        event.preventDefault();
+        change((index - 1 + count) % count);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.clearTimeout(focusTimer);
+      document.body.style.overflow = previousOverflow;
+      if (opener && document.contains(opener)) opener.focus({ preventScroll: true });
+    };
+  }, [open]);
 
-  return (
+  // Portalled to <body> so no transformed / clipping ancestor (animated chat
+  // rows, scroll panes) can trap the fixed overlay.
+  if (!isClient) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && activeAttachment?.url ? (
         <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Image: ${activeAttachment.fileName}`}
           className="fixed inset-0 z-[120] flex flex-col"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -83,9 +121,10 @@ export default function MessageAttachmentImageViewer({
                 </span>
               ) : null}
               <button
+                ref={closeRef}
                 type="button"
                 onClick={onClose}
-                className="rounded-full p-2 text-white transition-colors hover:bg-white/10"
+                className="rounded-full p-2 text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                 aria-label="Close image viewer"
               >
                 <X className="h-5 w-5" />
@@ -137,6 +176,7 @@ export default function MessageAttachmentImageViewer({
           </div>
         </motion.div>
       ) : null}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

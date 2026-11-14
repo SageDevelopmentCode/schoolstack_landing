@@ -1,16 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Car, Loader2, Plus } from "lucide-react";
+import { Car, Copy, Plus } from "lucide-react";
 import { formatAuthorizedPickupContactName } from "@/lib/authorized-pickup/map-row";
 import type { AuthorizedPickupContact } from "@/lib/authorized-pickup/types";
 import { parentToast } from "@/lib/school-parent/parent-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import ParentPickupContactCard from "@/components/school-parent/pickup/ParentPickupContactCard";
-import ParentButton from "@/components/school-parent/ui/ParentButton";
-import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
-import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
-import ParentTextLink from "@/components/school-parent/ui/ParentTextLink";
+import { GConfirmDialog } from "@/components/school-parent/garden/GDialog";
+import { GChip, GIcon, GSkeleton, gBtnOutlineSm, gBtnPopSm, gLinkSm } from "@/components/school-parent/garden/ui";
 import ParentPickupContactFormSidebar, {
   type PickupContactFormValues,
 } from "@/components/school-parent/pickup/ParentPickupContactFormSidebar";
@@ -52,6 +50,7 @@ export default function ParentChildPickupTab({
   const [saving, setSaving] = useState(false);
   const [formState, setFormState] = useState<FormState>({ mode: "closed" });
   const [reuseOpen, setReuseOpen] = useState(false);
+  const [pendingRemove, setPendingRemove] = useState<AuthorizedPickupContact | null>(null);
 
   const loadContacts = useCallback(async (options: { silent?: boolean } = {}) => {
     if (!options.silent) {
@@ -173,8 +172,15 @@ export default function ParentChildPickupTab({
         throw new Error(body?.error ?? "Failed to save authorized pickup contact.");
       }
 
+      const savedName = [formValues.firstName.trim(), formValues.lastName.trim()].filter(Boolean).join(" ");
       parentToast.success(
         formState.mode === "edit" ? "Pickup contact updated." : "Pickup contact added.",
+        {
+          description:
+            formState.mode === "edit"
+              ? `${savedName}'s details are saved.`
+              : `${savedName} is on ${studentFirstName}'s authorized pickup list.`,
+        },
       );
       closeForm();
       await loadContacts();
@@ -206,7 +212,9 @@ export default function ParentChildPickupTab({
         throw new Error(body?.error ?? "Failed to remove authorized pickup contact.");
       }
 
-      parentToast.success("Pickup contact removed.");
+      parentToast.success("Pickup contact removed.", {
+        description: `${formatAuthorizedPickupContactName(formState.contact)} is no longer on ${studentFirstName}'s list.`,
+      });
       closeForm();
       await loadContacts();
     } catch (error) {
@@ -223,15 +231,14 @@ export default function ParentChildPickupTab({
     }
   };
 
-  const handleQuickDelete = async (contact: AuthorizedPickupContact) => {
+  const handleQuickDelete = (contact: AuthorizedPickupContact) => {
     if (readOnly) return;
-    if (
-      !window.confirm(
-        `Remove ${formatAuthorizedPickupContactName(contact)} from the authorized pickup list?`,
-      )
-    ) {
-      return;
-    }
+    setPendingRemove(contact);
+  };
+
+  const confirmQuickDelete = async () => {
+    const contact = pendingRemove;
+    if (readOnly || !contact) return;
 
     setSaving(true);
     try {
@@ -244,7 +251,10 @@ export default function ParentChildPickupTab({
         throw new Error(body?.error ?? "Failed to remove authorized pickup contact.");
       }
 
-      parentToast.success("Pickup contact removed.");
+      parentToast.success("Pickup contact removed.", {
+        description: `${formatAuthorizedPickupContactName(contact)} is no longer on ${studentFirstName}'s list.`,
+      });
+      setPendingRemove(null);
       await loadContacts();
     } catch (error) {
       parentToast.error(
@@ -265,101 +275,94 @@ export default function ParentChildPickupTab({
   const hasReuseOptions = reuseOptions.some((group) => group.contacts.length > 0);
 
   return (
-    <div className="space-y-5" data-testid="parent-child-pickup-tab">
-      <div
-        className="flex flex-col gap-4 rounded-2xl border px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"
-        style={{ borderColor: theme.line, backgroundColor: theme.white }}
-      >
-        <div>
-          <ParentSectionKicker theme={theme}>Authorized pickup</ParentSectionKicker>
-          <ParentDisplayHeading theme={theme} as="h3" size="section" className="!mt-2 !text-[1.05rem]">
-            Who can pick up {studentFirstName}?
-          </ParentDisplayHeading>
-          <p className="m-0 mt-1 text-xs leading-relaxed" style={{ color: theme.muted }}>
-            People allowed to pick up your child. They do not need a MudKitchen account.
-            {contacts.length > 0 ? ` ${contacts.length} contacts on file.` : ""}
-          </p>
+    <div className="flex flex-col gap-4" data-testid="parent-child-pickup-tab">
+      <div className="flex flex-col gap-4 rounded-[18px] bg-[var(--sf-accent-wash)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <GIcon size="md">
+            <Car />
+          </GIcon>
+          <div className="min-w-0">
+            <h3 className="m-0 text-[17px] font-extrabold text-[var(--sf-ink)]">
+              Who can pick up {studentFirstName}?
+            </h3>
+            <p className="m-0 mt-0.5 text-[13px] font-semibold leading-relaxed text-[var(--sf-ink)]/70">
+              People allowed to pick up your child. They do not need a MudKitchen account.
+            </p>
+            {!loading && contacts.length > 0 ? (
+              <GChip tone="info" className="mt-2">
+                {contacts.length} {contacts.length === 1 ? "contact" : "contacts"} on file
+              </GChip>
+            ) : null}
+          </div>
         </div>
         {!readOnly ? (
-          <div className="flex flex-wrap gap-2 self-start">
-            <ParentButton
-              theme={theme}
-              variant="primary"
+          <div className="flex shrink-0 flex-wrap gap-2 self-start sm:self-center">
+            {hasReuseOptions ? (
+              <button
+                type="button"
+                className={`${gBtnOutlineSm} whitespace-nowrap`}
+                onClick={() => setReuseOpen(true)}
+                disabled={saving}
+                data-testid="parent-pickup-reuse-open"
+              >
+                <Copy className="h-4 w-4" aria-hidden />
+                Reuse from another child
+              </button>
+            ) : null}
+            <button
               type="button"
+              className={`${gBtnPopSm} whitespace-nowrap`}
               onClick={openCreateForm}
               disabled={saving}
-              className="inline-flex items-center gap-1.5"
               data-testid="parent-pickup-add-contact"
             >
               <Plus className="h-4 w-4" aria-hidden />
               Add contact
-            </ParentButton>
-            {hasReuseOptions ? (
-              <ParentButton
-                theme={theme}
-                variant="outline"
-                type="button"
-                onClick={() => setReuseOpen(true)}
-                disabled={saving}
-                className="inline-flex items-center gap-1.5"
-                data-testid="parent-pickup-reuse-open"
-              >
-                Reuse from another child
-              </ParentButton>
-            ) : null}
+            </button>
           </div>
         ) : null}
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-5 w-5 animate-spin" style={{ color: theme.primary }} />
+        <div className="grid gap-3 sm:grid-cols-2" aria-busy="true" aria-label="Loading pickup contacts">
+          <GSkeleton className="h-28 !rounded-[18px]" />
+          <GSkeleton className="h-28 !rounded-[18px]" />
         </div>
       ) : contacts.length === 0 ? (
-        <div
-          className="rounded-lg border px-4 py-5 sm:px-5"
-          style={{ borderColor: theme.line, backgroundColor: theme.white }}
-        >
-          <div className="flex items-start gap-3">
-            <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px]"
-              style={{ backgroundColor: theme.primarySoft }}
-            >
-              <Car className="h-4 w-4" style={{ color: theme.primary }} aria-hidden />
-            </div>
-            <div className="min-w-0">
-              <p className="m-0 text-sm font-semibold" style={{ color: theme.ink }}>
-                No authorized pickup contacts yet
-              </p>
-              <p className="m-0 mt-1 text-xs leading-relaxed" style={{ color: theme.muted }}>
-                Add grandparents, nannies, or other trusted adults who can pick up your child.
-              </p>
-              {!readOnly ? (
-                <ParentTextLink
-                  theme={theme}
-                  onClick={openCreateForm}
-                  className="mt-3 !text-xs"
-                >
-                  Add contact
-                </ParentTextLink>
-              ) : null}
-            </div>
+        <div className="flex flex-col items-start gap-3 rounded-[18px] border-[1.5px] border-dashed border-[var(--sf-ink)]/15 bg-[var(--sf-sky)]/50 px-5 py-6 sm:flex-row sm:items-center">
+          <GIcon size="md">
+            <Car />
+          </GIcon>
+          <div className="min-w-0 flex-1">
+            <p className="m-0 text-[15px] font-extrabold text-[var(--sf-ink)]">
+              No authorized pickup contacts yet
+            </p>
+            <p className="m-0 mt-1 text-[13px] font-semibold leading-relaxed text-[var(--sf-ink)]/70">
+              Add grandparents, nannies, or other trusted adults who can pick up your child.
+            </p>
           </div>
+          {!readOnly ? (
+            <button type="button" className={gLinkSm} onClick={openCreateForm}>
+              <Plus className="h-3.5 w-3.5" aria-hidden />
+              Add contact
+            </button>
+          ) : null}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {contacts.map((contact) => (
+        <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2">
+          {contacts.map((contact, index) => (
             <ParentPickupContactCard
               key={contact.id}
               theme={theme}
               contact={contact}
+              index={index}
               readOnly={readOnly}
               disabled={saving}
               onEdit={readOnly ? undefined : () => openEditForm(contact)}
-              onRemove={readOnly ? undefined : () => void handleQuickDelete(contact)}
+              onRemove={readOnly ? undefined : () => handleQuickDelete(contact)}
             />
           ))}
-        </div>
+        </ul>
       )}
 
       <ParentPickupContactFormSidebar
@@ -369,6 +372,7 @@ export default function ParentChildPickupTab({
         initialValues={sidebarInitialValues}
         readOnly={readOnly}
         saving={saving}
+        studentFirstName={studentFirstName}
         onClose={closeForm}
         onSave={(values) => void handleSave(values)}
         onDelete={formState.mode === "edit" ? () => void handleDelete() : undefined}
@@ -385,6 +389,26 @@ export default function ParentChildPickupTab({
         saving={saving}
         onClose={() => setReuseOpen(false)}
         onContactAdded={() => loadContacts({ silent: true })}
+      />
+
+      <GConfirmDialog
+        theme={theme}
+        open={pendingRemove !== null}
+        title="Remove this contact?"
+        description={
+          pendingRemove
+            ? `Remove ${formatAuthorizedPickupContactName(pendingRemove)} from the authorized pickup list?`
+            : undefined
+        }
+        confirmLabel="Remove"
+        loadingLabel="Removing…"
+        destructive
+        loading={saving}
+        onConfirm={() => void confirmQuickDelete()}
+        onClose={() => {
+          if (!saving) setPendingRemove(null);
+        }}
+        data-testid="parent-pickup-quick-remove-confirm"
       />
     </div>
   );

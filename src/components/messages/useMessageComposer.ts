@@ -24,6 +24,27 @@ export type MessageFileRejection = {
  * Used by every `MessagesComposeBar` look and the parent Garden composer so
  * the rules live in one place.
  */
+/**
+ * Sizes a composer textarea to its content (up to TEXTAREA_MAX_ROWS). A
+ * composer can mount inside a hidden panel (e.g. a committee section rendered
+ * before it becomes active) where scrollHeight is 0: never pin the height
+ * then; the ResizeObserver re-measures once it is visible.
+ */
+function autoGrowTextarea(textarea: HTMLTextAreaElement) {
+  if (textarea.getClientRects().length === 0) {
+    textarea.style.height = "";
+    return;
+  }
+  textarea.style.height = "auto";
+  const scrollHeight = textarea.scrollHeight;
+  if (scrollHeight === 0) {
+    textarea.style.height = "";
+    return;
+  }
+  const maxHeight = TEXTAREA_LINE_HEIGHT * TEXTAREA_MAX_ROWS;
+  textarea.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
+}
+
 export function useMessageComposer({
   value,
   files,
@@ -90,12 +111,24 @@ export function useMessageComposer({
   );
 
   useEffect(() => {
-    if (!autoGrow || !textareaRef.current) return;
-    const textarea = textareaRef.current;
-    textarea.style.height = "auto";
-    const maxHeight = TEXTAREA_LINE_HEIGHT * TEXTAREA_MAX_ROWS;
-    textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
+    if (autoGrow && textareaRef.current) autoGrowTextarea(textareaRef.current);
   }, [autoGrow, textareaRef, value]);
+
+  // Re-measure when the width changes, including hidden → visible.
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!autoGrow || !textarea || typeof ResizeObserver === "undefined") return;
+    let lastWidth = -1;
+    const observer = new ResizeObserver((entries) => {
+      // Ignore height-only changes (our own writes) so this never loops.
+      const width = entries[0]?.contentRect.width ?? 0;
+      if (width === lastWidth) return;
+      lastWidth = width;
+      autoGrowTextarea(textarea);
+    });
+    observer.observe(textarea);
+    return () => observer.disconnect();
+  }, [autoGrow, textareaRef]);
 
   return {
     fileInputRef,

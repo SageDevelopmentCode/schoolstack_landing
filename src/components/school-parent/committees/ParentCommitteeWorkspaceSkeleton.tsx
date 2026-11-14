@@ -50,11 +50,19 @@ function CalendarSkeleton() {
 function MessagesSkeleton() {
   const bubbles = ["w-[58%]", "ml-auto w-[44%]", "w-[48%]", "ml-auto w-[36%]", "w-[52%]"];
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-3 rounded-[24px] border-[1.5px] border-[var(--sf-ink)]/10 bg-white p-4">
-      {bubbles.map((width, i) => (
-        <GSkeleton key={i} className={`h-12 !rounded-[18px] ${width}`} />
-      ))}
-      <GSkeleton className="mt-4 h-12 !rounded-full" />
+    <div className="flex h-full min-h-[60dvh] flex-1 flex-col bg-white">
+      <div className="flex items-center gap-3 border-b-[1.5px] border-[var(--sf-ink)]/10 px-4 py-3 sm:px-8">
+        <GSkeleton className="h-8 w-8 !rounded-full" />
+        <GSkeleton className="h-5 w-48 !rounded-full" />
+      </div>
+      <div className="flex-1 space-y-3 bg-[var(--sf-paper)] px-4 py-5 sm:px-8">
+        {bubbles.map((width, i) => (
+          <GSkeleton key={i} className={`h-12 max-w-md !rounded-[18px] ${width}`} />
+        ))}
+      </div>
+      <div className="border-t-[1.5px] border-[var(--sf-ink)]/10 px-4 py-3">
+        <GSkeleton className="mx-auto h-12 max-w-[760px] !rounded-full" />
+      </div>
     </div>
   );
 }
