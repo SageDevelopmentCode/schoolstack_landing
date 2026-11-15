@@ -1,49 +1,40 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ChevronRight } from "lucide-react";
-import { SkeletonBlock } from "@/components/school-admin/skeletons";
-import AdminCard from "@/components/school-admin/ui/story/AdminCard";
+import { ChevronRight, Users } from "lucide-react";
+import { GardenEmptyState, GardenLoadError } from "@/components/school-admin/garden/kit";
+import { GardenAvatar } from "@/components/school-admin/garden/blocks";
+import { GCard, GChip, GSkeleton, G_FOCUS } from "@/components/school-parent/garden/ui";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { formatRelativeTime } from "@/lib/school-admin/activity-notifications";
 import type { FridayBranchRecentSignupRow } from "@/lib/school-admin/friday-branch/friday-branch-recent-activity";
-import FridayBranchStatusTag from "./FridayBranchStatusTag";
 
 type FridayBranchRecentActivityProps = {
-  C: AdminThemeTokens;
-  theme: ParentThemeTokens;
+  C?: AdminThemeTokens;
+  theme?: ParentThemeTokens;
   organizationId: string;
   onOpenClass: (classId: string, blockId: string) => void;
 };
 
-function statusTagForSignup(status: FridayBranchRecentSignupRow["status"]) {
-  if (status === "waitlisted") {
-    return <FridayBranchStatusTag label="Waitlisted" variant="amber" />;
-  }
-  return <FridayBranchStatusTag label="Signed up" variant="green" />;
-}
-
-export default function FridayBranchRecentActivity({
-  C,
-  theme,
-  organizationId,
-  onOpenClass,
-}: FridayBranchRecentActivityProps) {
+/** Latest Friday Branch sign-ups (Garden). Rows open the class. */
+export default function FridayBranchRecentActivity({ organizationId, onOpenClass }: FridayBranchRecentActivityProps) {
   const [signups, setSignups] = useState<FridayBranchRecentSignupRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadSignups = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch(
         `/api/school-admin/friday-branch/recent-activity?organizationId=${encodeURIComponent(organizationId)}`,
       );
-      if (!response.ok) return;
-      const payload = (await response.json()) as {
-        signups?: FridayBranchRecentSignupRow[];
-      };
+      if (!response.ok) throw new Error("Recent sign-ups didn't load.");
+      const payload = (await response.json()) as { signups?: FridayBranchRecentSignupRow[] };
       setSignups(payload.signups ?? []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Recent sign-ups didn't load.");
     } finally {
       setLoading(false);
     }
@@ -56,133 +47,60 @@ export default function FridayBranchRecentActivity({
   }, [loadSignups]);
 
   return (
-    <section className="mt-8">
-      <AdminCard theme={theme} padding="none">
-        <header
-          className="border-b px-[18px] py-[17px]"
-          style={{ borderColor: "#EDF1ED" }}
-        >
-          <h2
-            className="font-heading text-xl font-semibold"
-            style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
-          >
-            Recent sign-ups
-          </h2>
-          <p className="mt-0.5 text-[11px]" style={{ color: "#7B898D" }}>
-            Latest family enrollments across all blocks.
-          </p>
-        </header>
-
-        {loading ? (
-          <div className="divide-y" style={{ borderColor: "#EDF1ED" }}>
-            {Array.from({ length: 3 }).map((_, index) => (
-              <div
-                key={index}
-                className="grid gap-3 px-[17px] py-[13px] sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_auto_auto_auto]"
+    <GCard
+      index={3}
+      kicker="Across all blocks"
+      title="Recent sign-ups"
+      action={signups.length > 0 ? <GChip tone="neutral">{signups.length}</GChip> : undefined}
+      data-testid="friday-branch-recent"
+    >
+      {loading ? (
+        <div className="flex flex-col gap-2" role="status" aria-live="polite">
+          <span className="sr-only">Loading recent sign-ups</span>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <GSkeleton key={i} className="h-[56px] !rounded-[14px]" />
+          ))}
+        </div>
+      ) : error ? (
+        <GardenLoadError title="Recent sign-ups didn't load" description={error} onRetry={() => void loadSignups()} />
+      ) : signups.length === 0 ? (
+        <GardenEmptyState
+          icon={Users}
+          title="No sign-ups yet"
+          description="Families will appear here when they enroll in Friday Branch classes."
+        />
+      ) : (
+        <ul className="m-0 flex list-none flex-col gap-1 p-0">
+          {signups.map((signup) => (
+            <li key={signup.enrollmentId}>
+              <button
+                type="button"
+                onClick={() => onOpenClass(signup.classId, signup.blockId)}
+                className={`flex w-full items-center gap-3 rounded-[14px] px-2.5 py-2.5 text-left transition-colors hover:bg-[var(--sf-accent-wash)] ${G_FOCUS} focus-visible:ring-inset`}
+                aria-label={`${signup.studentName} in ${signup.className}. Open class`}
               >
-                <div className="space-y-1.5">
-                  <SkeletonBlock C={C} className="h-3.5 w-28" />
-                  <SkeletonBlock C={C} className="h-2.5 w-20" />
-                </div>
-                <div className="space-y-1.5">
-                  <SkeletonBlock C={C} className="h-3.5 w-36" />
-                  <SkeletonBlock C={C} className="h-2.5 w-16" />
-                </div>
-                <SkeletonBlock C={C} className="h-7 w-14 rounded-[9px]" />
-                <SkeletonBlock C={C} className="h-5 w-16 rounded-full" />
-                <SkeletonBlock C={C} className="h-3 w-10" />
-              </div>
-            ))}
-          </div>
-        ) : signups.length === 0 ? (
-          <div className="px-[18px] py-6 text-sm" style={{ color: theme.muted }}>
-            No sign-ups yet. Families will appear here when they enroll in Friday Branch
-            classes.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] border-collapse">
-              <thead>
-                <tr style={{ backgroundColor: "#FBFCFB" }}>
-                  {["Student", "Class", "Time", "Status", ""].map((label) => (
-                    <th
-                      key={label || "meta"}
-                      className="px-[17px] py-2.5 text-left text-[10px] font-extrabold uppercase tracking-[0.08em]"
-                      style={{ color: "#8B9699" }}
-                    >
-                      {label || <span className="sr-only">When</span>}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {signups.map((signup) => (
-                  <tr
-                    key={signup.enrollmentId}
-                    className="cursor-pointer transition-colors hover:bg-[#F8FCF8]"
-                    onClick={() => onOpenClass(signup.classId, signup.blockId)}
-                  >
-                    <td
-                      className="border-t px-[17px] py-[13px] align-top"
-                      style={{ borderColor: "#EDF1ED" }}
-                    >
-                      <b className="block text-xs" style={{ color: theme.ink }}>
-                        {signup.studentName}
-                      </b>
-                      <span className="mt-0.5 block text-[11px]" style={{ color: theme.muted }}>
-                        {signup.familyName}
-                      </span>
-                    </td>
-                    <td
-                      className="border-t px-[17px] py-[13px] align-top"
-                      style={{ borderColor: "#EDF1ED" }}
-                    >
-                      <b className="block text-xs" style={{ color: theme.ink }}>
-                        {signup.className}
-                      </b>
-                      <span className="mt-0.5 block text-[11px]" style={{ color: theme.muted }}>
-                        {signup.blockLabel}
-                      </span>
-                    </td>
-                    <td
-                      className="border-t px-[17px] py-[13px] align-top"
-                      style={{ borderColor: "#EDF1ED" }}
-                    >
-                      <span
-                        className="inline-block rounded-[9px] px-2 py-1.5 text-[11px] font-extrabold"
-                        style={{ backgroundColor: "#EDF4EE", color: "#315E4F" }}
-                      >
-                        {signup.slotTime || "—"}
-                      </span>
-                    </td>
-                    <td
-                      className="border-t px-[17px] py-[13px] align-top"
-                      style={{ borderColor: "#EDF1ED" }}
-                    >
-                      {statusTagForSignup(signup.status)}
-                    </td>
-                    <td
-                      className="border-t px-[17px] py-[13px] align-top"
-                      style={{ borderColor: "#EDF1ED" }}
-                    >
-                      <div className="flex items-center justify-end gap-2">
-                        <span className="text-[11px] whitespace-nowrap" style={{ color: theme.muted }}>
-                          {formatRelativeTime(signup.updatedAt)}
-                        </span>
-                        <ChevronRight
-                          className="h-3.5 w-3.5 shrink-0"
-                          style={{ color: theme.muted }}
-                          aria-hidden="true"
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </AdminCard>
-    </section>
+                <GardenAvatar name={signup.studentName} size="sm" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[14px] font-extrabold text-[var(--sf-ink)]">
+                    {signup.studentName}
+                    <span className="font-semibold text-[var(--sf-soft)]"> · {signup.familyName}</span>
+                  </span>
+                  <span className="block truncate text-[12.5px] font-semibold text-[var(--sf-soft)]">
+                    {signup.className} · {signup.blockLabel} · {signup.slotTime || "—"}
+                  </span>
+                </span>
+                <GChip tone={signup.status === "waitlisted" ? "warning" : "success"}>
+                  {signup.status === "waitlisted" ? "Waitlisted" : "Signed up"}
+                </GChip>
+                <span className="hidden whitespace-nowrap text-[12px] font-semibold text-[var(--sf-soft)] sm:inline">
+                  {formatRelativeTime(signup.updatedAt)}
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-[var(--sf-ink)]/35" aria-hidden />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </GCard>
   );
 }

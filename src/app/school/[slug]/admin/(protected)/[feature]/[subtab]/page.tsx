@@ -72,7 +72,7 @@ const AdminFormsDocumentsPage = nextDynamic(
 );
 const FridayBranchPage = nextDynamic(
   () => import("@/components/school-admin/friday-branch/FridayBranchPage"),
-  { loading: () => <AdminPageSkeleton label="Loading Friday Branch" /> },
+  { loading: () => <AdminGardenRouteSkeleton label="Loading Friday Branch" layout="table" /> },
 );
 const GardenAttendancePage = nextDynamic(
   () => import("@/components/school-admin/attendance/GardenAttendancePage"),
