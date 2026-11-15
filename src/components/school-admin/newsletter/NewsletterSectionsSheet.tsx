@@ -52,7 +52,7 @@ type NewsletterSectionsSheetProps = {
   activeEdition: NewsletterEdition;
   onClose: () => void;
   onWorkspaceChange: (next: NewsletterWorkspaceState) => void;
-  onToast: (message: string) => void;
+  onToast: (message: string, tone?: "success" | "error" | "info") => void;
 };
 
 export default function NewsletterSectionsSheet({

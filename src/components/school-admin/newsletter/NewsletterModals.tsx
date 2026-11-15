@@ -39,7 +39,7 @@ type NewsletterModalsProps = {
   onWorkspaceChange: (next: NewsletterWorkspaceState) => void;
   onActiveEditionChange: (edition: NewsletterEdition) => void;
   onTemplateChange: (template: NewsletterSchoolTemplate) => void;
-  onToast: (message: string) => void;
+  onToast: (message: string, tone?: "success" | "error" | "info") => void;
   onShowPreview: () => void;
   onExportHtml: () => void;
   onExportText: () => void;
@@ -326,11 +326,13 @@ function PublishBody({
                   notifyFamilies
                     ? "Published — families can read it in the parent portal and were notified."
                     : "Published — families can read it in the parent portal.",
+                  "success",
                 );
               })
               .catch((err: unknown) => {
                 onToast(
                   err instanceof Error ? err.message : "Could not publish this newsletter.",
+                  "error",
                 );
               })
               .finally(() => {
