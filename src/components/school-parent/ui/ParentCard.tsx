@@ -1,5 +1,8 @@
+"use client";
+
 import type { CSSProperties, ReactNode } from "react";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { useAdminGardenSkin } from "@/components/school-admin/garden/skin";
 
 type ParentCardProps = {
   theme: ParentThemeTokens;
@@ -39,6 +42,19 @@ export default function ParentCard({
             };
 
   const showAnnouncementAccent = variant === "announcement";
+  const skin = useAdminGardenSkin();
+
+  if (skin && variant === "default") {
+    return (
+      <div
+        data-testid={dataTestId}
+        className={`relative overflow-hidden rounded-[24px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white p-6 shadow-[0_3px_0_0_rgba(43,36,29,0.08)] ${className}`}
+        style={style}
+      >
+        {children}
+      </div>
+    );
+  }
 
   return (
     <div

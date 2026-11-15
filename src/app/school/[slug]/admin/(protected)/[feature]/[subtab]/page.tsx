@@ -68,7 +68,7 @@ const ClassroomsPage = nextDynamic(
 );
 const AdminFormsDocumentsPage = nextDynamic(
   () => import("@/components/school-admin/forms-documents/AdminFormsDocumentsPage"),
-  { loading: () => <AdminPageSkeleton label="Loading forms" /> },
+  { loading: () => <AdminGardenRouteSkeleton label="Loading forms" layout="table" /> },
 );
 const FridayBranchPage = nextDynamic(
   () => import("@/components/school-admin/friday-branch/FridayBranchPage"),

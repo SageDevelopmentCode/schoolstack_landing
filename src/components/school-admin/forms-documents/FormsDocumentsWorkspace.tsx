@@ -1,52 +1,35 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import type { Variants } from "framer-motion";
-import { FileText, Loader2 } from "lucide-react";
-import AdminCard from "@/components/school-admin/ui/story/AdminCard";
-import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
-import AdminFormsDocumentsStoryHeader from "./AdminFormsDocumentsStoryHeader";
 import type { ReactNode } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ChevronRight, FileText, Plus, Send } from "lucide-react";
 import TeacherFormCreateWizard from "@/components/school-teacher/forms-documents/TeacherFormCreateWizard";
 import TeacherFormDetailSidebar from "@/components/school-teacher/forms-documents/TeacherFormDetailSidebar";
 import TeacherFormSendModal from "@/components/school-teacher/forms-documents/TeacherFormSendModal";
-import TeacherFormsDocumentsEmptyState from "@/components/school-teacher/forms-documents/TeacherFormsDocumentsEmptyState";
-import TeacherFormFilterPill from "@/components/school-teacher/forms-documents/teacher-form-filter-pill";
+import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
-import ParentCard from "@/components/school-parent/ui/ParentCard";
-import ParentChip from "@/components/school-parent/ui/ParentChip";
+import { ParentGardenScope } from "@/components/school-parent/garden/ParentGardenFrame";
+import { PORTAL_EASE } from "@/components/school-parent/garden/motion";
+import { GCard, GChip, GProgress, gBtnPopSm, gLinkSm, type GChipTone } from "@/components/school-parent/garden/ui";
+import { AdminGardenSkin, useAdminGardenSkin } from "@/components/school-admin/garden/skin";
+import { GardenEmptyState, GardenFilterChips, GardenLoadError, GardenStatTiles } from "@/components/school-admin/garden/kit";
+import { G_TABLE, G_TD, G_TH, GardenLeadStrip, GardenOverlayScope, gRowClass } from "@/components/school-admin/garden/blocks";
 import type { TeacherClassroomOption } from "@/lib/classroom-signups/types";
 import { fetchAdminFormDownloadUrl } from "@/lib/school-admin/forms-documents/fetch-admin-form-download-url";
 import type { AdminParentForm } from "@/lib/school-admin/forms-documents/types";
-import { reportClientOperationalError } from "@/lib/operational-errors-client";
-import { PORTAL_HOME_CONTAINER_CLASS } from "@/lib/portal-home/layout";
+import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import {
   FORM_STATUS_LABELS,
   FORM_TYPE_LABELS,
-  type TeacherFormFilterStatus,
   type TeacherFormSignatureRow,
-  type TeacherParentForm,
   type TeacherParentFormCategory,
 } from "@/lib/school-teacher/forms-documents/types";
 import {
-  readFormIdFromUrl,
-  resolveValidFormId,
-  syncFormDetailUrl,
-} from "@/lib/school-teacher/forms-documents/sync-form-url";
-import {
-  computeFormMetrics,
-  filterFormsByStatus,
   formatAudienceLabel,
   formatFormDueDate,
-  getFormProgressPercent,
   getSignatureRowsForForm,
 } from "@/lib/school-teacher/forms-documents/utils";
-
-const API_BASE = "/api/school-admin/forms-documents";
-
-type CreatorFilter = "all" | "mine" | string;
+import { FORMS_API_BASE, useFormsDocumentsModel, type FormsDocumentsModel } from "./useFormsDocumentsModel";
 
 export type FormsDocumentsWorkspaceProps = {
   organizationId: string;
@@ -76,191 +59,37 @@ export type FormsDocumentsWorkspaceProps = {
   onFamiliesChanged?: () => void;
 };
 
-function buildFormsApiQuery(
-  organizationId: string,
-  category: TeacherParentFormCategory,
-): string {
-  const params = new URLSearchParams({ organizationId });
-  if (category !== "general") {
-    params.set("category", category);
-  }
-  return params.toString();
-}
-
-function buildFormsPatchBody(
-  organizationId: string,
-  category: TeacherParentFormCategory,
-  payload: Record<string, unknown>,
-): string {
-  return JSON.stringify({
-    organizationId,
-    ...(category !== "general" ? { category } : {}),
-    ...payload,
-  });
-}
-
-function pageEnterVariants(reducedMotion: boolean): Variants {
-  if (reducedMotion) {
-    return {
-      hidden: { opacity: 0 },
-      visible: { opacity: 1, transition: { duration: 0.2 } },
-      exit: { opacity: 0, transition: { duration: 0.15 } },
-    };
-  }
-
-  return {
-    hidden: { opacity: 0, y: 12 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] },
-    },
-    exit: { opacity: 0, y: -8, transition: { duration: 0.2 } },
-  };
-}
-
-function statusChipVariant(
-  status: AdminParentForm["status"],
-): "success" | "warning" | "info" {
-  switch (status) {
-    case "active":
-      return "success";
-    case "archived":
-      return "info";
-    default:
-      return "warning";
-  }
-}
+const STATUS_TONES: Record<AdminParentForm["status"], GChipTone> = {
+  active: "success",
+  draft: "warning",
+  archived: "neutral",
+};
 
 function typeLabel(form: AdminParentForm): string {
-  if (form.formType === "upload" && form.uploadFormat) {
-    return form.uploadFormat.toUpperCase();
-  }
+  if (form.formType === "upload" && form.uploadFormat) return form.uploadFormat.toUpperCase();
   return FORM_TYPE_LABELS[form.formType];
 }
 
-function FormListRow({
-  form,
-  active,
-  onOpen,
-}: {
-  form: AdminParentForm;
-  active?: boolean;
-  onOpen: () => void;
-}) {
+/**
+ * Family forms list + create wizard + detail sidebar (Garden). Admin
+ * Forms & Documents and Tuition → Agreements. Outside a Garden admin page it
+ * brings its own Garden scope + skin, so the look is the same everywhere.
+ */
+export default function FormsDocumentsWorkspace(props: FormsDocumentsWorkspaceProps) {
+  const skin = useAdminGardenSkin();
   const { theme } = useParentTheme();
-  const progressPercent = getFormProgressPercent(form);
-
+  if (skin) return <WorkspaceInner {...props} />;
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="grid w-full cursor-pointer grid-cols-[1fr_auto_auto_auto_auto_auto] items-center gap-3 border-b px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-[#F7FAF7]"
-      style={{
-        borderColor: theme.line,
-        backgroundColor: active ? "#EDF5EE" : undefined,
-      }}
-    >
-      <div className="min-w-0">
-        <p className="text-sm font-semibold" style={{ color: theme.ink }}>
-          {form.title}
-        </p>
-        <p className="mt-0.5 text-xs" style={{ color: theme.muted }}>
-          {formatAudienceLabel(form)}
-        </p>
-      </div>
-      <p className="w-28 text-xs" style={{ color: theme.muted }}>
-        {form.createdByName}
-      </p>
-      <ParentChip theme={theme} tone="info">{typeLabel(form)}</ParentChip>
-      <div className="w-36">
-        <p className="text-xs font-medium" style={{ color: theme.ink }}>
-          {form.signedFamilies} / {form.totalFamilies} signed
-        </p>
-        <div
-          className="mt-1 h-1.5 w-full overflow-hidden rounded-full"
-          style={{ backgroundColor: theme.line }}
-        >
-          <div
-            className="h-full rounded-full"
-            style={{
-              width: `${progressPercent}%`,
-              backgroundColor: theme.primary,
-            }}
-          />
-        </div>
-      </div>
-      <p className="w-28 text-xs" style={{ color: theme.muted }}>
-        {formatFormDueDate(form.dueDate)}
-      </p>
-      <ParentChip theme={theme} tone={statusChipVariant(form.status)}>
-        {FORM_STATUS_LABELS[form.status]}
-      </ParentChip>
-    </button>
+    <ParentGardenScope theme={theme} className="sf-admin-garden-skin">
+      <AdminGardenSkin theme={theme}>
+        <WorkspaceInner {...props} />
+      </AdminGardenSkin>
+    </ParentGardenScope>
   );
 }
 
-function FormListCard({
-  form,
-  active,
-  onOpen,
-}: {
-  form: AdminParentForm;
-  active?: boolean;
-  onOpen: () => void;
-}) {
-  const { theme } = useParentTheme();
-  const progressPercent = getFormProgressPercent(form);
-
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="w-full cursor-pointer rounded-xl border p-4 text-left transition-colors hover:bg-[#F7FAF7]"
-      style={{
-        borderColor: active ? "#CCE0CF" : theme.line,
-        backgroundColor: active ? "#EDF5EE" : theme.cream,
-      }}
-    >
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <p className="text-sm font-semibold" style={{ color: theme.ink }}>
-          {form.title}
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          <ParentChip theme={theme} tone="info">{typeLabel(form)}</ParentChip>
-          <ParentChip theme={theme} tone={statusChipVariant(form.status)}>
-            {FORM_STATUS_LABELS[form.status]}
-          </ParentChip>
-        </div>
-      </div>
-      <p className="mt-1 text-xs" style={{ color: theme.muted }}>
-        {form.createdByName} · {formatAudienceLabel(form)}
-      </p>
-      <p className="mt-1 text-xs" style={{ color: theme.muted }}>
-        Due {formatFormDueDate(form.dueDate)}
-      </p>
-      <p className="mt-3 text-xs font-medium" style={{ color: theme.ink }}>
-        {form.signedFamilies} / {form.totalFamilies} families signed
-      </p>
-      <div
-        className="mt-1 h-1.5 w-full overflow-hidden rounded-full"
-        style={{ backgroundColor: theme.line }}
-      >
-        <div
-          className="h-full rounded-full"
-          style={{
-            width: `${progressPercent}%`,
-            backgroundColor: theme.primary,
-          }}
-        />
-      </div>
-    </button>
-  );
-}
-
-export default function FormsDocumentsWorkspace({
+function WorkspaceInner({
   organizationId,
-  slug: _slug,
   staffMemberId,
   initialForms,
   initialResponsesByFormId,
@@ -270,592 +99,347 @@ export default function FormsDocumentsWorkspace({
   audienceMode = "all",
   syncUrl = true,
   showCreatorFilter = category === "general",
-  containerClassName = PORTAL_HOME_CONTAINER_CLASS,
+  containerClassName = "",
   header,
   emptyState,
-  metricsLabels = {
-    active: "Active forms",
-    pending: "Pending signatures",
-    completed: "Completed this month",
-  },
+  metricsLabels = { active: "Active forms", pending: "Pending signatures", completed: "Completed this month" },
   onFamiliesChanged,
 }: FormsDocumentsWorkspaceProps) {
   const { theme } = useParentTheme();
-  const reducedMotion = useReducedMotion() ?? false;
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const apiQuery = buildFormsApiQuery(organizationId, category);
-
-  const [forms, setForms] = useState<AdminParentForm[]>(initialForms);
-  const [signatureRowsByFormId, setSignatureRowsByFormId] = useState<
-    Record<string, TeacherFormSignatureRow[]>
-  >(initialResponsesByFormId);
-  const [filter, setFilter] = useState<TeacherFormFilterStatus>("all");
-  const [creatorFilter, setCreatorFilter] = useState<CreatorFilter>("all");
-  const [creating, setCreating] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [sendForm, setSendForm] = useState<AdminParentForm | null>(null);
-  const [sidebarFormId, setSidebarFormId] = useState<string | null>(() =>
-    resolveValidFormId(
-      searchParams.get("form") ?? initialFormId ?? null,
-      initialForms,
-    ),
-  );
-
-  const creatorOptions = useMemo(() => {
-    const byId = new Map<string, string>();
-    for (const form of forms) {
-      byId.set(form.createdByStaffMemberId, form.createdByName);
-    }
-    return [...byId.entries()].map(([id, name]) => ({ id, name }));
-  }, [forms]);
-
-  const creatorScopedForms = useMemo(() => {
-    if (creatorFilter === "all") return forms;
-    if (creatorFilter === "mine") {
-      if (!staffMemberId) return [];
-      return forms.filter((form) => form.createdByStaffMemberId === staffMemberId);
-    }
-    return forms.filter((form) => form.createdByStaffMemberId === creatorFilter);
-  }, [creatorFilter, forms, staffMemberId]);
-
-  const selectedForm = useMemo(
-    () => forms.find((form) => form.id === sidebarFormId) ?? null,
-    [forms, sidebarFormId],
-  );
-
-  const metrics = useMemo(() => computeFormMetrics(creatorScopedForms), [creatorScopedForms]);
-
-  const filteredForms = useMemo(
-    () => filterFormsByStatus(creatorScopedForms, filter) as AdminParentForm[],
-    [creatorScopedForms, filter],
-  );
-
-  const statusCounts = useMemo(
-    () => ({
-      all: creatorScopedForms.length,
-      draft: creatorScopedForms.filter((form) => form.status === "draft").length,
-      active: creatorScopedForms.filter((form) => form.status === "active").length,
-      archived: creatorScopedForms.filter((form) => form.status === "archived").length,
-    }),
-    [creatorScopedForms],
-  );
-
-  const pageVariants = pageEnterVariants(reducedMotion);
-
-  const handleFormPublished = useCallback(
-    (form: TeacherParentForm, signatureRows: TeacherFormSignatureRow[]) => {
-      const adminForm = form as AdminParentForm;
-      setForms((current) =>
-        current.some((entry) => entry.id === adminForm.id)
-          ? current.map((entry) => (entry.id === adminForm.id ? adminForm : entry))
-          : [adminForm, ...current],
-      );
-      setSignatureRowsByFormId((current) => ({
-        ...current,
-        [adminForm.id]: signatureRows,
-      }));
-      setCreating(false);
-      setSidebarFormId(adminForm.id);
-      if (syncUrl) {
-        syncFormDetailUrl(pathname, adminForm.id);
-      }
-      onFamiliesChanged?.();
-    },
-    [onFamiliesChanged, pathname, syncUrl],
-  );
-
-  const handleFormSavedDraft = useCallback((form: TeacherParentForm) => {
-    const adminForm = form as AdminParentForm;
-    setForms((current) =>
-      current.some((entry) => entry.id === adminForm.id)
-        ? current.map((entry) => (entry.id === adminForm.id ? adminForm : entry))
-        : [adminForm, ...current],
-    );
-    setCreating(false);
-  }, []);
-
-  const refreshFormDetail = useCallback(
-    async (formId: string) => {
-      setDetailLoading(true);
-      try {
-        const response = await fetch(`${API_BASE}/${formId}?${apiQuery}`);
-        const payload = (await response.json()) as {
-          form?: AdminParentForm;
-          signatureRows?: TeacherFormSignatureRow[];
-        };
-        if (!response.ok || !payload.form) return;
-        setForms((current) =>
-          current.map((entry) => (entry.id === formId ? payload.form! : entry)),
-        );
-        if (payload.signatureRows) {
-          setSignatureRowsByFormId((current) => ({
-            ...current,
-            [formId]: payload.signatureRows!,
-          }));
-        }
-      } catch (error) {
-        void reportClientOperationalError({
-          organizationId,
-          operation: "forms_documents.load_detail",
-          error: error instanceof Error ? error.message : "Failed to load form detail.",
-        });
-      } finally {
-        setDetailLoading(false);
-      }
-    },
-    [apiQuery],
-  );
-
-  const openSidebar = useCallback(
-    (formId: string) => {
-      setSidebarFormId(formId);
-      if (syncUrl) {
-        syncFormDetailUrl(pathname, formId);
-      }
-      const hasSignatureRows = (signatureRowsByFormId[formId] ?? []).length > 0;
-      if (!hasSignatureRows) {
-        void refreshFormDetail(formId);
-      }
-    },
-    [pathname, refreshFormDetail, signatureRowsByFormId, syncUrl],
-  );
-
-  useEffect(() => {
-    const onPopState = () => {
-      setSidebarFormId(resolveValidFormId(readFormIdFromUrl(), forms));
-    };
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, [forms]);
-
-  useEffect(() => {
-    if (!sidebarFormId) return;
-    const hasSignatureRows = (signatureRowsByFormId[sidebarFormId] ?? []).length > 0;
-    if (hasSignatureRows) return;
-    queueMicrotask(() => {
-      void refreshFormDetail(sidebarFormId);
-    });
-  }, [sidebarFormId, refreshFormDetail, signatureRowsByFormId]);
-
-  const handleArchive = useCallback(
-    async (formId: string) => {
-      if (actionLoading) return;
-      setActionLoading(true);
-      try {
-        const response = await fetch(`${API_BASE}/${formId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: buildFormsPatchBody(organizationId, category, {
-            action: "archive",
-          }),
-        });
-        const payload = (await response.json()) as {
-          form?: AdminParentForm;
-          error?: string;
-        };
-        if (!response.ok || !payload.form) {
-          throw new Error(payload.error ?? "Failed to archive form.");
-        }
-        setForms((current) =>
-          current.map((entry) => (entry.id === formId ? payload.form! : entry)),
-        );
-      } catch (error) {
-        void reportClientOperationalError({
-          organizationId,
-          operation: "forms_documents.archive",
-          error: error instanceof Error ? error.message : "Failed to archive form.",
-        });
-      } finally {
-        setActionLoading(false);
-      }
-    },
-    [actionLoading, category, organizationId],
-  );
-
-  const handleDuplicate = useCallback(
-    async (formId: string) => {
-      if (actionLoading) return;
-      setActionLoading(true);
-      try {
-        const response = await fetch(`${API_BASE}/${formId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: buildFormsPatchBody(organizationId, category, {
-            action: "duplicate",
-          }),
-        });
-        const payload = (await response.json()) as {
-          form?: AdminParentForm;
-          error?: string;
-        };
-        if (!response.ok || !payload.form) {
-          throw new Error(payload.error ?? "Failed to duplicate form.");
-        }
-        setForms((current) => [payload.form!, ...current]);
-        setSidebarFormId(payload.form!.id);
-        if (syncUrl) {
-          syncFormDetailUrl(pathname, payload.form!.id);
-        }
-      } catch (error) {
-        void reportClientOperationalError({
-          organizationId,
-          operation: "forms_documents.duplicate",
-          error: error instanceof Error ? error.message : "Failed to duplicate form.",
-        });
-      } finally {
-        setActionLoading(false);
-      }
-    },
-    [actionLoading, category, organizationId, pathname, syncUrl],
-  );
-
-  const handleDownload = useCallback(
-    async (formId: string) => {
-      try {
-        const signedUrl = await fetchAdminFormDownloadUrl(formId, organizationId);
-        window.open(signedUrl, "_blank", "noopener,noreferrer");
-      } catch (error) {
-        void reportClientOperationalError({
-          organizationId,
-          operation: "forms_documents.download",
-          error: error instanceof Error ? error.message : "Failed to download form.",
-        });
-      }
-    },
-    [organizationId],
-  );
-
-  const closeSidebar = useCallback(() => {
-    setSidebarFormId(null);
-    if (syncUrl) {
-      syncFormDetailUrl(pathname, null);
-    }
-  }, [pathname, syncUrl]);
-
-  const handleSendRequest = useCallback((form: TeacherParentForm) => {
-    const adminForm = form as AdminParentForm;
-    if (adminForm.audienceType === "unassigned") {
-      setSendForm(adminForm);
-      return;
-    }
-
-    void (async () => {
-      if (actionLoading) return;
-      setActionLoading(true);
-      try {
-        const response = await fetch(`${API_BASE}/${adminForm.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: buildFormsPatchBody(organizationId, category, {
-            update: { status: "active" },
-          }),
-        });
-        const payload = (await response.json()) as {
-          form?: AdminParentForm;
-          signatureRows?: TeacherFormSignatureRow[];
-          error?: string;
-        };
-        if (!response.ok || !payload.form) {
-          throw new Error(payload.error ?? "Failed to send form.");
-        }
-        setForms((current) =>
-          current.map((entry) => (entry.id === adminForm.id ? payload.form! : entry)),
-        );
-        if (payload.signatureRows) {
-          setSignatureRowsByFormId((current) => ({
-            ...current,
-            [adminForm.id]: payload.signatureRows!,
-          }));
-        }
-        onFamiliesChanged?.();
-      } catch (error) {
-        void reportClientOperationalError({
-          organizationId,
-          operation: "forms_documents.send",
-          error: error instanceof Error ? error.message : "Failed to send form.",
-        });
-      } finally {
-        setActionLoading(false);
-      }
-    })();
-  }, [actionLoading, category, onFamiliesChanged, organizationId]);
-
-  const handleSendConfirm = useCallback(
-    async (payload: {
-      audienceType: import("@/lib/school-teacher/forms-documents/types").TeacherFormAudienceType;
-      classroomIds: string[];
-      familyIds: string[];
-      dueDate: string | null;
-    }) => {
-      if (!sendForm || actionLoading) return;
-      setActionLoading(true);
-      try {
-        const response = await fetch(`${API_BASE}/${sendForm.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: buildFormsPatchBody(organizationId, category, {
-            update: {
-              status: "active",
-              audienceType: payload.audienceType,
-              classroomIds: payload.classroomIds,
-              familyIds: payload.familyIds,
-              dueDate: payload.dueDate,
-            },
-          }),
-        });
-        const result = (await response.json()) as {
-          form?: AdminParentForm;
-          signatureRows?: TeacherFormSignatureRow[];
-          error?: string;
-        };
-        if (!response.ok || !result.form) {
-          throw new Error(result.error ?? "Failed to send form.");
-        }
-        setForms((current) =>
-          current.map((entry) => (entry.id === sendForm.id ? result.form! : entry)),
-        );
-        if (result.signatureRows) {
-          setSignatureRowsByFormId((current) => ({
-            ...current,
-            [sendForm.id]: result.signatureRows!,
-          }));
-        }
-        setSendForm(null);
-        onFamiliesChanged?.();
-      } catch (error) {
-        void reportClientOperationalError({
-          organizationId,
-          operation: "forms_documents.send",
-          error: error instanceof Error ? error.message : "Failed to send form.",
-        });
-      } finally {
-        setActionLoading(false);
-      }
-    },
-    [actionLoading, category, onFamiliesChanged, organizationId, sendForm],
-  );
-
-  const headerContent =
-    typeof header === "function"
-      ? header({ onCreate: () => setCreating(true) })
-      : header;
+  const skin = useAdminGardenSkin() ?? theme;
+  const reduce = useReducedMotion() === true;
+  const noun = category === "tuition" ? "agreement" : "form";
+  const model = useFormsDocumentsModel({
+    organizationId,
+    staffMemberId,
+    initialForms,
+    initialResponsesByFormId,
+    initialFormId,
+    category,
+    syncUrl,
+    onFamiliesChanged,
+    noun,
+  });
+  const headerContent = typeof header === "function" ? header({ onCreate: model.startCreate }) : header;
+  const fade = {
+    initial: reduce ? { opacity: 0 } : { opacity: 0, y: 10 },
+    animate: { opacity: 1, y: 0, transition: { duration: 0.3, ease: PORTAL_EASE } },
+    exit: { opacity: 0, transition: { duration: 0.15 } },
+  };
 
   return (
     <div className={containerClassName}>
       <AnimatePresence mode="wait" initial={false}>
-        {creating ? (
-          <motion.div
-            key="create-wizard"
-            variants={pageVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-          >
+        {model.creating ? (
+          <motion.div key="create-wizard" {...fade}>
             <TeacherFormCreateWizard
               organizationId={organizationId}
               classroomOptions={classroomOptions}
-              apiBasePath={API_BASE}
-              familySearchApiPath={`${API_BASE}/families`}
+              apiBasePath={FORMS_API_BASE}
+              familySearchApiPath={`${FORMS_API_BASE}/families`}
               allowSelectAllClassrooms={audienceMode === "all"}
               audienceMode={audienceMode}
               formCategory={category}
               operationalErrorSurface="school_admin"
-              onCancel={() => setCreating(false)}
-              onPublished={handleFormPublished}
-              onSaveDraft={handleFormSavedDraft}
+              onCancel={model.cancelCreate}
+              onPublished={model.handleFormPublished}
+              onSaveDraft={model.handleFormSavedDraft}
             />
           </motion.div>
         ) : (
-          <motion.div
-            key="form-list"
-            variants={pageVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-          >
-            {headerContent ?? (
-              <AdminFormsDocumentsStoryHeader
-                theme={theme}
-                onCreate={() => setCreating(true)}
-              />
-            )}
-
-            {forms.length > 0 ? (
-              <>
-                <div className="mb-6 grid gap-3 sm:grid-cols-3">
-                  <AdminMetricCard
-                    theme={theme}
-                    label={metricsLabels.active}
-                    value={String(metrics.activeCount)}
-                    accent="forest"
-                  />
-                  <AdminMetricCard
-                    theme={theme}
-                    label={metricsLabels.pending}
-                    value={String(metrics.pendingSignatures)}
-                    accent="sky"
-                  />
-                  <AdminMetricCard
-                    theme={theme}
-                    label={metricsLabels.completed}
-                    value={String(metrics.completedThisMonth)}
-                    accent="gold"
-                  />
-                </div>
-
-                <div className="mb-4 flex flex-wrap gap-2">
-                  {(
-                    [
-                      ["all", "All"],
-                      ["draft", "Draft"],
-                      ["active", "Active"],
-                      ["archived", "Archived"],
-                    ] as const
-                  ).map(([key, label]) => (
-                    <TeacherFormFilterPill
-                      key={key}
-                      theme={theme}
-                      active={filter === key}
-                      label={label}
-                      count={statusCounts[key]}
-                      onClick={() => setFilter(key)}
-                    />
-                  ))}
-                </div>
-
-                {showCreatorFilter ? (
-                  <div className="mb-4 flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-medium" style={{ color: theme.muted }}>
-                      Created by
-                    </span>
-                    <TeacherFormFilterPill
-                      theme={theme}
-                      active={creatorFilter === "all"}
-                      label="All"
-                      onClick={() => setCreatorFilter("all")}
-                    />
-                    {staffMemberId ? (
-                      <TeacherFormFilterPill
-                        theme={theme}
-                        active={creatorFilter === "mine"}
-                        label="Mine"
-                        onClick={() => setCreatorFilter("mine")}
-                      />
-                    ) : null}
-                    {creatorOptions.map((creator) => (
-                      <TeacherFormFilterPill
-                        key={creator.id}
-                        theme={theme}
-                        active={creatorFilter === creator.id}
-                        label={creator.name}
-                        onClick={() => setCreatorFilter(creator.id)}
-                      />
-                    ))}
-                  </div>
-                ) : null}
-              </>
-            ) : null}
-
-            {forms.length === 0 ? (
-              <TeacherFormsDocumentsEmptyState
-                theme={theme}
-                kicker={emptyState?.kicker}
-                title={emptyState?.title}
-                description={emptyState?.description}
-                createLabel={emptyState?.createLabel}
-                onCreate={
-                  typeof header === "function"
-                    ? undefined
-                    : () => setCreating(true)
-                }
-              />
-            ) : filteredForms.length === 0 ? (
-              <ParentCard theme={theme} className="text-center !py-12">
-                <FileText
-                  className="mx-auto mb-3 h-8 w-8"
-                  style={{ color: theme.muted }}
-                />
-                <p className="text-sm" style={{ color: theme.muted }}>
-                  No forms match this filter.
-                </p>
-              </ParentCard>
-            ) : (
-              <>
-                <AdminCard theme={theme} padding="none" className="hidden lg:block">
-                  <div
-                    className="grid grid-cols-[1fr_auto_auto_auto_auto_auto] gap-3 border-b px-4 py-3 text-[11px] font-semibold uppercase tracking-wide"
-                    style={{ borderColor: theme.line, color: theme.muted }}
-                  >
-                    <span>Form</span>
-                    <span>Created by</span>
-                    <span>Type</span>
-                    <span>Progress</span>
-                    <span>Due</span>
-                    <span>Status</span>
-                  </div>
-                  {filteredForms.map((form) => (
-                    <FormListRow
-                      key={form.id}
-                      form={form}
-                      active={form.id === sidebarFormId}
-                      onOpen={() => openSidebar(form.id)}
-                    />
-                  ))}
-                </AdminCard>
-
-                <div className="flex flex-col gap-3 lg:hidden">
-                  {filteredForms.map((form) => (
-                    <FormListCard
-                      key={form.id}
-                      form={form}
-                      active={form.id === sidebarFormId}
-                      onOpen={() => openSidebar(form.id)}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
+          <motion.div key="form-list" {...fade} className="flex flex-col gap-5">
+            {headerContent}
+            <FormsList
+              model={model}
+              noun={noun}
+              showCreatorFilter={showCreatorFilter}
+              staffMemberId={staffMemberId}
+              metricsLabels={metricsLabels}
+              emptyState={emptyState}
+              canCreateFromEmpty={typeof header !== "function"}
+            />
           </motion.div>
         )}
       </AnimatePresence>
 
-      <TeacherFormDetailSidebar
-        theme={theme}
-        open={sidebarFormId != null}
-        form={selectedForm}
-        organizationId={organizationId}
-        detailLoading={detailLoading}
-        signatureRows={
-          sidebarFormId
-            ? getSignatureRowsForForm(sidebarFormId, signatureRowsByFormId)
-            : []
-        }
-        actionLoading={actionLoading}
-        onClose={closeSidebar}
-        onArchive={handleArchive}
-        onDuplicate={handleDuplicate}
-        onDownload={handleDownload}
-        onSend={handleSendRequest}
-        fetchDownloadUrl={fetchAdminFormDownloadUrl}
-      />
+      <GardenOverlayScope theme={skin}>
+        <AdminGardenSkin theme={skin}>
+          <TeacherFormDetailSidebar
+            theme={theme}
+            open={model.sidebarFormId != null}
+            form={model.selectedForm}
+            organizationId={organizationId}
+            detailLoading={model.detailLoading}
+            signatureRows={model.sidebarFormId ? getSignatureRowsForForm(model.sidebarFormId, model.signatureRowsByFormId) : []}
+            actionLoading={model.actionLoading}
+            onClose={model.closeSidebar}
+            onArchive={model.requestArchive}
+            onDuplicate={(id) => void model.duplicate(id)}
+            onDownload={(id) => void model.download(id)}
+            onSend={model.handleSendRequest}
+            fetchDownloadUrl={fetchAdminFormDownloadUrl}
+          />
+          {model.sidebarFormId && model.detailError ? (
+            <div className="fixed bottom-4 right-4 z-[115] w-[min(100%-2rem,26rem)]">
+              <GardenLoadError
+                title="Couldn't load signatures"
+                description={`${model.detailError} The rest of the form is shown.`}
+                onRetry={model.retryDetail}
+                retrying={model.detailLoading}
+              />
+            </div>
+          ) : null}
+          {model.sendForm ? (
+            <TeacherFormSendModal
+              theme={theme}
+              open={model.sendForm != null}
+              form={model.sendForm}
+              organizationId={organizationId}
+              classroomOptions={classroomOptions}
+              familySearchApiPath={`${FORMS_API_BASE}/families`}
+              allowSelectAllClassrooms={audienceMode === "all"}
+              audienceMode={audienceMode}
+              loading={model.sending}
+              onClose={model.closeSend}
+              onSend={model.handleSendConfirm}
+            />
+          ) : null}
+          <ConfirmDialog
+            C={parentThemeToAdminCompat(skin)}
+            open={model.archiveTarget != null}
+            title={`Archive ${model.archiveTarget?.title ?? `this ${noun}`}?`}
+            description="It moves to Archived. You can still open it there."
+            confirmLabel="Archive"
+            variant="destructive"
+            loading={model.archiving}
+            onConfirm={() => void model.confirmArchive()}
+            onClose={model.cancelArchive}
+          />
+        </AdminGardenSkin>
+      </GardenOverlayScope>
+    </div>
+  );
+}
 
-      {sendForm ? (
-        <TeacherFormSendModal
-          theme={theme}
-          open={sendForm != null}
-          form={sendForm}
-          organizationId={organizationId}
-          classroomOptions={classroomOptions}
-          familySearchApiPath={`${API_BASE}/families`}
-          allowSelectAllClassrooms={audienceMode === "all"}
-          audienceMode={audienceMode}
-          loading={actionLoading}
-          onClose={() => setSendForm(null)}
-          onSend={handleSendConfirm}
+function FormsList({
+  model,
+  noun,
+  showCreatorFilter,
+  staffMemberId,
+  metricsLabels,
+  emptyState,
+  canCreateFromEmpty,
+}: {
+  model: FormsDocumentsModel;
+  noun: string;
+  showCreatorFilter: boolean;
+  staffMemberId: string | null;
+  metricsLabels: { active: string; pending: string; completed: string };
+  emptyState?: FormsDocumentsWorkspaceProps["emptyState"];
+  canCreateFromEmpty: boolean;
+}) {
+  if (model.forms.length === 0) {
+    return (
+      <GCard index={1} kicker={emptyState?.kicker ?? "Family forms"}>
+        <GardenEmptyState
+          icon={FileText}
+          title={emptyState?.title ?? "Create your first form"}
+          description={
+            emptyState?.description ??
+            "Upload a PDF or build a form for families to sign — like liability waivers, field trip permissions, or photo releases."
+          }
+          action={
+            canCreateFromEmpty ? (
+              <button type="button" className={gBtnPopSm} onClick={model.startCreate} data-testid="forms-create-first">
+                <Plus className="h-4 w-4" aria-hidden />
+                {emptyState?.createLabel ?? "Create form"}
+              </button>
+            ) : null
+          }
+        />
+      </GCard>
+    );
+  }
+
+  const firstDraft = model.drafts[0];
+  const { metrics } = model;
+
+  return (
+    <>
+      {firstDraft ? (
+        <GardenLeadStrip
+          icon={Send}
+          kicker={`Needs attention · ${model.drafts.length} draft${model.drafts.length === 1 ? "" : "s"}`}
+          title={`${firstDraft.title} hasn't been sent to families yet`}
+          meta={model.drafts.length > 1 ? `And ${model.drafts.length - 1} more ${noun}${model.drafts.length - 1 === 1 ? "" : "s"} in draft.` : "Open it to review, then send."}
+          cta="Review and send"
+          onClick={() => model.openSidebar(firstDraft.id)}
+          data-testid="forms-review-draft"
         />
       ) : null}
-    </div>
+
+      <GardenStatTiles
+        layout="strip"
+        ariaLabel={`${noun === "agreement" ? "Agreements" : "Forms"} at a glance`}
+        stats={[
+          {
+            id: "active",
+            label: metricsLabels.active,
+            value: metrics.activeCount,
+            onClick: () => model.setFilter(model.filter === "active" ? "all" : "active"),
+            active: model.filter === "active",
+          },
+          {
+            id: "pending",
+            label: metricsLabels.pending,
+            value: metrics.pendingSignatures,
+            onClick: () => model.setFilter("active"),
+          },
+          { id: "completed", label: metricsLabels.completed, value: metrics.completedThisMonth },
+        ]}
+      />
+
+      <GCard
+        index={2}
+        kicker={noun === "agreement" ? "Agreements" : "Family forms"}
+        title={`${model.filteredForms.length} ${noun}${model.filteredForms.length === 1 ? "" : "s"}`}
+        data-testid="forms-list"
+      >
+        <div className="mb-4 flex flex-col gap-3 border-b-[1.5px] border-dashed border-[var(--sf-ink)]/12 pb-4">
+          <GardenFilterChips
+            ariaLabel="Filter by status"
+            value={model.filter}
+            onChange={(key) => model.setFilter(key as typeof model.filter)}
+            options={[
+              { key: "all", label: "All", count: model.statusCounts.all },
+              { key: "draft", label: "Draft", count: model.statusCounts.draft },
+              { key: "active", label: "Active", count: model.statusCounts.active },
+              { key: "archived", label: "Archived", count: model.statusCounts.archived },
+            ]}
+          />
+          {showCreatorFilter ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[12px] font-extrabold uppercase tracking-[0.14em] text-[var(--sf-soft)]">Created by</span>
+              <GardenFilterChips
+                ariaLabel="Filter by creator"
+                value={model.creatorFilter}
+                onChange={model.setCreatorFilter}
+                options={[
+                  { key: "all", label: "Everyone" },
+                  ...(staffMemberId ? [{ key: "mine", label: "Me" }] : []),
+                  ...model.creatorOptions.map((c) => ({ key: c.id, label: c.name })),
+                ]}
+              />
+            </div>
+          ) : null}
+        </div>
+
+        {model.filteredForms.length === 0 ? (
+          <div className="rounded-[16px] bg-[var(--sf-paper)] p-4 text-[13.5px] font-semibold text-[var(--sf-soft)]">
+            No {noun}s match this filter.{" "}
+            <button
+              type="button"
+              className={gLinkSm}
+              onClick={() => {
+                model.setFilter("all");
+                model.setCreatorFilter("all");
+              }}
+            >
+              Show all {noun}s
+            </button>
+          </div>
+        ) : (
+          <>
+            <ul className="m-0 flex list-none flex-col gap-2 p-0 lg:hidden">
+              {model.filteredForms.map((form) => (
+                <li key={form.id}>
+                  <button
+                    type="button"
+                    onClick={() => model.openSidebar(form.id)}
+                    className={`flex w-full flex-col gap-2 rounded-[16px] border-[1.5px] px-3.5 py-3 text-left transition-colors duration-500 ${
+                      model.flashId === form.id
+                        ? "border-[var(--sf-forest)]/40 bg-[var(--sf-mint)]"
+                        : form.id === model.sidebarFormId
+                          ? "border-[var(--sf-clay)]/40 bg-[var(--sf-accent-wash)]"
+                          : "border-[var(--sf-ink)]/10 bg-white"
+                    }`}
+                  >
+                    <span className="flex items-start justify-between gap-2">
+                      <span className="min-w-0 text-[14.5px] font-extrabold text-[var(--sf-ink)]">{form.title}</span>
+                      <GChip tone={STATUS_TONES[form.status]}>{FORM_STATUS_LABELS[form.status]}</GChip>
+                    </span>
+                    <span className="text-[12.5px] font-semibold text-[var(--sf-soft)]">
+                      {form.createdByName} · {formatAudienceLabel(form)} · Due {formatFormDueDate(form.dueDate)}
+                    </span>
+                    <span className="flex items-center gap-3">
+                      <GProgress value={form.signedFamilies} total={Math.max(form.totalFamilies, 1)} label={`${form.signedFamilies} of ${form.totalFamilies} signed`} done={form.totalFamilies > 0 && form.signedFamilies >= form.totalFamilies} />
+                      <span className="shrink-0 text-[12px] font-extrabold tabular-nums text-[var(--sf-ink)]/70">
+                        {form.signedFamilies}/{form.totalFamilies}
+                      </span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-[var(--sf-ink)]/40" aria-hidden />
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+
+            <div className="-mx-1 hidden overflow-x-auto lg:block">
+              <table className={`${G_TABLE} min-w-[880px]`}>
+                <thead>
+                  <tr>
+                    {["Form", "Created by", "Type", "Signed", "Due", "Status"].map((h) => (
+                      <th key={h} scope="col" className={G_TH}>
+                        {h === "Form" && noun === "agreement" ? "Agreement" : h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {model.filteredForms.map((form) => {
+                    const open = () => model.openSidebar(form.id);
+                    return (
+                      <tr
+                        key={form.id}
+                        tabIndex={0}
+                        onClick={open}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            open();
+                          }
+                        }}
+                        aria-label={`Open ${form.title}`}
+                        className={gRowClass({ interactive: true, selected: form.id === model.sidebarFormId, flashed: model.flashId === form.id })}
+                      >
+                        <td className={G_TD}>
+                          <div className="text-[14px] font-extrabold text-[var(--sf-ink)]">{form.title}</div>
+                          <div className="text-[12.5px] font-semibold text-[var(--sf-soft)]">{formatAudienceLabel(form)}</div>
+                        </td>
+                        <td className={`${G_TD} text-[13px] font-bold text-[var(--sf-ink)]/75`}>{form.createdByName}</td>
+                        <td className={G_TD}>
+                          <GChip tone="info">{typeLabel(form)}</GChip>
+                        </td>
+                        <td className={`${G_TD} w-48`}>
+                          <div className="flex items-center gap-2.5">
+                            <GProgress value={form.signedFamilies} total={Math.max(form.totalFamilies, 1)} label={`${form.signedFamilies} of ${form.totalFamilies} families signed`} done={form.totalFamilies > 0 && form.signedFamilies >= form.totalFamilies} />
+                            <span className="shrink-0 text-[12.5px] font-extrabold tabular-nums text-[var(--sf-ink)]/75">
+                              {form.signedFamilies}/{form.totalFamilies}
+                            </span>
+                          </div>
+                        </td>
+                        <td className={`${G_TD} text-[13px] font-bold tabular-nums text-[var(--sf-ink)]/75`}>{formatFormDueDate(form.dueDate)}</td>
+                        <td className={G_TD}>
+                          <GChip tone={STATUS_TONES[form.status]}>{FORM_STATUS_LABELS[form.status]}</GChip>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </GCard>
+    </>
   );
 }
