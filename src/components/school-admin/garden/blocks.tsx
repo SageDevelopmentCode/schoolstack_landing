@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { createPortal } from "react-dom";
-import { useId, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, Check, ChevronRight, Loader2, Search, X, type LucideIcon } from "lucide-react";
+import { ArrowRight, Check, ChevronRight, Copy, Loader2, Search, X, type LucideIcon } from "lucide-react";
+import { adminToast } from "@/lib/school-admin/admin-toast";
 import GSidePanel from "@/components/school-parent/garden/GSidePanel";
 import { ParentGardenScope } from "@/components/school-parent/garden/ParentGardenFrame";
 import {
@@ -273,11 +274,14 @@ export function GardenRecordList({
   loading,
   error,
   onRetry,
+  detailAnchorId,
   "data-testid": testId,
 }: {
   title: ReactNode;
   kicker?: ReactNode;
   items: GardenRecordItem[];
+  /** Below `lg` the detail card sits under the list: scroll to it on select. */
+  detailAnchorId?: string;
   selectedId: string | null;
   onSelect: (id: string) => void;
   flashId?: string | null;
@@ -377,7 +381,14 @@ export function GardenRecordList({
                   <li key={item.id}>
                     <button
                       type="button"
-                      onClick={() => onSelect(item.id)}
+                      onClick={() => {
+                        onSelect(item.id);
+                        if (detailAnchorId && window.matchMedia("(max-width: 1023px)").matches) {
+                          window.requestAnimationFrame(() =>
+                            document.getElementById(detailAnchorId)?.scrollIntoView({ behavior: "smooth", block: "start" }),
+                          );
+                        }
+                      }}
                       aria-current={selected ? "true" : undefined}
                       className={`flex w-full items-center gap-3 rounded-[14px] border-[1.5px] px-3 py-2.5 text-left transition-colors duration-300 ${
                         flashed
@@ -611,6 +622,7 @@ export function GardenPickerSheet({
   };
 
   return (
+    <GardenOverlayScope theme={skin}>
     <GSidePanel
       theme={skin}
       open={open}
@@ -717,6 +729,7 @@ export function GardenPickerSheet({
         )}
       </div>
     </GSidePanel>
+    </GardenOverlayScope>
   );
 }
 
@@ -731,5 +744,71 @@ export function GardenHint({ icon: Icon, children }: { icon?: LucideIcon; childr
       {Icon ? <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden /> : null}
       <span>{children}</span>
     </p>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Copy row                                                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * URL / value with a Copy button: "Copied" + check for 2s and a toast; on
+ * failure the error toast shows the value so it can be copied by hand.
+ */
+export function GardenCopyRow({
+  value,
+  label = "Link",
+  toastTitle = "Link copied.",
+  "data-testid": testId,
+}: {
+  value: string;
+  label?: string;
+  toastTitle?: string;
+  "data-testid"?: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (timer.current) window.clearTimeout(timer.current);
+    },
+    [],
+  );
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      if (timer.current) window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => setCopied(false), 2000);
+      adminToast.success(toastTitle, { id: `copy-${label}` });
+    } catch {
+      adminToast.error("Couldn't copy automatically.", {
+        id: `copy-${label}-error`,
+        description: `Select and copy it here: ${value}`,
+      });
+    }
+  };
+  return (
+    <div
+      className="flex min-w-0 items-center gap-2 rounded-[14px] border-[1.5px] border-[var(--sf-ink)]/12 bg-[var(--sf-paper)] py-1.5 pl-3.5 pr-1.5"
+      data-testid={testId}
+    >
+      <span className="min-w-0 flex-1 truncate font-mono text-[12.5px] font-semibold text-[var(--sf-ink)]/80" title={value}>
+        {value}
+      </span>
+      <button
+        type="button"
+        onClick={() => void copy()}
+        aria-label={copied ? `${label} copied` : `Copy ${label.toLowerCase()}`}
+        className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border-[1.5px] px-3 py-1.5 text-[12.5px] font-extrabold transition-colors ${
+          copied
+            ? "border-[var(--sf-forest)]/40 bg-[var(--sf-mint)] text-[var(--sf-forest)]"
+            : "border-[var(--sf-ink)]/20 bg-white text-[var(--sf-ink)] hover:border-[var(--sf-ink)]/45"
+        } ${G_FOCUS}`}
+      >
+        {copied ? <Check className="h-3.5 w-3.5" aria-hidden /> : <Copy className="h-3.5 w-3.5" aria-hidden />}
+        <span aria-live="polite">{copied ? "Copied" : "Copy"}</span>
+      </button>
+    </div>
   );
 }

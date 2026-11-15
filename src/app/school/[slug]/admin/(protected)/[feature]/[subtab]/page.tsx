@@ -60,7 +60,7 @@ import TuitionDashboardLoader from "@/components/school-admin/tuition/TuitionDas
 import { fetchTuitionSetupStatus } from "@/lib/tuition/setup-status";
 const StaffPage = nextDynamic(
   () => import("@/components/school-admin/staff/StaffPage"),
-  { loading: () => <AdminPageSkeleton label="Loading staff" /> },
+  { loading: () => <AdminGardenRouteSkeleton label="Loading staff" layout="split" /> },
 );
 const ClassroomsPage = nextDynamic(
   () => import("@/components/school-admin/classrooms/ClassroomsPage"),

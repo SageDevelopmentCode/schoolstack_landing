@@ -75,6 +75,8 @@ export function useAdminAction() {
             id: toastId,
             description: copy.description,
             action: options.successAction,
+            // Leave time to reach an Undo / Copy action.
+            duration: options.successAction ? 8000 : undefined,
           });
         }
         flash(options.flashKey ?? options.key);

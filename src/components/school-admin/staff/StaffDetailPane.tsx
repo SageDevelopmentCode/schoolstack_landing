@@ -1,604 +1,354 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
-import {
-  LayoutDashboard,
-  Loader2,
-  LogIn,
-  Mail,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
-import { submissionContactAvatarStyle } from "@/components/admissions/ParentPortalLoginIcon";
-import ParentPortalLoginBadge from "@/components/admissions/ParentPortalLoginBadge";
-import StaffAssignedStudentsSection from "@/components/school-admin/staff/StaffAssignedStudentsSection";
+import { useState } from "react";
+import { Check, LayoutDashboard, LogIn, Mail, Pencil, Power, Users, X } from "lucide-react";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
-import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
-import { SubmissionDetailStoryProvider } from "@/components/school-admin/admissions/SubmissionDetailStoryContext";
-import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import AdminCard from "@/components/school-admin/ui/story/AdminCard";
-import AdminChip from "@/components/school-admin/ui/story/AdminChip";
-import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
-import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
-import CopyableUrlRow from "@/components/ui/CopyableUrlRow";
-import { initialsFromName } from "@/lib/messages/format";
 import {
-  employmentStatusLabel,
-  portalRoleLabel,
-  staffDisplayName,
-  staffPortalLoginBadgeStatus,
-} from "@/lib/staff/staff-display";
-import type {
-  StaffEmploymentStatus,
-  StaffMemberRecord,
-  StaffPortalRole,
-} from "@/lib/staff/staff-members";
-import {
-  tabPanelTransition,
-  tabPanelVariants,
-} from "@/lib/school-admin/admin-modal-motion";
-import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
-import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
-import { schoolTeacherLoginPath } from "@/lib/organization-settings/teacher-routes";
-import { SITE_URL } from "@/lib/site";
-
-type StaffDetailPaneProps = {
-  member: StaffMemberRecord;
-  slug: string;
-  organizationId: string;
-  onUpdated: () => void | Promise<void>;
-};
+  BusyLabel,
+  GardenField,
+  GardenNotice,
+  GardenSelect,
+  gInputClass,
+  useGardenFieldId,
+} from "@/components/school-admin/garden/kit";
+import { GardenAvatar, GardenCopyRow, GardenFacts } from "@/components/school-admin/garden/blocks";
+import { gBtnDangerTight, gBtnSolidSm } from "@/components/school-admin/garden/skin";
+import StaffAssignedStudentsSection from "@/components/school-admin/staff/StaffAssignedStudentsSection";
+import { GChip, GTabBar, gBtnOutlineSm, gBtnPopSm, gLinkSm, type GChipTone } from "@/components/school-parent/garden/ui";
+import { staffProfileNeedsReview } from "@/lib/school-admin/admin-staff-roster-metrics";
+import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { employmentStatusLabel, portalRoleLabel, staffDisplayName } from "@/lib/staff/staff-display";
+import type { StaffEmploymentStatus, StaffMemberRecord, StaffPortalRole } from "@/lib/staff/staff-members";
+import { staffPortalChip } from "./staff-portal-chip";
+import type { StaffModel } from "./useStaffModel";
 
 type StaffDetailTab = "profile" | "portal" | "students" | "contact";
 
-type DetailTab = {
-  id: StaffDetailTab;
-  label: string;
-  icon: LucideIcon;
+const EMPLOYMENT_TONES: Record<StaffEmploymentStatus, GChipTone> = {
+  active: "success",
+  on_leave: "info",
+  inactive: "warning",
 };
 
-const STAFF_DETAIL_TABS: DetailTab[] = [
-  { id: "profile", label: "Profile", icon: LayoutDashboard },
-  { id: "portal", label: "Portal access", icon: LogIn },
-  { id: "students", label: "Learners & groups", icon: Users },
-  { id: "contact", label: "Contact", icon: Mail },
-];
-
-function employmentChipTone(
-  status: StaffMemberRecord["employmentStatus"],
-): "success" | "warning" | "info" {
-  if (status === "active") return "success";
-  if (status === "on_leave") return "info";
-  return "warning";
-}
-
-function portalStatusChip(
-  member: StaffMemberRecord,
-): { tone: "success" | "warning" | "info"; label: string } {
-  const status = staffPortalLoginBadgeStatus(member);
-  if (!status.accountLinked) {
-    return { tone: "warning", label: "No account" };
-  }
-  if (!status.hasEverSignedIn) {
-    return { tone: "info", label: "Never signed in" };
-  }
-  return { tone: "success", label: "Portal active" };
+function formatSignIn(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
 export default function StaffDetailPane({
+  model,
   member,
   slug,
   organizationId,
-  onUpdated,
-}: StaffDetailPaneProps) {
-  const { theme, C } = useSchoolAdminStoryTheme();
-  const reducedMotion = useReducedMotion();
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  const [activeTab, setActiveTab] = useState<StaffDetailTab>("profile");
-  const [visitedTabs, setVisitedTabs] = useState<Set<StaffDetailTab>>(
-    () => new Set(["profile"]),
-  );
-  const [actionLoading, setActionLoading] = useState(false);
-  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editFirstName, setEditFirstName] = useState(member.firstName);
-  const [editLastName, setEditLastName] = useState(member.lastName);
-  const [editRoleTitle, setEditRoleTitle] = useState(member.roleTitle ?? "");
-  const [editPortalRole, setEditPortalRole] = useState<StaffPortalRole>(
-    member.portalRole ?? "teacher",
-  );
-  const [editEmploymentStatus, setEditEmploymentStatus] =
-    useState<StaffEmploymentStatus>(member.employmentStatus);
-  const [saveLoading, setSaveLoading] = useState(false);
-
-  const inputStyle: React.CSSProperties = useMemo(
-    () => ({
-      borderColor: C.inputBorder,
-      backgroundColor: C.input,
-      color: C.textPrimary,
-    }),
-    [C],
-  );
-
-  const loginUrl = `${SITE_URL}${schoolTeacherLoginPath(slug)}`;
+  C,
+}: {
+  model: StaffModel;
+  member: StaffMemberRecord;
+  slug: string;
+  organizationId: string;
+  C: AdminThemeTokens;
+}) {
+  const [tab, setTab] = useState<StaffDetailTab>("profile");
   const displayName = staffDisplayName(member);
-  const avatarStyle = submissionContactAvatarStyle(displayName);
-  const portalChip = portalStatusChip(member);
-
-  const resetEditForm = useCallback((nextMember: StaffMemberRecord) => {
-    setEditFirstName(nextMember.firstName);
-    setEditLastName(nextMember.lastName);
-    setEditRoleTitle(nextMember.roleTitle ?? "");
-    setEditPortalRole(nextMember.portalRole ?? "teacher");
-    setEditEmploymentStatus(nextMember.employmentStatus);
-  }, []);
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      resetEditForm(member);
-      setIsEditing(false);
-      setActiveTab("profile");
-      setVisitedTabs(new Set(["profile"]));
-    });
-  }, [member.id, member, resetEditForm]);
-
-  const navigateToTab = useCallback((tabId: StaffDetailTab) => {
-    setVisitedTabs((previous) => {
-      if (previous.has(tabId)) return previous;
-      const next = new Set(previous);
-      next.add(tabId);
-      return next;
-    });
-    setActiveTab(tabId);
-    scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
-
-  const handleSaveEdit = async () => {
-    setSaveLoading(true);
-    try {
-      const response = await fetch(`/api/school/${slug}/staff/${member.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          firstName: editFirstName,
-          lastName: editLastName,
-          roleTitle: editRoleTitle,
-          portalRole: editPortalRole,
-          employmentStatus: editEmploymentStatus,
-        }),
-      });
-      const body = await response.json();
-
-      if (!response.ok) {
-        throw new Error(body.error ?? "Failed to update staff member.");
-      }
-
-      adminToast.success("Staff member updated.");
-      setIsEditing(false);
-      await onUpdated();
-    } catch (err) {
-      void reportPortalOperationalError("school_admin", {
-        organizationId,
-        operation: "staff.update",
-        error: "",
-      }, err);
-      adminToast.error(formatActionError(err, "Failed to update staff member."));
-    } finally {
-      setSaveLoading(false);
-    }
-  };
-
-  const handlePortalAction = async (
-    action: "deactivatePortalAccess" | "reactivatePortalAccess",
-  ) => {
-    setActionLoading(true);
-    try {
-      const response = await fetch(`/api/school/${slug}/staff/${member.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
-      });
-      const body = await response.json();
-
-      if (!response.ok) {
-        throw new Error(body.error ?? "Failed to update portal access.");
-      }
-
-      adminToast.success(
-        action === "deactivatePortalAccess"
-          ? "Staff portal access deactivated."
-          : "Staff portal access reactivated.",
-      );
-      setConfirmDeactivate(false);
-      await onUpdated();
-    } catch (err) {
-      void reportPortalOperationalError("school_admin", {
-        organizationId,
-        operation: "staff.update_portal_access",
-        error: "",
-      }, err);
-      adminToast.error(formatActionError(err, "Failed to update portal access."));
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  function renderProfileTab() {
-    return (
-      <section>
-        {isEditing ? (
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block space-y-1">
-                <span className="text-xs font-medium" style={{ color: C.textSecondary }}>
-                  First name
-                </span>
-                <input
-                  required
-                  value={editFirstName}
-                  onChange={(event) => setEditFirstName(event.target.value)}
-                  className="w-full rounded-md border px-3 py-2 text-sm"
-                  style={inputStyle}
-                />
-              </label>
-              <label className="block space-y-1">
-                <span className="text-xs font-medium" style={{ color: C.textSecondary }}>
-                  Last name
-                </span>
-                <input
-                  required
-                  value={editLastName}
-                  onChange={(event) => setEditLastName(event.target.value)}
-                  className="w-full rounded-md border px-3 py-2 text-sm"
-                  style={inputStyle}
-                />
-              </label>
-            </div>
-            <label className="block space-y-1">
-              <span className="text-xs font-medium" style={{ color: C.textSecondary }}>
-                Job title
-              </span>
-              <input
-                required
-                value={editRoleTitle}
-                onChange={(event) => setEditRoleTitle(event.target.value)}
-                className="w-full rounded-md border px-3 py-2 text-sm"
-                style={inputStyle}
-              />
-            </label>
-            <label className="block space-y-1">
-              <span className="text-xs font-medium" style={{ color: C.textSecondary }}>
-                Employment status
-              </span>
-              <select
-                value={editEmploymentStatus}
-                onChange={(event) =>
-                  setEditEmploymentStatus(event.target.value as StaffEmploymentStatus)
-                }
-                className="w-full rounded-md border px-3 py-2 text-sm"
-                style={inputStyle}
-              >
-                <option value="active">Active</option>
-                <option value="on_leave">On leave</option>
-                <option value="inactive">Inactive</option>
-              </select>
-              <p className="text-[11px]" style={{ color: C.textTertiary }}>
-                To revoke sign-in access, deactivate on the Portal access tab.
-              </p>
-            </label>
-          </div>
-        ) : (
-          <dl className="grid grid-cols-1 gap-0 sm:grid-cols-2">
-            <div className="border-t py-2.5" style={{ borderColor: "#E9EFEA" }}>
-              <dt className="text-[10px]" style={{ color: C.textTertiary }}>
-                Name
-              </dt>
-              <dd className="mt-0.5 text-xs font-semibold" style={{ color: C.textPrimary }}>
-                {displayName}
-              </dd>
-            </div>
-            <div className="border-t py-2.5" style={{ borderColor: "#E9EFEA" }}>
-              <dt className="text-[10px]" style={{ color: C.textTertiary }}>
-                Job title
-              </dt>
-              <dd className="mt-0.5 text-xs font-semibold" style={{ color: C.textPrimary }}>
-                {member.roleTitle || "—"}
-              </dd>
-            </div>
-            <div className="border-t py-2.5" style={{ borderColor: "#E9EFEA" }}>
-              <dt className="text-[10px]" style={{ color: C.textTertiary }}>
-                Employment status
-              </dt>
-              <dd className="mt-0.5 text-xs font-semibold" style={{ color: C.textPrimary }}>
-                {employmentStatusLabel(member.employmentStatus)}
-              </dd>
-            </div>
-            <div className="border-t py-2.5" style={{ borderColor: "#E9EFEA" }}>
-              <dt className="text-[10px]" style={{ color: C.textTertiary }}>
-                Portal account
-              </dt>
-              <dd className="mt-0.5">
-                <AdminChip theme={theme} tone={portalChip.tone}>
-                  {portalChip.label}
-                </AdminChip>
-              </dd>
-            </div>
-          </dl>
-        )}
-      </section>
-    );
-  }
-
-  function renderPortalTab() {
-    return (
-      <section>
-        <dl className="space-y-2 text-sm">
-          <div>
-            <dt style={{ color: C.textTertiary }}>Role</dt>
-            {isEditing ? (
-              <dd className="mt-1">
-                <select
-                  value={editPortalRole}
-                  onChange={(event) =>
-                    setEditPortalRole(event.target.value as StaffPortalRole)
-                  }
-                  className="w-full max-w-xs rounded-md border px-3 py-2 text-sm"
-                  style={inputStyle}
-                >
-                  <option value="teacher">Teacher</option>
-                  <option value="staff">Staff</option>
-                </select>
-              </dd>
-            ) : (
-              <dd style={{ color: C.textPrimary }}>
-                {portalRoleLabel(member.portalRole)}
-              </dd>
-            )}
-          </div>
-          <div>
-            <dt style={{ color: C.textTertiary }}>Sign-in status</dt>
-            <dd className="mt-1">
-              <ParentPortalLoginBadge
-                status={staffPortalLoginBadgeStatus(member)}
-                C={C}
-              />
-            </dd>
-          </div>
-          <div>
-            <dt style={{ color: C.textTertiary }}>Sign-in URL</dt>
-            <dd>
-              <CopyableUrlRow url={loginUrl} C={C} />
-            </dd>
-          </div>
-        </dl>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          {member.membershipStatus === "disabled" ||
-          member.employmentStatus === "inactive" ? (
-            <AdminButton
-              theme={theme}
-              variant="primary"
-              size="compact"
-              disabled={actionLoading}
-              onClick={() => void handlePortalAction("reactivatePortalAccess")}
-            >
-              Reactivate portal access
-            </AdminButton>
-          ) : (
-            <AdminButton
-              theme={theme}
-              variant="soft"
-              size="compact"
-              disabled={actionLoading}
-              onClick={() => setConfirmDeactivate(true)}
-            >
-              Deactivate portal access
-            </AdminButton>
-          )}
-        </div>
-      </section>
-    );
-  }
-
-  function renderStudentsTab() {
-    return (
-      <StaffAssignedStudentsSection
-        key={member.id}
-        slug={slug}
-        organizationId={organizationId}
-        staffMemberId={member.id}
-        staffMemberName={displayName}
-        staffIsActive={member.employmentStatus === "active"}
-        C={C}
-        embedded
-        onAssignmentsChanged={() => void onUpdated()}
-      />
-    );
-  }
-
-  function renderContactTab() {
-    return (
-      <section>
-        <dl className="space-y-2 text-sm">
-          <div>
-            <dt style={{ color: C.textTertiary }}>Email</dt>
-            <dd style={{ color: C.textPrimary }}>{member.email || "—"}</dd>
-            {isEditing ? (
-              <p className="mt-1 text-[11px]" style={{ color: C.textTertiary }}>
-                Email cannot be changed here.
-              </p>
-            ) : null}
-          </div>
-        </dl>
-      </section>
-    );
-  }
-
-  function renderTabPanel(tabId: StaffDetailTab) {
-    if (tabId === "profile") return renderProfileTab();
-    if (tabId === "portal") return renderPortalTab();
-    if (tabId === "students") return renderStudentsTab();
-    if (tabId === "contact") return renderContactTab();
-    return null;
-  }
+  const portalChip = staffPortalChip(member);
+  const accessOff = member.membershipStatus === "disabled" || member.employmentStatus === "inactive";
+  const flashed = model.flashId === member.id;
 
   return (
-    <>
-      <AdminCard theme={theme} padding="none" className="min-w-0 overflow-hidden">
-        <header
-          className="flex flex-col gap-3 px-5 py-5 sm:flex-row sm:items-center sm:justify-between"
-          style={{ borderBottom: "1px solid #E0E8E0" }}
-        >
-          <div className="flex min-w-0 items-center gap-3">
-            <span
-              className="grid h-[59px] w-[59px] shrink-0 place-items-center rounded-[20px] text-[17px] font-extrabold"
-              style={avatarStyle}
-              aria-hidden="true"
-            >
-              {initialsFromName(displayName).slice(0, 2)}
-            </span>
-            <div className="min-w-0">
-              <AdminSectionKicker theme={theme}>Staff profile</AdminSectionKicker>
-              <AdminDisplayHeading
-                theme={theme}
-                as="h2"
-                size="section"
-                className="mt-1 truncate"
-              >
-                {displayName}
-              </AdminDisplayHeading>
-              <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px]" style={{ color: theme.muted }}>
-                  {member.roleTitle || "No job title"}
-                </span>
-                <span className="text-[11px] opacity-50">·</span>
-                <AdminChip theme={theme} tone={portalChip.tone}>
-                  {portalChip.label}
-                </AdminChip>
-              </div>
+    <section
+      id="staff-detail"
+      aria-label={`${displayName} profile`}
+      data-testid="staff-detail"
+      className={`flex min-w-0 scroll-mt-4 flex-col overflow-hidden rounded-[24px] border-[1.5px] bg-white shadow-[0_3px_0_0_rgba(43,36,29,0.08)] transition-colors duration-500 ${
+        flashed ? "border-[var(--sf-forest)]/40" : "border-[var(--sf-ink)]/12"
+      }`}
+    >
+      <header
+        className={`flex flex-col gap-4 border-b-[1.5px] border-dashed border-[var(--sf-ink)]/12 px-5 py-5 transition-colors duration-500 sm:flex-row sm:items-center sm:justify-between sm:px-6 ${
+          flashed ? "bg-[var(--sf-mint)]/60" : ""
+        }`}
+      >
+        <div className="flex min-w-0 items-center gap-3.5">
+          <GardenAvatar name={displayName} size="lg" />
+          <div className="min-w-0">
+            <p className="m-0 text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--sf-soft)]">Staff profile</p>
+            <h2 className="sf-display m-0 mt-0.5 truncate text-[1.5rem] leading-tight text-[var(--sf-ink)]">{displayName}</h2>
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              <span className="text-[13px] font-semibold text-[var(--sf-soft)]">{member.roleTitle || "No job title"}</span>
+              <GChip tone={EMPLOYMENT_TONES[member.employmentStatus]}>{employmentStatusLabel(member.employmentStatus)}</GChip>
+              <GChip tone={portalChip.tone}>{portalChip.label}</GChip>
             </div>
           </div>
-          <div className="flex shrink-0 flex-wrap gap-2">
-            {!isEditing ? (
-              <AdminButton
-                theme={theme}
-                variant="outline"
-                size="compact"
-                disabled={actionLoading || saveLoading}
-                onClick={() => {
-                  resetEditForm(member);
-                  setIsEditing(true);
-                }}
-              >
-                Edit profile
-              </AdminButton>
-            ) : (
-              <>
-                <AdminButton
-                  theme={theme}
-                  variant="soft"
-                  size="compact"
-                  disabled={saveLoading}
-                  onClick={() => {
-                    resetEditForm(member);
-                    setIsEditing(false);
-                  }}
-                >
-                  Cancel
-                </AdminButton>
-                <AdminButton
-                  theme={theme}
-                  variant="primary"
-                  size="compact"
-                  disabled={saveLoading}
-                  onClick={() => void handleSaveEdit()}
-                >
-                  {saveLoading ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-                  ) : null}
-                  Save
-                </AdminButton>
-              </>
-            )}
-          </div>
-        </header>
-
-        <div
-          className="overflow-x-auto px-5"
-          style={{ borderBottom: "1px solid #E1E8E1" }}
-        >
-          <div
-            className="-mb-px flex gap-[3px]"
-            role="tablist"
-            aria-label="Staff sections"
-          >
-            {STAFF_DETAIL_TABS.map((tab) => {
-              const isActive = activeTab === tab.id;
-              const tabId = `staff-pane-tab-${member.id}-${tab.id}`;
-              const panelId = `staff-pane-panel-${member.id}-${tab.id}`;
-
-              return (
-                <button
-                  key={tab.id}
-                  id={tabId}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  aria-controls={panelId}
-                  onClick={() => navigateToTab(tab.id)}
-                  className="flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-[9px] py-[11px] text-[11px] font-bold transition-colors"
-                  style={{
-                    borderBottomColor: isActive ? theme.primary : "transparent",
-                    color: isActive ? theme.primary : "#77858A",
-                  }}
-                >
-                  <tab.icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
         </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          {model.editing ? (
+            <>
+              <button type="button" className={gBtnOutlineSm} disabled={model.saving} onClick={model.cancelEdit}>
+                <X className="h-4 w-4" aria-hidden />
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={gBtnPopSm}
+                disabled={model.saving || !model.draft?.firstName.trim() || !model.draft?.lastName.trim() || !model.draft?.roleTitle.trim()}
+                aria-busy={model.saving || undefined}
+                onClick={() => void model.saveEdit()}
+                data-testid="staff-save"
+              >
+                <BusyLabel busy={model.saving} busyLabel="Saving…" icon={<Check className="h-4 w-4" aria-hidden />}>
+                  Save
+                </BusyLabel>
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className={gBtnOutlineSm}
+              disabled={model.previewMode || model.portalBusy}
+              onClick={() => {
+                setTab("profile");
+                model.startEdit();
+              }}
+              data-testid="staff-edit"
+            >
+              <Pencil className="h-4 w-4" aria-hidden />
+              Edit profile
+            </button>
+          )}
+        </div>
+      </header>
 
-        <SubmissionDetailStoryProvider variant="story" theme={theme}>
-          <div ref={scrollContainerRef} className="px-5 py-5">
-            {STAFF_DETAIL_TABS.map((tab) =>
-              visitedTabs.has(tab.id) ? (
-                <div
-                  key={tab.id}
-                  id={`staff-pane-panel-${member.id}-${tab.id}`}
-                  role="tabpanel"
-                  aria-labelledby={`staff-pane-tab-${member.id}-${tab.id}`}
-                  hidden={activeTab !== tab.id}
+      <div className="border-b-[1.5px] border-[var(--sf-ink)]/[0.08] px-5 py-3 sm:px-6">
+        <GTabBar
+          ariaLabel="Staff sections"
+          activeKey={tab}
+          onChange={(key) => setTab(key as StaffDetailTab)}
+          items={[
+            { key: "profile", label: "Profile", icon: <LayoutDashboard className="h-3.5 w-3.5" aria-hidden /> },
+            { key: "portal", label: "Portal access", icon: <LogIn className="h-3.5 w-3.5" aria-hidden /> },
+            {
+              key: "students",
+              label: "Learners & groups",
+              icon: <Users className="h-3.5 w-3.5" aria-hidden />,
+              suffix:
+                (member.assignedStudentCount ?? 0) > 0 ? (
+                  <span className="rounded-full bg-[var(--sf-ink)]/[0.07] px-1.5 text-[11px] tabular-nums">{member.assignedStudentCount}</span>
+                ) : undefined,
+            },
+            { key: "contact", label: "Contact", icon: <Mail className="h-3.5 w-3.5" aria-hidden /> },
+          ]}
+        />
+      </div>
+
+      <div className="px-5 py-5 sm:px-6" role="tabpanel" aria-label={tab}>
+        {tab === "profile" ? (
+          model.editing && model.draft ? (
+            <EditForm model={model} />
+          ) : (
+            <div className="flex flex-col gap-4">
+              {staffProfileNeedsReview(member) ? (
+                <GardenNotice
+                  tone="warning"
+                  title="This profile isn't finished"
+                  action={
+                    model.previewMode ? null : (
+                      <button type="button" className={gLinkSm} onClick={model.startEdit}>
+                        Finish it now
+                      </button>
+                    )
+                  }
                 >
-                  <motion.div
-                    variants={tabPanelVariants(reducedMotion ?? false)}
-                    initial={false}
-                    animate={activeTab === tab.id ? "animate" : "initial"}
-                    transition={tabPanelTransition(reducedMotion ?? false)}
+                  {!member.roleTitle?.trim() ? "Add a job title." : "Add an email so they can sign in."}
+                </GardenNotice>
+              ) : null}
+              <GardenFacts
+                items={[
+                  { label: "Name", value: displayName },
+                  { label: "Job title", value: member.roleTitle || "—" },
+                  { label: "Employment status", value: employmentStatusLabel(member.employmentStatus) },
+                  { label: "Portal role", value: portalRoleLabel(member.portalRole) },
+                  { label: "Portal account", value: <GChip tone={portalChip.tone}>{portalChip.label}</GChip> },
+                  {
+                    label: "Learners",
+                    value: (
+                      <button type="button" className={gLinkSm} onClick={() => setTab("students")}>
+                        {member.assignedStudentCount ?? 0} assigned
+                      </button>
+                    ),
+                  },
+                ]}
+              />
+            </div>
+          )
+        ) : null}
+
+        {tab === "portal" ? (
+          <div className="flex flex-col gap-5">
+            <GardenFacts
+              items={[
+                { label: "Role", value: portalRoleLabel(member.portalRole) },
+                {
+                  label: "Sign-in status",
+                  value: <GChip tone={portalChip.tone}>{portalChip.label}</GChip>,
+                  hint: formatSignIn(member.lastSignInAt) ? `Last signed in ${formatSignIn(member.lastSignInAt)}` : undefined,
+                },
+              ]}
+            />
+            <div>
+              <p className="m-0 mb-1.5 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[var(--sf-soft)]">Sign-in URL</p>
+              <GardenCopyRow value={model.loginUrl} label="Sign-in link" toastTitle="Sign-in link copied." data-testid="staff-login-url" />
+              <p className="m-0 mt-1.5 text-[12.5px] font-semibold text-[var(--sf-soft)]">
+                Share this with {member.firstName || displayName}. They sign in with a one-time code sent to {member.email || "their email"}.
+              </p>
+            </div>
+            <div className="rounded-[16px] border-[1.5px] border-dashed border-[var(--sf-ink)]/15 bg-[var(--sf-paper)] p-4">
+              {accessOff ? (
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="m-0 text-[13.5px] font-semibold text-[var(--sf-ink)]/80">
+                    {displayName} can&apos;t sign in right now.
+                  </p>
+                  <button
+                    type="button"
+                    className={gBtnSolidSm}
+                    disabled={model.portalBusy || model.previewMode}
+                    aria-busy={model.portalBusy || undefined}
+                    onClick={() => void model.portalAction("reactivatePortalAccess")}
+                    data-testid="staff-reactivate"
                   >
-                    {renderTabPanel(tab.id)}
-                  </motion.div>
+                    <BusyLabel busy={model.portalBusy} busyLabel="Reactivating…" icon={<Power className="h-4 w-4" aria-hidden />}>
+                      Reactivate portal access
+                    </BusyLabel>
+                  </button>
                 </div>
-              ) : null,
-            )}
+              ) : (
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="m-0 text-[13.5px] font-semibold text-[var(--sf-ink)]/80">
+                    Turn off sign-in if {member.firstName || displayName} leaves or shouldn&apos;t have access.
+                  </p>
+                  <button
+                    type="button"
+                    className={gBtnDangerTight}
+                    disabled={model.portalBusy || model.previewMode}
+                    onClick={() => model.setConfirmDeactivate(true)}
+                    data-testid="staff-deactivate"
+                  >
+                    <Power className="h-4 w-4" aria-hidden />
+                    Deactivate portal access
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        </SubmissionDetailStoryProvider>
-      </AdminCard>
+        ) : null}
+
+        {tab === "students" ? (
+          <StaffAssignedStudentsSection
+            key={member.id}
+            slug={slug}
+            organizationId={organizationId}
+            staffMemberId={member.id}
+            staffMemberName={displayName}
+            staffIsActive={member.employmentStatus === "active"}
+            previewMode={model.previewMode}
+            embedded
+            onAssignmentsChanged={() => void model.loadStaff({ silent: true })}
+          />
+        ) : null}
+
+        {tab === "contact" ? (
+          <div className="flex flex-col gap-3">
+            <GardenFacts
+              items={[
+                {
+                  label: "Email",
+                  value: member.email ? (
+                    <a href={`mailto:${member.email}`} className={gLinkSm}>
+                      {member.email}
+                    </a>
+                  ) : (
+                    "—"
+                  ),
+                  hint: "Email can't be changed here.",
+                },
+              ]}
+            />
+            {member.email ? <GardenCopyRow value={member.email} label="Email" toastTitle="Email copied." /> : null}
+          </div>
+        ) : null}
+      </div>
 
       <ConfirmDialog
-        open={confirmDeactivate}
+        open={model.confirmDeactivate}
         title="Deactivate portal access?"
         description={`${displayName} will no longer be able to sign in to the teacher portal.`}
         confirmLabel="Deactivate"
         variant="destructive"
-        loading={actionLoading}
-        onClose={() => setConfirmDeactivate(false)}
-        onConfirm={() => void handlePortalAction("deactivatePortalAccess")}
+        loading={model.portalBusy}
+        onClose={() => model.setConfirmDeactivate(false)}
+        onConfirm={() => void model.portalAction("deactivatePortalAccess")}
         C={C}
       />
-    </>
+    </section>
+  );
+}
+
+function EditForm({ model }: { model: StaffModel }) {
+  const draft = model.draft!;
+  const set = (patch: Partial<typeof draft>) => model.setDraft({ ...draft, ...patch });
+  const ids = {
+    first: useGardenFieldId("edit-first"),
+    last: useGardenFieldId("edit-last"),
+    title: useGardenFieldId("edit-title"),
+    status: useGardenFieldId("edit-status"),
+    role: useGardenFieldId("edit-role"),
+  };
+  return (
+    <form
+      className="flex flex-col gap-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void model.saveEdit();
+      }}
+    >
+      <div className="grid gap-3 sm:grid-cols-2">
+        <GardenField id={ids.first} label="First name" required error={draft.firstName.trim() ? null : "Add a first name."}>
+          <input id={ids.first} value={draft.firstName} onChange={(e) => set({ firstName: e.target.value })} data-garden-skip className={gInputClass(draft.firstName.trim() ? null : "x")} />
+        </GardenField>
+        <GardenField id={ids.last} label="Last name" required error={draft.lastName.trim() ? null : "Add a last name."}>
+          <input id={ids.last} value={draft.lastName} onChange={(e) => set({ lastName: e.target.value })} data-garden-skip className={gInputClass(draft.lastName.trim() ? null : "x")} />
+        </GardenField>
+      </div>
+      <GardenField id={ids.title} label="Job title" required error={draft.roleTitle.trim() ? null : "Add a job title."}>
+        <input id={ids.title} value={draft.roleTitle} onChange={(e) => set({ roleTitle: e.target.value })} data-garden-skip className={gInputClass(draft.roleTitle.trim() ? null : "x")} />
+      </GardenField>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <GardenField id={ids.status} label="Employment status" hint="To revoke sign-in access, deactivate on the Portal access tab.">
+          <GardenSelect
+            id={ids.status}
+            value={draft.employmentStatus}
+            onChange={(value) => set({ employmentStatus: value as StaffEmploymentStatus })}
+            options={[
+              { value: "active", label: "Active" },
+              { value: "on_leave", label: "On leave" },
+              { value: "inactive", label: "Inactive" },
+            ]}
+          />
+        </GardenField>
+        <GardenField id={ids.role} label="Portal role">
+          <GardenSelect
+            id={ids.role}
+            value={draft.portalRole}
+            onChange={(value) => set({ portalRole: value as StaffPortalRole })}
+            options={[
+              { value: "teacher", label: "Teacher" },
+              { value: "staff", label: "Staff" },
+            ]}
+          />
+        </GardenField>
+      </div>
+      <p className="m-0 text-[12.5px] font-semibold text-[var(--sf-soft)]">Email can&apos;t be changed here.</p>
+    </form>
   );
 }

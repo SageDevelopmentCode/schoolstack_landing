@@ -1,21 +1,33 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, X } from "lucide-react";
-import { SchoolAdminSplitPaneSkeleton } from "@/components/school-admin/skeletons";
-import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
+import { useMemo, useState, type FormEvent } from "react";
+import { AlertTriangle, Plus, UserPlus, Users } from "lucide-react";
+import { GDialog } from "@/components/school-parent/garden/GDialog";
+import { GCard, gBtnOutlineSm, gBtnPopSm, gLinkSm } from "@/components/school-parent/garden/ui";
+import {
+  AdminGardenPage,
+  AdminGardenPageHeader,
+  AdminGardenPageSkeleton,
+  BusyLabel,
+  GardenEmptyState,
+  GardenField,
+  GardenLoadError,
+  GardenNotice,
+  GardenSelect,
+  GardenStatTiles,
+  gInputClass,
+  useGardenFieldId,
+} from "@/components/school-admin/garden/kit";
+import { GARDEN_LIST_DETAIL_GRID, GardenRecordList } from "@/components/school-admin/garden/blocks";
 import StaffDetailPane from "@/components/school-admin/staff/StaffDetailPane";
-import StaffListSidebar from "@/components/school-admin/staff/StaffListSidebar";
-import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import AdminCard from "@/components/school-admin/ui/story/AdminCard";
-import type { StaffMemberRecord, StaffPortalRole } from "@/lib/staff/staff-members";
+import { buildParentThemeTokens, parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import { schoolTeacherLoginPath } from "@/lib/organization-settings/teacher-routes";
-import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
-import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
-import { SITE_URL } from "@/lib/site";
+import type { StaffRosterFilter } from "@/lib/school-admin/admin-staff-roster-metrics";
+import { staffProfileNeedsReview } from "@/lib/school-admin/admin-staff-roster-metrics";
+import { staffDisplayName } from "@/lib/staff/staff-display";
+import { staffPortalChip } from "./staff-portal-chip";
+import type { StaffMemberRecord, StaffPortalRole } from "@/lib/staff/staff-members";
+import { useStaffModel, type StaffAddDraft, type StaffModel } from "./useStaffModel";
 
 type StaffPageProps = {
   organizationId: string;
@@ -26,236 +38,9 @@ type StaffPageProps = {
   previewMode?: boolean;
 };
 
-type AddStaffModalProps = {
-  open: boolean;
-  slug: string;
-  organizationId: string;
-  onClose: () => void;
-  onAdded: () => void;
-};
 
-function AddStaffModal({ open, slug, organizationId, onClose, onAdded }: AddStaffModalProps) {
-  const { theme, C } = useSchoolAdminStoryTheme();
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [roleTitle, setRoleTitle] = useState("");
-  const [portalRole, setPortalRole] = useState<StaffPortalRole>("teacher");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    queueMicrotask(() => {
-      setFirstName("");
-      setLastName("");
-      setEmail("");
-      setRoleTitle("");
-      setPortalRole("teacher");
-      setError(null);
-    });
-  }, [open]);
-
-  const inputStyle: React.CSSProperties = {
-    borderColor: "#DCE4DC",
-    backgroundColor: theme.white,
-    color: theme.ink,
-  };
-
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setSubmitting(true);
-    setError(null);
-
-    try {
-      const response = await fetch(`/api/school/${slug}/staff`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          firstName,
-          lastName,
-          email,
-          roleTitle,
-          portalRole,
-        }),
-      });
-      const body = await response.json();
-
-      if (!response.ok) {
-        throw new Error(body.error ?? "Failed to add staff access.");
-      }
-
-      const loginUrl = `${SITE_URL}${schoolTeacherLoginPath(slug)}`;
-      adminToast.success(
-        `Staff can sign in at ${loginUrl} with ${email.trim().toLowerCase()}.`,
-      );
-      onAdded();
-      onClose();
-    } catch (err) {
-      const message = formatActionError(err, "Failed to add staff access.");
-      void reportPortalOperationalError("school_admin", {
-        organizationId,
-        operation: "staff.add",
-        error: "",
-      }, err);
-      setError(message);
-      adminToast.error(message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <AnimatePresence>
-      {open ? (
-        <motion.div
-          className="fixed inset-0 z-[130] flex items-center justify-center p-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        >
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/30"
-            aria-label="Close"
-            onClick={onClose}
-          />
-          <motion.div
-            className="relative w-full max-w-md rounded-lg border p-5 shadow-xl"
-            style={{
-              backgroundColor: C.surface,
-              borderColor: C.border,
-            }}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 8 }}
-          >
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-base font-semibold" style={{ color: C.textPrimary }}>
-                  Add staff
-                </h2>
-                <p className="mt-1 text-xs" style={{ color: C.textSecondary }}>
-                  They can sign in with a one-time code sent to their email.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-md p-1"
-                style={{ color: C.textTertiary }}
-                aria-label="Close"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {error ? (
-              <p
-                className="mb-3 rounded-md border px-3 py-2 text-xs"
-                style={{
-                  borderColor: C.errorBorder,
-                  backgroundColor: C.errorBg,
-                  color: C.error,
-                }}
-              >
-                {error}
-              </p>
-            ) : null}
-
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block space-y-1">
-                  <span className="text-xs font-medium" style={{ color: C.textSecondary }}>
-                    First name
-                  </span>
-                  <input
-                    required
-                    value={firstName}
-                    onChange={(event) => setFirstName(event.target.value)}
-                    className="w-full rounded-md border px-3 py-2 text-sm"
-                    style={inputStyle}
-                  />
-                </label>
-                <label className="block space-y-1">
-                  <span className="text-xs font-medium" style={{ color: C.textSecondary }}>
-                    Last name
-                  </span>
-                  <input
-                    required
-                    value={lastName}
-                    onChange={(event) => setLastName(event.target.value)}
-                    className="w-full rounded-md border px-3 py-2 text-sm"
-                    style={inputStyle}
-                  />
-                </label>
-              </div>
-
-              <label className="block space-y-1">
-                <span className="text-xs font-medium" style={{ color: C.textSecondary }}>
-                  Email
-                </span>
-                <input
-                  required
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  className="w-full rounded-md border px-3 py-2 text-sm"
-                  style={inputStyle}
-                />
-              </label>
-
-              <label className="block space-y-1">
-                <span className="text-xs font-medium" style={{ color: C.textSecondary }}>
-                  Job title
-                </span>
-                <input
-                  required
-                  value={roleTitle}
-                  onChange={(event) => setRoleTitle(event.target.value)}
-                  placeholder="Lead Teacher"
-                  className="w-full rounded-md border px-3 py-2 text-sm"
-                  style={inputStyle}
-                />
-              </label>
-
-              <label className="block space-y-1">
-                <span className="text-xs font-medium" style={{ color: C.textSecondary }}>
-                  Portal role
-                </span>
-                <select
-                  value={portalRole}
-                  onChange={(event) =>
-                    setPortalRole(event.target.value as StaffPortalRole)
-                  }
-                  className="w-full rounded-md border px-3 py-2 text-sm"
-                  style={inputStyle}
-                >
-                  <option value="teacher">Teacher</option>
-                  <option value="staff">Staff</option>
-                </select>
-              </label>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <AdminButton theme={theme} variant="soft" type="button" onClick={onClose}>
-                  Cancel
-                </AdminButton>
-                <AdminButton
-                  theme={theme}
-                  variant="primary"
-                  type="submit"
-                  disabled={submitting}
-                >
-                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  Add staff
-                </AdminButton>
-              </div>
-            </form>
-          </motion.div>
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
-  );
+function plural(count: number, one: string, many = `${one}s`) {
+  return `${count} ${count === 1 ? one : many}`;
 }
 
 export default function StaffPage({
@@ -266,168 +51,353 @@ export default function StaffPage({
   initialSelectedStaffId,
   previewMode = false,
 }: StaffPageProps) {
-  void branding;
-  const { theme, C } = useSchoolAdminStoryTheme();
-  const searchParams = useSearchParams();
-  const deepLinkStaffId = searchParams.get("staff");
-  const hasInitialStaff = initialStaff !== undefined;
+  const theme = useMemo(() => buildParentThemeTokens(branding), [branding]);
+  const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
+  const model = useStaffModel({ organizationId, slug, initialStaff, initialSelectedStaffId, previewMode });
+  const { metrics } = model;
 
-  const [staffMembers, setStaffMembers] = useState<StaffMemberRecord[]>(
-    initialStaff ?? [],
-  );
-  const [loading, setLoading] = useState(!hasInitialStaff);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [addOpen, setAddOpen] = useState(false);
+  const subtitle =
+    metrics.totalCount === 0
+      ? "Give your team portal access. Each person signs in with a one-time code sent to their email."
+      : [
+          plural(metrics.totalCount, "person", "people"),
+          plural(metrics.teacherCount, "teacher"),
+          `${metrics.portalActiveCount} signed in to the portal`,
+        ].join(" · ");
 
-  const loadStaff = useCallback(async (options?: { silent?: boolean }) => {
-    if (previewMode) return;
-
-    const silent = options?.silent ?? false;
-    if (!silent) {
-      setLoading(true);
-    }
-    setError(null);
-
-    try {
-      const response = await fetch(`/api/school/${slug}/staff`);
-      const body = await response.json();
-
-      if (!response.ok) {
-        throw new Error(body.error ?? "Failed to load staff.");
-      }
-
-      const members = (body.staffMembers ?? []) as StaffMemberRecord[];
-      setStaffMembers(members);
-      setSelectedId((current) => {
-        if (current && members.some((member) => member.id === current)) {
-          return current;
-        }
-        return members[0]?.id ?? null;
-      });
-    } catch (err) {
-      setError(formatActionError(err, "Failed to load staff."));
-      void reportPortalOperationalError("school_admin", {
-        organizationId,
-        operation: "staff.load",
-        error: "",
-      }, err);
-    } finally {
-      if (!silent) {
-        setLoading(false);
-      }
-    }
-  }, [previewMode, slug]);
-
-  useEffect(() => {
-    if (previewMode || hasInitialStaff) return;
-    queueMicrotask(() => {
-      void loadStaff();
-    });
-  }, [hasInitialStaff, loadStaff, previewMode]);
-
-  useEffect(() => {
-    if (!initialStaff) return;
-    queueMicrotask(() => {
-      setStaffMembers(initialStaff);
-      setLoading(false);
-      setSelectedId((current) => {
-        if (initialSelectedStaffId) return initialSelectedStaffId;
-        if (current && initialStaff.some((member) => member.id === current)) {
-          return current;
-        }
-        return initialStaff[0]?.id ?? null;
-      });
-    });
-  }, [initialSelectedStaffId, initialStaff]);
-
-  useEffect(() => {
-    if (previewMode || !deepLinkStaffId || loading) return;
-    const match = staffMembers.find((member) => member.id === deepLinkStaffId);
-    if (match) {
-      queueMicrotask(() => setSelectedId(match.id));
-    }
-  }, [deepLinkStaffId, loading, previewMode, staffMembers]);
-
-  const selectedMember =
-    staffMembers.find((member) => member.id === selectedId) ?? null;
+  let content;
+  if (model.loading) {
+    content = <AdminGardenPageSkeleton label="Loading staff" layout="split" />;
+  } else if (model.error && model.staffMembers.length === 0) {
+    content = (
+      <GardenLoadError
+        title="Staff didn't load"
+        description={model.error}
+        onRetry={() => void model.loadStaff()}
+        retrying={model.loading}
+      />
+    );
+  } else if (model.staffMembers.length === 0) {
+    content = (
+      <GCard index={1} kicker="Get started" title="Add your first team member">
+        <GardenEmptyState
+          icon={UserPlus}
+          title="No staff yet"
+          description="Add your first team member to give them portal access. They can sign in with a one-time code sent to their email."
+          action={
+            <button type="button" className={gBtnPopSm} onClick={model.openAdd} disabled={previewMode}>
+              <Plus className="h-4 w-4" aria-hidden />
+              Add staff
+            </button>
+          }
+        />
+      </GCard>
+    );
+  } else {
+    content = <StaffWorkspace model={model} slug={slug} organizationId={organizationId} C={C} />;
+  }
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[1350px] px-[clamp(16px,3vw,36px)] py-[18px] pb-8">
-          {loading ? (
-            <SchoolAdminSplitPaneSkeleton C={C} label="Loading staff" />
-          ) : error ? (
-            <AdminCard theme={theme} padding="canvas">
-              <p className="text-sm" style={{ color: C.error }}>
-                {error}
-              </p>
-            </AdminCard>
-          ) : staffMembers.length === 0 ? (
-            <AdminCard theme={theme} padding="canvas">
-              <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
-                No staff yet. Add your first team member to give them portal access.
-              </p>
-              <AdminButton
-                theme={theme}
-                variant="primary"
-                className="mt-3"
-                onClick={() => setAddOpen(true)}
-              >
-                Add staff →
-              </AdminButton>
-            </AdminCard>
-          ) : (
-            <>
-              <StaffListSidebar
-                members={staffMembers}
-                selectedId={selectedId ?? ""}
-                onSelect={setSelectedId}
-                theme={theme}
-                layout="strip"
-                onAddStaff={previewMode ? undefined : () => setAddOpen(true)}
-              />
-
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-[280px_1fr]">
-                <div className="hidden lg:block">
-                  <StaffListSidebar
-                    members={staffMembers}
-                    selectedId={selectedId ?? ""}
-                    onSelect={setSelectedId}
-                    theme={theme}
-                    onAddStaff={previewMode ? undefined : () => setAddOpen(true)}
-                  />
-                </div>
-
-                {selectedMember ? (
-                  <StaffDetailPane
-                    key={selectedMember.id}
-                    member={selectedMember}
-                    slug={slug}
-                    organizationId={organizationId}
-                    onUpdated={() => loadStaff({ silent: true })}
-                  />
-                ) : (
-                  <AdminCard theme={theme} padding="canvas">
-                    <p className="text-sm" style={{ color: theme.muted }}>
-                      Select a staff member from the list to view their profile.
-                    </p>
-                  </AdminCard>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      <AddStaffModal
-        open={!previewMode && addOpen}
-        slug={slug}
-        organizationId={organizationId}
-        onClose={() => setAddOpen(false)}
-        onAdded={() => void loadStaff()}
+    <AdminGardenPage
+      theme={theme}
+      skinOverlays
+      data-testid="admin-staff-page"
+      overlays={<AddStaffDialog model={model} theme={theme} />}
+    >
+      <AdminGardenPageHeader
+        kicker="My school"
+        title={
+          <>
+            Your <span className="text-[var(--sf-clay)]">staff</span>
+          </>
+        }
+        subtitle={subtitle}
+        refresh={
+          previewMode || model.staffMembers.length === 0
+            ? undefined
+            : {
+                onRefresh: () => void model.loadStaff({ silent: true }),
+                refreshing: model.refreshing,
+                lastUpdatedAt: model.lastUpdatedAt,
+                label: "Refresh staff",
+              }
+        }
+        actions={
+          model.staffMembers.length > 0 ? (
+            <button
+              type="button"
+              className={gBtnOutlineSm}
+              onClick={model.openAdd}
+              disabled={previewMode}
+              data-testid="staff-add"
+            >
+              <Plus className="h-4 w-4" aria-hidden />
+              Add staff
+            </button>
+          ) : null
+        }
       />
-    </div>
+      {content}
+    </AdminGardenPage>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Workspace: tiles, notice, list + detail                             */
+/* ------------------------------------------------------------------ */
+
+function StaffWorkspace({
+  model,
+  slug,
+  organizationId,
+  C,
+}: {
+  model: StaffModel;
+  slug: string;
+  organizationId: string;
+  C: ReturnType<typeof parentThemeToAdminCompat>;
+}) {
+  const { metrics } = model;
+  const setFilter = (key: StaffRosterFilter) => model.setFilter(model.filter === key ? "all" : key);
+  const review = model.firstNeedingReview;
+
+  return (
+    <>
+      <GardenStatTiles
+        layout="strip"
+        ariaLabel="Staff at a glance"
+        stats={[
+          { id: "all", label: "Staff", value: metrics.totalCount, onClick: () => model.setFilter("all"), active: model.filter === "all" },
+          { id: "teachers", label: "Teachers", value: metrics.teacherCount, onClick: () => setFilter("teachers"), active: model.filter === "teachers" },
+          {
+            id: "portal",
+            label: "Signed in to portal",
+            value: metrics.portalActiveCount,
+            onClick: () => setFilter("portal_active"),
+            active: model.filter === "portal_active",
+          },
+          {
+            id: "review",
+            label: "Profiles to finish",
+            value: metrics.needsReviewCount,
+            onClick: () => setFilter("review"),
+            active: model.filter === "review",
+          },
+        ]}
+      />
+
+      {review && metrics.needsReviewCount > 0 ? (
+        <GardenNotice
+          tone="warning"
+          icon={AlertTriangle}
+          title={`${plural(metrics.needsReviewCount, "profile")} missing a job title or email`}
+          action={
+            <button type="button" className={gLinkSm} onClick={() => model.selectStaff(review.id)}>
+              Open {staffDisplayName(review)}
+            </button>
+          }
+        >
+          Open each one and add what&apos;s missing.
+        </GardenNotice>
+      ) : null}
+
+      <div className={GARDEN_LIST_DETAIL_GRID}>
+        <GardenRecordList
+          kicker="Team"
+          title="Staff"
+          noun={{ one: "staff member", many: "staff" }}
+          items={model.filteredMembers.map((member) => {
+            const chip = staffPortalChip(member);
+            return {
+              id: member.id,
+              title: staffDisplayName(member),
+              meta: [
+                member.roleTitle || "No job title",
+                (member.assignedStudentCount ?? 0) > 0 ? plural(member.assignedStudentCount ?? 0, "learner") : null,
+              ]
+                .filter(Boolean)
+                .join(" · "),
+              chip: staffProfileNeedsReview(member) ? { tone: "warning" as const, label: "Finish profile" } : chip,
+              searchText: `${member.email ?? ""} ${member.roleTitle ?? ""}`,
+            };
+          })}
+          selectedId={model.selectedMember?.id ?? null}
+          onSelect={model.selectStaff}
+          flashId={model.flashId}
+          searchPlaceholder="Search name, email or title"
+          searchLabel="Search staff"
+          filters={{
+            ariaLabel: "Filter staff",
+            value: model.filter,
+            onChange: (key) => model.setFilter(key as StaffRosterFilter),
+            options: [
+              { key: "all", label: "All", count: metrics.totalCount },
+              { key: "teachers", label: "Teachers", count: metrics.teacherCount },
+              { key: "portal_active", label: "Signed in", count: metrics.portalActiveCount },
+              ...(metrics.needsReviewCount > 0 ? [{ key: "review", label: "To finish", count: metrics.needsReviewCount }] : []),
+            ],
+          }}
+          detailAnchorId="staff-detail"
+          data-testid="staff-list"
+        />
+
+        {model.selectedMember ? (
+          <StaffDetailPane
+            key={model.selectedMember.id}
+            model={model}
+            member={model.selectedMember}
+            slug={slug}
+            organizationId={organizationId}
+            C={C}
+          />
+        ) : (
+          <GardenEmptyState icon={Users} title="Pick someone from the list" description="Their profile, portal access and learners show here." />
+        )}
+      </div>
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Add staff                                                           */
+/* ------------------------------------------------------------------ */
+
+const EMPTY_ADD: StaffAddDraft = { firstName: "", lastName: "", email: "", roleTitle: "", portalRole: "teacher" };
+
+function AddStaffDialog({
+  model,
+  theme,
+}: {
+  model: StaffModel;
+  theme: ReturnType<typeof buildParentThemeTokens>;
+}) {
+  const [draft, setDraft] = useState<StaffAddDraft>(EMPTY_ADD);
+  const [touched, setTouched] = useState(false);
+  const [wasOpen, setWasOpen] = useState(model.addOpen);
+  if (wasOpen !== model.addOpen) {
+    setWasOpen(model.addOpen);
+    if (model.addOpen) {
+      setDraft(EMPTY_ADD);
+      setTouched(false);
+    }
+  }
+  const ids = {
+    first: useGardenFieldId("staff-first"),
+    last: useGardenFieldId("staff-last"),
+    email: useGardenFieldId("staff-email"),
+    title: useGardenFieldId("staff-title"),
+    role: useGardenFieldId("staff-role"),
+  };
+  const errors = {
+    firstName: !draft.firstName.trim() ? "Add a first name." : null,
+    lastName: !draft.lastName.trim() ? "Add a last name." : null,
+    email: !/^\S+@\S+\.\S+$/.test(draft.email.trim()) ? "Add a valid email. Sign-in codes go here." : null,
+    roleTitle: !draft.roleTitle.trim() ? "Add a job title, like Lead Teacher." : null,
+  };
+  const invalid = Object.values(errors).some(Boolean);
+  const show = (key: keyof typeof errors) => (touched ? errors[key] : null);
+
+  const submit = async (event?: FormEvent) => {
+    event?.preventDefault();
+    setTouched(true);
+    if (invalid || model.adding) return;
+    await model.addStaff(draft);
+  };
+
+  return (
+    <GDialog
+      theme={theme}
+      open={model.addOpen}
+      onClose={model.closeAdd}
+      closeDisabled={model.adding}
+      title="Add staff"
+      description="They can sign in with a one-time code sent to their email."
+      icon={<UserPlus className="h-5 w-5" aria-hidden />}
+      size="md"
+      footer={
+        <>
+          <button type="button" className={gBtnOutlineSm} onClick={model.closeAdd} disabled={model.adding}>
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="add-staff-form"
+            className={gBtnPopSm}
+            disabled={model.adding}
+            aria-busy={model.adding || undefined}
+            data-testid="staff-add-submit"
+          >
+            <BusyLabel busy={model.adding} busyLabel="Adding…" icon={<UserPlus className="h-4 w-4" aria-hidden />}>
+              Add staff
+            </BusyLabel>
+          </button>
+        </>
+      }
+    >
+      <form id="add-staff-form" onSubmit={(e) => void submit(e)} noValidate className="flex flex-col gap-4">
+        {model.addError ? (
+          <GardenNotice tone="alert" role="alert" title="Couldn't add this person">
+            {model.addError}
+          </GardenNotice>
+        ) : null}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <GardenField id={ids.first} label="First name" required error={show("firstName")}>
+            <input
+              id={ids.first}
+              value={draft.firstName}
+              onChange={(e) => setDraft({ ...draft, firstName: e.target.value })}
+              autoComplete="off"
+              data-garden-skip
+              className={gInputClass(show("firstName"))}
+            />
+          </GardenField>
+          <GardenField id={ids.last} label="Last name" required error={show("lastName")}>
+            <input
+              id={ids.last}
+              value={draft.lastName}
+              onChange={(e) => setDraft({ ...draft, lastName: e.target.value })}
+              autoComplete="off"
+              data-garden-skip
+              className={gInputClass(show("lastName"))}
+            />
+          </GardenField>
+        </div>
+        <GardenField id={ids.email} label="Email" required error={show("email")} hint="Sign-in codes are sent here.">
+          <input
+            id={ids.email}
+            type="email"
+            value={draft.email}
+            onChange={(e) => setDraft({ ...draft, email: e.target.value })}
+            autoComplete="off"
+            data-garden-skip
+            className={gInputClass(show("email"))}
+          />
+        </GardenField>
+        <GardenField id={ids.title} label="Job title" required error={show("roleTitle")}>
+          <input
+            id={ids.title}
+            value={draft.roleTitle}
+            onChange={(e) => setDraft({ ...draft, roleTitle: e.target.value })}
+            placeholder="Lead Teacher"
+            data-garden-skip
+            className={gInputClass(show("roleTitle"))}
+          />
+        </GardenField>
+        <GardenField
+          id={ids.role}
+          label="Portal role"
+        >
+          <GardenSelect
+            id={ids.role}
+            value={draft.portalRole}
+            onChange={(value) => setDraft({ ...draft, portalRole: value as StaffPortalRole })}
+            options={[
+              { value: "teacher", label: "Teacher" },
+              { value: "staff", label: "Staff" },
+            ]}
+          />
+        </GardenField>
+      </form>
+    </GDialog>
   );
 }
