@@ -64,7 +64,7 @@ const StaffPage = nextDynamic(
 );
 const ClassroomsPage = nextDynamic(
   () => import("@/components/school-admin/classrooms/ClassroomsPage"),
-  { loading: () => <AdminPageSkeleton label="Loading classrooms" /> },
+  { loading: () => <AdminGardenRouteSkeleton label="Loading classrooms" layout="split" /> },
 );
 const AdminFormsDocumentsPage = nextDynamic(
   () => import("@/components/school-admin/forms-documents/AdminFormsDocumentsPage"),

@@ -104,8 +104,8 @@ export function useStaffModel({
   const loginUrl = `${SITE_URL}${schoolTeacherLoginPath(slug)}`;
 
   const loadStaff = useCallback(
-    async (options?: { silent?: boolean; selectEmail?: string }) => {
-      if (previewMode) return;
+    async (options?: { silent?: boolean; selectEmail?: string }): Promise<StaffMemberRecord[] | null> => {
+      if (previewMode) return null;
       const requestId = ++requestIdRef.current;
       const silent = options?.silent ?? false;
       if (silent) setRefreshing(true);
@@ -114,7 +114,7 @@ export function useStaffModel({
         const response = await fetch(`/api/school/${slug}/staff`);
         const body = await readJson(response);
         if (!response.ok) throw new Error((body.error as string) ?? "Failed to load staff.");
-        if (requestId !== requestIdRef.current) return;
+        if (requestId !== requestIdRef.current) return null;
         const members = ((body.staffMembers as StaffMemberRecord[]) ?? []) as StaffMemberRecord[];
         setStaffMembers(members);
         setError(null);
@@ -127,14 +127,16 @@ export function useStaffModel({
           if (current && members.some((m) => m.id === current)) return current;
           return members[0]?.id ?? null;
         });
+        return members;
       } catch (err) {
-        if (requestId !== requestIdRef.current) return;
+        if (requestId !== requestIdRef.current) return null;
         setError(formatActionError(err, "Failed to load staff."));
         void reportPortalOperationalError(
           "school_admin",
           { organizationId, operation: "staff.load", error: "" },
           err,
         );
+        return null;
       } finally {
         if (requestId === requestIdRef.current) {
           setLoading(false);
@@ -225,11 +227,13 @@ export function useStaffModel({
       );
       if (result.ok) {
         setAddOpen(false);
-        void loadStaff({ silent: true, selectEmail: email });
+        const members = await loadStaff({ silent: true, selectEmail: email });
+        const added = members?.find((m) => m.email?.toLowerCase() === email);
+        if (added) selectStaff(added.id);
       }
       return result.ok;
     },
-    [action, loadStaff, loginUrl, organizationId, slug],
+    [action, loadStaff, loginUrl, organizationId, selectStaff, slug],
   );
 
   /* ---- edit ---- */

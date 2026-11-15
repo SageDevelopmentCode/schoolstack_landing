@@ -1,24 +1,37 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, X } from "lucide-react";
-import { SchoolAdminSplitPaneSkeleton } from "@/components/school-admin/skeletons";
-import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
+import { useMemo, useState, type FormEvent } from "react";
+import { Home, Plus, UserRoundX } from "lucide-react";
+import { GDialog } from "@/components/school-parent/garden/GDialog";
+import { GCard, gBtnOutlineSm, gBtnPopSm, gLinkSm, type GChipTone } from "@/components/school-parent/garden/ui";
+import {
+  AdminGardenPage,
+  AdminGardenPageHeader,
+  AdminGardenPageSkeleton,
+  BusyLabel,
+  GardenEmptyState,
+  GardenField,
+  GardenLoadError,
+  GardenNotice,
+  GardenSelect,
+  GardenStatTiles,
+  gInputClass,
+  useGardenFieldId,
+} from "@/components/school-admin/garden/kit";
+import { GARDEN_LIST_DETAIL_GRID, GardenRecordList } from "@/components/school-admin/garden/blocks";
 import ClassroomDetailPane from "@/components/school-admin/classrooms/ClassroomDetailPane";
-import ClassroomListSidebar from "@/components/school-admin/classrooms/ClassroomListSidebar";
-import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import AdminCard from "@/components/school-admin/ui/story/AdminCard";
-import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
-import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
-import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
-import type { StaffMemberRecord } from "@/lib/staff/staff-members";
-import type { ClassroomStatus, ClassroomSummary } from "@/lib/school-admin/classrooms";
+import { buildParentThemeTokens, parentThemeToAdminCompat, type ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
-import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
-
-type ProgramOption = { id: string; name: string };
+import type { ClassroomStatus, ClassroomSummary } from "@/lib/school-admin/classrooms";
+import type { StaffMemberRecord } from "@/lib/staff/staff-members";
+import {
+  CLASSROOM_STATUS_LABELS,
+  useClassroomsModel,
+  type ClassroomCreateDraft,
+  type ClassroomFilter,
+  type ClassroomsModel,
+  type ProgramOption,
+} from "./useClassroomsModel";
 
 type ClassroomsPageProps = {
   organizationId: string;
@@ -31,194 +44,14 @@ type ClassroomsPageProps = {
   previewMode?: boolean;
 };
 
-type AddClassroomModalProps = {
-  open: boolean;
-  slug: string;
-  organizationId: string;
-  programs: ProgramOption[];
-  onClose: () => void;
-  onAdded: () => void;
+export const CLASSROOM_STATUS_TONES: Record<ClassroomStatus, GChipTone> = {
+  open: "success",
+  full: "warning",
+  inactive: "neutral",
 };
 
-function AddClassroomModal({
-  open,
-  slug,
-  organizationId,
-  programs,
-  onClose,
-  onAdded,
-}: AddClassroomModalProps) {
-  const { theme, C } = useSchoolAdminStoryTheme();
-  const [name, setName] = useState("");
-  const [programId, setProgramId] = useState("");
-  const [status, setStatus] = useState<ClassroomStatus>("open");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    queueMicrotask(() => {
-      setName("");
-      setProgramId("");
-      setStatus("open");
-      setError(null);
-    });
-  }, [open]);
-
-  const inputStyle: React.CSSProperties = {
-    borderColor: "#DCE4DC",
-    backgroundColor: theme.white,
-    color: theme.ink,
-  };
-
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setSubmitting(true);
-    setError(null);
-
-    try {
-      const response = await fetch(`/api/school/${slug}/classrooms`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          programId: programId || null,
-          status,
-        }),
-      });
-      const body = await response.json();
-
-      if (!response.ok) {
-        throw new Error(body.error ?? "Failed to create classroom.");
-      }
-
-      adminToast.success("Classroom created.");
-      onAdded();
-      onClose();
-    } catch (submitError) {
-      void reportPortalOperationalError("school_admin", {
-        organizationId,
-        operation: "classrooms.create",
-        error: "",
-      }, submitError);
-      setError(formatActionError(submitError, "Failed to create classroom."));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <AnimatePresence>
-      {open ? (
-        <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        >
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/30"
-            aria-label="Close"
-            onClick={onClose}
-          />
-          <motion.div
-            className="relative w-full max-w-md rounded-[16px] border p-5 shadow-xl"
-            style={{ backgroundColor: theme.white, borderColor: "#DCE4DC" }}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 12 }}
-          >
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold" style={{ color: theme.ink }}>
-                  Add classroom
-                </h2>
-                <p className="mt-1 text-sm" style={{ color: theme.muted }}>
-                  Group students and staff into a classroom roster.
-                </p>
-              </div>
-              <button type="button" onClick={onClose} aria-label="Close">
-                <X className="h-5 w-5" style={{ color: theme.muted }} />
-              </button>
-            </div>
-
-            <form className="space-y-3" onSubmit={(event) => void handleSubmit(event)}>
-              <label className="block space-y-1">
-                <span className="text-xs font-medium" style={{ color: C.textSecondary }}>
-                  Name
-                </span>
-                <input
-                  required
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  placeholder="Kindergarten Group A"
-                  className="w-full rounded-md border px-3 py-2 text-sm"
-                  style={inputStyle}
-                />
-              </label>
-
-              <label className="block space-y-1">
-                <span className="text-xs font-medium" style={{ color: C.textSecondary }}>
-                  Program (optional)
-                </span>
-                <select
-                  value={programId}
-                  onChange={(event) => setProgramId(event.target.value)}
-                  className="w-full rounded-md border px-3 py-2 text-sm"
-                  style={inputStyle}
-                >
-                  <option value="">All programs</option>
-                  {programs.map((program) => (
-                    <option key={program.id} value={program.id}>
-                      {program.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="block space-y-1">
-                <span className="text-xs font-medium" style={{ color: C.textSecondary }}>
-                  Status
-                </span>
-                <select
-                  value={status}
-                  onChange={(event) => setStatus(event.target.value as ClassroomStatus)}
-                  className="w-full rounded-md border px-3 py-2 text-sm"
-                  style={inputStyle}
-                >
-                  <option value="open">Open</option>
-                  <option value="full">Full</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </label>
-
-              {error ? (
-                <p className="text-sm" style={{ color: C.error }}>
-                  {error}
-                </p>
-              ) : null}
-
-              <div className="flex justify-end gap-2 pt-2">
-                <AdminButton theme={theme} variant="soft" type="button" onClick={onClose}>
-                  Cancel
-                </AdminButton>
-                <AdminButton
-                  theme={theme}
-                  variant="primary"
-                  type="submit"
-                  disabled={submitting}
-                >
-                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  Add classroom
-                </AdminButton>
-              </div>
-            </form>
-          </motion.div>
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
-  );
+function plural(count: number, one: string, many = `${one}s`) {
+  return `${count} ${count === 1 ? one : many}`;
 }
 
 export default function ClassroomsPage({
@@ -231,213 +64,259 @@ export default function ClassroomsPage({
   initialSelectedClassroomId,
   previewMode = false,
 }: ClassroomsPageProps) {
-  void branding;
-  const { theme, C } = useSchoolAdminStoryTheme();
-  const hasInitialClassrooms = initialClassrooms !== undefined;
-
-  const [classrooms, setClassrooms] = useState<ClassroomSummary[]>(
-    initialClassrooms ?? [],
-  );
-  const [programs, setPrograms] = useState<ProgramOption[]>(initialPrograms ?? []);
-  const [staffMembers, setStaffMembers] = useState<StaffMemberRecord[]>(
-    initialStaff ?? [],
-  );
-  const [loading, setLoading] = useState(!hasInitialClassrooms);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [addOpen, setAddOpen] = useState(false);
-
-  const loadClassrooms = useCallback(async (options?: { silent?: boolean }) => {
-    if (previewMode) return;
-
-    const silent = options?.silent ?? false;
-    if (!silent) setLoading(true);
-    setError(null);
-
-    try {
-      const [classroomsResponse, staffResponse] = await Promise.all([
-        fetch(`/api/school/${slug}/classrooms`),
-        fetch(`/api/school/${slug}/staff`),
-      ]);
-      const classroomsBody = await classroomsResponse.json();
-      const staffBody = await staffResponse.json();
-
-      if (!classroomsResponse.ok) {
-        throw new Error(classroomsBody.error ?? "Failed to load classrooms.");
-      }
-      if (!staffResponse.ok) {
-        throw new Error(staffBody.error ?? "Failed to load staff.");
-      }
-
-      const nextClassrooms = (classroomsBody.classrooms ?? []) as ClassroomSummary[];
-      setClassrooms(nextClassrooms);
-      setPrograms((classroomsBody.programs ?? []) as ProgramOption[]);
-      setStaffMembers((staffBody.staffMembers ?? []) as StaffMemberRecord[]);
-      setSelectedId((current) => {
-        if (current && nextClassrooms.some((classroom) => classroom.id === current)) {
-          return current;
-        }
-        return nextClassrooms[0]?.id ?? null;
-      });
-    } catch (loadError) {
-      void reportPortalOperationalError("school_admin", {
-        organizationId,
-        operation: "classrooms.load",
-        error: "",
-      }, loadError);
-      setError(formatActionError(loadError, "Failed to load classrooms."));
-    } finally {
-      if (!silent) setLoading(false);
-    }
-  }, [organizationId, previewMode, slug]);
-
-  useEffect(() => {
-    if (previewMode || hasInitialClassrooms) return;
-    queueMicrotask(() => {
-      void loadClassrooms();
-    });
-  }, [hasInitialClassrooms, loadClassrooms, previewMode]);
-
-  useEffect(() => {
-    if (!initialClassrooms) return;
-    queueMicrotask(() => {
-      setClassrooms(initialClassrooms);
-      setPrograms(initialPrograms ?? []);
-      setStaffMembers(initialStaff ?? []);
-      setLoading(false);
-      setSelectedId((current) => {
-        if (initialSelectedClassroomId) return initialSelectedClassroomId;
-        if (current && initialClassrooms.some((classroom) => classroom.id === current)) {
-          return current;
-        }
-        return initialClassrooms[0]?.id ?? null;
-      });
-    });
-  }, [
+  const theme = useMemo(() => buildParentThemeTokens(branding), [branding]);
+  const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
+  const model = useClassroomsModel({
+    organizationId,
+    slug,
     initialClassrooms,
     initialPrograms,
-    initialSelectedClassroomId,
     initialStaff,
-  ]);
+    initialSelectedClassroomId,
+    previewMode,
+  });
+  const { metrics } = model;
 
-  const selectedClassroom =
-    classrooms.find((classroom) => classroom.id === selectedId) ?? null;
+  const subtitle =
+    metrics.total === 0
+      ? "Group students and staff into classroom rosters with lead teacher assignments."
+      : [plural(metrics.total, "classroom"), plural(metrics.students, "roster student"), `${metrics.open} open`].join(" · ");
 
-  const totalRosterStudents = useMemo(
-    () => classrooms.reduce((sum, classroom) => sum + classroom.studentCount, 0),
-    [classrooms],
-  );
+  let content;
+  if (model.loading) {
+    content = <AdminGardenPageSkeleton label="Loading classrooms" layout="split" />;
+  } else if (model.error && model.classrooms.length === 0) {
+    content = (
+      <GardenLoadError title="Classrooms didn't load" description={model.error} onRetry={() => void model.loadClassrooms()} />
+    );
+  } else if (model.classrooms.length === 0) {
+    content = (
+      <GCard index={1} kicker="Get started" title="Create your first classroom">
+        <GardenEmptyState
+          icon={Home}
+          title="No classrooms yet"
+          description="Create your first classroom to group students and assign lead teachers."
+          action={
+            <button type="button" className={gBtnPopSm} onClick={model.openCreate} disabled={previewMode}>
+              <Plus className="h-4 w-4" aria-hidden />
+              Add classroom
+            </button>
+          }
+        />
+      </GCard>
+    );
+  } else {
+    content = <ClassroomsWorkspace model={model} C={C} />;
+  }
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[1350px] px-[clamp(16px,3vw,36px)] py-[18px] pb-8">
-          {!loading && !error && classrooms.length > 0 ? (
-            <>
-              <div className="mb-[19px]">
-                <AdminSectionKicker theme={theme}>My School</AdminSectionKicker>
-                <AdminDisplayHeading theme={theme} as="h1" size="display" className="mt-1">
-                  Classrooms
-                </AdminDisplayHeading>
-                <p className="mt-1 text-sm" style={{ color: theme.muted }}>
-                  Group students and staff into classroom rosters with lead teacher assignments.
-                </p>
-              </div>
-
-              <div className="mb-[19px] grid grid-cols-1 gap-[13px] sm:grid-cols-2">
-                <AdminMetricCard
-                  theme={theme}
-                  value={String(classrooms.length)}
-                  label="Classrooms"
-                  accent="forest"
-                />
-                <AdminMetricCard
-                  theme={theme}
-                  value={String(totalRosterStudents)}
-                  label="Roster students"
-                  accent="sky"
-                />
-              </div>
-            </>
-          ) : null}
-
-          {loading ? (
-            <SchoolAdminSplitPaneSkeleton C={C} label="Loading classrooms" />
-          ) : error ? (
-            <AdminCard theme={theme} padding="canvas">
-              <p className="text-sm" style={{ color: C.error }}>
-                {error}
-              </p>
-            </AdminCard>
-          ) : classrooms.length === 0 ? (
-            <AdminCard theme={theme} padding="canvas">
-              <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
-                No classrooms yet. Create your first classroom to group students and assign
-                lead teachers.
-              </p>
-              <AdminButton
-                theme={theme}
-                variant="primary"
-                className="mt-3"
-                onClick={() => setAddOpen(true)}
-              >
-                Add classroom →
-              </AdminButton>
-            </AdminCard>
-          ) : (
-            <>
-              <ClassroomListSidebar
-                classrooms={classrooms}
-                selectedId={selectedId ?? ""}
-                onSelect={setSelectedId}
-                theme={theme}
-                layout="strip"
-                onAddClassroom={previewMode ? undefined : () => setAddOpen(true)}
-              />
-
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-[280px_1fr]">
-                <div className="hidden lg:block">
-                  <ClassroomListSidebar
-                    classrooms={classrooms}
-                    selectedId={selectedId ?? ""}
-                    onSelect={setSelectedId}
-                    theme={theme}
-                    onAddClassroom={previewMode ? undefined : () => setAddOpen(true)}
-                  />
-                </div>
-
-                {selectedClassroom ? (
-                  <ClassroomDetailPane
-                    key={selectedClassroom.id}
-                    classroom={selectedClassroom}
-                    slug={slug}
-                    organizationId={organizationId}
-                    programs={programs}
-                    staffMembers={staffMembers}
-                    onUpdated={() => loadClassrooms({ silent: true })}
-                    onDeleted={() => void loadClassrooms()}
-                  />
-                ) : (
-                  <AdminCard theme={theme} padding="canvas">
-                    <p className="text-sm" style={{ color: theme.muted }}>
-                      Select a classroom from the list to manage staff and roster.
-                    </p>
-                  </AdminCard>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      <AddClassroomModal
-        open={!previewMode && addOpen}
-        slug={slug}
-        organizationId={organizationId}
-        programs={programs}
-        onClose={() => setAddOpen(false)}
-        onAdded={() => void loadClassrooms()}
+    <AdminGardenPage
+      theme={theme}
+      skinOverlays
+      data-testid="admin-classrooms-page"
+      overlays={<CreateClassroomDialog model={model} theme={theme} />}
+    >
+      <AdminGardenPageHeader
+        kicker="My school"
+        title={
+          <>
+            <span className="text-[var(--sf-clay)]">Classrooms</span>
+          </>
+        }
+        subtitle={subtitle}
+        refresh={
+          previewMode || model.classrooms.length === 0
+            ? undefined
+            : {
+                onRefresh: () => void model.loadClassrooms({ silent: true }),
+                refreshing: model.refreshing,
+                lastUpdatedAt: model.lastUpdatedAt,
+                label: "Refresh classrooms",
+              }
+        }
+        actions={
+          model.classrooms.length > 0 ? (
+            <button type="button" className={gBtnOutlineSm} onClick={model.openCreate} disabled={previewMode} data-testid="classrooms-add">
+              <Plus className="h-4 w-4" aria-hidden />
+              Add classroom
+            </button>
+          ) : null
+        }
       />
-    </div>
+      {content}
+    </AdminGardenPage>
+  );
+}
+
+function ClassroomsWorkspace({ model, C }: { model: ClassroomsModel; C: ReturnType<typeof parentThemeToAdminCompat> }) {
+  const { metrics } = model;
+  const toggle = (key: ClassroomFilter) => model.setFilter(model.filter === key ? "all" : key);
+  const noLead = model.firstWithoutLead;
+
+  return (
+    <>
+      <GardenStatTiles
+        layout="strip"
+        ariaLabel="Classrooms at a glance"
+        stats={[
+          { id: "all", label: "Classrooms", value: metrics.total, onClick: () => model.setFilter("all"), active: model.filter === "all" },
+          { id: "students", label: "Roster students", value: metrics.students },
+          { id: "open", label: "Open", value: metrics.open, onClick: () => toggle("open"), active: model.filter === "open" },
+          { id: "no_lead", label: "Need a lead teacher", value: metrics.noLead, onClick: () => toggle("no_lead"), active: model.filter === "no_lead" },
+        ]}
+      />
+
+      {noLead ? (
+        <GardenNotice
+          tone="warning"
+          icon={UserRoundX}
+          title={`${plural(metrics.noLead, "classroom")} without a lead teacher`}
+          action={
+            <button type="button" className={gLinkSm} onClick={() => model.selectClassroom(noLead.id)}>
+              Open {noLead.name}
+            </button>
+          }
+        >
+          Lead teachers automatically receive roster students as assigned learners.
+        </GardenNotice>
+      ) : null}
+
+      <div className={GARDEN_LIST_DETAIL_GRID}>
+        <GardenRecordList
+          kicker="Rosters"
+          title="Classrooms"
+          noun={{ one: "classroom", many: "classrooms" }}
+          items={model.filteredClassrooms.map((classroom) => ({
+            id: classroom.id,
+            title: classroom.name,
+            meta: [
+              classroom.programName ?? "All programs",
+              plural(classroom.studentCount, "student"),
+              classroom.leadTeacherNames.length ? classroom.leadTeacherNames.join(", ") : "No lead teacher",
+            ].join(" · "),
+            chip: { tone: CLASSROOM_STATUS_TONES[classroom.status], label: CLASSROOM_STATUS_LABELS[classroom.status] },
+            searchText: `${classroom.programName ?? ""} ${classroom.leadTeacherNames.join(" ")}`,
+          }))}
+          selectedId={model.selectedClassroom?.id ?? null}
+          onSelect={model.selectClassroom}
+          searchPlaceholder="Search classroom, program or teacher"
+          searchLabel="Search classrooms"
+          filters={{
+            ariaLabel: "Filter classrooms",
+            value: model.filter,
+            onChange: (key) => model.setFilter(key as ClassroomFilter),
+            options: [
+              { key: "all", label: "All", count: metrics.total },
+              ...(metrics.open ? [{ key: "open", label: "Open", count: metrics.open }] : []),
+              ...(metrics.full ? [{ key: "full", label: "Full", count: metrics.full }] : []),
+              ...(metrics.inactive ? [{ key: "inactive", label: "Inactive", count: metrics.inactive }] : []),
+              ...(metrics.noLead ? [{ key: "no_lead", label: "No lead", count: metrics.noLead }] : []),
+            ],
+          }}
+          detailAnchorId="classroom-detail"
+          data-testid="classrooms-list"
+        />
+        {model.selectedClassroom ? (
+          <ClassroomDetailPane key={model.selectedClassroom.id} model={model} classroom={model.selectedClassroom} C={C} />
+        ) : (
+          <GardenEmptyState icon={Home} title="Pick a classroom" description="Select a classroom from the list to manage staff and roster." />
+        )}
+      </div>
+    </>
+  );
+}
+
+function CreateClassroomDialog({ model, theme }: { model: ClassroomsModel; theme: ParentThemeTokens }) {
+  const empty: ClassroomCreateDraft = { name: "", programId: "", status: "open" };
+  const [draft, setDraft] = useState<ClassroomCreateDraft>(empty);
+  const [touched, setTouched] = useState(false);
+  const [wasOpen, setWasOpen] = useState(model.createOpen);
+  if (wasOpen !== model.createOpen) {
+    setWasOpen(model.createOpen);
+    if (model.createOpen) {
+      setDraft(empty);
+      setTouched(false);
+    }
+  }
+  const nameId = useGardenFieldId("classroom-name");
+  const programId = useGardenFieldId("classroom-program");
+  const statusId = useGardenFieldId("classroom-status");
+  const nameError = touched && !draft.name.trim() ? "Give the classroom a name." : null;
+
+  const submit = async (event?: FormEvent) => {
+    event?.preventDefault();
+    setTouched(true);
+    if (!draft.name.trim() || model.creating) return;
+    await model.createClassroom(draft);
+  };
+
+  return (
+    <GDialog
+      theme={theme}
+      open={model.createOpen}
+      onClose={model.closeCreate}
+      closeDisabled={model.creating}
+      title="Add classroom"
+      description="Group students and staff into a classroom roster."
+      icon={<Home className="h-5 w-5" aria-hidden />}
+      size="md"
+      footer={
+        <>
+          <button type="button" className={gBtnOutlineSm} onClick={model.closeCreate} disabled={model.creating}>
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="create-classroom-form"
+            className={gBtnPopSm}
+            disabled={model.creating}
+            aria-busy={model.creating || undefined}
+            data-testid="classrooms-create-submit"
+          >
+            <BusyLabel busy={model.creating} busyLabel="Creating…" icon={<Plus className="h-4 w-4" aria-hidden />}>
+              Create classroom
+            </BusyLabel>
+          </button>
+        </>
+      }
+    >
+      <form id="create-classroom-form" onSubmit={(e) => void submit(e)} noValidate className="flex flex-col gap-4">
+        {model.createError ? (
+          <GardenNotice tone="alert" role="alert" title="Couldn't create the classroom">
+            {model.createError}
+          </GardenNotice>
+        ) : null}
+        <GardenField id={nameId} label="Name" required error={nameError}>
+          <input
+            id={nameId}
+            value={draft.name}
+            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+            placeholder="Kindergarten Group A"
+            data-garden-skip
+            className={gInputClass(nameError)}
+          />
+        </GardenField>
+        <GardenField id={programId} label="Program" optional hint="Leave on All programs if any student can join.">
+          <GardenSelect
+            id={programId}
+            value={draft.programId}
+            onChange={(value) => setDraft({ ...draft, programId: value })}
+            options={[{ value: "", label: "All programs" }, ...model.programs.map((p) => ({ value: p.id, label: p.name }))]}
+          />
+        </GardenField>
+        <GardenField id={statusId} label="Status">
+          <GardenSelect
+            id={statusId}
+            value={draft.status}
+            onChange={(value) => setDraft({ ...draft, status: value as ClassroomStatus })}
+            options={[
+              { value: "open", label: "Open" },
+              { value: "full", label: "Full" },
+              { value: "inactive", label: "Inactive" },
+            ]}
+          />
+        </GardenField>
+      </form>
+    </GDialog>
   );
 }
