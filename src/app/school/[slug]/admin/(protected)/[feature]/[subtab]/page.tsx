@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import AdminPageSkeleton from "@/components/school-admin/AdminPageSkeleton";
+import AdminGardenRouteSkeleton from "@/components/school-admin/garden/AdminGardenRouteSkeleton";
 import ApplicationSubmissionsPageShell from "@/components/school-admin/admissions/ApplicationSubmissionsPageShell";
 import ApplicationSubmissionsTableLoader from "@/components/school-admin/admissions/ApplicationSubmissionsTableLoader";
 import ApplicationSubmissionsTableSkeleton from "@/components/school-admin/admissions/ApplicationSubmissionsTableSkeleton";
@@ -83,7 +84,7 @@ const StaffHoursPage = nextDynamic(
 );
 const SchoolProfilePage = nextDynamic(
   () => import("@/components/school-admin/school-profile/SchoolProfilePage"),
-  { loading: () => <AdminPageSkeleton label="Loading school profile" /> },
+  { loading: () => <AdminGardenRouteSkeleton label="Loading school profile" /> },
 );
 const NewsletterPage = nextDynamic(
   () => import("@/components/school-admin/newsletter/NewsletterPage"),

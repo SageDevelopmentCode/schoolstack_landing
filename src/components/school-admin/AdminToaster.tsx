@@ -24,6 +24,7 @@ const GARDEN_ADMIN_ROUTES = [
   "admissions/payments",
   "admissions/submissions",
   "my_school/programs",
+  "my_school/school_profile",
 ] as const;
 
 function usesGardenToasts(pathname: string | null): boolean {
