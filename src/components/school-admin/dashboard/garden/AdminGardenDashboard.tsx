@@ -29,9 +29,9 @@ import {
   GardenMetricTiles,
   GardenSetupProgress,
   GardenSignalCard,
-  GardenStaffHoursCard,
   shouldShowSetup,
 } from "./GardenTodayCards";
+import GardenStaffHoursCard from "./GardenStaffHoursCard";
 import { ADMIN_GARDEN_CONTAINER_CLASS } from "./shared";
 
 export type AdminGardenDashboardProps = {

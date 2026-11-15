@@ -4,7 +4,7 @@ import {
   buildAttentionItems,
   buildPortalAttentionItems,
 } from '@/components/parent/home/parent-home-attention';
-import type { ParentHomeDashboardProps } from '@/components/parent/home/parent-home-dashboard';
+import type { ParentHomeDashboardProps } from '@/components/parent/home/parent-home-types';
 import { buildParentActivityNotificationContext } from '@/lib/parent/fetch-activity-notifications';
 import {
   isParentFeatureEnabled,
@@ -45,7 +45,7 @@ export function buildParentHomeGreeting(displayName: string, now = new Date()): 
 
 /**
  * View-model for the parent Home dashboard: sheet state plus the derived data
- * every Home layout needs. Shared by `ParentHomeDashboard` and the Home lab.
+ * every Home layout needs. Used by the main and program Home (`ParentHomeGardenScreen`).
  */
 export function useParentHomeDashboardModel(props: ParentHomeDashboardProps) {
   const {

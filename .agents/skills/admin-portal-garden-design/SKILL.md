@@ -36,7 +36,8 @@ Related skills:
 | `…/garden/AdminGardenDashboardHeader.tsx` | Admin page header: kicker, greeting `h1`, data-built status line, Refresh + "Updated N min ago", `GTabBar` |
 | `…/garden/AdminGardenDashboardSkeleton.tsx` | Suspense fallback in the page's shape |
 | `…/garden/GardenFocusQueue.tsx` | Work queue: lead strip, numbered rows, caught-up state |
-| `…/garden/GardenTodayCards.tsx` | Setup steps, linked KPI tiles (`tiles` \| `strip`), signal dark card, staff-hours `PortalIsland` |
+| `…/garden/GardenTodayCards.tsx` | Setup steps, linked KPI tiles (`tiles` \| `strip`), signal dark card |
+| `…/garden/GardenStaffHoursCard.tsx` | Staff hours · Today: stat strip with a live dot, "On the clock" (live timers) and "Finished today" lists |
 | `…/garden/GardenAttendanceBoard.tsx` | Attendance board + `useGardenAttendance` + sheets (render outside the frame) |
 | `…/garden/GardenSecondaryPanels.tsx` | Journey stepper, Activity list + quick actions, Guides index |
 | `…/garden/shared.tsx` | `ADMIN_GARDEN_CONTAINER_CLASS`, `GardenLoadError`, `GardenPanelSkeleton`, `ROW_INTERACTIVE`, `useRelativeTime`, `metricHref` |
@@ -61,7 +62,7 @@ return (
 
 - The admin shell stays as it is: the sidebar (`SchoolAdminStorySidebar`), `SchoolAdminBaseline`, and the notifications and support panels. Only page content goes inside the frame.
 - The admin attendance sheets (`AttendanceStudentDetailSheet`, `AttendancePickupSheet`) and `AdminDocumentationGuidePanel` are **not portalled**. Render them after the frame, or the Garden type reset restyles them.
-- Unmigrated blocks go inside a card wrapped in `<PortalIsland>`. The Dashboard does this for staff hours.
+- Unmigrated blocks go inside a card wrapped in `<PortalIsland>`. This is a temporary bridge; the Dashboard no longer has any.
 - The page owns its padding through `ADMIN_GARDEN_CONTAINER_CLASS` (`max-w-[1320px]`, `gap-5`, `px-4 sm:px-8 lg:px-10`). Don't wrap it in the old `max-w-[1350px] px-[clamp(…)]` div in `[feature]/page.tsx`.
 - A Suspense fallback that imports from the kit must be a `"use client"` file. A server component that imports a constant from a client module gets a reference proxy, not the value.
 
@@ -126,7 +127,8 @@ return (
 | **Activity list**: category `GChip`, title/detail, relative time, CTA chevron; "View all" opens the notifications panel | `GardenActivityPanel` | Feeds, audit logs |
 | **Quick actions**: rows with icon chips; copy-link row with a copied state | `GardenActivityPanel` › `CopyApplyLinkRow` | Shortcut lists |
 | **Index of help**: category kickers with guide rows that open `AdminDocumentationGuidePanel` | `GardenGuidesPanel` | How-tos, FAQs |
-| **Legacy block**: `GCard` › `PortalIsland` › story component | `GardenStaffHoursCard` | Anything not yet migrated |
+| **Live people list**: a paper stat strip (`<dl>`, tabular values, a pulsing forest `LiveDot` when someone is live, respecting `motion-reduce`); two lists side by side, each with a kicker and a count `GChip`; rows with initials avatar, name, meta, and a live `GChip` timer (`StaffHoursLiveElapsed`) or a tabular duration; paper empty state with the existing copy; a "+N more" `gLinkSm` that links to the full page; the repeated summary sentence kept as `sr-only` | `GardenStaffHoursCard.tsx` | Staff on shift, check-ins, pickups waiting, anyone "live right now" |
+| **Legacy block**: `GCard` › `PortalIsland` › story component | (none left on the Dashboard) | Anything not yet migrated |
 
 ## 7. Migrating an admin tab (checklist)
 

@@ -24,6 +24,12 @@ type UseMessageThreadMutationsParams = {
     params: { organizationId: string; schoolName: string },
   ) => Promise<PortalMessage>;
   onError?: (message: string) => void;
+  /** Optional: fires after a successful edit (e.g. a toast). */
+  onEdited?: (message: PortalMessage) => void;
+  /** Optional: fires after a successful delete. */
+  onDeleted?: (message: PortalMessage) => void;
+  /** Optional: the raw error for reporting (`onError` still gets the message). */
+  onMutationError?: (operation: 'edit' | 'delete', error: unknown) => void;
 };
 
 function previewForMessage(message: PortalMessage): string {
@@ -40,6 +46,9 @@ export function useMessageThreadMutations({
   editMessage,
   deleteMessage,
   onError,
+  onEdited,
+  onDeleted,
+  onMutationError,
 }: UseMessageThreadMutationsParams) {
   const [actionTarget, setActionTarget] = useState<PortalMessage | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PortalMessage | null>(null);
@@ -108,8 +117,10 @@ export function useMessageThreadMutations({
         });
         applyServerMessage(editingMessage.id, serverMessage);
         setEditingMessage(null);
+        onEdited?.(serverMessage);
         return true;
       } catch (err) {
+        onMutationError?.('edit', err);
         onError?.(err instanceof Error ? err.message : 'Failed to edit message.');
         return false;
       } finally {
@@ -120,7 +131,9 @@ export function useMessageThreadMutations({
       applyServerMessage,
       editMessage,
       editingMessage,
+      onEdited,
       onError,
+      onMutationError,
       organizationId,
       schoolName,
       threadId,
@@ -138,7 +151,9 @@ export function useMessageThreadMutations({
       });
       applyServerMessage(deleteTarget.id, serverMessage);
       setDeleteTarget(null);
+      onDeleted?.(serverMessage);
     } catch (err) {
+      onMutationError?.('delete', err);
       onError?.(err instanceof Error ? err.message : 'Failed to delete message.');
     } finally {
       setDeleting(false);
@@ -148,7 +163,9 @@ export function useMessageThreadMutations({
     deleteMessage,
     deleteTarget,
     deleting,
+    onDeleted,
     onError,
+    onMutationError,
     organizationId,
     schoolName,
     threadId,

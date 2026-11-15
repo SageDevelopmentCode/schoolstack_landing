@@ -39,6 +39,23 @@ appId: com.mudkitchen.schoolstack.mobile
 - takeScreenshot: sheet-gallery-new-conversation-parent-typing
 
 - stopApp
+- openLink: schoolstack://dev/sheet-gallery?case=new-conversation-parent-garden
+- extendedWaitUntil:
+    visible:
+      id: new-conversation-search-input
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: sheet-gallery-new-conversation-parent-garden
+- tapOn:
+    id: new-conversation-search-input
+- inputText: 'Ada'
+- extendedWaitUntil:
+    visible: 'Ada Lovelace'
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: sheet-gallery-new-conversation-parent-garden-typing
+
+- stopApp
 - openLink: schoolstack://dev/sheet-gallery?case=compose-menu
 - extendedWaitUntil:
     visible:

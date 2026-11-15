@@ -6,6 +6,8 @@ Local Maestro E2E (local Supabase only): [`.agents/skills/mobile-e2e-local/SKILL
 
 After mobile UI changes: visual screenshot capture + agent review — [`.agents/skills/mobile-ui-visual-verify/SKILL.md`](../../.agents/skills/mobile-ui-visual-verify/SKILL.md).
 
+Parent portal screens use the mobile Garden kit (`src/components/parent/garden/*`); the Home Hub is the reference. Follow [`.agents/skills/parent-mobile-garden-design/SKILL.md`](../../.agents/skills/parent-mobile-garden-design/SKILL.md) when building or restyling any parent screen.
+
 ## Expo Observe (production performance)
 
 The app uses **`expo-observe`** for [Expo Observe](https://docs.expo.dev/eas/observe/introduction/) (startup and per-route metrics). App code imports **`@/lib/mobile-observe`**, not `expo-observe` directly — in **Expo Go** (e.g. `npm run mobile`) Observe is a no-op so the app still starts; metrics are sent only from a **development build** or **production EAS build** that includes the native `ExpoAppMetrics` / `ExpoObserve` modules.

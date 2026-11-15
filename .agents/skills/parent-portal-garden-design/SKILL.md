@@ -27,6 +27,7 @@ It must feel like a calm app a parent uses every day, not a marketing page:
 
 Related skills:
 - `.agents/skills/mudkitchen-garden-design/`: the Garden tokens, type and materials this builds on. Read §5–§7 of its `SKILL.md` for the palette and shapes.
+- `.agents/skills/parent-mobile-garden-design/`: the same parent Garden look in the Expo app (`apps/mobile`). Its reference build is the mobile Home Hub. Keep copy and behaviour in parity across web and mobile.
 - `.agents/skills/portal-responsive-verify/`, `.agents/skills/portal-qa/`: verification.
 - `.agents/skills/admin-portal-garden-design/`: the school admin portal's Garden rules (the admin Dashboard is the reference). Use it, not this skill, for admin pages.
 - `.agents/skills/admin-workspace-design/`: School Day Story. Admin pages that haven't moved to Garden, and the teacher portal, still use it.

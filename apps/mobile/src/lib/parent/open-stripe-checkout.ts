@@ -1,6 +1,6 @@
 import { openAuthSessionAsync } from 'expo-web-browser';
 
-import { PAYMENT_METHOD_SHEET_CLOSE_MS } from '@/components/parent/billing/parent-payment-method-sheet';
+import { PAYMENT_METHOD_SHEET_CLOSE_MS } from '@/components/parent/billing/sheets/billing-pay-sheet';
 import {
   parseStripeCheckoutOutcome,
   STRIPE_CHECKOUT_REDIRECT_URL,

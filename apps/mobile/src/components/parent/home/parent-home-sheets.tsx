@@ -1,7 +1,7 @@
-import { HomeBulletinSheet } from '@/components/bulletin/home-bulletin-sheet';
-import type { ParentHomeDashboardProps } from '@/components/parent/home/parent-home-dashboard';
+import type { ParentHomeDashboardProps } from '@/components/parent/home/parent-home-types';
 import type { ParentHomeDashboardModel } from '@/components/parent/home/use-parent-home-dashboard-model';
-import { ParentActivityNotificationsSheet } from '@/components/parent/parent-activity-notifications-sheet';
+import { ParentBulletinSheet } from '@/components/parent/home/sheets/parent-bulletin-sheet';
+import { ParentNotificationsSheet } from '@/components/parent/home/sheets/parent-notifications-sheet';
 import { ParentOnboardingSheet } from '@/components/parent/parent-onboarding-sheet';
 import { PortalAccountSheet } from '@/components/portal-account-sheet';
 import { PortalSupportRequestSheet } from '@/components/portal/portal-support-request-sheet';
@@ -13,7 +13,6 @@ type ParentHomeSheetsProps = {
   props: ParentHomeDashboardProps;
   model: ParentHomeDashboardModel;
   /** Optional observers for feedback (toasts/haptics). They never change behaviour. */
-  onNotificationsMarkedRead?: () => void;
   onProfilePhotoUpdated?: () => void;
   onProgramSelected?: (label: string) => void;
 };
@@ -22,7 +21,6 @@ type ParentHomeSheetsProps = {
 export function ParentHomeSheets({
   props,
   model,
-  onNotificationsMarkedRead,
   onProfilePhotoUpdated,
   onProgramSelected,
 }: ParentHomeSheetsProps) {
@@ -40,7 +38,7 @@ export function ParentHomeSheets({
 
   return (
     <>
-      <HomeBulletinSheet
+      <ParentBulletinSheet
         visible={model.bulletinOpen}
         posts={model.bulletinPosts}
         onClose={() => model.setBulletinOpen(false)}
@@ -50,7 +48,7 @@ export function ParentHomeSheets({
         }}
       />
 
-      <ParentActivityNotificationsSheet
+      <ParentNotificationsSheet
         visible={model.notificationsOpen}
         onClose={() => model.setNotificationsOpen(false)}
         organizationId={data.organizationId}
@@ -58,10 +56,8 @@ export function ParentHomeSheets({
         programSlug={programSlug}
         notificationContext={model.activityNotificationContext}
         firstChildApplicationId={model.firstChildApplicationId}
-        onMarkedRead={() => {
-          onMarkedNotificationsRead();
-          onNotificationsMarkedRead?.();
-        }}
+        unreadCount={props.notificationUnreadCount}
+        onMarkedRead={onMarkedNotificationsRead}
       />
 
       <PortalSupportRequestSheet

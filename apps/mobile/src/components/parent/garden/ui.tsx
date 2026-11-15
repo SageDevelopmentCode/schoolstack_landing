@@ -602,6 +602,7 @@ export type GToyButtonProps = {
   accessibilityLabel?: string;
   accessibilityHint?: string;
   style?: StyleProp<ViewStyle>;
+  testID?: string;
 };
 
 /**
@@ -620,6 +621,7 @@ export function GToyButton({
   accessibilityLabel,
   accessibilityHint,
   style,
+  testID,
 }: GToyButtonProps) {
   const accent = useGardenAccent();
   const offset = size === 'md' ? 5 : 4;
@@ -633,6 +635,7 @@ export function GToyButton({
 
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityHint={accessibilityHint}
@@ -749,9 +752,19 @@ export function GSkeleton({ style }: { style?: StyleProp<ViewStyle> }) {
   return <Animated.View style={[styles.skeleton, animated, style]} />;
 }
 
-export function GErrorCard({ message, onRetry }: { message: string; onRetry: () => void }) {
+export function GErrorCard({
+  message,
+  onRetry,
+  kicker = 'Something went wrong',
+  title = "We couldn't load your Home",
+}: {
+  message: string;
+  onRetry: () => void;
+  kicker?: string;
+  title?: string;
+}) {
   return (
-    <GCard kicker="Something went wrong" title="We couldn't load your Home">
+    <GCard kicker={kicker} title={title}>
       <Text style={styles.errorCopy}>{message}</Text>
       <GToyButton label="Try again" icon="refresh" onPress={onRetry} style={styles.errorRetry} />
     </GCard>
@@ -759,7 +772,19 @@ export function GErrorCard({ message, onRetry }: { message: string; onRetry: () 
 }
 
 /** Counts up to `value` once. Renders the final value under reduced motion. */
-export function GCountUp({ value, style }: { value: number; style?: StyleProp<TextStyle> }) {
+export function GCountUp({
+  value,
+  style,
+  format = String,
+  accessibilityLabel,
+}: {
+  value: number;
+  style?: StyleProp<TextStyle>;
+  /** Formats the shown number (e.g. cents → "$1,250"). */
+  format?: (value: number) => string;
+  /** Screen readers hear the final value, not the animation. */
+  accessibilityLabel?: string;
+}) {
   const reduceMotion = useReducedMotion();
   const [shown, setShown] = useState(reduceMotion ? value : 0);
   const fromRef = useRef(reduceMotion ? value : 0);
@@ -787,7 +812,11 @@ export function GCountUp({ value, style }: { value: number; style?: StyleProp<Te
     return () => cancelAnimationFrame(frame);
   }, [reduceMotion, value]);
 
-  return <Text style={style}>{shown}</Text>;
+  return (
+    <Text style={style} accessibilityLabel={accessibilityLabel ?? format(value)}>
+      {format(shown)}
+    </Text>
+  );
 }
 
 /* ------------------------------------------------------------------ */

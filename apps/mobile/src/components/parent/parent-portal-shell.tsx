@@ -1,11 +1,13 @@
 import { Slot, usePathname, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Href } from 'expo-router';
 
 import { AnimatedTabContent } from '@/components/animated-tab-content';
 import { PortalPreviewBanner } from '@/components/platform-admin/portal-preview-banner';
+import { GardenToastProvider } from '@/components/parent/garden/toast';
 import { ParentMoreMenuSheet } from '@/components/parent/parent-more-menu-sheet';
 import {
   ParentPortalCoopTabBarBanner,
@@ -27,7 +29,6 @@ import {
   type ParentMoreMenuItemId,
   type ParentTab,
 } from '@/lib/parent/parent-nav';
-import { parentHomeLabRoute, type ParentHomeLabVariantId } from '@/lib/parent/home-lab';
 import { prefetchSchoolPortalOptions } from '@/lib/auth/use-school-portal-options';
 import { usePortalPreview, useExitPortalPreviewNavigation } from '@/lib/portal-preview-gating';
 import { useMobileFeatureVisitTracking } from '@/hooks/use-mobile-feature-visit-tracking';
@@ -159,12 +160,6 @@ export function ParentPortalShell() {
     }
   };
 
-  const handleSelectHomeLab = (variant: ParentHomeLabVariantId) => {
-    setMoreSheetOpen(false);
-    if (!slug) return;
-    router.push(parentHomeLabRoute(slug, variant));
-  };
-
   const coopBanner =
     showCoopTabBarBanner && activePortalFeatures?.programLabel ? (
       <ParentPortalCoopTabBarBanner programLabel={activePortalFeatures.programLabel} />
@@ -181,9 +176,14 @@ export function ParentPortalShell() {
           styles.content,
           showTabBar ? { paddingBottom: bottomChromeHeight } : null,
         ]}>
-        <AnimatedTabContent transitionKey={showTabBar ? pathTab : null}>
-          <Slot />
-        </AnimatedTabContent>
+        {/* Garden toasts for every parent screen; they sit above the bottom chrome. */}
+        <GestureHandlerRootView style={styles.content}>
+          <GardenToastProvider>
+            <AnimatedTabContent transitionKey={showTabBar ? pathTab : null}>
+              <Slot />
+            </AnimatedTabContent>
+          </GardenToastProvider>
+        </GestureHandlerRootView>
       </View>
       {showTabBar && activeTab ? (
         <View
@@ -204,7 +204,6 @@ export function ParentPortalShell() {
         onClose={() => setMoreSheetOpen(false)}
         onSelect={handleSelectMoreItem}
         onSelectAccount={handleSelectAccount}
-        onSelectHomeLab={handleSelectHomeLab}
       />
     </>
   );

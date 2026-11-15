@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { ArrowRight, Check, Loader2 } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
-import { PortalIsland } from "@/components/school-parent/garden/ParentGardenFrame";
 import { gFade } from "@/components/school-parent/garden/motion";
 import {
   GCard,
@@ -12,7 +11,6 @@ import {
   G_FOCUS,
   gBtnButterSm,
 } from "@/components/school-parent/garden/ui";
-import AdminDashboardStaffHoursSection from "@/components/school-admin/dashboard/AdminDashboardStaffHoursSection";
 import type { OrganizationPlan } from "@/lib/organization-settings/plans";
 import type { AdminDashboardToday, DashboardMetric } from "@/lib/school-admin/dashboard-summary";
 import { METRIC_BARS, metricHref } from "./shared";
@@ -277,30 +275,6 @@ export function GardenSignalCard({
           {signal.ctaLabel.replace(/\s*[→>]+\s*$/u, "")} <ArrowRight className="h-4 w-4" aria-hidden />
         </Link>
       </div>
-    </GCard>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Staff hours                                                         */
-/* ------------------------------------------------------------------ */
-
-/** Staff hours keeps its own component (not yet migrated) inside a PortalIsland. */
-export function GardenStaffHoursCard({
-  slug,
-  today,
-  index = 5,
-}: {
-  slug: string;
-  today: AdminDashboardToday;
-  index?: number;
-}) {
-  if (!today.staffHoursToday) return null;
-  return (
-    <GCard index={index} data-testid="dashboard-staff-hours">
-      <PortalIsland>
-        <AdminDashboardStaffHoursSection slug={slug} data={today.staffHoursToday} />
-      </PortalIsland>
     </GCard>
   );
 }

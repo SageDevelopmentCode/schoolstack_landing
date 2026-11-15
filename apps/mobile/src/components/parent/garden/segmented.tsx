@@ -16,6 +16,7 @@ export type GSegmentedItem<Id extends string> = {
   label: string;
   icon?: keyof typeof Ionicons.glyphMap;
   badge?: number;
+  testID?: string;
 };
 
 const PILL_SPRING = { damping: 22, stiffness: 380 } as const;
@@ -67,6 +68,7 @@ export function GSegmented<Id extends string>({
         return (
           <Pressable
             key={item.id}
+            testID={item.testID}
             accessibilityRole="tab"
             accessibilityLabel={
               item.badge ? `${item.label}, ${item.badge} need attention` : item.label

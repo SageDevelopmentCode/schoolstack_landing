@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MessageDeleteConfirmSheet } from '@/components/messages/message-delete-confirm-sheet';
+import { GardenNewConversationSheet } from '@/components/parent/messages/garden/garden-new-conversation-sheet';
 import { ParentBottomSheet } from '@/components/parent/parent-bottom-sheet';
 import { AdminMessagesComposeMenuSheet } from '@/components/school-admin/messages/admin-messages-compose-menu-sheet';
 import { NewConversationSheet } from '@/components/school-admin/messages/new-conversation-sheet';
@@ -27,6 +28,7 @@ import type { OrgStaffMemberRecord } from '@/lib/school-admin/enrolled-students'
 export const SHEET_GALLERY_CASES = [
   'new-conversation-admin',
   'new-conversation-parent',
+  'new-conversation-parent-garden',
   'compose-menu',
   'story-form',
   'parent-form',
@@ -53,6 +55,8 @@ const FIXTURE_STAFF: OrgStaffMemberRecord[] = [
   { id: 'staff-john', firstName: 'John', lastName: 'Dewey', employmentStatus: 'active' },
   { id: 'staff-friedrich', firstName: 'Friedrich', lastName: 'Froebel', employmentStatus: 'active' },
 ];
+
+const FIXTURE_EXISTING_CONTACT_KEYS = new Set(['s-maria']);
 
 const noopAsync = async () => {};
 
@@ -108,6 +112,15 @@ export function SheetGalleryScreen({ initialCase }: SheetGalleryScreenProps) {
             visible={isOpen('new-conversation-parent')}
             contacts={FIXTURE_CONTACTS}
             variant="parent-story"
+            onClose={close}
+            onSelect={close}
+          />
+          <GardenNewConversationSheet
+            visible={isOpen('new-conversation-parent-garden')}
+            contacts={FIXTURE_CONTACTS}
+            existingContactKeys={FIXTURE_EXISTING_CONTACT_KEYS}
+            startingContactKey={null}
+            notice={null}
             onClose={close}
             onSelect={close}
           />

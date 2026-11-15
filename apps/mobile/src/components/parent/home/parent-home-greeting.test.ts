@@ -1,5 +1,4 @@
 import { buildParentHomeGreeting } from '@/components/parent/home/use-parent-home-dashboard-model';
-import { isParentHomeLabVariantId, parentHomeLabRoute } from '@/lib/parent/home-lab';
 
 jest.mock('@/contexts/parent-theme-context', () => ({}));
 
@@ -24,17 +23,5 @@ describe('buildParentHomeGreeting', () => {
   it('falls back when there is no last name', () => {
     expect(buildParentHomeGreeting('Ada').familyLabel).toBe('Your family');
     expect(buildParentHomeGreeting('').firstName).toBe('');
-  });
-});
-
-describe('home lab helpers', () => {
-  it('accepts only known variants', () => {
-    expect(isParentHomeLabVariantId('a')).toBe(true);
-    expect(isParentHomeLabVariantId('d')).toBe(false);
-    expect(isParentHomeLabVariantId(undefined)).toBe(false);
-  });
-
-  it('routes under the More stack', () => {
-    expect(parentHomeLabRoute('rooted', 'b')).toBe('/parent/rooted/more/home-lab/b');
   });
 });

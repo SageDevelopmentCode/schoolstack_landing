@@ -273,8 +273,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   list: {
-    flexGrow: 0,
-    maxHeight: 520,
+    // Inside a scrollable={false} sheet the list must fill; flexGrow: 0 rendered it 0pt tall.
+    flex: 1,
   },
   centered: {
     alignItems: 'center',

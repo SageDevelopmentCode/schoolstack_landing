@@ -2,7 +2,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 
 import type { ParentHomeAttentionItem } from '@/components/parent/home/parent-home-attention';
-import type { ParentHomeDashboardProps } from '@/components/parent/home/parent-home-dashboard';
+import type { ParentHomeDashboardProps } from '@/components/parent/home/parent-home-types';
 import { useAuthRequiredRedirect } from '@/hooks/use-auth-required-redirect';
 import { useParentHome } from '@/contexts/parent-home-context';
 import { resolveWebUrl } from '@/lib/admissions/school-apply-url';
