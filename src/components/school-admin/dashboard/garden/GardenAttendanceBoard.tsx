@@ -110,7 +110,8 @@ export function useGardenAttendance({
   });
 }
 
-type FilterKey = "all" | AttendanceRosterStatus;
+export type AttendanceFilterKey = "all" | AttendanceRosterStatus;
+type FilterKey = AttendanceFilterKey;
 
 const FILTERS: Array<{ key: FilterKey; label: string; count: (s: AttendanceRosterSummary) => number }> = [
   { key: "all", label: "All", count: (s) => s.totalStudents },
@@ -229,6 +230,9 @@ export function GardenAttendanceBoard({
   index = 4,
   title,
   embedded = false,
+  variant = "dashboard",
+  filter: controlledFilter,
+  onFilterChange,
 }: {
   att: DashboardAttendanceModel;
   layout?: "grid" | "table";
@@ -236,9 +240,23 @@ export function GardenAttendanceBoard({
   title?: string;
   /** Render without its own card (inside another card or pane). */
   embedded?: boolean;
+  /**
+   * "page" = the full Attendance page: no "Open full attendance" links,
+   * search always on, search also matches programs and classrooms.
+   */
+  variant?: "dashboard" | "page";
+  /** Controlled status filter (page stat tiles share it). */
+  filter?: AttendanceFilterKey;
+  onFilterChange?: (filter: AttendanceFilterKey) => void;
 }) {
   const reduce = useReducedMotion() === true;
-  const [filter, setFilter] = useState<FilterKey>("all");
+  const isPage = variant === "page";
+  const [localFilter, setLocalFilter] = useState<FilterKey>("all");
+  const filter = controlledFilter ?? localFilter;
+  const setFilter = (next: FilterKey) => {
+    setLocalFilter(next);
+    onFilterChange?.(next);
+  };
   const [query, setQuery] = useState("");
 
   const { summary, students } = att;
@@ -250,11 +268,12 @@ export function GardenAttendanceBoard({
     return students.filter((student) => {
       if (filter !== "all" && student.attendanceStatus !== filter) return false;
       if (!q) return true;
-      return `${student.firstName} ${student.lastName} ${student.familyName ?? ""}`
+      const extra = isPage ? ` ${student.programNames.join(" ")} ${student.classroomNames.join(" ")}` : "";
+      return `${student.firstName} ${student.lastName} ${student.familyName ?? ""}${extra}`
         .toLowerCase()
         .includes(q);
     });
-  }, [filter, query, students]);
+  }, [filter, isPage, query, students]);
 
   const sectionTitle = title ?? (att.viewingToday ? "Today's attendance" : "Attendance");
 
@@ -347,15 +366,15 @@ export function GardenAttendanceBoard({
               );
             })}
           </div>
-          {summary.totalStudents > 6 ? (
-            <label className="relative block sm:w-[220px]">
+          {summary.totalStudents > 6 || (isPage && summary.totalStudents > 0) ? (
+            <label className={`relative block ${isPage ? "sm:w-[280px]" : "sm:w-[220px]"}`}>
               <span className="sr-only">Search students</span>
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--sf-ink)]/40" aria-hidden />
               <input
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search students"
+                placeholder={isPage ? "Search students, programs, classrooms" : "Search students"}
                 className={`${G_INPUT} !rounded-full !py-1.5 !pl-9`}
               />
             </label>
@@ -451,7 +470,13 @@ export function GardenAttendanceBoard({
     );
   }
 
-  const footer = (
+  const footer = isPage ? (
+    <div className="mt-4 border-t-[1.5px] border-dashed border-[var(--sf-ink)]/12 pt-3">
+      <span className="text-[12px] font-semibold text-[var(--sf-soft)]">
+        Tip: open a student to mark absent, record a pickup or see their history.
+      </span>
+    </div>
+  ) : (
     <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t-[1.5px] border-dashed border-[var(--sf-ink)]/12 pt-3">
       <span className="text-[12px] font-semibold text-[var(--sf-soft)]">
         Tip: open a student to mark absent or see their history.
@@ -478,11 +503,13 @@ export function GardenAttendanceBoard({
       kicker="Attendance"
       title={sectionTitle}
       action={
-        <Link href={att.fullAttendanceHref} className={gBtnPopSm}>
-          View attendance <ArrowRight className="h-4 w-4" aria-hidden />
-        </Link>
+        isPage ? undefined : (
+          <Link href={att.fullAttendanceHref} className={gBtnPopSm}>
+            View attendance <ArrowRight className="h-4 w-4" aria-hidden />
+          </Link>
+        )
       }
-      data-testid="dashboard-attendance"
+      data-testid={isPage ? "attendance-board" : "dashboard-attendance"}
     >
       <div className="flex flex-col gap-4">
         {header}

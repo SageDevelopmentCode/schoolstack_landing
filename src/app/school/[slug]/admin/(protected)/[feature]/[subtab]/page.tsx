@@ -74,9 +74,9 @@ const FridayBranchPage = nextDynamic(
   () => import("@/components/school-admin/friday-branch/FridayBranchPage"),
   { loading: () => <AdminPageSkeleton label="Loading Friday Branch" /> },
 );
-const AttendancePage = nextDynamic(
-  () => import("@/components/school-admin/attendance/AttendancePage"),
-  { loading: () => <AdminPageSkeleton label="Loading attendance" /> },
+const GardenAttendancePage = nextDynamic(
+  () => import("@/components/school-admin/attendance/GardenAttendancePage"),
+  { loading: () => <AdminGardenRouteSkeleton label="Loading attendance" layout="table" /> },
 );
 const StaffHoursPage = nextDynamic(
   () => import("@/components/school-admin/staff-hours/StaffHoursPage"),
@@ -375,7 +375,7 @@ export default async function SchoolAdminSubtabPage({
   if (feature === "my_school" && subtab === "attendance") {
     return (
       <Suspense>
-        <AttendancePage
+        <GardenAttendancePage
           organizationId={org.id}
           branding={org.branding}
           slug={slug}

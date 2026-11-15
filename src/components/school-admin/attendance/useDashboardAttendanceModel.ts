@@ -40,6 +40,10 @@ export type DashboardAttendanceModelInput = {
   onRecordSaved?: () => void;
   /** False when there is no roster to show; nothing is fetched. */
   enabled?: boolean;
+  /** Fetch `date` on mount (full Attendance page: no server-provided roster). */
+  initialLoad?: boolean;
+  /** Show load failures inline only (no toast). Garden pages set this. */
+  silentLoadErrors?: boolean;
 };
 
 function reportDashboardAttendanceError(
@@ -81,6 +85,8 @@ export function useDashboardAttendanceModel({
   onSummaryChange,
   onRecordSaved,
   enabled = true,
+  initialLoad = false,
+  silentLoadErrors = false,
 }: DashboardAttendanceModelInput) {
   const apiBasePath = useAttendanceApiBasePath();
   const contextPreviewMode = useAttendancePreviewMode();
@@ -90,8 +96,8 @@ export function useDashboardAttendanceModel({
   const [students, setStudents] = useState(initialStudents);
   const [summary, setSummary] = useState(initialSummary);
   /** Date key whose roster is currently in `students` / `summary`. */
-  const [loadedDateKey, setLoadedDateKey] = useState(date);
-  const [loading, setLoading] = useState(false);
+  const [loadedDateKey, setLoadedDateKey] = useState(initialLoad ? "" : date);
+  const [loading, setLoading] = useState(initialLoad && enabled);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [savingStudentId, setSavingStudentId] = useState<string | null>(null);
   const [lastSavedStudentId, setLastSavedStudentId] = useState<string | null>(null);
@@ -203,13 +209,13 @@ export function useDashboardAttendanceModel({
           // Keep the date we tried so Retry targets it and the effect doesn't loop.
           setLoadedDateKey(dateKey);
         }
-        if (!options?.silentError) adminToast.error(message);
+        if (!options?.silentError && !silentLoadErrors) adminToast.error(message);
         return null;
       } finally {
         if (requestId === requestIdRef.current) setLoading(false);
       }
     },
-    [apiBasePath, operationalErrorSurface, organizationId],
+    [apiBasePath, operationalErrorSurface, organizationId, silentLoadErrors],
   );
 
   useEffect(() => {
@@ -331,6 +337,10 @@ export function useDashboardAttendanceModel({
   const jumpToToday = useCallback(() => {
     setActiveDate(new Date());
   }, []);
+  const goToDate = useCallback((dateKey: string) => {
+    const next = parseDateKey(dateKey);
+    if (next) setActiveDate(next);
+  }, []);
 
   return {
     readOnly,
@@ -351,6 +361,7 @@ export function useDashboardAttendanceModel({
     goToPreviousDay,
     goToNextDay,
     jumpToToday,
+    goToDate,
     detailStudent,
     setDetailStudent,
     pickupStudent,
