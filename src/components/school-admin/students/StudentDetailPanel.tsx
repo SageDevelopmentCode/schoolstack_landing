@@ -1,24 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
-import { ExternalLink, Heart, LayoutDashboard, Users, type LucideIcon } from "lucide-react";
-import StudentPhoto from "@/components/students/StudentPhoto";
-import { SchoolAdminDetailPanelSkeleton } from "@/components/school-admin/skeletons";
-import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Camera, CheckCircle2, CircleX, ExternalLink, Eye, Heart, LayoutDashboard, Users } from "lucide-react";
+import GSidePanel from "@/components/school-parent/garden/GSidePanel";
+import { GChip, GSkeleton, GTabBar, gLinkSm, type GChipTone } from "@/components/school-parent/garden/ui";
 import DetailPanelSection from "@/components/school-admin/admissions/DetailPanelSection";
 import DetailPanelSectionGroup from "@/components/school-admin/admissions/DetailPanelSectionGroup";
 import FamilyGuardiansSection from "@/components/school-admin/admissions/FamilyGuardiansSection";
-import ParentChildHealthTab from "@/components/school-parent/health/ParentChildHealthTab";
 import { SubmissionDetailStoryProvider } from "@/components/school-admin/admissions/SubmissionDetailStoryContext";
-import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import AdminChip from "@/components/school-admin/ui/story/AdminChip";
-import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
-import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
-import StudentClassroomTeachersCell from "./StudentClassroomTeachersCell";
-import StudentClassroomAssignSelect from "./StudentClassroomAssignSelect";
-import PhotoMediaConsentBadge from "./PhotoMediaConsentBadge";
+import { GardenLoadError } from "@/components/school-admin/garden/kit";
+import { GardenFacts } from "@/components/school-admin/garden/blocks";
+import ParentChildHealthTab from "@/components/school-parent/health/ParentChildHealthTab";
+import StudentPhoto from "@/components/students/StudentPhoto";
+import { GardenClassroomButton, GardenStudentTeachers } from "./GardenStudentCells";
 import {
   formatEnrolledDate,
   formatEnrolledStudentName,
@@ -29,542 +24,295 @@ import {
   type EnrolledStudentDetail,
 } from "@/lib/school-admin/enrolled-students";
 import { applicationStatusLabel } from "@/lib/admissions/application-status-ui";
-import { formatShortDate } from "@/lib/admissions/application-submissions";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
-import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import {
-  tabPanelTransition,
-  tabPanelVariants,
-} from "@/lib/school-admin/admin-modal-motion";
-import type { ClassroomSummary } from "@/lib/school-admin/classrooms";
-import { createClient } from "@/utils/supabase/client";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { photoMediaConsentLabel, type PhotoMediaConsent } from "@/lib/students/photo-media-consent";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { studentHasStandingHealthItems, type StudentHealthProfile } from "@/lib/student-health/types";
+import { createClient } from "@/utils/supabase/client";
 
-type StudentDetailPanelProps = {
-  student: AdminEnrolledStudentSummary;
-  organizationId: string;
-  branding: OrganizationBranding;
-  schoolSlug: string;
-  classrooms: ClassroomSummary[];
-  classroomsPath: string;
-  classroomsLoading?: boolean;
-  classroomsLoaded?: boolean;
-  assigningClassroom?: boolean;
-  onAssignClassrooms: (
-    studentId: string,
-    classroomIds: string[],
-  ) => Promise<void>;
-  onRequestClassrooms?: () => void;
-  onStudentHealthChange?: (studentId: string, hasStandingHealthItems: boolean) => void;
-  onClose: () => void;
+type Tab = "overview" | "family" | "health";
+
+const CONSENT: Record<string, { tone: GChipTone; icon: typeof Camera }> = {
+  full: { tone: "success", icon: CheckCircle2 },
+  limited: { tone: "warning", icon: Eye },
+  none: { tone: "alert", icon: CircleX },
 };
 
-type DetailTab = {
-  id: string;
-  label: string;
-  icon: LucideIcon;
-};
-
-function formatDateOfBirth(value: string | null): string {
-  if (!value) return "—";
-  return formatEnrolledDate(value);
+function ConsentChip({ consent, label }: { consent: PhotoMediaConsent | null; label?: string }) {
+  const config = (consent && CONSENT[consent]) || { tone: "info" as GChipTone, icon: Camera };
+  const Icon = config.icon;
+  return (
+    <GChip tone={config.tone}>
+      <span className="inline-flex items-center gap-1">
+        <Icon className="h-3.5 w-3.5" aria-hidden />
+        {label ?? photoMediaConsentLabel(consent)}
+      </span>
+    </GChip>
+  );
 }
 
+/**
+ * Student profile drawer (Garden). Opens for a row or a `?student=` link; when
+ * the student isn't in the loaded rows the header falls back to the loaded
+ * detail and classroom changes point back to the list.
+ */
 export default function StudentDetailPanel({
+  open,
+  studentId,
   student,
   organizationId,
-  branding,
   schoolSlug,
-  classrooms,
+  theme,
+  C,
   classroomsPath,
-  classroomsLoading = false,
-  classroomsLoaded = false,
-  assigningClassroom = false,
-  onAssignClassrooms,
-  onRequestClassrooms,
+  assigningClassroom,
+  onOpenClassrooms,
   onStudentHealthChange,
   onClose,
-}: StudentDetailPanelProps) {
-  const { theme, C } = useSchoolAdminStoryTheme();
-  const reducedMotion = useReducedMotion();
+}: {
+  open: boolean;
+  studentId: string | null;
+  student: AdminEnrolledStudentSummary | null;
+  organizationId: string;
+  schoolSlug: string;
+  theme: ParentThemeTokens;
+  C: AdminThemeTokens;
+  classroomsPath: string;
+  assigningClassroom: boolean;
+  onOpenClassrooms: () => void;
+  onStudentHealthChange?: (studentId: string, hasStandingHealthItems: boolean) => void;
+  onClose: () => void;
+}) {
   const supabase = useMemo(() => createClient(), []);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [tab, setTab] = useState<Tab>("overview");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<EnrolledStudentDetail | null>(null);
-  const [activeTab, setActiveTab] = useState("overview");
-  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set(["overview"]));
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const [visited, setVisited] = useState<Tab[]>(["overview"]);
 
-  const navigateToTab = useCallback((tabId: string) => {
-    setVisitedTabs((previous) => {
-      if (previous.has(tabId)) return previous;
-      const next = new Set(previous);
-      next.add(tabId);
-      return next;
-    });
-    setActiveTab(tabId);
-    scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
+  // New student → reset (previous-props pattern).
+  if (studentId !== loadedFor) {
+    setLoadedFor(studentId);
+    setTab("overview");
+    setVisited(["overview"]);
+    setDetail(null);
+    setError(null);
+    setLoading(Boolean(studentId));
+  }
 
-  const loadDetail = useCallback(
-    async (options?: { silent?: boolean }) => {
-      const silent = options?.silent ?? false;
-      if (!silent) {
-        setLoading(true);
-      }
-      setError(null);
-
-      try {
-        const nextDetail = await loadEnrolledStudentDetail(
-          supabase,
-          organizationId,
-          student.id,
-        );
-        if (!nextDetail) {
-          throw new Error("Student not found.");
-        }
-        setDetail(nextDetail);
-      } catch (err) {
-        void reportPortalOperationalError("school_admin", {
-          organizationId,
-          operation: "students.load_detail",
-          error: "",
-        }, err);
-        setError(err instanceof Error ? err.message : "Failed to load student.");
-        setDetail(null);
-      } finally {
-        if (!silent) {
-          setLoading(false);
-        }
-      }
-    },
-    [organizationId, student.id, supabase],
-  );
+  const loadDetail = useCallback(async () => {
+    if (!studentId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const next = await loadEnrolledStudentDetail(supabase, organizationId, studentId);
+      if (!next) throw new Error("Student not found.");
+      setDetail(next);
+    } catch (err) {
+      void reportPortalOperationalError(
+        "school_admin",
+        { organizationId, operation: "students.load_detail", error: "" },
+        err,
+      );
+      setError(err instanceof Error ? err.message : "Failed to load student.");
+    } finally {
+      setLoading(false);
+    }
+  }, [organizationId, studentId, supabase]);
 
   useEffect(() => {
+    if (!studentId) return;
     queueMicrotask(() => {
       void loadDetail();
     });
-  }, [loadDetail]);
-
-  useEffect(() => {
-    onRequestClassrooms?.();
-  }, [onRequestClassrooms]);
+  }, [loadDetail, studentId]);
 
   const handleHealthProfileChange = useCallback(
     (profile: StudentHealthProfile) => {
-      onStudentHealthChange?.(student.id, studentHasStandingHealthItems(profile));
+      if (studentId) onStudentHealthChange?.(studentId, studentHasStandingHealthItems(profile));
     },
-    [onStudentHealthChange, student.id],
+    [onStudentHealthChange, studentId],
   );
 
-  const tabs: DetailTab[] = useMemo(
-    () => [
-      { id: "overview", label: "Overview", icon: LayoutDashboard },
-      { id: "family", label: "Family", icon: Users },
-      { id: "health", label: "Health", icon: Heart },
-    ],
-    [],
-  );
-
-  const studentName = formatEnrolledStudentName(student);
-  const formattedGrade = formatStudentGrade(student.grade);
-  const programLabel =
-    student.programNames.length > 0 ? student.programNames.join(" · ") : "No program";
-  const contactLabel = student.primaryContactEmail ?? "No contact email";
+  const name = student ? formatEnrolledStudentName(student) : detail ? formatEnrolledStudentName(detail) : "Student";
+  const grade = formatStudentGrade(student?.grade ?? detail?.grade ?? null);
+  const programs = student?.programNames.length ? student.programNames.join(" · ") : null;
   const submissionsPath = schoolAdminPath(schoolSlug, "admissions", "submissions");
-  const metaLine = [formattedGrade, programLabel].filter(Boolean).join(" · ");
-
-  function renderOverviewTab(panelDetail: EnrolledStudentDetail) {
-    return (
-      <DetailPanelSectionGroup C={C}>
-        <DetailPanelSection
-          C={C}
-          title="Student details"
-          description="Core profile information for this enrolled student."
-        >
-          <dl className="grid gap-3 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="text-xs font-medium" style={{ color: C.textTertiary }}>
-                Full name
-              </dt>
-              <dd className="mt-0.5" style={{ color: C.textPrimary }}>
-                {formatEnrolledStudentName(panelDetail)}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium" style={{ color: C.textTertiary }}>
-                Grade
-              </dt>
-              <dd className="mt-0.5" style={{ color: C.textPrimary }}>
-                {formatStudentGrade(panelDetail.grade) ?? "—"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium" style={{ color: C.textTertiary }}>
-                Teachers
-              </dt>
-              <dd className="mt-1">
-                <StudentClassroomTeachersCell
-                  C={C}
-                  assignedTeachers={student.assignedTeachers}
-                  classroomNames={student.classroomNames}
-                  classroomsPath={classroomsPath}
-                />
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium" style={{ color: C.textTertiary }}>
-                Classrooms
-              </dt>
-              <dd className="mt-1">
-                <StudentClassroomAssignSelect
-                  C={C}
-                  studentId={student.id}
-                  studentName={formatEnrolledStudentName(student)}
-                  studentProgramNames={student.programNames}
-                  classroomIds={student.classroomIds ?? []}
-                  classroomNames={student.classroomNames}
-                  classrooms={classrooms}
-                  classroomsPath={classroomsPath}
-                  classroomsLoading={classroomsLoading}
-                  classroomsLoaded={classroomsLoaded}
-                  disabled={assigningClassroom}
-                  onAssign={onAssignClassrooms}
-                  onInteract={onRequestClassrooms}
-                />
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium" style={{ color: C.textTertiary }}>
-                Date of birth
-              </dt>
-              <dd className="mt-0.5" style={{ color: C.textPrimary }}>
-                {formatDateOfBirth(panelDetail.dateOfBirth)}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium" style={{ color: C.textTertiary }}>
-                Student status
-              </dt>
-              <dd className="mt-0.5" style={{ color: C.textPrimary }}>
-                {studentStatusLabel(panelDetail.status)}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium" style={{ color: C.textTertiary }}>
-                Family
-              </dt>
-              <dd className="mt-0.5" style={{ color: C.textPrimary }}>
-                {panelDetail.familyName ?? "—"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium" style={{ color: C.textTertiary }}>
-                Family email
-              </dt>
-              <dd className="mt-0.5" style={{ color: C.textPrimary }}>
-                {panelDetail.familyPrimaryEmail ?? "—"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium" style={{ color: C.textTertiary }}>
-                Photo permissions
-              </dt>
-              <dd className="mt-1">
-                <PhotoMediaConsentBadge
-                  theme={theme}
-                  consent={panelDetail.photoMediaConsent}
-                  label={panelDetail.photoMediaConsentLabel}
-                />
-              </dd>
-            </div>
-          </dl>
-        </DetailPanelSection>
-
-        <DetailPanelSection
-          C={C}
-          title="Enrollments"
-          description="Programs this student is currently enrolled in."
-        >
-          {panelDetail.enrollments.length === 0 ? (
-            <p className="text-xs" style={{ color: C.textTertiary }}>
-              No enrolled programs found.
-            </p>
-          ) : (
-            <ul className="space-y-2">
-              {panelDetail.enrollments.map((enrollment) => (
-                <li
-                  key={enrollment.id}
-                  className="rounded-md px-3 py-2 text-sm"
-                  style={{
-                    backgroundColor: C.bg,
-                    border: `1px solid ${C.border}`,
-                  }}
-                >
-                  <div className="font-medium" style={{ color: C.textPrimary }}>
-                    {enrollment.programName}
-                  </div>
-                  <div className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
-                    {enrollment.classroomName
-                      ? `Classroom: ${enrollment.classroomName}`
-                      : "No classroom assigned"}
-                    <span className="mx-1.5 opacity-50">·</span>
-                    Enrolled {formatEnrolledDate(enrollment.enrolledAt)}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </DetailPanelSection>
-
-        {panelDetail.applicationId ? (
-          <DetailPanelSection
-            C={C}
-            title="Admissions"
-            description="View the original application for this student."
-          >
-            <Link
-              href={`${submissionsPath}?application=${panelDetail.applicationId}`}
-              className="inline-flex items-center gap-1.5 text-sm font-medium underline-offset-2 hover:underline"
-              style={{ color: C.accent }}
-            >
-              View application
-              {panelDetail.applicationStatus
-                ? ` (${applicationStatusLabel(panelDetail.applicationStatus)})`
-                : null}
-              <ExternalLink className="h-3.5 w-3.5" />
-            </Link>
-          </DetailPanelSection>
-        ) : null}
-      </DetailPanelSectionGroup>
-    );
-  }
-
-  function renderFamilyTab(panelDetail: EnrolledStudentDetail) {
-    return (
-      <DetailPanelSectionGroup C={C}>
-        <DetailPanelSection
-          C={C}
-          title="Family record"
-          description="Household contact details linked to this student."
-        >
-          <dl className="grid gap-3 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="text-xs font-medium" style={{ color: C.textTertiary }}>
-                Family name
-              </dt>
-              <dd className="mt-0.5" style={{ color: C.textPrimary }}>
-                {panelDetail.familyName ?? "—"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium" style={{ color: C.textTertiary }}>
-                Primary email
-              </dt>
-              <dd className="mt-0.5" style={{ color: C.textPrimary }}>
-                {panelDetail.familyPrimaryEmail ?? "—"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium" style={{ color: C.textTertiary }}>
-                Primary phone
-              </dt>
-              <dd className="mt-0.5" style={{ color: C.textPrimary }}>
-                {panelDetail.familyPrimaryPhone ?? "—"}
-              </dd>
-            </div>
-          </dl>
-        </DetailPanelSection>
-
-        <FamilyGuardiansSection
-          C={C}
-          organizationId={organizationId}
-          familyId={panelDetail.familyId || null}
-          schoolSlug={schoolSlug}
-          detail={null}
-        />
-      </DetailPanelSectionGroup>
-    );
-  }
-
-  function renderHealthTab(panelDetail: EnrolledStudentDetail) {
-    return (
-      <ParentChildHealthTab
-        theme={theme}
-        adminCompat={C}
-        organizationId={organizationId}
-        studentId={student.id}
-        studentFirstName={panelDetail.firstName}
-        portal="admin"
-        schoolSlug={schoolSlug}
-        onProfileChange={handleHealthProfileChange}
-      />
-    );
-  }
-
-  function renderTabPanel(tabId: string) {
-    if (!detail) return null;
-    if (tabId === "overview") return renderOverviewTab(detail);
-    if (tabId === "family") return renderFamilyTab(detail);
-    if (tabId === "health") return renderHealthTab(detail);
-    return null;
-  }
+  const subtitle = [grade, programs, student?.enrolledAt ? `Enrolled ${formatEnrolledDate(student.enrolledAt)}` : null]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <motion.div
-      className="fixed inset-0 z-[100]"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
-    >
-      <div
-        className="absolute inset-0"
-        style={{ backgroundColor: "rgba(34,48,44,0.47)" }}
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <motion.div
-        initial={{ x: "100%", opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        exit={{ x: "100%", opacity: 0 }}
-        transition={{ type: "spring", damping: 28, stiffness: 300 }}
-        className="absolute inset-y-0 right-0 z-[15] flex w-[min(100%,44rem)] max-w-full flex-col overflow-hidden"
-        style={{
-          backgroundColor: "#F8FAF8",
-          borderLeft: "1px solid #E0E8E0",
-          boxShadow: "0 -18px 45px rgba(26,47,37,0.2)",
-        }}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div
-          className="flex flex-shrink-0 items-start justify-between gap-3 bg-white px-[21px] py-[17px]"
-          style={{ borderBottom: "1px solid #E0E8E0" }}
-        >
-          <div className="flex min-w-0 flex-1 items-start gap-3">
+    <SubmissionDetailStoryProvider variant="garden" theme={theme}>
+      <GSidePanel
+        theme={theme}
+        open={open && Boolean(studentId)}
+        onClose={onClose}
+        size="xl"
+        kicker="Student profile"
+        title={name}
+        subtitle={subtitle || undefined}
+        testId="student-detail-panel"
+        panelId="student-detail-panel"
+        headerAside={
+          <div className="flex flex-wrap items-center gap-2">
             <StudentPhoto
-              name={studentName}
-              photoUrl={detail?.profilePhotoUrl ?? student.profilePhotoUrl}
-              size="md"
+              name={name}
+              photoUrl={detail?.profilePhotoUrl ?? student?.profilePhotoUrl ?? null}
+              size="sm"
               shape="circle"
-              accentColor={C.accent}
-              accentGlowColor={C.accentLight}
+              accentColor="var(--sf-clay)"
+              accentGlowColor="var(--sf-accent-wash)"
             />
-            <div className="min-w-0 flex-1">
-              <AdminSectionKicker theme={theme}>Student profile</AdminSectionKicker>
-              <div className="mt-1 flex flex-wrap items-center gap-2">
-                <AdminDisplayHeading theme={theme} as="h2" size="section" className="truncate">
-                  {studentName}
-                </AdminDisplayHeading>
-                <AdminChip theme={theme} tone="success">
-                  Enrolled
-                </AdminChip>
-              </div>
-              {metaLine ? (
-                <p className="mt-1 truncate text-[11px]" style={{ color: theme.muted }}>
-                  {metaLine}
-                  <span className="mx-1.5 opacity-50">·</span>
-                  Enrolled {formatShortDate(student.enrolledAt)}
-                </p>
-              ) : null}
-              <p className="mt-0.5 truncate text-[11px]" style={{ color: theme.muted }}>
-                {student.primaryContactName ?? student.familyName ?? "Family"}
-                <span className="mx-1.5 opacity-50">·</span>
-                {contactLabel}
-              </p>
-            </div>
-          </div>
-          <AdminButton
-            theme={theme}
-            variant="soft"
-            size="compact"
-            onClick={onClose}
-            aria-label="Close"
-            className="shrink-0"
-          >
-            Close ×
-          </AdminButton>
-        </div>
-
-        {detail && !loading && !error ? (
-          <div
-            className="flex flex-shrink-0 overflow-x-auto bg-white px-[21px]"
-            style={{ borderBottom: "1px solid #E1E8E1" }}
-          >
-            <div
-              className="-mb-px flex gap-[3px]"
-              role="tablist"
-              aria-label="Student sections"
-            >
-              {tabs.map((tab) => {
-                const isActive = activeTab === tab.id;
-                const tabId = `student-tab-${tab.id}`;
-                const panelId = `student-panel-${tab.id}`;
-
-                return (
-                  <button
-                    key={tab.id}
-                    id={tabId}
-                    type="button"
-                    role="tab"
-                    aria-selected={isActive}
-                    aria-controls={panelId}
-                    onClick={() => navigateToTab(tab.id)}
-                    className="flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-[9px] py-[11px] text-[11px] font-bold transition-colors"
-                    style={{
-                      borderBottomColor: isActive ? theme.primary : "transparent",
-                      color: isActive ? theme.primary : "#77858A",
-                    }}
-                  >
-                    <tab.icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
-
-        <SubmissionDetailStoryProvider variant="story" theme={theme}>
-          <div
-            ref={scrollContainerRef}
-            className="flex-1 overflow-y-auto px-5 pb-6 pt-5 sm:px-5 sm:pb-8"
-          >
-            {loading ? (
-              <SchoolAdminDetailPanelSkeleton C={C} label="Loading student" />
-            ) : error ? (
-              <p className="text-sm" style={{ color: C.error }}>
-                {error}
-              </p>
-            ) : detail ? (
-              <>
-                {tabs.map((tab) =>
-                  visitedTabs.has(tab.id) ? (
-                    <div
-                      key={tab.id}
-                      id={`student-panel-${tab.id}`}
-                      role="tabpanel"
-                      aria-labelledby={`student-tab-${tab.id}`}
-                      hidden={activeTab !== tab.id}
-                    >
-                      <motion.div
-                        variants={tabPanelVariants(reducedMotion ?? false)}
-                        initial={false}
-                        animate={activeTab === tab.id ? "animate" : "initial"}
-                        transition={tabPanelTransition(reducedMotion ?? false)}
-                      >
-                        {renderTabPanel(tab.id)}
-                      </motion.div>
-                    </div>
-                  ) : null,
-                )}
-              </>
+            <GChip tone="success">Enrolled</GChip>
+            {student?.primaryContactEmail ? (
+              <span className="text-[12.5px] font-semibold text-[var(--sf-soft)]">
+                {student.primaryContactName ?? student.familyName ?? "Family"} · {student.primaryContactEmail}
+              </span>
             ) : null}
           </div>
-        </SubmissionDetailStoryProvider>
-      </motion.div>
-    </motion.div>
+        }
+        headerBelow={
+          detail && !loading && !error ? (
+            <GTabBar
+              ariaLabel="Student sections"
+              activeKey={tab}
+              onChange={(key) => {
+                setTab(key as Tab);
+                setVisited((current) => (current.includes(key as Tab) ? current : [...current, key as Tab]));
+              }}
+              items={[
+                { key: "overview", label: "Overview", icon: <LayoutDashboard className="h-3.5 w-3.5" aria-hidden /> },
+                { key: "family", label: "Family", icon: <Users className="h-3.5 w-3.5" aria-hidden /> },
+                { key: "health", label: "Health", icon: <Heart className="h-3.5 w-3.5" aria-hidden /> },
+              ]}
+            />
+          ) : undefined
+        }
+      >
+        <div className="sf-admin-garden-skin flex flex-col gap-4">
+          {loading ? (
+            <div className="flex flex-col gap-3" role="status" aria-live="polite">
+              <span className="sr-only">Loading student</span>
+              <GSkeleton className="h-[180px] !rounded-[20px]" />
+              <GSkeleton className="h-[120px] !rounded-[20px]" />
+            </div>
+          ) : error ? (
+            <GardenLoadError title="This student didn't load" description={error} onRetry={() => void loadDetail()} />
+          ) : detail ? (
+            <>
+              <div hidden={tab !== "overview"}>
+                <DetailPanelSectionGroup C={C}>
+                  <DetailPanelSection C={C} title="Student details" description="Core profile information for this enrolled student.">
+                    <GardenFacts
+                      items={[
+                        { label: "Full name", value: formatEnrolledStudentName(detail) },
+                        { label: "Grade", value: formatStudentGrade(detail.grade) ?? "—" },
+                        {
+                          label: "Classrooms",
+                          value: student ? (
+                            <GardenClassroomButton
+                              classroomNames={student.classroomNames}
+                              busy={assigningClassroom}
+                              onOpen={onOpenClassrooms}
+                            />
+                          ) : (
+                            <span className="text-[13px] font-semibold text-[var(--sf-soft)]">
+                              {detail.enrollments.map((e) => e.classroomName).filter(Boolean).join(", ") || "Unassigned"}
+                            </span>
+                          ),
+                          hint: student ? undefined : "Find this student in the list to change classrooms.",
+                        },
+                        {
+                          label: "Teachers",
+                          value: student ? <GardenStudentTeachers student={student} classroomsPath={classroomsPath} /> : "—",
+                        },
+                        { label: "Date of birth", value: detail.dateOfBirth ? formatEnrolledDate(detail.dateOfBirth) : "—" },
+                        { label: "Student status", value: studentStatusLabel(detail.status) },
+                        { label: "Family", value: detail.familyName ?? "—" },
+                        { label: "Family email", value: detail.familyPrimaryEmail ?? "—" },
+                        {
+                          label: "Photo permissions",
+                          value: <ConsentChip consent={detail.photoMediaConsent} label={detail.photoMediaConsentLabel} />,
+                        },
+                      ]}
+                    />
+                  </DetailPanelSection>
+
+                  <DetailPanelSection C={C} title="Enrollments" description="Programs this student is currently enrolled in.">
+                    {detail.enrollments.length === 0 ? (
+                      <p className="m-0 text-[13px] font-semibold text-[var(--sf-soft)]">No enrolled programs found.</p>
+                    ) : (
+                      <ul className="m-0 flex list-none flex-col gap-2 p-0">
+                        {detail.enrollments.map((enrollment) => (
+                          <li key={enrollment.id} className="rounded-[14px] border-[1.5px] border-[var(--sf-ink)]/10 bg-white px-3.5 py-2.5">
+                            <div className="text-[14px] font-extrabold text-[var(--sf-ink)]">{enrollment.programName}</div>
+                            <div className="mt-0.5 text-[12.5px] font-semibold text-[var(--sf-soft)]">
+                              {enrollment.classroomName ? `Classroom: ${enrollment.classroomName}` : "No classroom assigned"} · Enrolled{" "}
+                              {formatEnrolledDate(enrollment.enrolledAt)}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </DetailPanelSection>
+
+                  {detail.applicationId ? (
+                    <DetailPanelSection C={C} title="Admissions" description="View the original application for this student.">
+                      <Link href={`${submissionsPath}?application=${detail.applicationId}`} className={gLinkSm}>
+                        View application
+                        {detail.applicationStatus ? ` (${applicationStatusLabel(detail.applicationStatus)})` : null}
+                        <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                      </Link>
+                    </DetailPanelSection>
+                  ) : null}
+                </DetailPanelSectionGroup>
+              </div>
+
+              {visited.includes("family") ? (
+                <div hidden={tab !== "family"}>
+                <DetailPanelSectionGroup C={C}>
+                  <DetailPanelSection C={C} title="Family record" description="Household contact details linked to this student.">
+                    <GardenFacts
+                      items={[
+                        { label: "Family name", value: detail.familyName ?? "—" },
+                        { label: "Primary email", value: detail.familyPrimaryEmail ?? "—" },
+                        { label: "Primary phone", value: detail.familyPrimaryPhone ?? "—" },
+                      ]}
+                    />
+                  </DetailPanelSection>
+                  <FamilyGuardiansSection
+                    C={C}
+                    organizationId={organizationId}
+                    familyId={detail.familyId || null}
+                    schoolSlug={schoolSlug}
+                    detail={null}
+                  />
+                </DetailPanelSectionGroup>
+                </div>
+              ) : null}
+
+              {visited.includes("health") ? (
+                <div hidden={tab !== "health"}>
+                <ParentChildHealthTab
+                  theme={theme}
+                  adminCompat={C}
+                  organizationId={organizationId}
+                  studentId={detail.id}
+                  studentFirstName={detail.firstName}
+                  portal="admin"
+                  schoolSlug={schoolSlug}
+                  onProfileChange={handleHealthProfileChange}
+                />
+                </div>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+      </GSidePanel>
+    </SubmissionDetailStoryProvider>
   );
 }

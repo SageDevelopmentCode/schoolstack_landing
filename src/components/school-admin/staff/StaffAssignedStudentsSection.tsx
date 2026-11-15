@@ -308,7 +308,7 @@ export default function StaffAssignedStudentsSection({
           title="No learners assigned yet"
           description={
             canEdit
-              ? `Assign the students ${staffMemberName} works with. They'll see them in the teacher portal.`
+              ? `Assign the students ${staffMemberName} works with.`
               : "Assign and unassign are disabled while this staff member is inactive."
           }
           action={
