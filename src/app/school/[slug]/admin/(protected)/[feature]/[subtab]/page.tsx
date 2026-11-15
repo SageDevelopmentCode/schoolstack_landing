@@ -80,7 +80,7 @@ const AttendancePage = nextDynamic(
 );
 const StaffHoursPage = nextDynamic(
   () => import("@/components/school-admin/staff-hours/StaffHoursPage"),
-  { loading: () => <AdminPageSkeleton label="Loading staff hours" /> },
+  { loading: () => <AdminGardenRouteSkeleton label="Loading staff hours" /> },
 );
 const SchoolProfilePage = nextDynamic(
   () => import("@/components/school-admin/school-profile/SchoolProfilePage"),

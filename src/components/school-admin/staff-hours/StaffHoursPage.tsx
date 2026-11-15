@@ -1,57 +1,49 @@
 "use client";
 
-import { Fragment, useCallback, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useMemo } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { BarChart3, ClipboardList, Clock, Settings } from "lucide-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
-import SchoolAdminDatePicker, {
-  schoolAdminDateRangeBounds,
-} from "@/components/school-admin/ui/SchoolAdminDatePicker";
-import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
-import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import AdminCard from "@/components/school-admin/ui/story/AdminCard";
-import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
-import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
-import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
-import ParentStoryPillNav from "@/components/school-parent/ui/ParentStoryPillNav";
+import { BarChart3, ChevronDown, ClipboardList, Clock, Settings, TimerReset } from "lucide-react";
 import {
-  StaffHoursLiveLoadingSkeleton,
-  StaffHoursSummaryTableLoadingSkeleton,
-} from "@/components/school-admin/staff-hours/StaffHoursLoadingSkeleton";
-import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+  AdminGardenPage,
+  AdminGardenPageHeader,
+  GardenField,
+  GardenLoadError,
+  GardenSelect,
+  GardenStatTiles,
+  GardenSwitch,
+  LiveDot,
+  gInputClass,
+  useGardenFieldId,
+} from "@/components/school-admin/garden/kit";
 import {
-  parseOperationalError,
-  reportClientOperationalError,
-  shouldReportPortalClientError,
-} from "@/lib/operational-errors-client";
-import { isBenignPortalErrorCode } from "@/lib/portal-operational-errors";
-import {
-  portalJsonApiErrorCode,
-  portalJsonApiErrorStatus,
-} from "@/lib/portal-json-api-error";
-import { fetchAdminStaffHoursPageData } from "@/lib/school-admin/staff-hours/fetch-admin-staff-hours";
-import {
-  staffHoursExpandRowMotion,
-  staffHoursMetricCardMotion,
-  staffHoursViewPanelMotion,
-} from "@/lib/school-admin/staff-hours/staff-hours-motion";
+  G_TABLE,
+  G_TD,
+  G_TH,
+  GardenAvatar,
+  GardenGroupHeading,
+  GardenLeadStrip,
+  GardenRefetchVeil,
+  gRowClass,
+} from "@/components/school-admin/garden/blocks";
+import { PORTAL_EASE } from "@/components/school-parent/garden/motion";
+import { GCard, GChip, G_FOCUS, G_TOGGLE, G_TOGGLE_OFF, G_TOGGLE_ON, gBtnPopSm } from "@/components/school-parent/garden/ui";
+import { BusyLabel } from "@/components/school-admin/garden/kit";
+import { StaffHoursLiveElapsed } from "@/components/school-admin/staff-hours/StaffHoursLiveElapsed";
+import StaffHoursRequestsPanel, {
+  StaffHoursPendingRequestsSection,
+} from "@/components/school-admin/staff-hours/StaffHoursRequestsPanel";
+import { buildParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type {
   AdminStaffHoursPageData,
   AdminStaffHoursSessionRow,
 } from "@/lib/school-admin/staff-hours/staff-hours-types";
 import {
   formatHoursMinutes,
+  formatShortWeekdayDate,
+  parseDateKey,
 } from "@/lib/school-teacher/my-hours/format-duration";
-import { StaffHoursLiveElapsed } from "@/components/school-admin/staff-hours/StaffHoursLiveElapsed";
-import StaffHoursRequestsPanel, {
-  StaffHoursPendingRequestsSection,
-} from "@/components/school-admin/staff-hours/StaffHoursRequestsPanel";
-import StaffHoursSettingsPanel from "@/components/school-admin/staff-hours/StaffHoursSettingsPanel";
-import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
-
-const TABLE_LINE = "#EDF1ED";
+import { useAdminStaffHoursModel, type AdminStaffHoursModel, type StaffHoursView } from "./useAdminStaffHoursModel";
 
 type StaffHoursPageProps = {
   organizationId: string;
@@ -60,258 +52,50 @@ type StaffHoursPageProps = {
   initialData: AdminStaffHoursPageData;
 };
 
-type ViewMode = "live" | "summary" | "requests" | "settings";
-
-function viewFromQuery(value: string | null): ViewMode {
-  if (value === "summary" || value === "requests" || value === "settings") return value;
-  return "live";
-}
-
-function viewAriaLabel(view: ViewMode): string {
+function viewAriaLabel(view: StaffHoursView): string {
   if (view === "summary") return "Staff hours summary";
   if (view === "requests") return "Hour adjustment requests";
   if (view === "settings") return "Staff hours settings";
   return "Live staff hours";
 }
 
-function FilterLabel({ theme, children }: { theme: ParentThemeTokens; children: string }) {
-  return (
-    <span
-      className="text-[11px] font-bold uppercase tracking-wider"
-      style={{ color: theme.muted }}
-    >
-      {children}
-    </span>
-  );
+function plural(count: number, one: string, many = `${one}s`): string {
+  return `${count} ${count === 1 ? one : many}`;
 }
 
-function StaffHoursSectionCard({
-  theme,
-  title,
-  children,
-}: {
-  theme: ParentThemeTokens;
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <AdminCard theme={theme} padding="none" className="overflow-hidden">
-      <div className="border-b px-5 py-4" style={{ borderColor: TABLE_LINE }}>
-        <h2 className="font-display text-lg font-semibold" style={{ color: theme.ink }}>
-          {title}
-        </h2>
-      </div>
-      {children}
-    </AdminCard>
-  );
-}
-
-function SessionsTable({
-  sessions,
-  theme,
-  emptyMessage,
-}: {
-  sessions: AdminStaffHoursSessionRow[];
-  theme: ParentThemeTokens;
-  emptyMessage: string;
-}) {
-  if (sessions.length === 0) {
-    return (
-      <p className="px-5 py-4 text-sm" style={{ color: theme.muted }}>
-        {emptyMessage}
-      </p>
-    );
-  }
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[520px] text-left text-sm">
-        <thead>
-          <tr
-            className="border-b text-[11px] font-bold uppercase tracking-wider"
-            style={{ borderColor: TABLE_LINE, color: theme.muted }}
-          >
-            <th className="px-5 py-2.5">Staff</th>
-            <th className="px-5 py-2.5">In</th>
-            <th className="px-5 py-2.5">Out</th>
-            <th className="px-5 py-2.5 text-right">Duration</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sessions.map((session) => (
-            <tr
-              key={session.id}
-              className="border-b last:border-b-0"
-              style={{ borderColor: TABLE_LINE, color: theme.ink }}
-            >
-              <td className="px-5 py-3">{session.staffName}</td>
-              <td className="px-5 py-3 tabular-nums">{session.clockInLabel}</td>
-              <td className="px-5 py-3 tabular-nums">{session.clockOutLabel}</td>
-              <td className="px-5 py-3 text-right font-semibold tabular-nums">
-                {formatHoursMinutes(session.minutes)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-export default function StaffHoursPage({
-  organizationId,
-  slug,
-  branding,
-  initialData,
-}: StaffHoursPageProps) {
+export default function StaffHoursPage({ organizationId, slug, branding, initialData }: StaffHoursPageProps) {
   void slug;
-  void branding;
-  const { theme, C } = useSchoolAdminStoryTheme();
-  const reducedMotion = useReducedMotion() ?? false;
-  const {
-    variants: viewPanelVariants,
-    transition: viewPanelTransition,
-  } = staffHoursViewPanelMotion(reducedMotion);
-  const rowMotion = staffHoursExpandRowMotion(reducedMotion);
-  const dateBounds = schoolAdminDateRangeBounds();
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const viewFromUrl = viewFromQuery(searchParams.get("view"));
-  const [view, setView] = useState<ViewMode>(viewFromUrl);
-  const [urlView, setUrlView] = useState(viewFromUrl);
-  if (viewFromUrl !== urlView) {
-    setUrlView(viewFromUrl);
-    setView(viewFromUrl);
-  }
-  const focusRequestId = searchParams.get("request");
-  const [pageData, setPageData] = useState(initialData);
-  const [summaryFrom, setSummaryFrom] = useState(initialData.summaryFrom);
-  const [summaryTo, setSummaryTo] = useState(initialData.summaryTo);
-  const [staffFilter, setStaffFilter] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [expandedStaffId, setExpandedStaffId] = useState<string | null>(null);
+  const theme = useMemo(() => buildParentThemeTokens(branding), [branding]);
+  const model = useAdminStaffHoursModel({ organizationId, initialData });
+  const reduce = useReducedMotion() === true;
+  const pendingCount = model.pendingRequests.length;
+  const { pageData } = model;
 
-  const staffSelectOptions = useMemo(
-    () => [
-      { value: "", label: "All staff" },
-      ...pageData.staffOptions.map((option) => ({
-        value: option.id,
-        label: option.name,
-      })),
-    ],
-    [pageData.staffOptions],
-  );
-
-  const reload = useCallback(async () => {
-    setLoading(true);
-    try {
-      const next = await fetchAdminStaffHoursPageData(organizationId, {
-        from: summaryFrom,
-        to: summaryTo,
-        staffMemberId: staffFilter || null,
-        view: "all",
-      });
-      setPageData(next);
-    } catch (err) {
-      const message = formatActionError(err, "Failed to load staff hours.");
-      adminToast.error(message);
-      if (shouldReportPortalClientError(err, portalJsonApiErrorStatus(err))) {
-        const parsed = parseOperationalError(err);
-        const code = portalJsonApiErrorCode(err) ?? parsed.code;
-        if (!isBenignPortalErrorCode(code)) {
-          void reportClientOperationalError({
-            organizationId,
-            operation: "staff_hours.load",
-            error: message,
-            code,
-          });
-        }
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [organizationId, summaryFrom, summaryTo, staffFilter]);
-
-  const selectView = useCallback(
-    (nextView: ViewMode) => {
-      setView(nextView);
-      const params = new URLSearchParams(searchParams.toString());
-      if (nextView === "live") {
-        params.delete("view");
-        params.delete("request");
-      } else {
-        params.set("view", nextView);
-        if (nextView !== "requests") params.delete("request");
-      }
-      const query = params.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-      if (nextView === "live") void reload();
-    },
-    [pathname, reload, router, searchParams],
-  );
-
-  const applySummary = useCallback(async () => {
-    await reload();
-    selectView("summary");
-  }, [reload, selectView]);
-
-  const sessionsForStaff = useCallback(
-    (staffMemberId: string) =>
-      pageData.sessions.filter((session) => session.staffMemberId === staffMemberId),
-    [pageData.sessions],
-  );
-
-  const useLiveRowMotion =
-    !reducedMotion && pageData.liveRows.length > 0 && pageData.liveRows.length <= 20;
-
-  const pendingRequestCount = (pageData.adjustmentRequests ?? []).filter(
-    (request) => request.status === "pending",
-  ).length;
-
-  const liveMetrics = useMemo(
-    () =>
-      [
-        {
-          key: "clocked-in",
-          label: "Clocked in now",
-          value: String(pageData.liveRows.length),
-          accent: "sky" as const,
-        },
-        {
-          key: "sessions-today",
-          label: "Sessions today",
-          value: String(pageData.todayClosedSessions.length),
-          accent: "forest" as const,
-        },
-      ] as const,
-    [pageData.liveRows.length, pageData.todayClosedSessions.length],
-  );
+  const statusParts = [
+    `${pageData.liveRows.length} clocked in now`,
+    plural(pageData.todayClosedSessions.length, "session") + " finished today",
+  ];
+  if (pendingCount > 0) statusParts.push(`${plural(pendingCount, "request")} waiting for you`);
 
   return (
-    <div
-      className="mx-auto max-w-[1100px] px-[clamp(16px,3vw,36px)] py-4 pb-6"
-      data-testid="admin-staff-hours-page"
-    >
-      <AdminSectionKicker theme={theme}>My School</AdminSectionKicker>
-      <AdminDisplayHeading theme={theme} as="h1" size="display" className="mt-1">
-        Staff hours
-      </AdminDisplayHeading>
-      <p className="mt-2 max-w-2xl text-sm" style={{ color: theme.muted }}>
-        Review who is clocked in and totals for a date range. Teachers clock in from My Hours in
-        the teacher portal.
-      </p>
-
-      <div className="mt-5">
-        <ParentStoryPillNav
-          theme={theme}
-          items={[
-            {
-              key: "live",
-              label: "Live",
-              icon: <Clock className="h-3.5 w-3.5" aria-hidden />,
-              testId: "staff-hours-tab-live",
-            },
+    <AdminGardenPage theme={theme} data-testid="admin-staff-hours-page">
+      <AdminGardenPageHeader
+        kicker="My school"
+        title={
+          <>
+            Staff <span className="text-[var(--sf-clay)]">hours</span>
+          </>
+        }
+        subtitle={statusParts.join(" · ")}
+        refresh={{
+          onRefresh: () => void model.reload({ announce: true }),
+          refreshing: model.loading,
+          lastUpdatedAt: model.lastUpdatedAt,
+          label: "Refresh staff hours",
+        }}
+        tabs={{
+          items: [
+            { key: "live", label: "Live", icon: <Clock className="h-3.5 w-3.5" aria-hidden />, testId: "staff-hours-tab-live" },
             {
               key: "summary",
               label: "Summary",
@@ -324,13 +108,12 @@ export default function StaffHoursPage({
               icon: <ClipboardList className="h-3.5 w-3.5" aria-hidden />,
               testId: "staff-hours-tab-requests",
               suffix:
-                pendingRequestCount > 0 ? (
+                pendingCount > 0 ? (
                   <span
-                    className="inline-flex min-h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none"
-                    style={{ backgroundColor: theme.primary, color: theme.white }}
+                    className="inline-flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--sf-butter)] px-1 text-[11px] font-extrabold leading-none tabular-nums text-[var(--sf-ink)]"
                     data-testid="staff-hours-requests-count"
                   >
-                    {pendingRequestCount}
+                    {pendingCount}
                   </span>
                 ) : null,
             },
@@ -340,283 +123,453 @@ export default function StaffHoursPage({
               icon: <Settings className="h-3.5 w-3.5" aria-hidden />,
               testId: "staff-hours-tab-settings",
             },
-          ]}
-          activeKey={view}
-          onChange={(key) => selectView(key as ViewMode)}
-          ariaLabel="Staff hours views"
-          data-testid="staff-hours-tab-nav"
+          ],
+          activeKey: model.view,
+          onChange: (key) => model.selectView(key as StaffHoursView),
+          ariaLabel: "Staff hours views",
+          "data-testid": "staff-hours-tab-nav",
+        }}
+      />
+
+      {model.loadError ? (
+        <GardenLoadError
+          title="Couldn't refresh staff hours"
+          description={`${model.loadError} You're seeing the last numbers that loaded.`}
+          onRetry={() => void model.reload()}
+          retrying={model.loading}
         />
-      </div>
+      ) : null}
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="wait" initial={false}>
         <motion.div
-          key={view}
+          key={model.view}
           role="tabpanel"
-          aria-label={viewAriaLabel(view)}
-          aria-busy={loading}
-          className="mt-6 w-full min-w-0"
-          variants={viewPanelVariants}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          transition={viewPanelTransition}
+          aria-label={viewAriaLabel(model.view)}
+          aria-busy={model.loading}
+          className="flex min-w-0 flex-col gap-5"
+          initial={reduce ? false : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reduce ? undefined : { opacity: 0, y: -4 }}
+          transition={{ duration: 0.22, ease: PORTAL_EASE }}
         >
-          {view === "requests" ? (
-            <StaffHoursRequestsPanel
-              theme={theme}
-              organizationId={organizationId}
-              requests={pageData.adjustmentRequests ?? []}
-              focusRequestId={focusRequestId}
-              onPageData={setPageData}
-            />
-          ) : view === "settings" ? (
-            <StaffHoursSettingsPanel
-              theme={theme}
-              organizationId={organizationId}
-              adjustmentsRequireApproval={pageData.adjustmentsRequireApproval !== false}
-              onChange={(requireApproval) =>
-                setPageData((current) => ({
-                  ...current,
-                  adjustmentsRequireApproval: requireApproval,
-                }))
-              }
-            />
-          ) : view === "live" ? (
-        loading ? (
-          <StaffHoursLiveLoadingSkeleton theme={theme} C={C} />
-        ) : (
-        <div className="space-y-6">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {liveMetrics.map((metric, index) => (
-              <motion.div
-                key={metric.key}
-                {...staffHoursMetricCardMotion(reducedMotion, index)}
-              >
-                <AdminMetricCard
-                  theme={theme}
-                  label={metric.label}
-                  value={metric.value}
-                  accent={metric.accent}
-                />
-              </motion.div>
-            ))}
-          </div>
-
-          <StaffHoursPendingRequestsSection
-            theme={theme}
-            organizationId={organizationId}
-            requests={pageData.adjustmentRequests ?? []}
-            onPageData={setPageData}
-          />
-
-          <StaffHoursSectionCard theme={theme} title="Active sessions">
-            {pageData.liveRows.length === 0 ? (
-              <p className="px-5 py-4 text-sm" style={{ color: theme.muted }}>
-                No one is clocked in right now.
-              </p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[520px] text-left text-sm">
-                  <thead>
-                    <tr
-                      className="border-b text-[11px] font-bold uppercase tracking-wider"
-                      style={{ borderColor: TABLE_LINE, color: theme.muted }}
-                    >
-                      <th className="px-5 py-2.5">Staff</th>
-                      <th className="px-5 py-2.5">Role</th>
-                      <th className="px-5 py-2.5">Clock in</th>
-                      <th className="px-5 py-2.5 text-right">Elapsed</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <AnimatePresence initial={false}>
-                      {pageData.liveRows.map((row) =>
-                        useLiveRowMotion ? (
-                          <motion.tr
-                            key={row.entryId}
-                            className="border-b last:border-b-0"
-                            style={{ borderColor: TABLE_LINE, color: theme.ink }}
-                            {...rowMotion}
-                          >
-                            <td className="px-5 py-3 font-medium">{row.staffName}</td>
-                            <td className="px-5 py-3" style={{ color: theme.muted }}>
-                              {row.roleTitle ?? "—"}
-                            </td>
-                            <td className="px-5 py-3 tabular-nums">{row.clockInLabel}</td>
-                            <td className="px-5 py-3 text-right" style={{ color: theme.primary }}>
-                              <StaffHoursLiveElapsed clockInAt={row.clockInAt} />
-                            </td>
-                          </motion.tr>
-                        ) : (
-                          <tr
-                            key={row.entryId}
-                            className="border-b last:border-b-0"
-                            style={{ borderColor: TABLE_LINE, color: theme.ink }}
-                          >
-                            <td className="px-5 py-3 font-medium">{row.staffName}</td>
-                            <td className="px-5 py-3" style={{ color: theme.muted }}>
-                              {row.roleTitle ?? "—"}
-                            </td>
-                            <td className="px-5 py-3 tabular-nums">{row.clockInLabel}</td>
-                            <td className="px-5 py-3 text-right" style={{ color: theme.primary }}>
-                              <StaffHoursLiveElapsed clockInAt={row.clockInAt} />
-                            </td>
-                          </tr>
-                        ),
-                      )}
-                    </AnimatePresence>
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </StaffHoursSectionCard>
-
-          <StaffHoursSectionCard theme={theme} title="Today's completed sessions">
-            <SessionsTable
-              theme={theme}
-              sessions={pageData.todayClosedSessions}
-              emptyMessage="No completed sessions yet today."
-            />
-          </StaffHoursSectionCard>
-        </div>
-        )
-      ) : (
-        <div className="space-y-6">
-          <AdminCard theme={theme} padding="canvas">
-            <div className="flex flex-wrap items-end gap-4">
-              <div className="flex min-w-[10rem] flex-col gap-1.5">
-                <FilterLabel theme={theme}>From</FilterLabel>
-                <SchoolAdminDatePicker
-                  id="staff-hours-from"
-                  C={C}
-                  value={summaryFrom}
-                  onChange={setSummaryFrom}
-                  maxDate={summaryTo || dateBounds.maxDate}
-                  placeholder="Select start date"
-                />
-              </div>
-              <div className="flex min-w-[10rem] flex-col gap-1.5">
-                <FilterLabel theme={theme}>To</FilterLabel>
-                <SchoolAdminDatePicker
-                  id="staff-hours-to"
-                  C={C}
-                  value={summaryTo}
-                  onChange={setSummaryTo}
-                  minDate={summaryFrom || dateBounds.minDate}
-                  placeholder="Select end date"
-                />
-              </div>
-              <div className="flex min-w-[12rem] flex-1 flex-col gap-1.5 sm:max-w-xs">
-                <FilterLabel theme={theme}>Staff</FilterLabel>
-                <SchoolAdminSelect
-                  C={C}
-                  value={staffFilter}
-                  onChange={setStaffFilter}
-                  options={staffSelectOptions}
-                  ariaLabel="Filter by staff member"
-                  placeholder="All staff"
-                />
-              </div>
-              <AdminButton
-                theme={theme}
-                type="button"
-                disabled={loading}
-                onClick={() => void applySummary()}
-              >
-                {loading ? "Loading…" : "Apply"}
-              </AdminButton>
-            </div>
-          </AdminCard>
-
-          <StaffHoursSectionCard theme={theme} title="Hours by staff">
-            {loading ? (
-              <StaffHoursSummaryTableLoadingSkeleton C={C} />
-            ) : pageData.summaryRows.length === 0 ? (
-              <p className="px-5 py-4 text-sm" style={{ color: theme.muted }}>
-                No staff to show for this range.
-              </p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[560px] text-left text-sm">
-                  <thead>
-                    <tr
-                      className="border-b text-[11px] font-bold uppercase tracking-wider"
-                      style={{ borderColor: TABLE_LINE, color: theme.muted }}
-                    >
-                      <th className="px-5 py-2.5">Staff</th>
-                      <th className="px-5 py-2.5">Role</th>
-                      <th className="px-5 py-2.5 text-right">Days</th>
-                      <th className="px-5 py-2.5 text-right">Sessions</th>
-                      <th className="px-5 py-2.5 text-right">Total</th>
-                      <th className="px-5 py-2.5" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pageData.summaryRows.map((row) => {
-                      const expanded = expandedStaffId === row.staffMemberId;
-                      return (
-                        <Fragment key={row.staffMemberId}>
-                          <tr
-                            className="border-b"
-                            style={{ borderColor: TABLE_LINE, color: theme.ink }}
-                          >
-                            <td className="px-5 py-3 font-medium">{row.staffName}</td>
-                            <td className="px-5 py-3" style={{ color: theme.muted }}>
-                              {row.roleTitle ?? "—"}
-                            </td>
-                            <td className="px-5 py-3 text-right tabular-nums">{row.daysWorked}</td>
-                            <td className="px-5 py-3 text-right tabular-nums">
-                              {row.sessionCount}
-                            </td>
-                            <td className="px-5 py-3 text-right font-semibold tabular-nums">
-                              {formatHoursMinutes(row.totalMinutes)}
-                            </td>
-                            <td className="px-5 py-3 text-right">
-                              <button
-                                type="button"
-                                className="text-xs font-semibold"
-                                style={{ color: theme.primary }}
-                                onClick={() =>
-                                  setExpandedStaffId(expanded ? null : row.staffMemberId)
-                                }
-                              >
-                                {expanded ? "Hide" : "Sessions"}
-                              </button>
-                            </td>
-                          </tr>
-                          <AnimatePresence initial={false}>
-                            {expanded ? (
-                              <motion.tr
-                                key={`${row.staffMemberId}-detail`}
-                                {...rowMotion}
-                                style={{ backgroundColor: "#F7F9F7" }}
-                              >
-                                <td
-                                  colSpan={6}
-                                  className="border-t px-0 py-0"
-                                  style={{ borderColor: TABLE_LINE }}
-                                >
-                                  <SessionsTable
-                                    theme={theme}
-                                    sessions={sessionsForStaff(row.staffMemberId)}
-                                    emptyMessage="No sessions in this range."
-                                  />
-                                </td>
-                              </motion.tr>
-                            ) : null}
-                          </AnimatePresence>
-                        </Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </StaffHoursSectionCard>
-        </div>
-      )}
+          {model.view === "live" ? (
+            <LiveView model={model} organizationId={organizationId} />
+          ) : model.view === "summary" ? (
+            <SummaryView model={model} />
+          ) : model.view === "requests" ? (
+            <StaffHoursRequestsPanel model={model} />
+          ) : (
+            <SettingsView model={model} />
+          )}
         </motion.div>
       </AnimatePresence>
+    </AdminGardenPage>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Live                                                                */
+/* ------------------------------------------------------------------ */
+
+function LiveView({ model, organizationId }: { model: AdminStaffHoursModel; organizationId: string }) {
+  void organizationId;
+  const { pageData } = model;
+  const pending = model.pendingRequests;
+  const live = pageData.liveRows;
+  const finished = pageData.todayClosedSessions;
+  const todayLabel = formatShortWeekdayDate(parseDateKey(pageData.referenceDateKey));
+
+  return (
+    <>
+      {pending.length > 0 ? (
+        <GardenLeadStrip
+          icon={TimerReset}
+          kicker={`Needs attention · ${plural(pending.length, "request")}`}
+          title={
+            pending.length === 1
+              ? `${pending[0].staffName} asked to change their hours`
+              : `${pending[0].staffName} and ${plural(pending.length - 1, "other")} asked to change their hours`
+          }
+          meta={`For ${formatShortWeekdayDate(parseDateKey(pending[0].workDate))}`}
+          cta="Review requests"
+          onClick={() => model.selectView("requests")}
+          data-testid="staff-hours-review-next"
+        />
+      ) : null}
+
+      <GardenStatTiles
+        layout="strip"
+        ariaLabel="Staff hours today"
+        stats={[
+          {
+            id: "clocked-in",
+            label: "Clocked in now",
+            value: (
+              <span className="inline-flex items-center gap-2">
+                {live.length}
+                {live.length > 0 ? <LiveDot /> : null}
+              </span>
+            ),
+          },
+          { id: "sessions-today", label: "Sessions today", value: finished.length },
+          { id: "hours-today", label: "Logged today", value: formatHoursMinutes(model.todayMinutes) },
+          {
+            id: "requests",
+            label: "Requests waiting",
+            value: pending.length,
+            onClick: () => model.selectView("requests"),
+          },
+        ]}
+      />
+
+      <GardenRefetchVeil active={model.loading}>
+        <div className="grid items-start gap-5 lg:grid-cols-2">
+          <GCard
+            index={1}
+            kicker={todayLabel}
+            title="On the clock"
+            action={<GChip tone={live.length > 0 ? "success" : "neutral"}>{live.length}</GChip>}
+            data-testid="staff-hours-live-active"
+          >
+            {live.length === 0 ? (
+              <p className="m-0 rounded-[16px] bg-[var(--sf-paper)] p-4 text-[13.5px] font-semibold text-[var(--sf-soft)]">
+                No one is clocked in right now. Teachers clock in from My Hours in the teacher portal.
+              </p>
+            ) : (
+              <ul className="m-0 flex list-none flex-col gap-1 p-0">
+                {live.map((row) => (
+                  <li key={row.entryId} className="flex items-center gap-3 rounded-[14px] px-2 py-2.5">
+                    <GardenAvatar name={row.staffName} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px] font-extrabold text-[var(--sf-ink)]">{row.staffName}</span>
+                      <span className="block truncate text-[12.5px] font-semibold text-[var(--sf-soft)]">
+                        {row.roleTitle ? `${row.roleTitle} · ` : ""}In at {row.clockInLabel}
+                      </span>
+                    </span>
+                    <GChip tone="success">
+                      <span className="inline-flex items-center gap-1.5">
+                        <LiveDot />
+                        <StaffHoursLiveElapsed clockInAt={row.clockInAt} />
+                      </span>
+                    </GChip>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </GCard>
+
+          <GCard
+            index={2}
+            kicker={todayLabel}
+            title="Finished today"
+            action={<GChip tone="neutral">{finished.length}</GChip>}
+            data-testid="staff-hours-live-finished"
+          >
+            {finished.length === 0 ? (
+              <p className="m-0 rounded-[16px] bg-[var(--sf-paper)] p-4 text-[13.5px] font-semibold text-[var(--sf-soft)]">
+                No completed sessions yet today.
+              </p>
+            ) : (
+              <ul className="m-0 flex list-none flex-col gap-1 p-0">
+                {finished.map((session) => (
+                  <li key={session.id} className="flex items-center gap-3 rounded-[14px] px-2 py-2.5">
+                    <GardenAvatar name={session.staffName} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px] font-extrabold text-[var(--sf-ink)]">
+                        {session.staffName}
+                      </span>
+                      <span className="block truncate text-[12.5px] font-semibold tabular-nums text-[var(--sf-soft)]">
+                        {session.clockInLabel} – {session.clockOutLabel}
+                      </span>
+                    </span>
+                    <span className="text-[14px] font-extrabold tabular-nums text-[var(--sf-ink)]">
+                      {formatHoursMinutes(session.minutes)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </GCard>
+        </div>
+      </GardenRefetchVeil>
+
+      {pending.length > 0 ? <StaffHoursPendingRequestsSection model={model} /> : null}
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Summary                                                             */
+/* ------------------------------------------------------------------ */
+
+function SessionsList({ sessions, emptyMessage }: { sessions: AdminStaffHoursSessionRow[]; emptyMessage: string }) {
+  if (sessions.length === 0) {
+    return <p className="m-0 px-3 py-3 text-[13px] font-semibold text-[var(--sf-soft)]">{emptyMessage}</p>;
+  }
+  return (
+    <ul className="m-0 grid list-none gap-1.5 p-2 sm:grid-cols-2">
+      {sessions.map((session) => (
+        <li
+          key={session.id}
+          className="flex items-center justify-between gap-3 rounded-[12px] border-[1.5px] border-[var(--sf-ink)]/[0.08] bg-white px-3 py-2"
+        >
+          <span className="min-w-0">
+            <span className="block text-[13px] font-extrabold text-[var(--sf-ink)]">
+              {formatShortWeekdayDate(parseDateKey(session.workDate))}
+            </span>
+            <span className="block text-[12px] font-semibold tabular-nums text-[var(--sf-soft)]">
+              {session.clockInLabel} – {session.clockOutLabel}
+            </span>
+          </span>
+          <span className="text-[13px] font-extrabold tabular-nums text-[var(--sf-ink)]">
+            {formatHoursMinutes(session.minutes)}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function SummaryView({ model }: { model: AdminStaffHoursModel }) {
+  const fromId = useGardenFieldId("sh-from");
+  const toId = useGardenFieldId("sh-to");
+  const staffId = useGardenFieldId("sh-staff");
+  const { pageData } = model;
+  const rangeLabel = `${formatShortWeekdayDate(parseDateKey(model.applied.from))} – ${formatShortWeekdayDate(
+    parseDateKey(model.applied.to),
+  )}`;
+  const staffOptions = [
+    { value: "", label: "All staff" },
+    ...pageData.staffOptions.map((option) => ({ value: option.id, label: option.name })),
+  ];
+  const appliedStaff = pageData.staffOptions.find((o) => o.id === model.applied.staff)?.name;
+  const rangeInvalid = Boolean(model.summaryFrom && model.summaryTo && model.summaryFrom > model.summaryTo);
+
+  return (
+    <>
+      <GCard index={1} kicker="Date range" title="Choose what to total">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Quick ranges">
+            {model.presets.map((preset) => {
+              const active = model.summaryFrom === preset.from && model.summaryTo === preset.to;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => model.applyPreset(preset)}
+                  className={`${G_TOGGLE} ${active ? G_TOGGLE_ON : G_TOGGLE_OFF}`}
+                >
+                  {preset.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1.2fr_auto] sm:items-end">
+            <GardenField id={fromId} label="From">
+              <input
+                id={fromId}
+                type="date"
+                value={model.summaryFrom}
+                max={model.summaryTo || undefined}
+                onChange={(e) => model.setSummaryFrom(e.target.value)}
+                data-garden-skip
+                className={gInputClass(rangeInvalid ? "invalid" : null)}
+              />
+            </GardenField>
+            <GardenField id={toId} label="To">
+              <input
+                id={toId}
+                type="date"
+                value={model.summaryTo}
+                min={model.summaryFrom || undefined}
+                onChange={(e) => model.setSummaryTo(e.target.value)}
+                data-garden-skip
+                className={gInputClass(rangeInvalid ? "invalid" : null)}
+              />
+            </GardenField>
+            <GardenField id={staffId} label="Staff">
+              <GardenSelect
+                id={staffId}
+                value={model.staffFilter}
+                onChange={model.setStaffFilter}
+                options={staffOptions}
+                aria-label="Filter by staff member"
+              />
+            </GardenField>
+            <button
+              type="button"
+              className={gBtnPopSm}
+              disabled={model.loading || rangeInvalid || !model.summaryFrom || !model.summaryTo}
+              aria-busy={model.loading || undefined}
+              onClick={() => void model.applySummary()}
+              data-testid="staff-hours-summary-apply"
+            >
+              <BusyLabel busy={model.loading} busyLabel="Loading…">
+                Apply
+              </BusyLabel>
+            </button>
+          </div>
+          <p className="m-0 text-[12.5px] font-semibold text-[var(--sf-soft)]" aria-live="polite">
+            {rangeInvalid
+              ? "The start date needs to be on or before the end date."
+              : model.summaryDirty
+                ? "Press Apply to update the totals below."
+                : `Showing ${rangeLabel}${appliedStaff ? ` for ${appliedStaff}` : " for all staff"}.`}
+          </p>
+        </div>
+      </GCard>
+
+      <GardenStatTiles
+        layout="strip"
+        ariaLabel="Totals for this range"
+        stats={[
+          { id: "total", label: "Total hours", value: formatHoursMinutes(model.summaryTotals.minutes) },
+          { id: "sessions", label: "Sessions", value: model.summaryTotals.sessions },
+          { id: "staff", label: "Staff with hours", value: model.summaryTotals.staffWithHours },
+        ]}
+      />
+
+      <GCard index={2} kicker={rangeLabel} title="Hours by staff" data-testid="admin-staff-hours-summary">
+        <GardenRefetchVeil active={model.loading}>
+          {pageData.summaryRows.length === 0 ? (
+            <p className="m-0 rounded-[16px] bg-[var(--sf-paper)] p-4 text-[13.5px] font-semibold text-[var(--sf-soft)]">
+              No staff to show for this range.
+            </p>
+          ) : (
+            <div className="-mx-1 overflow-x-auto">
+              <table className={`${G_TABLE} min-w-[560px]`}>
+                <thead>
+                  <tr>
+                    <th scope="col" className={G_TH}>Staff</th>
+                    <th scope="col" className={`${G_TH} text-right`}>Days</th>
+                    <th scope="col" className={`${G_TH} text-right`}>Sessions</th>
+                    <th scope="col" className={`${G_TH} text-right`}>Total</th>
+                    <th scope="col" className={G_TH}>
+                      <span className="sr-only">Sessions</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageData.summaryRows.map((row) => {
+                    const expanded = model.expandedStaffId === row.staffMemberId;
+                    const toggle = () => model.setExpandedStaffId(expanded ? null : row.staffMemberId);
+                    return (
+                      <Fragment key={row.staffMemberId}>
+                        <tr
+                          className={gRowClass({ interactive: true, selected: expanded })}
+                          onClick={toggle}
+                        >
+                          <td className={G_TD}>
+                            <span className="flex items-center gap-3">
+                              <GardenAvatar name={row.staffName} size="sm" />
+                              <span className="min-w-0">
+                                <span className="block text-[14px] font-extrabold text-[var(--sf-ink)]">{row.staffName}</span>
+                                <span className="block text-[12.5px] font-semibold text-[var(--sf-soft)]">
+                                  {row.roleTitle ?? "—"}
+                                </span>
+                              </span>
+                            </span>
+                          </td>
+                          <td className={`${G_TD} text-right text-[14px] font-bold tabular-nums`}>{row.daysWorked}</td>
+                          <td className={`${G_TD} text-right text-[14px] font-bold tabular-nums`}>{row.sessionCount}</td>
+                          <td className={`${G_TD} text-right text-[15px] font-extrabold tabular-nums`}>
+                            {formatHoursMinutes(row.totalMinutes)}
+                          </td>
+                          <td className={`${G_TD} text-right`}>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                toggle();
+                              }}
+                              aria-expanded={expanded}
+                              aria-label={`${expanded ? "Hide" : "Show"} sessions for ${row.staffName}`}
+                              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12.5px] font-extrabold text-[var(--sf-clay-deep)] hover:bg-[var(--sf-accent-wash)] ${G_FOCUS}`}
+                            >
+                              {expanded ? "Hide" : "Sessions"}
+                              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} aria-hidden />
+                            </button>
+                          </td>
+                        </tr>
+                        {expanded ? (
+                          <tr>
+                            <td colSpan={5} className="border-b border-[var(--sf-ink)]/[0.06] bg-[var(--sf-paper)] p-0">
+                              <SessionsList
+                                sessions={model.sessionsForStaff(row.staffMemberId)}
+                                emptyMessage="No sessions in this range."
+                              />
+                            </td>
+                          </tr>
+                        ) : null}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td className="px-3 pt-3 text-[12px] font-extrabold uppercase tracking-[0.14em] text-[var(--sf-soft)]">
+                      Total
+                    </td>
+                    <td />
+                    <td className="px-3 pt-3 text-right text-[14px] font-extrabold tabular-nums">{model.summaryTotals.sessions}</td>
+                    <td className="px-3 pt-3 text-right text-[15px] font-extrabold tabular-nums">
+                      {formatHoursMinutes(model.summaryTotals.minutes)}
+                    </td>
+                    <td />
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </GardenRefetchVeil>
+      </GCard>
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Settings                                                            */
+/* ------------------------------------------------------------------ */
+
+function SettingsView({ model }: { model: AdminStaffHoursModel }) {
+  return (
+    <div className="grid items-start gap-5 lg:grid-cols-[1.55fr_1fr]">
+      <GCard index={1} kicker="Hour adjustments" title="Approvals" data-testid="staff-hours-settings-panel">
+        <GardenSwitch
+          checked={model.requireApproval}
+          onChange={() => void model.toggleRequireApproval()}
+          busy={model.settingsSaving}
+          label="Require approval for hour adjustments"
+          description="When this is on, teacher changes stay pending until you approve them."
+          data-testid="staff-hours-require-approval"
+        />
+        <div className="mt-4 rounded-[16px] bg-[var(--sf-paper)] p-4 text-[13px] font-semibold leading-snug text-[var(--sf-ink)]/80">
+          {model.requireApproval ? (
+            <>
+              <b className="text-[var(--sf-ink)]">On:</b> when a teacher edits their hours, the change waits under{" "}
+              <button type="button" className={`font-extrabold text-[var(--sf-clay-deep)] hover:underline ${G_FOCUS}`} onClick={() => model.selectView("requests")}>
+                Requests
+              </button>{" "}
+              until you approve or deny it.
+            </>
+          ) : (
+            <>
+              <b className="text-[var(--sf-ink)]">Off:</b> when a teacher edits their hours, the change saves right away.
+            </>
+          )}
+        </div>
+      </GCard>
+      <GCard index={2} tone="paper" kicker="Good to know" title="How staff hours work">
+        <GardenGroupHeading>Clocking in</GardenGroupHeading>
+        <p className="m-0 mb-3 text-[13px] font-semibold leading-snug text-[var(--sf-ink)]/80">
+          Teachers clock in and out from My Hours in the teacher portal. Live sessions show up on the Live tab.
+        </p>
+        <GardenGroupHeading>Totals</GardenGroupHeading>
+        <p className="m-0 text-[13px] font-semibold leading-snug text-[var(--sf-ink)]/80">
+          Summary adds up finished sessions for any date range, per staff member.
+        </p>
+      </GCard>
     </div>
   );
 }
