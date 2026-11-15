@@ -1,6 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -28,13 +36,19 @@ export function GSegmented<Id extends string>({
   onChange,
   style,
   compact = false,
+  scrollable = false,
+  accessibilityLabel,
 }: {
   items: GSegmentedItem<Id>[];
   activeId: Id;
   onChange: (id: Id) => void;
   style?: StyleProp<ViewStyle>;
   compact?: boolean;
+  /** Horizontal scroll for many tabs; the active tab is kept in view. */
+  scrollable?: boolean;
+  accessibilityLabel?: string;
 }) {
+  const scrollRef = useRef<ScrollView>(null);
   const accent = useGardenAccent();
   const reduceMotion = useReducedMotion();
   const [layouts, setLayouts] = useState<Record<string, { x: number; width: number }>>({});
@@ -51,7 +65,10 @@ export function GSegmented<Id extends string>({
       x.value = withSpring(layout.x, PILL_SPRING);
       width.value = withSpring(layout.width, PILL_SPRING);
     }
-  }, [activeId, layouts, reduceMotion, width, x]);
+    if (scrollable) {
+      scrollRef.current?.scrollTo({ x: Math.max(0, layout.x - 32), animated: !reduceMotion });
+    }
+  }, [activeId, layouts, reduceMotion, scrollable, width, x]);
 
   const pillStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: x.value }],
@@ -59,9 +76,15 @@ export function GSegmented<Id extends string>({
     opacity: width.value > 0 ? 1 : 0,
   }));
 
-  return (
-    <View accessibilityRole="tablist" style={[styles.bar, style]}>
-      <Animated.View style={[styles.pill, { backgroundColor: accent.clay }, pillStyle]} />
+  const content = (
+    <>
+      <Animated.View
+        style={[
+          scrollable ? styles.pillInner : styles.pill,
+          { backgroundColor: accent.clay },
+          pillStyle,
+        ]}
+      />
       {items.map((item) => {
         const active = item.id === activeId;
         const color = active ? Garden.white : Garden.ink;
@@ -87,7 +110,7 @@ export function GSegmented<Id extends string>({
               haptic.select();
               onChange(item.id);
             }}
-            style={[styles.item, compact && styles.itemCompact]}>
+            style={[styles.item, (compact || scrollable) && styles.itemCompact]}>
             {item.icon ? <Ionicons name={item.icon} size={15} color={color} /> : null}
             <Text style={[styles.label, { color }]} numberOfLines={1}>
               {item.label}
@@ -106,6 +129,29 @@ export function GSegmented<Id extends string>({
           </Pressable>
         );
       })}
+    </>
+  );
+
+  if (scrollable) {
+    return (
+      <View
+        accessibilityRole="tablist"
+        accessibilityLabel={accessibilityLabel}
+        style={[styles.bar, styles.barScroll, style]}>
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}>
+          <View style={styles.scrollRow}>{content}</View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  return (
+    <View accessibilityRole="tablist" accessibilityLabel={accessibilityLabel} style={[styles.bar, style]}>
+      {content}
     </View>
   );
 }
@@ -118,6 +164,22 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Garden.ink12,
     backgroundColor: Garden.white,
+  },
+  barScroll: {
+    paddingHorizontal: 0,
+  },
+  scrollContent: {
+    paddingHorizontal: 4,
+  },
+  scrollRow: {
+    flexDirection: 'row',
+  },
+  pillInner: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    borderRadius: 999,
   },
   pill: {
     position: 'absolute',

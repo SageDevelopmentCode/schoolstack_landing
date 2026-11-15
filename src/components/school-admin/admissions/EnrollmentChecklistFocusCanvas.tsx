@@ -305,6 +305,7 @@ export default function EnrollmentChecklistFocusCanvas({
         <div
           className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
           style={{ backgroundColor: BUILDER_CANVAS_BG }}
+          data-flows-canvas
         >
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6">
             {canvasContent}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DetailButton } from "@/components/school-admin/admissions/detail-garden";
 import { CalendarPlus, Pencil } from "lucide-react";
 import { SchoolAdminCalendarSkeleton } from "@/components/school-admin/skeletons";
 import ScheduleCalendarShell from "@/components/school-admin/schedule/ScheduleCalendarShell";
@@ -31,7 +32,6 @@ import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import AdminScheduleManualBookingDialog from "@/components/school-admin/schedule/AdminScheduleManualBookingDialog";
 import { useOptionalScheduleVisitsContext } from "@/components/school-admin/schedule/schedule-visits-context";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import { createClient } from "@/utils/supabase/client";
 
 type AdmissionsAvailabilityEditorProps = {
@@ -390,15 +390,16 @@ export default function AdmissionsAvailabilityEditor({
 
       {!readOnly && previewSlots == null ? (
         <div className="flex justify-end">
-          <button
+          <DetailButton
+ kind="secondary"
+ C={C}
             type="button"
             onClick={() => setManualBookingOpen(true)}
-            className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium"
-            style={getAdminButtonStyle(C, "secondary")}
+            storyClassName="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium"
           >
             <CalendarPlus className="h-4 w-4" aria-hidden />
             Book for a family
-          </button>
+          </DetailButton>
         </div>
       ) : null}
 

@@ -52,7 +52,9 @@ All paths are under `apps/mobile/src/`.
 | `components/parent/garden/celebrate.tsx` | `GCelebrate` (confetti + success haptic, once per session per key) |
 | `components/parent/garden/sheet.tsx` | `GSheet`: Garden bottom sheet (cream, kicker + Bricolage title, 44pt close, optional status chip and footer) |
 | `lib/haptics.ts` | `haptic.tap / select / press / success / warning / error`. A safe no-op without the native module and under E2E. |
-| `components/parent/parent-portal-shell.tsx` | Mounts `GestureHandlerRootView` and `GardenToastProvider` around every parent screen |
+| `components/parent/parent-portal-shell.tsx` | Mounts `GestureHandlerRootView` and `GardenToastProvider` around the whole parent shell (screens, tab bar and More sheet) |
+| `components/garden-nav/garden-tab-bar.tsx` | `GardenTabBar`: the bottom tab bar shared by **every** portal (parent, teacher, school admin, platform admin). Attached to the screen bottom (paper, hairline top rule, fills the home-indicator area by sitting at `bottom: -insets.bottom` inside the layout `SafeAreaView`); an accent pill glides to the active tab. Short labels ("Billing / tuition" → "Billing") with the full label as the a11y label, so Maestro text taps keep matching. `sheetOpen` turns the More icon into a chevron; `header` adds a row inside the bar (parent co-op chip). `GARDEN_TAB_BAR_HEIGHT` is the part above the safe-area edge: layouts pad content by it. |
+| `components/garden-nav/garden-more.tsx` | The More sheet kit for every portal: `GardenMoreSheet`, `GardenMoreSectionTabs`, `GardenProfileCard`, `GardenMoreGrid` (equal-height pastel tiles in rows of two + "Open now"), `GardenSelectionRow` (Program / Account switchers), skeletons, `isMoreItemPathActive` |
 | `constants/app-fonts.ts` | Registers Bricolage 800, Nunito 400/600/700/800 and Gochi Hand in `APP_FONTS` |
 | `components/parent/home/*` | The reference screen. See §5 for the controller → model → view split. |
 

@@ -12,6 +12,9 @@ import {
 } from "lucide-react";
 import { SchoolAdminDetailPanelSkeleton } from "@/components/school-admin/skeletons";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
+import GSidePanel from "@/components/school-parent/garden/GSidePanel";
+import { GChip, GSkeleton, GTabBar } from "@/components/school-parent/garden/ui";
+import { GardenLoadError } from "@/components/school-admin/garden/kit";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
@@ -66,6 +69,8 @@ type ApplicationSubmissionDetailPanelProps = {
   onClose: () => void;
   onSubmissionUpdated?: (update?: SubmissionStatusUpdate) => void;
   onSelectSubmission?: (applicationId: string) => void;
+  /** Garden drawer on Admissions → Submissions; story elsewhere (Schedule). */
+  appearance?: "story" | "garden";
 };
 
 type DetailTab = {
@@ -83,7 +88,9 @@ export default function ApplicationSubmissionDetailPanel({
   onClose,
   onSubmissionUpdated,
   onSelectSubmission,
+  appearance = "story",
 }: ApplicationSubmissionDetailPanelProps) {
+  const garden = appearance === "garden";
   const { theme, C } = useSchoolAdminStoryTheme();
   const reducedMotion = useReducedMotion();
   const supabase = createClient();
@@ -475,6 +482,117 @@ export default function ApplicationSubmissionDetailPanel({
     return null;
   }
 
+  const startEnrollmentModal = (
+    <StartEnrollmentModal
+      C={C}
+      appearance={appearance}
+      theme={theme}
+      organizationId={organizationId}
+      open={startEnrollmentOpen}
+      applicationId={submission.id}
+      studentLabel={submission.studentLabel}
+      contactEmail={submission.contactEmail}
+      onClose={() => setStartEnrollmentOpen(false)}
+      onStarted={() => {
+        setCurrentStatus("enrolling");
+        setHasChecklist(true);
+        onSubmissionUpdated?.({ status: "enrolling" });
+        void refreshAfterMutation();
+      }}
+    />
+  );
+
+  if (garden) {
+    const panelBody = loading ? (
+      <div className="flex flex-col gap-3" role="status" aria-live="polite">
+        <span className="sr-only">Loading application</span>
+        <GSkeleton className="h-[150px] !rounded-[20px]" />
+        <GSkeleton className="h-[220px] !rounded-[20px]" />
+        <GSkeleton className="h-[120px] !rounded-[20px]" />
+      </div>
+    ) : error ? (
+      <GardenLoadError
+        title="This application didn't load"
+        description={error}
+        onRetry={() => void loadDetail()}
+        retrying={loading}
+      />
+    ) : detail ? (
+      <>
+        {tabs.map((tab) =>
+          visitedTabs.has(tab.id) ? (
+            <div
+              key={tab.id}
+              id={`submission-panel-${tab.id}`}
+              role="tabpanel"
+              aria-label={tab.label}
+              hidden={activeTab !== tab.id}
+            >
+              <motion.div
+                variants={tabPanelVariants(reducedMotion ?? false)}
+                initial={false}
+                animate={activeTab === tab.id ? "animate" : "initial"}
+                transition={tabPanelTransition(reducedMotion ?? false)}
+              >
+                {renderTabPanel(tab.id)}
+              </motion.div>
+            </div>
+          ) : null,
+        )}
+      </>
+    ) : null;
+
+    return (
+      <SubmissionDetailStoryProvider variant="garden" theme={theme}>
+        <GSidePanel
+          theme={theme}
+          open
+          size="xl"
+          panelId={`submission-detail-${submission.id}`}
+          testId="submission-detail-panel"
+          kicker="Application review"
+          title={familyLabel}
+          onClose={onClose}
+          bodyRef={scrollContainerRef}
+          subtitle={
+            <>
+              {metaLine ? (
+                <span className="block truncate">
+                  {metaLine} · Updated {formatShortDate(submission.updatedAt)}
+                </span>
+              ) : null}
+              <span className="block truncate">{contactLabel}</span>
+            </>
+          }
+          headerAside={
+            <GChip tone={applicationStatusChipTone(currentStatus)}>
+              ● {applicationStatusLabel(currentStatus)}
+            </GChip>
+          }
+          headerBelow={
+            detail && !loading && !error ? (
+              <GTabBar
+                items={tabs.map((tab) => ({
+                  key: tab.id,
+                  label: tab.label,
+                  icon: <tab.icon className="h-3.5 w-3.5" aria-hidden />,
+                  testId: `submission-tab-${tab.id}`,
+                }))}
+                activeKey={activeTab}
+                onChange={navigateToTab}
+                ariaLabel="Application sections"
+                className="!shadow-none"
+              />
+            ) : undefined
+          }
+        >
+          {panelBody}
+        </GSidePanel>
+        {startEnrollmentModal}
+      </SubmissionDetailStoryProvider>
+    );
+  }
+
   return (
     <motion.div
       className="fixed inset-0 z-[100]"
@@ -624,21 +742,7 @@ export default function ApplicationSubmissionDetailPanel({
         </SubmissionDetailStoryProvider>
       </motion.div>
 
-      <StartEnrollmentModal
-        C={C}
-        organizationId={organizationId}
-        open={startEnrollmentOpen}
-        applicationId={submission.id}
-        studentLabel={submission.studentLabel}
-        contactEmail={submission.contactEmail}
-        onClose={() => setStartEnrollmentOpen(false)}
-        onStarted={() => {
-          setCurrentStatus("enrolling");
-          setHasChecklist(true);
-          onSubmissionUpdated?.({ status: "enrolling" });
-          void refreshAfterMutation();
-        }}
-      />
+      {startEnrollmentModal}
     </motion.div>
   );
 }

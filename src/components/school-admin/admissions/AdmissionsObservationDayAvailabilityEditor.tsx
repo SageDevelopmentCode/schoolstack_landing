@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DetailButton } from "@/components/school-admin/admissions/detail-garden";
 import { CalendarPlus } from "lucide-react";
 import { SchoolAdminCalendarSkeleton } from "@/components/school-admin/skeletons";
 import ScheduleCalendarShell from "@/components/school-admin/schedule/ScheduleCalendarShell";
@@ -401,15 +402,16 @@ export default function AdmissionsObservationDayAvailabilityEditor({
 
       {!readOnly ? (
         <div className="flex justify-end">
-          <button
+          <DetailButton
+ kind="secondary"
+ C={C}
             type="button"
             onClick={() => setManualBookingOpen(true)}
-            className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium"
-            style={getAdminButtonStyle(C, "secondary")}
+            storyClassName="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium"
           >
             <CalendarPlus className="h-4 w-4" aria-hidden />
             Book for a family
-          </button>
+          </DetailButton>
         </div>
       ) : null}
 

@@ -283,6 +283,7 @@ function SchoolAdminLayoutContent() {
       {showTabBar && activeTab ? (
         <SchoolAdminFloatingTabBar
           activeTab={activeTab}
+          moreSheetOpen={moreSheetOpen}
           onChange={handleTabChange}
           messagesUnreadCount={unreadCount}
         />

@@ -1,0 +1,27 @@
+/* Storybook additions on top of page.css + crew.css */
+.cast-7 { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.cast-5 { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.cast-card.on { border-color: var(--clay); box-shadow: 0 0 0 3px color-mix(in srgb, var(--clay) 25%, transparent); }
+.cast-card p { font-family: var(--f-hand); font-size: 16px; color: var(--clay-deep); }
+#sheet { scroll-margin-top: 16px; }
+.sheet-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.step { text-decoration: none; font-weight: 800; font-size: 14px; padding: 8px 14px; border-radius: 999px; background: var(--bg); border: 1.5px solid var(--line); }
+.step:hover { border-color: var(--clay); color: var(--clay-deep); }
+.count { color: var(--soft); font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; }
+.hero { padding: 18px 28px 10px; }
+.hero svg { max-width: 330px; }
+.set-h { font-size: 20px; font-weight: 800; margin-top: 26px; display: flex; align-items: center; gap: 8px; }
+.set-h span { font-family: var(--f-body); font-size: 12px; font-weight: 800; background: var(--ink); color: var(--paper); border-radius: 999px; padding: 2px 8px; }
+.sheet .poses { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); margin-top: 12px; gap: 10px; }
+.sheet .pose { padding: 6px 6px 10px; border-radius: 20px; }
+.sheet .pose-name { font-size: 13px; }
+@media (max-width: 1000px) { .cast-7, .cast-5 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 760px) {
+  .cast-7, .cast-5 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sheet .poses { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .cast-card { padding: 8px 8px 10px; border-radius: 18px; }
+  .cast-card h3 { font-size: 16px; }
+  .cast-card p { font-size: 14px; }
+  .feat { font-size: 9px; padding: 2px 6px; }
+}
+@media (max-width: 420px) { .sheet .poses { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

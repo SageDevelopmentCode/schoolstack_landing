@@ -1,5 +1,10 @@
 "use client";
 
+import { GDialog } from "@/components/school-parent/garden/GDialog";
+import { gBtnOutlineSm, gBtnPopSm } from "@/components/school-parent/garden/ui";
+import { BusyLabel } from "@/components/school-admin/garden/kit";
+import PostSubmitGardenFields from "./PostSubmitGardenFields";
+import { useSubmissionDetailStory } from "./SubmissionDetailStoryContext";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
@@ -37,6 +42,8 @@ export default function PostSubmitStepCompleteDialog({
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { variant, theme } = useSubmissionDetailStory();
+  const garden = variant === "garden" && theme != null;
 
   useEffect(() => {
     if (!open) return;
@@ -48,7 +55,7 @@ export default function PostSubmitStepCompleteDialog({
   }, [open, step?.actionId]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || garden) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !loading) {
@@ -58,7 +65,7 @@ export default function PostSubmitStepCompleteDialog({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, loading, onClose]);
+  }, [open, loading, onClose, garden]);
 
   async function handleSelectFiles(fileList: FileList) {
     setFileError(null);
@@ -88,6 +95,59 @@ export default function PostSubmitStepCompleteDialog({
   const description = step
     ? `Use this when the family completed this step outside ${SITE_NAME}. You can add internal notes or files for your team.`
     : "";
+
+  const confirm = () => {
+    void (async () => {
+      const prepared = await preparePostSubmitStepAttachmentFiles(pendingFiles);
+      onConfirm({ notes: notes.trim(), pendingFiles: prepared });
+    })();
+  };
+
+  if (garden && theme) {
+    return (
+      <GDialog
+        theme={theme}
+        open={open && step != null}
+        onClose={onClose}
+        closeDisabled={loading}
+        size="md"
+        title={title}
+        description={description}
+        data-testid="post-submit-complete-dialog"
+        footer={
+          <>
+            <button type="button" disabled={loading} onClick={onClose} className={gBtnOutlineSm}>
+              Cancel
+            </button>
+            <button type="button" disabled={loading} onClick={confirm} aria-busy={loading || undefined} className={gBtnPopSm}>
+              <BusyLabel busy={loading} busyLabel="Saving…">
+                Mark complete
+              </BusyLabel>
+            </button>
+          </>
+        }
+      >
+        <PostSubmitGardenFields
+          idPrefix="post-submit-complete"
+          notesLabel="Internal notes (optional)"
+          notesPlaceholder="Observation notes, who you spoke with, etc."
+          notes={notes}
+          onNotesChange={setNotes}
+          notesMaxLength={MAX_POST_SUBMIT_STEP_COMPLETION_NOTES_LENGTH}
+          loading={loading}
+          fileInputRef={fileInputRef}
+          accept={POST_SUBMIT_STEP_FILE_ACCEPT}
+          atFileLimit={pendingFiles.length >= MAX_POST_SUBMIT_STEP_FILES}
+          fileCount={pendingFiles.length}
+          maxFiles={MAX_POST_SUBMIT_STEP_FILES}
+          pendingFiles={pendingFiles}
+          onRemovePending={(file) => setPendingFiles((current) => current.filter((entry) => entry !== file))}
+          onSelectFiles={(files) => void handleSelectFiles(files)}
+          fileError={fileError}
+        />
+      </GDialog>
+    );
+  }
 
   return (
     <AnimatePresence>

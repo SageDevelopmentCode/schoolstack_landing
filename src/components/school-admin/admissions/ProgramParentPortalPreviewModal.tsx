@@ -1,11 +1,12 @@
 "use client";
 
+import { SkinPortalScope } from "@/components/school-admin/garden/skin";
 import { createPortal } from "react-dom";
+import { DetailButton } from "@/components/school-admin/admissions/detail-garden";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import ProgramParentPortalPreviewFrame from "./ProgramParentPortalPreviewFrame";
 import type { ProgramParentPortalEditorState } from "@/lib/admissions/program-parent-portal";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type {
   OrganizationBranding,
@@ -46,6 +47,7 @@ export default function ProgramParentPortalPreviewModal({
   }
 
   return createPortal(
+<SkinPortalScope>
     <AnimatePresence>
       {open ? (
         <motion.div
@@ -71,15 +73,16 @@ export default function ProgramParentPortalPreviewModal({
                 Save to publish.
               </p>
             </div>
-            <button
+            <DetailButton
+ kind="neutral"
+ C={C}
               type="button"
               onClick={onClose}
-              className="flex shrink-0 items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium"
-              style={getAdminButtonStyle(C, "neutral")}
+              storyClassName="flex shrink-0 items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium"
             >
               <X className="h-4 w-4" />
               Close
-            </button>
+            </DetailButton>
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col p-3 sm:p-4">
@@ -99,7 +102,7 @@ export default function ProgramParentPortalPreviewModal({
           </div>
         </motion.div>
       ) : null}
-    </AnimatePresence>,
+    </AnimatePresence></SkinPortalScope>,
     document.body,
   );
 }

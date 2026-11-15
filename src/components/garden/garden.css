@@ -206,3 +206,80 @@ html:has(.lenis) {
     transition: none;
   }
 }
+
+/* Admin Garden skin (school admin pages moved to Garden, e.g. Admissions).
+   Deep editors still pass story inline styles to raw inputs and hand-rolled
+   dialogs; inside `.sf-admin-garden-skin` they take the Garden field and
+   dialog look. Embedded product previews (.sf-demo) are left alone.
+   Skill: .claude/skills/admin-portal-garden-design */
+.sf-admin-garden-skin
+  :is(
+    input:not([type]),
+    input[type="text"],
+    input[type="email"],
+    input[type="number"],
+    input[type="url"],
+    input[type="tel"],
+    input[type="time"],
+    input[type="date"],
+    input[type="search"],
+    textarea,
+    select
+  ):not(.sf-demo *):not([data-garden-skip]) {
+  border: 2px solid rgba(43, 36, 29, 0.15) !important;
+  border-radius: 14px !important;
+  background-color: #fff !important;
+  color: var(--sf-ink) !important;
+  font-weight: 600;
+  padding: 0.6rem 0.875rem !important;
+  box-shadow: none !important;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.sf-admin-garden-skin
+  :is(input, textarea, select):not(.sf-demo *):not([data-garden-skip]):hover {
+  border-color: rgba(43, 36, 29, 0.3) !important;
+}
+.sf-admin-garden-skin
+  :is(input, textarea, select):not(.sf-demo *):not([data-garden-skip]):focus {
+  outline: none !important;
+  border-color: var(--sf-clay) !important;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--sf-clay) 15%, transparent) !important;
+}
+.sf-admin-garden-skin :is(input[type="checkbox"], input[type="radio"]):not(.sf-demo *) {
+  accent-color: var(--sf-clay);
+  padding: 0 !important;
+  border-radius: revert !important;
+  box-shadow: none !important;
+}
+.sf-admin-garden-skin [role="dialog"][aria-modal="true"]:not(.sf-demo *):not([data-garden-dialog]) {
+  border-radius: 24px !important;
+  border: 1.5px solid rgba(43, 36, 29, 0.14) !important;
+  background-color: var(--sf-cream) !important;
+  box-shadow: 0 6px 0 0 rgba(43, 36, 29, 0.12), 0 30px 60px -30px rgba(43, 36, 29, 0.45) !important;
+}
+/* Story editors use 9–11px meta type; admin Garden meta is 12–13px. */
+.sf-admin-garden-skin :is(.text-\[9px\], .text-\[10px\]):not(.sf-demo *) {
+  font-size: 11.5px;
+}
+.sf-admin-garden-skin :is(.text-\[11px\], .text-xs):not(.sf-demo *) {
+  font-size: 12.5px;
+}
+/* Enrollment Flows builders: outline rail + canvas on Garden paper. */
+.sf-admin-garden-skin [data-flows-outline] {
+  background-color: #fffdf8 !important;
+  border-right: 1.5px dashed rgba(43, 36, 29, 0.14) !important;
+}
+.sf-admin-garden-skin [data-flows-canvas] {
+  background-color: transparent !important;
+}
+.sf-admin-garden-skin [data-flows-outline-row] {
+  border-radius: 14px !important;
+}
+.sf-admin-garden-skin [data-flows-outline-row="active"] {
+  background-color: var(--sf-accent-wash) !important;
+  border-color: color-mix(in srgb, var(--sf-clay) 35%, transparent) !important;
+  box-shadow: 0 2px 0 0 rgba(43, 36, 29, 0.08);
+}
+.sf-admin-garden-skin [data-flows-outline-row="idle"]:hover {
+  background-color: var(--sf-accent-wash) !important;
+}

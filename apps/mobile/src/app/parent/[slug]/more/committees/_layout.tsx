@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 
-import { Story } from '@/constants/story-theme';
+import { Garden } from '@/components/parent/garden/tokens';
 import { CommitteeUnreadRefreshProvider } from '@/contexts/committee-unread-refresh-context';
 import { detailStackAnimation } from '@/lib/motion/portal-motion';
 
@@ -11,7 +11,7 @@ export default function ParentCommitteesLayout() {
       screenOptions={{
         headerShown: false,
         animation: detailStackAnimation(),
-        contentStyle: { backgroundColor: Story.paper },
+        contentStyle: { backgroundColor: Garden.cream },
       }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="explore/[committeeId]" />

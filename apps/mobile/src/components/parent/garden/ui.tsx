@@ -678,6 +678,8 @@ export function GOutlineButton({
   accessibilityLabel,
   style,
   onDark = false,
+  testID,
+  accessibilityHint,
 }: {
   label: string;
   onPress: () => void;
@@ -685,10 +687,14 @@ export function GOutlineButton({
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
   onDark?: boolean;
+  testID?: string;
+  accessibilityHint?: string;
 }) {
   return (
     <GPressable
+      testID={testID}
       accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityHint={accessibilityHint}
       onPress={onPress}
       style={[
         styles.outline,
@@ -710,6 +716,9 @@ export function GLink({
   light = false,
   accessibilityLabel,
   style,
+  testID,
+  accessibilityHint,
+  reverse = false,
 }: {
   label: string;
   onPress: () => void;
@@ -717,17 +726,23 @@ export function GLink({
   light?: boolean;
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
+  testID?: string;
+  accessibilityHint?: string;
+  /** Icon before the label (back links). */
+  reverse?: boolean;
 }) {
   const accent = useGardenAccent();
   const color = light ? Garden.white : accent.clayDeep;
   return (
     <GPressable
+      testID={testID}
+      accessibilityHint={accessibilityHint}
       accessibilityRole="link"
       accessibilityLabel={accessibilityLabel ?? label}
       onPress={onPress}
       haptic="select"
       hitSlop={10}
-      style={[styles.link, style]}>
+      style={[styles.link, reverse && styles.linkReverse, style]}>
       <Text style={[styles.linkText, { color }]}>{label}</Text>
       {icon ? <Ionicons name={icon} size={14} color={color} /> : null}
     </GPressable>
@@ -1098,6 +1113,9 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     gap: 4,
     minHeight: 32,
+  },
+  linkReverse: {
+    flexDirection: 'row-reverse',
   },
   linkText: {
     fontFamily: GardenFonts.bodyExtra,

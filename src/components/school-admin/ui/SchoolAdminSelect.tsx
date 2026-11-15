@@ -1,5 +1,7 @@
 "use client";
 
+import { useAdminGardenSkin } from "@/components/school-admin/garden/skin";
+import { GardenSelect } from "@/components/school-admin/garden/kit";
 import { useMemo } from "react";
 import CustomSelect, { type CustomSelectOption } from "@/components/ui/CustomSelect";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -22,6 +24,7 @@ export default function SchoolAdminSelect({
   C,
   ...props
 }: SchoolAdminSelectProps) {
+  const skin = useAdminGardenSkin();
   const theme = useMemo(
     () => ({
       textPrimary: C.textPrimary,
@@ -37,6 +40,28 @@ export default function SchoolAdminSelect({
     }),
     [C],
   );
+
+  if (skin) {
+    return (
+      <div className={props.className}>
+        <GardenSelect
+          id={props.id}
+          value={props.value}
+          onChange={props.onChange}
+          options={props.options}
+          placeholder={props.placeholder}
+          disabled={props.disabled}
+          aria-label={props.ariaLabel}
+          error={props.error}
+        />
+        {props.error ? (
+          <p role="alert" className="m-0 mt-1.5 text-[12.5px] font-bold text-[#9a3422]">
+            {props.error}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <CustomSelect

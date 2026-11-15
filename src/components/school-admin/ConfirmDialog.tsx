@@ -1,5 +1,7 @@
 "use client";
 
+import { useAdminGardenSkin } from "@/components/school-admin/garden/skin";
+import { GConfirmDialog } from "@/components/school-parent/garden/GDialog";
 import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
@@ -33,8 +35,9 @@ export default function ConfirmDialog({
   onClose,
   confirmTestId,
 }: ConfirmDialogProps) {
+  const skin = useAdminGardenSkin();
   useEffect(() => {
-    if (!open) return;
+    if (!open || skin) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !loading) {
@@ -44,7 +47,25 @@ export default function ConfirmDialog({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, loading, onClose]);
+  }, [open, loading, onClose, skin]);
+
+  if (skin) {
+    return (
+      <GConfirmDialog
+        theme={skin}
+        open={open}
+        title={title}
+        description={description}
+        confirmLabel={confirmLabel}
+        cancelLabel={cancelLabel}
+        destructive={variant === "destructive"}
+        loading={loading}
+        onConfirm={onConfirm}
+        onClose={onClose}
+        confirmTestId={confirmTestId}
+      />
+    );
+  }
 
   const confirmStyle =
     variant === "destructive"

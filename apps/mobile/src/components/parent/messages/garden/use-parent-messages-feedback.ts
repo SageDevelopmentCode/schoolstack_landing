@@ -8,14 +8,7 @@ import {
 } from '@/lib/messages/parent-messages-feedback';
 import { usePortalPreview } from '@/lib/portal-preview-gating';
 
-/** Delay before acting after a native-modal sheet closes (matches the Home `closeThen`). */
-export const SHEET_DISMISS_MS = 220;
-
-/** Run `action` once the sheet has had time to dismiss (toasts render behind open sheets). */
-export function closeThen(close: () => void, action: () => void) {
-  close();
-  setTimeout(action, SHEET_DISMISS_MS);
-}
+export { closeThen, SHEET_DISMISS_MS } from '@/components/parent/garden/feedback';
 
 /**
  * Messages events → Garden toasts. Failures here only *tell* the parent; the

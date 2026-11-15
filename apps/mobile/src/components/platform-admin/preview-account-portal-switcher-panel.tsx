@@ -1,13 +1,14 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { View } from 'react-native';
 
-import { StoryEmbeddedSwitcherSection } from '@/components/story/more/story-embedded-switcher-section';
-import { StoryEmbeddedSwitcherSkeleton } from '@/components/story/more/story-embedded-switcher-skeleton';
-import { StoryMoreMenuIcon } from '@/components/story/more/story-more-menu-icon';
-import { StoryMoreMenuSelectionRow } from '@/components/story/more/story-more-menu-selection-row';
+import {
+  GardenInlineError,
+  GardenSelectionList,
+  GardenSelectionRow,
+  GardenSelectionSkeleton,
+} from '@/components/garden-nav/garden-more';
 import { useAuth } from '@/contexts/auth-context';
-import { useParentTheme } from '@/contexts/parent-theme-context';
 import { usePortalTransition } from '@/contexts/portal-transition-context';
 import { ACCOUNT_PORTAL_MORE_MENU_META } from '@/lib/auth/account-portal-more-menu-meta';
 import {
@@ -24,8 +25,6 @@ import {
   resolvePreviewTargetForOption,
   type PreviewPortalSwitchTarget,
 } from '@/lib/platform-admin/preview-portal-switch';
-import { StoryFonts } from '@/constants/story-theme';
-import { Spacing } from '@/constants/theme';
 
 type PreviewAccountPortalSwitcherPanelProps = {
   enabled?: boolean;
@@ -91,7 +90,6 @@ export function PreviewAccountPortalSwitcherPanel({
   onAfterSelect,
 }: PreviewAccountPortalSwitcherPanelProps) {
   const router = useRouter();
-  const theme = useParentTheme();
   const { previewSession, portalType, switchPortalPreview } = useAuth();
   const { beginPortalTransition } = usePortalTransition();
   const [options, setOptions] = useState<SchoolPortalOption[]>([]);
@@ -100,6 +98,7 @@ export function PreviewAccountPortalSwitcherPanel({
   >({});
   const [loading, setLoading] = useState(false);
   const [switching, setSwitching] = useState(false);
+  const [switchingId, setSwitchingId] = useState<AccountPortalId | null>(null);
   const [error, setError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
 
@@ -153,7 +152,7 @@ export function PreviewAccountPortalSwitcherPanel({
   }
 
   if (loading && options.length === 0) {
-    return <StoryEmbeddedSwitcherSkeleton kicker={sectionTitle} />;
+    return <GardenSelectionSkeleton kicker={sectionTitle} />;
   }
 
   if (!shouldShowMobilePortalSwitcher(options)) {
@@ -172,6 +171,7 @@ export function PreviewAccountPortalSwitcherPanel({
     }
 
     setSwitching(true);
+    setSwitchingId(option.id);
     setError(null);
     try {
       beginPortalTransition({ targetPortalType: accountPortalIdToPortalType(option.id) });
@@ -201,50 +201,33 @@ export function PreviewAccountPortalSwitcherPanel({
       );
     } finally {
       setSwitching(false);
+      setSwitchingId(null);
     }
   };
 
   return (
-    <View>
-      <StoryEmbeddedSwitcherSection kicker={sectionTitle}>
+    <View style={{ gap: 10 }}>
+      <GardenSelectionList kicker={sectionTitle}>
         {options.map((option, index) => {
           const meta = ACCOUNT_PORTAL_MORE_MENU_META[option.id];
           const isCurrent = option.id === currentPortalId;
           return (
-            <StoryMoreMenuSelectionRow
+            <GardenSelectionRow
               key={option.id}
               isFirst={index === 0}
               label={option.label}
               subtitle={meta.subtitle}
+              icon={meta.icon}
+              iconBg={meta.iconBg}
               selected={isCurrent}
+              busy={switchingId === option.id}
               disabled={switching}
               onPress={() => void handleSelect(option)}
-              icon={
-                <StoryMoreMenuIcon
-                  name={meta.icon}
-                  iconBg={meta.iconBg}
-                  iconColor={meta.iconColor}
-                />
-              }
             />
           );
         })}
-      </StoryEmbeddedSwitcherSection>
-      {error ? (
-        <Text style={[styles.errorText, { color: theme.muted }]} accessibilityRole="alert">
-          {error}
-        </Text>
-      ) : null}
+      </GardenSelectionList>
+      {error ? <GardenInlineError message={error} /> : null}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  errorText: {
-    fontFamily: StoryFonts.body,
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: Spacing.two,
-    paddingHorizontal: Spacing.one,
-  },
-});

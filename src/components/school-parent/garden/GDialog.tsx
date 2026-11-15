@@ -161,6 +161,7 @@ export function GDialog({
             ref={panelRef}
             tabIndex={-1}
             role="dialog"
+            data-garden-dialog
             aria-modal="true"
             aria-labelledby={titleId}
             aria-describedby={description ? descriptionId : undefined}

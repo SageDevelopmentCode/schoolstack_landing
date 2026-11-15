@@ -222,6 +222,7 @@ function TeacherLayoutContent() {
       {showTabBar && activeTab ? (
         <TeacherFloatingTabBar
           activeTab={activeTab}
+          moreSheetOpen={moreSheetOpen}
           onChange={handleTabChange}
           messagesUnreadCount={unreadCount}
         />

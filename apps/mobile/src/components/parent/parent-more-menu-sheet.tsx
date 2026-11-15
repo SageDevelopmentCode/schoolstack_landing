@@ -1,27 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { usePathname } from 'expo-router';
+import { StyleSheet, View } from 'react-native';
 
+import { AccountPortalSwitcherPanel } from '@/components/account-portal-switcher-panel';
 import {
-  AccountPortalSwitcherPanel,
-} from '@/components/account-portal-switcher-panel';
-import {
-  PreviewAccountPortalSwitcherPanel,
-} from '@/components/platform-admin/preview-account-portal-switcher-panel';
-import { StoryMoreMenuSectionTabsSkeleton } from '@/components/story/more/story-more-menu-section-tabs-skeleton';
-import { ProgramSwitcherPanel } from '@/components/program-switcher-panel';
-import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
-import { StoryCard } from '@/components/story/story-card';
-import { StoryMoreMenuHeader } from '@/components/story/more/story-more-menu-header';
-import { StoryMoreMenuIcon } from '@/components/story/more/story-more-menu-icon';
-import { StoryMoreMenuItemRow } from '@/components/story/more/story-more-menu-item-row';
-import { StoryMoreMenuItemsCard } from '@/components/story/more/story-more-menu-items-card';
-import { StoryMoreMenuSectionTabs } from '@/components/story/more/story-more-menu-section-tabs';
-import { StoryMoreMenuTabPanel } from '@/components/story/more/story-more-menu-tab-panel';
-import { useProgramSwitcherVisibility } from '@/components/program-switcher-panel';
-import { StoryMoreMenuSheetShell } from '@/components/story/more/story-more-menu-sheet-shell';
-import { useParentTheme } from '@/contexts/parent-theme-context';
+  GardenMoreEmpty,
+  GardenMoreGrid,
+  GardenMoreGridSkeleton,
+  GardenMorePanel,
+  GardenMoreSectionTabs,
+  GardenMoreSheet,
+  GardenProfileCard,
+  type GardenMoreGroup,
+} from '@/components/garden-nav/garden-more';
+import { useGardenToast } from '@/components/parent/garden/toast';
+import { PreviewAccountPortalSwitcherPanel } from '@/components/platform-admin/preview-account-portal-switcher-panel';
+import { ProgramSwitcherPanel, useProgramSwitcherVisibility } from '@/components/program-switcher-panel';
 import { useAuth } from '@/contexts/auth-context';
 import { portalTypeToAccountPortalId } from '@/lib/auth/school-portal-options-types';
 import { useMoreMenuAccountPortalTab } from '@/lib/more-menu-account-portal-tab';
@@ -38,16 +33,12 @@ import {
   PARENT_MORE_MENU_META,
   parentMoreMenuItemIdForFeatureKey,
 } from '@/lib/parent/parent-more-menu-meta';
-import type { ParentMoreMenuItemId } from '@/lib/parent/parent-nav';
+import { isParentMoreMenuItemActive, type ParentMoreMenuItemId } from '@/lib/parent/parent-nav';
 import {
   buildMoreMenuTabs,
   shouldShowMoreMenuSectionTabs,
   type MoreMenuTabId,
 } from '@/lib/more-menu-tab-ids';
-import { ParentPortalMoreMenuItemsSkeleton } from '@/components/parent/parent-portal-program-chrome-skeleton';
-import { StorySectionKicker } from '@/components/story/story-section-kicker';
-import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
-import { Spacing } from '@/constants/theme';
 
 type ParentMoreMenuSheetProps = {
   visible: boolean;
@@ -74,7 +65,8 @@ export function ParentMoreMenuSheet({
   onSelect,
   onSelectAccount,
 }: ParentMoreMenuSheetProps) {
-  const theme = useParentTheme();
+  const pathname = usePathname();
+  const toast = useGardenToast();
   const { user, portalType, previewSession } = useAuth();
   const { data: homeData, ensureLoaded, hasLoaded: homeHasLoaded, isLoading: homeIsLoading } =
     useParentHome();
@@ -255,23 +247,47 @@ export function ParentMoreMenuSheet({
 
   const currentPortalId = portalTypeToAccountPortalId(portalType);
 
-  return (
-    <StoryMoreMenuSheetShell visible={visible} onClose={onClose}>
-      <StoryMoreMenuHeader
-        kicker={activePortalFeatures?.coopMode ? 'Co-op program portal' : 'Family portal'}
-        title="More"
-        subtitle="Children and account settings"
-      />
+  const currentItemId = useMemo(
+    () => visibleMenuItems.find((item) => isParentMoreMenuItemActive(pathname, item.id))?.id ?? null,
+    [pathname, visibleMenuItems],
+  );
 
+  const menuGroups = useMemo<GardenMoreGroup<ParentMoreMenuItemId>[]>(() => {
+    if (!showCoopResourcesKicker) {
+      return [{ key: 'all', items: visibleMenuItems }];
+    }
+    return [
+      {
+        key: 'coop',
+        kicker: 'Co-op',
+        items: visibleMenuItems.filter((item) => COOP_ITEM_IDS.has(item.id)),
+      },
+      {
+        key: 'family',
+        kicker: 'Family',
+        items: visibleMenuItems.filter((item) => !COOP_ITEM_IDS.has(item.id)),
+      },
+    ];
+  }, [showCoopResourcesKicker, visibleMenuItems]);
+
+  const menuLoading = programPortalFeaturesPending || mainPortalFeaturesPending;
+
+  return (
+    <GardenMoreSheet
+      visible={visible}
+      onClose={onClose}
+      kicker={activePortalFeatures?.coopMode ? 'Co-op program portal' : 'Family portal'}
+      subtitle="Children and account settings">
       {useSectionTabs ? (
-        showSectionTabsSkeleton ? (
-          <StoryMoreMenuSectionTabsSkeleton tabCount={tabs.length} />
-        ) : (
-          <StoryMoreMenuSectionTabs tabs={tabs} activeId={activeTab} onChange={setActiveTab} />
-        )
+        <GardenMoreSectionTabs
+          tabs={tabs}
+          activeId={activeTab}
+          onChange={setActiveTab}
+          loading={showSectionTabsSkeleton}
+        />
       ) : null}
 
-      <StoryMoreMenuTabPanel visible={showProgramPanel}>
+      <GardenMorePanel visible={showProgramPanel}>
         <ProgramSwitcherPanel
           contexts={contexts}
           activeContextId={activeContext?.id ?? null}
@@ -281,12 +297,18 @@ export function ParentMoreMenuSheet({
             const match = contexts.find((c) => c.id === context.id);
             if (match) {
               switchToContext(match);
+              setTimeout(() => {
+                toast.success(`Switched to ${match.label}`, {
+                  id: 'parent-program-switch',
+                  description: 'Your tabs and menu now show this program.',
+                });
+              }, SHEET_DISMISS_MS);
             }
           }}
         />
-      </StoryMoreMenuTabPanel>
+      </GardenMorePanel>
 
-      <StoryMoreMenuTabPanel visible={showAccountPortalPanel && showAccountPortalTab}>
+      <GardenMorePanel visible={showAccountPortalPanel && showAccountPortalTab}>
         {previewSession ? (
           <PreviewAccountPortalSwitcherPanel
             enabled={visible && (showAccountPortalSwitcher || accountPortalTabLoading)}
@@ -301,97 +323,40 @@ export function ParentMoreMenuSheet({
             onAfterSelect={onClose}
           />
         ) : null}
-      </StoryMoreMenuTabPanel>
+      </GardenMorePanel>
 
-      <StoryMoreMenuTabPanel visible={showMenuPanel}>
-        <>
-          {programPortalFeaturesPending || mainPortalFeaturesPending ? (
-            <ParentPortalMoreMenuItemsSkeleton />
-          ) : (
-            <StoryMoreMenuItemsCard>
-              {visibleMenuItems.map((item, index) => (
-                <View key={item.id}>
-                  {showCoopResourcesKicker && item.id === 'curriculum' ? (
-                    <View style={styles.coopKickerWrap}>
-                      <StorySectionKicker>Co-op</StorySectionKicker>
-                    </View>
-                  ) : null}
-                  <StoryMoreMenuItemRow
-                    isFirst={index === 0 && !showCoopResourcesKicker}
-                    label={item.label}
-                    subtitle={item.subtitle}
-                    onPress={() => onSelect(item.id)}
-                    icon={
-                      <StoryMoreMenuIcon
-                        name={item.icon}
-                        iconBg={item.iconBg}
-                        iconColor={item.iconColor}
-                      />
-                    }
-                  />
-                </View>
-              ))}
-            </StoryMoreMenuItemsCard>
-          )}
-
+      <GardenMorePanel visible={showMenuPanel}>
+        <View style={styles.menuPanel}>
           {user ? (
-            <StoryCard compact style={styles.accountCard}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Account for ${displayName}`}
-                onPress={onSelectAccount}
-                style={({ pressed }) => [styles.accountRow, pressed && styles.pressed]}>
-                <MessagesAvatar
-                  name={displayName}
-                  color={theme.primary}
-                  photoUrl={homeData?.userProfile.profilePhotoUrl}
-                  size="md"
-                />
-                <View style={styles.accountCopy}>
-                  <Text style={[styles.accountName, { color: theme.ink }]}>{displayName}</Text>
-                  <Text style={[styles.accountMeta, { color: theme.muted }]}>Account settings</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={theme.muted} />
-              </Pressable>
-            </StoryCard>
+            <GardenProfileCard
+              name={displayName}
+              photoUrl={homeData?.userProfile.profilePhotoUrl}
+              meta={['Account settings']}
+              accessibilityLabel={`Account for ${displayName}`}
+              onPress={onSelectAccount}
+            />
           ) : null}
-        </>
-      </StoryMoreMenuTabPanel>
-    </StoryMoreMenuSheetShell>
+
+          {menuLoading ? (
+            <GardenMoreGridSkeleton />
+          ) : visibleMenuItems.length > 0 ? (
+            <GardenMoreGrid groups={menuGroups} currentId={currentItemId} onSelect={onSelect} />
+          ) : (
+            <GardenMoreEmpty message="Nothing extra to show here yet. Your school can turn on more features." />
+          )}
+        </View>
+      </GardenMorePanel>
+    </GardenMoreSheet>
   );
 }
 
+const COOP_ITEM_IDS = new Set<ParentMoreMenuItemId>(['curriculum', 'supply-list']);
+
+/** Wait for the native sheet to finish dismissing before toasting (see Home `closeThen`). */
+const SHEET_DISMISS_MS = 220;
+
 const styles = StyleSheet.create({
-  coopKickerWrap: {
-    paddingHorizontal: StoryCardPadding,
-    paddingTop: Spacing.two,
-    paddingBottom: Spacing.one,
-  },
-  accountCard: {
-    padding: StoryCardPadding,
-  },
-  accountRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-  },
-  pressed: {
-    opacity: 0.85,
-  },
-  accountCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  accountName: {
-    fontFamily: StoryFonts.bodySemiBold,
-    fontSize: 14,
-    fontWeight: '600',
-    lineHeight: 20,
-  },
-  accountMeta: {
-    fontFamily: StoryFonts.body,
-    fontSize: 12,
-    lineHeight: 18,
+  menuPanel: {
+    gap: 14,
   },
 });

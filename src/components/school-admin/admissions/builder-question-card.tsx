@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useAdminGardenSkin } from "@/components/school-admin/garden/skin";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
@@ -30,6 +31,24 @@ export function BuilderSectionIntro({
   subtitle?: string;
   eyebrow?: string;
 }) {
+  const skin = useAdminGardenSkin();
+  if (skin) {
+    return (
+      <div>
+        {eyebrow ? (
+          <p className="m-0 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[var(--sf-soft)]">{eyebrow}</p>
+        ) : null}
+        <h2 className={`sf-display m-0 text-[1.4rem] leading-[1.08] text-[var(--sf-ink)] ${eyebrow ? "mt-1.5" : ""}`}>
+          {title}
+        </h2>
+        {subtitle ? (
+          <p className="m-0 mt-1.5 max-w-[62ch] text-[13.5px] font-semibold leading-relaxed text-[var(--sf-soft)]">
+            {subtitle}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
   if (theme) {
     return (
       <div>
@@ -90,7 +109,29 @@ export function BuilderQuestionCard({
   action?: ReactNode;
   children?: ReactNode;
 }) {
+  const skin = useAdminGardenSkin();
   const cardTone = BUILDER_CARD_TONES[tone](C);
+
+  if (skin) {
+    return (
+      <div
+        className={`rounded-[18px] border-[1.5px] ${children || helper ? "p-4" : "px-4 py-3"} ${
+          highlightError ? "border-[#b4412f]/45 bg-[#fdf0ec]" : "border-[var(--sf-ink)]/12 bg-white"
+        } ${children ? "space-y-3" : ""}`}
+      >
+        <div className={helper ? "space-y-1" : undefined}>
+          <div className="flex items-center justify-between gap-3">
+            <p className="m-0 min-w-0 flex-1 text-[14px] font-extrabold text-[var(--sf-ink)]">{question}</p>
+            {action}
+          </div>
+          {helper ? (
+            <p className="m-0 text-[12.5px] font-semibold leading-snug text-[var(--sf-soft)]">{helper}</p>
+          ) : null}
+        </div>
+        {children ? <div>{children}</div> : null}
+      </div>
+    );
+  }
 
   return (
     <div

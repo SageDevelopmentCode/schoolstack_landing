@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import { DetailButton } from "@/components/school-admin/admissions/detail-garden";
 import { X } from "lucide-react";
 import ApplicationFormExperience from "@/components/admissions/ApplicationFormExperience";
 import ApplicationFormPageShell from "@/components/admissions/ApplicationFormPageShell";
@@ -10,7 +11,6 @@ import type {
   ApplicationFormSchema,
 } from "@/lib/admissions/application-form-schema";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
 type ApplicationFormPreviewProps = {
@@ -80,15 +80,16 @@ export default function ApplicationFormPreview({
                 This is how families will see your application form.
               </p>
             </div>
-            <button
+            <DetailButton
+ kind="neutral"
+ C={C}
               type="button"
               onClick={onClose}
-              className="flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium shrink-0"
-              style={getAdminButtonStyle(C, "neutral")}
+              storyClassName="flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium shrink-0"
             >
               <X className="h-4 w-4" />
               Close
-            </button>
+            </DetailButton>
           </div>
 
           <div className="min-h-0 flex-1 overflow-hidden">

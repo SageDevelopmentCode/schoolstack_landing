@@ -24,6 +24,8 @@ export type GSheetProps = {
   footer?: ReactNode;
   children: ReactNode;
   accessibilityLabel?: string;
+  /** Space below the content. Defaults to the shell's safe-area inset. */
+  bottomInset?: number;
 };
 
 /** Garden bottom sheet: cream surface, kicker + Bricolage title, 44pt close button. */
@@ -38,6 +40,7 @@ export function GSheet({
   footer,
   children,
   accessibilityLabel,
+  bottomInset,
 }: GSheetProps) {
   return (
     <BottomSheetShell
@@ -48,6 +51,7 @@ export function GSheet({
       borderColor={Garden.ink12}
       handleColor={Garden.ink25}
       maxHeight="88%"
+      bottomInset={bottomInset}
       scrollable={!list}
       scrollContentStyle={list ? styles.listBody : styles.scrollBody}
       header={

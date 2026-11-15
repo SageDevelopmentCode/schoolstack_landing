@@ -170,6 +170,7 @@ function ChecklistOutlineRow({
     <div
       className={`group mb-1.5 flex items-center gap-0.5 rounded-sm transition-colors ${indent ? "ml-6 mr-3 w-[calc(100%-36px)]" : "mx-3 w-[calc(100%-24px)]"}`}
       style={outlineItemCardStyle(C, active)}
+      data-flows-outline-row={active ? "active" : "idle"}
       onMouseEnter={(e) => {
         if (!active) {
           e.currentTarget.style.backgroundColor = C.elevated;
@@ -508,6 +509,7 @@ export default function EnrollmentChecklistOutline({
       <div
         className="flex h-full w-[240px] shrink-0 flex-col overflow-hidden border-r bg-white"
         style={{ borderColor: "#EDF1ED" }}
+        data-flows-outline
       >
         {listContent}
       </div>

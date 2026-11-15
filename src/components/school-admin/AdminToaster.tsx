@@ -17,7 +17,14 @@ type AdminToasterProps = {
  * Add each admin tab here when it migrates so its toasts match the page.
  * See `.agents/skills/admin-portal-garden-design/SKILL.md`.
  */
-const GARDEN_ADMIN_ROUTES = ["dashboard"] as const;
+const GARDEN_ADMIN_ROUTES = [
+  "dashboard",
+  "admissions/programs",
+  "admissions/flows",
+  "admissions/payments",
+  "admissions/submissions",
+  "my_school/programs",
+] as const;
 
 function usesGardenToasts(pathname: string | null): boolean {
   if (!pathname) return false;

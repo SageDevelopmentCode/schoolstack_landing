@@ -1,28 +1,24 @@
-import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useMemo } from 'react';
 
-import { ScalePressable } from '@/components/scale-pressable';
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Radius } from '@/constants/theme';
+import {
+  GARDEN_TAB_BAR_HEIGHT,
+  GardenTabBar,
+  type GardenTabBarTab,
+} from '@/components/garden-nav/garden-tab-bar';
 
 export type SchoolAdminTab = 'dashboard' | 'admissions' | 'students' | 'messages' | 'more';
 
-export const FLOATING_TAB_BAR_HEIGHT = 60;
+export const FLOATING_TAB_BAR_HEIGHT = GARDEN_TAB_BAR_HEIGHT;
 
 type SchoolAdminFloatingTabBarProps = {
   activeTab: SchoolAdminTab;
   onChange: (tab: SchoolAdminTab) => void;
   messagesUnreadCount?: number;
+  /** True while the More sheet is open (the More tab shows a close chevron). */
+  moreSheetOpen?: boolean;
 };
 
-const TABS: {
-  id: SchoolAdminTab;
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  iconActive: keyof typeof Ionicons.glyphMap;
-}[] = [
+const TABS: GardenTabBarTab<SchoolAdminTab>[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'grid-outline', iconActive: 'grid' },
   {
     id: 'admissions',
@@ -30,23 +26,14 @@ const TABS: {
     icon: 'document-text-outline',
     iconActive: 'document-text',
   },
-  {
-    id: 'students',
-    label: 'Students',
-    icon: 'people-outline',
-    iconActive: 'people',
-  },
-  {
-    id: 'messages',
-    label: 'Messages',
-    icon: 'chatbubble-outline',
-    iconActive: 'chatbubble',
-  },
+  { id: 'students', label: 'Students', icon: 'people-outline', iconActive: 'people' },
+  { id: 'messages', label: 'Messages', icon: 'chatbubble-outline', iconActive: 'chatbubble' },
   {
     id: 'more',
     label: 'More',
     icon: 'ellipsis-horizontal-outline',
     iconActive: 'ellipsis-horizontal',
+    sheetToggle: true,
   },
 ];
 
@@ -54,95 +41,17 @@ export function SchoolAdminFloatingTabBar({
   activeTab,
   onChange,
   messagesUnreadCount = 0,
+  moreSheetOpen = false,
 }: SchoolAdminFloatingTabBarProps) {
-  const theme = useAdminTheme();
-  const insets = useSafeAreaInsets();
-
-  return (
-    <View pointerEvents="box-none" style={[styles.wrapper, { bottom: insets.bottom + 4 }]}>
-      <View style={styles.pill}>
-        {TABS.map((tab) => {
-          const active = activeTab === tab.id;
-          const showUnreadBadge = tab.id === 'messages' && messagesUnreadCount > 0;
-          return (
-            <ScalePressable
-              key={tab.id}
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-              pressedScale={0.94}
-              onPress={() => onChange(tab.id)}
-              style={[styles.tab, active && { backgroundColor: theme.accentLight }]}>
-              <View style={styles.iconWrap}>
-                <Ionicons
-                  name={active ? tab.iconActive : tab.icon}
-                  size={20}
-                  color={active ? theme.accent : theme.textTertiary}
-                />
-                {showUnreadBadge ? (
-                  <View style={[styles.unreadDot, { backgroundColor: theme.accent }]}>
-                    <ThemedText type="badge" style={styles.unreadCount}>
-                      {messagesUnreadCount > 9 ? '9+' : String(messagesUnreadCount)}
-                    </ThemedText>
-                  </View>
-                ) : null}
-              </View>
-              <ThemedText
-                type="smallBold"
-                style={{
-                  color: active ? theme.accent : theme.textTertiary,
-                  fontSize: 9,
-                  lineHeight: 11,
-                }}>
-                {tab.label}
-              </ThemedText>
-            </ScalePressable>
-          );
-        })}
-      </View>
-    </View>
+  const tabs = useMemo(
+    () =>
+      TABS.map((tab) => ({
+        ...tab,
+        badge: tab.id === 'messages' ? messagesUnreadCount : undefined,
+        testID: `school-admin-tab-${tab.id}`,
+      })),
+    [messagesUnreadCount],
   );
-}
 
-const styles = StyleSheet.create({
-  wrapper: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    alignItems: 'center',
-    zIndex: 30,
-  },
-  pill: {
-    flexDirection: 'row',
-    width: '100%',
-    maxWidth: 400,
-    gap: 4,
-  },
-  tab: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-    paddingVertical: 6,
-    paddingHorizontal: 2,
-    borderRadius: Radius.md,
-  },
-  iconWrap: {
-    position: 'relative',
-  },
-  unreadDot: {
-    position: 'absolute',
-    top: -4,
-    right: -8,
-    minWidth: 14,
-    height: 14,
-    borderRadius: 7,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-  },
-  unreadCount: {
-    color: '#FFFFFF',
-    fontSize: 8,
-    lineHeight: 10,
-  },
-});
+  return <GardenTabBar tabs={tabs} activeId={activeTab} onChange={onChange} sheetOpen={moreSheetOpen} />;
+}

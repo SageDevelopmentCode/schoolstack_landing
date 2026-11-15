@@ -27,7 +27,7 @@ function initials(name: string): string {
 }
 
 /** Pulsing "live" dot (static under reduced motion). */
-function LiveDot({ className = "" }: { className?: string }) {
+export function LiveDot({ className = "" }: { className?: string }) {
   return (
     <span aria-hidden="true" className={`relative inline-flex h-2 w-2 shrink-0 ${className}`}>
       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--sf-forest)] opacity-50 motion-reduce:hidden" />

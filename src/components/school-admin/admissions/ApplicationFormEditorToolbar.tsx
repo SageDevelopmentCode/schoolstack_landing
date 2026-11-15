@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { DetailButton } from "@/components/school-admin/admissions/detail-garden";
 import {
   ChevronDown,
   CircleHelp,
@@ -15,7 +16,6 @@ import {
 } from "lucide-react";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import { AdmissionsFamilyAccessGuideModal } from "./AdmissionsFamilyAccessGuide";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
@@ -119,18 +119,19 @@ export default function ApplicationFormEditorToolbar({
           <ChevronDown className="h-3 w-3 opacity-70" />
         </AdminButton>
       ) : (
-        <button
+        <DetailButton
+ kind="info"
+ C={C}
           type="button"
           onClick={() => setShareOpen((open) => !open)}
           aria-expanded={shareOpen}
           aria-haspopup="menu"
-          className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-          style={getAdminButtonStyle(C, "info")}
+          storyClassName="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
         >
           <Link2 className="h-3.5 w-3.5" />
           Share
           <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-70" />
-        </button>
+        </DetailButton>
       )}
 
       {shareOpen ? (
@@ -180,15 +181,16 @@ export default function ApplicationFormEditorToolbar({
         Preview
       </AdminButton>
     ) : (
-      <button
+      <DetailButton
+ kind="warning"
+ C={C}
         type="button"
         onClick={onPreview}
-        className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-        style={getAdminButtonStyle(C, "warning")}
+        storyClassName="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
       >
         <Eye className="h-3.5 w-3.5" />
         Preview
-      </button>
+      </DetailButton>
     );
 
   const moreMenu = showDuplicate ? (
@@ -247,16 +249,17 @@ export default function ApplicationFormEditorToolbar({
         {isPublished ? "Save" : "Save draft"}
       </AdminButton>
     ) : (
-      <button
+      <DetailButton
+ kind="primary"
+ C={C}
         type="button"
         onClick={onSave}
         disabled={saving || !isApplyDirty}
-        className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-        style={getAdminButtonStyle(C, "primary")}
+        storyClassName="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
       >
         {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
         {isPublished ? "Save" : "Save draft"}
-      </button>
+      </DetailButton>
     );
 
   const publishButton =
@@ -266,16 +269,17 @@ export default function ApplicationFormEditorToolbar({
         {isPublished ? "Publish changes" : "Publish"}
       </AdminButton>
     ) : (
-      <button
+      <DetailButton
+ kind="accentMid"
+ C={C}
         type="button"
         onClick={onPublish}
         disabled={publishing}
-        className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-        style={getAdminButtonStyle(C, "accentMid")}
+        storyClassName="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
       >
         {publishing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
         Publish
-      </button>
+      </DetailButton>
     );
 
   const unpublishButton =
@@ -285,15 +289,16 @@ export default function ApplicationFormEditorToolbar({
         Unpublish
       </AdminButton>
     ) : (
-      <button
+      <DetailButton
+ kind="danger"
+ C={C}
         type="button"
         onClick={onUnpublish}
-        className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-        style={getAdminButtonStyle(C, "danger")}
+        storyClassName="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
       >
         <EyeOff className="h-3.5 w-3.5" />
         Unpublish
-      </button>
+      </DetailButton>
     );
 
   return (

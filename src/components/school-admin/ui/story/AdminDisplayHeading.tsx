@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useAdminGardenSkin } from "@/components/school-admin/garden/skin";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type AdminDisplayHeadingProps = {
@@ -18,6 +19,20 @@ export default function AdminDisplayHeading({
   size = "display",
   id,
 }: AdminDisplayHeadingProps) {
+  const skin = useAdminGardenSkin();
+  if (skin) {
+    const gardenSize =
+      size === "display"
+        ? "text-[1.75rem] sm:text-[2.1rem] leading-[1]"
+        : size === "canvas"
+          ? "text-[1.5rem] leading-[1.05]"
+          : "text-[1.3rem] leading-[1.1]";
+    return (
+      <Tag id={id} className={`sf-display m-0 text-[var(--sf-ink)] ${gardenSize} ${className}`}>
+        {children}
+      </Tag>
+    );
+  }
   const sizeClass =
     size === "display"
       ? "text-[clamp(1.5rem,3.5vw,1.9375rem)] leading-[0.97] tracking-[-0.04em]"

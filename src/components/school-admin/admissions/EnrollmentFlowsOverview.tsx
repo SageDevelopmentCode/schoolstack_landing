@@ -3,18 +3,32 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  ArrowRight,
+  CalendarDays,
   ChevronDown,
   ClipboardList,
   FileText,
+  Loader2,
   Plus,
   Search,
 } from "lucide-react";
-import ParentStoryPillNav from "@/components/school-parent/ui/ParentStoryPillNav";
-import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import AdminCard from "@/components/school-admin/ui/story/AdminCard";
-import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
-import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
-import AdminTextLink from "@/components/school-admin/ui/story/AdminTextLink";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { PORTAL_EASE } from "@/components/school-parent/garden/motion";
+import {
+  GProgress,
+  GTabBar,
+  G_INPUT,
+  gBtnOnAccent,
+  gBtnOutlineSm,
+  gBtnPopSm,
+} from "@/components/school-parent/garden/ui";
+import {
+  ADMIN_GARDEN_CONTAINER_CLASS,
+  AdminGardenPageHeader,
+  GardenEmptyState,
+  GardenNotice,
+  ROW_INTERACTIVE,
+} from "@/components/school-admin/garden/kit";
 import type { ApplicationFormVersion } from "@/lib/admissions/application-form-schema";
 import type { EnrollmentChecklistTemplate } from "@/lib/admissions/enrollment-checklist-templates";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
@@ -72,6 +86,7 @@ export default function EnrollmentFlowsOverview({
   onOpenPostSubmit,
   onReviewAttentionProgram,
 }: EnrollmentFlowsOverviewProps) {
+  const reduce = useReducedMotion() === true;
   const [activeView, setActiveView] = useState<OverviewView>("programs");
   const [search, setSearch] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -127,184 +142,189 @@ export default function EnrollmentFlowsOverview({
     }
   };
 
-  return (
-    <div className="flex h-full min-h-0 flex-col overflow-y-auto">
-      <div
-        className="border-b px-4 py-6 sm:px-8 lg:px-8"
-        style={{ borderColor: theme.line, backgroundColor: "#fff" }}
-      >
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0 max-w-xl">
-            <AdminSectionKicker theme={theme}>Admissions</AdminSectionKicker>
-            <AdminDisplayHeading theme={theme} as="h1" size="canvas" className="mt-2">
-              Enrollment flows
-            </AdminDisplayHeading>
-            <p className="mt-3 text-xs leading-[1.9]" style={{ color: theme.muted }}>
-              Choose each program&apos;s application and what follows acceptance.
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
-            <Link href={programsPath}>
-              <AdminButton theme={theme} variant="outline" size="compact">
-                View programs
-              </AdminButton>
-            </Link>
-            <div className="relative" ref={menuRef}>
-              <AdminButton
-                theme={theme}
-                variant="primary"
-                size="compact"
-                onClick={() => setMenuOpen((open) => !open)}
-                disabled={creating}
-              >
-                <Plus className="h-3.5 w-3.5" />
-                New form
-                <ChevronDown className="h-3 w-3 opacity-70" />
-              </AdminButton>
-              {menuOpen ? (
-                <div
-                  className="absolute right-0 top-full z-20 mt-1 w-52 rounded-xl border py-1 shadow-lg"
-                  style={{ borderColor: C.border, backgroundColor: C.surface }}
-                >
-                  <button
-                    type="button"
-                    disabled={!canCreateApplyForm || creating}
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onCreateApply();
-                    }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs disabled:opacity-50"
-                    style={{ color: C.textPrimary }}
-                  >
-                    <FileText className="h-3.5 w-3.5 shrink-0" style={{ color: theme.primary }} />
-                    <span className="font-semibold">Apply form</span>
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!canCreateChecklist || creating}
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onCreateChecklist();
-                    }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs disabled:opacity-50"
-                    style={{ color: C.textPrimary }}
-                  >
-                    <ClipboardList
-                      className="h-3.5 w-3.5 shrink-0"
-                      style={{ color: theme.primary }}
-                    />
-                    <span className="font-semibold">Enrollment checklist</span>
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      </div>
+  const readyCount = bindings.length - attentionBindings.length;
 
-      <div
-        className="flex-1 px-4 py-5 sm:px-8 lg:px-8"
-        style={{ backgroundColor: theme.paper }}
-      >
-        <div className="mx-auto max-w-[1650px] space-y-5">
-          {attentionBindings.length > 0 ? (
-            <div
-              className="flex flex-col items-start justify-between gap-3 rounded-[12px] border px-4 py-3.5 sm:flex-row sm:items-center"
-              style={{
-                backgroundColor: "#EAF4EB",
-                borderColor: "#C7DFCB",
-                color: "#42694F",
-              }}
-            >
-              <span className="text-[11px] leading-[1.9]">
-                <strong>Needs attention:</strong>{" "}
+  return (
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto" data-testid="enrollment-flows-overview">
+      <div className={ADMIN_GARDEN_CONTAINER_CLASS}>
+        <AdminGardenPageHeader
+          kicker="Admissions"
+          title={
+            <>
+              Enrollment <span className="text-[var(--sf-clay)]">flows</span>
+            </>
+          }
+          subtitle={
+            programs.length > 0
+              ? `${readyCount} of ${programs.length} program${programs.length === 1 ? "" : "s"} ready for families · ${formCount} form${formCount === 1 ? "" : "s"}`
+              : "Choose each program's application and what follows acceptance."
+          }
+          actions={
+            <>
+              <Link href={programsPath} className={gBtnOutlineSm}>
+                View programs
+              </Link>
+              <div className="relative" ref={menuRef}>
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen((open) => !open)}
+                  disabled={creating}
+                  aria-expanded={menuOpen}
+                  aria-haspopup="menu"
+                  aria-busy={creating || undefined}
+                  className={attentionBindings.length > 0 ? gBtnOutlineSm : gBtnPopSm}
+                  data-testid="flows-new-form"
+                >
+                  {creating ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
+                  {creating ? "Creating…" : "New form"}
+                  <ChevronDown className="h-3.5 w-3.5 opacity-70" aria-hidden />
+                </button>
+                {menuOpen ? (
+                  <div
+                    role="menu"
+                    className="absolute right-0 top-full z-30 mt-2 w-64 overflow-hidden rounded-[18px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white p-1.5 shadow-[0_6px_0_0_rgba(43,36,29,0.08),0_20px_40px_-20px_rgba(43,36,29,0.4)]"
+                  >
+                    <button
+                      type="button"
+                      role="menuitem"
+                      disabled={!canCreateApplyForm || creating}
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onCreateApply();
+                      }}
+                      className={`${ROW_INTERACTIVE} !py-2.5 disabled:cursor-not-allowed disabled:opacity-50`}
+                    >
+                      <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[var(--sf-sky)]">
+                        <FileText className="h-4 w-4 text-[var(--sf-ink)]/75" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-[14px] font-extrabold text-[var(--sf-ink)]">Apply form</span>
+                        <span className="block text-[12px] font-semibold text-[var(--sf-soft)]">What families fill in to apply</span>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      disabled={!canCreateChecklist || creating}
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onCreateChecklist();
+                      }}
+                      className={`${ROW_INTERACTIVE} !py-2.5 disabled:cursor-not-allowed disabled:opacity-50`}
+                    >
+                      <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[var(--sf-mint)]">
+                        <ClipboardList className="h-4 w-4 text-[var(--sf-ink)]/75" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-[14px] font-extrabold text-[var(--sf-ink)]">Enrollment checklist</span>
+                        <span className="block text-[12px] font-semibold text-[var(--sf-soft)]">What families complete after acceptance</span>
+                      </span>
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            </>
+          }
+        />
+
+        {programs.length > 0 ? (
+          <div className="flex items-center gap-3 rounded-[18px] border-[1.5px] border-[var(--sf-ink)]/10 bg-white px-4 py-3">
+            <GProgress
+              value={readyCount}
+              total={programs.length}
+              label="Programs with a complete, published flow"
+              done={readyCount === programs.length}
+            />
+            <span className="shrink-0 text-[13px] font-extrabold tabular-nums text-[var(--sf-ink)]/70">
+              {readyCount}/{programs.length} ready
+            </span>
+          </div>
+        ) : null}
+
+        {attentionBindings.length > 0 ? (
+          <button
+            type="button"
+            onClick={handleReviewAttention}
+            className="group flex w-full flex-col items-start gap-3 rounded-[22px] border-2 border-[var(--sf-ink)] bg-[var(--sf-clay)] px-5 py-4 text-left text-white shadow-[0_4px_0_0_var(--sf-ink)] transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/35 focus-visible:ring-offset-2 sm:flex-row sm:items-center sm:justify-between"
+            data-testid="flows-needs-attention"
+          >
+            <span className="min-w-0">
+              <span className="block text-[11px] font-extrabold uppercase tracking-[0.18em] text-white/75">
+                Needs attention
+              </span>
+              <span className="mt-0.5 block text-[16px] font-extrabold leading-snug">
                 {attentionBindings.length === 1
                   ? "1 program has an incomplete or unpublished flow."
                   : `${attentionBindings.length} programs have an incomplete or unpublished flow.`}
               </span>
-              <AdminTextLink
-                theme={theme}
-                className="text-[11px] whitespace-nowrap"
-                onClick={handleReviewAttention}
-              >
-                Review →
-              </AdminTextLink>
-            </div>
-          ) : null}
+            </span>
+            <span className={gBtnOnAccent}>
+              Review
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </span>
+          </button>
+        ) : programs.length > 0 ? (
+          <GardenNotice tone="success" title="Every program's flow is complete and published." />
+        ) : null}
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <ParentStoryPillNav
-              theme={theme}
-              ariaLabel="Enrollment flow views"
-              activeKey={activeView}
-              onChange={handleViewChange}
-              items={[
-                {
-                  key: "programs",
-                  label: "By program",
-                  suffix: (
-                    <span
-                      className="text-[9px] font-bold"
-                      style={{
-                        color: activeView === "programs" ? theme.primary : "#80917E",
-                      }}
-                    >
-                      {programs.length}
-                    </span>
-                  ),
-                },
-                {
-                  key: "forms",
-                  label: "All forms",
-                  suffix: (
-                    <span
-                      className="text-[9px] font-bold"
-                      style={{
-                        color: activeView === "forms" ? theme.primary : "#80917E",
-                      }}
-                    >
-                      {formCount}
-                    </span>
-                  ),
-                },
-              ]}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <GTabBar
+            ariaLabel="Enrollment flow views"
+            activeKey={activeView}
+            onChange={handleViewChange}
+            items={[
+              {
+                key: "programs",
+                label: "By program",
+                suffix: <span className="rounded-full bg-[var(--sf-ink)]/10 px-1.5 text-[11px] tabular-nums">{programs.length}</span>,
+              },
+              {
+                key: "forms",
+                label: "All forms",
+                suffix: <span className="rounded-full bg-[var(--sf-ink)]/10 px-1.5 text-[11px] tabular-nums">{formCount}</span>,
+              },
+            ]}
+          />
+          <label className="relative flex w-full items-center sm:max-w-[280px]">
+            <Search className="pointer-events-none absolute left-3.5 h-4 w-4 text-[var(--sf-ink)]/45" aria-hidden />
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={activeView === "programs" ? "Find a program…" : "Find a form…"}
+              aria-label="Search enrollment flows"
+              className={`${G_INPUT} !rounded-full !pl-10`}
+              data-garden-skip
             />
-            <label
-              className="flex max-w-[230px] flex-1 items-center gap-2 rounded-[10px] border border-[#DCE4D8] bg-white px-3 py-2 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 sm:max-w-[230px]"
-              style={{ outlineColor: theme.primary }}
-            >
-              <Search className="h-3.5 w-3.5 shrink-0 text-[#90A18E]" aria-hidden />
-              <input
-                type="search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder={
-                  activeView === "programs" ? "Find a program…" : "Find a form…"
-                }
-                aria-label="Search enrollment flows"
-                className="min-w-0 flex-1 border-0 bg-transparent text-[11px] outline-none"
-                style={{ color: theme.ink }}
-              />
-            </label>
-          </div>
+          </label>
+        </div>
 
-          {programs.length === 0 ? (
-            <AdminCard theme={theme} padding="canvas">
-              <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
-                Create a program first, then link apply forms and enrollment checklists here.{" "}
-                <Link
-                  href={programsPath}
-                  className="font-semibold underline-offset-2 hover:underline"
-                  style={{ color: theme.primary }}
-                >
-                  Go to Programs
-                </Link>
-              </p>
-            </AdminCard>
-          ) : null}
+        {programs.length === 0 ? (
+          <GardenEmptyState
+            icon={CalendarDays}
+            title="Create a program first"
+            description="Create a program first, then link apply forms and enrollment checklists here."
+            action={
+              <Link href={programsPath} className={gBtnPopSm}>
+                Go to Programs
+                <ArrowRight className="h-4 w-4" aria-hidden />
+              </Link>
+            }
+          />
+        ) : null}
 
+        <AnimatePresence mode="wait" initial={false}>
           {activeView === "programs" && programs.length > 0 ? (
-            <section id="view-programs" role="tabpanel" aria-labelledby="tab-programs">
+            <motion.section
+              key="programs"
+              id="view-programs"
+              role="tabpanel"
+              aria-label="By program"
+              initial={reduce ? false : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduce ? undefined : { opacity: 0, y: -4 }}
+              transition={{ duration: 0.22, ease: PORTAL_EASE }}
+            >
               <EnrollmentFlowsProgramTable
                 C={C}
                 theme={theme}
@@ -315,11 +335,20 @@ export default function EnrollmentFlowsOverview({
                 onSetupChecklist={onCreateChecklistForProgram}
                 onOpenPostSubmit={onOpenPostSubmit}
               />
-            </section>
+            </motion.section>
           ) : null}
 
           {activeView === "forms" ? (
-            <section id="view-forms" role="tabpanel" aria-labelledby="tab-forms">
+            <motion.section
+              key="forms"
+              id="view-forms"
+              role="tabpanel"
+              aria-label="All forms"
+              initial={reduce ? false : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduce ? undefined : { opacity: 0, y: -4 }}
+              transition={{ duration: 0.22, ease: PORTAL_EASE }}
+            >
               <EnrollmentFlowsFormsTable
                 C={C}
                 theme={theme}
@@ -331,9 +360,9 @@ export default function EnrollmentFlowsOverview({
                 onDuplicateForm={onDuplicateForm}
                 duplicating={creating}
               />
-            </section>
+            </motion.section>
           ) : null}
-        </div>
+        </AnimatePresence>
       </div>
     </div>
   );

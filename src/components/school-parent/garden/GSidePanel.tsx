@@ -25,6 +25,10 @@ export type GSidePanelProps = {
   headerAside?: ReactNode;
   /** Accessible label for the close button. */
   closeLabel?: string;
+  /** Drawer width from `sm` up: md = 30rem (default), xl = 46rem (admin review). */
+  size?: "md" | "xl";
+  /** Content pinned between the header and the scrolling body (tabs). */
+  headerBelow?: ReactNode;
 };
 
 /**
@@ -47,6 +51,8 @@ export default function GSidePanel({
   bodyRef,
   headerAside,
   closeLabel = "Close",
+  size = "md",
+  headerBelow,
 }: GSidePanelProps) {
   const reduce = useReducedMotion() === true;
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -88,13 +94,16 @@ export default function GSidePanel({
           <motion.div
             id={panelId}
             role="dialog"
+            data-garden-dialog
             aria-modal="true"
             aria-labelledby={`${panelId}-title`}
             initial={reduce ? { opacity: 0 } : { x: "100%", opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={reduce ? { opacity: 0 } : { x: "100%", opacity: 0 }}
             transition={reduce ? { duration: 0.15 } : { type: "spring", damping: 30, stiffness: 300 }}
-            className="absolute inset-y-0 right-0 z-[15] flex w-full flex-col overflow-hidden sm:w-[min(100%,30rem)]"
+            className={`absolute inset-y-0 right-0 z-[15] flex w-full flex-col overflow-hidden ${
+              size === "xl" ? "sm:w-[min(100%,46rem)]" : "sm:w-[min(100%,30rem)]"
+            }`}
             onClick={(event) => event.stopPropagation()}
             data-testid={testId}
           >
@@ -129,6 +138,11 @@ export default function GSidePanel({
                 </button>
               </div>
 
+              {headerBelow ? (
+                <div className="shrink-0 border-b-[1.5px] border-[var(--sf-ink)]/10 bg-white px-5 py-2.5 sm:px-6">
+                  {headerBelow}
+                </div>
+              ) : null}
               <div ref={bodyRef} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6">
                 {children}
               </div>

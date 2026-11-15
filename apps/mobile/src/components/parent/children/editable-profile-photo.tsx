@@ -1,11 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius } from '@/constants/theme';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { pickProfilePhotoFromLibrary } from '@/lib/profile-photo/pick-profile-photo';
 import { resolveOrganizationAssetUrl } from '@/lib/resolve-asset-url';
 
 type ProfilePhotoShape = 'circle' | 'square';
@@ -53,25 +53,9 @@ export function EditableProfilePhoto({
   const handlePress = async () => {
     if (!editable || uploading || !onPhotoSelected) return;
 
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(
-        'Photo access needed',
-        'Allow access to your photo library to upload a profile photo.',
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      quality: 0.82,
-    });
-
-    if (result.canceled || !result.assets[0]) return;
-
-    const asset = result.assets[0];
-    onPhotoSelected(asset.uri, asset.mimeType ?? 'image/jpeg');
+    const picked = await pickProfilePhotoFromLibrary();
+    if (!picked) return;
+    onPhotoSelected(picked.uri, picked.mimeType);
   };
 
   const badgeSize = size >= 80 ? 28 : 24;

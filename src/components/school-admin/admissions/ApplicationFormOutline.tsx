@@ -66,6 +66,7 @@ function StepOutlineRow({
       onClick={onSelect}
       className={`mb-1 w-full rounded-[11px] border px-3 py-3 text-left ${outlineRowInteractiveClassName(active)}`}
       style={outlineActiveRowStyle(active, theme)}
+      data-flows-outline-row={active ? "active" : "idle"}
     >
       <span className="flex items-start gap-2">
         <span
@@ -168,6 +169,7 @@ export default function ApplicationFormOutline({
     <div
       className="flex h-full w-[240px] shrink-0 flex-col overflow-hidden border-r bg-white"
       style={{ borderColor: "#EDF1ED" }}
+      data-flows-outline
     >
       <div
         className="flex shrink-0 items-center justify-between border-b px-4 py-3"

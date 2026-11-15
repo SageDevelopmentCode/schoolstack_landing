@@ -5,6 +5,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Check, FileText, X } from "lucide-react";
 import { SchoolAdminModalListSkeleton } from "@/components/school-admin/skeletons";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { GDialog } from "@/components/school-parent/garden/GDialog";
+import { GKicker, GSkeleton, G_FOCUS, gBtnOutlineSm, gBtnPopSm } from "@/components/school-parent/garden/ui";
+import { BusyLabel, GardenNotice } from "@/components/school-admin/garden/kit";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
@@ -47,10 +51,15 @@ type StartEnrollmentModalProps = {
   contactEmail: string | null;
   onClose: () => void;
   onStarted: () => void;
+  /** Garden dialog (Admissions) needs the school theme. */
+  appearance?: "story" | "garden";
+  theme?: ParentThemeTokens;
 };
 
 export default function StartEnrollmentModal({
   C,
+  appearance = "story",
+  theme,
   organizationId,
   open,
   applicationId,
@@ -134,7 +143,11 @@ export default function StartEnrollmentModal({
       }
       onStarted();
       onClose();
-      adminToast.success("Enrollment started");
+      adminToast.dismiss(`start-enrollment-${applicationId}-error`);
+      adminToast.success("Enrollment started", {
+        id: `start-enrollment-${applicationId}`,
+        description: "The family now has an enrollment checklist to complete.",
+      });
     } catch (err) {
       const message = formatActionError(err, "Failed to start enrollment.");
       void reportPortalOperationalError("school_admin", {
@@ -143,11 +156,149 @@ export default function StartEnrollmentModal({
         error: "",
       }, err);
       setError(message);
-      adminToast.error(message);
+      adminToast.error("Couldn't start enrollment", {
+        id: `start-enrollment-${applicationId}-error`,
+        description: `${message} Nothing was sent to the family.`,
+      });
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (appearance === "garden" && theme) {
+    const selectedCount = preview ? preview.groups.filter((group) => resolutions[group.groupId]).length : 0;
+    return (
+      <GDialog
+        theme={theme}
+        open={open}
+        onClose={onClose}
+        closeDisabled={submitting}
+        size="lg"
+        title="Start enrollment"
+        description={
+          <>
+            {studentLabel ?? "Student"}
+            {contactEmail ? <span className="opacity-70"> · {contactEmail}</span> : null}
+          </>
+        }
+        data-testid="start-enrollment-dialog"
+        footerBordered
+        footer={
+          <>
+            <button type="button" onClick={onClose} disabled={submitting} className={gBtnOutlineSm}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={loading || submitting || !preview}
+              aria-busy={submitting || undefined}
+              className={gBtnPopSm}
+            >
+              <BusyLabel busy={submitting} busyLabel="Starting…">
+                Start enrollment
+              </BusyLabel>
+            </button>
+          </>
+        }
+      >
+        {loading ? (
+          <div className="flex flex-col gap-2" role="status" aria-label="Loading enrollment options">
+            {[0, 1, 2].map((i) => (
+              <GSkeleton key={i} className="h-16 !rounded-[14px]" />
+            ))}
+          </div>
+        ) : error && !preview ? (
+          <GardenNotice tone="alert" role="alert" title="Enrollment options didn't load">
+            {error} Close this window and try again.
+          </GardenNotice>
+        ) : preview ? (
+          <div className="flex flex-col gap-5">
+            <GardenNotice tone="info" title={preview.templateName}>
+              Choose the agreement for each part, then start. The family gets this checklist in their portal.
+            </GardenNotice>
+            {preview.groups.map((group, groupIndex) => (
+              <fieldset key={group.groupId} className="m-0 border-0 p-0">
+                <legend className="mb-2 p-0">
+                  <GKicker>
+                    {groupIndex + 1}. {group.groupLabel}
+                  </GKicker>
+                </legend>
+                <div className="flex flex-col gap-2" role="radiogroup" aria-label={group.groupLabel}>
+                  {group.variants.map((variant) => {
+                    const selected = resolutions[group.groupId] === variant.id;
+                    return (
+                      <button
+                        key={variant.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        onClick={() =>
+                          setResolutions((prev) => ({ ...prev, [group.groupId]: variant.id }))
+                        }
+                        className={`flex w-full items-center gap-3 rounded-[16px] border-[1.5px] p-3 text-left transition-all ${
+                          selected
+                            ? "border-[var(--sf-clay)] bg-[var(--sf-accent-wash)] shadow-[0_2px_0_0_var(--sf-ink)]"
+                            : "border-[var(--sf-ink)]/12 bg-white hover:border-[var(--sf-ink)]/30"
+                        } ${G_FOCUS}`}
+                      >
+                        <span
+                          aria-hidden
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] border-[1.5px] border-[var(--sf-ink)]/12 ${
+                            selected ? "bg-white" : "bg-[var(--sf-sky)]"
+                          }`}
+                        >
+                          <FileText className="h-4 w-4 text-[var(--sf-ink)]/75" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[14px] font-extrabold text-[var(--sf-ink)]">{variant.label}</span>
+                          <span className="block text-[12.5px] font-semibold text-[var(--sf-soft)]">
+                            {variant.sectionCount > 0
+                              ? `${variant.sectionCount} section${variant.sectionCount === 1 ? "" : "s"}`
+                              : "Agreement"}
+                            {variant.isDefault ? " · default" : ""}
+                          </span>
+                          {selected && variant.variantKey === "conditional_support" ? (
+                            <span className="mt-1 block text-[12.5px] font-semibold leading-snug text-[var(--sf-ink)]/75">
+                              Families will also complete the Standard Enrollment Agreement first.
+                            </span>
+                          ) : null}
+                        </span>
+                        <span
+                          aria-hidden
+                          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${
+                            selected ? "border-[var(--sf-ink)] bg-[var(--sf-clay)]" : "border-[var(--sf-ink)]/20 bg-white"
+                          }`}
+                        >
+                          {selected ? <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} /> : null}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            ))}
+            {sharedSummary ? (
+              <div className="rounded-[16px] bg-[var(--sf-paper)] px-4 py-3">
+                <GKicker>Families will also complete</GKicker>
+                <p className="m-0 mt-1 text-[13.5px] font-semibold leading-relaxed text-[var(--sf-ink)]/80">
+                  {sharedSummary}
+                </p>
+              </div>
+            ) : null}
+            {error ? (
+              <p role="alert" className="m-0 text-[13px] font-bold text-[#9a3422]">
+                {error}
+              </p>
+            ) : null}
+            <p className="sr-only" aria-live="polite">
+              {selectedCount} of {preview.groups.length} choices made
+            </p>
+          </div>
+        ) : null}
+      </GDialog>
+    );
+  }
 
   return (
     <AnimatePresence>

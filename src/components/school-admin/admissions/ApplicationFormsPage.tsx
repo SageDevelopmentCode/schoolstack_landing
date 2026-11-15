@@ -103,10 +103,7 @@ import EnrollmentChecklistPreview from "./EnrollmentChecklistPreview";
 import EnrollmentChecklistResignConfirmDialog from "./EnrollmentChecklistResignConfirmDialog";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
-import {
-  SchoolAdminCanvasSkeleton,
-  SchoolAdminSplitPaneSkeleton,
-} from "@/components/school-admin/skeletons";
+import { GardenCanvasSkeleton } from "./flows/GardenCanvasSkeleton";
 import {
   DEFAULT_BUILDER_FOCUS,
   type BuilderFocus,
@@ -1020,7 +1017,11 @@ export default function ApplicationFormsPage({
       setSelectedApplyFormHydrated(true);
       setFocus(DEFAULT_BUILDER_FOCUS);
       setCreateApplyDialogOpen(false);
-      adminToast.success("Application form created");
+      adminToast.dismiss("flows-create-apply-form-error");
+      adminToast.success("Application form created", {
+        id: "flows-create-apply-form",
+        description: "Add your questions, then publish when it's ready for families.",
+      });
     } catch (err) {
       void reportPortalOperationalError("school_admin", {
         organizationId,
@@ -1029,7 +1030,10 @@ export default function ApplicationFormsPage({
       }, err);
       const message = formatActionError(err, "Failed to create apply form.");
       setError(message);
-      adminToast.error(message);
+      adminToast.error("Couldn't create the apply form", {
+        id: "flows-create-apply-form-error",
+        description: `${message} Nothing was created.`,
+      });
     } finally {
       setCreating(false);
     }
@@ -1060,7 +1064,11 @@ export default function ApplicationFormsPage({
       setChecklists((prev) => [created, ...prev]);
       enterEditor({ kind: "checklist", id: created.id });
       setCreateChecklistDialogOpen(false);
-      adminToast.success("Enrollment checklist created");
+      adminToast.dismiss("flows-create-enrollment-checklist-error");
+      adminToast.success("Enrollment checklist created", {
+        id: "flows-create-enrollment-checklist",
+        description: "Add the items families complete after acceptance, then publish.",
+      });
     } catch (err) {
       void reportPortalOperationalError("school_admin", {
         organizationId,
@@ -1069,7 +1077,10 @@ export default function ApplicationFormsPage({
       }, err);
       const message = formatActionError(err, "Failed to create enrollment checklist.");
       setError(message);
-      adminToast.error(message);
+      adminToast.error("Couldn't create the checklist", {
+        id: "flows-create-enrollment-checklist-error",
+        description: `${message} Nothing was created.`,
+      });
     } finally {
       setCreating(false);
     }
@@ -1098,7 +1109,11 @@ export default function ApplicationFormsPage({
       enterEditor({ kind: "apply", id: copy.id });
       setSelectedApplyFormHydrated(true);
       setFocus(DEFAULT_BUILDER_FOCUS);
-      adminToast.success("Form duplicated");
+      adminToast.dismiss("flows-duplicate-form-error");
+      adminToast.success("Form duplicated", {
+        id: "flows-duplicate-form",
+        description: "You're now editing the copy. It stays a draft until you publish it.",
+      });
     } catch (err) {
       void reportPortalOperationalError("school_admin", {
         organizationId,
@@ -1107,7 +1122,10 @@ export default function ApplicationFormsPage({
       }, err);
       const message = formatActionError(err, "Failed to duplicate form.");
       setError(message);
-      adminToast.error(message);
+      adminToast.error("Couldn't duplicate the form", {
+        id: "flows-duplicate-form-error",
+        description: `${message} The original form is unchanged.`,
+      });
     } finally {
       setCreating(false);
     }
@@ -1215,11 +1233,20 @@ export default function ApplicationFormsPage({
       const nextEditable = toEditableState(updated);
       setEditable(nextEditable);
       setApplySavedSnapshot(serializeEditableFormState(nextEditable));
-      adminToast.success(isPublished ? "Form saved" : "Draft saved");
+      adminToast.dismiss("flows-save-form-error");
+      adminToast.success(isPublished ? "Form saved" : "Draft saved", {
+        id: "flows-save-form",
+        description: isPublished
+          ? "Families see the update the next time they open the form."
+          : "Publish when it's ready for families.",
+      });
     } catch (err) {
       if (err instanceof ApplicationFormConflictError) {
         setError(err.message);
-        adminToast.error(err.message);
+        adminToast.error("Couldn't save the form", {
+        id: "flows-save-form-error",
+        description: `${err.message} Your edits are still here.`,
+      });
         return;
       }
       void reportPortalOperationalError("school_admin", {
@@ -1233,7 +1260,10 @@ export default function ApplicationFormsPage({
       } else {
         setError(message);
       }
-      adminToast.error(message);
+      adminToast.error("Couldn't save the form", {
+        id: "flows-save-form-error",
+        description: `${message} Your edits are still here.`,
+      });
     } finally {
       setSaving(false);
     }
@@ -1306,11 +1336,18 @@ export default function ApplicationFormsPage({
       await loadForms();
       enterEditor({ kind: "apply", id: published.id });
       setSetupHighlight(null);
-      adminToast.success("Form published");
+      adminToast.dismiss("flows-publish-form-error");
+      adminToast.success("Form published", {
+        id: "flows-publish-form",
+        description: "Families can apply now. Use Share to copy your apply link.",
+      });
     } catch (err) {
       if (err instanceof ApplicationFormConflictError) {
         setError(err.message);
-        adminToast.error(err.message);
+        adminToast.error("Couldn't publish the form", {
+        id: "flows-publish-form-error",
+        description: `${err.message} It's still a draft. Your edits are still here.`,
+      });
         return;
       }
       void reportPortalOperationalError("school_admin", {
@@ -1324,7 +1361,10 @@ export default function ApplicationFormsPage({
       } else {
         setError(message);
       }
-      adminToast.error(message);
+      adminToast.error("Couldn't publish the form", {
+        id: "flows-publish-form-error",
+        description: `${message} It's still a draft. Your edits are still here.`,
+      });
     } finally {
       setPublishing(false);
     }
@@ -1343,7 +1383,11 @@ export default function ApplicationFormsPage({
         prev.map((f) => (f.id === unpublished.id ? unpublished : f)),
       );
       setUnpublishOpen(false);
-      adminToast.success("Form unpublished");
+      adminToast.dismiss("flows-unpublish-form-error");
+      adminToast.success("Form unpublished", {
+        id: "flows-unpublish-form",
+        description: "Families can no longer start this form. Your edits are kept.",
+      });
     } catch (err) {
       void reportPortalOperationalError("school_admin", {
         organizationId,
@@ -1352,7 +1396,10 @@ export default function ApplicationFormsPage({
       }, err);
       const message = formatActionError(err, "Failed to unpublish form.");
       setError(message);
-      adminToast.error(message);
+      adminToast.error("Couldn't unpublish the form", {
+        id: "flows-unpublish-form-error",
+        description: `${message} It's still live for families.`,
+      });
     } finally {
       setUnpublishing(false);
     }
@@ -1418,17 +1465,27 @@ export default function ApplicationFormsPage({
       };
       setChecklistEditable(nextChecklist);
       setChecklistSavedSnapshot(serializeChecklistEditableState(nextChecklist));
+      adminToast.dismiss("flows-save-checklist-error");
       adminToast.success(
         options?.requireResign
           ? "Checklist saved and families notified to re-sign"
           : checklistIsPublished
             ? "Checklist saved"
             : "Checklist draft saved",
+        {
+          id: "flows-save-checklist",
+          description: checklistIsPublished
+            ? "Families in enrollment see the update."
+            : "Publish when it's ready for families.",
+        },
       );
     } catch (err) {
       const message = formatSupabaseError(err, "Failed to save checklist.");
       setError(message);
-      adminToast.error(message);
+      adminToast.error("Couldn't save the checklist", {
+        id: "flows-save-checklist-error",
+        description: `${message} Your edits are still here.`,
+      });
       void reportPortalOperationalError("school_admin", {
         organizationId,
         operation: "checklist.save",
@@ -1554,15 +1611,23 @@ export default function ApplicationFormsPage({
       }
       await loadForms();
       enterEditor({ kind: "checklist", id: published.id });
+      adminToast.dismiss("flows-publish-checklist-error");
       adminToast.success(
         options?.requireResign
           ? "Checklist published and families notified to re-sign"
           : "Checklist published",
+        {
+          id: "flows-publish-checklist",
+          description: "Accepted families get this checklist when you start their enrollment.",
+        },
       );
     } catch (err) {
       const message = formatSupabaseError(err, "Failed to publish checklist.");
       setError(message);
-      adminToast.error(message);
+      adminToast.error("Couldn't publish the checklist", {
+        id: "flows-publish-checklist-error",
+        description: `${message} It's still a draft. Your edits are still here.`,
+      });
       void reportPortalOperationalError("school_admin", {
         organizationId,
         operation: "checklist.publish",
@@ -1612,11 +1677,18 @@ export default function ApplicationFormsPage({
         ),
       );
       setChecklistUnpublishOpen(false);
-      adminToast.success("Checklist unpublished");
+      adminToast.dismiss("flows-unpublish-checklist-error");
+      adminToast.success("Checklist unpublished", {
+        id: "flows-unpublish-checklist",
+        description: "New enrollments won't use it. Your edits are kept.",
+      });
     } catch (err) {
       const message = formatSupabaseError(err, "Failed to unpublish checklist.");
       setError(message);
-      adminToast.error(message);
+      adminToast.error("Couldn't unpublish the checklist", {
+        id: "flows-unpublish-checklist-error",
+        description: `${message} It's still live for families.`,
+      });
       void reportPortalOperationalError("school_admin", {
         organizationId,
         operation: "checklist.unpublish",
@@ -1648,7 +1720,11 @@ export default function ApplicationFormsPage({
         : publishedPublicUrl;
     try {
       await navigator.clipboard.writeText(absoluteUrl);
-      adminToast.success("Link copied");
+      adminToast.dismiss("flows-copy-link-error");
+      adminToast.success("Link copied", {
+        id: "flows-copy-link",
+        description: absoluteUrl,
+      });
     } catch (err) {
       void reportPortalOperationalError("school_admin", {
         organizationId,
@@ -1657,7 +1733,10 @@ export default function ApplicationFormsPage({
       }, err);
       const message = "Could not copy link to clipboard.";
       setError(message);
-      adminToast.error(message);
+      adminToast.error("Couldn't unpublish the checklist", {
+        id: "flows-unpublish-checklist-error",
+        description: `${message} It's still live for families.`,
+      });
     }
   };
 
@@ -1693,7 +1772,11 @@ export default function ApplicationFormsPage({
       ),
     }));
     setFocus({ kind: "step", stepId: targetStepId });
-    adminToast.success("Step replaced");
+    adminToast.dismiss("flows-step-replaced-error");
+    adminToast.success("Step replaced", {
+      id: "flows-step-replaced",
+      description: "Save to keep the change.",
+    });
   };
 
   const sourceFormsForReuse = useMemo(
@@ -1728,7 +1811,7 @@ export default function ApplicationFormsPage({
   if (loading) {
     return (
       <EnrollmentFlowsStoryShell branding={branding}>
-        <SchoolAdminSplitPaneSkeleton C={C} label="Loading enrollment flows" />
+        <GardenCanvasSkeleton label="Loading enrollment flows" />
       </EnrollmentFlowsStoryShell>
     );
   }
@@ -1949,7 +2032,7 @@ export default function ApplicationFormsPage({
           </div>
         </div>
       ) : selectedChecklist ? (
-        <SchoolAdminCanvasSkeleton C={C} label="Loading enrollment checklist" />
+        <GardenCanvasSkeleton label="Loading enrollment checklist" />
       ) : selectedForm && editable ? (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <EnrollmentFlowsStoryHeader
@@ -2049,7 +2132,7 @@ export default function ApplicationFormsPage({
           </div>
         </div>
       ) : (
-        <SchoolAdminCanvasSkeleton C={C} label="Loading form editor" />
+        <GardenCanvasSkeleton label="Loading form editor" />
       )}
 
       <EnrollmentChecklistPreview

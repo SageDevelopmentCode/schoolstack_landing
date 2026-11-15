@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { DetailButton } from "@/components/school-admin/admissions/detail-garden";
 import { Trash2 } from "lucide-react";
 import {
   ALL_DAY_TIME_SLOT,
@@ -11,7 +12,6 @@ import {
   type ObservationSlot,
 } from "@/lib/admissions/admissions-observation-slots";
 import { STUDENT_GRADE_OPTIONS } from "@/lib/admissions/apply-system-fields";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 export type ObservationSlotDraft = {
@@ -231,15 +231,16 @@ export function ObservationSlotForm({
         />
       </label>
 
-      <button
+      <DetailButton
+ kind="primary"
+ C={C}
         type="button"
         disabled={!canSubmit || submitting}
         onClick={onSubmit}
-        className="w-full rounded-sm px-3 py-2 text-xs font-medium transition enabled:hover:opacity-90 disabled:opacity-60"
-        style={getAdminButtonStyle(C, "primary")}
+        storyClassName="w-full rounded-sm px-3 py-2 text-xs font-medium transition enabled:hover:opacity-90 disabled:opacity-60"
       >
         {submitting ? "Saving…" : submitLabel}
-      </button>
+      </DetailButton>
     </div>
   );
 }

@@ -930,6 +930,7 @@ export default function ApplicationFormFocusCanvas({
       <div
         className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
         style={{ backgroundColor: BUILDER_CANVAS_BG }}
+        data-flows-canvas
       >
         {canvasBody}
       </div>

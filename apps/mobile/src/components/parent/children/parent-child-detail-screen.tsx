@@ -1,24 +1,20 @@
-import { Ionicons } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
-import { ParentChildrenRecordSkeleton } from '@/components/parent/children/parent-children-record-skeleton';
-import { ParentChildRecordWorkspace } from '@/components/parent/children/parent-child-record-workspace';
-import { useParentTheme } from '@/contexts/parent-theme-context';
+import { ChildRecordView } from '@/components/parent/children/garden/child-record-view';
+import { ChildRecordSkeleton } from '@/components/parent/children/garden/parent-children-garden-skeleton';
+import { GCelebrate } from '@/components/parent/garden/celebrate';
+import { GBackHeader } from '@/components/parent/garden/back-header';
+import { useGardenPullRefresh } from '@/components/parent/garden/feedback';
+import { Garden, useGardenAccent } from '@/components/parent/garden/tokens';
+import { GErrorCard } from '@/components/parent/garden/ui';
 import { useParentHome } from '@/contexts/parent-home-context';
-import { Story, StoryFonts } from '@/constants/story-theme';
-import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
-import { Spacing } from '@/constants/theme';
 import { extractStudentFromResponses } from '@/lib/admissions/apply-system-fields';
 import { applicationStatusLabel } from '@/lib/admissions/application-status-ui';
 import {
+  childFirstName,
   isParentChildRecordSection,
   type ChildProfileData,
   type ParentChildRecordSection,
@@ -36,23 +32,20 @@ type ParentChildDetailScreenProps = {
 };
 
 function resolveInitialSection(section: string | null | undefined): ParentChildRecordSection {
-  if (isParentChildRecordSection(section)) {
-    return section;
-  }
-  return 'application';
+  return isParentChildRecordSection(section) ? section : 'application';
 }
 
+/** One child's school record, pushed from deep links (health, pickup, a checklist item…). */
 export function ParentChildDetailScreen({
-  slug: _slug,
   applicationId,
   organizationId,
   initialSection,
   initialEnrollmentItemId,
   initialEnrollmentSectionId,
 }: ParentChildDetailScreenProps) {
-  const theme = useParentTheme();
   const router = useRouter();
-  const { data: homeData } = useParentHome();
+  const accent = useGardenAccent();
+  const { data: homeData, refresh: refreshHome } = useParentHome();
   const { reportError } = useMobileErrorReporter(organizationId);
 
   const [profile, setProfile] = useState<ChildProfileData | null>(null);
@@ -61,22 +54,17 @@ export function ParentChildDetailScreen({
   const [activeSection, setActiveSection] = useState<ParentChildRecordSection>(
     resolveInitialSection(initialSection),
   );
+  const [celebrationKey, setCelebrationKey] = useState<string | null>(null);
 
   const childOverview = useMemo((): FamilyChildOverview | null => {
-    const fromHome =
-      homeData?.familyChildren.find((child) => child.applicationId === applicationId) ?? null;
+    const fromHome = homeData?.familyChildren.find((c) => c.applicationId === applicationId) ?? null;
     if (fromHome) return fromHome;
     if (!profile?.application) return null;
-
     const student = extractStudentFromResponses(profile.application.responses);
-    const studentName = student
-      ? `${student.firstName} ${student.lastName}`.trim()
-      : 'Student';
-
     return {
       applicationId,
       studentId: profile.application.studentId,
-      studentName,
+      studentName: student ? `${student.firstName} ${student.lastName}`.trim() : 'Student',
       profilePhotoUrl: profile.application.profilePhotoUrl,
       grade: student?.grade ?? null,
       status: profile.application.status,
@@ -86,134 +74,102 @@ export function ParentChildDetailScreen({
     };
   }, [applicationId, homeData?.familyChildren, profile?.application]);
 
-  const loadProfile = useCallback(async () => {
-    setProfileLoading(true);
-    setProfileError(null);
-
-    try {
-      const loadedProfile = await fetchParentChildProfile(applicationId, organizationId);
-      setProfile(loadedProfile);
-      setActiveSection(resolveInitialSection(initialSection));
-    } catch (error) {
-      reportError('parent_children_load_profile', error, {
-        entityType: 'application',
-        entityId: applicationId,
-      });
-      setProfileError(
-        error instanceof Error ? error.message : 'Failed to load student profile.',
-      );
-      setProfile(null);
-    } finally {
-      setProfileLoading(false);
-    }
-  }, [applicationId, initialSection, organizationId, reportError]);
+  const loadProfile = useCallback(
+    async (resetSection = true) => {
+      setProfileLoading(true);
+      setProfileError(null);
+      try {
+        const loaded = await fetchParentChildProfile(applicationId, organizationId);
+        setProfile(loaded);
+        if (resetSection) setActiveSection(resolveInitialSection(initialSection));
+      } catch (error) {
+        reportError('parent_children_load_profile', error, {
+          entityType: 'application',
+          entityId: applicationId,
+        });
+        setProfileError(error instanceof Error ? error.message : 'Failed to load student profile.');
+        setProfile(null);
+      } finally {
+        setProfileLoading(false);
+      }
+    },
+    [applicationId, initialSection, organizationId, reportError],
+  );
 
   useEffect(() => {
     void loadProfile();
   }, [loadProfile]);
 
-  const handlePhotoUpdated = useCallback((profilePhotoUrl: string) => {
-    setProfile((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        application: { ...prev.application, profilePhotoUrl },
-      };
-    });
-  }, []);
+  const refresh = useCallback(async () => {
+    await Promise.all([loadProfile(false), refreshHome()]);
+  }, [loadProfile, refreshHome]);
+
+  const { pullRefreshing, onPullRefresh } = useGardenPullRefresh({
+    refresh,
+    error: profileError,
+    label: 'School record',
+    id: 'child-record-refresh',
+  });
+
+  const onCelebrate = useCallback((key: string) => setCelebrationKey(key), []);
+  const firstName = childOverview ? childFirstName(childOverview.studentName) : null;
 
   return (
-    <View style={[styles.container, { backgroundColor: Story.paper }]}>
-      <View style={[styles.header, { borderBottomColor: theme.line, backgroundColor: theme.white }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back to My children"
-          onPress={() => router.back()}
-          style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.7 }]}>
-          <Ionicons name="chevron-back" size={20} color={theme.primary} />
-          <Text style={[styles.backLabel, { color: theme.primary }]}>My children</Text>
-        </Pressable>
-        <Text style={[styles.headerTitle, { color: theme.ink }]}>School record</Text>
-        <View style={styles.headerSpacer} />
-      </View>
-
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {profileLoading ? (
-          <ParentChildrenRecordSkeleton />
-        ) : profileError ? (
-          <Text style={[styles.errorCopy, { color: theme.alert }]}>{profileError}</Text>
+    <View style={styles.root}>
+      <StatusBar style="dark" />
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={pullRefreshing}
+            onRefresh={() => void onPullRefresh()}
+            tintColor={accent.clay}
+          />
+        }>
+        <GBackHeader
+          backLabel="My children"
+          backAccessibilityLabel="Back to My children"
+          onBack={() => router.back()}
+          kicker="School record"
+          title={firstName ? `${firstName}'s record` : 'School record'}
+          accentWord={firstName}
+        />
+        {profileLoading && !profile ? (
+          <ChildRecordSkeleton />
+        ) : profileError && !profile ? (
+          <GErrorCard
+            kicker="School record"
+            title="We couldn't load this record"
+            message={`${profileError} Check your connection, then try again.`}
+            onRetry={() => void loadProfile()}
+          />
         ) : profile?.application && childOverview ? (
-          <ParentChildRecordWorkspace
+          <ChildRecordView
+            profile={profile}
+            showOverview={false}
             childOverview={childOverview}
-            application={profile.application}
-            checklist={profile.checklist}
-            assignedTeachers={profile.assignedTeachers}
             organizationId={organizationId}
             activeSection={activeSection}
+            onSectionChange={setActiveSection}
             initialEnrollmentItemId={initialEnrollmentItemId}
             initialEnrollmentSectionId={initialEnrollmentSectionId}
-            onSectionChange={setActiveSection}
-            onChecklistUpdated={(nextChecklist) => {
-              setProfile((prev) => (prev ? { ...prev, checklist: nextChecklist } : prev));
-            }}
-            onPhotoUpdated={handlePhotoUpdated}
+            onChecklistUpdated={(next) => setProfile((prev) => (prev ? { ...prev, checklist: next } : prev))}
+            onPhotoUpdated={(url) =>
+              setProfile((prev) =>
+                prev ? { ...prev, application: { ...prev.application, profilePhotoUrl: url } } : prev,
+              )
+            }
+            refresh={refreshHome}
+            onCelebrate={onCelebrate}
           />
         ) : null}
       </ScrollView>
+      {celebrationKey ? <GCelebrate active celebrationKey={celebrationKey} /> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-    paddingVertical: Spacing.three,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    minWidth: 110,
-  },
-  backLabel: {
-    fontFamily: StoryFonts.body,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  headerTitle: {
-    fontFamily: StoryFonts.bodySemiBold,
-    fontSize: 14,
-    fontWeight: '600',
-    lineHeight: 20,
-  },
-  headerSpacer: {
-    minWidth: 110,
-  },
-  scrollContent: {
-    padding: SCREEN_HORIZONTAL_PADDING,
-    paddingBottom: Spacing.six,
-  },
-  loadingBlock: {
-    alignItems: 'center',
-    gap: Spacing.two,
-    paddingVertical: Spacing.four,
-  },
-  loadingCopy: {
-    fontFamily: StoryFonts.body,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  errorCopy: {
-    fontFamily: StoryFonts.body,
-    fontSize: 13,
-    lineHeight: 18,
-    textAlign: 'center',
-  },
+  root: { flex: 1, backgroundColor: Garden.cream },
+  content: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 48, gap: 16 },
 });

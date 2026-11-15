@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { useAdminGardenSkin } from "@/components/school-admin/garden/skin";
+import { GChip } from "@/components/school-parent/garden/ui";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 export type AdminChipTone = "success" | "warning" | "alert" | "info" | "purple";
@@ -31,6 +33,14 @@ export default function AdminChip({
   children,
   className = "",
 }: AdminChipProps) {
+  const skin = useAdminGardenSkin();
+  if (skin) {
+    return (
+      <GChip tone={tone === "purple" ? "info" : tone} className={`whitespace-nowrap ${className}`}>
+        {children}
+      </GChip>
+    );
+  }
   const colors = chipColors(theme, tone);
 
   return (

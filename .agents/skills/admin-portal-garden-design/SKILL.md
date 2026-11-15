@@ -4,7 +4,7 @@ description: >-
   "Garden" design system for the school-branded SCHOOL ADMIN portal (web).
   Use whenever building, redesigning or restyling an admin page or tab under
   src/app/school/[slug]/admin/ or src/components/school-admin/ in the Garden
-  look (Dashboard is done; Admissions, My School, Attendance, Schedule,
+  look (Dashboard and Admissions are done; My School, Attendance, Schedule,
   Messages, Finances, etc. are next), or when asked to "make this admin tab
   match the new Dashboard", "use the admin Garden design", or migrate an admin
   page off School Day Story. Covers the admin frame and theme, admin density
@@ -44,6 +44,10 @@ Related skills:
 | `src/components/school-admin/dashboard/useAdminDashboardModel.ts` | Page view-model pattern (tabs in URL, lazy sections, focus refresh, polling, errors, retry) |
 | `src/components/school-admin/attendance/useDashboardAttendanceModel.ts` | Feature view-model shared by Garden and story surfaces (admin, teacher, demos) |
 | `src/components/school-admin/AdminToaster.tsx` | `GARDEN_ADMIN_ROUTES`: admin routes that get Garden toasts |
+| `src/components/school-admin/garden/kit.tsx` | Kit for every tab after the Dashboard: `AdminGardenPage` (frame + skin + container + `overlays`), `AdminGardenPageHeader` (kicker, h1, data status line, Refresh + "Updated", `GTabBar`), `GardenField` / `GardenSelect` / `GardenSwitch` / `gInputClass`, `GardenFilterChips` ("Label · N" names), `GardenStatTiles` (href or onClick), `GardenSteps`, `GardenNotice`, `GardenEmptyState`, `GardenSaveBar`, `GardenSection`, `BusyLabel`, `AdminGardenPageSkeleton`, `gIconBtn`, `gBtnDangerSm` |
+| `src/components/school-admin/garden/skin.tsx` | `AdminGardenSkin` + `useAdminGardenSkin`: story primitives render Garden inside it (§2.1); `SkinPortalScope` for portalled overlays |
+| `src/components/school-admin/garden/useAdminAction.ts` | `run(fn, { key, success, error, retry })`: pending key, toast pair with error-specific id + Retry, mint flash |
+| `src/components/school-admin/admissions/**` | Admissions reference: Payments (`payments/*`), Submissions (`submissions/*`, Garden drawer), Programs (`programs/useProgramsModel`), Enrollment Flows (`EnrollmentFlowsStoryShell` = Garden full-height shell, `EnrollmentFlowsOverview`) |
 | `src/lib/school-admin/admin-toast.ts` | `adminToast` with `{ description, action, id }` |
 
 ## 2. Frame and theme
@@ -65,6 +69,16 @@ return (
 - Unmigrated blocks go inside a card wrapped in `<PortalIsland>`. This is a temporary bridge; the Dashboard no longer has any.
 - The page owns its padding through `ADMIN_GARDEN_CONTAINER_CLASS` (`max-w-[1320px]`, `gap-5`, `px-4 sm:px-8 lg:px-10`). Don't wrap it in the old `max-w-[1350px] px-[clamp(…)]` div in `[feature]/page.tsx`.
 - A Suspense fallback that imports from the kit must be a `"use client"` file. A server component that imports a constant from a client module gets a reference proxy, not the value.
+
+### 2.1 The skin (deep editors without forking)
+
+Big tabs have deep story editors (form builders, checklists, co-op panels) shared with other admin pages. Don't rewrite them for Garden. `AdminGardenPage` (and `EnrollmentFlowsStoryShell`) mount `AdminGardenSkin` plus the `.sf-admin-garden-skin` class, and the shared primitives switch look only inside it:
+
+- `AdminCard`, `AdminButton` (primary → solid accent, not toy), `AdminChip` → `GChip`, `AdminSectionKicker`, `AdminDisplayHeading`, `AdminTextLink`, `BuilderQuestionCard` / `BuilderSectionIntro`, `ConfirmDialog` → `GConfirmDialog`, `SchoolAdminSelect` → `GardenSelect`, `SchoolAdminDatePicker` → native date, `TuitionSubTabBar` → `GTabBar` (same test ids).
+- Raw `<button style={getAdminButtonStyle(C, kind)}>` in admissions files became `DetailButton` (`admissions/detail-garden.tsx`); it reads the skin or the `SubmissionDetailStoryContext` "garden" variant.
+- `garden.css` skin rules restyle raw inputs/textareas/selects, hand-rolled `[role=dialog][aria-modal]` panels, 9–11px story type and the Flows outline/canvas (`data-flows-*`). Opt out with `data-garden-skip`; `.sf-demo` is never touched.
+- Anything that `createPortal`s to `<body>` must wrap its content in `SkinPortalScope`, or skinned buttons lose the Garden tokens.
+- Outside the skin (Schedule, Students, Finances, Teacher, Committees) everything stays School Day Story. Shared components that need a different shell take `appearance="garden"` (`ApplicationSubmissionDetailPanel`, `StartEnrollmentModal`) or read the detail variant.
 
 ## 3. Admin feel rules (on top of the parent rules)
 
@@ -129,6 +143,11 @@ return (
 | **Index of help**: category kickers with guide rows that open `AdminDocumentationGuidePanel` | `GardenGuidesPanel` | How-tos, FAQs |
 | **Live people list**: a paper stat strip (`<dl>`, tabular values, a pulsing forest `LiveDot` when someone is live, respecting `motion-reduce`); two lists side by side, each with a kicker and a count `GChip`; rows with initials avatar, name, meta, and a live `GChip` timer (`StaffHoursLiveElapsed`) or a tabular duration; paper empty state with the existing copy; a "+N more" `gLinkSm` that links to the full page; the repeated summary sentence kept as `sr-only` | `GardenStaffHoursCard.tsx` | Staff on shift, check-ins, pickups waiting, anyone "live right now" |
 | **Legacy block**: `GCard` › `PortalIsland` › story component | (none left on the Dashboard) | Anything not yet migrated |
+| **Lead strip**: solid accent `<button>` with ink border + toy shadow, kicker "Needs attention", one sentence from data, `gBtnOnAccent` pill | `ApplicationSubmissionsPageShell` › `ReviewNextStrip`, `EnrollmentFlowsOverview` | "Review next", "N programs need attention" |
+| **Setup steps with inline CTA**: `GardenSteps`, the current step holds the toy CTA + requirement chips, `LiveDot` "Watching for updates" while polling, "Last checked" + Check status | `PaymentsSetupPage` › `StripeConnectCard` | Connect/onboarding flows |
+| **Split editor**: list `GCard` (rows with status chip + meta) + editor `GCard` (`GTabBar`, Garden fields, inline validation) + `GardenSaveBar` (sticky only while dirty; Discard / toy Save) | `ProgramsPage` | Any list + edit page |
+| **Review drawer**: `GSidePanel size="xl"` with `headerBelow` `GTabBar`, status chip in `headerAside`, sections as Garden cards via the detail variant, dialogs as `GDialog` | `ApplicationSubmissionDetailPanel appearance="garden"` | Record review / detail drawers |
+| **Garden table**: `border-separate` table inside a `GCard`, uppercase 11px headers, accent-wash hover, selected wash, mint flash, refetch veil; stacked tappable cards below `md` | `ApplicationSubmissionsPageShell`, `GardenPaymentsHistory` | Data tables |
 
 ## 7. Migrating an admin tab (checklist)
 
@@ -167,6 +186,8 @@ return (
 - Check 375 / 768 / 1440 (`.agents/skills/portal-responsive-verify`). At 375 the page scroller's `scrollWidth === clientWidth`; horizontal rails scroll inside their own container.
 - Check `/demo-school` → Admin View still renders. It reuses the story pieces.
 - Ask the user to check the real route while signed in. That's the one check you can't do locally.
+
+- Admissions tabs read Supabase directly as well as `/api/*`. In a throwaway lab route, also stub `/rest/v1/<table>` (return arrays; return one object when `Accept` has `vnd.pgrst.object`). The Flows builders can be checked through `DemoAdminEnrollmentFlowsPage` (preview mode).
 
 ## 9. Anti-patterns
 

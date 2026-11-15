@@ -1,53 +1,45 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
-import { ExternalLink, Loader2 } from "lucide-react";
-import { SchoolAdminTableSkeleton } from "@/components/school-admin/skeletons";
+import type { ReactNode } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ArrowRight, ChevronRight, ClipboardList, ExternalLink, Inbox, Loader2 } from "lucide-react";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
-import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import AdminStoryFilterPill from "@/components/school-admin/ui/story/AdminStoryFilterPill";
-import AdminCard from "@/components/school-admin/ui/story/AdminCard";
-import AdminChip from "@/components/school-admin/ui/story/AdminChip";
-import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
+import { GCard, GChip, GSkeleton, gBtnOnAccent, gBtnOutlineSm, gLinkSm } from "@/components/school-parent/garden/ui";
+import {
+  AdminGardenPage,
+  AdminGardenPageHeader,
+  BusyLabel,
+  GardenEmptyState,
+  GardenFilterChips,
+  GardenLoadError,
+  GardenStatTiles,
+  type GardenStat,
+} from "@/components/school-admin/garden/kit";
 import ApplicationSubmissionDetailPanel from "./ApplicationSubmissionDetailPanel";
-import SubmissionContactCell from "./SubmissionContactCell";
-import SubmissionFeeBadges from "./SubmissionFeeBadges";
-import SubmissionNextStepCell from "./SubmissionNextStepCell";
-import SubmissionProgressCell from "./SubmissionProgressCell";
 import { SubmissionsPageContext } from "./submissions-page-context";
+import {
+  GardenContactCell,
+  GardenFeeBadges,
+  GardenNextStepCell,
+  GardenProgressCell,
+  toGChipTone,
+} from "./submissions/GardenSubmissionCells";
+import {
+  useApplicationSubmissionsModel,
+  type ApplicationSubmissionsModel,
+} from "./submissions/useApplicationSubmissionsModel";
 import {
   adminApplicationStatusLabel,
   applicationStatusChipTone,
-  applicationSubmissionRowStyle,
   APPLICATION_STATUS_FILTER_ORDER,
 } from "@/lib/admissions/application-status-ui";
-import { submissionHasFeeBadges } from "@/lib/admissions/admin-submission-fee-badges";
-import { enrollmentProgressBadgeStyle } from "@/lib/admissions/admin-enrollment-progress";
-import { postSubmitSummaryBadgeStyle } from "@/lib/admissions/admin-post-submit-steps";
-import {
-  formatShortDate,
-  matchesSubmissionListFilters,
-  type AdminApplicationSubmission,
-  type ApplicationSubmissionEnrichmentPatch,
-} from "@/lib/admissions/application-submissions";
-import { canonicalApplyFormPublicPath } from "@/lib/admissions/application-forms";
+import { formatShortDate, type AdminApplicationSubmission } from "@/lib/admissions/application-submissions";
 import type { ParentPortalLoginStatus } from "@/lib/admissions/parent-portal-login-status";
-import type { ApplicationSubmissionsApiResponse } from "@/app/api/school-admin/admissions/submissions/route";
 import type { ApplicationSubmissionsPageMeta } from "@/lib/school-admin/load-submissions-page-data";
 import type { ApplicationSubmissionsTableData } from "@/lib/school-admin/load-submissions-table-data";
-import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type ApplicationSubmissionsPageShellProps = {
   organizationId: string;
@@ -60,30 +52,14 @@ type ApplicationSubmissionsPageShellProps = {
   children?: ReactNode;
 };
 
-type StatusFilter = "all" | string;
-type FormFilter = "all" | string;
-
-function mergeEnrichment(
-  submissions: AdminApplicationSubmission[],
-  enrichment: Record<string, ApplicationSubmissionEnrichmentPatch>,
-): AdminApplicationSubmission[] {
-  if (Object.keys(enrichment).length === 0) return submissions;
-
-  return submissions.map((submission) => {
-    const patch = enrichment[submission.id];
-    if (!patch) return submission;
-    return { ...submission, ...patch };
-  });
-}
-
-function visibleGuardianIds(submissions: AdminApplicationSubmission[]): string[] {
-  return [
-    ...new Set(
-      submissions
-        .map((submission) => submission.primaryGuardianId)
-        .filter((id): id is string => Boolean(id)),
-    ),
-  ].slice(0, 50);
+function statusLine(model: ApplicationSubmissionsModel): string {
+  const parts: string[] = [];
+  if (model.submittedCount > 0) {
+    parts.push(`${model.submittedCount} ready to review`);
+  }
+  parts.push(`${model.activeSubmissionsCount} active application${model.activeSubmissionsCount === 1 ? "" : "s"}`);
+  if (model.draftCount > 0) parts.push(`${model.draftCount} in progress`);
+  return parts.join(" · ");
 }
 
 export default function ApplicationSubmissionsPageShell({
@@ -96,784 +72,520 @@ export default function ApplicationSubmissionsPageShell({
   initialLoginStatusByGuardianId,
   children,
 }: ApplicationSubmissionsPageShellProps) {
-  const { theme, C } = useSchoolAdminStoryTheme();
-  const searchParams = useSearchParams();
-  const deepLinkApplicationId = searchParams.get("application");
-  const hasInitialTable = initialTableData !== undefined;
+  const { theme } = useSchoolAdminStoryTheme();
+  const model = useApplicationSubmissionsModel({
+    organizationId,
+    slug,
+    initialMeta,
+    initialTableData,
+    initialLoginStatusByGuardianId,
+    hasStreamedTable: children != null,
+  });
 
-  const [loadedSubmissions, setLoadedSubmissions] = useState<AdminApplicationSubmission[]>(
-    initialTableData?.submissions ?? [],
-  );
-  const [unfilteredTotalCount, setUnfilteredTotalCount] = useState(
-    initialTableData?.totalCount ?? 0,
-  );
-  const [statusCounts, setStatusCounts] = useState<Record<string, number>>(
-    initialMeta.statusCounts,
-  );
-  const [activeSubmissionsCount, setActiveSubmissionsCount] = useState(
-    initialMeta.activeSubmissionsCount,
-  );
-  const [latestSubmitted, setLatestSubmitted] = useState(initialMeta.latestSubmitted);
-  const [formOptions, setFormOptions] = useState(initialMeta.formOptions);
-  const [pageSize, setPageSize] = useState(
-    initialTableData?.pageSize ?? 50,
-  );
-  const [loginStatusByGuardianId, setLoginStatusByGuardianId] = useState<
-    Record<string, ParentPortalLoginStatus>
-  >(initialLoginStatusByGuardianId ?? {});
-  const [loginStatusLoading, setLoginStatusLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(!hasInitialTable);
-  const [isRefetching, setIsRefetching] = useState(false);
-  const [enrichmentLoading, setEnrichmentLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [formFilter, setFormFilter] = useState<FormFilter>("all");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [tableReady, setTableReady] = useState(hasInitialTable);
-  const loadedSubmissionsLengthRef = useRef(loadedSubmissions.length);
-  useEffect(() => {
-    loadedSubmissionsLengthRef.current = loadedSubmissions.length;
-  }, [loadedSubmissions.length]);
-  const enrichedIdsRef = useRef(new Set<string>());
-
-  const filteredSubmissions = useMemo(
-    () =>
-      loadedSubmissions.filter((row) =>
-        matchesSubmissionListFilters(row, {
-          statusFilter,
-          formKey: formFilter,
-        }),
-      ),
-    [formFilter, loadedSubmissions, statusFilter],
-  );
-
-  const flowsPath = schoolAdminPath(slug, "admissions", "flows");
-  const showMetrics =
-    activeSubmissionsCount > 0 ||
-    unfilteredTotalCount > 0 ||
-    Object.keys(statusCounts).length > 0;
-
-  const loadEnrichment = useCallback(
-    async (rows: AdminApplicationSubmission[]) => {
-      const pendingIds = rows
-        .map((row) => row.id)
-        .filter((id) => !enrichedIdsRef.current.has(id));
-      if (pendingIds.length === 0) return;
-
-      setEnrichmentLoading(true);
-      try {
-        const response = await fetch(
-          "/api/school-admin/admissions/submissions/enrichment",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              organizationId,
-              applicationIds: pendingIds,
-            }),
-          },
-        );
-        if (!response.ok) return;
-
-        const body = (await response.json()) as {
-          enrichment?: Record<string, ApplicationSubmissionEnrichmentPatch>;
-        };
-        const enrichment = body.enrichment ?? {};
-        for (const id of Object.keys(enrichment)) {
-          enrichedIdsRef.current.add(id);
-        }
-        setLoadedSubmissions((prev) => mergeEnrichment(prev, enrichment));
-      } catch (err) {
-        void reportPortalOperationalError("school_admin", {
-          organizationId,
-          operation: "admissions.submissions.enrich",
-          error: "",
-        }, err);
-        // Keep lean rows when enrichment fails.
-      } finally {
-        setEnrichmentLoading(false);
-      }
+  const stats: GardenStat[] = [
+    {
+      id: "all",
+      label: "All applications",
+      value: String(model.activeSubmissionsCount),
+      accent: "forest",
+      active: model.statusFilter === "all",
+      onClick: () => model.changeStatusFilter("all"),
     },
-    [organizationId],
-  );
-
-  const loadLoginStatus = useCallback(
-    async (rows: AdminApplicationSubmission[]) => {
-      const guardianIds = visibleGuardianIds(rows);
-      if (guardianIds.length === 0) {
-        setLoginStatusByGuardianId({});
-        return;
-      }
-
-      setLoginStatusLoading(true);
-      try {
-        const params = new URLSearchParams({
-          guardianIds: guardianIds.join(","),
-        });
-        const loginResponse = await fetch(
-          `/api/admissions/organizations/${organizationId}/parent-login-status?${params.toString()}`,
-        );
-        if (!loginResponse.ok) {
-          setLoginStatusByGuardianId({});
-          return;
-        }
-        const loginBody = (await loginResponse.json()) as {
-          statuses?: ParentPortalLoginStatus[];
-        };
-        setLoginStatusByGuardianId((prev) => ({
-          ...prev,
-          ...Object.fromEntries(
-            (loginBody.statuses ?? []).map((status) => [status.guardianId, status]),
-          ),
-        }));
-      } catch (err) {
-        void reportPortalOperationalError("school_admin", {
-          organizationId,
-          operation: "admissions.submissions.login_status",
-          error: "",
-        }, err);
-        setLoginStatusByGuardianId({});
-      } finally {
-        setLoginStatusLoading(false);
-      }
+    {
+      id: "draft",
+      label: "In progress",
+      value: String(model.draftCount),
+      accent: "sky",
+      active: model.statusFilter === "draft",
+      onClick: () => model.changeStatusFilter("draft"),
     },
-    [organizationId],
-  );
-
-  const applyTableData = useCallback(
-    (tableData: ApplicationSubmissionsTableData, { append = false } = {}) => {
-      setLoadedSubmissions((prev) => {
-        const next = append ? [...prev, ...tableData.submissions] : tableData.submissions;
-        queueMicrotask(() => {
-          void loadEnrichment(append ? tableData.submissions : next);
-          void loadLoginStatus(append ? tableData.submissions : next);
-        });
-        return next;
-      });
-      setUnfilteredTotalCount(tableData.totalCount);
-      setPageSize(tableData.pageSize);
-      setTableReady(true);
-      setInitialLoading(false);
+    {
+      id: "submitted",
+      label: "Ready to review",
+      value: String(model.submittedCount),
+      accent: "gold",
+      active: model.statusFilter === "submitted",
+      onClick: () => model.changeStatusFilter("submitted"),
     },
-    [loadEnrichment, loadLoginStatus],
-  );
-
-  const hydrateTable = useCallback(
-    (tableData: ApplicationSubmissionsTableData) => {
-      applyTableData(tableData);
+    {
+      id: "enrolled",
+      label: "Enrolled learners",
+      value: String(model.enrolledCount),
+      accent: "berry",
+      active: model.statusFilter === "enrolled",
+      onClick: () => model.changeStatusFilter("enrolled"),
     },
-    [applyTableData],
-  );
-
-  const fetchSubmissionsPage = useCallback(
-    async ({
-      offset,
-      append,
-      includeMeta,
-    }: {
-      offset: number;
-      append: boolean;
-      includeMeta?: boolean;
-    }) => {
-      const params = new URLSearchParams({
-        organizationId,
-        offset: String(offset),
-        limit: String(pageSize),
-        status: "all",
-        formKey: "all",
-      });
-      if (includeMeta) {
-        params.set("includeMeta", "1");
-      }
-
-      const response = await fetch(
-        `/api/school-admin/admissions/submissions?${params.toString()}`,
-      );
-      const body = (await response.json()) as ApplicationSubmissionsApiResponse & {
-        error?: string;
-        code?: string;
-      };
-      if (!response.ok) {
-        throw Object.assign(
-          new Error(body.error?.trim() || "Failed to load submissions."),
-          { code: body.code },
-        );
-      }
-
-      if (body.meta) {
-        setStatusCounts(body.meta.statusCounts);
-        setActiveSubmissionsCount(body.meta.activeSubmissionsCount);
-        setLatestSubmitted(body.meta.latestSubmitted);
-        setFormOptions(body.meta.formOptions);
-      }
-
-      if (append) {
-        setLoadedSubmissions((prev) => [...prev, ...body.submissions]);
-        setUnfilteredTotalCount(body.totalCount);
-        setPageSize(body.pageSize);
-        void loadEnrichment(body.submissions);
-        void loadLoginStatus(body.submissions);
-      } else {
-        enrichedIdsRef.current = new Set();
-        applyTableData({
-          submissions: body.submissions,
-          totalCount: body.totalCount,
-          pageSize: body.pageSize,
-        });
-      }
-    },
-    [applyTableData, loadEnrichment, loadLoginStatus, organizationId, pageSize],
-  );
-
-  const loadSubmissions = useCallback(
-    async ({
-      append = false,
-      offset,
-    }: { append?: boolean; offset?: number } = {}) => {
-      const requestOffset = offset ?? (append ? loadedSubmissionsLengthRef.current : 0);
-
-      if (append) {
-        setLoadingMore(true);
-      } else if (tableReady) {
-        setIsRefetching(true);
-      } else {
-        setInitialLoading(true);
-      }
-      setError(null);
-
-      try {
-        await fetchSubmissionsPage({
-          offset: requestOffset,
-          append,
-          includeMeta: !append,
-        });
-      } catch (err) {
-        void reportPortalOperationalError("school_admin", {
-          organizationId,
-          operation: "admissions.submissions.load",
-          error: "",
-        }, err);
-        const message = err instanceof Error ? err.message : "Failed to load submissions.";
-        if (!append && !tableReady) {
-          setError(message);
-          setLoginStatusByGuardianId({});
-        }
-      } finally {
-        setInitialLoading(false);
-        setIsRefetching(false);
-        setLoadingMore(false);
-      }
-    },
-    [fetchSubmissionsPage, tableReady],
-  );
-
-  const handleSubmissionUpdated = useCallback(
-    (update?: { status: AdminApplicationSubmission["status"] }) => {
-      if (update && selectedId) {
-        setLoadedSubmissions((prev) =>
-          prev.map((row) =>
-            row.id === selectedId ? { ...row, status: update.status } : row,
-          ),
-        );
-        return;
-      }
-      void loadSubmissions();
-    },
-    [loadSubmissions, selectedId],
-  );
-
-  function changeStatusFilter(next: StatusFilter) {
-    setStatusFilter(next);
-    setSelectedId(null);
-  }
-
-  function changeFormFilter(next: FormFilter) {
-    setFormFilter(next);
-    setSelectedId(null);
-  }
-
-  useEffect(() => {
-    if (hasInitialTable) {
-      queueMicrotask(() => {
-        void loadEnrichment(initialTableData.submissions);
-        void loadLoginStatus(initialTableData.submissions);
-      });
-    }
-  }, [hasInitialTable, initialTableData, loadEnrichment, loadLoginStatus]);
-
-  useEffect(() => {
-    if (!deepLinkApplicationId || initialLoading) return;
-    const match = loadedSubmissions.find((row) => row.id === deepLinkApplicationId);
-    if (match) {
-      queueMicrotask(() => {
-        if (match.status === "withdrawn") {
-          setStatusFilter("withdrawn");
-        }
-        setSelectedId(match.id);
-      });
-    }
-  }, [deepLinkApplicationId, initialLoading, loadedSubmissions]);
-
-  const draftCount = statusCounts.draft ?? 0;
-  const submittedCount = statusCounts.submitted ?? 0;
-  const enrolledCount = statusCounts.enrolled ?? 0;
-
-  const selectedSubmission =
-    filteredSubmissions.find((row) => row.id === selectedId) ??
-    loadedSubmissions.find((row) => row.id === selectedId) ??
-    null;
-
-  const hasMoreSubmissions = loadedSubmissions.length < unfilteredTotalCount;
-
-  const showFormColumn = formOptions.length > 1;
-  const showFeesColumn = loadedSubmissions.some((row) => submissionHasFeeBadges(row));
-  const showPostSubmitColumn =
-    enrichmentLoading || loadedSubmissions.some((row) => row.hasPostSubmitActions);
-  const showEnrollmentColumn =
-    enrichmentLoading || loadedSubmissions.some((row) => row.enrollmentSummary !== null);
-
-  const tableColumnCount =
-    (showFormColumn ? 1 : 0) +
-    5 +
-    (showEnrollmentColumn ? 1 : 0) +
-    (showPostSubmitColumn ? 1 : 0) +
-    (showFeesColumn ? 1 : 0);
-
-  const tableMinWidth = showFormColumn ? "min-w-[980px]" : "min-w-[900px]";
-
-  const tableHeadings = [
-    ...(showFormColumn ? ["Form"] : []),
-    "Contact",
-    "Student",
-    "Status",
-    ...(showEnrollmentColumn ? ["Enrollment"] : []),
-    ...(showPostSubmitColumn ? ["Post-submit"] : []),
-    "Progress",
-    "Next step",
-    ...(showFeesColumn ? ["Fees"] : []),
   ];
 
-  const applyPublicPath =
-    formOptions.length > 0 ? canonicalApplyFormPublicPath(slug) : null;
-
-  const hasAnyApplications =
-    activeSubmissionsCount + (statusCounts.withdrawn ?? 0) > 0;
-
-  const showEmptyFilteredState =
-    tableReady &&
-    !initialLoading &&
-    filteredSubmissions.length === 0 &&
-    loadedSubmissions.length > 0 &&
-    hasAnyApplications &&
-    (statusFilter !== "all" || formFilter !== "all");
-
-  const tableFallback = (
-    <>
-      {initialLoading ? (
-        <AdminCard theme={theme} padding="none">
-          <SchoolAdminTableSkeleton
-            C={C}
-            rows={8}
-            columns={tableColumnCount}
-            showFilters={false}
-            label="Loading submissions"
-          />
-        </AdminCard>
-      ) : error ? (
-        <AdminCard theme={theme} padding="canvas">
-          <p className="text-sm" style={{ color: C.error }}>
-            {error}
-          </p>
-        </AdminCard>
-      ) : showEmptyFilteredState ? (
-        <AdminCard theme={theme} padding="canvas">
-          <p className="text-sm" style={{ color: theme.muted }}>
-            No submissions match the current filters.
-          </p>
-        </AdminCard>
-      ) : unfilteredTotalCount === 0 ? (
-        <AdminCard theme={theme} padding="canvas">
-          <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
-            No applications yet. Publish an enrollment flow and share your public apply
-            link with families.
-          </p>
-          <Link
-            href={flowsPath}
-            className="mt-3 inline-block text-sm font-extrabold"
-            style={{ color: theme.primary }}
-          >
-            Go to Enrollment Flows →
-          </Link>
-        </AdminCard>
-      ) : null}
-    </>
-  );
-
-  const tableCardContent = (
-    <AdminCard theme={theme} padding="none" className="relative overflow-hidden">
-      {isRefetching ? (
-        <div
-          className="pointer-events-none absolute inset-0 z-10 flex items-start justify-center bg-white/55 pt-16"
-          aria-hidden="true"
-        >
-          <Loader2
-            className="h-5 w-5 animate-spin"
-            style={{ color: theme.primary }}
-          />
-        </div>
-      ) : null}
-      <div
-        className="overflow-x-auto transition-opacity duration-200"
-        style={{ opacity: isRefetching ? 0.55 : 1 }}
-      >
-        <table className={`w-full ${tableMinWidth} border-collapse text-left`}>
-          <thead style={{ backgroundColor: "#FBFCFB" }}>
-            <tr>
-              {tableHeadings.map((heading) => (
-                <th
-                  key={heading}
-                  className="px-[15px] py-2.5 text-left text-[10px] font-extrabold uppercase tracking-[0.08em]"
-                  style={{ color: "#8B9699" }}
-                >
-                  {heading}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <motion.tbody
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-          >
-            {filteredSubmissions.map((submission) => {
-              const isSelected = submission.id === selectedId;
-              const isHovered = hoveredId === submission.id;
-              const rowStyle = applicationSubmissionRowStyle(submission.status, C, {
-                isSelected,
-                isHovered,
-              });
-
-              return (
-                <tr
-                  key={submission.id}
-                  onClick={() =>
-                    setSelectedId((prev) =>
-                      prev === submission.id ? null : submission.id,
-                    )
-                  }
-                  onMouseEnter={() => setHoveredId(submission.id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                  className="cursor-pointer transition-colors"
-                  style={{
-                    ...rowStyle,
-                    borderTop: "1px solid #EDF1ED",
-                  }}
-                >
-                  {showFormColumn ? (
-                    <td className="px-[15px] py-3">
-                      <div className="text-xs font-semibold" style={{ color: theme.ink }}>
-                        {submission.formTitle}
-                      </div>
-                      {submission.programName ? (
-                        <div className="mt-0.5 text-[11px]" style={{ color: theme.muted }}>
-                          {submission.programName}
-                        </div>
-                      ) : null}
-                    </td>
-                  ) : null}
-                  <td className="px-[15px] py-3">
-                    <SubmissionContactCell
-                      guardianName={submission.guardianName}
-                      contactEmail={submission.contactEmail}
-                      primaryGuardianId={submission.primaryGuardianId}
-                      loginStatusByGuardianId={loginStatusByGuardianId}
-                      loginStatusLoading={loginStatusLoading}
-                      C={C}
-                      theme={theme}
-                    />
-                  </td>
-                  <td
-                    className="px-[15px] py-3 text-xs"
-                    style={{ color: "#607078" }}
-                  >
-                    {submission.studentLabel ?? "—"}
-                  </td>
-                  <td className="px-[15px] py-3">
-                    <AdminChip
-                      theme={theme}
-                      tone={applicationStatusChipTone(submission.status)}
-                    >
-                      {adminApplicationStatusLabel(submission.status)}
-                    </AdminChip>
-                  </td>
-                  {showEnrollmentColumn ? (
-                    <td className="px-[15px] py-3">
-                      {enrichmentLoading && !submission.enrollmentSummary ? (
-                        <span
-                          className="inline-block h-4 w-16 animate-pulse rounded-full"
-                          style={{ backgroundColor: "#EDF1ED" }}
-                        />
-                      ) : submission.enrollmentSummary ? (
-                        <span
-                          className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-extrabold"
-                          style={enrollmentProgressBadgeStyle(
-                            submission.enrollmentSummary.tone,
-                            C,
-                          )}
-                          title={submission.enrollmentSummary.label}
-                        >
-                          {submission.enrollmentSummary.label}
-                        </span>
-                      ) : (
-                        <span style={{ color: theme.muted }}>—</span>
-                      )}
-                    </td>
-                  ) : null}
-                  {showPostSubmitColumn ? (
-                    <td className="px-[15px] py-3">
-                      {enrichmentLoading && !submission.postSubmitSummary ? (
-                        <span
-                          className="inline-block h-4 w-20 animate-pulse rounded-full"
-                          style={{ backgroundColor: "#EDF1ED" }}
-                        />
-                      ) : submission.postSubmitSummary ? (
-                        <span
-                          className="inline-flex max-w-[12rem] truncate rounded-full px-2 py-0.5 text-[10px] font-extrabold"
-                          style={postSubmitSummaryBadgeStyle(
-                            submission.postSubmitSummary.tone,
-                            C,
-                          )}
-                          title={submission.postSubmitSummary.label}
-                        >
-                          {submission.postSubmitSummary.label}
-                        </span>
-                      ) : (
-                        <span style={{ color: theme.muted }}>—</span>
-                      )}
-                    </td>
-                  ) : null}
-                  <td className="px-[15px] py-3">
-                    <SubmissionProgressCell submission={submission} theme={theme} />
-                  </td>
-                  <td className="px-[15px] py-3">
-                    <SubmissionNextStepCell submission={submission} theme={theme} />
-                  </td>
-                  {showFeesColumn ? (
-                    <td className="px-[15px] py-3">
-                      <SubmissionFeeBadges submission={submission} C={C} />
-                    </td>
-                  ) : null}
-                </tr>
-              );
-            })}
-          </motion.tbody>
-        </table>
-      </div>
-      {hasMoreSubmissions ? (
-        <div
-          className="flex justify-center border-t px-4 py-3"
-          style={{ borderColor: "#EDF1ED" }}
-        >
-          <button
-            type="button"
-            disabled={loadingMore}
-            onClick={() => void loadSubmissions({ append: true })}
-            className="text-[11px] font-extrabold disabled:opacity-60"
-            style={{ color: theme.primary }}
-          >
-            {loadingMore
-              ? "Loading more..."
-              : `Show more (${unfilteredTotalCount - loadedSubmissions.length} remaining) →`}
-          </button>
-        </div>
-      ) : null}
-    </AdminCard>
-  );
-
-  const tableSection =
-    error && !tableReady ? (
-      <AdminCard theme={theme} padding="canvas">
-        <p className="text-sm" style={{ color: C.error }}>
-          {error}
-        </p>
-      </AdminCard>
-    ) : tableReady && showEmptyFilteredState ? (
-      <AdminCard theme={theme} padding="canvas">
-        <p className="text-sm" style={{ color: theme.muted }}>
-          No submissions match the current filters.
-        </p>
-      </AdminCard>
-    ) : tableReady && unfilteredTotalCount === 0 ? (
-      <AdminCard theme={theme} padding="canvas">
-        <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
-          No applications yet. Publish an enrollment flow and share your public apply
-          link with families.
-        </p>
-        <Link
-          href={flowsPath}
-          className="mt-3 inline-block text-sm font-extrabold"
-          style={{ color: theme.primary }}
-        >
-          Go to Enrollment Flows →
-        </Link>
-      </AdminCard>
-    ) : tableReady ? (
-      tableCardContent
-    ) : children == null ? (
-      tableFallback
-    ) : null;
+  const statusOptions = [
+    { key: "all", label: "All", count: model.activeSubmissionsCount },
+    ...APPLICATION_STATUS_FILTER_ORDER.filter((status) => model.statusCounts[status]).map((status) => ({
+      key: status,
+      label: adminApplicationStatusLabel(status),
+      count: model.statusCounts[status],
+    })),
+  ];
 
   return (
-    <SubmissionsPageContext.Provider value={{ hydrateTable }}>
-      <div className="relative flex h-full min-h-0 flex-col">
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14">
-            {showMetrics ? (
-              <>
-                <div className="mb-[19px] grid grid-cols-1 gap-[13px] sm:grid-cols-2 xl:grid-cols-4">
-                  <AdminMetricCard
-                    theme={theme}
-                    value={String(activeSubmissionsCount)}
-                    label="All applications"
-                    accent="forest"
-                  />
-                  <AdminMetricCard
-                    theme={theme}
-                    value={String(draftCount)}
-                    label="In progress"
-                    accent="sky"
-                  />
-                  <AdminMetricCard
-                    theme={theme}
-                    value={String(submittedCount)}
-                    label="Ready to review"
-                    accent="gold"
-                  />
-                  <AdminMetricCard
-                    theme={theme}
-                    value={String(enrolledCount)}
-                    label="Enrolled learners"
-                    accent="berry"
-                  />
-                </div>
-
-                {latestSubmitted ? (
-                  <div
-                    className="mb-[15px] flex flex-col items-start justify-between gap-3 rounded-[12px] border px-4 py-3.5 sm:flex-row sm:items-center"
-                    style={{
-                      backgroundColor: "#EAF4EB",
-                      borderColor: "#C7DFCB",
-                      color: "#42694F",
-                    }}
-                  >
-                    <span className="text-xs">
-                      <b>Needs attention:</b>{" "}
-                      {latestSubmitted.guardianName ?? "A family"}&apos;s completed application
-                      is ready for your review
-                      {latestSubmitted.submittedAt
-                        ? ` · Submitted ${formatShortDate(latestSubmitted.submittedAt)}`
-                        : ""}
-                      .
-                    </span>
-                    <AdminButton
-                      theme={theme}
-                      variant="soft"
-                      onClick={() => setSelectedId(latestSubmitted.id)}
-                    >
-                      Review {latestSubmitted.guardianName?.split(" ")[0] ?? "family"} →
-                    </AdminButton>
-                  </div>
-                ) : null}
-              </>
+    <SubmissionsPageContext.Provider value={{ hydrateTable: model.hydrateTable }}>
+      <AdminGardenPage
+        theme={theme}
+        data-testid="admin-submissions-page"
+        overlays={
+          <AnimatePresence>
+            {model.selectedSubmission ? (
+              <ApplicationSubmissionDetailPanel
+                key={model.selectedSubmission.id}
+                appearance="garden"
+                submission={model.selectedSubmission}
+                organizationId={organizationId}
+                branding={branding}
+                schoolName={schoolName}
+                schoolSlug={slug}
+                onClose={() => model.setSelectedId(null)}
+                onSubmissionUpdated={model.handleSubmissionUpdated}
+                onSelectSubmission={model.setSelectedId}
+              />
             ) : null}
+          </AnimatePresence>
+        }
+      >
+        <AdminGardenPageHeader
+          kicker={
+            <>
+              Admissions<span className="hidden sm:inline"> · {schoolName}</span>
+            </>
+          }
+          title={
+            <>
+              Application <span className="text-[var(--sf-clay)]">submissions</span>
+            </>
+          }
+          subtitle={model.showMetrics ? statusLine(model) : "Every application families send lands here."}
+          refresh={
+            model.tableReady
+              ? {
+                  onRefresh: () => void model.refresh(),
+                  refreshing: model.isRefetching,
+                  lastUpdatedAt: model.lastUpdatedAt,
+                  label: "Refresh submissions",
+                }
+              : undefined
+          }
+          actions={
+            model.applyPublicPath ? (
+              <a
+                href={model.applyPublicPath}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={gBtnOutlineSm}
+              >
+                Public apply link
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+              </a>
+            ) : null
+          }
+        />
 
-            <div className="mb-[15px] flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                {isRefetching ? (
-                  <Loader2
-                    className="h-3.5 w-3.5 animate-spin"
-                    style={{ color: theme.primary }}
-                    aria-label="Updating submissions"
-                  />
-                ) : null}
-                <AdminStoryFilterPill
-                  active={statusFilter === "all"}
-                  label="All"
-                  count={activeSubmissionsCount}
-                  onClick={() => changeStatusFilter("all")}
-                  theme={theme}
-                />
-                {APPLICATION_STATUS_FILTER_ORDER.filter((status) => statusCounts[status]).map(
-                  (status) => (
-                    <AdminStoryFilterPill
-                      key={status}
-                      active={statusFilter === status}
-                      label={adminApplicationStatusLabel(status)}
-                      count={statusCounts[status]}
-                      onClick={() => changeStatusFilter(status)}
+        {model.showMetrics ? <GardenStatTiles stats={stats} ariaLabel="Application totals" /> : null}
+
+        {model.showMetrics && model.latestSubmitted ? (
+          <ReviewNextStrip
+            latest={model.latestSubmitted}
+            count={model.submittedCount}
+            onOpen={() => model.setSelectedId(model.latestSubmitted!.id)}
+          />
+        ) : null}
+
+        <SubmissionsTableCard model={model} statusOptions={statusOptions} theme={theme}>
+          {children}
+        </SubmissionsTableCard>
+      </AdminGardenPage>
+    </SubmissionsPageContext.Provider>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* "Review next" lead strip (the page's one toy button)               */
+/* ------------------------------------------------------------------ */
+
+function ReviewNextStrip({
+  latest,
+  count,
+  onOpen,
+}: {
+  latest: NonNullable<ApplicationSubmissionsModel["latestSubmitted"]>;
+  count: number;
+  onOpen: () => void;
+}) {
+  const reduce = useReducedMotion() === true;
+  const first = latest.guardianName?.split(" ")[0] ?? "family";
+  return (
+    <motion.button
+      type="button"
+      onClick={onOpen}
+      initial={reduce ? false : { opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="group flex w-full flex-col items-start gap-3 rounded-[22px] border-2 border-[var(--sf-ink)] bg-[var(--sf-clay)] px-5 py-4 text-left text-white shadow-[0_4px_0_0_var(--sf-ink)] transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/35 focus-visible:ring-offset-2 sm:flex-row sm:items-center sm:justify-between"
+      data-testid="submissions-review-next"
+    >
+      <span className="flex min-w-0 items-start gap-3">
+        <span
+          aria-hidden
+          className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border-2 border-[var(--sf-ink)] bg-[var(--sf-butter)]"
+        >
+          <ClipboardList className="h-5 w-5 text-[var(--sf-ink)]" />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-[11px] font-extrabold uppercase tracking-[0.18em] text-white/75">
+            Needs attention{count > 1 ? ` · ${count} ready to review` : ""}
+          </span>
+          <span className="mt-0.5 block text-[16px] font-extrabold leading-snug">
+            {latest.guardianName ?? "A family"}&apos;s completed application is ready for your review
+          </span>
+          {latest.submittedAt ? (
+            <span className="block text-[13px] font-semibold text-white/80">
+              Submitted {formatShortDate(latest.submittedAt)}
+            </span>
+          ) : null}
+        </span>
+      </span>
+      <span className={gBtnOnAccent}>
+        Review {first}
+        <ArrowRight className="h-4 w-4" aria-hidden />
+      </span>
+    </motion.button>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Table                                                               */
+/* ------------------------------------------------------------------ */
+
+function SubmissionsTableCard({
+  model,
+  statusOptions,
+  theme,
+  children,
+}: {
+  model: ApplicationSubmissionsModel;
+  statusOptions: Array<{ key: string; label: string; count?: number }>;
+  theme: ParentThemeTokens;
+  /** Streamed table loader (Suspense) until the table hydrates. */
+  children?: ReactNode;
+}) {
+  const filters = (
+    <div className="flex flex-col gap-2.5">
+      <GardenFilterChips
+        ariaLabel="Filter by status"
+        options={statusOptions}
+        value={model.statusFilter}
+        onChange={model.changeStatusFilter}
+        busy={model.isRefetching}
+      />
+      {model.formOptions.length > 1 ? (
+        <GardenFilterChips
+          ariaLabel="Filter by form"
+          options={[
+            { key: "all", label: "All forms" },
+            ...model.formOptions.map((option) => ({ key: option.key, label: option.title })),
+          ]}
+          value={model.formFilter}
+          onChange={model.changeFormFilter}
+        />
+      ) : null}
+    </div>
+  );
+
+  let body: ReactNode;
+  if (model.error && !model.tableReady) {
+    body = (
+      <GardenLoadError
+        title="Submissions didn't load"
+        description={model.error}
+        onRetry={model.retry}
+        retrying={model.initialLoading}
+      />
+    );
+  } else if (model.tableReady && model.showEmptyFilteredState) {
+    body = (
+      <div className="rounded-[16px] bg-[var(--sf-paper)] p-4 text-[14px] font-semibold text-[var(--sf-soft)]">
+        No submissions match the current filters.{" "}
+        <button
+          type="button"
+          onClick={() => {
+            model.changeStatusFilter("all");
+            model.changeFormFilter("all");
+          }}
+          className={gLinkSm}
+        >
+          Show all applications
+        </button>
+      </div>
+    );
+  } else if (model.tableReady && model.unfilteredTotalCount === 0) {
+    body = (
+      <GardenEmptyState
+        icon={Inbox}
+        title="No applications yet"
+        description="Publish an enrollment flow and share your public apply link with families."
+        action={
+          <Link href={model.flowsPath} className={gLinkSm}>
+            Go to Enrollment Flows
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+          </Link>
+        }
+      />
+    );
+  } else if (model.tableReady) {
+    body = <SubmissionsTable model={model} theme={theme} />;
+  } else if (model.hasStreamedTable) {
+    body = children;
+  } else {
+    body = <SubmissionsTableSkeletonRows columns={model.tableColumnCount} />;
+  }
+
+  return (
+    <GCard
+      index={3}
+      kicker="Applications"
+      title={
+        model.statusFilter === "all"
+          ? "All submissions"
+          : adminApplicationStatusLabel(model.statusFilter)
+      }
+      action={
+        model.tableReady && model.unfilteredTotalCount > 0 ? (
+          <span className="text-[12.5px] font-bold tabular-nums text-[var(--sf-soft)]" aria-live="polite">
+            {model.filteredSubmissions.length} shown
+          </span>
+        ) : null
+      }
+      data-testid="submissions-table-card"
+    >
+      {model.tableReady && model.unfilteredTotalCount > 0 ? (
+        <div className="mb-4 border-b-[1.5px] border-dashed border-[var(--sf-ink)]/12 pb-4">{filters}</div>
+      ) : null}
+      {body}
+    </GCard>
+  );
+}
+
+export function SubmissionsTableSkeletonRows({ columns = 6 }: { columns?: number }) {
+  return (
+    <div className="flex flex-col gap-2" role="status" aria-live="polite">
+      <span className="sr-only">Loading submissions</span>
+      <div className="flex gap-2">
+        {Array.from({ length: Math.min(columns, 5) }).map((_, i) => (
+          <GSkeleton key={i} className="h-8 w-24 !rounded-full" />
+        ))}
+      </div>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <GSkeleton key={i} className="h-[58px] !rounded-[14px]" />
+      ))}
+    </div>
+  );
+}
+
+function rowName(submission: AdminApplicationSubmission): string {
+  return [submission.guardianName, submission.studentLabel].filter(Boolean).join(", ");
+}
+
+function SubmissionsTable({ model, theme }: { model: ApplicationSubmissionsModel; theme: ParentThemeTokens }) {
+  const reduce = useReducedMotion() === true;
+  const toggle = (id: string) => model.setSelectedId(model.selectedId === id ? null : id);
+
+  return (
+    <div className="relative">
+      {model.isRefetching ? (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-start justify-center pt-16" aria-hidden>
+          <Loader2 className="h-5 w-5 animate-spin text-[var(--sf-clay)]" />
+        </div>
+      ) : null}
+      <div className={`transition-opacity duration-200 ${model.isRefetching ? "opacity-55" : ""}`}>
+        {/* Phones: one tappable card per application */}
+        <ul className="m-0 flex list-none flex-col gap-2 p-0 md:hidden">
+          {model.filteredSubmissions.map((submission) => {
+            const selected = submission.id === model.selectedId;
+            const flashed = submission.id === model.flashId;
+            return (
+              <li key={submission.id}>
+                <button
+                  type="button"
+                  onClick={() => toggle(submission.id)}
+                  aria-label={`Open ${rowName(submission) || "application"}`}
+                  className={`flex w-full flex-col gap-2.5 rounded-[16px] border-[1.5px] px-3.5 py-3 text-left transition-colors ${
+                    flashed
+                      ? "border-[var(--sf-forest)]/40 bg-[var(--sf-mint)]"
+                      : selected
+                        ? "border-[var(--sf-clay)]/40 bg-[var(--sf-accent-wash)]"
+                        : "border-[var(--sf-ink)]/10 bg-white"
+                  }`}
+                >
+                  <span className="flex w-full items-start justify-between gap-2">
+                    <GardenContactCell
+                      submission={submission}
+                      loginStatusByGuardianId={model.loginStatusByGuardianId}
+                      loginStatusLoading={model.loginStatusLoading}
                       theme={theme}
                     />
-                  ),
-                )}
-              </div>
-              {applyPublicPath ? (
-                <a
-                  href={applyPublicPath}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="shrink-0"
-                >
-                  <AdminButton theme={theme} variant="primary">
-                    Public apply link
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </AdminButton>
-                </a>
-              ) : null}
-            </div>
+                    <GChip tone={applicationStatusChipTone(submission.status)}>
+                      {adminApplicationStatusLabel(submission.status)}
+                    </GChip>
+                  </span>
+                  <span className="flex w-full items-end justify-between gap-2">
+                    <span className="min-w-0 text-[13px] font-semibold text-[var(--sf-soft)]">
+                      {submission.studentLabel ?? "—"}
+                      {model.showFormColumn ? ` · ${submission.formTitle}` : ""}
+                    </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-[var(--sf-ink)]/40" aria-hidden />
+                  </span>
+                  <GardenNextStepCell submission={submission} />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
 
-            {formOptions.length > 1 ? (
-              <div className="mb-[15px] flex flex-wrap items-center gap-2">
-                <AdminStoryFilterPill
-                  active={formFilter === "all"}
-                  label="All forms"
-                  onClick={() => changeFormFilter("all")}
-                  theme={theme}
-                />
-                {formOptions.map((option) => (
-                  <AdminStoryFilterPill
-                    key={option.key}
-                    active={formFilter === option.key}
-                    label={option.title}
-                    onClick={() => changeFormFilter(option.key)}
-                    theme={theme}
-                  />
+        {/* Tablet and up: the full table (scrolls inside the card) */}
+        <div className="-mx-1 hidden overflow-x-auto md:block">
+          <table className={`w-full ${model.tableMinWidth} border-separate border-spacing-0 text-left`}>
+            <thead>
+              <tr>
+                {model.tableHeadings.map((heading) => (
+                  <th
+                    key={heading}
+                    scope="col"
+                    className="border-b-[1.5px] border-[var(--sf-ink)]/10 px-3 pb-2.5 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[var(--sf-soft)]"
+                  >
+                    {heading}
+                  </th>
                 ))}
-              </div>
-            ) : null}
-
-            {children}
-            {tableSection}
-          </div>
+              </tr>
+            </thead>
+            <motion.tbody
+              initial={reduce ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+            >
+              {model.filteredSubmissions.map((submission) => {
+                const selected = submission.id === model.selectedId;
+                const flashed = submission.id === model.flashId;
+                const cell = "border-b border-[var(--sf-ink)]/[0.06] px-3 py-3 align-middle";
+                return (
+                  <tr
+                    key={submission.id}
+                    onClick={() => toggle(submission.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        toggle(submission.id);
+                      }
+                    }}
+                    tabIndex={0}
+                    aria-selected={selected}
+                    className={`cursor-pointer transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--sf-clay)]/45 ${
+                      flashed
+                        ? "bg-[var(--sf-mint)]"
+                        : selected
+                          ? "bg-[var(--sf-accent-wash)]"
+                          : "hover:bg-[var(--sf-accent-wash)]"
+                    }`}
+                  >
+                    {model.showFormColumn ? (
+                      <td className={cell}>
+                        <div className="text-[13px] font-extrabold text-[var(--sf-ink)]">{submission.formTitle}</div>
+                        {submission.programName ? (
+                          <div className="mt-0.5 text-[12px] font-semibold text-[var(--sf-soft)]">
+                            {submission.programName}
+                          </div>
+                        ) : null}
+                      </td>
+                    ) : null}
+                    <td className={cell}>
+                      <GardenContactCell
+                        submission={submission}
+                        loginStatusByGuardianId={model.loginStatusByGuardianId}
+                        loginStatusLoading={model.loginStatusLoading}
+                        theme={theme}
+                      />
+                    </td>
+                    <td className={`${cell} text-[13px] font-bold text-[var(--sf-ink)]/80`}>
+                      {submission.studentLabel ?? "—"}
+                    </td>
+                    <td className={cell}>
+                      <GChip tone={applicationStatusChipTone(submission.status)}>
+                        {adminApplicationStatusLabel(submission.status)}
+                      </GChip>
+                    </td>
+                    {model.showEnrollmentColumn ? (
+                      <td className={cell}>
+                        {model.enrichmentLoading && !submission.enrollmentSummary ? (
+                          <GSkeleton className="h-5 w-16 !rounded-full" />
+                        ) : submission.enrollmentSummary ? (
+                          <GChip tone={toGChipTone(submission.enrollmentSummary.tone)}>
+                            <span title={submission.enrollmentSummary.label}>
+                              {submission.enrollmentSummary.label}
+                            </span>
+                          </GChip>
+                        ) : (
+                          <span className="text-[var(--sf-soft)]">—</span>
+                        )}
+                      </td>
+                    ) : null}
+                    {model.showPostSubmitColumn ? (
+                      <td className={cell}>
+                        {model.enrichmentLoading && !submission.postSubmitSummary ? (
+                          <GSkeleton className="h-5 w-20 !rounded-full" />
+                        ) : submission.postSubmitSummary ? (
+                          <GChip tone={toGChipTone(submission.postSubmitSummary.tone)} className="max-w-[12rem]">
+                            <span className="truncate" title={submission.postSubmitSummary.label}>
+                              {submission.postSubmitSummary.label}
+                            </span>
+                          </GChip>
+                        ) : (
+                          <span className="text-[var(--sf-soft)]">—</span>
+                        )}
+                      </td>
+                    ) : null}
+                    <td className={cell}>
+                      <GardenProgressCell submission={submission} />
+                    </td>
+                    <td className={cell}>
+                      <GardenNextStepCell submission={submission} />
+                    </td>
+                    {model.showFeesColumn ? (
+                      <td className={cell}>
+                        <GardenFeeBadges submission={submission} />
+                      </td>
+                    ) : null}
+                  </tr>
+                );
+              })}
+            </motion.tbody>
+          </table>
         </div>
-
-        <AnimatePresence>
-          {selectedSubmission ? (
-            <ApplicationSubmissionDetailPanel
-              key={selectedSubmission.id}
-              submission={selectedSubmission}
-              organizationId={organizationId}
-              branding={branding}
-              schoolName={schoolName}
-              schoolSlug={slug}
-              onClose={() => setSelectedId(null)}
-              onSubmissionUpdated={handleSubmissionUpdated}
-              onSelectSubmission={setSelectedId}
-            />
-          ) : null}
-        </AnimatePresence>
       </div>
-    </SubmissionsPageContext.Provider>
+
+      {model.hasMoreSubmissions ? (
+        <div className="mt-4 flex flex-col items-center gap-1.5 border-t-[1.5px] border-dashed border-[var(--sf-ink)]/12 pt-4">
+          <button
+            type="button"
+            disabled={model.loadingMore}
+            aria-busy={model.loadingMore || undefined}
+            onClick={model.loadMore}
+            className={gBtnOutlineSm}
+          >
+            <BusyLabel busy={model.loadingMore} busyLabel="Loading more…">
+              Show more ({model.unfilteredTotalCount - model.loadedSubmissions.length} remaining)
+            </BusyLabel>
+          </button>
+          <span className="text-[12px] font-semibold tabular-nums text-[var(--sf-soft)]">
+            Showing {model.loadedSubmissions.length} of {model.unfilteredTotalCount}
+          </span>
+        </div>
+      ) : null}
+    </div>
   );
 }

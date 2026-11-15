@@ -1,5 +1,7 @@
 "use client";
 
+import { useAdminGardenSkin } from "@/components/school-admin/garden/skin";
+import { GTabBar } from "@/components/school-parent/garden/ui";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
@@ -28,6 +30,27 @@ export default function TuitionSubTabBar<T extends string>({
   ariaLabel,
   testIdPrefix,
 }: TuitionSubTabBarProps<T>) {
+  const skin = useAdminGardenSkin();
+  if (skin) {
+    return (
+      <GTabBar
+        items={tabs.map((tab) => {
+          const Icon = tab.icon;
+          return {
+            key: tab.id,
+            label: tab.label,
+            icon: Icon ? <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> : undefined,
+            suffix: tab.badge ? <span className="shrink-0">{tab.badge}</span> : undefined,
+            testId: `${testIdPrefix}-tab-${tab.id}`,
+          };
+        })}
+        activeKey={activeTab}
+        onChange={(key) => onTabChange(key as T)}
+        ariaLabel={ariaLabel}
+        data-testid={`${testIdPrefix}-tab-bar`}
+      />
+    );
+  }
   return (
     <div
       className="overflow-x-auto overflow-y-hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"

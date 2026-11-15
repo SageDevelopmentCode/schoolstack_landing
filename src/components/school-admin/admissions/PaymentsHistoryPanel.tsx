@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { CreditCard } from "lucide-react";
 import {
@@ -9,16 +9,11 @@ import {
 } from "@/components/school-admin/skeletons";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import {
-  listApplicationPayments,
-  listOrganizationPayments,
-  matchesPaymentRecordFilters,
   PAYMENT_METHOD_LABELS,
   PAYMENT_STATUS_LABELS,
   PAYMENT_TYPE_LABELS,
-  summarizePaymentRows,
-  type PaymentRecordDisplayRow,
 } from "@/lib/admissions/payment-records";
-import type { PaymentStatus, PaymentType } from "@/lib/stripe/application-payments";
+import type { PaymentStatus } from "@/lib/stripe/application-payments";
 import PaymentLedgerSummaryCards from "@/components/school-admin/finances/PaymentLedgerSummaryCards";
 import { BuilderSectionIntro } from "@/components/school-admin/admissions/builder-question-card";
 import {
@@ -26,11 +21,12 @@ import {
   type AdminThemeTokens,
 } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import { parseOperationalError } from "@/lib/operational-errors-client";
-import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
-import { createClient } from "@/utils/supabase/client";
-
-type PaymentsHistoryPanelMode = "admissions" | "revenue" | "transactions";
+import {
+  PAYMENT_STATUS_FILTERS,
+  PAYMENT_TYPE_FILTERS,
+  usePaymentsHistoryModel,
+  type PaymentsHistoryPanelMode,
+} from "./payments/usePaymentsHistoryModel";
 
 type PaymentsHistoryPanelProps = {
   organizationId?: string;
@@ -42,21 +38,6 @@ type PaymentsHistoryPanelProps = {
   isReady?: boolean;
   onSwitchToSetup?: () => void;
 };
-
-const STATUS_FILTERS: Array<{ value: "" | PaymentStatus; label: string }> = [
-  { value: "", label: "All" },
-  { value: "pending", label: "Pending" },
-  { value: "succeeded", label: "Succeeded" },
-  { value: "failed", label: "Failed" },
-  { value: "refunded", label: "Refunded" },
-];
-
-const TYPE_FILTERS: Array<{ value: "" | PaymentType; label: string }> = [
-  { value: "", label: "All" },
-  { value: "application_fee", label: "Application fee" },
-  { value: "enrollment_checklist", label: "Enrollment" },
-  { value: "tuition", label: "Tuition" },
-];
 
 function formatDateTime(iso: string | null) {
   if (!iso) return "—";
@@ -205,88 +186,20 @@ export default function PaymentsHistoryPanel({
   onSwitchToSetup,
 }: PaymentsHistoryPanelProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
-  const supabase = createClient();
-  const [rows, setRows] = useState<PaymentRecordDisplayRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<"" | PaymentStatus>(() =>
-    mode === "revenue" ? "succeeded" : "",
-  );
-  const [typeFilter, setTypeFilter] = useState<"" | PaymentType>("");
+  const {
+    rows,
+    filteredRows,
+    loading,
+    error,
+    summary,
+    statusCounts,
+    typeCounts,
+    statusFilter,
+    setStatusFilter,
+    typeFilter,
+    setTypeFilter,
+  } = usePaymentsHistoryModel({ organizationId, applicationId, mode });
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-
-  const loadRows = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      let data: PaymentRecordDisplayRow[];
-      if (applicationId) {
-        data = await listApplicationPayments(supabase, applicationId);
-      } else if (organizationId) {
-        data = await listOrganizationPayments(supabase, organizationId, {});
-      } else {
-        data = [];
-      }
-      setRows(data);
-    } catch (loadError) {
-      const parsed = parseOperationalError(loadError);
-      setError(
-        parsed.message === "Unknown error"
-          ? "Failed to load payment history."
-          : parsed.message,
-      );
-      setRows([]);
-      if (organizationId) {
-        void reportPortalOperationalError("school_admin", {
-          organizationId,
-          operation:
-            mode === "admissions"
-              ? "payments.history.load"
-              : `finances.${mode}.load`,
-          error: parsed.message,
-          code: parsed.code,
-          details: parsed.details,
-        }, loadError);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [applicationId, mode, organizationId, supabase]);
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      void loadRows();
-    });
-  }, [loadRows]);
-
-  const filteredRows = useMemo(
-    () =>
-      rows.filter((row) =>
-        matchesPaymentRecordFilters(row, {
-          status: statusFilter,
-          paymentType: typeFilter,
-        }),
-      ),
-    [rows, statusFilter, typeFilter],
-  );
-
-  const summary = useMemo(() => summarizePaymentRows(rows), [rows]);
-
-  const statusCounts = useMemo(() => {
-    const counts: Partial<Record<PaymentStatus, number>> = {};
-    for (const row of rows) {
-      counts[row.status] = (counts[row.status] ?? 0) + 1;
-    }
-    return counts;
-  }, [rows]);
-
-  const typeCounts = useMemo(() => {
-    const counts: Partial<Record<PaymentType, number>> = {};
-    for (const row of rows) {
-      counts[row.paymentType] = (counts[row.paymentType] ?? 0) + 1;
-    }
-    return counts;
-  }, [rows]);
 
   const columnHeadings = useMemo(() => {
     const headings = [
@@ -315,7 +228,7 @@ export default function PaymentsHistoryPanel({
       >
         Status
       </span>
-      {STATUS_FILTERS.map((filter) => (
+      {PAYMENT_STATUS_FILTERS.map((filter) => (
         <FilterChip
           key={filter.value || "all-status"}
           active={statusFilter === filter.value}
@@ -342,7 +255,7 @@ export default function PaymentsHistoryPanel({
       >
         Type
       </span>
-      {TYPE_FILTERS.map((filter) => (
+      {PAYMENT_TYPE_FILTERS.map((filter) => (
         <FilterChip
           key={filter.value || "all-type"}
           active={typeFilter === filter.value}

@@ -3,6 +3,11 @@
 import { useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
+import { GDialog } from "@/components/school-parent/garden/GDialog";
+import { PortalIsland } from "@/components/school-parent/garden/ParentGardenFrame";
+import { GChip } from "@/components/school-parent/garden/ui";
+import { applicationStatusChipTone } from "@/lib/admissions/application-status-ui";
+import { useSubmissionDetailStory } from "./SubmissionDetailStoryContext";
 import ApplicationReadOnlyView from "@/components/admissions/ApplicationReadOnlyView";
 import ApplicationPdfDownloadButton from "@/components/school-admin/admissions/ApplicationPdfDownloadButton";
 import {
@@ -35,6 +40,50 @@ export default function ApplicationAnswersModal({
   onClose,
 }: ApplicationAnswersModalProps) {
   const printRef = useRef<HTMLDivElement>(null);
+  const { variant, theme } = useSubmissionDetailStory();
+
+  if (variant === "garden" && theme) {
+    const tone = applicationStatusChipTone(detail.status);
+    return (
+      <GDialog
+        theme={theme}
+        open={open}
+        onClose={onClose}
+        size="2xl"
+        title={
+          <span className="inline-flex flex-wrap items-center gap-2">
+            Application answers
+            <GChip tone={tone}>{applicationStatusLabel(detail.status)}</GChip>
+          </span>
+        }
+        description={detail.formTitle}
+        headerExtra={
+          <ApplicationPdfDownloadButton
+            C={C}
+            downloadLabel={downloadLabel}
+            getElement={() => printRef.current}
+            errorClassName="mt-1 text-[12.5px] font-bold text-[#9a3422]"
+          />
+        }
+        data-testid="application-answers-dialog"
+      >
+        <PortalIsland className="overflow-hidden rounded-[18px] border-[1.5px] border-[var(--sf-ink)]/10 bg-white">
+          <div ref={printRef} id="application-answers-print">
+            <ApplicationReadOnlyView
+              branding={branding}
+              schoolName={schoolName}
+              schoolSlug={schoolSlug}
+              application={detail}
+              layout="page"
+              view="full"
+              hideBackLink
+              standalone={false}
+            />
+          </div>
+        </PortalIsland>
+      </GDialog>
+    );
+  }
 
   const statusStyle = applicationStatusBadgeStyle(detail.status, C);
 
