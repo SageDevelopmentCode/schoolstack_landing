@@ -17,7 +17,7 @@ import {
   RotateCw,
   type LucideIcon,
 } from "lucide-react";
-import ParentGardenFrame from "@/components/school-parent/garden/ParentGardenFrame";
+import ParentGardenFrame, { ParentGardenScope } from "@/components/school-parent/garden/ParentGardenFrame";
 import ParentGardenPageHeader from "@/components/school-parent/garden/ParentGardenPageHeader";
 import { PORTAL_EASE, gFade } from "@/components/school-parent/garden/motion";
 import {
@@ -70,11 +70,19 @@ export function AdminGardenPage({
   className = "",
   containerClassName = "",
   scroll = true,
+  skinOverlays = false,
   "data-testid": testId,
 }: {
   theme: ParentThemeTokens;
   children: ReactNode;
   overlays?: ReactNode;
+  /**
+   * Render `overlays` inside the Garden scope + admin skin, so shared story
+   * sheets/modals (SchoolAdminSlideOverShell, SchoolAdminModalShell,
+   * AdminButton…) take the Garden look. Use once every overlay on the page is
+   * skin-aware.
+   */
+  skinOverlays?: boolean;
   className?: string;
   containerClassName?: string;
   /** Own the vertical scroll (pages rendered in a fixed-height admin pane). */
@@ -104,7 +112,15 @@ export function AdminGardenPage({
       ) : (
         frame
       )}
-      {overlays}
+      {skinOverlays && overlays ? (
+        <AdminGardenSkin theme={theme}>
+          <ParentGardenScope theme={theme} className="contents sf-admin-garden-skin">
+            {overlays}
+          </ParentGardenScope>
+        </AdminGardenSkin>
+      ) : (
+        overlays
+      )}
     </>
   );
 }

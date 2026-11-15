@@ -2,6 +2,8 @@
 
 import { useEffect, type CSSProperties, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useAdminGardenSkin } from "@/components/school-admin/garden/skin";
+import { GardenOverlayScope } from "@/components/school-admin/garden/blocks";
 import {
   adminModalTransition,
   modalBackdropVariants,
@@ -44,6 +46,7 @@ export default function SchoolAdminModalShell({
   panelStyle,
 }: SchoolAdminModalShellProps) {
   const reducedMotion = useReducedMotion() ?? false;
+  const skin = useAdminGardenSkin();
 
   useEffect(() => {
     if (!open) return;
@@ -56,7 +59,7 @@ export default function SchoolAdminModalShell({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open, onClose]);
 
-  return (
+  const modal = (
     <AnimatePresence>
       {open ? (
         <motion.div
@@ -66,7 +69,7 @@ export default function SchoolAdminModalShell({
           exit="exit"
           transition={{ duration: 0.2 }}
           className="fixed inset-0 flex items-center justify-center p-4"
-          style={{ backgroundColor: "rgba(0,0,0,0.4)", zIndex }}
+          style={{ backgroundColor: skin ? "rgba(43,36,29,0.42)" : "rgba(0,0,0,0.4)", zIndex }}
           onClick={closeOnBackdrop ? onClose : undefined}
           role="presentation"
         >
@@ -91,4 +94,9 @@ export default function SchoolAdminModalShell({
       ) : null}
     </AnimatePresence>
   );
+
+  // Inside a Garden admin page the panel is portalled into the Garden scope;
+  // the skin CSS gives hand-rolled dialog panels the Garden look.
+  if (skin) return <GardenOverlayScope theme={skin}>{modal}</GardenOverlayScope>;
+  return modal;
 }
