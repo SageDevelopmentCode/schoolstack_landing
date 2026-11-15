@@ -4,8 +4,8 @@ description: >-
   "Garden" design system for the school-branded SCHOOL ADMIN portal (web).
   Use whenever building, redesigning or restyling an admin page or tab under
   src/app/school/[slug]/admin/ or src/components/school-admin/ in the Garden
-  look (Dashboard and Admissions are done; My School, Attendance, Schedule,
-  Messages, Finances, etc. are next), or when asked to "make this admin tab
+  look (Dashboard, Admissions and every My School tab are done; Schedule,
+  Messages, Finances, Committees, etc. are next), or when asked to "make this admin tab
   match the new Dashboard", "use the admin Garden design", or migrate an admin
   page off School Day Story. Covers the admin frame and theme, admin density
   rules, the feedback contract (toasts, saving, errors, retry), the view-model
@@ -48,6 +48,10 @@ Related skills:
 | `src/components/school-admin/garden/skin.tsx` | `AdminGardenSkin` + `useAdminGardenSkin`: story primitives render Garden inside it (§2.1); `SkinPortalScope` for portalled overlays |
 | `src/components/school-admin/garden/useAdminAction.ts` | `run(fn, { key, success, error, retry })`: pending key, toast pair with error-specific id + Retry, mint flash |
 | `src/components/school-admin/admissions/**` | Admissions reference: Payments (`payments/*`), Submissions (`submissions/*`, Garden drawer), Programs (`programs/useProgramsModel`), Enrollment Flows (`EnrollmentFlowsStoryShell` = Garden full-height shell, `EnrollmentFlowsOverview`) |
+| `src/components/school-admin/garden/blocks.tsx` | My School blocks: `GardenRecordList` + `GARDEN_LIST_DETAIL_GRID` (list + detail; search, filter chips, no-match reset, mint flash, scroll-to-detail on phones), `GardenPickerSheet` (single/multi picker drawer that only closes when `onSave` returns `true`), `GardenLeadStrip`, `GardenSearchInput`, `G_TABLE` / `G_TH` / `G_TD` / `gRowClass` / `GardenRefetchVeil`, `GardenFacts`, `GardenGroupHeading`, `GardenAvatar`, `GardenCopyRow`, `GardenOverlayScope` (portal into the Garden scope + skin) |
+| `src/components/school-admin/garden/useAdminConfirm.tsx` | Promise confirm (`await confirm({ title, confirmLabel })`) that replaces `window.confirm`; renders `ConfirmDialog` → `GConfirmDialog` under the skin |
+| `src/components/school-admin/garden/AdminGardenRouteSkeleton.tsx` | `"use client"` route skeleton for `next/dynamic` `loading` in `[subtab]/page.tsx` |
+| My School references | Staff + Classrooms (`staff/*`, `classrooms/*`: list + detail, pickers, Undo), My Students (`students/*`: table + drawer), Staff Hours (`staff-hours/*`), Attendance (`attendance/GardenAttendancePage` on `GardenAttendanceBoard variant="page"`), Forms & Documents (`forms-documents/*`), Friday Branch (`friday-branch/*`), School Profile, Tuition (`TuitionDashboard` shell; panels via the skin), Newsletters |
 | `src/lib/school-admin/admin-toast.ts` | `adminToast` with `{ description, action, id }` |
 
 ## 2. Frame and theme
@@ -75,10 +79,12 @@ return (
 Big tabs have deep story editors (form builders, checklists, co-op panels) shared with other admin pages. Don't rewrite them for Garden. `AdminGardenPage` (and `EnrollmentFlowsStoryShell`) mount `AdminGardenSkin` plus the `.sf-admin-garden-skin` class, and the shared primitives switch look only inside it:
 
 - `AdminCard`, `AdminButton` (primary → solid accent, not toy), `AdminChip` → `GChip`, `AdminSectionKicker`, `AdminDisplayHeading`, `AdminTextLink`, `BuilderQuestionCard` / `BuilderSectionIntro`, `ConfirmDialog` → `GConfirmDialog`, `SchoolAdminSelect` → `GardenSelect`, `SchoolAdminDatePicker` → native date, `TuitionSubTabBar` → `GTabBar` (same test ids).
+- Also skin-aware: `SchoolAdminSlideOverShell` → portalled `GSidePanel` (same props; ≥36rem widths become `size="xl"`), `SchoolAdminModalShell` → portalled into the Garden scope, `AdminMetricCard` → Garden tile, `SchoolAdminSegmentedControl` → Garden pills, `ParentChip` → `GChip`, `ParentCard` (default variant) → Garden card. Outside the skin they render exactly as before.
+- Sheets passed in `AdminGardenPage overlays` only see the skin with `skinOverlays` (opt-in, so un-migrated overlays keep their look). Turn it on once every overlay on the page is skin-aware.
 - Raw `<button style={getAdminButtonStyle(C, kind)}>` in admissions files became `DetailButton` (`admissions/detail-garden.tsx`); it reads the skin or the `SubmissionDetailStoryContext` "garden" variant.
 - `garden.css` skin rules restyle raw inputs/textareas/selects, hand-rolled `[role=dialog][aria-modal]` panels, 9–11px story type and the Flows outline/canvas (`data-flows-*`). Opt out with `data-garden-skip`; `.sf-demo` is never touched.
 - Anything that `createPortal`s to `<body>` must wrap its content in `SkinPortalScope`, or skinned buttons lose the Garden tokens.
-- Outside the skin (Schedule, Students, Finances, Teacher, Committees) everything stays School Day Story. Shared components that need a different shell take `appearance="garden"` (`ApplicationSubmissionDetailPanel`, `StartEnrollmentModal`) or read the detail variant.
+- Outside the skin (Schedule, Finances, Teacher, Committees, the dashboard's attendance sheets) everything stays School Day Story. Shared components that need a different shell take `appearance="garden"` (`ApplicationSubmissionDetailPanel`, `StartEnrollmentModal`) or read the detail variant.
 
 ## 3. Admin feel rules (on top of the parent rules)
 
@@ -147,7 +153,12 @@ Big tabs have deep story editors (form builders, checklists, co-op panels) share
 | **Setup steps with inline CTA**: `GardenSteps`, the current step holds the toy CTA + requirement chips, `LiveDot` "Watching for updates" while polling, "Last checked" + Check status | `PaymentsSetupPage` › `StripeConnectCard` | Connect/onboarding flows |
 | **Split editor**: list `GCard` (rows with status chip + meta) + editor `GCard` (`GTabBar`, Garden fields, inline validation) + `GardenSaveBar` (sticky only while dirty; Discard / toy Save) | `ProgramsPage` | Any list + edit page |
 | **Review drawer**: `GSidePanel size="xl"` with `headerBelow` `GTabBar`, status chip in `headerAside`, sections as Garden cards via the detail variant, dialogs as `GDialog` | `ApplicationSubmissionDetailPanel appearance="garden"` | Record review / detail drawers |
-| **Garden table**: `border-separate` table inside a `GCard`, uppercase 11px headers, accent-wash hover, selected wash, mint flash, refetch veil; stacked tappable cards below `md` | `ApplicationSubmissionsPageShell`, `GardenPaymentsHistory` | Data tables |
+| **Garden table**: `border-separate` table inside a `GCard`, uppercase 11px headers, accent-wash hover, selected wash, mint flash, refetch veil; stacked tappable cards below `md` | `ApplicationSubmissionsPageShell`, `GardenPaymentsHistory`, `students/StudentsPage` (`G_TABLE` / `gRowClass`) | Data tables |
+| **List + detail**: strip `GardenStatTiles` that filter, a data `GardenNotice` ("N profiles to finish" → open the first), `GardenRecordList` + a detail card with `GTabBar`, inline edit with a toy Save, `?id=` in the URL | `staff/StaffPage`, `classrooms/ClassroomsPage` | Records with a profile + sub-sections |
+| **Picker that keeps the selection on failure**: `GardenPickerSheet` with groups, search, "N selected", busy Save; `onSave` returns `run(...).ok` | Staff learners, Classroom staff/roster, Student classrooms | Any assign / add-to picker |
+| **Undo instead of a confirm**: removals whose inverse API exists pass `successAction: { label: "Undo", … }` to `run` (toast stays 8s) | Staff unassign, Classroom remove staff/student, Friday Branch local deletes | Reversible removals |
+| **Data-loss guard**: a failed load shows `GardenLoadError` and renders no editable form, so defaults can't be saved over real data | `friday-branch/useFridayBranchModel`, `tuition/TuitionLateFeeSettingsPanel`, School Profile | Any page that saves a whole document |
+| **Two save modes made visible**: autosaving edits toast immediately; batched edits show `GardenSaveBar` with "N changed" + Discard | Friday Branch | Mixed immediate + batched editors |
 
 ## 7. Migrating an admin tab (checklist)
 
