@@ -11,6 +11,7 @@ import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import type { AdminTuitionPaymentRecord } from "@/lib/tuition/payments";
 import { formatCents } from "@/lib/tuition/pricing";
+import { useAdminConfirm } from "@/components/school-admin/garden/useAdminConfirm";
 import { getStudentBadgeColors } from "@/lib/tuition/student-badge-colors";
 
 const PAYMENTS_PAGE_SIZE = 50;
@@ -61,6 +62,7 @@ export default function TuitionPaymentHistoryPanel({
 }: TuitionPaymentHistoryPanelProps) {
   const { theme } = useSchoolAdminStoryTheme();
   const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
+  const { confirm, dialog: confirmDialog } = useAdminConfirm(C);
   const studentBadgeColors = useMemo(() => getStudentBadgeColors(C, 0), [C]);
 
   const [payments, setPayments] = useState<AdminTuitionPaymentRecord[]>([]);
@@ -116,7 +118,16 @@ export default function TuitionPaymentHistoryPanel({
     });
   }, [loadPayments]);
 
-  const handleRefund = async (paymentId: string) => {
+  const handleRefund = async (paymentId: string, amountCents?: number) => {
+    if (
+      !(await confirm({
+        title: amountCents != null ? `Refund ${formatCents(amountCents)}?` : "Refund this payment?",
+        description: "The payment is refunded to the family. This can't be undone from here.",
+        confirmLabel: "Refund payment",
+      }))
+    ) {
+      return;
+    }
     setActionLoading(paymentId);
     try {
       const response = await fetch(`/api/tuition/payments/${paymentId}/refund`, {
@@ -126,7 +137,9 @@ export default function TuitionPaymentHistoryPanel({
         const payload = (await response.json()) as { error?: string };
         throw new Error(payload.error ?? "Failed to process refund.");
       }
-      adminToast.success("Refund processed");
+      adminToast.success("Refund processed.", {
+        description: amountCents != null ? `${formatCents(amountCents)} refunded.` : undefined,
+      });
       await loadPayments();
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to process refund."));
@@ -232,7 +245,7 @@ export default function TuitionPaymentHistoryPanel({
                         variant="outline"
                         size="compact"
                         disabled={actionLoading === payment.id}
-                        onClick={() => void handleRefund(payment.id)}
+                        onClick={() => void handleRefund(payment.id, payment.amountCents)}
                       >
                         Refund
                       </AdminButton>
@@ -263,6 +276,7 @@ export default function TuitionPaymentHistoryPanel({
           ) : null}
         </>
       )}
+      {confirmDialog}
     </AdminCard>
   );
 }

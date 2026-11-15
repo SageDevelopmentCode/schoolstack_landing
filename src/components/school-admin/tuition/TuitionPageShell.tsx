@@ -7,6 +7,8 @@ import type { TuitionDashboardData } from "@/lib/tuition/load-tuition-dashboard-
 import TuitionDashboard from "@/components/school-admin/tuition/TuitionDashboard";
 import TuitionSetupWizard from "@/components/school-admin/tuition/TuitionSetupWizard";
 import { TuitionPageContext } from "./tuition-page-context";
+import { AdminGardenPage } from "@/components/school-admin/garden/kit";
+import { buildParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type TuitionPageShellProps = {
   organizationId: string;
@@ -23,6 +25,7 @@ export default function TuitionPageShell({
   setupStatus,
   children,
 }: TuitionPageShellProps) {
+  const theme = useMemo(() => buildParentThemeTokens(branding), [branding]);
   const [dashboardData, setDashboardData] = useState<TuitionDashboardData | null>(null);
   const [dashboardHydrated, setDashboardHydrated] = useState(false);
 
@@ -40,12 +43,14 @@ export default function TuitionPageShell({
 
   if (!setupStatus.hasActiveRatePlan) {
     return (
-      <TuitionSetupWizard
-        organizationId={organizationId}
-        branding={branding}
-        draftRatePlanId={setupStatus.draftRatePlanId}
-        onComplete={() => window.location.reload()}
-      />
+      <AdminGardenPage theme={theme} skinOverlays data-testid="admin-tuition-setup">
+        <TuitionSetupWizard
+          organizationId={organizationId}
+          branding={branding}
+          draftRatePlanId={setupStatus.draftRatePlanId}
+          onComplete={() => window.location.reload()}
+        />
+      </AdminGardenPage>
     );
   }
 

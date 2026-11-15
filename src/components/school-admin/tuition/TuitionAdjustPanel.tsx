@@ -364,6 +364,7 @@ export default function TuitionAdjustPanel({
             onClick={(event) => event.stopPropagation()}
             role="dialog"
             aria-modal="true"
+            data-garden-dialog
             aria-label={panelTitle}
             data-testid="tuition-adjust-panel"
           >

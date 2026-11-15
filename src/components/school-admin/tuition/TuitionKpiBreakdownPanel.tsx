@@ -179,6 +179,7 @@ export default function TuitionKpiBreakdownPanel({
             onClick={(event) => event.stopPropagation()}
             role="dialog"
             aria-modal="true"
+            data-garden-dialog
             aria-label={`${title} breakdown`}
             data-testid="tuition-kpi-breakdown-panel"
           >
