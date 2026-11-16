@@ -100,7 +100,10 @@ export default async function SchoolAdminProtectedLayout({
         getCachedActivityNotificationUnreadCount(admin, user.id, org.id).catch(
           () => 0,
         ),
-        getCachedAdminNavCounts(admin, org.id, navCountFlags).catch(() => null),
+        getCachedAdminNavCounts(admin, org.id, navCountFlags, {
+          organizationName: org.name,
+          organizationSlug: slug,
+        }).catch(() => null),
       ])
     : [0, 0, null];
 

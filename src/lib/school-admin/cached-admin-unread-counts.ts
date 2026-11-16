@@ -5,6 +5,7 @@ import { fetchUnreadActivityNotificationCount } from "@/lib/school-admin/activit
 import {
   loadAdminNavCounts,
   type AdminNavCountFlags,
+  type AdminNavCountsLoadContext,
 } from "@/lib/school-admin/admin-nav-counts";
 
 export const getCachedAdminMessagesUnreadCount = cache(
@@ -22,6 +23,10 @@ export const getCachedActivityNotificationUnreadCount = cache(
 );
 
 export const getCachedAdminNavCounts = cache(
-  async (admin: SupabaseClient, organizationId: string, flags: AdminNavCountFlags) =>
-    loadAdminNavCounts(admin, organizationId, flags),
+  async (
+    admin: SupabaseClient,
+    organizationId: string,
+    flags: AdminNavCountFlags,
+    context?: AdminNavCountsLoadContext,
+  ) => loadAdminNavCounts(admin, organizationId, flags, context),
 );

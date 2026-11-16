@@ -1246,19 +1246,17 @@ function ParentBillingPageContent({
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-3">
-                {!previewMode ? (
-                  <button
-                    type="button"
-                    className={gBtnOutlineSm}
-                    disabled={paymentMethodLoading}
-                    onClick={() => void handleManagePaymentMethod()}
-                  >
-                    {paymentMethodLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                    ) : null}
-                    Update card
-                  </button>
-                ) : null}
+                <button
+                  type="button"
+                  className={gBtnOutlineSm}
+                  disabled={previewMode || paymentMethodLoading}
+                  onClick={() => void handleManagePaymentMethod()}
+                >
+                  {paymentMethodLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                  ) : null}
+                  Update card
+                </button>
                 <button
                   type="button"
                   className={gLinkSm}

@@ -8,6 +8,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 
 const OPEN_PREFIXES = [
   "/api/school-admin/dashboard-summary",
+  "/api/school-admin/nav-counts",
   "/api/school-admin/activity-notifications",
   "/api/school-admin/portal-options",
   "/api/school-admin/profile-photo",

@@ -107,6 +107,11 @@ export function useFinancesTransactionsModel({ organizationId }: { organizationI
   const metaRef = useRef<TransactionsPageMeta | null>(null);
   const statusFilterRef = useRef(statusFilter);
   const typeFilterRef = useRef(typeFilter);
+  /** Filters that produced the rows currently on screen (last successful non-append load). */
+  const appliedFiltersRef = useRef<{ status: "" | PaymentStatus; type: "" | PaymentType }>({
+    status: urlStatus,
+    type: urlType,
+  });
   const requestRef = useRef(0);
   /** Latest applied response, readable right after an awaited load (toasts). */
   const snapshotRef = useRef<{ totalCount: number; meta: TransactionsPageMeta | null }>({
@@ -119,6 +124,13 @@ export function useFinancesTransactionsModel({ organizationId }: { organizationI
     setDismissedAttention(readDismissedAttention(organizationId));
     setMeta(null);
   }
+
+  const appliedFiltersOrgRef = useRef(organizationId);
+  useEffect(() => {
+    if (appliedFiltersOrgRef.current === organizationId) return;
+    appliedFiltersOrgRef.current = organizationId;
+    appliedFiltersRef.current = { status: urlStatus, type: urlType };
+  }, [organizationId, urlStatus, urlType]);
 
   useEffect(() => {
     loadedRowsLengthRef.current = loadedRows.length;
@@ -222,6 +234,9 @@ export function useFinancesTransactionsModel({ organizationId }: { organizationI
           totalCount: body.totalCount,
           meta: body.meta ?? metaRef.current,
         };
+        if (!append) {
+          appliedFiltersRef.current = { status, type: paymentType };
+        }
         return "ok";
       } catch (loadError) {
         if (requestId !== requestRef.current) return "stale";
@@ -270,11 +285,11 @@ export function useFinancesTransactionsModel({ organizationId }: { organizationI
 
   /**
    * Apply filters and reload. If the reload fails while rows are on screen,
-   * the previous filters come back so the chips always match the rows.
+   * roll back to the last applied filters so the chips always match the rows.
    */
   const applyFilters = useCallback(
     async (status: "" | PaymentStatus, type: "" | PaymentType): Promise<TransactionsLoadResult> => {
-      const previous = { status: statusFilterRef.current, type: typeFilterRef.current };
+      const previous = appliedFiltersRef.current;
       const hadRows = loadedRowsLengthRef.current > 0;
       statusFilterRef.current = status;
       typeFilterRef.current = type;

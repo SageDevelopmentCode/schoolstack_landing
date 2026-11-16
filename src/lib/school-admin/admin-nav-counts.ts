@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { reportOperationalError } from "@/lib/operational-errors";
 
 /*
  * "Needs you" counts for the admin sidebar badges, counted without loading
@@ -6,8 +7,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * - staffHoursPending: Staff hours → Requests (every `pending` adjustment)
  * - applicationsToReview: Admissions → Submissions "Ready to review" (`submitted`)
  * - committeeJoinRequests: Committees "Needs attention" (`pending` join requests)
- * A count that fails comes back `null`, so the badge keeps its last value.
+ * A count that fails comes back `null`, so the badge keeps its last value, and
+ * the failure is reported for ops visibility.
  */
+
+export type AdminNavCountsLoadContext = {
+  organizationName?: string | null;
+  organizationSlug?: string | null;
+};
 
 export type AdminNavCountKey =
   | "staffHoursPending"
@@ -51,10 +58,19 @@ async function countByStatus(
   return count ?? 0;
 }
 
+function schoolLabel(context: AdminNavCountsLoadContext | undefined, organizationId: string): string {
+  return (
+    context?.organizationName?.trim() ||
+    context?.organizationSlug?.trim() ||
+    organizationId
+  );
+}
+
 export async function loadAdminNavCounts(
   admin: SupabaseClient,
   organizationId: string,
   flags: AdminNavCountFlags,
+  context?: AdminNavCountsLoadContext,
 ): Promise<AdminNavCountsResult> {
   const settled = await Promise.allSettled(
     ADMIN_NAV_COUNT_KEYS.map((key) =>
@@ -64,7 +80,25 @@ export async function loadAdminNavCounts(
   const result = {} as AdminNavCountsResult;
   ADMIN_NAV_COUNT_KEYS.forEach((key, index) => {
     const outcome = settled[index];
-    result[key] = outcome.status === "fulfilled" ? outcome.value : null;
+    if (outcome.status === "fulfilled") {
+      result[key] = outcome.value;
+      return;
+    }
+    void reportOperationalError({
+      supabase: admin,
+      surface: "school_admin",
+      organizationId,
+      organizationName: context?.organizationName,
+      organizationSlug: context?.organizationSlug,
+      operation: `school_admin.sidebar_nav_counts.${key}`,
+      error: `Failed to load sidebar nav count "${key}" for ${schoolLabel(context, organizationId)}.`,
+      metadata: { countKey: key },
+      severity: "warning",
+      notify: true,
+      actor: { type: "system" },
+      cause: outcome.reason,
+    });
+    result[key] = null;
   });
   return result;
 }

@@ -57,6 +57,10 @@ describe("school admin API plan gates", () => {
       classifySchoolAdminApiPath("/api/school-admin/support-requests"),
       "open",
     );
+    assert.equal(
+      classifySchoolAdminApiPath("/api/school-admin/nav-counts"),
+      "open",
+    );
     assert.deepEqual(
       classifySchoolAdminApiPath(
         "/api/school-admin/friday-branch/classes/[classId]/send-roster",
