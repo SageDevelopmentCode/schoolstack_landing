@@ -8,6 +8,7 @@ import { fetchWithAuth } from '@/lib/auth/auth-session';
 export type {
   AttendancePushNotificationData,
   BulletinPushNotificationData,
+  ClassroomSignupPushNotificationData,
   CommitteePushNotificationData,
   CommitteePushSection,
   GalleryPushNotificationData,

@@ -80,6 +80,7 @@ export default function CalculatorDialog({
 
   return createPortal(
     <div
+      data-lenis-prevent
       className="fixed inset-0 z-[300] flex items-center justify-center p-5"
       style={{ backgroundColor: "rgba(40, 57, 67, 0.25)" }}
       onMouseDown={(event) => {

@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { TeacherMyStudentsScreen } from '@/components/teacher/teacher-my-students-screen';
+import { TeacherMyStudentsScreen } from '@/components/teacher/students/garden/teacher-my-students-screen';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function TeacherMyStudentsRoute() {

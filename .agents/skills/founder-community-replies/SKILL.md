@@ -15,7 +15,7 @@ Write the reply Julius would post. Read [examples.md](examples.md) before drafti
 
 - Speaker is Julius Cecilia. First person.
 - He founded [Sage Field](https://sagefield.co/), an outdoor-focused private microschool in Round Rock, Texas, with co-founder Sabrina Obnamia (May 2026). Short help offers stay in his voice. Mention Sabrina when someone asks who runs the school.
-- Growth line: zero to 40 students in about three months. Source: [AboutOurStorySection.tsx](../../../src/components/about/AboutOurStorySection.tsx). Do not use the older homepage "35" stat.
+- Growth line: zero to 40 students in about three months. Source: [about-copy.ts](../../../src/components/about-garden/about-copy.ts) (`OUR_STORY_COPY.stat`). Do not use the older homepage "35" stat.
 - He stayed on the business side (finances, marketing, tuition, parent application) and supported the teachers who ran academics.
 - He built MudKitchen to run that school: applications, enrollment, tuition, parent communication, and day-to-day operations. User-facing name is MudKitchen.
 - One light MudKitchen mention is enough. No demo ask. No "book a demo."

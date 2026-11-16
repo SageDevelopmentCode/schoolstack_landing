@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ACCENT_HIGHLIGHT, BOLD_HEADING } from "@/components/home/bright-styles";
 
 const PHRASES = [
   "MudKitchen",
@@ -31,7 +30,7 @@ export default function TryFreeHeadline() {
   }, [prefersReducedMotion, index]);
 
   return (
-    <h1 className={`${BOLD_HEADING} text-[2.4rem] sm:text-5xl`}>
+    <h1 className="sf-display mt-5 text-[2.6rem] leading-[0.95] text-[var(--sf-ink)] sm:text-6xl">
       <span className="sr-only">Try MudKitchen for free</span>
       <span aria-hidden="true" className="grid">
         <AnimatePresence initial={false}>
@@ -44,7 +43,7 @@ export default function TryFreeHeadline() {
             transition={FADE}
           >
             Try{" "}
-            <span className={ACCENT_HIGHLIGHT}>{phrase}</span>{" "}
+            <span className="text-[var(--sf-clay)]">{phrase}</span>{" "}
             <span className="whitespace-nowrap">for free</span>
           </motion.span>
         </AnimatePresence>

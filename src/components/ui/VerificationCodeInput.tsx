@@ -20,7 +20,8 @@ type VerificationCodeInputPortalProps = VerificationCodeInputBaseProps & {
 };
 
 type VerificationCodeInputBrightProps = VerificationCodeInputBaseProps & {
-  variant: "bright";
+  /** "garden": MudKitchen Garden cells; use inside `GardenRoot`. */
+  variant: "bright" | "garden";
   C?: never;
 };
 
@@ -48,7 +49,8 @@ export default function VerificationCodeInput(props: VerificationCodeInputProps)
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const autofillRef = useRef<HTMLInputElement>(null);
 
-  const isBright = variant === "bright";
+  const isGarden = variant === "garden";
+  const isBright = variant === "bright" || isGarden;
   const C = variant === "portal" ? props.C : null;
 
   const focusRing = !isBright && C
@@ -63,7 +65,9 @@ export default function VerificationCodeInput(props: VerificationCodeInputProps)
       }
     : undefined;
 
-  const cellClassName = isBright
+  const cellClassName = isGarden
+    ? "h-14 w-full min-w-0 rounded-2xl border-2 border-[var(--sf-ink)] bg-white text-center text-2xl font-extrabold tabular-nums text-[var(--sf-ink)] outline-none transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/30 disabled:cursor-not-allowed disabled:opacity-60"
+    : isBright
     ? "h-12 w-full min-w-0 rounded-[12px] border border-black/10 bg-white text-center font-secondary text-xl font-semibold tabular-nums text-[#1d1a16] outline-none transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1d1a16] disabled:cursor-not-allowed disabled:opacity-60"
     : "h-12 w-full min-w-0 rounded-md border text-center text-xl font-semibold tabular-nums outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60";
 
@@ -147,7 +151,9 @@ export default function VerificationCodeInput(props: VerificationCodeInputProps)
         <span
           id={labelId}
           className={
-            isBright
+            isGarden
+              ? "text-sm font-extrabold text-[var(--sf-ink)]"
+              : isBright
               ? "font-secondary text-[13px] font-semibold text-[#1d1a16]/70"
               : "text-sm font-medium"
           }

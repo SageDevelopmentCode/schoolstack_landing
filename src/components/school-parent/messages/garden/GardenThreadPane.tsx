@@ -21,6 +21,7 @@ import type { MessageThreadSummary } from "@/lib/messages/types";
 import GardenComposer from "./GardenComposer";
 import {
   GardenAvatar,
+  GardenThreadSubtitle,
   MAX_ATTACHMENTS,
   MAX_ATTACHMENT_MB_LABEL,
   pluralize,
@@ -274,11 +275,12 @@ export default function GardenThreadPane({
           <h2 className="sf-display m-0 truncate text-[1.15rem] leading-tight text-[var(--sf-ink)] sm:text-[1.25rem]">
             {thread.title}
           </h2>
-          {thread.subtitle ? (
-            <p className="m-0 mt-0.5 truncate text-[13px] font-semibold text-[var(--sf-soft)]">
-              {thread.subtitle}
-            </p>
-          ) : null}
+          <GardenThreadSubtitle
+            subtitle={thread.subtitle}
+            students={thread.subtitleStudents}
+            onOpenStudent={actions.openStudent}
+            className="m-0 mt-0.5 truncate text-[13px] font-semibold text-[var(--sf-soft)]"
+          />
         </div>
       </div>
 

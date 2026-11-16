@@ -247,3 +247,44 @@ Pick **one** signature recipe per section. Every recipe below already has its ph
 - **Frame:** browser chrome with peach, butter and mint dots, plus a "MudKitchen · {view}" label.
 - **Styling:** 2px ink border, a 10px ink shadow, optional tape and tilt. Overlays (sticker notes) go in as children.
 - **Demo:** `DemoStage` scales a 1100×680 canvas. Lower `designHeight` (640) and `minScale` (0.3) for tighter frames.
+
+---
+
+## Secondary marketing pages
+
+These pages reuse the home kit; each section below names its one signature move.
+
+### 28. Founders' story (shared by /about and /get-started)
+**Source:** `src/components/about-garden/GardenOurStory.tsx`
+
+- **Layout:** two founder polaroids, offset (`mt-10` on the second) and tilted opposite ways, beside the story on a `.sf-paper` toy card. The turn line ("So we built our own.") is display type with a butter squiggle.
+- **Sticker wall:** the built capabilities as tilted pill stickers (deterministic tilt, `CHIP_TINTS` map, `.sf-wiggle`).
+- **Numeral:** the first-term number as an oversized display numeral on a white toy card.
+- **Props:** `ctaVariant` picks the demo CTA (hash link on /about, scroll-to-flow on /get-started). `heading="get-started"` swaps in the full founders headline.
+
+### 29. Ticket card for a customer
+**Source:** `src/components/customers/CustomersGardenPage.tsx`
+
+- **Card:** a white toy ticket (photo | dashed perforation | logo, stats `dl`, description). The whole card links through an `after:absolute` overlay on the `h2` link; the external Website link sits above it at `z-[2]`.
+- **Empty slot:** a dashed postcard with a stamp corner and a decorative handwritten note.
+
+### 30. Step tabs on the forest panel
+**Source:** `src/components/customers/sagefield-garden/SagefieldGardenTimeline.tsx`
+
+- **Picker:** a vertical `tablist` of number dots on a dashed line. The active dot turns butter with an ink ring and grows slightly. Arrow keys move between steps (roving `tabIndex`). Below `lg` it becomes a horizontal snap row.
+- **Panel:** step copy with butter `Tick`s, beside a paper mock-up in `GardenBrowserFrame`. It swaps with framer `AnimatePresence mode="wait" initial={false}`.
+
+### 31. Before & after toggle
+**Source:** `src/components/customers/sagefield-garden/SagefieldGardenBeforeAfter.tsx`
+
+- **Toggle:** two `aria-pressed` buttons with a `layoutId` pill (peach for "without", mint for "with").
+- **Without:** tilted sticky notes; a clay strike draws through each label.
+- **With:** one `.sf-paper` page of ticked rows.
+- **Server-render rule:** the entrance animations only run after the first toggle (`toggled` state), so the server-rendered markup is already the final state, strikes drawn.
+
+### 32. Blog index and article (calm Garden)
+**Sources:** `src/components/blog/BlogGardenIndex.tsx`, `BlogGardenArticle.tsx`
+
+- **Index:** the newest post as a large `.sf-paper` card (with an illustration); the rest as tilted, taped index cards in a two-column grid. The empty state is a butter sticky note.
+- **Article:** a header on `.sf-grid` (back link, date, tag pills, `h1`, byline), then the body in `.sf-prose` on paper, then a taped paper card with the Book a Demo CTA.
+- **Reading comes first:** no scroll scenes in the article. Wide product embeds keep their own frame inside `.sf-demo`.

@@ -57,7 +57,14 @@ function InboxSkeleton() {
  * search, All / Unread, a latest-unread note, conversation cards, help, and the
  * Start-a-conversation sheet. All data + navigation come from the controller.
  */
-export function ParentMessagesGardenScreen({ controller }: { controller: ParentMessagesInboxController }) {
+export function ParentMessagesGardenScreen({
+  controller,
+  onStudentPress,
+}: {
+  controller: ParentMessagesInboxController;
+  /** Teacher inbox: student names on a row open that student's page. */
+  onStudentPress?: (studentId: string) => void;
+}) {
   const accent = useGardenAccent();
   const { notify, readOnly } = useParentMessagesNotify();
   const { pullRefreshing, onPullRefresh } = useInboxRefreshFeedback(
@@ -350,6 +357,7 @@ export function ParentMessagesGardenScreen({ controller }: { controller: ParentM
               thread={item}
               onPress={() => controller.openThread(item.id)}
               onPressIn={() => controller.prefetchThread(item.id)}
+              onStudentPress={onStudentPress}
             />
           )}
           ListHeaderComponent={listHeader}

@@ -33,7 +33,7 @@ Companion files:
 
 | Surface | System | Notes |
 |---|---|---|
-| Home page and public marketing pages (`/about`, `/customers`, `/blog`, `/tools` and the free tools, `/get-started`, `/try`, landing pages) | **Full Garden** (this file) | Pages not yet migrated still use Bright (`.agents/skills/bright-marketing-design`). Migrate them to Garden when you touch them. |
+| Home page and public marketing pages (`/about`, `/customers`, `/blog`, `/tools` and the free tools, `/get-started`, `/try`, landing pages) | **Full Garden** (this file) | All done in Garden: `/`, `/about`, `/get-started`, `/customers`, `/customers/sagefield`, `/blog`, `/blog/[slug]`, `/tools`, `/how-many-students`, `/tuition-planner`, `/microschool-ops-check` and `/try`. The free tools render inside `MarketingToolGardenPage` (`src/components/marketing/shared/`): the tool owns the `h1` through `MarketingToolHero` in `MarketingGardenToolShell`, then a shared tail (module demo → `GardenOurStory` → `GardenBookDemo`). Their in-tool UI is the portal kit retinted with `MARKETING_TOOL_GARDEN_THEME`. |
 | MudKitchen-owned app surfaces: auth, `/try` signup, onboarding, free-plan upgrade, empty states, success moments, mobile onboarding | **Calm Garden** (`in-app.md`) | Same tokens and type, far less play. |
 | School-branded **parent** portal (web) | **Garden dashboard** (`parent-portal-garden-design`) | Garden type and materials at portal density; the school's accent drives the action colour through `ParentGardenFrame`. |
 | School-branded admin and teacher portals (web), and all portals on mobile | **School Day Story** (`admin-workspace-design`) | The school's accent colour owns it. Borrow only the Garden craft rules in `in-app.md`. |
@@ -143,7 +143,7 @@ export default function MyPage() {
 
 | Path | What's in it |
 |---|---|
-| `src/components/garden/garden.css` | tokens, utility classes, the global-type reset |
+| `src/components/garden/garden.css` | tokens, utility classes, the global-type reset, `.sf-prose` (long-form reading: blog bodies) |
 | `src/components/garden/fonts.ts` | Bricolage / Nunito / Gochi via vendored `next/font/local` |
 | `src/components/garden/GardenRoot.tsx` | scope wrapper (server) |
 | `src/components/garden/HomeGardenShell.tsx`, `GardenNavbar.tsx`, `SmoothScroll.tsx` | page chrome |
@@ -269,13 +269,16 @@ All tokens are CSS variables on `.sf-garden`. Write them in Tailwind as `bg-[var
 |---|---|
 | `SectionIntro` | The standard heading stack: Pill → h2 (`lead` + coloured `accent` + optional squiggle) → `note` → `body`. Props: `align`, `dark`, `headingClassName`. **Use this for every section heading.** |
 | `GardenDemoFrame` | The live interactive product (`DemoStage`) in a taped browser frame with tilt. `active` is a `DemoStageKey`. Children are overlays (sticker notes). |
+| `GardenBrowserFrame` | The same taped browser frame for anything else: an iframe (sagefield.co), a YouTube film, a role demo, a paper mock-up. `label` fills the bar; the body sits in `.sf-demo`. `chrome={false}` when the child draws its own bar (that's how `GardenDemoFrame` uses it). |
+| `GardenViewTabs` | Parent / Teacher / Admin tabs over a live `GardenDemoFrame` with popping stickers (the home hero pattern, reusable below the fold). `dark` on forest panels. Used on `/about`. |
+| `GardenModuleDemo` | The seven module index cards driving the live demo (recipe 10), with an `aside` slot. Used on `/get-started` and the free-tool tail. |
 | `StickerNote` | A sample notification (`STICKERS_BY_DEMO[key][i]`) as a pastel note. `size="sm"` for overlays. |
 | `Polaroid` | Taped photo with an optional handwritten caption. |
 | `PhoneCard` | App store slide (`DOWNLOAD_APP_SLIDES[i]`) in a white phone card with its caption. |
 | `GrowingPlant` | Seed-to-bloom SVG for scroll scrubs (`recipes.md`). |
 | `GardenFaq` | `HOME_FAQ` as index-card accordions with a sticky intro. |
-| `GardenBookDemo` | The real `GetStartedDemoFlow` on notebook paper, `id="book-demo"`. |
-| `FreeToolsPostcards` | The three free tools as postcards. |
+| `GardenBookDemo` | The real `GetStartedDemoFlow` on notebook paper, `id="book-demo"`. Props: `id`, `scrollOnStepChange`, `onStepChange`, `introHeadingAs` (default `"h2"`; `/get-started` passes `"h1"` because the form title is its page heading). |
+| `FreeToolsPostcards` | The three free tools as postcards. Exports `FreeToolPostcard` (one card, `headingAs`) for `/tools`. |
 | `CustomBuild` | "We build custom, too" with opposing tag marquees and an `sr-only` list. |
 | `assets.ts` | `SAGEFIELD_PHOTOS` (with alt text), `TAPES`, `NOTE_TINTS`, `ILLUSTRATIONS`, logos. |
 | `roles.ts` | `ROLES`: family, admin and teacher with copy, demo key, photo, illustration and tints. |
@@ -372,7 +375,7 @@ All tokens are CSS variables on `.sf-garden`. Write them in Tailwind as `bg-[var
   - Expanding panels use `aria-expanded` plus `aria-controls`, and open on `onFocus` as well as hover.
 - **Decorative duplicates** (marquees, scattered walls) are `aria-hidden`. Give the real content once elsewhere: `CustomBuild` renders an `sr-only` `<ul>` of the tags.
 - **Hover-only details** must also be reachable by tap and keyboard.
-- **Known issue:** `GetStartedIntroductionForm` (inside `GardenBookDemo`) hardcodes an `h1`, so pages with the booking flow have two. Fixing it means adding a heading-level prop to that shared component.
+- **Booking flow headings:** `GetStartedDemoFlow` takes `introHeadingAs` and passes it to every step title (intro form, scheduler, confirmation). `GardenBookDemo` defaults it to `"h2"`, so a page with the booking flow keeps one `h1`.
 
 ## 14. Gotchas we hit (read before writing motion)
 

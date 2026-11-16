@@ -1,0 +1,16 @@
+appId: com.mudkitchen.schoolstack.mobile
+---
+- runFlow: ../teacher-logged-in.yaml
+- tapOn: 'My Students'
+- extendedWaitUntil:
+    visible:
+      id: teacher-my-students-ready
+    timeout: 30000
+- takeScreenshot: visual-capture
+- tapOn:
+    id: teacher-my-students-scope-school
+- extendedWaitUntil:
+    visible:
+      id: teacher-my-students-status
+    timeout: 15000
+- takeScreenshot: visual-capture-all-students

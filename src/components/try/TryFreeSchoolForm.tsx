@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BOLD_HEADING, DARK_PILL } from "@/components/home/bright-styles";
+import { btnPop } from "@/components/garden/ui";
 import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
 } from "@/components/ui/ButtonLoadingLabel";
@@ -13,7 +13,7 @@ import { createClient } from "@/utils/supabase/client";
 type Phase = "details" | "verify";
 
 const inputClassName =
-  "w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-base text-[#1d1a16] outline-none transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1d1a16]";
+  "w-full rounded-2xl border-2 border-[var(--sf-ink)]/80 bg-white px-4 py-3 text-base text-[var(--sf-ink)] outline-none transition focus-visible:border-[var(--sf-ink)] focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/30";
 
 function browserTimezone(): string {
   try {
@@ -182,7 +182,7 @@ export default function TryFreeSchoolForm() {
       {phase === "details" ? (
         <form className="space-y-4" onSubmit={handleDetailsSubmit}>
           <label className="block">
-            <span className={`${BOLD_HEADING} mb-2 block text-sm tracking-normal!`}>
+            <span className="mb-2 block text-sm font-extrabold text-[var(--sf-ink)]">
               School name
             </span>
             <input
@@ -195,7 +195,7 @@ export default function TryFreeSchoolForm() {
             />
           </label>
           <label className="block">
-            <span className={`${BOLD_HEADING} mb-2 block text-sm tracking-normal!`}>
+            <span className="mb-2 block text-sm font-extrabold text-[var(--sf-ink)]">
               Email
             </span>
             <input
@@ -208,10 +208,14 @@ export default function TryFreeSchoolForm() {
               maxLength={254}
             />
           </label>
-          {error ? <p className="text-sm text-red-700">{error}</p> : null}
+          {error ? (
+            <p role="alert" className="rounded-2xl bg-[var(--sf-peach)] px-4 py-2.5 text-sm font-semibold text-[var(--sf-clay-deep)]">
+              {error}
+            </p>
+          ) : null}
           <button
             type="submit"
-            className={`${DARK_PILL} w-full justify-center disabled:cursor-not-allowed disabled:opacity-60`}
+            className={`${btnPop} w-full disabled:cursor-not-allowed disabled:opacity-60`}
             disabled={isSubmitting}
           >
             <span className={BUTTON_LOADING_LAYOUT_CLASS}>
@@ -223,14 +227,18 @@ export default function TryFreeSchoolForm() {
         </form>
       ) : (
         <form className="space-y-4" onSubmit={handleVerifySubmit}>
-          <p className="text-sm text-[#5c564e]">
+          <p className="text-[15px] text-[var(--sf-soft)]">
             Enter the 6-digit code sent to {email.trim().toLowerCase()}.
           </p>
-          <VerificationCodeInput variant="bright" value={code} onChange={setCode} autoFocus />
-          {error ? <p className="text-sm text-red-700">{error}</p> : null}
+          <VerificationCodeInput variant="garden" value={code} onChange={setCode} autoFocus />
+          {error ? (
+            <p role="alert" className="rounded-2xl bg-[var(--sf-peach)] px-4 py-2.5 text-sm font-semibold text-[var(--sf-clay-deep)]">
+              {error}
+            </p>
+          ) : null}
           <button
             type="submit"
-            className={`${DARK_PILL} w-full justify-center disabled:cursor-not-allowed disabled:opacity-60`}
+            className={`${btnPop} w-full disabled:cursor-not-allowed disabled:opacity-60`}
             disabled={
               isSubmitting ||
               (!emailVerified && code.replace(/\D/g, "").length < 6)
@@ -244,7 +252,7 @@ export default function TryFreeSchoolForm() {
           </button>
           <button
             type="button"
-            className="text-sm font-semibold text-[#1d1a16] underline-offset-4 hover:underline"
+            className="rounded-full text-sm font-extrabold text-[var(--sf-forest)] underline decoration-[var(--sf-moss)] decoration-2 underline-offset-4 hover:decoration-[var(--sf-forest)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/30"
             disabled={isSubmitting}
             onClick={() => {
               setPhase("details");

@@ -82,6 +82,8 @@ type GetStartedDemoFlowProps = {
   onStepChange?: (step: GetStartedDemoStep) => void;
   showStepProgress?: boolean;
   theme?: ParentThemeTokens;
+  /** Heading level for the introduction form title ("h2" when the page has its own h1). */
+  introHeadingAs?: "h1" | "h2";
 };
 
 export default function GetStartedDemoFlow({
@@ -90,6 +92,7 @@ export default function GetStartedDemoFlow({
   onStepChange,
   showStepProgress = true,
   theme: themeProp,
+  introHeadingAs = "h1",
 }: GetStartedDemoFlowProps) {
   const theme = useMemo(
     () => themeProp ?? MUDKITCHEN_MARKETING_BRIGHT_THEME,
@@ -306,6 +309,7 @@ export default function GetStartedDemoFlow({
               onSubmit={handleContinue}
               companyWebsite={companyWebsite}
               onCompanyWebsiteChange={setCompanyWebsite}
+              headingAs={introHeadingAs}
             />
           </motion.div>
         )}
@@ -332,6 +336,7 @@ export default function GetStartedDemoFlow({
                 </>
               }
               subtitle="We'll walk through the workflows that matter most to your school."
+              headingAs={introHeadingAs}
             />
 
             <ParentCard
@@ -384,6 +389,7 @@ export default function GetStartedDemoFlow({
               schoolName={form.schoolName}
               roleLabel={roleLabel}
               booking={booking}
+              headingAs={introHeadingAs}
             />
           </motion.div>
         )}

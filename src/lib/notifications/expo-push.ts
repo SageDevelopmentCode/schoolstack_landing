@@ -62,6 +62,13 @@ export type AttendanceExpoPushData = {
   intent: "present" | "pickup";
 };
 
+export type ClassroomSignupExpoPushData = {
+  kind: "classroom_signup";
+  portal: "parent";
+  organizationSlug: string;
+  signupId: string;
+};
+
 export type StaffHoursExpoPushData = {
   kind: "staff_hours";
   portal: "teacher";
@@ -75,7 +82,8 @@ export type ExpoPushData =
   | GalleryExpoPushData
   | NewsletterExpoPushData
   | AttendanceExpoPushData
-  | StaffHoursExpoPushData;
+  | StaffHoursExpoPushData
+  | ClassroomSignupExpoPushData;
 
 export type ExpoPushPayload = {
   organizationId: string;
@@ -140,6 +148,7 @@ function resolveChannelId(payload: ExpoPushPayload): ExpoPushChannelId {
     case "gallery":
       return "gallery";
     case "newsletter":
+    case "classroom_signup":
       return "bulletin";
     case "attendance":
       return "attendance";

@@ -23,7 +23,7 @@ export function isAdminStoryMessagesVariant(variant: MessagesLayoutVariant): boo
   return variant === "admin-story";
 }
 
-/** Parent portal Garden dashboard look (parent viewer only; teacher keeps parent-story). */
+/** Garden inbox look for parents and staff (the viewer decides the extras, e.g. staff student links). */
 export function isParentGardenMessagesVariant(variant: MessagesLayoutVariant): boolean {
   return variant === "parent-garden";
 }

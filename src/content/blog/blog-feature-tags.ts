@@ -7,6 +7,7 @@ export type BlogFeatureTagId =
 export type BlogFeatureTagDefinition = {
   id: BlogFeatureTagId;
   label: string;
+  /** Garden pill tint (needs the .sf-garden scope). Literal strings so Tailwind sees them. */
   className: string;
 };
 
@@ -14,22 +15,22 @@ export const BLOG_FEATURE_TAG_BY_ID: Record<BlogFeatureTagId, BlogFeatureTagDefi
   school_admin: {
     id: "school_admin",
     label: "School Admin",
-    className: "bg-[#EDE8F2] text-[#5C4D6E]",
+    className: "bg-[var(--sf-lav)] text-[#5e3a78]",
   },
   newsletter: {
     id: "newsletter",
     label: "Newsletter",
-    className: "bg-[#F5E8E3] text-[#8B4A3A]",
+    className: "bg-[var(--sf-peach)] text-[var(--sf-clay-deep)]",
   },
   teacher_updates: {
     id: "teacher_updates",
     label: "Teacher Updates",
-    className: "bg-sage-100 text-accent",
+    className: "bg-[var(--sf-mint)] text-[var(--sf-forest)]",
   },
   photos: {
     id: "photos",
     label: "Photos",
-    className: "bg-[#E3EDF5] text-[#3D5A73]",
+    className: "bg-[var(--sf-sky)] text-[#24507a]",
   },
 };
 

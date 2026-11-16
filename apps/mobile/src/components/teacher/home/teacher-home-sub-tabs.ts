@@ -1,26 +1,39 @@
-import type { DetailTab } from '@/components/school-admin/detail-tab-bar';
+import type { GSegmentedItem } from '@/components/parent/garden/segmented';
 
 export type TeacherHomeSubTabId = 'overview' | 'attendance' | 'help';
 
-const OVERVIEW_TAB: DetailTab = { id: 'overview', label: 'Overview' };
+const OVERVIEW_TAB: GSegmentedItem<TeacherHomeSubTabId> = {
+  id: 'overview',
+  label: 'Overview',
+  testID: 'teacher-home-tab-overview',
+};
 
-const ATTENDANCE_TAB: DetailTab = {
+const ATTENDANCE_TAB: GSegmentedItem<TeacherHomeSubTabId> = {
   id: 'attendance',
   label: 'Attendance',
-  icon: 'clipboard-outline',
-  iconActive: 'clipboard',
+  testID: 'teacher-home-tab-attendance',
 };
 
-const HELP_TAB: DetailTab = {
+const HELP_TAB: GSegmentedItem<TeacherHomeSubTabId> = {
   id: 'help',
   label: 'Help',
-  icon: 'help-circle-outline',
-  iconActive: 'help-circle',
+  testID: 'teacher-home-tab-help',
 };
 
-export function resolveTeacherHomeSubTabs(attendanceEnabled: boolean): DetailTab[] {
+/**
+ * Home sub-tabs: Attendance sits between Overview and Help when the feature is on.
+ * Text only: three equal tabs on a phone can't fit an icon + "Attendance" + a badge.
+ */
+export function resolveTeacherHomeSubTabs(
+  attendanceEnabled: boolean,
+  attendanceBadge?: number,
+): GSegmentedItem<TeacherHomeSubTabId>[] {
   if (attendanceEnabled) {
-    return [OVERVIEW_TAB, ATTENDANCE_TAB, HELP_TAB];
+    return [
+      OVERVIEW_TAB,
+      { ...ATTENDANCE_TAB, badge: attendanceBadge && attendanceBadge > 0 ? attendanceBadge : undefined },
+      HELP_TAB,
+    ];
   }
   return [OVERVIEW_TAB, HELP_TAB];
 }

@@ -11,3 +11,10 @@ describe('resolveTeacherHomeSubTabs', () => {
     expect(tabs.map((tab) => tab.id)).toEqual(['overview', 'attendance', 'help']);
   });
 });
+
+describe('resolveTeacherHomeSubTabs badge', () => {
+  it('shows the not-marked count on Attendance only when above zero', () => {
+    expect(resolveTeacherHomeSubTabs(true, 4)[1].badge).toBe(4);
+    expect(resolveTeacherHomeSubTabs(true, 0)[1].badge).toBeUndefined();
+  });
+});

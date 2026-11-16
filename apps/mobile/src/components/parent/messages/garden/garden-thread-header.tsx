@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { closeThen } from '@/components/parent/garden/feedback';
 import { GSheet } from '@/components/parent/garden/sheet';
 import { Garden, GardenFonts, useGardenAccent } from '@/components/parent/garden/tokens';
 import { GChip, GKicker, GPressable } from '@/components/parent/garden/ui';
@@ -42,10 +43,12 @@ function DetailsSheet({
   thread,
   visible,
   onClose,
+  onStudentPress,
 }: {
   thread: MessageThreadDetail;
   visible: boolean;
   onClose: () => void;
+  onStudentPress?: (studentId: string) => void;
 }) {
   const kinds = Array.from(
     new Set(thread.participants.map((participant) => KIND_LABEL[participant.kind])),
@@ -85,10 +88,22 @@ function DetailsSheet({
         <View style={styles.section}>
           <GKicker>About</GKicker>
           <View style={styles.chips}>
-            {students.map((student) => (
-              <GChip key={student.id} label={student.name} icon="happy-outline" tone="success" />
-            ))}
+            {students.map((student) =>
+              onStudentPress ? (
+                <GPressable
+                  key={student.id}
+                  accessibilityRole="link"
+                  accessibilityLabel={`${student.name}. Open student profile`}
+                  onPress={() => closeThen(onClose, () => onStudentPress(student.id))}
+                  hitSlop={6}>
+                  <GChip label={student.name} icon="happy-outline" tone="success" />
+                </GPressable>
+              ) : (
+                <GChip key={student.id} label={student.name} icon="happy-outline" tone="success" />
+              ),
+            )}
           </View>
+          {onStudentPress ? <Text style={styles.detailMeta}>Tap a name to open their profile.</Text> : null}
         </View>
       ) : null}
 
@@ -111,7 +126,14 @@ function DetailsSheet({
 }
 
 /** Garden conversation header: 44pt back, avatar + Bricolage title, details button. */
-export function GardenThreadHeader({ thread }: { thread: MessageThreadDetail }) {
+export function GardenThreadHeader({
+  thread,
+  onStudentPress,
+}: {
+  thread: MessageThreadDetail;
+  /** Teacher threads: student names in the details sheet open that student's page. */
+  onStudentPress?: (studentId: string) => void;
+}) {
   const router = useRouter();
   const accent = useGardenAccent();
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -152,7 +174,12 @@ export function GardenThreadHeader({ thread }: { thread: MessageThreadDetail }) 
         <Ionicons name="information-circle-outline" size={22} color={Garden.ink} />
       </GPressable>
 
-      <DetailsSheet thread={thread} visible={detailsOpen} onClose={() => setDetailsOpen(false)} />
+      <DetailsSheet
+        thread={thread}
+        visible={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        onStudentPress={onStudentPress}
+      />
     </View>
   );
 }

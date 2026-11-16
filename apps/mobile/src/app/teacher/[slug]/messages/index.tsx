@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { TeacherMessagesListScreen } from '@/components/teacher/messages/teacher-messages-list-screen';
+import { TeacherMessagesInboxScreen } from '@/components/teacher/messages/garden/teacher-messages-inbox-screen';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function TeacherMessagesPage() {
@@ -12,7 +12,7 @@ export default function TeacherMessagesPage() {
   }
 
   return (
-    <TeacherMessagesListScreen
+    <TeacherMessagesInboxScreen
       organizationId={selectedSchool.id}
       organizationSlug={selectedSchool.slug}
       schoolName={selectedSchool.name}

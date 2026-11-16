@@ -30,7 +30,8 @@ Related skills:
 - `.agents/skills/parent-mobile-garden-design/`: the same parent Garden look in the Expo app (`apps/mobile`). Its reference build is the mobile Home Hub. Keep copy and behaviour in parity across web and mobile.
 - `.agents/skills/portal-responsive-verify/`, `.agents/skills/portal-qa/`: verification.
 - `.agents/skills/admin-portal-garden-design/`: the school admin portal's Garden rules (the admin Dashboard is the reference). Use it, not this skill, for admin pages.
-- `.agents/skills/admin-workspace-design/`: School Day Story. Admin pages that haven't moved to Garden, and the teacher portal, still use it.
+- `.agents/skills/teacher-portal-garden-design/`: the staff (teacher) portal's Garden rules (the staff Dashboard is the reference). Use it, not this skill, for teacher pages.
+- `.agents/skills/admin-workspace-design/`: School Day Story. Admin and teacher pages that haven't moved to Garden still use it.
 
 ---
 
@@ -155,7 +156,7 @@ From `school-parent/garden/GDialog.tsx`:
 - `GDialog`: portalled Garden dialog (own `ParentGardenFrame`, bottom sheet on phones, Escape, focus trap + return). Safe to mount from inside a page frame.
 - `GConfirmDialog`: outline Cancel + one toy confirm (spinner + `aria-busy` while `loading`; `destructive` for deletes/discards).
 
-Toasts: the parent portal mounts `ParentToaster appearance="garden"` (`garden/GardenToaster.tsx`). Call `parentToast.success|error|info(title, { description, action, id })` from `src/lib/school-parent/parent-toast.ts`: title = what happened, description = what it means / what to do next. Teacher keeps the story toaster. In the apply portal, `ApplyPortalPageShell toasterAppearance="garden"` turns on Garden toasts (the apply dashboard uses it; form and enrollment pages still use story).
+Toasts: the parent portal mounts `ParentToaster appearance="garden"` (`garden/GardenToaster.tsx`). Call `parentToast.success|error|info(title, { description, action, id })` from `src/lib/school-parent/parent-toast.ts`: title = what happened, description = what it means / what to do next. The teacher portal mounts `TeacherToaster`, which shows Garden toasts only on routes listed in `GARDEN_TEACHER_ROUTES`. In the apply portal, `ApplyPortalPageShell toasterAppearance="garden"` turns on Garden toasts (the apply dashboard uses it; form and enrollment pages still use story).
 
 From the shared Garden kit (`@/components/garden/ui`):
 - `Tick` for done states.

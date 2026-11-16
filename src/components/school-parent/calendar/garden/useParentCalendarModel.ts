@@ -19,6 +19,11 @@ export type ParentCalendarModelInput = {
   events: OrganizationEvent[];
   eventsDeferred: boolean;
   previewMode: boolean;
+  /**
+   * Every event is already in `events` (the staff portal loads the whole
+   * school calendar), so month windows never need fetching.
+   */
+  eventsComplete?: boolean;
   programId?: string;
   initialView?: CalendarViewMode;
   previewAnchorDate?: string;
@@ -35,6 +40,7 @@ export function useParentCalendarModel({
   events,
   eventsDeferred,
   previewMode,
+  eventsComplete = false,
   programId,
   initialView,
   previewAnchorDate,
@@ -81,7 +87,7 @@ export function useParentCalendarModel({
   /** Loads the window around a month once. Resolves true when the window is (or already was) loaded. */
   const fetchEventsForMonth = useCallback(
     async function load(year: number, month: number): Promise<boolean> {
-      if (previewMode) return true;
+      if (previewMode || eventsComplete) return true;
 
       const { startDate, endDate } = calendarEventWindowForMonth(year, month);
       const windowKey = `${startDate}:${endDate}`;
@@ -140,7 +146,7 @@ export function useParentCalendarModel({
         setLoadingWindowCount((count) => Math.max(0, count - 1));
       }
     },
-    [organizationId, previewMode, programId],
+    [eventsComplete, organizationId, previewMode, programId],
   );
 
   const handlePeriodChange = useCallback(

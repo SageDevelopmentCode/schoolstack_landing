@@ -1,0 +1,16 @@
+appId: com.mudkitchen.schoolstack.mobile
+---
+- runFlow: ../teacher-logged-in.yaml
+- tapOn: 'Calendar'
+- extendedWaitUntil:
+    visible:
+      id: teacher-calendar-card
+    timeout: 30000
+- takeScreenshot: visual-capture
+- tapOn:
+    id: teacher-calendar-view-month
+- extendedWaitUntil:
+    visible:
+      id: teacher-calendar-month-grid
+    timeout: 10000
+- takeScreenshot: visual-capture-month

@@ -21,25 +21,18 @@ export function portalRoleLabel(role: StaffPortalRole | null): string {
   return 'Staff member';
 }
 
-export function focusItemIconBg(icon: TeacherDashboardFocusIcon): string {
-  switch (icon) {
-    case 'message':
-      return '#E8F0F5';
-    case 'calendar':
-      return '#EEF7EF';
-    case 'students':
-      return '#FFF4D9';
-    case 'signups':
-      return '#E9F2EA';
-    default:
-      return '#E8F0F5';
-  }
-}
-
 export function focusItemIconName(
   icon: TeacherDashboardFocusIcon,
-): 'chatbubble-outline' | 'calendar-outline' | 'people-outline' | 'clipboard-outline' | 'ellipse-outline' {
+):
+  | 'chatbubble-outline'
+  | 'calendar-outline'
+  | 'checkbox-outline'
+  | 'people-outline'
+  | 'clipboard-outline'
+  | 'ellipse-outline' {
   switch (icon) {
+    case 'attendance':
+      return 'checkbox-outline';
     case 'message':
       return 'chatbubble-outline';
     case 'calendar':

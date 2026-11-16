@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useCalendarTestId } from '@/components/parent/calendar/garden/calendar-portal';
 import { EventTypeChip, GardenEventRow } from '@/components/parent/calendar/garden/garden-event-row';
 import { Garden, GardenFonts, useGardenAccent } from '@/components/parent/garden/tokens';
 import {
@@ -105,6 +106,7 @@ export function DayEventList({
   onPress: (event: OrganizationEvent) => void;
   emptyAction?: ReactNode;
 }) {
+  const tid = useCalendarTestId();
   if (events.length === 0) {
     return (
       <View style={styles.emptyDay}>
@@ -125,7 +127,7 @@ export function DayEventList({
           event={event}
           onPress={onPress}
           selected={selectedEventId === event.id}
-          testID="parent-calendar-day-event"
+          testID={tid('day-event')}
         />
       ))}
     </View>
@@ -139,6 +141,7 @@ export function SelectedDayCard({
   selectedEventId,
   onPress,
   index,
+  emptyAction,
 }: {
   date: string;
   today: string;
@@ -146,14 +149,17 @@ export function SelectedDayCard({
   selectedEventId: string | null;
   onPress: (event: OrganizationEvent) => void;
   index: number;
+  /** Shown under the empty-day copy (e.g. "Add event on this day" for staff). */
+  emptyAction?: ReactNode;
 }) {
+  const tid = useCalendarTestId();
   return (
     <GCard
       index={index}
-      testID="parent-calendar-selected-day"
+      testID={tid('selected-day')}
       title={date === today ? `Today · ${formatDayHeading(date)}` : formatDayHeading(date)}
       action={events.length > 0 ? <GChip tone="neutral" label={pluralEvents(events.length)} /> : null}>
-      <DayEventList events={events} selectedEventId={selectedEventId} onPress={onPress} />
+      <DayEventList events={events} selectedEventId={selectedEventId} onPress={onPress} emptyAction={emptyAction} />
     </GCard>
   );
 }
@@ -216,10 +222,11 @@ export function AgendaCard({
   index: number;
   onLayout?: (y: number) => void;
 }) {
+  const tid = useCalendarTestId();
   return (
     <GCard
       index={index}
-      testID="parent-calendar-agenda"
+      testID={tid('agenda')}
       title={title}
       onLayout={onLayout}
       action={events.length > 0 ? <GChip tone="info" label={pluralEvents(events.length)} /> : null}>

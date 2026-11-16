@@ -1,733 +1,649 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { AnimatePresence } from "framer-motion";
-import { Search } from "lucide-react";
-import { SchoolAdminTableSkeleton } from "@/components/school-admin/skeletons";
-import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import AdminCard from "@/components/school-admin/ui/story/AdminCard";
-import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
-import StudentContactCell from "@/components/school-admin/students/StudentContactCell";
-import StudentEnrolledCell from "@/components/school-admin/students/StudentEnrolledCell";
-import StudentIdentityCell from "@/components/school-admin/students/StudentIdentityCell";
-import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
-import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
-import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
+import { useEffect, useRef } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { ChevronRight, GraduationCap, HeartPulse, Loader2, School, UserRoundX, UsersRound, X } from "lucide-react";
+import ParentGardenFrame from "@/components/school-parent/garden/ParentGardenFrame";
+import ParentGardenPageHeader from "@/components/school-parent/garden/ParentGardenPageHeader";
+import {
+  GCard,
+  GChip,
+  GSkeleton,
+  GTabBar,
+  G_FOCUS,
+  NOTE_TINTS,
+  gBtnOutlineSm,
+  gLinkSm,
+} from "@/components/school-parent/garden/ui";
+import {
+  GardenEmptyState,
+  GardenFilterChips,
+  GardenLoadError,
+  GardenNotice,
+  GardenStatTiles,
+  type GardenStat,
+} from "@/components/school-admin/garden/kit";
+import {
+  G_TABLE,
+  G_TD,
+  G_TH,
+  GardenLeadStrip,
+  GardenSearchInput,
+  gRowClass,
+} from "@/components/school-admin/garden/blocks";
+import {
+  GardenStudentContact,
+  GardenStudentEnrolled,
+  GardenStudentIdentity,
+} from "@/components/school-admin/students/GardenStudentCells";
+import { StudentFace, plural } from "@/components/school-teacher/home/garden/parts";
 import TeacherStudentDetailPanel from "./TeacherStudentDetailPanel";
 import {
-  deriveStudentRosterMetrics,
-  filterStudentsByRosterFilter,
-  matchesStudentSearch,
-  type StudentRosterFilter,
-} from "@/lib/school-admin/admin-student-roster-metrics";
-import { adminStudentRowStyle } from "@/lib/school-admin/admin-student-row-style";
-import { mergeStudentStandingHealthFlags } from "@/lib/school-admin/merge-student-standing-health-flags";
+  useTeacherMyStudentsModel,
+  type TeacherMyStudentsModel,
+  type TeacherMyStudentsPageProps,
+} from "./my-students/useTeacherMyStudentsModel";
 import { formatStudentClassroomLabel } from "@/lib/school-admin/format-student-classroom-label";
-import {
-  formatEnrolledStudentName,
-  formatStudentGrade,
-  listAssignedEnrolledStudents,
-  listOrgEnrolledStudents,
-  type AdminEnrolledStudentSummary,
-} from "@/lib/school-admin/enrolled-students";
-import type { StaffClassroomOption } from "@/lib/school-admin/classrooms";
-import {
-  studentMatchesClassroomFilter,
-  type TeacherClassroomFilter,
-} from "@/lib/school-teacher/filter-students-by-classroom";
-import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
-import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
-import { createClient } from "@/utils/supabase/client";
+import { formatEnrolledStudentName, formatStudentGrade } from "@/lib/school-admin/enrolled-students";
+import { studentMatchesClassroomFilter } from "@/lib/school-teacher/filter-students-by-classroom";
+import { PORTAL_HOME_CONTAINER_CLASS } from "@/lib/portal-home/layout";
 
-type TeacherMyStudentsPageProps = {
-  organizationId: string;
-  branding: OrganizationBranding;
-  slug: string;
-  staffMemberId: string | null;
-  initialStudents?: AdminEnrolledStudentSummary[];
-  initialClassrooms?: StaffClassroomOption[];
-  initialSelectedStudentId?: string;
-  previewMode?: boolean;
-};
+const SEARCH_TEST_ID = "teacher-my-students-search";
 
-type TeacherRosterScope = "assigned" | "school";
+/**
+ * Staff "My Students" (Garden): who's in your care, grouped by classroom,
+ * with linked figures, filters + search and a student profile drawer.
+ * State: `useTeacherMyStudentsModel`. Rules:
+ * `.agents/skills/teacher-portal-garden-design/SKILL.md`.
+ */
+export default function TeacherMyStudentsPage(props: TeacherMyStudentsPageProps) {
+  const model = useTeacherMyStudentsModel(props);
+  const { theme, staffMemberId } = model;
+  const rosterRef = useRef<HTMLDivElement>(null);
 
-const STUDENTS_PAGE_SIZE = 50;
-
-function StoryFilterPill({
-  active,
-  label,
-  count,
-  onClick,
-  theme,
-}: {
-  active: boolean;
-  label: string;
-  count?: number;
-  onClick: () => void;
-  theme: ParentThemeTokens;
-}) {
-  const displayLabel = count != null ? `${label} · ${count}` : label;
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="cursor-pointer rounded-[9px] border px-2.5 py-2 text-[11px] font-medium transition-colors"
-      style={
-        active
-          ? {
-              backgroundColor: "#E9F2EA",
-              color: theme.primary,
-              borderColor: "#BCD4C1",
-              fontWeight: 700,
-            }
-          : {
-              backgroundColor: theme.white,
-              color: "#5D6D73",
-              borderColor: "#DCE4DC",
-            }
-      }
-    >
-      {displayLabel}
-    </button>
-  );
-}
-
-function updateStudentHealthFlag(
-  students: AdminEnrolledStudentSummary[],
-  studentId: string,
-  hasStandingHealthItems: boolean,
-): AdminEnrolledStudentSummary[] {
-  return students.map((student) =>
-    student.id === studentId ? { ...student, hasStandingHealthItems } : student,
-  );
-}
-
-export default function TeacherMyStudentsPage({
-  organizationId,
-  branding: _branding,
-  slug,
-  staffMemberId,
-  initialStudents,
-  initialClassrooms,
-  initialSelectedStudentId,
-  previewMode = false,
-}: TeacherMyStudentsPageProps) {
-  const { theme, adminCompat: C } = useParentTheme();
-  const searchParams = useSearchParams();
-  const supabase = useMemo(() => createClient(), []);
-  const hasInitialData = initialStudents !== undefined;
-  const tableRef = useRef<HTMLDivElement>(null);
-  const staffClassrooms = useMemo(
-    () => initialClassrooms ?? [],
-    [initialClassrooms],
-  );
-
-  const initialClassroomParam = searchParams.get("classroom");
-  const initialClassroomFilter = useMemo((): TeacherClassroomFilter => {
-    if (!initialClassroomParam) return "all";
-    if (initialClassroomParam === "unassigned") return "unassigned";
-    if (staffClassrooms.some((classroom) => classroom.id === initialClassroomParam)) {
-      return initialClassroomParam;
-    }
-    return "all";
-  }, [initialClassroomParam, staffClassrooms]);
-
-  const [rosterScope, setRosterScope] = useState<TeacherRosterScope>("assigned");
-  const [classroomFilter, setClassroomFilter] =
-    useState<TeacherClassroomFilter>(initialClassroomFilter);
-  const [assignedStudents, setAssignedStudents] = useState<AdminEnrolledStudentSummary[]>(
-    initialStudents ?? [],
-  );
-  const [schoolStudents, setSchoolStudents] = useState<AdminEnrolledStudentSummary[] | null>(
-    null,
-  );
-  const [loadingAssigned, setLoadingAssigned] = useState(
-    !hasInitialData && staffMemberId != null,
-  );
-  const [loadingSchool, setLoadingSchool] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [rosterFilter, setRosterFilter] = useState<StudentRosterFilter>("all");
-  const [selectedId, setSelectedId] = useState<string | null>(
-    initialSelectedStudentId ?? null,
-  );
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [visibleCount, setVisibleCount] = useState(STUDENTS_PAGE_SIZE);
-
-  const students = rosterScope === "assigned" ? assignedStudents : (schoolStudents ?? []);
-  const loading = rosterScope === "assigned" ? loadingAssigned : loadingSchool;
-
-  const assignedMetrics = useMemo(
-    () => deriveStudentRosterMetrics(assignedStudents),
-    [assignedStudents],
-  );
-  const schoolMetrics = useMemo(
-    () => deriveStudentRosterMetrics(schoolStudents ?? []),
-    [schoolStudents],
-  );
-  const metrics = rosterScope === "assigned" ? assignedMetrics : schoolMetrics;
-
-  const healthFlagCount = useMemo(
-    () => students.filter((student) => student.hasStandingHealthItems).length,
-    [students],
-  );
-
-  const showProgramMetrics = metrics.programCount > 1;
-  const isSchoolScope = rosterScope === "school";
-
-  function changeRosterScope(next: TeacherRosterScope) {
-    setRosterScope(next);
-    setRosterFilter("all");
-    setClassroomFilter("all");
-    setVisibleCount(STUDENTS_PAGE_SIZE);
-    setSelectedId(null);
-  }
-
-  function changeClassroomFilter(next: TeacherClassroomFilter) {
-    setClassroomFilter(next);
-    setVisibleCount(STUDENTS_PAGE_SIZE);
-    setSelectedId(null);
-  }
-
-  function changeRosterFilter(next: StudentRosterFilter) {
-    setRosterFilter(next);
-    setVisibleCount(STUDENTS_PAGE_SIZE);
-  }
-
-  const loadAssignedStudents = useCallback(async () => {
-    if (!staffMemberId) {
-      setAssignedStudents([]);
-      setLoadingAssigned(false);
-      return;
-    }
-
-    setLoadingAssigned(true);
-    setError(null);
-
-    try {
-      const rows = await listAssignedEnrolledStudents(
-        supabase,
-        organizationId,
-        staffMemberId,
-        { limit: 500 },
-      );
-      const withFlags = await mergeStudentStandingHealthFlags(
-        supabase,
-        organizationId,
-        rows,
-      );
-      setAssignedStudents(withFlags);
-    } catch (err) {
-      void reportPortalOperationalError("teacher_portal", {
-        organizationId,
-        operation: "students.load_assigned",
-        error: "",
-      }, err);
-      setError(err instanceof Error ? err.message : "Failed to load students.");
-    } finally {
-      setLoadingAssigned(false);
-    }
-  }, [organizationId, staffMemberId, supabase]);
-
-  const loadSchoolStudents = useCallback(async () => {
-    setLoadingSchool(true);
-    setError(null);
-
-    try {
-      const rows = await listOrgEnrolledStudents(supabase, organizationId, {
-        limit: 500,
-      });
-      const withFlags = await mergeStudentStandingHealthFlags(
-        supabase,
-        organizationId,
-        rows,
-      );
-      setSchoolStudents(withFlags);
-    } catch (err) {
-      void reportPortalOperationalError("teacher_portal", {
-        organizationId,
-        operation: "students.load_school",
-        error: "",
-      }, err);
-      setError(err instanceof Error ? err.message : "Failed to load students.");
-    } finally {
-      setLoadingSchool(false);
-    }
-  }, [organizationId, supabase]);
-
+  // "/" jumps to search (not while typing somewhere else).
   useEffect(() => {
-    if (hasInitialData) return;
-    queueMicrotask(() => {
-      void loadAssignedStudents();
-    });
-  }, [hasInitialData, loadAssignedStudents]);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) return;
+      if (document.querySelector("[data-garden-dialog]")) return;
+      const input = document.querySelector<HTMLInputElement>(`[data-testid="${SEARCH_TEST_ID}"]`);
+      if (!input) return;
+      event.preventDefault();
+      input.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
-  useEffect(() => {
-    if (rosterScope !== "school" || schoolStudents !== null) return;
-    queueMicrotask(() => {
-      void loadSchoolStudents();
-    });
-  }, [loadSchoolStudents, rosterScope, schoolStudents]);
-
-  const handleStudentHealthChange = useCallback(
-    (studentId: string, hasStandingHealthItems: boolean) => {
-      setAssignedStudents((current) =>
-        updateStudentHealthFlag(current, studentId, hasStandingHealthItems),
-      );
-      setSchoolStudents((current) =>
-        current
-          ? updateStudentHealthFlag(current, studentId, hasStandingHealthItems)
-          : current,
-      );
-    },
-    [],
-  );
-
-  const focusUnassignedStudents = () => {
-    changeRosterFilter("unassigned");
-    tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
-  const filteredStudents = useMemo(() => {
-    const byFilter = filterStudentsByRosterFilter(students, rosterFilter);
-    const byClassroom =
-      rosterScope === "assigned" && classroomFilter !== "all"
-        ? byFilter.filter((student) =>
-            studentMatchesClassroomFilter(student, classroomFilter, staffClassrooms),
-          )
-        : byFilter;
-    return byClassroom.filter((student) =>
-      matchesStudentSearch(
-        student,
-        searchQuery,
-        formatStudentGrade,
-        formatEnrolledStudentName,
-      ),
-    );
-  }, [
-    classroomFilter,
-    rosterFilter,
-    rosterScope,
-    searchQuery,
-    staffClassrooms,
-    students,
-  ]);
-
-  const unassignedClassroomCount = useMemo(
-    () =>
-      assignedStudents.filter((student) => student.classroomNames.length === 0).length,
-    [assignedStudents],
-  );
-
-  const visibleStudents = useMemo(
-    () => filteredStudents.slice(0, visibleCount),
-    [filteredStudents, visibleCount],
-  );
-
-  const hasMoreStudents = visibleStudents.length < filteredStudents.length;
-
-  const selectedStudent =
-    filteredStudents.find((row) => row.id === selectedId) ??
-    students.find((row) => row.id === selectedId) ??
-    null;
-
-  const tableColumnCount = isSchoolScope ? 7 : 6;
-  const tableMinWidth = isSchoolScope ? "min-w-[1080px]" : "min-w-[940px]";
-  const tableHeadings = isSchoolScope
-    ? ["Student", "Grade", "Program", "Classroom", "Teacher", "Parent", "Enrolled"]
-    : ["Student", "Grade", "Program", "Classroom", "Parent", "Enrolled"];
-
-  const inputStyle = {
-    borderColor: "#DCE4DC",
-    backgroundColor: theme.white,
-    color: theme.ink,
-  };
-
-  const headerSubtitle =
-    rosterScope === "assigned"
-      ? `${assignedStudents.length} assigned student${assignedStudents.length === 1 ? "" : "s"}`
-      : schoolStudents === null
-        ? "All enrolled students at your school"
-        : `${schoolStudents.length} enrolled student${schoolStudents.length === 1 ? "" : "s"} at your school`;
-
-  const emptyMessage =
-    rosterScope === "assigned"
-      ? "No students assigned to you yet. Your school admin can assign students from My School → My Students."
-      : "No enrolled students found at your school yet.";
+  const scrollToRoster = () => rosterRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   if (staffMemberId == null) {
     return (
-      <div className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px]">
-        <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
-          Your account isn&apos;t linked to a staff record. Contact your school
-          administrator so they can connect your portal login to the staff directory.
-        </p>
+      <div data-testid="teacher-my-students-page" className="relative flex h-full min-h-0 flex-col">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--sf-cream,#FBF7EF)]">
+          <ParentGardenFrame theme={theme} className="bg-[var(--sf-cream)]">
+            <div className={PORTAL_HOME_CONTAINER_CLASS}>
+              <ParentGardenPageHeader title="My Students" />
+              <GardenNotice tone="warning" title="Your login isn't linked to a staff record yet" role="status">
+                Your account isn&apos;t linked to a staff record. Contact your school administrator so they can connect
+                your portal login to the staff directory.
+              </GardenNotice>
+            </div>
+          </ParentGardenFrame>
+        </div>
       </div>
     );
   }
 
   return (
-    <div
-      data-testid="teacher-my-students-page"
-      className="relative flex h-full min-h-0 flex-col"
-    >
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14">
-          <header className="mb-[23px]">
-            <ParentSectionKicker theme={theme}>Your classroom</ParentSectionKicker>
-            <ParentDisplayHeading theme={theme} as="h1" size="display" className="!mt-2">
-              My Students
-            </ParentDisplayHeading>
-            <p className="m-0 mt-2 text-sm" style={{ color: theme.muted }}>
-              {headerSubtitle}
-            </p>
-          </header>
-
-          <div className="mb-[15px] flex flex-wrap items-center gap-2">
-            <StoryFilterPill
-              active={rosterScope === "assigned"}
-              label="My students"
-              count={assignedMetrics.totalCount}
-              onClick={() => changeRosterScope("assigned")}
-              theme={theme}
-            />
-            <StoryFilterPill
-              active={rosterScope === "school"}
-              label="All students"
-              count={
-                schoolStudents?.length ??
-                (schoolMetrics.totalCount > 0 ? schoolMetrics.totalCount : undefined)
+    <div data-testid="teacher-my-students-page" className="relative flex h-full min-h-0 flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--sf-cream,#FBF7EF)]">
+        <ParentGardenFrame theme={theme} className="bg-[var(--sf-cream)]">
+          <div className={PORTAL_HOME_CONTAINER_CLASS}>
+            <ParentGardenPageHeader
+              title={
+                <>
+                  My <span className="text-[var(--sf-clay)]">Students</span>
+                </>
               }
-              onClick={() => changeRosterScope("school")}
-              theme={theme}
+              subtitle={
+                <span className="text-[13.5px] font-extrabold tabular-nums text-[var(--sf-ink)]/70" data-testid="teacher-my-students-status-line">
+                  {model.statusLine}
+                </span>
+              }
+              actions={<ScopeTabs model={model} />}
             />
-          </div>
 
-          {rosterScope === "assigned" && staffClassrooms.length > 0 ? (
-            <div className="mb-[15px] flex flex-wrap items-center gap-2">
-              <StoryFilterPill
-                active={classroomFilter === "all"}
-                label="All groups"
-                count={assignedStudents.length}
-                onClick={() => changeClassroomFilter("all")}
-                theme={theme}
-              />
-              {staffClassrooms.map((classroom) => (
-                <StoryFilterPill
-                  key={classroom.id}
-                  active={classroomFilter === classroom.id}
-                  label={classroom.name}
-                  count={classroom.studentCount}
-                  onClick={() => changeClassroomFilter(classroom.id)}
-                  theme={theme}
-                />
-              ))}
-              {unassignedClassroomCount > 0 ? (
-                <StoryFilterPill
-                  active={classroomFilter === "unassigned"}
-                  label="Unassigned"
-                  count={unassignedClassroomCount}
-                  onClick={() => changeClassroomFilter("unassigned")}
-                  theme={theme}
-                />
-              ) : null}
-            </div>
-          ) : null}
-
-          {!loading && students.length > 0 ? (
-            <>
-              <div
-                className={`mb-[19px] grid grid-cols-1 gap-[13px] sm:grid-cols-2 ${
-                  isSchoolScope && showProgramMetrics
-                    ? "xl:grid-cols-4"
-                    : isSchoolScope || showProgramMetrics
-                      ? "xl:grid-cols-3"
-                      : "xl:grid-cols-2"
-                }`}
-              >
-                <AdminMetricCard
-                  theme={theme}
-                  value={String(metrics.totalCount)}
-                  label={isSchoolScope ? "All enrolled" : "Assigned students"}
-                  accent="forest"
-                />
-                {isSchoolScope && metrics.unassignedCount > 0 ? (
-                  <AdminMetricCard
-                    theme={theme}
-                    value={String(metrics.unassignedCount)}
-                    label="Unassigned teacher"
-                    accent="gold"
-                  />
-                ) : null}
-                {healthFlagCount > 0 ? (
-                  <AdminMetricCard
-                    theme={theme}
-                    value={String(healthFlagCount)}
-                    label="Health flags"
-                    accent="berry"
-                  />
-                ) : null}
-                {showProgramMetrics ? (
-                  <AdminMetricCard
-                    theme={theme}
-                    value={String(metrics.programCount)}
-                    label="Programs"
-                    accent="sky"
-                  />
-                ) : null}
-              </div>
-
-              {isSchoolScope && metrics.unassignedCount > 0 ? (
-                <div
-                  className="mb-[15px] flex flex-col items-start justify-between gap-3 rounded-[12px] border px-4 py-3.5 sm:flex-row sm:items-center"
-                  style={{
-                    backgroundColor: "#EAF4EB",
-                    borderColor: "#C7DFCB",
-                    color: "#42694F",
-                  }}
-                >
-                  <span className="text-xs">
-                    <b>Needs attention:</b> {metrics.unassignedCount} enrolled student
-                    {metrics.unassignedCount === 1 ? "" : "s"} don&apos;t have a teacher
-                    assigned.
-                  </span>
-                  <AdminButton theme={theme} variant="soft" onClick={focusUnassignedStudents}>
-                    View unassigned →
-                  </AdminButton>
-                </div>
-              ) : null}
-            </>
-          ) : null}
-
-          <div className="mb-[15px] flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <StoryFilterPill
-                active={rosterFilter === "all"}
-                label="All"
-                count={metrics.totalCount}
-                onClick={() => changeRosterFilter("all")}
-                theme={theme}
-              />
-              {isSchoolScope && metrics.unassignedCount > 0 ? (
-                <StoryFilterPill
-                  active={rosterFilter === "unassigned"}
-                  label="Unassigned"
-                  count={metrics.unassignedCount}
-                  onClick={() => changeRosterFilter("unassigned")}
-                  theme={theme}
-                />
-              ) : null}
-            </div>
-            <div className="relative min-w-[12rem] max-w-xs flex-1 sm:max-w-sm">
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2"
-                style={{ color: "#8B9699" }}
-                aria-hidden="true"
-              />
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={(event) => {
-                  setSearchQuery(event.target.value);
-                  setVisibleCount(STUDENTS_PAGE_SIZE);
+            {model.isSchoolScope && !model.loading && model.metrics.unassignedCount > 0 ? (
+              <GardenLeadStrip
+                icon={UsersRound}
+                kicker={`Needs attention · ${plural(model.metrics.unassignedCount, "student")}`}
+                title={`${plural(model.metrics.unassignedCount, "enrolled student")} ${
+                  model.metrics.unassignedCount === 1 ? "doesn't" : "don't"
+                } have a teacher assigned`}
+                cta="View unassigned"
+                onClick={() => {
+                  model.changeRosterFilter("unassigned");
+                  scrollToRoster();
                 }}
-                placeholder="Search students, families, or email"
-                className="w-full rounded-md border py-2 pl-9 pr-3 text-sm outline-none"
-                style={inputStyle}
               />
+            ) : null}
+
+            {!model.isSchoolScope && model.staffClassrooms.length > 0 ? (
+              <ClassroomGroups model={model} onPick={scrollToRoster} />
+            ) : null}
+
+            {!model.loading && !model.error && model.students.length > 0 ? (
+              <FigureTiles model={model} onFilter={scrollToRoster} />
+            ) : null}
+
+            <div ref={rosterRef} className="scroll-mt-4">
+              <RosterCard model={model} />
             </div>
+
+            {model.students.length > 0 ? (
+            <p className="m-0 hidden text-[13px] font-semibold text-[var(--sf-soft)] md:block">
+              Tip: press <kbd className="rounded-[6px] border border-[var(--sf-ink)]/20 bg-white px-1.5 font-mono text-[12px]">/</kbd>{" "}
+              to search, then <kbd className="rounded-[6px] border border-[var(--sf-ink)]/20 bg-white px-1.5 font-mono text-[12px]">Enter</kbd>{" "}
+              on a row to open a student.
+            </p>
+            ) : null}
           </div>
-
-          {metrics.programOptions.length > 1 ? (
-            <div className="mb-[15px] flex flex-wrap items-center gap-2">
-              {metrics.programOptions.map(([programName]) => (
-                <StoryFilterPill
-                  key={programName}
-                  active={rosterFilter === programName}
-                  label={programName}
-                  count={
-                    students.filter((student) =>
-                      student.programNames.includes(programName),
-                    ).length
-                  }
-                  onClick={() => changeRosterFilter(programName)}
-                  theme={theme}
-                />
-              ))}
-            </div>
-          ) : null}
-
-          <div ref={tableRef}>
-            {loading ? (
-              <AdminCard theme={theme} padding="none">
-                <SchoolAdminTableSkeleton
-                  C={C}
-                  rows={8}
-                  columns={tableColumnCount}
-                  showFilters={false}
-                  label="Loading students"
-                />
-              </AdminCard>
-            ) : error ? (
-              <AdminCard theme={theme} padding="canvas">
-                <p className="text-sm" style={{ color: C.error }}>
-                  {error}
-                </p>
-              </AdminCard>
-            ) : students.length === 0 ? (
-              <AdminCard theme={theme} padding="canvas">
-                <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
-                  {emptyMessage}
-                </p>
-              </AdminCard>
-            ) : filteredStudents.length === 0 ? (
-              <AdminCard theme={theme} padding="canvas">
-                <p className="text-sm" style={{ color: theme.muted }}>
-                  No students match the current filters.
-                </p>
-              </AdminCard>
-            ) : (
-              <AdminCard theme={theme} padding="none" className="overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className={`w-full ${tableMinWidth} border-collapse text-left`}>
-                    <thead style={{ backgroundColor: "#FBFCFB" }}>
-                      <tr>
-                        {tableHeadings.map((heading) => (
-                          <th
-                            key={heading}
-                            className="px-[15px] py-2.5 text-left text-[10px] font-extrabold uppercase tracking-[0.08em]"
-                            style={{ color: "#8B9699" }}
-                          >
-                            {heading}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {visibleStudents.map((student) => {
-                        const isSelected = student.id === selectedId;
-                        const isHovered = hoveredId === student.id;
-                        const rowStyle = adminStudentRowStyle(C, {
-                          isSelected,
-                          isHovered,
-                        });
-                        const studentName = formatEnrolledStudentName(student);
-                        const programLabel =
-                          student.programNames.length > 0
-                            ? student.programNames.join(", ")
-                            : "—";
-                        const teacherLabel =
-                          student.assignedTeacherNames.trim() || "Unassigned";
-
-                        return (
-                          <tr
-                            key={student.id}
-                            onClick={() =>
-                              setSelectedId((prev) =>
-                                prev === student.id ? null : student.id,
-                              )
-                            }
-                            onMouseEnter={() => setHoveredId(student.id)}
-                            onMouseLeave={() => setHoveredId(null)}
-                            className="cursor-pointer transition-colors"
-                            style={rowStyle}
-                          >
-                            <td className="px-[15px] py-3">
-                              <StudentIdentityCell
-                                name={studentName}
-                                familyName={student.familyName}
-                                photoUrl={student.profilePhotoUrl}
-                                hasStandingHealthItems={student.hasStandingHealthItems}
-                                C={C}
-                              />
-                            </td>
-                            <td
-                              className="px-[15px] py-3 text-xs"
-                              style={{ color: "#5D6D73" }}
-                            >
-                              {formatStudentGrade(student.grade) ?? "—"}
-                            </td>
-                            <td
-                              className="px-[15px] py-3 text-xs"
-                              style={{ color: "#5D6D73" }}
-                            >
-                              <div className="max-w-[14rem] truncate">{programLabel}</div>
-                            </td>
-                            <td
-                              className="px-[15px] py-3 text-xs"
-                              style={{ color: "#5D6D73" }}
-                            >
-                              <div className="max-w-[12rem] truncate">
-                                {formatStudentClassroomLabel(student.classroomNames)}
-                              </div>
-                            </td>
-                            {isSchoolScope ? (
-                              <td
-                                className="px-[15px] py-3 text-xs"
-                                style={{ color: "#5D6D73" }}
-                              >
-                                <div className="max-w-[12rem] truncate">{teacherLabel}</div>
-                              </td>
-                            ) : null}
-                            <td className="px-[15px] py-3">
-                              <StudentContactCell
-                                contactName={student.primaryContactName}
-                                contactEmail={student.primaryContactEmail}
-                              />
-                            </td>
-                            <td className="px-[15px] py-3">
-                              <StudentEnrolledCell enrolledAt={student.enrolledAt} />
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                {hasMoreStudents ? (
-                  <div
-                    className="flex justify-center px-4 py-3"
-                    style={{ borderTop: `1px solid ${theme.line}` }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setVisibleCount((count) => count + STUDENTS_PAGE_SIZE)
-                      }
-                      className="text-sm font-medium underline-offset-2 hover:underline"
-                      style={{ color: theme.primary }}
-                    >
-                      Show more students
-                    </button>
-                  </div>
-                ) : null}
-              </AdminCard>
-            )}
-          </div>
-        </div>
+        </ParentGardenFrame>
       </div>
 
-      <AnimatePresence>
-        {selectedStudent && staffMemberId ? (
-          <TeacherStudentDetailPanel
-            key={selectedStudent.id}
-            student={selectedStudent}
-            organizationId={organizationId}
-            staffMemberId={staffMemberId}
-            branding={_branding}
-            schoolSlug={slug}
-            detailAccess={isSchoolScope ? "school" : "assigned"}
-            readOnly={previewMode}
-            onStudentHealthChange={handleStudentHealthChange}
-            onClose={() => setSelectedId(null)}
-          />
-        ) : null}
-      </AnimatePresence>
+      {/* The drawer stays outside the Garden frame. */}
+      {model.panelStudent ? (
+        <TeacherStudentDetailPanel
+          open={model.selectedId !== null}
+          student={model.panelStudent}
+          organizationId={props.organizationId}
+          staffMemberId={staffMemberId}
+          branding={props.branding}
+          schoolSlug={props.slug}
+          detailAccess={model.isSchoolScope ? "school" : "assigned"}
+          readOnly={model.previewMode}
+          onStudentHealthChange={model.handleStudentHealthChange}
+          onClose={model.closeStudent}
+        />
+      ) : null}
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
+function ScopeTabs({ model }: { model: TeacherMyStudentsModel }) {
+  const schoolCount = model.schoolStudents?.length;
+  return (
+    <GTabBar
+      ariaLabel="Whose students"
+      activeKey={model.rosterScope}
+      onChange={(key) => model.changeRosterScope(key as "assigned" | "school")}
+      data-testid="teacher-my-students-scope"
+      items={[
+        {
+          key: "assigned",
+          label: "My students",
+          suffix: <TabCount value={model.assignedMetrics.totalCount} />,
+          testId: "teacher-my-students-scope-assigned",
+        },
+        {
+          key: "school",
+          label: "All students",
+          ariaBusy: model.loadingSchool,
+          suffix: model.loadingSchool ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-label="Loading" />
+          ) : schoolCount != null ? (
+            <TabCount value={schoolCount} />
+          ) : null,
+          testId: "teacher-my-students-scope-school",
+        },
+      ]}
+    />
+  );
+}
+
+function TabCount({ value }: { value: number }) {
+  return <span className="rounded-full bg-[var(--sf-ink)]/[0.08] px-1.5 text-[11.5px] tabular-nums">{value}</span>;
+}
+
+/* ------------------------------------------------------------------ */
+
+function ClassroomGroups({ model, onPick }: { model: TeacherMyStudentsModel; onPick: () => void }) {
+  const groups = [
+    {
+      key: "all",
+      name: "All groups",
+      count: model.assignedStudents.length,
+      faces: model.assignedStudents,
+      icon: UsersRound,
+    },
+    ...model.staffClassrooms.map((classroom) => ({
+      key: classroom.id,
+      name: classroom.name,
+      count: classroom.studentCount,
+      faces: model.assignedStudents.filter((s) => studentMatchesClassroomFilter(s, classroom.id, model.staffClassrooms)),
+      icon: School,
+    })),
+    ...(model.unassignedClassroomCount > 0
+      ? [
+          {
+            key: "unassigned",
+            name: "Unassigned",
+            count: model.unassignedClassroomCount,
+            faces: model.assignedStudents.filter((s) => s.classroomNames.length === 0),
+            icon: UserRoundX,
+          },
+        ]
+      : []),
+  ];
+
+  return (
+    <section aria-label="Classroom groups" className="flex flex-col gap-2.5">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="m-0 text-[12px] font-extrabold uppercase tracking-[0.16em] text-[var(--sf-soft)]">Your groups</h2>
+        <span className="hidden text-[12.5px] font-semibold text-[var(--sf-soft)] sm:inline">Pick a group to filter the roster</span>
+      </div>
+      <ul className="m-0 grid list-none grid-cols-2 gap-2 p-0 sm:gap-2.5 lg:grid-cols-4">
+        {groups.map((group, index) => {
+          const active = model.classroomFilter === group.key;
+          const shown = group.faces.slice(0, 4);
+          const extra = group.faces.length - shown.length;
+          const Icon = group.icon;
+          return (
+            <li key={group.key}>
+              <button
+                type="button"
+                aria-pressed={active}
+                aria-label={`${group.name} · ${group.count}`}
+                onClick={() => {
+                  model.changeClassroomFilter(group.key);
+                  if (!active) onPick();
+                }}
+                className={`flex h-full w-full items-center gap-3 rounded-[18px] border-[1.5px] p-2.5 text-left sm:p-3 transition-all duration-200 hover:-translate-y-0.5 ${
+                  active
+                    ? "border-[var(--sf-ink)] bg-[var(--sf-accent-wash)] shadow-[0_3px_0_0_var(--sf-ink)]"
+                    : "border-[var(--sf-ink)]/12 bg-white hover:border-[var(--sf-ink)]/35"
+                } ${G_FOCUS}`}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`hidden h-11 w-11 shrink-0 items-center justify-center rounded-[14px] sm:flex ${NOTE_TINTS[index % NOTE_TINTS.length]}`}
+                >
+                  <Icon className="h-5 w-5 text-[var(--sf-ink)]/80" strokeWidth={2.3} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="sf-display block truncate text-[1.05rem] leading-tight text-[var(--sf-ink)]">{group.name}</span>
+                  <span className="mt-0.5 block text-[12.5px] font-semibold tabular-nums text-[var(--sf-soft)]">
+                    {plural(group.count, "student")}
+                  </span>
+                </span>
+                {shown.length > 0 ? (
+                  <span className="hidden shrink-0 items-center xl:flex" aria-hidden="true">
+                    {shown.map((student, i) => (
+                      <StudentFace key={student.id} student={student} index={i} size="xs" className={i > 0 ? "-ml-2" : ""} />
+                    ))}
+                    {extra > 0 ? (
+                      <span className="-ml-2 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--sf-paper)] text-[11px] font-extrabold text-[var(--sf-ink)]/65 ring-2 ring-white">
+                        +{extra}
+                      </span>
+                    ) : null}
+                  </span>
+                ) : null}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
+function FigureTiles({ model, onFilter }: { model: TeacherMyStudentsModel; onFilter: () => void }) {
+  const { metrics } = model;
+  const stats: GardenStat[] = [
+    {
+      id: "total",
+      label: model.isSchoolScope ? "All enrolled" : "Assigned students",
+      value: metrics.totalCount,
+      accent: "forest",
+      active: !model.filtersActive,
+      onClick: () => {
+        model.clearFilters();
+        onFilter();
+      },
+      hint: model.filtersActive ? "Show everyone" : undefined,
+    },
+  ];
+  if (model.isSchoolScope && metrics.unassignedCount > 0) {
+    stats.push({
+      id: "unassigned",
+      label: "Unassigned teacher",
+      value: metrics.unassignedCount,
+      accent: "gold",
+      active: model.rosterFilter === "unassigned",
+      onClick: () => {
+        model.changeRosterFilter(model.rosterFilter === "unassigned" ? "all" : "unassigned");
+        onFilter();
+      },
+    });
+  }
+  if (model.healthFlagCount > 0) {
+    stats.push({
+      id: "health",
+      label: "Health flags",
+      value: model.healthFlagCount,
+      accent: "berry",
+      active: model.healthOnly,
+      onClick: () => {
+        model.toggleHealthOnly();
+        onFilter();
+      },
+      hint: model.healthOnly ? "Showing only these" : "Show these students",
+    });
+  }
+  if (metrics.programCount > 1) {
+    stats.push({ id: "programs", label: "Programs", value: metrics.programCount, accent: "sky" });
+  }
+  return <GardenStatTiles ariaLabel="Your students at a glance" stats={stats} layout="strip" />;
+}
+
+/* ------------------------------------------------------------------ */
+
+function RosterCard({ model }: { model: TeacherMyStudentsModel }) {
+  const reduce = useReducedMotion() === true;
+  const { metrics } = model;
+  const title = model.isSchoolScope ? "Everyone at your school" : "Your students";
+
+  if (model.loading) {
+    return (
+      <GCard index={2} kicker="Roster" title={title}>
+        <div className="flex flex-col gap-2" role="status" aria-live="polite">
+          <span className="sr-only">Loading students</span>
+          <GSkeleton className="h-11 w-full max-w-sm !rounded-[14px]" />
+          {Array.from({ length: 6 }).map((_, i) => (
+            <GSkeleton key={i} className="h-[58px] !rounded-[14px]" />
+          ))}
+        </div>
+      </GCard>
+    );
+  }
+
+  if (model.error) {
+    return (
+      <GardenLoadError
+        title="Students didn't load"
+        description={model.error}
+        onRetry={model.retry}
+        retrying={model.loading}
+      />
+    );
+  }
+
+  if (model.students.length === 0) {
+    return (
+      <GCard index={2} kicker="Roster" title={title}>
+        <GardenEmptyState
+          icon={GraduationCap}
+          title={model.isSchoolScope ? "No enrolled students yet" : "No students assigned to you yet"}
+          description={
+            model.isSchoolScope
+              ? "No enrolled students found at your school yet."
+              : "Your school admin can assign students from My School → My Students."
+          }
+          action={
+            !model.isSchoolScope ? (
+              <button type="button" className={gBtnOutlineSm} onClick={() => model.changeRosterScope("school")}>
+                See all students at your school
+              </button>
+            ) : undefined
+          }
+        />
+      </GCard>
+    );
+  }
+
+  const filterOptions = [
+    { key: "all", label: "All", count: metrics.totalCount },
+    ...(model.isSchoolScope && metrics.unassignedCount > 0
+      ? [{ key: "unassigned", label: "Unassigned", count: metrics.unassignedCount }]
+      : []),
+    ...(metrics.programOptions.length > 1
+      ? metrics.programOptions.map(([programName]) => ({
+          key: programName,
+          label: programName,
+          count: model.programCounts.get(programName) ?? 0,
+        }))
+      : []),
+  ];
+
+  const classroomName =
+    !model.isSchoolScope && model.classroomFilter !== "all"
+      ? model.classroomFilter === "unassigned"
+        ? "No classroom"
+        : (model.staffClassrooms.find((c) => c.id === model.classroomFilter)?.name ?? null)
+      : null;
+
+  const shown = model.visibleStudents;
+  const headings = model.isSchoolScope
+    ? ["Student", "Grade", "Program", "Classroom", "Teacher", "Parent", "Enrolled"]
+    : ["Student", "Grade", "Program", "Classroom", "Parent", "Enrolled"];
+
+  return (
+    <GCard
+      index={2}
+      kicker="Roster"
+      title={title}
+      action={
+        <span className="text-[12.5px] font-bold tabular-nums text-[var(--sf-soft)]" aria-live="polite">
+          Showing {shown.length} of {model.filteredStudents.length}
+          {model.filteredStudents.length !== metrics.totalCount ? ` (${metrics.totalCount} total)` : ""}
+        </span>
+      }
+      data-testid="teacher-my-students-roster"
+    >
+      <div className="mb-4 flex flex-col gap-3 border-b-[1.5px] border-dashed border-[var(--sf-ink)]/12 pb-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <GardenFilterChips
+            options={filterOptions}
+            value={model.rosterFilter}
+            onChange={model.changeRosterFilter}
+            ariaLabel="Filter students"
+          />
+          <GardenSearchInput
+            value={model.searchQuery}
+            onChange={model.setSearchQuery}
+            placeholder="Search students, families, or email"
+            label="Search students"
+            className="w-full lg:max-w-sm"
+            data-testid={SEARCH_TEST_ID}
+          />
+        </div>
+        {classroomName || model.healthOnly ? (
+          <div className="flex flex-wrap items-center gap-2 text-[13px] font-semibold text-[var(--sf-soft)]">
+            <span>Also filtered by:</span>
+            {classroomName ? (
+              <ActiveFilter label={`Group: ${classroomName}`} onClear={() => model.changeClassroomFilter("all")} />
+            ) : null}
+            {model.healthOnly ? <ActiveFilter label="Health flags" onClear={model.toggleHealthOnly} /> : null}
+          </div>
+        ) : null}
+      </div>
+
+      {shown.length === 0 ? (
+        <div className="rounded-[16px] bg-[var(--sf-paper)] p-4 text-[13.5px] font-semibold text-[var(--sf-soft)]" role="status">
+          No students match{" "}
+          {model.searchQuery.trim() ? <>&ldquo;{model.searchQuery.trim()}&rdquo;</> : "the current filters"}.{" "}
+          <button type="button" className={gLinkSm} onClick={model.clearFilters}>
+            Show everyone
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* Phones: one tappable card per student */}
+          <ul className="m-0 flex list-none flex-col gap-2 p-0 md:hidden">
+            {shown.map((student) => {
+              const name = formatEnrolledStudentName(student);
+              const selected = model.selectedId === student.id;
+              return (
+                <li key={student.id}>
+                  <button
+                    type="button"
+                    onClick={() => model.openStudent(student.id)}
+                    aria-label={`Open ${name}'s profile`}
+                    className={`flex w-full flex-col gap-2 rounded-[16px] border-[1.5px] px-3.5 py-3 text-left transition-colors ${
+                      selected
+                        ? "border-[var(--sf-clay)]/40 bg-[var(--sf-accent-wash)]"
+                        : "border-[var(--sf-ink)]/10 bg-white hover:bg-[var(--sf-accent-wash)]"
+                    } ${G_FOCUS}`}
+                  >
+                    <span className="flex items-start justify-between gap-2">
+                      <GardenStudentIdentity
+                        name={name}
+                        familyName={student.familyName}
+                        photoUrl={student.profilePhotoUrl}
+                        hasStandingHealthItems={student.hasStandingHealthItems}
+                      />
+                      <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-[var(--sf-ink)]/40" aria-hidden />
+                    </span>
+                    <span className="text-[12.5px] font-semibold text-[var(--sf-soft)]">
+                      {[formatStudentGrade(student.grade), student.programNames.join(", ") || null].filter(Boolean).join(" · ") ||
+                        "—"}
+                    </span>
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      <GChip tone={student.classroomNames.length ? "neutral" : "warning"}>
+                        {formatStudentClassroomLabel(student.classroomNames)}
+                      </GChip>
+                      {model.isSchoolScope ? (
+                        <GChip tone="neutral">{student.assignedTeacherNames.trim() || "Unassigned"}</GChip>
+                      ) : null}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Tablet and up: the full table */}
+          <div className="-mx-1 hidden overflow-x-auto md:block">
+            <table className={`${G_TABLE} ${model.isSchoolScope ? "min-w-[1040px]" : "min-w-[900px]"}`}>
+              <thead>
+                <tr>
+                  {headings.map((heading) => (
+                    <th key={heading} scope="col" className={G_TH}>
+                      {heading}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <motion.tbody
+                key={`${model.rosterScope}-${model.classroomFilter}-${model.rosterFilter}-${model.healthOnly}`}
+                initial={reduce ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.2 }}
+              >
+                {shown.map((student) => {
+                  const name = formatEnrolledStudentName(student);
+                  const open = () => model.openStudent(student.id);
+                  const selected = model.selectedId === student.id;
+                  return (
+                    <tr
+                      key={student.id}
+                      tabIndex={0}
+                      onClick={open}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          open();
+                        }
+                      }}
+                      aria-label={`Open ${name}'s profile`}
+                      aria-selected={selected}
+                      className={gRowClass({ interactive: true, selected })}
+                    >
+                      <td className={G_TD}>
+                        <GardenStudentIdentity
+                          name={name}
+                          familyName={student.familyName}
+                          photoUrl={student.profilePhotoUrl}
+                          hasStandingHealthItems={student.hasStandingHealthItems}
+                        />
+                      </td>
+                      <td className={`${G_TD} text-[13px] font-bold text-[var(--sf-ink)]/75`}>
+                        {formatStudentGrade(student.grade) ?? "—"}
+                      </td>
+                      <td className={G_TD}>
+                        <span className="block max-w-[14rem] truncate text-[13px] font-extrabold text-[var(--sf-ink)]">
+                          {student.programNames.length ? student.programNames.join(", ") : "—"}
+                        </span>
+                      </td>
+                      <td className={G_TD}>
+                        {student.classroomNames.length ? (
+                          <span className="block max-w-[13rem] truncate text-[13px] font-bold text-[var(--sf-ink)]/85">
+                            {formatStudentClassroomLabel(student.classroomNames)}
+                          </span>
+                        ) : (
+                          <GChip tone="warning">Unassigned</GChip>
+                        )}
+                      </td>
+                      {model.isSchoolScope ? (
+                        <td className={G_TD}>
+                          <span className="block max-w-[12rem] truncate text-[13px] font-bold text-[var(--sf-ink)]/85">
+                            {student.assignedTeacherNames.trim() || "Unassigned"}
+                          </span>
+                        </td>
+                      ) : null}
+                      <td className={G_TD}>
+                        <GardenStudentContact name={student.primaryContactName} email={student.primaryContactEmail} />
+                      </td>
+                      <td className={G_TD}>
+                        <GardenStudentEnrolled enrolledAt={student.enrolledAt} />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </motion.tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {model.hasMoreStudents ? (
+        <div className="mt-4 flex flex-col items-center gap-1.5 border-t-[1.5px] border-dashed border-[var(--sf-ink)]/12 pt-4">
+          <button type="button" className={gBtnOutlineSm} onClick={model.showMore}>
+            Show more students
+          </button>
+          <span className="text-[12px] font-semibold tabular-nums text-[var(--sf-soft)]">
+            {model.remainingCount} more to show
+          </span>
+        </div>
+      ) : null}
+
+      {model.healthFlagCount > 0 && !model.healthOnly ? (
+        <p className="m-0 mt-4 flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--sf-soft)]">
+          <HeartPulse className="h-3.5 w-3.5 text-[#b4412f]" aria-hidden />
+          A red dot on a photo means the student has standing health notes. Open them from the Health tab.
+        </p>
+      ) : null}
+    </GCard>
+  );
+}
+
+function ActiveFilter({ label, onClear }: { label: string; onClear: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClear}
+      aria-label={`Remove filter: ${label}`}
+      className={`inline-flex items-center gap-1 rounded-full border-[1.5px] border-[var(--sf-ink)]/15 bg-[var(--sf-accent-wash)] px-2.5 py-0.5 text-[12.5px] font-extrabold text-[var(--sf-ink)] hover:border-[var(--sf-ink)]/40 ${G_FOCUS}`}
+    >
+      {label}
+      <X className="h-3 w-3" aria-hidden />
+    </button>
   );
 }

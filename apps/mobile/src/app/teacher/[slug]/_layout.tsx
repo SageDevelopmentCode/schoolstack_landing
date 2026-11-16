@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 
 import { AnimatedTabContent } from '@/components/animated-tab-content';
 import { GardenToastProvider } from '@/components/parent/garden/toast';
+import { Garden } from '@/components/parent/garden/tokens';
 import { PortalPreviewBanner } from '@/components/platform-admin/portal-preview-banner';
 import { TeacherMoreMenuSheet } from '@/components/teacher/teacher-more-menu-sheet';
 import { TeacherCalendarProvider } from '@/contexts/teacher-calendar-context';
@@ -209,7 +210,7 @@ function TeacherLayoutContent() {
   return (
     <SafeAreaView
       testID={showTabBar ? 'teacher-portal-ready' : undefined}
-      style={[styles.container, { backgroundColor: Story.paper }]}>
+      style={[styles.container, { backgroundColor: Garden.cream }]}>
       <StatusBar style="dark" />
       {/* Garden toasts for shared Garden surfaces (the attendance roster). */}
       <GestureHandlerRootView style={styles.content}>

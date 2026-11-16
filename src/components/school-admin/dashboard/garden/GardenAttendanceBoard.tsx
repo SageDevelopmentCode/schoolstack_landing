@@ -233,6 +233,7 @@ export function GardenAttendanceBoard({
   variant = "dashboard",
   filter: controlledFilter,
   onFilterChange,
+  headerAction,
 }: {
   att: DashboardAttendanceModel;
   layout?: "grid" | "table";
@@ -248,6 +249,8 @@ export function GardenAttendanceBoard({
   /** Controlled status filter (page stat tiles share it). */
   filter?: AttendanceFilterKey;
   onFilterChange?: (filter: AttendanceFilterKey) => void;
+  /** Replaces the default "View attendance" toy link in the card header (dashboard variant). */
+  headerAction?: React.ReactNode;
 }) {
   const reduce = useReducedMotion() === true;
   const isPage = variant === "page";
@@ -503,7 +506,7 @@ export function GardenAttendanceBoard({
       kicker="Attendance"
       title={sectionTitle}
       action={
-        isPage ? undefined : (
+        isPage ? undefined : headerAction !== undefined ? headerAction : (
           <Link href={att.fullAttendanceHref} className={gBtnPopSm}>
             View attendance <ArrowRight className="h-4 w-4" aria-hidden />
           </Link>

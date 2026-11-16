@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { TeacherMessageThreadScreen } from '@/components/teacher/messages/teacher-message-thread-screen';
+import { TeacherMessageThreadScreen } from '@/components/teacher/messages/garden/teacher-message-thread-screen';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function TeacherMessageThreadPage() {

@@ -14,6 +14,7 @@ import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme
 import GardenHeaderPopover from "./GardenHeaderPopover";
 import GardenNavBadge from "./GardenNavBadge";
 import ParentGardenMoreMenu, {
+  type NavItemActiveFn,
   MORE_MENU_COLUMNS,
   navItemUnreadCount,
 } from "./ParentGardenMoreMenu";
@@ -158,6 +159,9 @@ export default function ParentGardenNav({
   committeesUnreadCount,
   documentationHref,
   onNavigate,
+  ariaLabel = "Parent portal",
+  isItemActive = isParentNavItemActive,
+  testIdPrefix = "parent-header",
 }: {
   variant: "desktop" | "mobile";
   primary: ParentNavItem[];
@@ -168,6 +172,12 @@ export default function ParentGardenNav({
   committeesUnreadCount: number;
   documentationHref?: string;
   onNavigate?: (href: string) => void;
+  /** Landmark name ("Staff portal" in the teacher header). */
+  ariaLabel?: string;
+  /** Defaults to the parent rule; the teacher header passes `isTeacherNavItemActive`. */
+  isItemActive?: NavItemActiveFn;
+  /** `data-testid` prefix for the More trigger and menu. */
+  testIdPrefix?: string;
 }) {
   const pillId = `parent-nav-pill-${useId()}`;
   const menuId = `parent-more-menu-${useId()}`;
@@ -176,7 +186,7 @@ export default function ParentGardenNav({
   const moreTriggerRef = useRef<HTMLButtonElement>(null);
   const { ref: rowRef, mask } = useScrollRow(pathname);
 
-  const activeMoreItem = more.find((item) => isParentNavItemActive(pathname, item));
+  const activeMoreItem = more.find((item) => isItemActive(pathname, item));
   const moreActive = Boolean(activeMoreItem);
   const hiddenUnread = more.reduce(
     (sum, item) =>
@@ -194,7 +204,7 @@ export default function ParentGardenNav({
 
   return (
     <nav
-      aria-label="Parent portal"
+      aria-label={ariaLabel}
       className={
         isDesktop
           ? "hidden min-w-0 max-w-[min(100%,54rem)] items-center gap-1 lg:flex"
@@ -210,7 +220,7 @@ export default function ParentGardenNav({
           <NavPill
             key={item.key}
             item={item}
-            active={isParentNavItemActive(pathname, item)}
+            active={isItemActive(pathname, item)}
             unread={navItemUnreadCount(item, messagesUnreadCount, committeesUnreadCount)}
             pillId={pillId}
             onNavigate={onNavigate}
@@ -227,7 +237,7 @@ export default function ParentGardenNav({
             aria-expanded={moreOpen}
             aria-controls={menuId}
             aria-haspopup="dialog"
-            data-testid={isDesktop ? "parent-header-more" : "parent-header-more-mobile"}
+            data-testid={isDesktop ? `${testIdPrefix}-more` : `${testIdPrefix}-more-mobile`}
             className={`${pillBase} gap-1 ${
               moreActive
                 ? "text-white"
@@ -280,6 +290,8 @@ export default function ParentGardenNav({
               documentationHref={documentationHref}
               onClose={closeMore}
               onNavigate={onNavigate}
+              isItemActive={isItemActive}
+              testId={`${testIdPrefix}-more-menu`}
             />
           </GardenHeaderPopover>
         </div>

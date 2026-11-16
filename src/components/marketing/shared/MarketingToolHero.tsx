@@ -1,18 +1,26 @@
-import type { ReactNode } from "react";
-import { BOLD_HEADING } from "@/components/home/bright-styles";
+"use client";
+
+import { Draw, Pill, Squiggle, type Tint } from "@/components/garden/ui";
 
 type MarketingToolHeroProps = {
+  /** Pill text, led by one emoji. */
   eyebrow: string;
-  title: ReactNode;
+  tint?: Tint;
+  /** Heading words before the coloured accent phrase. */
+  lead: string;
+  accent: string;
   description: string;
   headingAs?: "h1" | "h2";
   headingId?: string;
   className?: string;
 };
 
+/** Garden hero for a free tool: Pill → display heading with a clay accent → lead paragraph. */
 export default function MarketingToolHero({
   eyebrow,
-  title,
+  tint = "butter",
+  lead,
+  accent,
   description,
   headingAs = "h1",
   headingId,
@@ -22,18 +30,20 @@ export default function MarketingToolHero({
 
   return (
     <header className={className}>
-      <p className="font-secondary text-[13px] font-semibold uppercase tracking-widest text-clay">
-        {eyebrow}
-      </p>
+      <Pill tint={tint}>{eyebrow}</Pill>
       <Heading
         id={headingId}
-        className={`mt-4 max-w-[720px] text-[clamp(2rem,4.2vw,3rem)] ${BOLD_HEADING}`}
+        className="sf-display mt-5 max-w-[820px] text-[2.6rem] leading-[0.92] text-[var(--sf-ink)] sm:text-6xl lg:text-[4.2rem]"
       >
-        {title}
+        {lead}{" "}
+        <span className="relative isolate inline-block text-[var(--sf-clay)]">
+          <Draw className="pointer-events-none absolute -bottom-2 left-0 -z-10 w-full" delay={0.3}>
+            <Squiggle className="h-4 w-full md:h-5" color="var(--sf-butter)" />
+          </Draw>
+          {accent}
+        </span>
       </Heading>
-      <p className="mt-4 max-w-[640px] font-secondary text-[16px] leading-relaxed text-[#1d1a16]/70">
-        {description}
-      </p>
+      <p className="mt-6 max-w-[640px] text-lg leading-relaxed text-[var(--sf-soft)]">{description}</p>
     </header>
   );
 }

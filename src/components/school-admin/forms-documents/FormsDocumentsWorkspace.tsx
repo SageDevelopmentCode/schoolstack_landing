@@ -57,6 +57,19 @@ export type FormsDocumentsWorkspaceProps = {
     completed: string;
   };
   onFamiliesChanged?: () => void;
+  /* ---- staff portal (defaults keep the admin behaviour) ---- */
+  /** Forms API root. */
+  apiBase?: string;
+  fetchDownloadUrl?: (formId: string, organizationId: string) => Promise<string>;
+  surface?: "school_admin" | "teacher_portal";
+  /** Every write is blocked; actions stay visible but disabled. */
+  previewMode?: boolean;
+  uploadPreviewUrlsByFormId?: Record<string, string>;
+  /** `data-testid` prefix for each form row (`{prefix}-{formId}`). */
+  rowTestIdPrefix?: string;
+  /** Show the "Created by" column (forms list shows everyone's forms). */
+  showCreatorColumn?: boolean;
+  allowSelectAllClassrooms?: boolean;
 };
 
 const STATUS_TONES: Record<AdminParentForm["status"], GChipTone> = {
@@ -104,6 +117,14 @@ function WorkspaceInner({
   emptyState,
   metricsLabels = { active: "Active forms", pending: "Pending signatures", completed: "Completed this month" },
   onFamiliesChanged,
+  apiBase = FORMS_API_BASE,
+  fetchDownloadUrl = fetchAdminFormDownloadUrl,
+  surface = "school_admin",
+  previewMode = false,
+  uploadPreviewUrlsByFormId,
+  rowTestIdPrefix,
+  showCreatorColumn = true,
+  allowSelectAllClassrooms,
 }: FormsDocumentsWorkspaceProps) {
   const { theme } = useParentTheme();
   const skin = useAdminGardenSkin() ?? theme;
@@ -119,6 +140,10 @@ function WorkspaceInner({
     syncUrl,
     onFamiliesChanged,
     noun,
+    apiBase,
+    fetchDownloadUrl,
+    surface,
+    previewMode,
   });
   const headerContent = typeof header === "function" ? header({ onCreate: model.startCreate }) : header;
   const fade = {
@@ -135,12 +160,12 @@ function WorkspaceInner({
             <TeacherFormCreateWizard
               organizationId={organizationId}
               classroomOptions={classroomOptions}
-              apiBasePath={FORMS_API_BASE}
-              familySearchApiPath={`${FORMS_API_BASE}/families`}
-              allowSelectAllClassrooms={audienceMode === "all"}
+              apiBasePath={apiBase}
+              familySearchApiPath={`${apiBase}/families`}
+              allowSelectAllClassrooms={allowSelectAllClassrooms ?? audienceMode === "all"}
               audienceMode={audienceMode}
               formCategory={category}
-              operationalErrorSurface="school_admin"
+              operationalErrorSurface={surface}
               onCancel={model.cancelCreate}
               onPublished={model.handleFormPublished}
               onSaveDraft={model.handleFormSavedDraft}
@@ -153,6 +178,8 @@ function WorkspaceInner({
               model={model}
               noun={noun}
               showCreatorFilter={showCreatorFilter}
+              showCreatorColumn={showCreatorColumn}
+              rowTestIdPrefix={rowTestIdPrefix}
               staffMemberId={staffMemberId}
               metricsLabels={metricsLabels}
               emptyState={emptyState}
@@ -172,12 +199,14 @@ function WorkspaceInner({
             detailLoading={model.detailLoading}
             signatureRows={model.sidebarFormId ? getSignatureRowsForForm(model.sidebarFormId, model.signatureRowsByFormId) : []}
             actionLoading={model.actionLoading}
+            previewMode={previewMode}
+            previewUrl={model.sidebarFormId ? (uploadPreviewUrlsByFormId?.[model.sidebarFormId] ?? null) : null}
             onClose={model.closeSidebar}
-            onArchive={model.requestArchive}
-            onDuplicate={(id) => void model.duplicate(id)}
-            onDownload={(id) => void model.download(id)}
-            onSend={model.handleSendRequest}
-            fetchDownloadUrl={fetchAdminFormDownloadUrl}
+            onArchive={previewMode ? undefined : model.requestArchive}
+            onDuplicate={previewMode ? undefined : (id) => void model.duplicate(id)}
+            onDownload={previewMode ? undefined : (id) => void model.download(id)}
+            onSend={previewMode ? undefined : model.handleSendRequest}
+            fetchDownloadUrl={fetchDownloadUrl}
           />
           {model.sidebarFormId && model.detailError ? (
             <div className="fixed bottom-4 right-4 z-[115] w-[min(100%-2rem,26rem)]">
@@ -196,8 +225,8 @@ function WorkspaceInner({
               form={model.sendForm}
               organizationId={organizationId}
               classroomOptions={classroomOptions}
-              familySearchApiPath={`${FORMS_API_BASE}/families`}
-              allowSelectAllClassrooms={audienceMode === "all"}
+              familySearchApiPath={`${apiBase}/families`}
+              allowSelectAllClassrooms={allowSelectAllClassrooms ?? audienceMode === "all"}
               audienceMode={audienceMode}
               loading={model.sending}
               onClose={model.closeSend}
@@ -225,6 +254,8 @@ function FormsList({
   model,
   noun,
   showCreatorFilter,
+  showCreatorColumn,
+  rowTestIdPrefix,
   staffMemberId,
   metricsLabels,
   emptyState,
@@ -233,6 +264,8 @@ function FormsList({
   model: FormsDocumentsModel;
   noun: string;
   showCreatorFilter: boolean;
+  showCreatorColumn: boolean;
+  rowTestIdPrefix?: string;
   staffMemberId: string | null;
   metricsLabels: { active: string; pending: string; completed: string };
   emptyState?: FormsDocumentsWorkspaceProps["emptyState"];
@@ -250,7 +283,14 @@ function FormsList({
           }
           action={
             canCreateFromEmpty ? (
-              <button type="button" className={gBtnPopSm} onClick={model.startCreate} data-testid="forms-create-first">
+              <button
+                type="button"
+                className={gBtnPopSm}
+                onClick={model.startCreate}
+                disabled={model.previewMode}
+                title={model.previewMode ? "Creating forms is off in preview" : undefined}
+                data-testid="forms-create-first"
+              >
                 <Plus className="h-4 w-4" aria-hidden />
                 {emptyState?.createLabel ?? "Create form"}
               </button>
@@ -356,6 +396,7 @@ function FormsList({
                   <button
                     type="button"
                     onClick={() => model.openSidebar(form.id)}
+                    data-testid={rowTestIdPrefix ? `${rowTestIdPrefix}-${form.id}` : undefined}
                     className={`flex w-full flex-col gap-2 rounded-[16px] border-[1.5px] px-3.5 py-3 text-left transition-colors duration-500 ${
                       model.flashId === form.id
                         ? "border-[var(--sf-forest)]/40 bg-[var(--sf-mint)]"
@@ -369,7 +410,9 @@ function FormsList({
                       <GChip tone={STATUS_TONES[form.status]}>{FORM_STATUS_LABELS[form.status]}</GChip>
                     </span>
                     <span className="text-[12.5px] font-semibold text-[var(--sf-soft)]">
-                      {form.createdByName} · {formatAudienceLabel(form)} · Due {formatFormDueDate(form.dueDate)}
+                      {[showCreatorColumn ? form.createdByName : null, formatAudienceLabel(form), `Due ${formatFormDueDate(form.dueDate)}`]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </span>
                     <span className="flex items-center gap-3">
                       <GProgress value={form.signedFamilies} total={Math.max(form.totalFamilies, 1)} label={`${form.signedFamilies} of ${form.totalFamilies} signed`} done={form.totalFamilies > 0 && form.signedFamilies >= form.totalFamilies} />
@@ -387,7 +430,7 @@ function FormsList({
               <table className={`${G_TABLE} min-w-[880px]`}>
                 <thead>
                   <tr>
-                    {["Form", "Created by", "Type", "Signed", "Due", "Status"].map((h) => (
+                    {["Form", ...(showCreatorColumn ? ["Created by"] : []), "Type", "Signed", "Due", "Status"].map((h) => (
                       <th key={h} scope="col" className={G_TH}>
                         {h === "Form" && noun === "agreement" ? "Agreement" : h}
                       </th>
@@ -409,13 +452,16 @@ function FormsList({
                           }
                         }}
                         aria-label={`Open ${form.title}`}
+                        data-testid={rowTestIdPrefix ? `${rowTestIdPrefix}-${form.id}` : undefined}
                         className={gRowClass({ interactive: true, selected: form.id === model.sidebarFormId, flashed: model.flashId === form.id })}
                       >
                         <td className={G_TD}>
                           <div className="text-[14px] font-extrabold text-[var(--sf-ink)]">{form.title}</div>
                           <div className="text-[12.5px] font-semibold text-[var(--sf-soft)]">{formatAudienceLabel(form)}</div>
                         </td>
-                        <td className={`${G_TD} text-[13px] font-bold text-[var(--sf-ink)]/75`}>{form.createdByName}</td>
+                        {showCreatorColumn ? (
+                          <td className={`${G_TD} text-[13px] font-bold text-[var(--sf-ink)]/75`}>{form.createdByName}</td>
+                        ) : null}
                         <td className={G_TD}>
                           <GChip tone="info">{typeLabel(form)}</GChip>
                         </td>

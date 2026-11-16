@@ -13,13 +13,12 @@ import {
   NEXT_KICKER,
   NEXT_SUPPORT,
   NEXT_TITLE,
-  PLANNER_HEADING,
   PLANNER_KICKER,
   PLANNER_SUPPORT,
 } from "@/components/marketing/tuition-planner/planner-copy";
 import { plannerFocusClass, TUITION_PLANNER_THEME } from "@/components/marketing/tuition-planner/planner-theme";
 import MarketingToolHero from "@/components/marketing/shared/MarketingToolHero";
-import { ACCENT_HIGHLIGHT, OUTLINE_PILL } from "@/components/home/bright-styles";
+import { toolBtnOutline } from "@/components/marketing/shared/marketing-tool-garden";
 import ParentButton from "@/components/school-parent/ui/ParentButton";
 import { compareScenario, computeScenario, selectedLiveSummary } from "@/lib/marketing/tuition-scenario-planner";
 import {
@@ -141,17 +140,14 @@ export default function TuitionPlannerExperience() {
 
       <div className="mb-7 flex flex-col gap-4 max-[760px]:block sm:flex-row sm:items-end sm:justify-between">
         <MarketingToolHero
-          eyebrow={PLANNER_KICKER}
-          title={
-            <>
-              What would your annual tuition revenue{" "}
-              <span className={ACCENT_HIGHLIGHT}>be?</span>
-            </>
-          }
+          eyebrow={`💵 ${PLANNER_KICKER}`}
+          tint="sky"
+          lead="What would your annual tuition revenue"
+          accent="be?"
           description={PLANNER_SUPPORT}
           className="mb-0 flex-1"
         />
-        <button type="button" onClick={() => setConfirmReset(true)} className={OUTLINE_PILL}>
+        <button type="button" onClick={() => setConfirmReset(true)} className={`${toolBtnOutline} shrink-0 max-[760px]:mt-6`}>
           <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
           Start over
         </button>
@@ -166,8 +162,7 @@ export default function TuitionPlannerExperience() {
           <div className="grid items-start gap-5 min-[761px]:grid-cols-[minmax(0,1fr)_310px] min-[981px]:grid-cols-[minmax(0,1fr)_355px] min-[981px]:gap-[23px]">
             <section
               aria-label="Scenario editor"
-              className="overflow-hidden rounded-[22px] border bg-white"
-              style={{ borderColor: "#E0E7E0", boxShadow: theme.shadowCard }}
+              className="overflow-hidden rounded-[26px] border-2 border-[var(--sf-ink)] bg-white shadow-[0_6px_0_0_var(--sf-ink)]"
             >
               <ScenarioCard
                 key={baseline.id}
@@ -202,11 +197,7 @@ export default function TuitionPlannerExperience() {
           </div>
 
           <div
-            className="mt-7 rounded-2xl border px-5 py-4"
-            style={{
-              borderColor: "#C7DFCB",
-              backgroundColor: "rgba(255, 253, 247, 0.85)",
-            }}
+            className="mt-8 rounded-[22px] border-2 border-dashed border-[var(--sf-ink)]/25 bg-[var(--sf-paper)] px-5 py-4"
           >
             <p
               className="text-[16px] font-medium leading-snug tracking-[-0.02em] max-[480px]:text-[15px]"
@@ -225,30 +216,22 @@ export default function TuitionPlannerExperience() {
           </div>
 
           <section
-            className="mb-11 mt-8 flex items-center justify-between gap-6 rounded-2xl border px-6 py-5 max-[480px]:block"
-            style={{
-              background: "#FFF4EC",
-              borderColor: "#C7DFCB",
-            }}
+            className="mt-8 flex items-center justify-between gap-6 rounded-[26px] border-2 border-[var(--sf-ink)] bg-[var(--sf-peach)] px-6 py-5 shadow-[0_5px_0_0_var(--sf-ink)] max-[480px]:block"
           >
             <div>
-              <p className="mb-1.5 font-secondary text-[10px] font-semibold uppercase tracking-widest text-clay">
+              <p className="mb-1.5 text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--sf-clay-deep)]">
                 {NEXT_KICKER}
               </p>
-              <h2
-                className="text-[20px] font-medium tracking-[-0.035em] max-[480px]:text-[19px]"
-                style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
-              >
+              <h2 className="sf-display text-[1.6rem] leading-[1.05] text-[var(--sf-ink)] max-[480px]:text-[1.4rem]">
                 {NEXT_TITLE}
               </h2>
-              <p className="mt-1.5 text-[12px] leading-relaxed" style={{ color: theme.muted, fontFamily: theme.fontBody }}>
+              <p className="mt-1.5 text-[15px] leading-relaxed text-[var(--sf-ink)]/75">
                 {NEXT_SUPPORT}
               </p>
             </div>
             <Link
               href="/get-started"
-              className={`mt-0 inline-flex items-center justify-center gap-1.5 rounded-xl border bg-[#FFFDF7] px-4 py-2.5 text-[12px] font-bold max-[480px]:mt-4 max-[480px]:w-full ${plannerFocusClass}`}
-              style={{ borderColor: "#B9CDBD", color: theme.primary, fontFamily: theme.fontBody }}
+              className={`${toolBtnOutline} shrink-0 max-[480px]:mt-4 max-[480px]:w-full`}
             >
               Explore MudKitchen
               <ArrowRight className="h-4 w-4" aria-hidden="true" />

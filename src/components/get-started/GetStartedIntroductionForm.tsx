@@ -31,6 +31,8 @@ type GetStartedIntroductionFormProps = {
   onSubmit: () => void;
   companyWebsite: string;
   onCompanyWebsiteChange: (value: string) => void;
+  /** Heading level for the form title. Use "h2" when the page already has an h1. */
+  headingAs?: "h1" | "h2";
 };
 
 function FlowStepNav({ theme, activeStep }: { theme: ParentThemeTokens; activeStep: 0 }) {
@@ -88,6 +90,7 @@ export default function GetStartedIntroductionForm({
   onSubmit,
   companyWebsite,
   onCompanyWebsiteChange,
+  headingAs: Heading = "h1",
 }: GetStartedIntroductionFormProps) {
   const copy = DEMO_INTRO_FORM_COPY;
   function handleFormSubmit(e: React.FormEvent) {
@@ -96,7 +99,7 @@ export default function GetStartedIntroductionForm({
   }
 
   return (
-    <main
+    <section
       className="max-w-[760px] mx-auto bg-white overflow-hidden"
       style={{
         borderRadius: theme.radiusCard,
@@ -126,12 +129,12 @@ export default function GetStartedIntroductionForm({
           >
             {copy.kicker}
           </div>
-          <h1
+          <Heading
             className="font-secondary! mt-2.5 text-[clamp(27px,4.5vw,35px)] font-bold! leading-[1.12]! tracking-[-0.04em]!"
             style={{ color: theme.ink }}
           >
             {copy.title}
-          </h1>
+          </Heading>
           <p
             className="text-[13px] leading-[1.8] mt-3 m-0"
             style={{ color: theme.muted }}
@@ -263,6 +266,6 @@ export default function GetStartedIntroductionForm({
           </p>
         </footer>
       </form>
-    </main>
+    </section>
   );
 }

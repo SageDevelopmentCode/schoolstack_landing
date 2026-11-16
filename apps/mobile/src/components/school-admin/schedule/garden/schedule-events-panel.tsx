@@ -273,7 +273,8 @@ function EventRow({ event, onPress, divider, showDate = false }: { event: Organi
   );
 }
 
-function EventFormSheet({
+/** Garden add / edit event form (also used by the teacher Calendar when staff can manage events). */
+export function EventFormSheet({
   visible,
   mode,
   form,
@@ -283,6 +284,7 @@ function EventFormSheet({
   onClose,
   onChange,
   onSave,
+  subtitle,
 }: {
   visible: boolean;
   mode: 'create' | 'edit';
@@ -293,6 +295,8 @@ function EventFormSheet({
   onClose: () => void;
   onChange: (form: EventFormState) => void;
   onSave: () => void;
+  /** Defaults to "Families see it in the parent portal." when adding. */
+  subtitle?: string;
 }) {
   const accent = useGardenAccent();
   const isValid = Boolean(form.title.trim() && form.date && (form.isAllDay || form.time.trim()));
@@ -304,7 +308,7 @@ function EventFormSheet({
       visible={visible}
       onClose={onClose}
       title={mode === 'create' ? 'Add event' : 'Edit event'}
-      subtitle={mode === 'create' ? 'Families see it in the parent portal.' : form.title || null}
+      subtitle={subtitle ?? (mode === 'create' ? 'Families see it in the parent portal.' : form.title || null)}
       isDirty={isDirty}
       saving={saving}
       canSave={isDirty && isValid}

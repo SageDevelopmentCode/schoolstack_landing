@@ -25,9 +25,16 @@ type TeacherHomeContextValue = {
   isRefreshing: boolean;
   error: string | null;
   hasLoaded: boolean;
+  /** When the shown data was fetched (cache time), for "Updated N min ago". */
+  updatedAt: number | null;
   ensureLoaded: () => void;
   refresh: () => Promise<void>;
   updateStudentHealthFlag: (studentId: string, hasStandingHealthItems: boolean) => void;
+  /**
+   * Health flags changed on a student page this session, by student id. My Students
+   * applies them to the "All students" list, which isn't part of `data`.
+   */
+  healthFlagOverrides: ReadonlyMap<string, boolean>;
 };
 
 const TeacherHomeContext = createContext<TeacherHomeContextValue | null>(null);
@@ -138,8 +145,18 @@ export function TeacherHomeProvider({
     await load({ refresh: true });
   }, [load]);
 
+  const [healthFlagOverrides, setHealthFlagOverrides] = useState<ReadonlyMap<string, boolean>>(
+    () => new Map(),
+  );
+
   const updateStudentHealthFlag = useCallback(
     (studentId: string, hasStandingHealthItems: boolean) => {
+      setHealthFlagOverrides((previous) => {
+        if (previous.get(studentId) === hasStandingHealthItems) return previous;
+        const next = new Map(previous);
+        next.set(studentId, hasStandingHealthItems);
+        return next;
+      });
       setData((previous) => {
         if (!previous) return previous;
         return {
@@ -211,9 +228,16 @@ export function TeacherHomeProvider({
     };
   }, [authReady, key, organizationId, reportError, slug]);
 
+  // Read the cache time whenever `data` changes (the cache entry is written just before).
+  const updatedAt = useMemo(
+    () => (data ? (homeCache.getCachedAt(key) ?? null) : null),
+    [data, key],
+  );
+
   const value = useMemo(
     () => ({
       data,
+      updatedAt,
       isLoading,
       isRefreshing,
       error,
@@ -221,9 +245,12 @@ export function TeacherHomeProvider({
       ensureLoaded,
       refresh,
       updateStudentHealthFlag,
+      healthFlagOverrides,
     }),
     [
+      healthFlagOverrides,
       data,
+      updatedAt,
       ensureLoaded,
       error,
       hasLoaded,

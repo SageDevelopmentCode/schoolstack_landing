@@ -19,6 +19,9 @@ import { POPOVER_ITEM_ATTR } from "./GardenHeaderPopover";
 
 export const MORE_MENU_COLUMNS = 3;
 
+/** Which nav item the current path belongs to. Teacher portal passes its own rule. */
+export type NavItemActiveFn = (pathname: string, item: ParentNavItem) => boolean;
+
 export function navItemUnreadCount(
   item: ParentNavItem,
   messagesUnreadCount: number,
@@ -36,6 +39,7 @@ function MoreTile({
   unread,
   onClose,
   onNavigate,
+  isItemActive,
 }: {
   item: ParentNavItem;
   index: number;
@@ -43,9 +47,10 @@ function MoreTile({
   unread: number;
   onClose: () => void;
   onNavigate?: (href: string) => void;
+  isItemActive: NavItemActiveFn;
 }) {
   const Icon = item.icon;
-  const active = isParentNavItemActive(pathname, item);
+  const active = isItemActive(pathname, item);
   const className = `group relative flex min-h-[96px] w-full flex-col items-center justify-start gap-2 rounded-[18px] px-1.5 pb-2.5 pt-3 text-center ${SPRINGY} ${G_FOCUS} ${
     active
       ? "bg-[var(--sf-accent-wash)] ring-[1.5px] ring-[var(--sf-clay)]/45"
@@ -125,6 +130,8 @@ export default function ParentGardenMoreMenu({
   documentationHref,
   onClose,
   onNavigate,
+  isItemActive = isParentNavItemActive,
+  testId = "parent-header-more-menu",
 }: {
   items: ParentNavItem[];
   pathname: string;
@@ -133,6 +140,9 @@ export default function ParentGardenMoreMenu({
   documentationHref?: string;
   onClose: () => void;
   onNavigate?: (href: string) => void;
+  /** Defaults to the parent rule (exact match or a child page). */
+  isItemActive?: NavItemActiveFn;
+  testId?: string;
 }) {
   // The phone sheet has its own title, so the kicker only shows in the popover.
   const showHeading = !useMediaQuery("(max-width: 639px)");
@@ -142,7 +152,7 @@ export default function ParentGardenMoreMenu({
   const docsClass = `${G_FOCUS} inline-flex items-center gap-1 rounded-md text-[13px] font-extrabold text-[var(--sf-clay-deep)] hover:underline hover:decoration-2 hover:underline-offset-4`;
 
   return (
-    <div data-testid="parent-header-more-menu">
+    <div data-testid={testId}>
       {showHeading ? (
         <div className="flex items-center justify-between px-4 pb-1 pt-3.5">
           <GKicker>More pages</GKicker>
@@ -161,6 +171,7 @@ export default function ParentGardenMoreMenu({
               unread={navItemUnreadCount(item, messagesUnreadCount, committeesUnreadCount)}
               onClose={onClose}
               onNavigate={onNavigate}
+              isItemActive={isItemActive}
             />
           </li>
         ))}

@@ -5,6 +5,7 @@ import { Paperclip, Users } from "lucide-react";
 import { GChip, GKicker } from "@/components/school-parent/garden/ui";
 import MessageAttachments from "@/components/messages/MessageAttachments";
 import MessagesAvatar from "@/components/messages/MessagesAvatar";
+import { GardenThreadSubtitle } from "./garden-messages-shared";
 import { colorForKey } from "@/lib/messages/format";
 import { MUDKITCHEN_SUPPORT_LOGO_URL } from "@/lib/messages/platform-support";
 import type { MessageThreadDetail } from "@/lib/messages/types";
@@ -19,9 +20,12 @@ const SHARED_FILES_LIMIT = 6;
 export default function GardenThreadDetails({
   thread,
   C,
+  onOpenStudent,
 }: {
   thread: MessageThreadDetail;
   C: AdminThemeTokens;
+  /** Staff only: student names open their profile. */
+  onOpenStudent?: (studentId: string) => void;
 }) {
   const people = useMemo(() => {
     const seen = new Map<
@@ -63,9 +67,12 @@ export default function GardenThreadDetails({
           </GKicker>
         </div>
         <p className="m-0 text-[15px] font-extrabold text-[var(--sf-ink)]">{thread.title}</p>
-        {thread.subtitle ? (
-          <p className="m-0 mt-0.5 text-[13px] font-semibold text-[var(--sf-soft)]">{thread.subtitle}</p>
-        ) : null}
+        <GardenThreadSubtitle
+          subtitle={thread.subtitle}
+          students={thread.subtitleStudents}
+          onOpenStudent={onOpenStudent}
+          className="m-0 mt-0.5 text-[13px] font-semibold text-[var(--sf-soft)]"
+        />
         {people.length > 0 ? (
           <ul className="m-0 mt-3 list-none space-y-2 p-0">
             {people.map((person) => (

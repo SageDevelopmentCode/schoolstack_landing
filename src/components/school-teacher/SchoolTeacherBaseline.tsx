@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { Suspense, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import SchoolTeacherHeader from "@/components/school-teacher/SchoolTeacherHeader";
-import ParentToaster from "@/components/school-parent/ParentToaster";
+import TeacherToaster from "@/components/school-teacher/TeacherToaster";
 import {
   ParentThemeProvider,
   useParentTheme,
@@ -163,7 +163,7 @@ function SchoolTeacherBaselineInner({
         >
           <div className="flex min-h-0 flex-1 flex-col">{children}</div>
         </main>
-        <ParentToaster C={C} />
+        <TeacherToaster C={C} theme={theme} />
 
         {notificationsOpen ? (
           <TeacherActivityNotificationsPanel

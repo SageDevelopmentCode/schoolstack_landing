@@ -107,7 +107,12 @@ export function useDashboardAttendanceModel({
   // Callers often pass inline callbacks; keep them in refs so loadRoster stays
   // stable and the date-change effect can't refetch on every render.
   const retrySaveRef = useRef<
-    ((student: AttendanceRosterStudent, action: AttendanceAction) => void) | null
+    | ((
+        student: AttendanceRosterStudent,
+        action: AttendanceAction,
+        options?: { quiet?: boolean },
+      ) => void)
+    | null
   >(null);
   const onSummaryChangeRef = useRef(onSummaryChange);
   const onRecordSavedRef = useRef(onRecordSaved);
@@ -238,6 +243,12 @@ export function useDashboardAttendanceModel({
       student: AttendanceRosterStudent,
       action: AttendanceAction,
       pickupSelection?: AttendancePickupSelection,
+      /**
+       * `quiet`: skip the success toast (a guided flow like the teacher roll
+       * call confirms inline and sends one recap toast at the end). Error
+       * toasts, the error id and Retry are unchanged.
+       */
+      options?: { quiet?: boolean },
     ): Promise<boolean> => {
       if (readOnly) return false;
 
@@ -273,7 +284,7 @@ export function useDashboardAttendanceModel({
 
         setLastSavedStudentId(student.id);
         adminToast.dismiss(`attendance-error-${student.id}`);
-        adminToast.success(savedToastTitle(action, name), {
+        if (!options?.quiet) adminToast.success(savedToastTitle(action, name), {
           id: `attendance-${student.id}`,
           description: roster
             ? formatDashboardAttendanceSubcopy(roster.summary) +
@@ -298,7 +309,7 @@ export function useDashboardAttendanceModel({
               ? undefined
               : {
                   label: "Retry",
-                  onClick: () => retrySaveRef.current?.(student, action),
+                  onClick: () => retrySaveRef.current?.(student, action, options),
                 },
         });
         return false;
@@ -318,7 +329,8 @@ export function useDashboardAttendanceModel({
   );
 
   useEffect(() => {
-    retrySaveRef.current = (student, action) => void saveAttendanceAction(student, action);
+    retrySaveRef.current = (student, action, options) =>
+      void saveAttendanceAction(student, action, undefined, options);
   }, [saveAttendanceAction]);
 
   // Clear the "just saved" highlight after a moment.

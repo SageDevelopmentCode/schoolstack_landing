@@ -18,6 +18,7 @@ type GetStartedConfirmationProps = {
   schoolName: string;
   roleLabel: string;
   booking: DemoSchedulerBooking | null;
+  headingAs?: "h1" | "h2";
 };
 
 export default function GetStartedConfirmation({
@@ -25,6 +26,7 @@ export default function GetStartedConfirmation({
   schoolName,
   roleLabel,
   booking,
+  headingAs = "h1",
 }: GetStartedConfirmationProps) {
   const school = schoolName.trim() || "your school";
 
@@ -54,7 +56,7 @@ export default function GetStartedConfirmation({
 
       <ParentDisplayHeading
         theme={theme}
-        as="h1"
+        as={headingAs}
         size="display"
         className="mb-4 font-display"
       >

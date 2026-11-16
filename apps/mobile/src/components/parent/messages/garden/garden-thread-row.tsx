@@ -9,7 +9,7 @@ import {
   isMudKitchenSupportListThread,
   MUDKITCHEN_SUPPORT_TERRACOTTA,
 } from '@/lib/messages/platform-support';
-import type { MessageThreadSummary } from '@/lib/messages/types';
+import type { MessageStudentRef, MessageThreadSummary } from '@/lib/messages/types';
 
 function showSubtitleLine(thread: MessageThreadSummary): boolean {
   if (isMudKitchenSupportListThread(thread)) return false;
@@ -38,10 +38,13 @@ export function GardenThreadRow({
   thread,
   onPress,
   onPressIn,
+  onStudentPress,
 }: {
   thread: MessageThreadSummary;
   onPress: () => void;
   onPressIn?: () => void;
+  /** Teacher inbox: student names under the title open that student's page. */
+  onStudentPress?: (studentId: string) => void;
 }) {
   const accent = useGardenAccent();
   const unread = thread.unreadCount > 0;
@@ -98,6 +101,10 @@ export function GardenThreadRow({
           </Text>
         ) : null}
 
+        {onStudentPress && thread.subtitleStudents?.length ? (
+          <StudentLinks students={thread.subtitleStudents} onPress={onStudentPress} color={accent.clayDeep} />
+        ) : null}
+
         <View style={styles.bottomLine}>
           <Text
             numberOfLines={2}
@@ -124,7 +131,51 @@ export function GardenThreadRow({
   );
 }
 
+/** "Ava Lopez · Ben Lopez" with each name opening that student (tap targets padded). */
+export function StudentLinks({
+  students,
+  onPress,
+  color,
+}: {
+  students: MessageStudentRef[];
+  onPress: (studentId: string) => void;
+  color: string;
+}) {
+  return (
+    <View style={styles.students}>
+      {students.map((student) => (
+        <GPressable
+          key={student.id}
+          accessibilityRole="link"
+          accessibilityLabel={`${student.name}. Open student profile`}
+          haptic="tap"
+          hitSlop={8}
+          onPress={() => onPress(student.id)}
+          style={styles.studentChip}>
+          <Ionicons name="happy-outline" size={13} color={color} />
+          <Text numberOfLines={1} style={[styles.studentName, { color }]}>
+            {student.name}
+          </Text>
+        </GPressable>
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  students: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 2, marginBottom: 2 },
+  studentChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    minHeight: 26,
+    paddingHorizontal: 9,
+    borderRadius: 999,
+    backgroundColor: Garden.paper,
+    borderWidth: 1,
+    borderColor: Garden.ink10,
+  },
+  studentName: { fontFamily: GardenFonts.bodyExtra, fontSize: 12.5, maxWidth: 160 },
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',

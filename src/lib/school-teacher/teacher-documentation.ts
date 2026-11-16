@@ -161,7 +161,7 @@ function buildGuideTemplates(): TeacherDocGuideTemplate[] {
         {
           title: "Open My Students",
           description:
-            "Your full roster lists all students assigned to you, with search and program filters.",
+            "Your roster lists every student assigned to you, with search (press / to jump to it) and program filters. Tap a number, like Health flags, to show just those students.",
           action: {
             label: "Open My Students",
             path: { feature: "my_students" },
@@ -170,7 +170,7 @@ function buildGuideTemplates(): TeacherDocGuideTemplate[] {
         {
           title: "Click a student row",
           description:
-            "Open a student's profile to see enrollment details, family contact info, and health records.",
+            "Open a student's profile to see enrollment details, family contact info, and health records. Press Escape to close it.",
         },
       ],
     },
@@ -196,9 +196,9 @@ function buildGuideTemplates(): TeacherDocGuideTemplate[] {
           },
         },
         {
-          title: "Use classroom filter pills",
+          title: "Pick a group card",
           description:
-            "Tap a classroom name — like Goated Class — to show only students in that group. Use All groups to reset.",
+            "Under Your groups, tap a classroom card to show only students in that group. Tap it again, or All groups, to reset.",
         },
         {
           title: "Or start from your dashboard",
@@ -375,7 +375,7 @@ function buildGuideTemplates(): TeacherDocGuideTemplate[] {
         {
           title: "Open a signup sheet",
           description:
-            "Click a sheet to see slots, roles, and which families have volunteered.",
+            "Click a signup to see slots, roles, and which families have volunteered. Use Export CSV to download the list.",
         },
       ],
     },
@@ -406,12 +406,12 @@ function buildGuideTemplates(): TeacherDocGuideTemplate[] {
             "Open the signup sheet and note which roles or time slots are still empty.",
         },
         {
-          title: "Message families",
+          title: "Send a reminder",
           description:
-            "Use Messages to reach out to parents who haven't signed up yet.",
+            "In the signup, choose Send reminder. Families who haven't signed up yet get an email and a phone notification with a link to sign up (one reminder per hour).",
           action: {
-            label: "Open Messages",
-            path: { feature: "messages" },
+            label: "Open Classroom signups",
+            path: { feature: "classroom_signups" },
           },
         },
       ],

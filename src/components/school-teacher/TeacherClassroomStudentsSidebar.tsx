@@ -1,17 +1,17 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
-import { X } from "lucide-react";
-import StudentPhoto from "@/components/students/StudentPhoto";
+import { useMemo, useState } from "react";
+import { ChevronRight, Search } from "lucide-react";
+import GSidePanel from "@/components/school-parent/garden/GSidePanel";
+import { G_INPUT, gLinkSm } from "@/components/school-parent/garden/ui";
+import { ROW_INTERACTIVE } from "@/components/school-admin/dashboard/garden/shared";
+import { StudentFace } from "@/components/school-teacher/home/garden/parts";
 import {
   formatEnrolledStudentName,
   formatStudentGrade,
   type AdminEnrolledStudentSummary,
 } from "@/lib/school-admin/enrolled-students";
-import {
-  parentThemeToAdminCompat,
-  type ParentThemeTokens,
-} from "@/lib/organization-settings/parent-theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type TeacherClassroomStudentsSidebarProps = {
   theme: ParentThemeTokens;
@@ -22,6 +22,11 @@ type TeacherClassroomStudentsSidebarProps = {
   onSelectStudent: (student: AdminEnrolledStudentSummary) => void;
 };
 
+/**
+ * Classroom roster drawer (Garden `GSidePanel`: Escape, focus in/return,
+ * full width on phones). Rows open the student detail panel on top.
+ * Mount outside the page's Garden frame.
+ */
 export default function TeacherClassroomStudentsSidebar({
   theme,
   classroomName,
@@ -30,116 +35,81 @@ export default function TeacherClassroomStudentsSidebar({
   onClose,
   onSelectStudent,
 }: TeacherClassroomStudentsSidebarProps) {
-  const adminCompat = parentThemeToAdminCompat(theme);
+  const [query, setQuery] = useState("");
+  const [lastName, setLastName] = useState(classroomName);
+  // Keep the last title while the drawer animates closed; reset search per classroom.
+  if (classroomName && classroomName !== lastName) {
+    setLastName(classroomName);
+    setQuery("");
+  }
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return students;
+    return students.filter((student) =>
+      `${student.firstName} ${student.lastName} ${student.familyName ?? ""}`.toLowerCase().includes(q),
+    );
+  }, [query, students]);
 
   return (
-    <AnimatePresence>
-      {open ? (
-        <motion.div
-          className="fixed inset-0 z-[100]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          <div
-            className="absolute inset-0"
-            style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
-            onClick={onClose}
-            aria-hidden="true"
+    <GSidePanel
+      theme={theme}
+      open={open}
+      onClose={onClose}
+      kicker="Classroom"
+      title={classroomName || lastName}
+      subtitle={`${students.length} student${students.length === 1 ? "" : "s"} you teach in this room`}
+      closeLabel="Close classroom students"
+      testId="teacher-classroom-students-sidebar"
+      panelId="teacher-classroom-students"
+    >
+      {students.length > 6 ? (
+        <label className="relative block">
+          <span className="sr-only">Search this classroom</span>
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--sf-ink)]/40" aria-hidden />
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search students"
+            className={`${G_INPUT} !rounded-full !py-2 !pl-9`}
           />
-          <motion.aside
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="teacher-classroom-students-title"
-            initial={{ x: "100%", opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: "100%", opacity: 0 }}
-            transition={{ type: "spring", damping: 28, stiffness: 300 }}
-            className="absolute inset-y-0 right-0 z-[15] flex w-[min(100%,28rem)] max-w-full flex-col overflow-hidden border-l"
-            style={{
-              backgroundColor: theme.white,
-              borderColor: theme.line,
-              boxShadow: theme.shadowCard,
-            }}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div
-              className="flex shrink-0 items-center justify-between gap-3 border-b px-5 py-4"
-              style={{
-                backgroundColor: theme.infoBg,
-                borderColor: theme.line,
-              }}
-            >
-              <div className="min-w-0">
-                <p className="m-0 text-[10px] font-bold uppercase tracking-[0.08em]" style={{ color: theme.muted }}>
-                  Classroom
-                </p>
-                <h2
-                  id="teacher-classroom-students-title"
-                  className="truncate text-base font-semibold"
-                  style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
-                >
-                  {classroomName}
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-full p-1.5 transition-colors hover:bg-black/[0.05]"
-                aria-label="Close classroom students"
-              >
-                <X className="h-5 w-5" style={{ color: theme.muted }} />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-5 py-4">
-              {students.length > 0 ? (
-                <div className="space-y-2">
-                  {students.map((student) => {
-                    const studentName = formatEnrolledStudentName(student);
-                    const gradeLabel = formatStudentGrade(student.grade) ?? "Grade not listed";
-
-                    return (
-                      <button
-                        key={student.id}
-                        type="button"
-                        onClick={() => onSelectStudent(student)}
-                        className="flex w-full items-center gap-3 rounded-[14px] border px-3 py-3 text-left transition-colors hover:bg-[#F5F8F5]"
-                        style={{ borderColor: theme.line }}
-                      >
-                        <StudentPhoto
-                          name={studentName}
-                          photoUrl={student.profilePhotoUrl}
-                          size="md"
-                          shape="circle"
-                          theme={adminCompat}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p
-                            className="m-0 truncate text-sm font-semibold"
-                            style={{ color: theme.ink }}
-                          >
-                            {studentName}
-                          </p>
-                          <p className="m-0 mt-0.5 truncate text-xs" style={{ color: "#7B878D" }}>
-                            {gradeLabel}
-                            {student.familyName ? ` · ${student.familyName} family` : ""}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="m-0 text-sm leading-relaxed" style={{ color: theme.muted }}>
-                  No students are assigned to this classroom yet.
-                </p>
-              )}
-            </div>
-          </motion.aside>
-        </motion.div>
+        </label>
       ) : null}
-    </AnimatePresence>
+
+      {students.length === 0 ? (
+        <p className="m-0 rounded-[16px] bg-[var(--sf-paper)] p-4 text-[14px] font-semibold leading-relaxed text-[var(--sf-soft)]">
+          No students are assigned to this classroom yet.
+        </p>
+      ) : visible.length === 0 ? (
+        <div className="flex flex-col items-start gap-2 rounded-[16px] bg-[var(--sf-paper)] p-4">
+          <p className="m-0 text-[14px] font-semibold text-[var(--sf-soft)]">No students match &ldquo;{query}&rdquo;.</p>
+          <button type="button" className={gLinkSm} onClick={() => setQuery("")}>
+            Show everyone
+          </button>
+        </div>
+      ) : (
+        <ul className="m-0 flex list-none flex-col gap-1.5 p-0" aria-label={`Students in ${classroomName || lastName}`}>
+          {visible.map((student, index) => {
+            const name = formatEnrolledStudentName(student);
+            return (
+              <li key={student.id} className="rounded-[16px] border-[1.5px] border-[var(--sf-ink)]/10 bg-white">
+                <button type="button" onClick={() => onSelectStudent(student)} className={ROW_INTERACTIVE} aria-label={`Open ${name}'s profile`}>
+                  <StudentFace student={student} index={index} size="sm" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[15px] font-extrabold text-[var(--sf-ink)]">{name}</span>
+                    <span className="block truncate text-[12.5px] font-semibold text-[var(--sf-soft)]">
+                      {formatStudentGrade(student.grade) ?? "Grade not listed"}
+                      {student.familyName ? ` · ${student.familyName} family` : ""}
+                    </span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-[var(--sf-ink)]/40 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </GSidePanel>
   );
 }

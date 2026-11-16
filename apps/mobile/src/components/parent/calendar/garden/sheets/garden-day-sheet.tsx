@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { useCalendarTestId } from '@/components/parent/calendar/garden/calendar-portal';
 import { DayEventList } from '@/components/parent/calendar/garden/sections/calendar-sections';
 import { GSheet } from '@/components/parent/garden/sheet';
 import { GLink } from '@/components/parent/garden/ui';
@@ -27,6 +28,7 @@ export function GardenDaySheet({
   onSeeNextUp: () => void;
   onClose: () => void;
 }) {
+  const tid = useCalendarTestId();
   // Keep the last day while the sheet animates out.
   const [shownDate, setShownDate] = useState(date);
   const [shownEvents, setShownEvents] = useState(events);
@@ -50,7 +52,7 @@ export function GardenDaySheet({
         onPress={onOpenEvent}
         emptyAction={
           <GLink
-            testID="parent-calendar-see-next-up"
+            testID={tid('see-next-up')}
             label="See what’s next up"
             icon="arrow-down"
             onPress={onSeeNextUp}

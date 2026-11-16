@@ -25,6 +25,8 @@ const PREFETCH_BY_ROLE: Record<Role, () => void> = {
 
 interface Props {
   role: Role;
+  /** Skip the built-in browser chrome (the caller frames it, e.g. GardenBrowserFrame). */
+  bare?: boolean;
 }
 
 function SagefieldOutcomeDemo({ role }: { role: Role }) {
@@ -60,7 +62,7 @@ function SagefieldOutcomeDemo({ role }: { role: Role }) {
   );
 }
 
-export default function SagefieldOutcomeDemoPreview({ role }: Props) {
+export default function SagefieldOutcomeDemoPreview({ role, bare = false }: Props) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.35);
 
@@ -82,21 +84,29 @@ export default function SagefieldOutcomeDemoPreview({ role }: Props) {
 
   return (
     <>
-      <div className="lg:hidden max-lg:-ml-6 max-lg:overflow-x-hidden max-lg:overscroll-x-none">
+      <div
+        className={
+          bare
+            ? "lg:hidden overflow-x-hidden overscroll-x-none"
+            : "lg:hidden max-lg:-ml-6 max-lg:overflow-x-hidden max-lg:overscroll-x-none"
+        }
+      >
         <LandingScaledDemoFrame preventHorizontalScroll>
           <SagefieldOutcomeDemo role={role} />
         </LandingScaledDemoFrame>
       </div>
 
       <div
-        className="hidden lg:block rounded-2xl border border-border overflow-hidden"
+        className={bare ? "hidden lg:block overflow-hidden" : "hidden lg:block rounded-2xl border border-border overflow-hidden"}
         style={{ backgroundColor: "#FFF9F5" }}
       >
-        <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-border bg-surface">
-          <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
-          <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
-          <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
-        </div>
+        {bare ? null : (
+          <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-border bg-surface">
+            <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
+            <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
+            <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
+          </div>
+        )}
         <InViewDemoGate
           className="relative overflow-hidden"
           style={{ height: PREVIEW_HEIGHT }}

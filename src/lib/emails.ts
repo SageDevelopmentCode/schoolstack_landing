@@ -4309,6 +4309,69 @@ export function buildGalleryPhotosUploadedEmailHtml(payload: {
   });
 }
 
+export function buildClassroomSignupReminderEmailHtml(payload: {
+  schoolName: string;
+  teacherName: string;
+  signupTitle: string;
+  message: string;
+  deadlineLabel: string | null;
+  signupUrl: string;
+}): string {
+  const absoluteUrl = payload.signupUrl.startsWith("http")
+    ? payload.signupUrl
+    : `${getRuntimeSiteUrl()}${payload.signupUrl}`;
+
+  const details: { label: string; value: string }[] = [
+    { label: "School", value: payload.schoolName },
+    { label: "From", value: payload.teacherName },
+    { label: "Signup", value: payload.signupTitle },
+    ...(payload.deadlineLabel ? [{ label: "Sign up by", value: payload.deadlineLabel }] : []),
+  ];
+
+  const messageHtml = escapeHtml(payload.message.trim()).replace(/\n/g, "<br />");
+
+  return composeEmail({
+    preheader: `${payload.teacherName} is asking for help with "${payload.signupTitle}"`,
+    contentHtml: `
+      ${emailBadge("Classroom Signup")}
+      ${emailHeading(`Can you help with ${escapeHtml(payload.signupTitle)}?`)}
+      ${emailParagraph(messageHtml)}
+      ${emailDetailCard(details)}
+      ${emailCta({ label: "Sign up", href: absoluteUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendClassroomSignupReminderEmail(payload: {
+  to: string;
+  schoolName: string;
+  teacherName: string;
+  signupTitle: string;
+  message: string;
+  deadlineLabel: string | null;
+  signupUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
+
+  const result = await sendZohoEmail({
+    toAddress: payload.to,
+    subject: `Reminder: ${payload.signupTitle} — ${payload.schoolName}`,
+    content: buildClassroomSignupReminderEmailHtml(payload),
+    discord: schoolOutboundDiscord(
+      "classroom_signup_reminder",
+      "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
+  });
+
+  return { ok: result.success };
+}
+
 export async function sendGalleryPhotosUploadedEmail(payload: {
   to: string;
   schoolName: string;

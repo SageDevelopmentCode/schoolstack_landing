@@ -32,7 +32,7 @@ type GardenMessageComposerProps = {
 };
 
 /**
- * Garden composer. Same rules as `MessageComposeBar`: attachment prompt +
+ * Garden composer. Same rules as the old Story compose bar: attachment prompt +
  * limits, edit mode, read-only gating, "Write a message..." placeholder.
  */
 export function GardenMessageComposer({

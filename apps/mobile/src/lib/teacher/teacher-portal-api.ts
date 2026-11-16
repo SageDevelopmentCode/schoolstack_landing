@@ -163,7 +163,7 @@ export type StaffUserProfile = {
 
 export type StaffPortalRole = 'teacher' | 'staff';
 
-export type TeacherDashboardFocusIcon = 'message' | 'calendar' | 'students' | 'signups';
+export type TeacherDashboardFocusIcon = 'message' | 'calendar' | 'attendance' | 'students' | 'signups';
 
 export type TeacherDashboardFocusItem = {
   id: string;

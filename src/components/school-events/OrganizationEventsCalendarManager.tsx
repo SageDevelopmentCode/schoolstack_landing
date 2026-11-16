@@ -57,6 +57,12 @@ type OrganizationEventsCalendarManagerProps = {
   readOnly?: boolean;
   toastVariant?: ToastVariant;
   emptyHint?: string;
+  /**
+   * Force the Garden calendar, drawers and feedback. Defaults to on inside an
+   * admin Garden page; the staff portal passes it (with toastVariant="parent"
+   * so errors are still reported as teacher_portal).
+   */
+  garden?: boolean;
 };
 
 function sortOrganizationEvents(events: OrganizationEvent[]): OrganizationEvent[] {
@@ -93,13 +99,14 @@ export default function OrganizationEventsCalendarManager({
   readOnly = false,
   toastVariant = "admin",
   emptyHint = "No events yet — click a day to add one, or use Add event.",
+  garden: gardenProp,
 }: OrganizationEventsCalendarManagerProps) {
   const supabase = useMemo(() => createClient(), []);
   const toasts = useEventToasts(toastVariant);
-  // Inside an admin Garden page the calendar, drawers and feedback switch to
-  // Garden; the teacher portal (no skin) keeps the story look and copy.
+  // Inside an admin Garden page (or when the staff portal asks) the calendar,
+  // drawers and feedback switch to Garden.
   const skin = useAdminGardenSkin();
-  const garden = Boolean(skin) && toastVariant === "admin";
+  const garden = gardenProp ?? (Boolean(skin) && toastVariant === "admin");
   const { confirm, dialog: confirmDialog } = useAdminConfirm(C);
   const reportingSurface =
     toastVariant === "admin" ? "school_admin" : "teacher_portal";

@@ -1,16 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useCalendarTestId } from '@/components/parent/calendar/garden/calendar-portal';
 import { GSegmented, type GSegmentedItem } from '@/components/parent/garden/segmented';
 import { Garden, GardenFonts, useGardenAccent } from '@/components/parent/garden/tokens';
 import { GKicker, GPressable } from '@/components/parent/garden/ui';
 import { periodKicker, periodUnit, type CalendarViewMode } from '@/lib/parent/parent-calendar-garden';
 
-const VIEW_ITEMS: GSegmentedItem<CalendarViewMode>[] = [
-  { id: 'day', label: 'Day', icon: 'today-outline', testID: 'parent-calendar-view-day' },
-  { id: 'week', label: 'Week', icon: 'calendar-number-outline', testID: 'parent-calendar-view-week' },
-  { id: 'month', label: 'Month', icon: 'grid-outline', testID: 'parent-calendar-view-month' },
-];
+function viewItems(tid: (suffix: string) => string): GSegmentedItem<CalendarViewMode>[] {
+  return [
+    { id: 'day', label: 'Day', icon: 'today-outline', testID: tid('view-day') },
+    { id: 'week', label: 'Week', icon: 'calendar-number-outline', testID: tid('view-week') },
+    { id: 'month', label: 'Month', icon: 'grid-outline', testID: tid('view-month') },
+  ];
+}
 
 /**
  * Calendar card header: ‹ › + the period (live region), Today / Back to today,
@@ -36,17 +39,18 @@ export function CalendarToolbar({
   onNext: () => void;
   onToday: () => void;
 }) {
+  const tid = useCalendarTestId();
   const accent = useGardenAccent();
   const unit = periodUnit(viewMode);
   const todayLabel = isCurrentPeriod ? 'Today' : 'Back to today';
 
   return (
     <View style={styles.container}>
-      <GSegmented items={VIEW_ITEMS} activeId={viewMode} onChange={onViewModeChange} />
+      <GSegmented items={viewItems(tid)} activeId={viewMode} onChange={onViewModeChange} />
 
       <View style={styles.topRow}>
         <GPressable
-          testID="parent-calendar-prev"
+          testID={tid('prev')}
           accessibilityLabel={`Previous ${unit}`}
           haptic="select"
           onPress={onPrev}
@@ -67,7 +71,7 @@ export function CalendarToolbar({
             {periodLabel}
           </Text>
           <GPressable
-            testID="parent-calendar-today"
+            testID={tid('today')}
             accessibilityLabel={isCurrentPeriod ? 'Go to today' : 'Back to today'}
             accessibilityHint={isCurrentPeriod ? undefined : `Jumps the calendar back to the current ${unit}`}
             haptic="select"
@@ -91,7 +95,7 @@ export function CalendarToolbar({
         </View>
 
         <GPressable
-          testID="parent-calendar-next"
+          testID={tid('next')}
           accessibilityLabel={`Next ${unit}`}
           haptic="select"
           onPress={onNext}
