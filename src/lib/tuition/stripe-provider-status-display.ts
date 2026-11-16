@@ -116,6 +116,7 @@ function adminStatusTone(status: PaymentStatus): AdminChargeChipTone {
     case "failed":
       return "alert";
     case "refunded":
+    case "canceled":
       return "info";
     default: {
       status satisfies never;

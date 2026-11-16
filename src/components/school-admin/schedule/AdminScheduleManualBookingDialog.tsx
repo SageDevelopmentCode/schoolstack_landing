@@ -34,6 +34,8 @@ import {
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { useAdminGardenSkin } from "@/components/school-admin/garden/skin";
+import { formatSelectedDate as formatBookingDate } from "@/lib/demo-scheduler";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type AdminScheduleManualBookingDialogProps = {
@@ -110,6 +112,7 @@ export default function AdminScheduleManualBookingDialog({
   const [guestSchedulingReady, setGuestSchedulingReady] = useState(false);
   const [guestFieldsLoading, setGuestFieldsLoading] = useState(false);
   const [sendConfirmationEmail, setSendConfirmationEmail] = useState(false);
+  const skin = useAdminGardenSkin();
 
   const timezoneLabel = formatOrganizationTimezoneLabel(timezone);
 
@@ -469,7 +472,25 @@ export default function AdminScheduleManualBookingDialog({
         throw new Error(payload.error ?? "Failed to schedule visit.");
       }
 
-      adminToast.success("Visit scheduled");
+      if (skin) {
+        const when =
+          selectedDate && selectedTime
+            ? `${formatBookingDate(selectedDate)} · ${selectedTime}`
+            : selectedDates.length > 0
+              ? selectedDates.map((date) => formatBookingDate(date)).join(", ")
+              : selectedSlotIds.length > 0
+                ? `${selectedSlotIds.length} shadow ${selectedSlotIds.length === 1 ? "slot" : "slots"}`
+                : "";
+        adminToast.dismiss("manual-visit-book-error");
+        adminToast.success("Visit scheduled.", {
+          id: "manual-visit-book",
+          description: `${when ? `${when}. ` : ""}${
+            sendConfirmationEmail ? "A confirmation email is on its way." : "No confirmation email was sent."
+          } It's on the All visits tab.`,
+        });
+      } else {
+        adminToast.success("Visit scheduled");
+      }
       onBooked();
       forceClose();
     } catch (err) {
@@ -483,7 +504,15 @@ export default function AdminScheduleManualBookingDialog({
         err,
         responseStatus,
       );
-      setError(formatActionError(err, "Failed to schedule visit."));
+      const message = formatActionError(err, "Failed to schedule visit.");
+      setError(message);
+      if (skin) {
+        adminToast.error("Couldn't schedule the visit.", {
+          id: "manual-visit-book-error",
+          description: `${message} Nothing was booked — your choices are still in the dialog.`,
+          action: { label: "Retry", onClick: () => void handleConfirm() },
+        });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -599,6 +628,39 @@ export default function AdminScheduleManualBookingDialog({
                 <X className="h-5 w-5" />
               </button>
             </div>
+
+            {skin ? (
+              <ol className="m-0 mb-4 flex list-none flex-wrap items-center gap-2 p-0" aria-label="Booking steps" data-garden-skip>
+                {[
+                  { label: target?.kind === "guest" ? "Guest contact" : "Family", done: stepKey === "schedule" },
+                  { label: context === "tours" ? "Time slot" : "Shadow day", done: Boolean(canConfirm) },
+                  { label: "Confirm", done: false },
+                ].map((step, index, all) => {
+                  const current = !step.done && all.slice(0, index).every((s) => s.done);
+                  return (
+                    <li key={step.label} className="flex items-center gap-2">
+                      <span
+                        aria-hidden
+                        className={`flex h-6 w-6 items-center justify-center rounded-full border-[1.5px] text-[11.5px] font-extrabold ${
+                          step.done
+                            ? "border-[var(--sf-forest)] bg-[var(--sf-mint)] text-[var(--sf-forest)]"
+                            : current
+                              ? "border-[var(--sf-ink)] bg-[var(--sf-clay)] text-white"
+                              : "border-[var(--sf-ink)]/20 bg-white text-[var(--sf-ink)]/50"
+                        }`}
+                      >
+                        {step.done ? "✓" : index + 1}
+                      </span>
+                      <span className={`text-[12.5px] font-extrabold ${current || step.done ? "text-[var(--sf-ink)]" : "text-[var(--sf-ink)]/45"}`}>
+                        <span className="sr-only">{`Step ${index + 1}${step.done ? ", done" : current ? ", current" : ""}: `}</span>
+                        {step.label}
+                      </span>
+                      {index < all.length - 1 ? <span aria-hidden className="h-px w-5 bg-[var(--sf-ink)]/20" /> : null}
+                    </li>
+                  );
+                })}
+              </ol>
+            ) : null}
 
             {error ? (
               <p

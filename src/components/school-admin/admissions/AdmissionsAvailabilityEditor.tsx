@@ -1,7 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CalendarPlus, Pencil } from "lucide-react";
+import { DetailButton } from "@/components/school-admin/admissions/detail-garden";
+import { CalendarPlus, Loader2, Pencil } from "lucide-react";
+import { useAdminGardenSkin } from "@/components/school-admin/garden/skin";
+import { GardenNotice, gIconBtn } from "@/components/school-admin/garden/kit";
+import {
+  GARDEN_AVAILABILITY_PANEL,
+  GARDEN_SLOT_BUTTON,
+  GardenAvailabilityEmpty,
+  GardenAvailabilityFooter,
+  GardenAvailabilityHeader,
+  gardenSlotClasses,
+} from "@/components/school-admin/schedule/garden/availability-garden";
 import { SchoolAdminCalendarSkeleton } from "@/components/school-admin/skeletons";
 import ScheduleCalendarShell from "@/components/school-admin/schedule/ScheduleCalendarShell";
 import ScheduleAvailabilityLegend from "@/components/school-admin/schedule/ScheduleAvailabilityLegend";
@@ -31,7 +42,6 @@ import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import AdminScheduleManualBookingDialog from "@/components/school-admin/schedule/AdminScheduleManualBookingDialog";
 import { useOptionalScheduleVisitsContext } from "@/components/school-admin/schedule/schedule-visits-context";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import { createClient } from "@/utils/supabase/client";
 
 type AdmissionsAvailabilityEditorProps = {
@@ -110,6 +120,11 @@ export default function AdmissionsAvailabilityEditor({
   onLoadingChange,
   previewSlots,
 }: AdmissionsAvailabilityEditorProps) {
+  const skin = useAdminGardenSkin();
+  const skinRef = useRef(skin);
+  useEffect(() => {
+    skinRef.current = skin;
+  }, [skin]);
   const supabase = useMemo(() => createClient(), []);
   const [openSlots, setOpenSlots] = useState<Set<AdmissionsAvailabilitySlotKey>>(
     () => slotsFromPreview(previewSlots),
@@ -331,7 +346,17 @@ export default function AdmissionsAvailabilityEditor({
         viewMonth,
       );
       onMonthSlotCountChangeRef.current?.(count);
-      adminToast.success(isOpen ? "Slot closed" : "Slot opened");
+      if (skinRef.current) {
+        adminToast.dismiss(`slot-toggle-error-${timeSlot}`);
+        adminToast.success(isOpen ? `${timeSlot} closed.` : `${timeSlot} opened.`, {
+          id: "slot-toggle",
+          description: `${formatSelectedDate(selectedDate)} · ${
+            isOpen ? "families can't book it anymore" : "families can book it now"
+          }. ${count} open ${count === 1 ? "slot" : "slots"} this month.`,
+        });
+      } else {
+        adminToast.success(isOpen ? "Slot closed" : "Slot opened");
+      }
     } catch (err) {
       void reportPortalOperationalError("school_admin", {
         organizationId,
@@ -340,11 +365,24 @@ export default function AdmissionsAvailabilityEditor({
       }, err);
       const message = formatActionError(err, "Failed to update slot.");
       setError(message);
-      adminToast.error(message);
+      if (skinRef.current) {
+        adminToast.error(isOpen ? `Couldn't close ${timeSlot}.` : `Couldn't open ${timeSlot}.`, {
+          id: `slot-toggle-error-${timeSlot}`,
+          description: `${message} The slot is still ${isOpen ? "open" : "closed"}.`,
+          action: { label: "Retry", onClick: () => void toggleSlotRef.current(timeSlot) },
+        });
+      } else {
+        adminToast.error(message);
+      }
     } finally {
       setToggling(null);
     }
   }
+
+  const toggleSlotRef = useRef(toggleSlot);
+  useEffect(() => {
+    toggleSlotRef.current = toggleSlot;
+  });
 
   const canEditSelected = selectedDate !== null && selectedDate >= today && !readOnly;
 
@@ -378,27 +416,34 @@ export default function AdmissionsAvailabilityEditor({
   return (
     <div className="space-y-4">
       {displayError ? (
-        <p
-          className="rounded-sm px-3 py-2 text-xs"
-          style={{ backgroundColor: C.errorBg, color: C.error }}
-          role="alert"
-          aria-live="polite"
-        >
-          {displayError}
-        </p>
+        skin ? (
+          <GardenNotice tone="alert" role="alert">
+            {displayError}
+          </GardenNotice>
+        ) : (
+          <p
+            className="rounded-sm px-3 py-2 text-xs"
+            style={{ backgroundColor: C.errorBg, color: C.error }}
+            role="alert"
+            aria-live="polite"
+          >
+            {displayError}
+          </p>
+        )
       ) : null}
 
       {!readOnly && previewSlots == null ? (
         <div className="flex justify-end">
-          <button
+          <DetailButton
+ kind="secondary"
+ C={C}
             type="button"
             onClick={() => setManualBookingOpen(true)}
-            className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium"
-            style={getAdminButtonStyle(C, "secondary")}
+            storyClassName="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium"
           >
             <CalendarPlus className="h-4 w-4" aria-hidden />
             Book for a family
-          </button>
+          </DetailButton>
         </div>
       ) : null}
 
@@ -426,15 +471,28 @@ export default function AdmissionsAvailabilityEditor({
 
         <div
           className={
-            storySurface
-              ? "flex min-h-[280px] flex-col overflow-hidden rounded-[16px] border bg-white"
-              : "flex min-h-[280px] flex-col rounded-sm border"
+            skin
+              ? GARDEN_AVAILABILITY_PANEL
+              : storySurface
+                ? "flex min-h-[280px] flex-col overflow-hidden rounded-[16px] border bg-white"
+                : "flex min-h-[280px] flex-col rounded-sm border"
           }
-          style={{
-            borderColor: storySurface ? "#E0E7E0" : C.border,
-            backgroundColor: storySurface ? "#FFFFFF" : C.surface,
-          }}
+          style={
+            skin
+              ? undefined
+              : {
+                  borderColor: storySurface ? "#E0E7E0" : C.border,
+                  backgroundColor: storySurface ? "#FFFFFF" : C.surface,
+                }
+          }
         >
+          {skin ? (
+            <GardenAvailabilityHeader
+              kicker="Time slots"
+              title={selectedDate ? formatSelectedDate(selectedDate) : "Pick a day"}
+              meta={selectedDate ? `${timezoneLabel} · ${resolvedOpenSlots.size > 0 ? `${[...resolvedOpenSlots].filter((k) => k.startsWith(selectedDate)).length} open` : "none open"}` : "Select a date to manage slots"}
+            />
+          ) : (
           <div className="border-b px-4 py-3" style={{ borderColor: C.border }}>
             {selectedDate ? (
               <>
@@ -457,16 +515,25 @@ export default function AdmissionsAvailabilityEditor({
               </p>
             )}
           </div>
+          )}
 
           <div className="flex-1 overflow-y-auto p-3">
             {!selectedDate ? (
+              skin ? (
+                <GardenAvailabilityEmpty>Select a date on the calendar</GardenAvailabilityEmpty>
+              ) : (
               <p className="py-6 text-center text-xs" style={{ color: C.textTertiary }}>
                 Select a date on the calendar
               </p>
+              )
             ) : selectedDate < today ? (
+              skin ? (
+                <GardenAvailabilityEmpty>Past dates can&apos;t be edited</GardenAvailabilityEmpty>
+              ) : (
               <p className="py-6 text-center text-xs" style={{ color: C.textTertiary }}>
                 Past dates can&apos;t be edited
               </p>
+              )
             ) : (
               <div className="space-y-3">
                 <AdmissionsGroupTourDayControls
@@ -508,6 +575,44 @@ export default function AdmissionsAvailabilityEditor({
                         ? C.accentLight
                         : C.bg;
                     const rowTextColor = isBooked ? C.warning : isOpen ? C.accent : C.textSecondary;
+
+                    if (skin) {
+                      const tone = gardenSlotClasses({ open: isOpen, booked: isBooked, group: isGroup });
+                      const busy = toggling === slot;
+                      const stateLabel = isBooked ? "Booked" : isOpen ? (isGroup ? "Group" : "Open") : "Closed";
+                      return (
+                        <div key={slot} className={`flex h-10 overflow-hidden rounded-[12px] border-[1.5px] transition-colors ${tone.row}`}>
+                          <button
+                            type="button"
+                            disabled={disabled}
+                            aria-pressed={isOpen}
+                            aria-busy={busy || undefined}
+                            aria-label={`${slot}, ${stateLabel.toLowerCase()}.${
+                              isBooked && isOpen ? " Booked slots can't be closed." : isOpen ? " Close this slot." : " Open this slot."
+                            }`}
+                            onClick={() => toggleSlot(slot)}
+                            className={`${GARDEN_SLOT_BUTTON} ${tone.text} ${readOnly ? "" : "cursor-pointer"}`}
+                          >
+                            <span className="tabular-nums">{slot}</span>
+                            <span className="inline-flex items-center gap-1.5 text-[11.5px] font-extrabold uppercase tracking-[0.08em]">
+                              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : null}
+                              {busy ? (isOpen ? "Closing…" : "Opening…") : stateLabel}
+                            </span>
+                          </button>
+                          {isOpen && !readOnly ? (
+                            <button
+                              type="button"
+                              disabled={disabled}
+                              onClick={() => setSlotSettingsTime(slot)}
+                              className={`${gIconBtn} !h-auto !w-10 !rounded-none !border-0 !border-l-[1.5px] !border-inherit !bg-transparent ${tone.text}`}
+                              aria-label={`Tour settings for ${slot}`}
+                            >
+                              <Pencil className="h-3.5 w-3.5" aria-hidden />
+                            </button>
+                          ) : null}
+                        </div>
+                      );
+                    }
 
                     return (
                       <div
@@ -575,6 +680,12 @@ export default function AdmissionsAvailabilityEditor({
           </div>
 
           {canEditSelected ? (
+            skin ? (
+              <GardenAvailabilityFooter>
+                Click a slot to open or close it. Use the edit icon on open slots for 1:1 or group
+                tour settings. Booked slots can&apos;t be closed.
+              </GardenAvailabilityFooter>
+            ) : (
             <div
               className="border-t px-4 py-2 text-[11px]"
               style={{ borderColor: C.border, color: C.textTertiary }}
@@ -582,6 +693,7 @@ export default function AdmissionsAvailabilityEditor({
               Click a slot to open or close it. Use the edit icon on open slots for 1:1 or group
               tour settings. Booked slots can&apos;t be closed.
             </div>
+            )
           ) : null}
         </div>
       </div>

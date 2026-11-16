@@ -14,7 +14,7 @@ import {
   sendTeacherParentFormPublishedNotifications,
 } from "@/lib/school-teacher/forms-documents/teacher-parent-form-notifications";
 import {
-  getStaffMemberIdForUser,
+  getTeacherPortalStaffMemberIdForUser,
   getStaffUserProfile,
   TeacherPortalAuthError,
 } from "@/lib/staff/teacher-portal-access";
@@ -54,7 +54,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const staffMemberId = await getStaffMemberIdForUser(
+    const staffMemberId = await getTeacherPortalStaffMemberIdForUser(
       supabase,
       user.id,
       organizationId,
@@ -152,7 +152,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const staffMemberId = await getStaffMemberIdForUser(
+    const staffMemberId = await getTeacherPortalStaffMemberIdForUser(
       supabase,
       user.id,
       organizationId,

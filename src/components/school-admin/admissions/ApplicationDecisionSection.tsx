@@ -1,6 +1,5 @@
 "use client";
 
-import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, Loader2 } from "lucide-react";
 import {
@@ -13,7 +12,8 @@ import {
   type ApplicationDecisionAction,
 } from "@/lib/admissions/application-status-transitions";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import { adminApplicationStatusLabel } from "@/lib/admissions/application-status-ui";
+import { detailButtonProps, useIsGardenDetail, type DetailButtonKind } from "./detail-garden";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 
@@ -27,18 +27,8 @@ type ApplicationDecisionSectionProps = {
   postSubmitNotice?: IncompletePostSubmitNotice & { onClick: () => void };
 };
 
-function buttonStyle(
-  variant: ApplicationDecisionAction["variant"],
-  C: AdminThemeTokens,
-): CSSProperties {
-  switch (variant) {
-    case "primary":
-      return getAdminButtonStyle(C, "primary");
-    case "danger":
-      return getAdminButtonStyle(C, "danger");
-    default:
-      return getAdminButtonStyle(C, "secondary");
-  }
+function buttonKind(variant: ApplicationDecisionAction["variant"]): DetailButtonKind {
+  return variant === "primary" ? "primary" : variant === "danger" ? "danger" : "secondary";
 }
 
 export default function ApplicationDecisionSection({
@@ -50,6 +40,7 @@ export default function ApplicationDecisionSection({
   onAccept,
   postSubmitNotice,
 }: ApplicationDecisionSectionProps) {
+  const garden = useIsGardenDetail();
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [withdrawnActions, setWithdrawnActions] = useState<
@@ -152,10 +143,15 @@ export default function ApplicationDecisionSection({
 
       const next = String(body.status);
       onStatusChanged(next);
+      adminToast.dismiss(`application-status-${applicationId}-error`);
       adminToast.success(
         next === "enrolled" && nextStatus === "accepted"
           ? "Accepted and enrolled"
           : "Application status updated",
+        {
+          id: `application-status-${applicationId}`,
+          description: `This application is now “${adminApplicationStatusLabel(next)}”. The submissions list is updated.`,
+        },
       );
     } catch (err) {
       void reportPortalOperationalError("school_admin", {
@@ -165,7 +161,11 @@ export default function ApplicationDecisionSection({
       }, err);
       const message = formatActionError(err, "Failed to update status.");
       setError(message);
-      adminToast.error(message);
+      adminToast.error("Couldn't update the application", {
+        id: `application-status-${applicationId}-error`,
+        description: `${message} The status hasn't changed.`,
+        action: { label: "Retry", onClick: () => void handleAction(nextStatus) },
+      });
     } finally {
       setPendingStatus(null);
     }
@@ -208,6 +208,7 @@ export default function ApplicationDecisionSection({
           {actions.map((action) => {
             const isPending = pendingStatus === action.status;
             const isDisabled = pendingStatus !== null;
+            const buttonProps = detailButtonProps(garden, buttonKind(action.variant), C);
 
             return (
               <button
@@ -215,11 +216,12 @@ export default function ApplicationDecisionSection({
                 type="button"
                 disabled={isDisabled}
                 onClick={() => handleActionClick(action)}
-                className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-opacity disabled:opacity-60"
-                style={buttonStyle(action.variant, C)}
+                aria-busy={isPending || undefined}
+                className={buttonProps.className}
+                style={buttonProps.style}
               >
-                {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                {action.label}
+                {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : null}
+                {isPending && garden ? "Saving…" : action.label}
               </button>
             );
           })}
@@ -227,7 +229,11 @@ export default function ApplicationDecisionSection({
       )}
 
       {error ? (
-        <p className="mt-2 text-xs" style={{ color: C.error }}>
+        <p
+          role="alert"
+          className={garden ? "m-0 mt-2.5 text-[12.5px] font-bold text-[#9a3422]" : "mt-2 text-xs"}
+          style={garden ? undefined : { color: C.error }}
+        >
           {error}
         </p>
       ) : null}

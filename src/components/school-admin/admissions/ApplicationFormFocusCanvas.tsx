@@ -37,6 +37,7 @@ import ApplicationFormPostSubmitEditor from "./ApplicationFormPostSubmitEditor";
 import ApplicationFormQuestionList from "./ApplicationFormQuestionList";
 import {
   BuilderQuestionCard,
+  BuilderQuestionGroup,
   BuilderSectionIntro,
 } from "./builder-question-card";
 import { builderCanvasTransition } from "./builder-canvas-motion";
@@ -169,15 +170,16 @@ function SetupView({
   }, [slugHighlighted]);
 
   return (
-    <div className="w-full max-w-3xl space-y-5">
+    <div className="w-full space-y-5">
       <BuilderSectionIntro
         C={C}
         theme={theme}
-        eyebrow={theme ? "Step 1" : undefined}
+        eyebrow={theme ? "Form settings" : undefined}
         title="Welcome & student information"
         subtitle="Set the tone for families, then collect the essential details needed to begin a thoughtful review."
       />
 
+      <BuilderQuestionGroup title="Basics" description="What families see first.">
       <BuilderQuestionCard
         C={C}
         tone="accent"
@@ -201,7 +203,7 @@ function SetupView({
         helper="A short welcome message — explain what to expect or how long it takes."
       >
         <textarea
-          rows={4}
+          rows={theme ? 7 : 4}
           value={editable.intro}
           disabled={readOnly}
           onChange={(e) => onEditableChange({ intro: e.target.value })}
@@ -209,6 +211,9 @@ function SetupView({
           style={{ ...inputStyle(C), resize: "vertical" }}
         />
       </BuilderQuestionCard>
+      </BuilderQuestionGroup>
+
+      <BuilderQuestionGroup title="Where & who" description="The apply link, the program it enrolls into, and what happens after acceptance.">
 
       <BuilderQuestionCard
         C={C}
@@ -349,7 +354,9 @@ function SetupView({
           )}
         </BuilderQuestionCard>
       ) : null}
+      </BuilderQuestionGroup>
 
+      <BuilderQuestionGroup title="Notifications & reminders" description="Managed in Notifications settings.">
       <BuilderQuestionCard
         C={C}
         tone="info"
@@ -379,6 +386,7 @@ function SetupView({
           Enable parent reminders in Notifications
         </Link>
       </BuilderQuestionCard>
+      </BuilderQuestionGroup>
     </div>
   );
 }
@@ -433,7 +441,7 @@ function StepView({
   }, [step.id]);
 
   return (
-    <div className="w-full max-w-3xl space-y-5">
+    <div className="w-full space-y-5">
       <div className="flex items-start justify-between gap-4">
         <BuilderSectionIntro
           C={C}
@@ -800,12 +808,13 @@ export default function ApplicationFormFocusCanvas({
     lockSystemFields &&
     (field.system === true || isSystemFieldId(field.id));
 
-  const totalSteps = editable.schema.sections.length + 3;
+  // Counted against the Steps list the admin sees in the outline.
+  const totalSteps = editable.schema.sections.length;
 
   const canvasBody = (
     <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6">
       <AnimatePresence mode="wait">
-        <motion.div key={key} className="w-full" {...canvasTransition}>
+        <motion.div key={key} className="mx-auto w-full max-w-[880px]" {...canvasTransition}>
           {focus.kind === "setup" && (
             <SetupView
               C={C}
@@ -930,6 +939,7 @@ export default function ApplicationFormFocusCanvas({
       <div
         className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
         style={{ backgroundColor: BUILDER_CANVAS_BG }}
+        data-flows-canvas
       >
         {canvasBody}
       </div>

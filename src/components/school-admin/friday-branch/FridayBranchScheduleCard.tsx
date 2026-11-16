@@ -1,9 +1,10 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState } from "react";
-import { Plus } from "lucide-react";
-import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import AdminCard from "@/components/school-admin/ui/story/AdminCard";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { AlertTriangle, CalendarPlus, FileText, Pencil, Plus, Send } from "lucide-react";
+import { GardenEmptyState, gBtnOutlineXs } from "@/components/school-admin/garden/kit";
+import { G_TABLE, G_TD, G_TH } from "@/components/school-admin/garden/blocks";
+import { GCard, GChip, G_FOCUS, gBtnOutlineSm, gLinkSm } from "@/components/school-parent/garden/ui";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
@@ -46,6 +47,10 @@ type FridayBranchScheduleCardProps = {
   requestedClassId?: string | null;
   onRequestedClassHandled?: () => void;
   onReviewGaps?: () => void;
+  /** Local delete with Undo (saved with "Save schedule"). */
+  onLocalChange?: (nextBlock: FridayBranchBlock, title: string) => void;
+  /** Extra actions in the card header (block tools). */
+  headerActions?: React.ReactNode;
 };
 
 type EditTarget = {
@@ -97,24 +102,18 @@ function findDetailTarget(
 }
 
 function renderSignedUpValue(
-  summary: FridayBranchClassEnrollmentSummary,
+  summary: FridayBranchClassEnrollmentSummary | null,
   capacity: number | null | undefined,
-  theme: ParentThemeTokens,
 ) {
-  const confirmedLabel =
-    capacity && capacity > 0
-      ? `${summary.confirmed} / ${capacity}`
-      : String(summary.confirmed);
-
+  if (!summary) return <span className="text-[13px] font-bold text-[var(--sf-soft)]">—</span>;
+  const full = capacity && capacity > 0 && summary.confirmed >= capacity;
+  const confirmedLabel = capacity && capacity > 0 ? `${summary.confirmed} / ${capacity}` : String(summary.confirmed);
   return (
     <div>
-      <span className="text-xs font-semibold" style={{ color: theme.ink }}>
-        {confirmedLabel}
-      </span>
+      <span className="text-[14px] font-extrabold tabular-nums text-[var(--sf-ink)]">{confirmedLabel}</span>
+      {full ? <GChip tone="warning" className="ml-1.5">Full</GChip> : null}
       {summary.waitlisted > 0 ? (
-        <span className="mt-0.5 block text-[10px]" style={{ color: theme.muted }}>
-          +{summary.waitlisted} waitlisted
-        </span>
+        <span className="mt-0.5 block text-[12px] font-semibold text-[var(--sf-soft)]">+{summary.waitlisted} waitlisted</span>
       ) : null}
     </div>
   );
@@ -149,6 +148,8 @@ export default function FridayBranchScheduleCard({
   requestedClassId,
   onRequestedClassHandled,
   onReviewGaps,
+  onLocalChange,
+  headerActions,
 }: FridayBranchScheduleCardProps) {
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
   const [detailTarget, setDetailTarget] = useState<DetailTarget | null>(null);
@@ -170,30 +171,37 @@ export default function FridayBranchScheduleCard({
   );
   const activeDetailTarget = detailTarget ?? requestedDetailTarget;
 
+  const [countsState, setCountsState] = useState<"loading" | "ready" | "error">("loading");
+  const [countsNonce, setCountsNonce] = useState(0);
+  const retryCounts = useCallback(() => setCountsNonce((n) => n + 1), []);
+
   useEffect(() => {
     const activeClassIds = collectBlockClassIds(block);
     if (activeClassIds.length === 0) return;
 
     let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setCountsState("loading");
+    });
 
     void (async () => {
       try {
         const response = await fetch(
           `/api/school-admin/friday-branch/enrollment-counts?organizationId=${encodeURIComponent(organizationId)}&classIds=${encodeURIComponent(activeClassIds.join(","))}`,
         );
-
-        if (!response.ok || cancelled) return;
-
+        if (cancelled) return;
+        if (!response.ok) throw new Error("Failed to load sign-up counts.");
         const payload = (await response.json()) as {
           counts?: Record<string, FridayBranchClassEnrollmentSummary>;
         };
-
         if (!cancelled) {
           setEnrollmentCounts(payload.counts ?? {});
+          setCountsState("ready");
         }
       } catch {
         if (!cancelled) {
           setEnrollmentCounts({});
+          setCountsState("error");
         }
       }
     })();
@@ -201,7 +209,7 @@ export default function FridayBranchScheduleCard({
     return () => {
       cancelled = true;
     };
-  }, [block, organizationId]);
+  }, [block, organizationId, countsNonce]);
 
   useEffect(() => {
     if (!requestedDetailTarget) return;
@@ -270,11 +278,17 @@ export default function FridayBranchScheduleCard({
   };
 
   const handleDeleteClass = (slotId: string, classId: string) => {
-    updateBlock(removeClassFromBlock(block, slotId, classId));
+    const name = block.slots.find((slot) => slot.id === slotId)?.classes.find((c) => c.id === classId)?.name || "Class";
+    const next = removeClassFromBlock(block, slotId, classId);
+    if (onLocalChange) onLocalChange(next, `${name} removed.`);
+    else updateBlock(next);
   };
 
   const handleDeleteSlot = (slotId: string) => {
-    updateBlock(removeSlotFromBlock(block, slotId));
+    const time = block.slots.find((slot) => slot.id === slotId)?.time || "Time slot";
+    const next = removeSlotFromBlock(block, slotId);
+    if (onLocalChange) onLocalChange(next, `${time} time slot removed.`);
+    else updateBlock(next);
   };
 
   const handleSaveClass = async (
@@ -340,25 +354,57 @@ export default function FridayBranchScheduleCard({
     />
   );
 
+  const sendRosterSheet = (
+    <FridayBranchSendRosterSheet
+      open={sendRosterTarget !== null}
+      onClose={() => setSendRosterTarget(null)}
+      organizationId={organizationId}
+      classId={sendRosterTarget?.classId ?? null}
+      className={sendRosterTarget?.className ?? ""}
+      slotTime={sendRosterTarget?.slotTime ?? ""}
+      theme={theme}
+      C={C}
+    />
+  );
+
+  const header = (
+    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <p className="m-0 text-[13px] font-semibold text-[var(--sf-soft)]">
+        Click a class to view details and roster. Adding or editing a class saves right away.
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        {headerActions}
+        {gaps.length > 0 && onReviewGaps ? (
+          <button type="button" className={`${gBtnOutlineSm} !border-[#d9a400]/50 !bg-[var(--sf-butter)]/50`} onClick={onReviewGaps}>
+            <AlertTriangle className="h-4 w-4 text-[#6b4f00]" aria-hidden />
+            {formatGapReviewLabel(gaps.length)}
+          </button>
+        ) : null}
+        <button type="button" className={gBtnOutlineSm} onClick={openAddSlot} data-testid="friday-branch-add-slot">
+          <CalendarPlus className="h-4 w-4" aria-hidden />
+          Add time slot
+        </button>
+      </div>
+    </div>
+  );
+
   if (block.slots.length === 0) {
     return (
       <>
-        <AdminCard theme={theme} padding="none" className="mt-4 overflow-hidden">
-          <div className="px-[18px] py-8 text-center">
-            <p className="text-xs" style={{ color: theme.muted }}>
-              No time slots yet. Add the first slot to begin building this block&apos;s schedule.
-            </p>
-            <button
-              type="button"
-              onClick={openAddSlot}
-              className="mt-4 inline-flex items-center gap-1.5 rounded-[10px] border border-dashed px-3 py-2 text-[11px] font-bold"
-              style={{ borderColor: "#A9C4AF", backgroundColor: "#F8FCF8", color: theme.primary }}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Add first time slot
-            </button>
-          </div>
-        </AdminCard>
+        <GCard index={2} kicker="Schedule" title="No time slots yet" data-testid="friday-branch-schedule">
+          {header}
+          <GardenEmptyState
+            icon={CalendarPlus}
+            title="Add the first time slot"
+            description="No time slots yet. Add the first slot to begin building this block's schedule."
+            action={
+              <button type="button" onClick={openAddSlot} className={gBtnOutlineSm}>
+                <Plus className="h-4 w-4" aria-hidden />
+                Add first time slot
+              </button>
+            }
+          />
+        </GCard>
         {addSlotSheet}
         {editSheet}
         {detailSheet}
@@ -368,50 +414,23 @@ export default function FridayBranchScheduleCard({
 
   return (
     <>
-      <AdminCard theme={theme} padding="none" className="mt-4 overflow-hidden">
-        <header
-          className="flex flex-col gap-3 border-b px-[18px] py-[17px] sm:flex-row sm:items-center sm:justify-between"
-          style={{ borderColor: "#EDF1ED" }}
-        >
-          <div>
-            <h2
-              className="font-heading text-xl font-semibold"
-              style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
-            >
-              Schedule
-            </h2>
-            <p className="mt-0.5 text-[11px]" style={{ color: "#7B898D" }}>
-              Click a class to view details and roster.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {gaps.length > 0 && onReviewGaps ? (
-              <AdminButton
-                theme={theme}
-                variant="soft"
-                type="button"
-                size="compact"
-                onClick={onReviewGaps}
-              >
-                {formatGapReviewLabel(gaps.length)}
-              </AdminButton>
-            ) : null}
-            <AdminButton theme={theme} variant="soft" type="button" onClick={openAddSlot}>
-              + Add time slot
-            </AdminButton>
-          </div>
-        </header>
-
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] border-collapse">
+      <GCard index={2} kicker="Schedule" title={`${block.slots.length} time slot${block.slots.length === 1 ? "" : "s"}`} data-testid="friday-branch-schedule">
+        {header}
+        {countsState === "error" ? (
+          <p className="m-0 mb-3 flex flex-wrap items-center gap-2 rounded-[14px] bg-[var(--sf-paper)] px-3.5 py-2.5 text-[13px] font-semibold text-[var(--sf-soft)]" role="status">
+            <AlertTriangle className="h-4 w-4 text-[#9a3422]" aria-hidden />
+            Sign-up counts didn&apos;t load.
+            <button type="button" className={gLinkSm} onClick={retryCounts}>
+              Try again
+            </button>
+          </p>
+        ) : null}
+        <div className="-mx-1 overflow-x-auto">
+          <table className={`${G_TABLE} min-w-[820px]`}>
             <thead>
-              <tr style={{ backgroundColor: "#FBFCFB" }}>
+              <tr>
                 {["Time", "Class", "Location", "Age group", "Price", "Signed up", ""].map((label) => (
-                  <th
-                    key={label || "actions"}
-                    className="px-[17px] py-2.5 text-left text-[10px] font-extrabold uppercase tracking-[0.08em]"
-                    style={{ color: "#8B9699" }}
-                  >
+                  <th key={label || "actions"} scope="col" className={G_TH}>
                     {label || <span className="sr-only">Actions</span>}
                   </th>
                 ))}
@@ -422,133 +441,90 @@ export default function FridayBranchScheduleCard({
                 <Fragment key={slot.id}>
                   {slot.classes.map((classEntry, classIndex) => {
                     const highlighted = classEntry.id === effectiveHighlightClassId;
+                    const counts = countsState === "ready" ? displayEnrollmentCounts[classEntry.id] ?? EMPTY_FRIDAY_BRANCH_ENROLLMENT_SUMMARY : null;
                     return (
                       <tr
                         key={classEntry.id}
                         data-slot-id={slot.id}
                         data-class-id={classEntry.id}
-                        className={`cursor-pointer transition-colors hover:bg-[#F8FCF8] ${highlighted ? "bg-[#FFF9E9]" : ""}`}
+                        tabIndex={0}
+                        onKeyDown={(event) => {
+                          if (event.target !== event.currentTarget) return;
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            openDetail(slot.id, classEntry, slot.time);
+                          }
+                        }}
+                        aria-label={`${classEntry.name || "Untitled class"} at ${slot.time || "no time"}. Open details`}
+                        className={`cursor-pointer transition-colors duration-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--sf-clay)]/45 ${
+                          highlighted ? "bg-[var(--sf-butter)]/60" : "hover:bg-[var(--sf-accent-wash)]"
+                        }`}
                         onClick={() => openDetail(slot.id, classEntry, slot.time)}
                       >
                         {classIndex === 0 ? (
-                          <td
-                            rowSpan={slot.classes.length}
-                            className="border-t px-[17px] py-[13px] align-top text-xs"
-                            style={{ borderColor: "#EDF1ED" }}
-                          >
-                            <span
-                              className="inline-block rounded-[9px] px-2 py-1.5 text-[11px] font-extrabold"
-                              style={{ backgroundColor: "#EDF4EE", color: "#315E4F" }}
-                            >
+                          <td rowSpan={slot.classes.length} className={`${G_TD} !align-top`}>
+                            <span className="inline-flex rounded-[10px] bg-[var(--sf-accent-wash)] px-2.5 py-1.5 text-[13px] font-extrabold tabular-nums text-[var(--sf-clay-deep)]">
                               {slot.time || "—"}
                             </span>
                           </td>
                         ) : null}
-                        <td
-                          className="border-t px-[17px] py-[13px] align-top text-xs"
-                          style={{ borderColor: "#EDF1ED" }}
-                        >
-                          <b className="block text-xs" style={{ color: theme.ink }}>
-                            {classEntry.name || "Untitled class"}
-                          </b>
-                          <span className="text-[10px]" style={{ color: "#79878C" }}>
-                            {classEntry.teacher?.trim()
-                              ? `with ${classEntry.teacher}`
-                              : "Teacher not assigned"}
+                        <td className={`${G_TD} !align-top`}>
+                          <span className="block text-[14px] font-extrabold text-[var(--sf-ink)]">{classEntry.name || "Untitled class"}</span>
+                          <span className="block text-[12.5px] font-semibold text-[var(--sf-soft)]">
+                            {classEntry.teacher?.trim() ? `with ${classEntry.teacher}` : "Teacher not assigned"}
                           </span>
                           {classEntry.flyerStoragePath ? (
-                            <span className="mt-1 block text-[10px] font-semibold" style={{ color: theme.primary }}>
+                            <span className="mt-1 inline-flex items-center gap-1 text-[12px] font-extrabold text-[var(--sf-clay-deep)]">
+                              <FileText className="h-3.5 w-3.5" aria-hidden />
                               PDF flyer attached
                             </span>
                           ) : null}
                         </td>
-                        <td
-                          className="border-t px-[17px] py-[13px] align-top text-xs"
-                          style={{ borderColor: "#EDF1ED" }}
-                        >
-                          {renderLocationValue(classEntry.location)}
+                        <td className={`${G_TD} !align-top text-[13px] font-bold text-[var(--sf-ink)]/80`}>{renderLocationValue(classEntry.location)}</td>
+                        <td className={`${G_TD} !align-top text-[13px] font-bold text-[var(--sf-ink)]/80`}>{renderAgeValue(classEntry.ageGroup)}</td>
+                        <td className={`${G_TD} !align-top text-[13px] font-bold tabular-nums text-[var(--sf-ink)]/80`}>
+                          {classEntry.priceCents != null ? formatFeeAmount(classEntry.priceCents) : "—"}
                         </td>
-                        <td
-                          className="border-t px-[17px] py-[13px] align-top text-xs"
-                          style={{ borderColor: "#EDF1ED" }}
-                        >
-                          {renderAgeValue(classEntry.ageGroup)}
-                        </td>
-                        <td
-                          className="border-t px-[17px] py-[13px] align-top text-xs"
-                          style={{ borderColor: "#EDF1ED", color: "#5A6669" }}
-                        >
-                          {classEntry.priceCents != null
-                            ? formatFeeAmount(classEntry.priceCents)
-                            : "—"}
-                        </td>
-                        <td
-                          className="border-t px-[17px] py-[13px] align-top text-xs"
-                          style={{ borderColor: "#EDF1ED" }}
-                        >
-                          {renderSignedUpValue(
-                            displayEnrollmentCounts[classEntry.id] ??
-                              EMPTY_FRIDAY_BRANCH_ENROLLMENT_SUMMARY,
-                            classEntry.capacity,
-                            theme,
-                          )}
-                        </td>
-                        <td
-                          className="border-t px-[17px] py-[13px] align-top text-xs"
-                          style={{ borderColor: "#EDF1ED" }}
-                        >
-                          <div className="flex flex-wrap gap-1.5">
+                        <td className={`${G_TD} !align-top`}>{renderSignedUpValue(counts, classEntry.capacity)}</td>
+                        <td className={`${G_TD} !align-top`}>
+                          <div className="flex flex-wrap items-center gap-1.5" onClick={(event) => event.stopPropagation()}>
                             <button
                               type="button"
-                              onClick={(event) => {
-                                event.stopPropagation();
+                              onClick={() =>
                                 setSendRosterTarget({
                                   classId: classEntry.id,
                                   className: classEntry.name || "Untitled class",
                                   slotTime: slot.time,
-                                });
-                              }}
-                              className="rounded-[7px] px-2 py-1.5 text-[10px] font-bold"
-                              style={{ backgroundColor: "#EEF4F7", color: "#39788D" }}
+                                })
+                              }
+                              className={gBtnOutlineXs}
                             >
+                              <Send className="h-3.5 w-3.5" aria-hidden />
                               Send roster
                             </button>
-                            <button
-                              type="button"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                openEdit(slot.id, classEntry);
-                              }}
-                              className="rounded-[7px] px-2 py-1.5 text-[10px] font-bold"
-                              style={{ backgroundColor: "#E8F2E9", color: "#356C50" }}
-                            >
+                            <button type="button" onClick={() => openEdit(slot.id, classEntry)} className={gBtnOutlineXs}>
+                              <Pencil className="h-3.5 w-3.5" aria-hidden />
                               Edit
                             </button>
-                            <div onClick={(event) => event.stopPropagation()}>
-                              <FridayBranchRowActionsMenu
-                                C={C}
-                                slotTime={slot.time || "this time"}
-                                showDeleteSlot={classIndex === 0}
-                                slotClassCount={slot.classes.length}
-                                onDeleteClass={() => handleDeleteClass(slot.id, classEntry.id)}
-                                onDeleteSlot={() => handleDeleteSlot(slot.id)}
-                              />
-                            </div>
+                            <FridayBranchRowActionsMenu
+                              C={C}
+                              slotTime={slot.time || "this time"}
+                              showDeleteSlot={classIndex === 0}
+                              slotClassCount={slot.classes.length}
+                              onDeleteClass={() => handleDeleteClass(slot.id, classEntry.id)}
+                              onDeleteSlot={() => handleDeleteSlot(slot.id)}
+                            />
                           </div>
                         </td>
                       </tr>
                     );
                   })}
-                  <tr style={{ backgroundColor: "#FBFDFB" }}>
-                    <td className="border-t px-[17px] py-2.5" style={{ borderColor: "#EDF1ED" }} />
-                    <td colSpan={6} className="border-t px-[17px] py-2.5" style={{ borderColor: "#EDF1ED" }}>
-                      <button
-                        type="button"
-                        onClick={() => openAddClass(slot.id)}
-                        className="border-0 bg-transparent p-0 text-[11px] font-bold"
-                        style={{ color: theme.primary }}
-                      >
-                        + Add class at {slot.time || "this time"}
+                  <tr>
+                    <td className="border-b border-[var(--sf-ink)]/[0.06] px-3 py-2" />
+                    <td colSpan={6} className="border-b border-[var(--sf-ink)]/[0.06] px-3 py-2">
+                      <button type="button" onClick={() => openAddClass(slot.id)} className={`inline-flex items-center gap-1 text-[13px] font-extrabold text-[var(--sf-clay-deep)] hover:underline ${G_FOCUS}`}>
+                        <Plus className="h-3.5 w-3.5" aria-hidden />
+                        Add class at {slot.time || "this time"}
                       </button>
                     </td>
                   </tr>
@@ -557,31 +533,9 @@ export default function FridayBranchScheduleCard({
             </tbody>
           </table>
         </div>
+      </GCard>
 
-        <div className="flex justify-center px-[17px] py-[17px]">
-          <button
-            type="button"
-            onClick={openAddSlot}
-            className="inline-flex items-center gap-1.5 rounded-[10px] border border-dashed px-3 py-2 text-[11px] font-bold"
-            style={{ borderColor: "#A9C4AF", backgroundColor: "#F8FCF8", color: theme.primary }}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add time slot
-          </button>
-        </div>
-      </AdminCard>
-
-      <FridayBranchSendRosterSheet
-        open={sendRosterTarget !== null}
-        onClose={() => setSendRosterTarget(null)}
-        organizationId={organizationId}
-        classId={sendRosterTarget?.classId ?? null}
-        className={sendRosterTarget?.className ?? ""}
-        slotTime={sendRosterTarget?.slotTime ?? ""}
-        theme={theme}
-        C={C}
-      />
-
+      {sendRosterSheet}
       {addSlotSheet}
       {editSheet}
       {detailSheet}

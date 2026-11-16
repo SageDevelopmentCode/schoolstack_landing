@@ -1,5 +1,6 @@
 "use client";
 
+import { GardenLoadError } from "@/components/school-admin/garden/kit";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -123,6 +124,7 @@ export default function TuitionLateFeeSettingsPanel({
 }: TuitionLateFeeSettingsPanelProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<TuitionOrgSettings>({});
   const [overrides, setOverrides] = useState<TuitionLateFeeOverride[]>([]);
@@ -177,8 +179,10 @@ export default function TuitionLateFeeSettingsPanel({
 
       setSettings(settingsPayload.settings ?? {});
       setOverrides(overridesPayload.overrides ?? []);
+      setLoadError(null);
     } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to load late fee settings."));
+      // Inline error + no form: saving defaults over the real settings is not possible.
+      setLoadError(formatActionError(err, "Failed to load late fee settings."));
       void reportPortalOperationalError("school_admin", {
         organizationId,
         operation: "tuition.late_fees.load",
@@ -291,6 +295,19 @@ export default function TuitionLateFeeSettingsPanel({
       <p className="text-sm" style={{ color: C.textSecondary }}>
         Loading late fee settings…
       </p>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div data-testid="tuition-late-fee-settings">
+        <GardenLoadError
+          title="Late fee settings didn't load"
+          description={`${loadError} Saving is off until they load, so your current settings stay as they are.`}
+          onRetry={() => void loadData()}
+          retrying={loading}
+        />
+      </div>
     );
   }
 

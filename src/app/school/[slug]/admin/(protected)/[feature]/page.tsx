@@ -12,9 +12,9 @@ import {
   mergePortalFeatureNav,
 } from "@/lib/organization-settings/feature-nav";
 import { Suspense } from "react";
-import AdminDashboardContentSkeleton from "@/components/school-admin/AdminDashboardContentSkeleton";
+import AdminGardenDashboardSkeleton from "@/components/school-admin/dashboard/garden/AdminGardenDashboardSkeleton";
 import AdminDashboardSummaryLoader from "@/components/school-admin/AdminDashboardSummaryLoader";
-import AdminPageSkeleton from "@/components/school-admin/AdminPageSkeleton";
+import AdminGardenRouteSkeleton from "@/components/school-admin/garden/AdminGardenRouteSkeleton";
 import AdminMessagesPageShell from "@/components/school-admin/messages/AdminMessagesPageShell";
 import AdminMessagesInboxLoader from "@/components/school-admin/messages/AdminMessagesInboxLoader";
 import SchoolAdminComingSoon from "@/components/school-admin/SchoolAdminComingSoon";
@@ -33,19 +33,19 @@ import ScheduleVisitsLoader from "@/components/school-admin/schedule/ScheduleVis
 import { fetchSchedulePageMeta } from "@/lib/school-admin/schedule-page-meta";
 const CommitteesPage = nextDynamic(
   () => import("@/components/school-admin/committees/CommitteesPage"),
-  { loading: () => <AdminPageSkeleton label="Loading committees" /> },
+  { loading: () => <AdminGardenRouteSkeleton label="Loading committees" /> },
 );
 const NotificationsSettingsPage = nextDynamic(
   () => import("@/components/school-admin/notifications/NotificationsSettingsPage"),
-  { loading: () => <AdminPageSkeleton label="Loading notifications" /> },
+  { loading: () => <AdminGardenRouteSkeleton label="Loading alerts" layout="split" /> },
 );
 const BulletinPage = nextDynamic(
   () => import("@/components/school-admin/bulletin/BulletinPage"),
-  { loading: () => <AdminPageSkeleton label="Loading bulletin" /> },
+  { loading: () => <AdminGardenRouteSkeleton label="Loading bulletin" layout="table" /> },
 );
 const PhotosPage = nextDynamic(
   () => import("@/components/school-admin/gallery/PhotosPage"),
-  { loading: () => <AdminPageSkeleton label="Loading photos" /> },
+  { loading: () => <AdminGardenRouteSkeleton label="Loading photos" layout="table" /> },
 );
 
 export const dynamic = "force-dynamic";
@@ -147,16 +147,14 @@ export default async function SchoolAdminFeaturePage({ params }: PageProps) {
       null;
 
     return (
-      <div className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14">
-        <Suspense fallback={<AdminDashboardContentSkeleton />}>
-          <AdminDashboardSummaryLoader
-            org={org}
-            slug={slug}
-            user={user}
-            userFirstName={userFirstName}
-          />
-        </Suspense>
-      </div>
+      <Suspense fallback={<AdminGardenDashboardSkeleton />}>
+        <AdminDashboardSummaryLoader
+          org={org}
+          slug={slug}
+          user={user}
+          userFirstName={userFirstName}
+        />
+      </Suspense>
     );
   }
 

@@ -1,5 +1,3 @@
-import { Alert } from 'react-native';
-
 import type { ParentBillingData, SavedPaymentMethodSummary } from '@/lib/parent/parent-portal-api';
 import {
   isStripeCheckoutSuccess,
@@ -67,11 +65,22 @@ export type RunCheckoutSettlementInput = {
   baseline: CheckoutSettlementBaseline;
 };
 
-/** Refresh/poll billing until webhook data lands, then show success alerts. */
-export async function runCheckoutSettlement(input: RunCheckoutSettlementInput): Promise<void> {
+export type CheckoutSettlementResult = {
+  outcome: StripeCheckoutOutcome;
+  /** True once billing data reflects the checkout (always true for cancel outcomes). */
+  settled: boolean;
+};
+
+/**
+ * Refresh/poll billing until webhook data lands. Returns how it went so the
+ * screen can tell the parent (toast) — this module never shows UI itself.
+ */
+export async function runCheckoutSettlement(
+  input: RunCheckoutSettlementInput,
+): Promise<CheckoutSettlementResult> {
   const { refresh, outcome, baseline } = input;
   let latest = await refresh();
-  if (!isStripeCheckoutSuccess(outcome)) return;
+  if (!isStripeCheckoutSuccess(outcome)) return { outcome, settled: true };
 
   for (const delayMs of CHECKOUT_SETTLE_REFRESH_DELAYS_MS) {
     if (hasCheckoutSettled(outcome, baseline, latest)) break;
@@ -79,20 +88,5 @@ export async function runCheckoutSettlement(input: RunCheckoutSettlementInput): 
     latest = await refresh();
   }
 
-  const settled = hasCheckoutSettled(outcome, baseline, latest);
-  if (outcome === 'paid') {
-    Alert.alert(
-      'Payment received',
-      settled
-        ? 'Thank you! Your payment has been recorded.'
-        : 'Thank you! Your payment is processing and will appear here shortly.',
-    );
-  } else {
-    Alert.alert(
-      'Card saved',
-      settled
-        ? 'Your card is saved for future payments.'
-        : 'Your card is being saved and will appear here shortly.',
-    );
-  }
+  return { outcome, settled: hasCheckoutSettled(outcome, baseline, latest) };
 }

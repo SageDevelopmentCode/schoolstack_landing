@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
+import { useAdminGardenSkin } from "@/components/school-admin/garden/skin";
+import { useAdminConfirm } from "@/components/school-admin/garden/useAdminConfirm";
+import { GardenSwitch, gInputClass } from "@/components/school-admin/garden/kit";
 
 const DEFAULT_GROUP_CAPACITY = 10;
 
@@ -108,6 +111,8 @@ export default function AdmissionsGroupTourDayControls({
 }: AdmissionsGroupTourDayControlsProps) {
   const [capacity, setCapacity] = useState(String(DEFAULT_GROUP_CAPACITY));
   const [busy, setBusy] = useState(false);
+  const skin = useAdminGardenSkin();
+  const { confirm, dialog: confirmDialog } = useAdminConfirm(C);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -144,7 +149,15 @@ export default function AdmissionsGroupTourDayControls({
     setBusy(true);
     try {
       await postGroupDay({ action: "apply", groupCapacity });
-      adminToast.success("Whole-day group tour applied");
+      if (skin) {
+        adminToast.dismiss("group-day-error");
+        adminToast.success("Whole-day group tour on.", {
+          id: "group-day",
+          description: `Up to ${groupCapacity} ${groupCapacity === 1 ? "person" : "people"} share the open slots this day.`,
+        });
+      } else {
+        adminToast.success("Whole-day group tour applied");
+      }
       onUpdated();
     } catch (err) {
       void reportPortalOperationalError(
@@ -156,7 +169,15 @@ export default function AdmissionsGroupTourDayControls({
         },
         err,
       );
-      adminToast.error(formatActionError(err, "Failed to apply group tour day."));
+      if (skin) {
+        adminToast.error("Couldn't turn on the group tour.", {
+          id: "group-day-error",
+          description: `${formatActionError(err, "Failed to apply group tour day.")} The day's slots are unchanged.`,
+          action: { label: "Retry", onClick: () => void applyWholeDay(groupCapacity) },
+        });
+      } else {
+        adminToast.error(formatActionError(err, "Failed to apply group tour day."));
+      }
     } finally {
       setBusy(false);
     }
@@ -166,10 +187,26 @@ export default function AdmissionsGroupTourDayControls({
     setBusy(true);
     try {
       await postGroupDay({ action: "clear" });
-      adminToast.success("Group tour day cleared");
+      if (skin) {
+        adminToast.dismiss("group-day-error");
+        adminToast.success("Group tour turned off.", {
+          id: "group-day",
+          description: "Open slots stay open as 1:1 tours.",
+        });
+      } else {
+        adminToast.success("Group tour day cleared");
+      }
       onUpdated();
     } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to clear group tour day."));
+      if (skin) {
+        adminToast.error("Couldn't turn off the group tour.", {
+          id: "group-day-error",
+          description: `${formatActionError(err, "Failed to clear group tour day.")} It's still a group tour day.`,
+          action: { label: "Retry", onClick: () => void clearWholeDay() },
+        });
+      } else {
+        adminToast.error(formatActionError(err, "Failed to clear group tour day."));
+      }
     } finally {
       setBusy(false);
     }
@@ -184,6 +221,15 @@ export default function AdmissionsGroupTourDayControls({
       }
       await applyWholeDay(groupCapacity);
       return;
+    }
+    if (skin) {
+      const ok = await confirm({
+        title: "Turn off the whole-day group tour?",
+        description: "The shared capacity goes away and each open slot becomes a 1:1 tour again.",
+        confirmLabel: "Turn off",
+        destructive: false,
+      });
+      if (!ok) return;
     }
     await clearWholeDay();
   }
@@ -218,6 +264,42 @@ export default function AdmissionsGroupTourDayControls({
       onChange={(next) => void handleToggle(next)}
     />
   );
+
+  if (skin) {
+    return (
+      <div className="flex flex-col gap-3 rounded-[16px] border-[1.5px] border-[var(--sf-ink)]/10 bg-[var(--sf-paper)] p-3.5">
+        <GardenSwitch
+          checked={isWholeDayActive}
+          disabled={readOnly}
+          busy={busy}
+          onChange={(next) => void handleToggle(next)}
+          label="Whole-day group tour"
+          description="Shares one capacity pool across all open slots this day. Open slots stay open; families see a group tour badge on the public page."
+        />
+        {isWholeDayActive ? (
+          <label className="flex items-center gap-2 text-[12.5px] font-bold text-[var(--sf-soft)]">
+            Day capacity
+            <input
+              type="number"
+              min={1}
+              disabled={readOnly || busy}
+              value={capacity}
+              onChange={(event) => setCapacity(event.target.value)}
+              onBlur={() => void handleCapacityBlur()}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") event.currentTarget.blur();
+              }}
+              className={gInputClass(null, "!w-24 tabular-nums")}
+              aria-label="Whole-day group capacity"
+              data-garden-skip
+            />
+            <span>people</span>
+          </label>
+        ) : null}
+        {confirmDialog}
+      </div>
+    );
+  }
 
   return (
     <div

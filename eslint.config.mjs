@@ -10,6 +10,7 @@ const eslintConfig = defineConfig([
       "lighthouserc.js",
       "scripts/**/*.cjs",
       "src/test/integration/**/*.cjs",
+      "design/**/*.js",
     ],
     rules: {
       "@typescript-eslint/no-require-imports": "off",

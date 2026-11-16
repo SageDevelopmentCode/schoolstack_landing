@@ -5,7 +5,9 @@ import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { MessageThreadSummary, MessagesInboxData } from "@/lib/messages/types";
 import MessagesInboxLayout from "@/components/messages/MessagesInboxLayout";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
+import ParentGardenFrame from "@/components/school-parent/garden/ParentGardenFrame";
 import { ParentMessagesPageContext } from "./parent-messages-page-context";
+import { useParentMessagesFeedback } from "./useParentMessagesFeedback";
 
 type ParentMessagesPageShellProps = {
   organizationId: string;
@@ -54,10 +56,14 @@ export default function ParentMessagesPageShell({
   );
 
   const contextValue = useMemo(() => ({ hydrateThreads }), [hydrateThreads]);
+  const onFeedback = useParentMessagesFeedback();
 
   return (
     <ParentMessagesPageContext.Provider value={contextValue}>
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <ParentGardenFrame
+        theme={theme}
+        className="flex h-full min-h-0 flex-1 flex-col overflow-hidden"
+      >
         <MessagesInboxLayout
           api={{
             basePath: "/api/parent-portal/messages",
@@ -74,9 +80,10 @@ export default function ParentMessagesPageShell({
           readOnly={readOnly || previewMode}
           C={C}
           theme={theme}
-          variant="parent-story"
+          variant="parent-garden"
+          onFeedback={onFeedback}
         />
-      </div>
+      </ParentGardenFrame>
       {children}
     </ParentMessagesPageContext.Provider>
   );

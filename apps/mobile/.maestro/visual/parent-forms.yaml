@@ -1,0 +1,16 @@
+appId: com.mudkitchen.schoolstack.mobile
+---
+- runFlow: ../parent-logged-in.yaml
+- tapOn: 'More'
+- tapOn: 'Forms & documents'
+- extendedWaitUntil:
+    visible:
+      id: parent-forms-documents-screen
+    timeout: 30000
+- takeScreenshot: visual-capture
+- scrollUntilVisible:
+    element:
+      id: parent-forms-list-card
+    direction: DOWN
+    optional: true
+- takeScreenshot: visual-capture-list

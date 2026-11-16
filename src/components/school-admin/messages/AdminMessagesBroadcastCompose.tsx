@@ -1,13 +1,17 @@
 "use client";
 
-import { useRef } from "react";
+import { useId, useRef } from "react";
 import { Paperclip, X } from "lucide-react";
-import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { G_FOCUS, gBtnOutlineSm } from "@/components/school-parent/garden/ui";
+import {
+  FileTypeIcon,
+  formatFileSize,
+} from "@/components/school-parent/messages/garden/garden-messages-shared";
 import {
   MAX_MESSAGE_ATTACHMENTS,
   MAX_MESSAGE_ATTACHMENT_BYTES,
 } from "@/lib/messages/message-attachment-storage";
+import { MAX_ATTACHMENT_MB_LABEL } from "@/lib/messages/parent-messages-feedback";
 
 type AdminMessagesBroadcastComposeProps = {
   value: string;
@@ -15,85 +19,100 @@ type AdminMessagesBroadcastComposeProps = {
   files: File[];
   onFilesChange: (files: File[]) => void;
   disabled?: boolean;
-  theme: ParentThemeTokens;
-  C: AdminThemeTokens;
   placeholder?: string;
+  /** Files that weren't added (too large / over the count limit). */
+  onFilesRejected?: (rejection: { tooLarge: string[]; overLimit: string[] }) => void;
 };
 
+/**
+ * Step 2 of Bulk message (Garden): the message and up to N attachments.
+ * Same limits as before; rejected files are reported instead of dropped silently.
+ */
 export default function AdminMessagesBroadcastCompose({
   value,
   onChange,
   files,
   onFilesChange,
   disabled = false,
-  theme,
-  C,
   placeholder = "Write a message to send to each parent individually…",
+  onFilesRejected,
 }: AdminMessagesBroadcastComposeProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaId = useId();
+  const hintId = useId();
 
   const addFiles = (incoming: FileList | File[]) => {
     const next = [...files];
+    const tooLarge: string[] = [];
+    const overLimit: string[] = [];
     for (const file of incoming) {
-      if (next.length >= MAX_MESSAGE_ATTACHMENTS) break;
-      if (file.size > MAX_MESSAGE_ATTACHMENT_BYTES) continue;
+      if (file.size > MAX_MESSAGE_ATTACHMENT_BYTES) {
+        tooLarge.push(file.name);
+        continue;
+      }
+      if (next.length >= MAX_MESSAGE_ATTACHMENTS) {
+        overLimit.push(file.name);
+        continue;
+      }
       next.push(file);
     }
     onFilesChange(next);
+    if (tooLarge.length || overLimit.length) onFilesRejected?.({ tooLarge, overLimit });
   };
+
+  const atLimit = files.length >= MAX_MESSAGE_ATTACHMENTS;
 
   return (
     <div className="space-y-3">
+      <label htmlFor={textareaId} className="block text-[13px] font-extrabold text-[var(--sf-ink)]">
+        Message
+      </label>
+      <textarea
+        id={textareaId}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
+        rows={6}
+        placeholder={placeholder}
+        aria-describedby={hintId}
+        data-autofocus
+        // The step mounts this box: put the cursor in it so step 2 is one keystroke away.
+        autoFocus
+        className="min-h-[150px] w-full resize-y rounded-[18px] border-2 border-[var(--sf-ink)]/15 bg-[var(--sf-paper)] px-4 py-3 text-[16px] font-semibold leading-relaxed text-[var(--sf-ink)] outline-none transition-colors placeholder:text-[var(--sf-ink)]/40 focus:border-[var(--sf-ink)] disabled:opacity-60 sm:text-[15px]"
+      />
+
       {files.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
+        <ul aria-label="Files to send" className="m-0 flex list-none flex-wrap gap-2 p-0">
           {files.map((file, index) => (
-            <div
-              key={`${file.name}-${index}`}
-              className="flex items-center gap-1 rounded-full border px-3 py-1 text-xs"
-              style={{
-                borderColor: theme.line,
-                color: theme.muted,
-                backgroundColor: theme.paper,
-              }}
+            <li
+              key={`${file.name}-${file.size}-${index}`}
+              className="flex max-w-full items-center gap-2 rounded-full border-[1.5px] border-[var(--sf-ink)]/12 bg-[var(--sf-sky)] py-1 pl-2.5 pr-1 text-[12.5px] font-bold text-[var(--sf-ink)]"
             >
-              <span className="max-w-[160px] truncate">{file.name}</span>
+              <FileTypeIcon mimeType={file.type} className="h-3.5 w-3.5 shrink-0 text-[#24507a]" />
+              <span className="max-w-[170px] truncate">{file.name}</span>
+              <span className="shrink-0 font-semibold text-[var(--sf-ink)]/55">{formatFileSize(file.size)}</span>
               <button
                 type="button"
                 onClick={() => onFilesChange(files.filter((_, i) => i !== index))}
                 disabled={disabled}
-                className="cursor-pointer disabled:opacity-50"
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/80 text-[var(--sf-ink)]/70 hover:bg-white hover:text-[var(--sf-ink)] disabled:opacity-50 ${G_FOCUS} focus-visible:ring-offset-0`}
                 aria-label={`Remove ${file.name}`}
               >
-                <X className="h-3 w-3" />
+                <X className="h-3 w-3" aria-hidden />
               </button>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       ) : null}
 
-      <textarea
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        disabled={disabled}
-        rows={5}
-        placeholder={placeholder}
-        className="min-h-[120px] w-full resize-y rounded-xl border px-4 py-3 text-sm leading-relaxed outline-none transition-colors focus:ring-1 disabled:opacity-60"
-        style={{
-          borderColor: theme.line,
-          backgroundColor: theme.paper,
-          color: theme.ink,
-        }}
-      />
-
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          disabled={disabled || files.length >= MAX_MESSAGE_ATTACHMENTS}
-          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium cursor-pointer transition hover:bg-black/[0.04] disabled:cursor-not-allowed disabled:opacity-50"
-          style={{ color: C.textSecondary }}
+          disabled={disabled || atLimit}
+          className={`${gBtnOutlineSm} !px-3.5 !py-2`}
         >
-          <Paperclip className="h-4 w-4" />
+          <Paperclip className="h-4 w-4" aria-hidden />
           Attach files
         </button>
         <input
@@ -109,11 +128,11 @@ export default function AdminMessagesBroadcastCompose({
             }
           }}
         />
-        {files.length > 0 ? (
-          <span className="text-xs" style={{ color: theme.muted }}>
-            {files.length}/{MAX_MESSAGE_ATTACHMENTS} attached
-          </span>
-        ) : null}
+        <span id={hintId} className="text-[12px] font-semibold tabular-nums text-[var(--sf-soft)]" aria-live="polite">
+          {files.length > 0
+            ? `${files.length} / ${MAX_MESSAGE_ATTACHMENTS} files attached`
+            : `Optional · PDFs or images up to ${MAX_ATTACHMENT_MB_LABEL}, ${MAX_MESSAGE_ATTACHMENTS} max`}
+        </span>
       </div>
     </div>
   );

@@ -123,15 +123,19 @@ export function CalendarGrid({
   colors?: CalendarGridColors;
   /** Larger day cells for touch-friendly apply-form date picking */
   largeCells?: boolean;
-  variant?: "default" | "demoStory";
+  /** "garden": admin Garden pages (rounded tiles, bolder type). */
+  variant?: "default" | "demoStory" | "garden";
 }) {
+  const garden = variant === "garden";
   const cellSizeClass =
     variant === "demoStory"
       ? "h-[43px] w-full min-w-0"
+      : garden
+        ? "h-10 w-full min-w-0 max-w-[52px] sm:h-11"
       : largeCells
         ? "h-11 w-11 sm:h-10 sm:w-10"
         : "h-10 w-10";
-  const gridGapClass = variant === "demoStory" ? "gap-1.5" : "gap-y-1";
+  const gridGapClass = variant === "demoStory" || garden ? "gap-1.5" : "gap-y-1";
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const cells: (number | null)[] = [
@@ -147,9 +151,11 @@ export function CalendarGrid({
           <div
             key={d}
             className={
-              colors
-                ? "text-center text-[11px] font-medium font-secondary py-1"
-                : "text-center text-[11px] font-medium font-secondary text-text-faint py-1"
+              garden
+                ? "py-1 text-center text-[11px] font-extrabold uppercase tracking-[0.12em]"
+                : colors
+                  ? "text-center text-[11px] font-medium font-secondary py-1"
+                  : "text-center text-[11px] font-medium font-secondary text-text-faint py-1"
             }
             style={colors ? { color: colors.textFaint } : undefined}
           >
@@ -234,7 +240,12 @@ export function CalendarGrid({
                 type="button"
                 disabled={!isSelectable}
                 onClick={() => isSelectable && onSelect(key)}
-                className={`relative mx-auto flex ${cellSizeClass} flex-col items-center justify-center rounded-admin-sm text-[14px] font-medium font-secondary transition-all duration-150 ${
+                aria-pressed={garden ? isSelected : undefined}
+                className={`relative mx-auto flex ${cellSizeClass} flex-col items-center justify-center ${
+                  garden
+                    ? "rounded-[12px] text-[14px] font-extrabold tabular-nums focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/35"
+                    : "rounded-admin-sm text-[14px] font-medium font-secondary"
+                } transition-all duration-150 ${
                   editable && isSelectable && editableState === "closed"
                     ? "enabled:hover:brightness-[0.97]"
                     : editable &&
@@ -248,7 +259,12 @@ export function CalendarGrid({
                 }`}
                 style={
                   editable && editableState
-                    ? getEditableDayStyle(editableState, colors)
+                    ? {
+                        ...getEditableDayStyle(editableState, colors),
+                        ...(garden && editableState === "selected"
+                          ? { border: "2px solid var(--sf-ink)", boxShadow: "0 2px 0 0 var(--sf-ink)" }
+                          : {}),
+                      }
                     : isSelected
                       ? { backgroundColor: colors.accent, color: "#FFFFFF" }
                       : isSelectable

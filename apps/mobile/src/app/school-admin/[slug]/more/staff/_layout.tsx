@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 
-import { Story } from '@/constants/story-theme';
+import { Garden } from '@/components/parent/garden/tokens';
 import { detailStackAnimation } from '@/lib/motion/portal-motion';
 
 export default function StaffLayout() {
@@ -9,7 +9,8 @@ export default function StaffLayout() {
       screenOptions={{
         headerShown: false,
         animation: detailStackAnimation(),
-        contentStyle: { backgroundColor: Story.paper },
+        // Garden screens: cream behind push transitions.
+        contentStyle: { backgroundColor: Garden.cream },
       }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="[id]" options={{ headerShown: false }} />

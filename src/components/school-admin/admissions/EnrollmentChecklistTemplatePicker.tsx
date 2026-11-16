@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { DetailButton } from "@/components/school-admin/admissions/detail-garden";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Camera,
@@ -26,7 +27,6 @@ import {
   type ChecklistItemType,
 } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 
 type EnrollmentChecklistTemplatePickerProps = {
   C: AdminThemeTokens;
@@ -234,15 +234,16 @@ export default function EnrollmentChecklistTemplatePicker({
                     const Icon = badgeStyle.icon;
 
                     return (
-                      <button
+                      <DetailButton
+ kind="secondary"
+ C={C}
                         key={template.id}
                         type="button"
                         onClick={() => {
                           onSelectTemplate(template.id);
                           onClose();
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium"
-                        style={getAdminButtonStyle(C, "secondary")}
+                        storyClassName="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium"
                       >
                         <span
                           className="flex h-5 w-5 shrink-0 items-center justify-center rounded"
@@ -254,7 +255,7 @@ export default function EnrollmentChecklistTemplatePicker({
                           <Icon className="h-3 w-3" />
                         </span>
                         <span>{template.label}</span>
-                      </button>
+                      </DetailButton>
                     );
                   })}
                 </div>

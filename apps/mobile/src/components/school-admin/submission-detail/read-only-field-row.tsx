@@ -1,8 +1,6 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Spacing } from '@/constants/theme';
+import { Garden, GardenFonts, useGardenAccent } from '@/components/parent/garden/tokens';
 
 export type ReadOnlyFieldVariant = 'default' | 'consent' | 'signature' | 'upload';
 
@@ -12,88 +10,55 @@ type ReadOnlyFieldRowProps = {
   variant?: ReadOnlyFieldVariant;
 };
 
-function variantStyles(
-  variant: ReadOnlyFieldVariant,
-  theme: ReturnType<typeof useAdminTheme>,
-): { backgroundColor: string; borderColor: string; valueColor: string; valueType: 'small' | 'smallBold' } {
-  switch (variant) {
-    case 'consent':
-      return {
-        backgroundColor: theme.successBg,
-        borderColor: theme.success,
-        valueColor: theme.textPrimary,
-        valueType: 'smallBold',
-      };
-    case 'signature':
-      return {
-        backgroundColor: theme.accentLight,
-        borderColor: theme.accent,
-        valueColor: theme.accentDark,
-        valueType: 'smallBold',
-      };
-    case 'upload':
-      return {
-        backgroundColor: theme.infoBg,
-        borderColor: theme.border,
-        valueColor: theme.textPrimary,
-        valueType: 'small',
-      };
-    default:
-      return {
-        backgroundColor: theme.elevated,
-        borderColor: theme.border,
-        valueColor: theme.textPrimary,
-        valueType: 'small',
-      };
-  }
-}
-
-export function ReadOnlyFieldRow({
-  label,
-  value,
-  variant = 'default',
-}: ReadOnlyFieldRowProps) {
-  const theme = useAdminTheme();
-  const colors = variantStyles(variant, theme);
+/**
+ * One submitted answer (label + value box), Garden styled. Used inside the
+ * application step, checklist item and payment sheets.
+ */
+export function ReadOnlyFieldRow({ label, value, variant = 'default' }: ReadOnlyFieldRowProps) {
+  const accent = useGardenAccent();
+  const box =
+    variant === 'consent'
+      ? { backgroundColor: Garden.mint, borderColor: Garden.forest }
+      : variant === 'signature'
+        ? { backgroundColor: accent.wash, borderColor: accent.clay }
+        : variant === 'upload'
+          ? { backgroundColor: Garden.sky, borderColor: Garden.ink12 }
+          : { backgroundColor: Garden.white, borderColor: Garden.ink12 };
 
   return (
-    <View style={styles.container}>
-      <ThemedText type="smallBold" style={{ color: theme.textTertiary, textTransform: 'uppercase' }}>
-        {label}
-      </ThemedText>
-      <View
-        style={[
-          styles.valueBox,
-          {
-            backgroundColor: colors.backgroundColor,
-            borderColor: colors.borderColor,
-          },
-          variant !== 'default' && styles.highlightedBox,
-        ]}>
-        <ThemedText
-          type={colors.valueType}
-          style={{
-            color: colors.valueColor,
-            fontSize: variant === 'signature' ? 16 : undefined,
-          }}>
+    <View style={styles.container} accessible accessibilityLabel={`${label}: ${value}`}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={[styles.valueBox, box, variant !== 'default' && styles.highlightedBox]}>
+        <Text
+          selectable
+          style={[
+            styles.value,
+            variant === 'consent' || variant === 'signature' ? styles.valueStrong : null,
+            variant === 'signature' ? { color: accent.clayDeep, fontSize: 17 } : null,
+          ]}>
           {value}
-        </ThemedText>
+        </Text>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    gap: 6,
+  container: { gap: 6 },
+  label: {
+    fontFamily: GardenFonts.bodyExtra,
+    fontSize: 11.5,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: Garden.soft,
   },
   valueBox: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 10,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
+    borderWidth: 1.5,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
   },
-  highlightedBox: {
-    borderWidth: 1,
-  },
+  highlightedBox: { borderWidth: 2 },
+  value: { fontFamily: GardenFonts.bodySemi, fontSize: 15, lineHeight: 21, color: Garden.ink },
+  valueStrong: { fontFamily: GardenFonts.bodyExtra },
 });

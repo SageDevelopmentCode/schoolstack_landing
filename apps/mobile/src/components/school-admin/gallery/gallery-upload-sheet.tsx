@@ -1,5 +1,3 @@
-import * as ImagePicker from 'expo-image-picker';
-import { useCallback, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
@@ -10,29 +8,10 @@ import { useParentTheme } from '@/contexts/parent-theme-context';
 import { StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
-import { isGalleryImageCompressionAvailable } from '@/lib/images/compress-image-for-upload';
-import { MobileApiFormDataError } from '@/lib/api-form-data-error';
-import { reportMobileOperationalError } from '@/lib/mobile-activity';
 import { MAX_GALLERY_PHOTOS_PER_UPLOAD } from '@/lib/school-gallery/constants';
-import {
-  formatGalleryApiError,
-  type GalleryBatchUploadOptions,
-  type PreparedGalleryUploadFile,
-} from '@/lib/school-gallery/gallery-api';
-import { isGalleryUploadPartialFailure } from '@/lib/school-gallery/gallery-upload-partial-error';
-import { todayGalleryPhotoDate } from '@/lib/school-gallery/gallery-photo-date';
-import {
-  GalleryPhotoPrepareError,
-  prepareGalleryPhotoForUpload,
-} from '@/lib/school-gallery/prepare-gallery-photo-for-upload';
+import type { GalleryBatchUploadOptions, PreparedGalleryUploadFile } from '@/lib/school-gallery/gallery-api';
 import type { GalleryPhoto } from '@/lib/school-gallery/types';
-
-type UploadPhase = 'idle' | 'preparing' | 'uploading';
-
-type PendingGalleryRetry = {
-  photoDate: string;
-  files: PreparedGalleryUploadFile[];
-};
+import { useGalleryUpload } from '@/lib/school-gallery/use-gallery-upload';
 
 type GalleryUploadSheetProps = {
   visible: boolean;
@@ -58,189 +37,35 @@ export function GalleryUploadSheet({
   uploadSurface,
 }: GalleryUploadSheetProps) {
   const theme = useParentTheme();
-  const compressionAvailable = isGalleryImageCompressionAvailable();
-  const uploadSubcopy = compressionAvailable
-    ? 'Photos are compressed before upload to save space.'
-    : 'Photos upload at original size on this app version. Update MudKitchen from the App Store for automatic compression.';
-  const [photoDate, setPhotoDate] = useState(todayGalleryPhotoDate());
-  const [phase, setPhase] = useState<UploadPhase>('idle');
-  const [prepareIndex, setPrepareIndex] = useState(0);
-  const [prepareTotal, setPrepareTotal] = useState(0);
-  const [statusLine, setStatusLine] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [pendingRetry, setPendingRetry] = useState<PendingGalleryRetry | null>(null);
-  const busy = phase !== 'idle';
-
-  const resetProgress = useCallback(() => {
-    setPhase('idle');
-    setPrepareIndex(0);
-    setPrepareTotal(0);
-    setStatusLine('');
-    setError(null);
-  }, []);
-
-  const reportUploadFailure = useCallback(
-    (uploadError: unknown, message: string) => {
-      if (uploadError instanceof GalleryPhotoPrepareError) {
-        return;
-      }
-      if (isGalleryUploadPartialFailure(uploadError)) {
-        return;
-      }
-      const responseStatus =
-        uploadError instanceof MobileApiFormDataError ? uploadError.status : undefined;
-      void reportMobileOperationalError(
-        {
-          organizationId,
-          surface: uploadSurface,
-          operation: uploadOperation,
-          error: message,
-          code: 'upload_failed',
-          details:
-            uploadError instanceof MobileApiFormDataError
-              ? uploadError.responsePreview
-              : undefined,
-          metadata:
-            uploadError instanceof MobileApiFormDataError
-              ? {
-                  httpStatus: uploadError.status,
-                  ...(uploadError.code ? { apiCode: uploadError.code } : {}),
-                }
-              : undefined,
-        },
-        uploadError,
-        responseStatus,
-      );
-    },
-    [organizationId, uploadOperation, uploadSurface],
-  );
-
-  const handleUploadFailure = useCallback(
-    (uploadError: unknown, uploadPhotoDate: string) => {
-      if (isGalleryUploadPartialFailure(uploadError)) {
-        if (uploadError.cause !== undefined) {
-          reportUploadFailure(
-            uploadError.cause,
-            formatGalleryApiError(uploadError, 'Could not upload photos.'),
-          );
-        }
-        onUploaded(uploadError.uploadedPhotos);
-        setPendingRetry({
-          photoDate: uploadPhotoDate,
-          files: uploadError.remainingFiles,
-        });
-        setError(
-          `${formatGalleryApiError(uploadError, 'Could not upload photos.')} ${uploadError.remainingFiles.length} photo(s) still need to upload.`,
-        );
-        setPhase('idle');
-        return;
-      }
-
-      const message = formatGalleryApiError(uploadError, 'Could not upload photos.');
-      setError(message);
-      setPhase('idle');
-      reportUploadFailure(uploadError, message);
-    },
-    [onUploaded, reportUploadFailure],
-  );
-
-  const uploadPrepared = useCallback(
-    async (trimmedDate: string, prepared: PreparedGalleryUploadFile[]) => {
-      setPhase('uploading');
-      setStatusLine('Uploading photos…');
-      try {
-        const photos = await uploadBatch(trimmedDate, prepared, {
-          onChunkProgress: ({ chunkIndex, chunkCount }) => {
-            setStatusLine(
-              chunkCount > 1
-                ? `Uploading batch ${chunkIndex} of ${chunkCount}…`
-                : 'Uploading photos…',
-            );
-          },
-        });
-        onUploaded(photos);
-        setPendingRetry(null);
-        resetProgress();
-        onClose();
-      } catch (uploadError) {
-        handleUploadFailure(uploadError, trimmedDate);
-      }
-    },
-    [handleUploadFailure, onClose, onUploaded, resetProgress, uploadBatch],
-  );
+  const upload = useGalleryUpload({
+    organizationId,
+    onUploaded,
+    uploadBatch,
+    uploadOperation,
+    uploadSurface,
+    onComplete: () => onClose(),
+  });
+  const {
+    uploadSubcopy,
+    photoDate,
+    setPhotoDate,
+    phase,
+    busy,
+    prepareIndex,
+    prepareTotal,
+    statusLine,
+    error,
+    pendingRetry,
+  } = upload;
 
   const handleClose = () => {
     if (busy) return;
-    resetProgress();
-    setPendingRetry(null);
+    upload.reset();
     onClose();
   };
 
-  const handleRetryRemaining = async () => {
-    if (!pendingRetry || pendingRetry.files.length === 0) {
-      return;
-    }
-    setError(null);
-    await uploadPrepared(pendingRetry.photoDate, pendingRetry.files);
-  };
-
-  const handlePickAndUpload = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      setError('Photo library access is required to upload photos.');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsMultipleSelection: true,
-      selectionLimit: MAX_GALLERY_PHOTOS_PER_UPLOAD,
-      quality: compressionAvailable ? 1 : 0.75,
-    });
-
-    if (result.canceled || result.assets.length === 0) {
-      return;
-    }
-
-    setError(null);
-    setPendingRetry(null);
-
-    const trimmedDate = photoDate.trim();
-    if (!trimmedDate) {
-      setError('Photo date is required.');
-      return;
-    }
-
-    setPhase('preparing');
-    setPrepareTotal(result.assets.length);
-    setPrepareIndex(0);
-
-    try {
-      const prepared = [];
-      for (let index = 0; index < result.assets.length; index++) {
-        const asset = result.assets[index];
-        setStatusLine(`Compressing ${index + 1} of ${result.assets.length}…`);
-        prepared.push(
-          await prepareGalleryPhotoForUpload(
-            {
-              uri: asset.uri,
-              width: asset.width,
-              height: asset.height,
-              fileSize: asset.fileSize,
-              mimeType: asset.mimeType,
-              fileName: asset.fileName,
-            },
-            index,
-          ),
-        );
-        setPrepareIndex(index + 1);
-      }
-
-      await uploadPrepared(trimmedDate, prepared);
-    } catch (uploadError) {
-      handleUploadFailure(uploadError, trimmedDate);
-    }
-  };
+  const handleRetryRemaining = () => upload.retryRemaining();
+  const handlePickAndUpload = () => upload.pickAndUpload();
 
   return (
     <BottomSheetShell

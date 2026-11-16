@@ -1,5 +1,9 @@
+"use client";
+
 import type { ReactNode } from "react";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { useAdminGardenSkin } from "@/components/school-admin/garden/skin";
+import { GChip } from "@/components/school-parent/garden/ui";
 
 export type ParentChipTone = "success" | "warning" | "alert" | "info";
 
@@ -29,6 +33,15 @@ export default function ParentChip({
   children,
   className = "",
 }: ParentChipProps) {
+  // Shared teacher/parent pieces reused on Garden admin pages take the Garden chip.
+  const skin = useAdminGardenSkin();
+  if (skin) {
+    return (
+      <GChip tone={tone} className={className}>
+        {children}
+      </GChip>
+    );
+  }
   const colors = chipColors(theme, tone);
 
   return (

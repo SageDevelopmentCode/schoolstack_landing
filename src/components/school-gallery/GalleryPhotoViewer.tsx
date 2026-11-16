@@ -12,7 +12,7 @@ export type GalleryPhotoViewerItem = {
   photoDate?: string;
 };
 
-type GalleryPhotoViewerProps = {
+export type GalleryPhotoViewerProps = {
   items: GalleryPhotoViewerItem[];
   initialIndex: number;
   onClose: () => void;
@@ -21,16 +21,24 @@ type GalleryPhotoViewerProps = {
   showStaffDetails?: boolean;
 };
 
-export default function GalleryPhotoViewer({
+/**
+ * Shared lightbox navigation: index, preload of neighbours, Prev/Next (Next
+ * asks the feed for another page at the end), and keyboard (Escape, ←, →).
+ * Used by the default viewer below and the parent Garden viewer.
+ */
+export function useGalleryPhotoViewerNav({
   items,
   initialIndex,
   onClose,
   hasMore = false,
   onRequestMore,
-  showStaffDetails = false,
-}: GalleryPhotoViewerProps) {
+}: Pick<
+  GalleryPhotoViewerProps,
+  "items" | "initialIndex" | "onClose" | "hasMore" | "onRequestMore"
+>) {
   const [index, setIndex] = useState(initialIndex);
   const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
+  const [loadingNext, setLoadingNext] = useState(false);
   const itemsLengthRef = useRef(items.length);
 
   useEffect(() => {
@@ -66,14 +74,19 @@ export default function GalleryPhotoViewer({
       return;
     }
     if (hasMore && onRequestMore) {
-      await onRequestMore();
+      setLoadingNext(true);
+      try {
+        await onRequestMore();
+      } finally {
+        setLoadingNext(false);
+      }
       setIndex((currentIndex) => {
         const len = itemsLengthRef.current;
         if (currentIndex < len - 1) return currentIndex + 1;
         return currentIndex;
       });
     }
-  }, [hasMore, index, onRequestMore]);
+  }, [hasMore, index, items.length, onRequestMore]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -93,6 +106,45 @@ export default function GalleryPhotoViewer({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [canGoNext, canGoPrev, goNext, goPrev, onClose]);
+
+  return {
+    index,
+    current,
+    currentImageUrl,
+    imageLoaded,
+    setLoadedUrl,
+    canGoPrev,
+    canGoNext,
+    goPrev,
+    goNext,
+    loadingNext,
+  };
+}
+
+export default function GalleryPhotoViewer({
+  items,
+  initialIndex,
+  onClose,
+  hasMore = false,
+  onRequestMore,
+  showStaffDetails = false,
+}: GalleryPhotoViewerProps) {
+  const {
+    current,
+    currentImageUrl,
+    imageLoaded,
+    setLoadedUrl,
+    canGoPrev,
+    canGoNext,
+    goPrev,
+    goNext,
+  } = useGalleryPhotoViewerNav({
+    items,
+    initialIndex,
+    onClose,
+    hasMore,
+    onRequestMore,
+  });
 
   if (!current) {
     return null;

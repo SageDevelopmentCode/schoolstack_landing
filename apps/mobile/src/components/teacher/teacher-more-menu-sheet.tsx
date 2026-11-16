@@ -1,41 +1,33 @@
+import type { Ionicons } from '@expo/vector-icons';
 import type { User } from '@supabase/supabase-js';
 import { useEffect, useMemo, useState } from 'react';
-import { useTeacherHome } from '@/contexts/teacher-home-context';
-import { isSchoolGalleryEnabled } from '@/lib/school-gallery/gallery-enabled';
-import { isTeacherFeatureEnabled } from '@/lib/teacher/teacher-features';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, View } from 'react-native';
+import { useLocalSearchParams, usePathname } from 'expo-router';
 
+import { AccountPortalSwitcherPanel } from '@/components/account-portal-switcher-panel';
 import {
-  AccountPortalSwitcherPanel,
-} from '@/components/account-portal-switcher-panel';
-import {
-  PreviewAccountPortalSwitcherPanel,
-} from '@/components/platform-admin/preview-account-portal-switcher-panel';
-import { StoryMoreMenuSectionTabsSkeleton } from '@/components/story/more/story-more-menu-section-tabs-skeleton';
-import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
-import { StoryCard } from '@/components/story/story-card';
-import { StoryMoreMenuHeader } from '@/components/story/more/story-more-menu-header';
-import { StoryMoreMenuIcon } from '@/components/story/more/story-more-menu-icon';
-import { StoryMoreMenuItemRow } from '@/components/story/more/story-more-menu-item-row';
-import { StoryMoreMenuItemsCard } from '@/components/story/more/story-more-menu-items-card';
-import { StoryMoreMenuSectionTabs } from '@/components/story/more/story-more-menu-section-tabs';
-import { StoryMoreMenuTabPanel } from '@/components/story/more/story-more-menu-tab-panel';
-import { StoryMoreMenuSheetShell } from '@/components/story/more/story-more-menu-sheet-shell';
+  GardenMoreEmpty,
+  GardenMoreGrid,
+  GardenMorePanel,
+  GardenMoreSectionTabs,
+  GardenMoreSheet,
+  GardenProfileCard,
+  isMoreItemPathActive,
+} from '@/components/garden-nav/garden-more';
+import { PreviewAccountPortalSwitcherPanel } from '@/components/platform-admin/preview-account-portal-switcher-panel';
+import { useAuth } from '@/contexts/auth-context';
+import { useTeacherHome } from '@/contexts/teacher-home-context';
+import { portalTypeToAccountPortalId } from '@/lib/auth/school-portal-options-types';
+import { prefetchSchoolPortalOptions } from '@/lib/auth/use-school-portal-options';
+import { useMoreMenuAccountPortalTab } from '@/lib/more-menu-account-portal-tab';
 import {
   buildMoreMenuTabs,
   shouldShowMoreMenuSectionTabs,
   type MoreMenuTabId,
 } from '@/lib/more-menu-tab-ids';
-import { useMoreMenuAccountPortalTab } from '@/lib/more-menu-account-portal-tab';
-import { prefetchSchoolPortalOptions } from '@/lib/auth/use-school-portal-options';
-import { useParentTheme } from '@/contexts/parent-theme-context';
-import { useLocalSearchParams } from 'expo-router';
-import { useAuth } from '@/contexts/auth-context';
-import { portalTypeToAccountPortalId } from '@/lib/auth/school-portal-options-types';
+import { isSchoolGalleryEnabled } from '@/lib/school-gallery/gallery-enabled';
+import { isTeacherFeatureEnabled } from '@/lib/teacher/teacher-features';
 import type { TeacherMoreMenuItemId } from '@/lib/teacher/teacher-nav';
-import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
-import { Spacing } from '@/constants/theme';
 
 type TeacherMoreMenuSheetProps = {
   visible: boolean;
@@ -112,7 +104,7 @@ export function TeacherMoreMenuSheet({
   onSelect,
   onSelectAccount,
 }: TeacherMoreMenuSheetProps) {
-  const theme = useParentTheme();
+  const pathname = usePathname();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const { user, portalType, selectedSchool, previewSession } = useAuth();
   const { data } = useTeacherHome();
@@ -162,23 +154,26 @@ export function TeacherMoreMenuSheet({
   const showMenuPanel = !useSectionTabs || activeTab === 'menu';
   const showAccountPortalPanel = useSectionTabs && activeTab === 'account_portal';
 
-  return (
-    <StoryMoreMenuSheetShell visible={visible} onClose={onClose}>
-      <StoryMoreMenuHeader
-        kicker="Staff portal"
-        title="More"
-        subtitle="Classroom tools and account"
-      />
+  const currentItemId = useMemo(
+    () => visibleMenuItems.find((item) => isMoreItemPathActive(pathname, item.id))?.id ?? null,
+    [pathname, visibleMenuItems],
+  );
 
+  return (
+    <GardenMoreSheet
+      visible={visible}
+      onClose={onClose}
+      subtitle="Classroom tools and account">
       {useSectionTabs ? (
-        showSectionTabsSkeleton ? (
-          <StoryMoreMenuSectionTabsSkeleton tabCount={tabs.length} />
-        ) : (
-          <StoryMoreMenuSectionTabs tabs={tabs} activeId={activeTab} onChange={setActiveTab} />
-        )
+        <GardenMoreSectionTabs
+          tabs={tabs}
+          activeId={activeTab}
+          onChange={setActiveTab}
+          loading={showSectionTabsSkeleton}
+        />
       ) : null}
 
-      <StoryMoreMenuTabPanel visible={showAccountPortalPanel && showAccountPortalTab}>
+      <GardenMorePanel visible={showAccountPortalPanel && showAccountPortalTab}>
         {previewSession ? (
           <PreviewAccountPortalSwitcherPanel
             enabled={visible && (showAccountPortalSwitcher || accountPortalTabLoading)}
@@ -193,75 +188,35 @@ export function TeacherMoreMenuSheet({
             onAfterSelect={onClose}
           />
         ) : null}
-      </StoryMoreMenuTabPanel>
+      </GardenMorePanel>
 
-      <StoryMoreMenuTabPanel visible={showMenuPanel}>
-      <StoryMoreMenuItemsCard>
-        {visibleMenuItems.map((item, index) => (
-          <StoryMoreMenuItemRow
-            key={item.id}
-            isFirst={index === 0}
-            label={item.label}
-            subtitle={item.subtitle}
-            onPress={() => onSelect(item.id)}
-            icon={
-              <StoryMoreMenuIcon
-                name={item.icon}
-                iconBg={item.iconBg}
-                iconColor={item.iconColor}
-              />
-            }
-          />
-        ))}
-      </StoryMoreMenuItemsCard>
-
-      {user ? (
-        <StoryCard compact style={styles.accountCard}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Account for ${displayName}`}
-            onPress={onSelectAccount}
-            style={({ pressed }) => [styles.accountRow, pressed && styles.pressed]}>
-            <MessagesAvatar name={displayName} color={theme.primary} size="md" />
-            <View style={styles.accountCopy}>
-              <Text style={[styles.accountName, { color: theme.ink }]}>{displayName}</Text>
-              <Text style={[styles.accountMeta, { color: theme.muted }]}>Account settings</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={theme.muted} />
-          </Pressable>
-        </StoryCard>
-      ) : null}
-      </StoryMoreMenuTabPanel>
-    </StoryMoreMenuSheetShell>
+      <GardenMorePanel visible={showMenuPanel}>
+        <View style={styles.menuPanel}>
+          {user ? (
+            <GardenProfileCard
+              name={displayName}
+              meta={['Account settings']}
+              accessibilityLabel={`Account for ${displayName}`}
+              onPress={onSelectAccount}
+            />
+          ) : null}
+          {visibleMenuItems.length > 0 ? (
+            <GardenMoreGrid
+              groups={[{ key: 'all', items: visibleMenuItems }]}
+              currentId={currentItemId}
+              onSelect={onSelect}
+            />
+          ) : (
+            <GardenMoreEmpty message="Nothing extra to show here yet. Your school can turn on more tools." />
+          )}
+        </View>
+      </GardenMorePanel>
+    </GardenMoreSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  accountCard: {
-    padding: StoryCardPadding,
-  },
-  accountRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-  },
-  pressed: {
-    opacity: 0.85,
-  },
-  accountCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  accountName: {
-    fontFamily: StoryFonts.bodySemiBold,
-    fontSize: 14,
-    fontWeight: '600',
-    lineHeight: 20,
-  },
-  accountMeta: {
-    fontFamily: StoryFonts.body,
-    fontSize: 12,
-    lineHeight: 18,
+  menuPanel: {
+    gap: 14,
   },
 });

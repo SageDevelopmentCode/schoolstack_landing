@@ -3,8 +3,6 @@ import { Activity, BookOpen, Compass, Sun } from "lucide-react";
 
 export type DashboardTabId = "today" | "journey" | "activity" | "guides";
 
-export const DASHBOARD_TAB_ICON_CLASS = "h-3.5 w-3.5 shrink-0";
-
 export const DASHBOARD_TABS: ReadonlyArray<{
   id: DashboardTabId;
   label: string;

@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { useAdminGardenSkin, gBtnSolidSm, gBtnSoftSm, gBtnOutlineTight, gBtnDangerTight, G_BTN_COMPACT } from "@/components/school-admin/garden/skin";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type AdminButtonVariant = "primary" | "soft" | "outline" | "danger";
@@ -48,6 +49,26 @@ export default function AdminButton({
   size = "default",
   ...props
 }: AdminButtonProps) {
+  const skin = useAdminGardenSkin();
+  if (skin) {
+    const base =
+      variant === "soft"
+        ? gBtnSoftSm
+        : variant === "outline"
+          ? gBtnOutlineTight
+          : variant === "danger"
+            ? gBtnDangerTight
+            : gBtnSolidSm;
+    return (
+      <button
+        type="button"
+        className={`${base} ${size === "compact" ? G_BTN_COMPACT : ""} ${className}`}
+        {...props}
+      >
+        {children}
+      </button>
+    );
+  }
   const sizeClass =
     size === "compact"
       ? "px-[9px] py-[7px] text-[10px]"

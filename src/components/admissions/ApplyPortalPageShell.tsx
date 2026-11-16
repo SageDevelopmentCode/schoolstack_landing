@@ -35,6 +35,8 @@ type ApplyPortalPageShellProps = {
   fillHeight?: boolean;
   helpFabClassName?: string;
   suppressHelpFab?: boolean;
+  /** "garden" = parent-portal Garden toasts (the apply dashboard). Other apply pages keep story toasts. */
+  toasterAppearance?: "story" | "garden";
 };
 
 function ApplyPortalPageShellInner({
@@ -54,10 +56,11 @@ function ApplyPortalPageShellInner({
   fillHeight = false,
   helpFabClassName,
   suppressHelpFab = false,
+  toasterAppearance = "story",
 }: ApplyPortalPageShellProps) {
   const pathname = usePathname();
   const previewPortalOptions = usePreviewPortalOptions();
-  const { adminCompat: C } = useParentTheme();
+  const { adminCompat: C, theme } = useParentTheme();
   const resolvedPortalOptions =
     previewMode && previewPortalOptions.length > 0
       ? previewPortalOptions
@@ -91,6 +94,7 @@ function ApplyPortalPageShellInner({
       {organizationId ? (
         <PortalHelpFab
           C={C}
+          theme={theme}
           organizationId={organizationId}
           userEmail={userEmail}
           currentPath={pathname}
@@ -101,7 +105,12 @@ function ApplyPortalPageShellInner({
         />
       ) : null}
 
-      <ParentToaster C={C} helpButtonVisible={showHelpButton} />
+      <ParentToaster
+        C={C}
+        helpButtonVisible={showHelpButton}
+        appearance={toasterAppearance}
+        theme={theme}
+      />
     </>
   );
 

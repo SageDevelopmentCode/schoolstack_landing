@@ -1,5 +1,9 @@
+"use client";
+
 import ParentSkeletonBlock from "@/components/school-parent/ui/ParentSkeletonBlock";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { GSkeleton } from "@/components/school-parent/garden/ui";
+import { useIsGardenCommittee } from "./committee-surface";
 
 type CommitteeActivityFeedSkeletonProps = {
   theme: ParentThemeTokens;
@@ -15,6 +19,24 @@ export default function CommitteeActivityFeedSkeleton({
   showTitle = true,
 }: CommitteeActivityFeedSkeletonProps) {
   const rows = rowCount ?? (compact ? 5 : 8);
+  const garden = useIsGardenCommittee();
+
+  if (garden) {
+    return (
+      <div aria-busy="true" aria-label="Loading activity" className="space-y-3">
+        {showTitle ? <GSkeleton className="h-6 w-40 !rounded-full" /> : null}
+        {Array.from({ length: rows }, (_, index) => (
+          <div key={index} className="flex items-start gap-3">
+            <GSkeleton className="h-5 w-16 !rounded-full" />
+            <div className="flex-1 space-y-1.5">
+              <GSkeleton className={`h-3.5 !rounded-full ${index % 3 === 0 ? "w-full" : "w-4/5"}`} />
+              <GSkeleton className="h-3 w-1/3 !rounded-full" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div aria-busy="true" aria-label="Loading activity">

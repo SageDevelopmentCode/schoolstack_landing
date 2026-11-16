@@ -3,7 +3,8 @@
 import { createContext, useContext, type ReactNode } from "react";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
-export type SubmissionDetailStoryVariant = "legacy" | "story";
+/** "garden" = Admissions Garden pages; "story" = Students/Staff/Teacher/Schedule. */
+export type SubmissionDetailStoryVariant = "legacy" | "story" | "garden";
 
 type SubmissionDetailStoryContextValue = {
   variant: SubmissionDetailStoryVariant;

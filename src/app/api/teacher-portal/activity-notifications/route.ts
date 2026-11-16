@@ -3,7 +3,7 @@ import { apiError } from "@/lib/api/route-errors";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { fetchTeacherActivityNotifications } from "@/lib/school-teacher/activity-notifications";
 import {
-  getStaffMemberIdForUser,
+  getTeacherPortalStaffMemberIdForUser,
   TeacherPortalAuthError,
 } from "@/lib/staff/teacher-portal-access";
 import { requireTeacherPortalUser } from "@/lib/staff/teacher-portal-access-server";
@@ -51,7 +51,7 @@ export async function GET(request: Request) {
     }
 
     const user = await requireTeacherPortalUser(supabase, organizationId, request);
-    const staffMemberId = await getStaffMemberIdForUser(
+    const staffMemberId = await getTeacherPortalStaffMemberIdForUser(
       supabase,
       user.id,
       organizationId,

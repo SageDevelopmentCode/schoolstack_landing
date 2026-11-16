@@ -1,11 +1,38 @@
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  cancelAnimation,
+  FadeIn,
+  FadeInDown,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
-import { ThemedText } from '@/components/themed-text';
+import { Garden, GardenFonts, PORTAL_EASE } from '@/components/parent/garden/tokens';
+import { GTape } from '@/components/parent/garden/ui';
 import { Brand } from '@/constants/theme';
 
-const LOGO_SIZE = 128;
+/**
+ * MudKitchen splash in Calm Garden. Shown before any school is known, so the
+ * accent is MudKitchen clay (`Brand.clay`), not the school accent.
+ *
+ * The logo matches the native splash (`app.json` › expo-splash-screen: cream,
+ * logo.png at 140pt, centred) and sits at the exact screen centre, so nothing
+ * jumps when the native splash hides. The paper card, tape, wordmark and
+ * loader appear around it.
+ */
+const LOGO_SIZE = 140;
+const CARD_PADDING = 20;
+const CARD_SIZE = LOGO_SIZE + CARD_PADDING * 2;
+const CARD_OFFSET = 5;
+const DOT_TINTS = [Garden.butter, Garden.mint, Garden.sky] as const;
 
 type BrandedSplashContentProps = {
   variant?: 'inline' | 'overlay';
@@ -20,68 +47,158 @@ export function BrandedSplashContent({
 
   return (
     <View style={rootStyle}>
-      <LinearGradient
-        colors={[Brand.surface, Brand.bg, Brand.claySoft]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={styles.content}>
-        <View style={styles.pedestal}>
-          <Image
-            style={styles.logo}
-            source={require('@/assets/images/logo.png')}
-            contentFit="contain"
-          />
-        </View>
-        <ThemedText type="logo" style={styles.wordmark}>
-          MudKitchen
-        </ThemedText>
-        {showActivityIndicator ? (
-          <ActivityIndicator color={Brand.accent} style={styles.spinner} />
-        ) : null}
+      <StatusBar style="dark" />
+
+      <View style={styles.centre} pointerEvents="none">
+        <Animated.View
+          entering={FadeIn.duration(320).easing(PORTAL_EASE)}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={styles.frame}>
+          <View style={styles.cardUnderlay} />
+          <View style={styles.card} />
+          <GTape color={Garden.butter} rotate={-3} />
+        </Animated.View>
+        <Image
+          style={styles.logo}
+          source={require('@/assets/images/logo.png')}
+          contentFit="contain"
+          accessibilityIgnoresInvertColors
+          accessible={false}
+        />
+      </View>
+
+      <View style={styles.below}>
+        <Animated.View entering={FadeInDown.delay(60).duration(320).easing(PORTAL_EASE)}>
+          <Text accessibilityRole="header" accessibilityLabel="MudKitchen" style={styles.wordmark}>
+            Mud<Text style={styles.wordmarkAccent}>Kitchen</Text>
+          </Text>
+        </Animated.View>
+        {showActivityIndicator ? <GardenLoader /> : <View style={styles.loaderSpacer} />}
       </View>
     </View>
   );
 }
 
+function GardenLoader() {
+  return (
+    <Animated.View
+      entering={FadeIn.delay(160).duration(320).easing(PORTAL_EASE)}
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel="Loading"
+      style={styles.loader}>
+      {DOT_TINTS.map((tint, index) => (
+        <LoaderDot key={tint} tint={tint} index={index} />
+      ))}
+    </Animated.View>
+  );
+}
+
+function LoaderDot({ tint, index }: { tint: string; index: number }) {
+  const reduceMotion = useReducedMotion();
+  const lift = useSharedValue(0);
+
+  useEffect(() => {
+    if (reduceMotion) {
+      lift.value = 0;
+      return;
+    }
+    lift.value = withDelay(
+      index * 140,
+      withRepeat(
+        withSequence(
+          withTiming(-7, { duration: 280, easing: PORTAL_EASE }),
+          withTiming(0, { duration: 280, easing: PORTAL_EASE }),
+          withTiming(0, { duration: 260 }),
+        ),
+        -1,
+      ),
+    );
+    return () => cancelAnimation(lift);
+  }, [index, lift, reduceMotion]);
+
+  const style = useAnimatedStyle(() => ({ transform: [{ translateY: lift.value }] }));
+
+  return <Animated.View style={[styles.dot, { backgroundColor: tint }, style]} />;
+}
+
 const styles = StyleSheet.create({
   rootInline: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
+    ...StyleSheet.absoluteFill,
+    backgroundColor: Garden.cream,
   },
   rootOverlay: {
     flex: 1,
     width: '100%',
+    backgroundColor: Garden.cream,
+  },
+  centre: {
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  content: {
-    alignItems: 'center',
-    gap: 20,
+  frame: {
+    position: 'absolute',
+    width: CARD_SIZE,
+    height: CARD_SIZE,
+    transform: [{ rotate: '-2deg' }],
   },
-  pedestal: {
-    width: LOGO_SIZE + 32,
-    height: LOGO_SIZE + 32,
-    borderRadius: (LOGO_SIZE + 32) / 2,
-    backgroundColor: Brand.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+  // A real ink underlay so the hard offset shadow looks the same on Android.
+  cardUnderlay: {
+    position: 'absolute',
+    top: CARD_OFFSET,
+    left: CARD_OFFSET,
+    width: CARD_SIZE,
+    height: CARD_SIZE,
+    borderRadius: 30,
+    backgroundColor: Garden.ink,
+  },
+  card: {
+    width: CARD_SIZE,
+    height: CARD_SIZE,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: Garden.ink,
+    backgroundColor: Garden.paper,
   },
   logo: {
     width: LOGO_SIZE,
     height: LOGO_SIZE,
   },
-  wordmark: {
-    fontSize: 28,
+  below: {
+    position: 'absolute',
+    top: '50%',
+    left: 0,
+    right: 0,
+    marginTop: CARD_SIZE / 2 + CARD_OFFSET + 28,
+    alignItems: 'center',
+    gap: 18,
   },
-  spinner: {
-    marginTop: 4,
+  wordmark: {
+    fontFamily: GardenFonts.display,
+    fontSize: 36,
+    lineHeight: 42,
+    letterSpacing: -0.5,
+    color: Garden.ink,
+  },
+  wordmarkAccent: {
+    color: Brand.clay,
+  },
+  loader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    height: 24,
+  },
+  loaderSpacer: {
+    height: 24,
+  },
+  dot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: Garden.ink,
   },
 });

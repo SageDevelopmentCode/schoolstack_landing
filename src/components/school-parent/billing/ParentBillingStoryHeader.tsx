@@ -1,13 +1,10 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
-import { motion } from "framer-motion";
 import { CircleAlert, Loader2 } from "lucide-react";
 import ParentNeedsScheduleBadge from "@/components/school-parent/billing/ParentNeedsScheduleBadge";
-import { parentBillingViewTransition } from "@/components/school-parent/billing/parent-billing-view-transition";
-import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
-import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
-import ParentStoryPillNav from "@/components/school-parent/ui/ParentStoryPillNav";
+import ParentGardenPageHeader from "@/components/school-parent/garden/ParentGardenPageHeader";
+import { GChip, GTabBar } from "@/components/school-parent/garden/ui";
 import {
   PARENT_BILLING_AGREEMENTS_TAB,
   PARENT_BILLING_SUMMARY_TAB,
@@ -26,6 +23,7 @@ type ParentBillingStoryHeaderProps = {
   activeTabKey: string;
   pendingTabKey?: string | null;
   loadingTabKey?: string | null;
+  refreshing?: boolean;
   childViews: ParentBillingChildView[];
   openChargeCount: number;
   totalRemainingCents: number;
@@ -57,12 +55,16 @@ function isTabLoading(
   return pendingTabKey === tabKey || loadingTabKey === tabKey;
 }
 
+/**
+ * Billing page header (Garden): kicker → h1 → subtitle, with the billing
+ * section tabs (Family view / each child / Forms) on the right.
+ */
 export default function ParentBillingStoryHeader({
-  theme,
   C,
   activeTabKey,
   pendingTabKey = null,
   loadingTabKey = null,
+  refreshing = false,
   childViews,
   openChargeCount,
   totalRemainingCents,
@@ -75,11 +77,22 @@ export default function ParentBillingStoryHeader({
   const isSummaryTab = activeTabKey === PARENT_BILLING_SUMMARY_TAB;
   const activeChild = childViews.find((child) => child.childKey === activeTabKey);
 
-  const title = isAgreementsTab
-    ? "Forms & agreements"
-    : isSummaryTab || !activeChild
-      ? "Family tuition"
-      : `${childFirstNameFromFullName(activeChild.studentName)}'s tuition`;
+  const title: ReactNode = isAgreementsTab ? (
+    <>
+      Forms &amp; <span className="text-[var(--sf-clay)]">agreements</span>
+    </>
+  ) : isSummaryTab || !activeChild ? (
+    <>
+      Family <span className="text-[var(--sf-clay)]">tuition</span>
+    </>
+  ) : (
+    <>
+      <span className="text-[var(--sf-clay)]">
+        {childFirstNameFromFullName(activeChild.studentName)}&apos;s
+      </span>{" "}
+      tuition
+    </>
+  );
 
   const subtitle = resolveSubtitle(openChargeCount, totalRemainingCents);
   const summaryTabLoading = isTabLoading(
@@ -152,12 +165,11 @@ export default function ParentBillingStoryHeader({
           />
         ) : pendingAgreementCount > 0 ? (
           <span
-            className="inline-flex shrink-0 items-center justify-center rounded-full"
-            style={{ color: C.warning }}
+            className="inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-[var(--sf-butter)] px-1 text-[10px] font-extrabold text-[#6b4f00]"
             aria-label={`${pendingAgreementCount} agreement${pendingAgreementCount === 1 ? "" : "s"} need your signature`}
             title="Signature needed"
           >
-            <CircleAlert className="h-3.5 w-3.5" aria-hidden />
+            <CircleAlert className="h-3 w-3" aria-hidden />
           </span>
         ) : undefined,
       });
@@ -176,34 +188,33 @@ export default function ParentBillingStoryHeader({
   ]);
 
   return (
-    <header
-      className="flex flex-col gap-4 sm:gap-5 sm:flex-row sm:items-end sm:justify-between"
-      data-testid="parent-billing-story-header"
-    >
-      <motion.div
-        key={activeTabKey}
-        className="min-w-0"
-        {...parentBillingViewTransition}
-      >
-        <ParentSectionKicker theme={theme}>Tuition & payments</ParentSectionKicker>
-        <ParentDisplayHeading theme={theme} as="h1" size="section" className="!text-[clamp(1.75rem,4vw,2rem)]">
-          {title}
-        </ParentDisplayHeading>
-        <p className="mt-1 text-[13px]" style={{ color: theme.muted }}>
-          {subtitle}
-        </p>
-      </motion.div>
-
-      {hasMultipleChildren || hasAgreements ? (
-        <ParentStoryPillNav
-          theme={theme}
-          items={navItems}
-          activeKey={activeTabKey}
-          onChange={onSelectTab}
-          ariaLabel="Billing sections"
-          data-testid="parent-billing-nav"
-        />
-      ) : null}
-    </header>
+    <div data-testid="parent-billing-story-header">
+      <ParentGardenPageHeader
+        kicker="Tuition & payments"
+        title={title}
+        subtitle={
+          <span className="inline-flex flex-wrap items-center gap-2">
+            <span>{subtitle}</span>
+            {refreshing ? (
+              <GChip tone="neutral" className="!font-bold">
+                <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                <span role="status">Updating…</span>
+              </GChip>
+            ) : null}
+          </span>
+        }
+        actions={
+          hasMultipleChildren || hasAgreements ? (
+            <GTabBar
+              items={navItems}
+              activeKey={activeTabKey}
+              onChange={onSelectTab}
+              ariaLabel="Billing sections"
+              data-testid="parent-billing-nav"
+            />
+          ) : null
+        }
+      />
+    </div>
   );
 }

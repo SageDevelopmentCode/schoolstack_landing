@@ -2,12 +2,11 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { LogOut } from "lucide-react";
+import ApplyGardenAccountMenu from "@/components/admissions/ApplyGardenAccountMenu";
 import ApplyPortalBranding from "@/components/admissions/ApplyPortalBranding";
-import SchoolPortalSwitcherMenuItems from "@/components/school/shared/SchoolPortalSwitcherMenuItems";
-import ButtonLoadingLabel from "@/components/ui/ButtonLoadingLabel";
 import ParentProfileMenuTrigger from "@/components/school-parent/ParentProfileMenuTrigger";
-import StudentPhoto from "@/components/students/StudentPhoto";
+import { ParentGardenScope } from "@/components/school-parent/garden/ParentGardenFrame";
+import GardenHeaderPopover from "@/components/school-parent/header/GardenHeaderPopover";
 import {
   detectPortalFromPathname,
   type SchoolPortalOption,
@@ -66,33 +65,13 @@ export default function ApplyPortalNavbar({
   const [profilePhotoUrl, setProfilePhotoUrl] = useState(initialProfilePhotoUrl);
   const [photoUploading, setPhotoUploading] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const profileTriggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     queueMicrotask(() => setProfilePhotoUrl(initialProfilePhotoUrl));
   }, [initialProfilePhotoUrl]);
 
-  useEffect(() => {
-    if (!menuOpen) return;
-
-    const handleClick = (event: MouseEvent) => {
-      if (!menuRef.current?.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setMenuOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClick);
-    document.addEventListener("keydown", handleEscape);
-    return () => {
-      document.removeEventListener("mousedown", handleClick);
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [menuOpen]);
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -108,8 +87,20 @@ export default function ApplyPortalNavbar({
           },
         });
       }
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        parentToast.error("Couldn't log you out", {
+          description: "Check your connection and try again.",
+          id: "apply-sign-out",
+        });
+        return;
+      }
       router.refresh();
+    } catch {
+      parentToast.error("Couldn't log you out", {
+        description: "Check your connection and try again.",
+        id: "apply-sign-out",
+      });
     } finally {
       setSigningOut(false);
       setMenuOpen(false);
@@ -128,7 +119,9 @@ export default function ApplyPortalNavbar({
           file,
         );
         setProfilePhotoUrl(nextUrl);
-        parentToast.success("Profile photo updated.");
+        parentToast.success("Profile photo updated", {
+          description: "Your new photo shows on your account everywhere.",
+        });
       } catch (error) {
         if (organizationId && shouldReportApplyClientError(error)) {
           const parsed = parseOperationalError(error);
@@ -141,13 +134,14 @@ export default function ApplyPortalNavbar({
             notify: true,
           });
         }
-        parentToast.error(
+        parentToast.error("Couldn't update your photo", {
+          description:
           error instanceof GuardianProfilePhotoClientError
             ? error.message
             : error instanceof Error
               ? error.message
               : "Failed to upload photo.",
-        );
+        });
       } finally {
         setPhotoUploading(false);
       }
@@ -160,14 +154,12 @@ export default function ApplyPortalNavbar({
     previewHomeHref ?? `/school/${schoolSlug}/apply`;
 
   return (
-    <header
-      className="shrink-0 border-b px-4 sm:px-8 lg:px-[68px]"
-      style={{
-        borderColor: theme.line,
-        backgroundColor: "rgba(255, 255, 255, 0.94)",
-      }}
+    <ParentGardenScope
+      as="header"
+      theme={theme}
+      className="relative z-40 shrink-0 border-b-[1.5px] border-[var(--sf-ink)]/10 !bg-[var(--sf-paper)]/90 px-4 backdrop-blur-md sm:px-8 lg:px-[68px]"
     >
-      <div className="mx-auto flex h-[71px] w-full max-w-[1440px] items-center justify-between gap-4">
+      <div className="mx-auto flex min-h-[64px] w-full max-w-[1440px] items-center justify-between gap-4 sm:min-h-[71px]">
         <div className="min-w-0 shrink">
           <ApplyPortalBranding
             branding={branding}
@@ -178,77 +170,50 @@ export default function ApplyPortalNavbar({
 
         <div className="relative shrink-0" ref={menuRef}>
           <ParentProfileMenuTrigger
+            ref={profileTriggerRef}
             displayName={userDisplayName}
             profilePhotoUrl={profilePhotoUrl}
             theme={C}
+            parentTheme={theme}
+            variant="garden"
             menuOpen={menuOpen}
+            aria-haspopup="dialog"
+            aria-controls="apply-account-menu"
+            data-testid="apply-header-profile"
             onClick={() => setMenuOpen((open) => !open)}
           />
 
-          {menuOpen ? (
-            <div
-              className="absolute right-0 top-full z-20 mt-1 w-64 rounded-md border py-1 shadow-lg"
-              style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
-              role="menu"
-            >
-              <div className="border-b px-3 py-3" style={{ borderColor: C.border }}>
-                <div className="flex items-start gap-3">
-                  <StudentPhoto
-                    name={userDisplayName}
-                    photoUrl={profilePhotoUrl}
-                    size="lg"
-                    theme={C}
-                    editable={canUploadPhoto}
-                    uploading={photoUploading}
-                    showEditHint={canUploadPhoto}
-                    onFileSelect={(file) => void handlePhotoUpload(file)}
-                  />
-                  <div className="min-w-0 flex-1 pt-0.5">
-                    <p
-                      className="truncate text-sm font-semibold"
-                      style={{ color: C.textPrimary }}
-                    >
-                      {userDisplayName}
-                    </p>
-                    {userEmail ? (
-                      <p
-                        className="mt-0.5 truncate text-xs"
-                        style={{ color: C.textSecondary }}
-                      >
-                        {userEmail}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-              <SchoolPortalSwitcherMenuItems
-                C={C}
-                options={portalOptions}
-                currentPortal={detectPortalFromPathname(pathname, schoolSlug)}
-                onNavigate={() => setMenuOpen(false)}
-                openLinksInNewTab={openPortalLinksInNewTab}
-              />
-              {!previewMode ? (
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => void handleSignOut()}
-                disabled={signingOut}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm disabled:opacity-60"
-                style={{ color: C.textPrimary }}
-              >
-                {!signingOut ? (
-                  <LogOut className="h-4 w-4 shrink-0" style={{ color: C.textSecondary }} />
-                ) : null}
-                <ButtonLoadingLabel loading={signingOut} loadingLabel="Signing out…">
-                  Log out
-                </ButtonLoadingLabel>
-              </button>
-              ) : null}
-            </div>
-          ) : null}
+          <GardenHeaderPopover
+            open={menuOpen}
+            onClose={closeMenu}
+            theme={theme}
+            id="apply-account-menu"
+            triggerRef={profileTriggerRef}
+            anchorRef={menuRef}
+            label="Account menu"
+            sheetTitle="Your account"
+            align="right"
+            widthClass="w-[21rem]"
+          >
+            <ApplyGardenAccountMenu
+              adminTheme={C}
+              displayName={userDisplayName}
+              email={userEmail}
+              profilePhotoUrl={profilePhotoUrl}
+              canUploadPhoto={canUploadPhoto}
+              photoUploading={photoUploading}
+              onPhotoSelect={(file) => void handlePhotoUpload(file)}
+              previewMode={previewMode}
+              portalOptions={portalOptions}
+              currentPortal={detectPortalFromPathname(pathname, schoolSlug)}
+              openPortalLinksInNewTab={openPortalLinksInNewTab}
+              signingOut={signingOut}
+              onSignOut={() => void handleSignOut()}
+              onClose={closeMenu}
+            />
+          </GardenHeaderPopover>
         </div>
       </div>
-    </header>
+    </ParentGardenScope>
   );
 }

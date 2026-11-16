@@ -58,6 +58,33 @@ export default function DetailPanelSection({
 }: DetailPanelSectionProps) {
   const { variant, theme } = useSubmissionDetailStory();
 
+  if (variant === "garden") {
+    return (
+      <section
+        id={id}
+        className={`rounded-[20px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white p-4 shadow-[0_3px_0_0_rgba(43,36,29,0.06)] sm:p-5 ${className}`}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <h3 className="m-0 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[var(--sf-soft)]">
+            {title}
+          </h3>
+          {actions || badge ? (
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {actions}
+              {badge}
+            </div>
+          ) : null}
+        </div>
+        {description ? (
+          <p className="m-0 mt-1.5 text-[13px] font-semibold leading-snug text-[var(--sf-soft)]">
+            {description}
+          </p>
+        ) : null}
+        {children ? <div className="mt-3.5">{children}</div> : null}
+      </section>
+    );
+  }
+
   if (variant === "story" && theme) {
     return (
       <AdminCard theme={theme} padding="canvas" className={className} id={id}>

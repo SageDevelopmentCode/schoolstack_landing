@@ -18,6 +18,10 @@ export default function DetailPanelSectionGroup({
   const { variant } = useSubmissionDetailStory();
   const items = Children.toArray(children).filter(Boolean);
 
+  if (variant === "garden") {
+    return <div className={`flex flex-col gap-4 ${className}`}>{items}</div>;
+  }
+
   if (variant === "story") {
     return (
       <div className={`flex flex-col gap-[13px] ${className}`}>{items}</div>

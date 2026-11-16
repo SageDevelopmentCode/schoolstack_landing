@@ -7,6 +7,9 @@ import SchoolAdminModalShell from "@/components/school-admin/ui/SchoolAdminModal
 import { paymentScheduleLabel, type PaymentOptionPreview } from "@/lib/tuition/setup-wizard";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import ParentGardenFrame, { PortalIsland } from "@/components/school-parent/garden/ParentGardenFrame";
+import { GKicker, G_FOCUS, gBtnPopSm } from "@/components/school-parent/garden/ui";
 
 type PaymentSchedulePreviewModalProps = {
   C: AdminThemeTokens;
@@ -22,6 +25,9 @@ type PaymentSchedulePreviewModalProps = {
   closeLabel?: string;
   testId?: string;
   onClose: () => void;
+  /** "parent-garden" = parent portal Garden chrome (needs `theme`). Admin keeps "default". */
+  appearance?: "default" | "parent-garden";
+  theme?: ParentThemeTokens;
 };
 
 export default function PaymentSchedulePreviewModal({
@@ -38,6 +44,8 @@ export default function PaymentSchedulePreviewModal({
   closeLabel = "Done",
   testId,
   onClose,
+  appearance = "default",
+  theme,
 }: PaymentSchedulePreviewModalProps) {
   const [activeCount, setActiveCount] = useState(defaultCount);
 
@@ -55,6 +63,69 @@ export default function PaymentSchedulePreviewModal({
       : null;
   const isActiveDefault = activePreview?.count === defaultCount;
   const showScheduleTabs = previews.length > 1;
+  const garden = appearance === "parent-garden" && theme != null;
+
+  if (garden && theme && !showScheduleTabs) {
+    return (
+      <SchoolAdminModalShell
+        open={open && activePreview != null}
+        onClose={onClose}
+        maxWidth="2xl"
+        zIndex={120}
+        ariaLabelledBy="payment-schedule-modal-title"
+        testId={testId}
+        panelClassName="flex max-h-[min(90vh,720px)] flex-col overflow-hidden !rounded-[24px]"
+        panelStyle={{ backgroundColor: "transparent", border: "none", boxShadow: "none" }}
+      >
+        {activePreview ? (
+          <ParentGardenFrame
+            theme={theme}
+            className="flex min-h-0 flex-1 flex-col rounded-[24px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white shadow-[0_3px_0_0_rgba(43,36,29,0.08)]"
+          >
+            <div className="flex flex-shrink-0 items-start justify-between gap-3 border-b-[1.5px] border-dashed border-[var(--sf-ink)]/15 px-5 py-4 sm:px-6">
+              <div className="min-w-0">
+                <GKicker>Preview</GKicker>
+                <h2
+                  id="payment-schedule-modal-title"
+                  className="sf-display m-0 mt-1 text-[1.4rem] leading-[1.05] text-[var(--sf-ink)]"
+                >
+                  {title}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-[1.5px] border-[var(--sf-ink)]/20 text-[var(--sf-ink)]/70 hover:border-[var(--sf-ink)]/50 ${G_FOCUS}`}
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div id="schedule-panel-single" className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
+              <PortalIsland>
+                <PaymentSchedulePreviewContent
+                  C={C}
+                  preview={activePreview}
+                  annualAmountCents={annualAmountCents}
+                  isDefault={isActiveDefault}
+                  effectiveStart={effectiveStart}
+                  effectiveEnd={effectiveEnd}
+                  billingDayOfMonth={billingDayOfMonth}
+                  schoolYearMonths={schoolYearMonths}
+                  embedded
+                />
+              </PortalIsland>
+            </div>
+            <div className="flex flex-shrink-0 items-center justify-end border-t-[1.5px] border-dashed border-[var(--sf-ink)]/15 px-5 py-4 sm:px-6">
+              <button type="button" onClick={onClose} className={gBtnPopSm}>
+                {closeLabel}
+              </button>
+            </div>
+          </ParentGardenFrame>
+        ) : null}
+      </SchoolAdminModalShell>
+    );
+  }
 
   return (
     <SchoolAdminModalShell

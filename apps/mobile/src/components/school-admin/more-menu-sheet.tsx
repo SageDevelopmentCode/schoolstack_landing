@@ -1,27 +1,23 @@
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import {
-  AccountPortalSwitcherPanel,
-} from '@/components/account-portal-switcher-panel';
-import {
-  PreviewAccountPortalSwitcherPanel,
-} from '@/components/platform-admin/preview-account-portal-switcher-panel';
-import { StoryMoreMenuSectionTabsSkeleton } from '@/components/story/more/story-more-menu-section-tabs-skeleton';
+import { AccountPortalSwitcherPanel } from '@/components/account-portal-switcher-panel';
+import { PreviewAccountPortalSwitcherPanel } from '@/components/platform-admin/preview-account-portal-switcher-panel';
 import { AccountDeletionRequest } from '@/components/account-deletion-request';
 import { AccountLegalLinks } from '@/components/account-legal-links';
-import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
+import {
+  GardenMoreGrid,
+  GardenMorePanel,
+  GardenMoreSectionTabs,
+  GardenMoreSheet,
+  GardenProfileCard,
+  isMoreItemPathActive,
+} from '@/components/garden-nav/garden-more';
+import { Garden, GardenFonts } from '@/components/parent/garden/tokens';
+import { GOutlineButton, GPressable } from '@/components/parent/garden/ui';
 import { OrganizationLogo } from '@/components/organization-logo';
-import { StoryCard } from '@/components/story/story-card';
-import { StoryMoreMenuHeader } from '@/components/story/more/story-more-menu-header';
-import { StoryMoreMenuIcon } from '@/components/story/more/story-more-menu-icon';
-import { StoryMoreMenuItemRow } from '@/components/story/more/story-more-menu-item-row';
-import { StoryMoreMenuItemsCard } from '@/components/story/more/story-more-menu-items-card';
-import { StoryMoreMenuSectionTabs } from '@/components/story/more/story-more-menu-section-tabs';
-import { StoryMoreMenuTabPanel } from '@/components/story/more/story-more-menu-tab-panel';
-import { StoryMoreMenuSheetShell } from '@/components/story/more/story-more-menu-sheet-shell';
 import {
   buildMoreMenuTabs,
   shouldShowMoreMenuSectionTabs,
@@ -29,16 +25,12 @@ import {
 } from '@/lib/more-menu-tab-ids';
 import { useMoreMenuAccountPortalTab } from '@/lib/more-menu-account-portal-tab';
 import { prefetchSchoolPortalOptions } from '@/lib/auth/use-school-portal-options';
-import { StoryTextLink } from '@/components/story/story-text-link';
-import { useParentTheme } from '@/contexts/parent-theme-context';
 import { useAuth } from '@/contexts/auth-context';
 import { useCanSwitchSchool } from '@/lib/auth/use-can-switch-school';
 import { useSchoolAdminFeatures } from '@/contexts/school-admin-features-context';
 import { getAccountRoleLabel } from '@/lib/auth/resolve-portal';
 import { portalTypeToAccountPortalId } from '@/lib/auth/school-portal-options-types';
 import { useSchoolAdminViewerProfile } from '@/lib/school-admin/viewer-profile';
-import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
-import { Spacing } from '@/constants/theme';
 
 export type MoreMenuItemId =
   | 'transactions'
@@ -150,7 +142,7 @@ const MENU_ITEMS: {
 
 export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps) {
   const router = useRouter();
-  const theme = useParentTheme();
+  const pathname = usePathname();
   const {
     user,
     portalType,
@@ -181,10 +173,17 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
     [fridayBranchEnabled, photosEnabled, staffHoursEnabled],
   );
 
+  const [signingOut, setSigningOut] = useState(false);
   const handleSignOut = async () => {
-    onClose();
-    await signOut();
-    router.replace('/login/admin');
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      onClose();
+      await signOut();
+      router.replace('/login/admin');
+    } finally {
+      setSigningOut(false);
+    }
   };
 
   const handleBackToOrganizations = async () => {
@@ -227,23 +226,26 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
   const showMenuPanel = !useSectionTabs || activeTab === 'menu';
   const showAccountPortalPanel = useSectionTabs && activeTab === 'account_portal';
 
-  return (
-    <StoryMoreMenuSheetShell visible={visible} onClose={onClose}>
-      <StoryMoreMenuHeader
-        kicker="School workspace"
-        title="More"
-        subtitle="Finances, scheduling, and school operations"
-      />
+  const currentItemId = useMemo(
+    () => visibleMenuItems.find((item) => isMoreItemPathActive(pathname, item.id))?.id ?? null,
+    [pathname, visibleMenuItems],
+  );
 
+  return (
+    <GardenMoreSheet
+      visible={visible}
+      onClose={onClose}
+      subtitle="Finances, scheduling, and school operations">
       {useSectionTabs ? (
-        showSectionTabsSkeleton ? (
-          <StoryMoreMenuSectionTabsSkeleton tabCount={tabs.length} />
-        ) : (
-          <StoryMoreMenuSectionTabs tabs={tabs} activeId={activeTab} onChange={setActiveTab} />
-        )
+        <GardenMoreSectionTabs
+          tabs={tabs}
+          activeId={activeTab}
+          onChange={setActiveTab}
+          loading={showSectionTabsSkeleton}
+        />
       ) : null}
 
-      <StoryMoreMenuTabPanel visible={showAccountPortalPanel && showAccountPortalTab}>
+      <GardenMorePanel visible={showAccountPortalPanel && showAccountPortalTab}>
         {previewSession ? (
           <PreviewAccountPortalSwitcherPanel
             enabled={visible && (showAccountPortalSwitcher || accountPortalTabLoading)}
@@ -258,151 +260,126 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
             onAfterSelect={onClose}
           />
         ) : null}
-      </StoryMoreMenuTabPanel>
+      </GardenMorePanel>
 
-      <StoryMoreMenuTabPanel visible={showMenuPanel}>
-      {isPlatformAdminSession && selectedSchool ? (
-        <View style={styles.platformBanner}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Back to organizations"
-            onPress={() => void handleBackToOrganizations()}
-            style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
-            <Ionicons name="chevron-back" size={18} color="#42694F" />
-            <Text style={styles.backLabel}>Organizations</Text>
-          </Pressable>
-          <View accessibilityLabel={selectedSchool.name}>
-            <OrganizationLogo
-              logoSrc={selectedSchool.branding.logoSrc}
-              logoAlt={selectedSchool.branding.logoAlt}
-              name={selectedSchool.name}
-            />
-          </View>
-        </View>
-      ) : null}
-
-      <StoryMoreMenuItemsCard>
-        {visibleMenuItems.map((item, index) => (
-          <StoryMoreMenuItemRow
-            key={item.id}
-            isFirst={index === 0}
-            label={item.label}
-            subtitle={item.subtitle}
-            onPress={() => onSelect(item.id)}
-            icon={
-              <StoryMoreMenuIcon
-                name={item.icon}
-                iconBg={item.iconBg}
-                iconColor={item.iconColor}
-              />
-            }
-          />
-        ))}
-      </StoryMoreMenuItemsCard>
-
-      {user ? (
-        <StoryCard compact style={styles.accountCard}>
-          <View style={styles.accountRow}>
-            <MessagesAvatar name={displayName} color={theme.primary} size="md" />
-            <View style={styles.accountCopy}>
-              <Text style={[styles.accountName, { color: theme.ink }]}>{displayName}</Text>
-              {roleLabel ? (
-                <Text style={[styles.accountMeta, { color: theme.muted }]}>{roleLabel}</Text>
-              ) : null}
-              {accountEmail ? (
-                <Text style={[styles.accountMeta, { color: theme.muted }]} numberOfLines={1}>
-                  {accountEmail}
-                </Text>
-              ) : null}
+      <GardenMorePanel visible={showMenuPanel}>
+        <View style={styles.menuPanel}>
+          {isPlatformAdminSession && selectedSchool ? (
+            <View style={styles.platformBanner}>
+              <GPressable
+                accessibilityLabel="Back to organizations"
+                accessibilityHint="Leaves this school and returns to the platform organization list"
+                onPress={() => void handleBackToOrganizations()}
+                style={styles.backButton}>
+                <Ionicons name="chevron-back" size={18} color={Garden.forest} />
+                <Text style={styles.backLabel}>Organizations</Text>
+              </GPressable>
+              <View accessibilityLabel={selectedSchool.name} style={styles.platformLogo}>
+                <OrganizationLogo
+                  logoSrc={selectedSchool.branding.logoSrc}
+                  logoAlt={selectedSchool.branding.logoAlt}
+                  name={selectedSchool.name}
+                />
+              </View>
             </View>
-            <View style={styles.accountActions}>
-              {canSwitchSchool && !previewSession && !isPlatformAdminSession ? (
-                <StoryTextLink
-                  label="Switch school"
-                  onPress={() => void handleSwitchSchool()}
-                  accessibilityLabel="Switch school"
+          ) : null}
+
+          <GardenMoreGrid
+            groups={[{ key: 'all', items: visibleMenuItems }]}
+            currentId={currentItemId}
+            onSelect={onSelect}
+          />
+
+          {user ? (
+            <GardenProfileCard name={displayName} meta={[roleLabel, accountEmail]}>
+              <View style={styles.accountActions}>
+                {canSwitchSchool && !previewSession && !isPlatformAdminSession ? (
+                  <GOutlineButton
+                    label="Switch school"
+                    icon="swap-horizontal"
+                    accessibilityLabel="Switch school"
+                    onPress={() => void handleSwitchSchool()}
+                  />
+                ) : null}
+                <GPressable
+                  accessibilityLabel="Sign out"
+                  accessibilityState={{ busy: signingOut, disabled: signingOut }}
+                  disabled={signingOut}
+                  onPress={() => void handleSignOut()}
+                  style={styles.signOut}>
+                  {signingOut ? (
+                    <ActivityIndicator size="small" color={SIGN_OUT_COLOR} />
+                  ) : (
+                    <Ionicons name="log-out-outline" size={17} color={SIGN_OUT_COLOR} />
+                  )}
+                  <Text style={styles.signOutLabel}>{signingOut ? 'Signing out…' : 'Sign out'}</Text>
+                </GPressable>
+              </View>
+              {selectedSchool?.id ? (
+                <AccountDeletionRequest
+                  organizationId={selectedSchool.id}
+                  portal="admin"
+                  sourcePagePath="/school-admin/more"
                 />
               ) : null}
-              <StoryTextLink
-                label="Sign out"
-                onPress={() => void handleSignOut()}
-                accessibilityLabel="Sign out"
-                style={styles.signOutLink}
-              />
-            </View>
-          </View>
-          {selectedSchool?.id ? (
-            <AccountDeletionRequest
-              organizationId={selectedSchool.id}
-              portal="admin"
-              sourcePagePath="/school-admin/more"
-            />
+              <AccountLegalLinks />
+            </GardenProfileCard>
           ) : null}
-          <AccountLegalLinks />
-        </StoryCard>
-      ) : null}
-      </StoryMoreMenuTabPanel>
-    </StoryMoreMenuSheetShell>
+        </View>
+      </GardenMorePanel>
+    </GardenMoreSheet>
   );
 }
 
+const SIGN_OUT_COLOR = '#7E4533';
+
 const styles = StyleSheet.create({
+  menuPanel: {
+    gap: 14,
+  },
   platformBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#EAF4EB',
-    borderColor: '#C7DFCB',
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.three,
+    gap: 12,
+    padding: 12,
+    borderRadius: 18,
+    backgroundColor: Garden.mint,
   },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
-    marginLeft: -4,
+    minHeight: 44,
+    paddingRight: 8,
   },
   backLabel: {
-    fontFamily: StoryFonts.bodySemiBold,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#42694F',
+    fontFamily: GardenFonts.bodyExtra,
+    fontSize: 15,
+    color: Garden.forest,
   },
-  pressed: {
-    opacity: 0.7,
-  },
-  accountCard: {
-    padding: StoryCardPadding,
-  },
-  accountRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-  },
-  accountCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  accountName: {
-    fontFamily: StoryFonts.bodySemiBold,
-    fontSize: 14,
-    fontWeight: '600',
-    lineHeight: 20,
-  },
-  accountMeta: {
-    fontFamily: StoryFonts.body,
-    fontSize: 12,
-    lineHeight: 18,
+  platformLogo: {
+    flexShrink: 1,
   },
   accountActions: {
-    alignItems: 'flex-end',
-    gap: Spacing.two,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
   },
-  signOutLink: {
-    paddingVertical: 0,
-    flexShrink: 0,
+  signOut: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 44,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: Garden.peach,
+  },
+  signOutLabel: {
+    fontFamily: GardenFonts.bodyExtra,
+    fontSize: 14,
+    color: SIGN_OUT_COLOR,
   },
 });

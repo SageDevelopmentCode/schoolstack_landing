@@ -1,513 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import dynamic from "next/dynamic";
-import Image from "next/image";
-import Link from "next/link";
+import { useMemo } from "react";
 import { usePathname } from "next/navigation";
-import {
-  Bell,
-  ChevronDown,
-  ExternalLink,
-  House,
-  Lock,
-  PanelLeftClose,
-  PanelLeftOpen,
-} from "lucide-react";
-import { outlineActiveRowStyle } from "@/components/school-admin/admissions/outline-item-styles";
-import SchoolAdminProfileMenu from "@/components/school-admin/SchoolAdminProfileMenu";
+import { ParentGardenScope } from "@/components/school-parent/garden/ParentGardenFrame";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
-import { MessagesNavBadge } from "@/components/messages/MessagesNavBadge";
+import AdminSidebarPanel from "@/components/school-admin/sidebar/AdminSidebarPanel";
+import type { buildAdminNavGroups } from "@/lib/organization-settings/admin-nav";
 import {
-  adminNavItemMatchesPath,
-  buildAdminNavGroups,
-  type AdminNavChildItem,
-  type AdminNavItem,
-} from "@/lib/organization-settings/admin-nav";
-import {
-  getFirstAdminNavChildPath,
-  resolveAdminNavChildHref,
-  schoolAdminPath,
-  schoolMudKitchenPortalPath,
-} from "@/lib/organization-settings/admin-routes";
-import {
-  MUDKITCHEN_BRAND_GRADIENT,
-  MUDKITCHEN_LOGO_BRAND as MK,
-} from "@/lib/mudkitchen-portal/theme";
-import {
-  detectPortalFromPathname,
-  type SchoolPortalOption,
-} from "@/lib/auth/portal-switcher-types";
+  EMPTY_ADMIN_NAV_COUNTS,
+  type AdminNavCountValues,
+} from "@/lib/school-admin/admin-nav-counts";
+import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
 import type { SchoolAdminUserProfile } from "@/lib/school-admin/access";
-import { getAdminNavIconColor } from "@/lib/organization-settings/admin-feature-icon-styles";
-import { DEFAULT_BRANDING } from "@/lib/organization-settings/catalog";
 import type { OrganizationPlan } from "@/lib/organization-settings/plans";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import {
-  isFreePlanAdminPathOpen,
-  isFreePlanNavChildOpen,
-} from "@/lib/school-admin/free-plan-upgrade";
-import {
-  MUDKITCHEN_LOGO_ALT,
-  MUDKITCHEN_LOGO_PATH,
-} from "@/lib/school-admin/newsletter/newsletter-branding";
-import FridayBranchPausedBadge from "@/components/school-admin/friday-branch/FridayBranchPausedBadge";
 
-function formatNavGroupLabel(label: string): string {
-  if (label === "Main") return "Workspace";
-  if (label === "Tools") return "Manage";
-  return label;
-}
+/*
+ * Admin portal sidebar (desktop, md and up), in the Garden look.
+ * The same panel renders in the phone drawer (`sidebar/AdminMobileNavDrawer`).
+ * Skill: .claude/skills/admin-portal-garden-design.
+ */
 
-function formatUnreadBadgeCount(count: number): string {
-  if (count <= 0) return "";
-  if (count > 9) return "9+";
-  return String(count);
-}
-
-function firstOpenAdminChildHref(
-  slug: string,
-  parentFeature: string,
-  navChildren: AdminNavChildItem[],
-): string | null {
-  for (const child of navChildren) {
-    if (child.children?.length) {
-      const nested = firstOpenAdminChildHref(
-        slug,
-        parentFeature,
-        child.children,
-      );
-      if (nested) return nested;
-      continue;
-    }
-    if (isFreePlanNavChildOpen(parentFeature, child)) {
-      return resolveAdminNavChildHref(slug, parentFeature, child);
-    }
-  }
-  return null;
-}
-
-function isAdminChildPathActive(
-  slug: string,
-  pathname: string,
-  parentFeature: string,
-  child: AdminNavChildItem,
-): boolean {
-  if (child.children?.length) {
-    return child.children.some((nested) =>
-      isAdminChildPathActive(slug, pathname, parentFeature, nested),
-    );
-  }
-  const href = resolveAdminNavChildHref(slug, parentFeature, child);
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function AdminNavChildLinks({
-  slug,
-  parentFeature,
-  navChildren,
-  pathname,
-  depth,
-  openParents,
-  onToggleOpen,
-  messagesUnreadCount,
-  fridayBranchParentPortalPaused,
-  onLockedSelect,
-}: {
-  slug: string;
-  parentFeature: string;
-  navChildren: AdminNavChildItem[];
-  pathname: string;
-  depth: number;
-  openParents: Record<string, boolean>;
-  onToggleOpen: (key: string) => void;
-  messagesUnreadCount: number;
-  fridayBranchParentPortalPaused: boolean;
-  onLockedSelect?: (label: string) => void;
-}) {
-  const { theme } = useSchoolAdminStoryTheme();
-
-  return (
-    <>
-      {navChildren.map((child) => {
-        const nestedKey = `${parentFeature}:${child.key}`;
-        const hasNested = Boolean(child.children?.length);
-        const childActive = isAdminChildPathActive(
-          slug,
-          pathname,
-          parentFeature,
-          child,
-        );
-        const childLocked =
-          Boolean(onLockedSelect) &&
-          !isFreePlanNavChildOpen(parentFeature, child);
-
-        if (hasNested) {
-          const isOpen = openParents[nestedKey] ?? childActive;
-          const firstLeafHref = getFirstAdminNavChildPath(
-            slug,
-            parentFeature,
-            child.children!,
-          );
-
-          return (
-            <div key={child.key} className="py-[2px]">
-              <div className="flex items-center gap-0.5">
-                {firstLeafHref ? (
-                  childLocked ? (
-                    <button
-                      type="button"
-                      title={`${child.name}, locked`}
-                      aria-haspopup="dialog"
-                      onClick={() => onLockedSelect?.(child.name)}
-                      className="min-w-0 flex-1 truncate py-[5px] text-left text-[11px] transition-colors"
-                      style={{
-                        color: "#7B898D",
-                        fontWeight: 500,
-                      }}
-                    >
-                      <span className="inline-flex min-w-0 items-center gap-1">
-                        <Lock className="h-3 w-3 shrink-0" aria-hidden />
-                        <span className="truncate">{child.name}</span>
-                      </span>
-                    </button>
-                  ) : (
-                  <Link
-                    href={firstLeafHref}
-                    title={child.name}
-                    className="min-w-0 flex-1 truncate py-[5px] text-[11px] transition-colors"
-                    style={{
-                      color: childActive ? theme.primary : "#7B898D",
-                      fontWeight: childActive ? 700 : 500,
-                      textDecoration: "none",
-                    }}
-                  >
-                    {child.name}
-                  </Link>
-                  )
-                ) : (
-                  <span
-                    className="min-w-0 flex-1 truncate py-[5px] text-[11px] font-medium"
-                    style={{ color: "#7B898D" }}
-                  >
-                    {child.name}
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => onToggleOpen(nestedKey)}
-                  className="shrink-0 p-0.5"
-                  style={{ color: childActive ? theme.primary : "#98A39F" }}
-                  aria-label={isOpen ? "Collapse sub-tabs" : "Expand sub-tabs"}
-                >
-                  <ChevronDown
-                    className="h-3 w-3 transition-transform duration-150"
-                    style={{
-                      transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-                    }}
-                  />
-                </button>
-              </div>
-              <div
-                className={`grid transition-[grid-template-rows,opacity] duration-150 ease-out ${
-                  isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                }`}
-              >
-                <div className="overflow-hidden">
-                  <div
-                    className="ml-2 border-l pl-2"
-                    style={{ borderColor: "#DFE7DF" }}
-                  >
-                    <AdminNavChildLinks
-                      slug={slug}
-                      parentFeature={parentFeature}
-                      navChildren={child.children!}
-                      pathname={pathname}
-                      depth={depth + 1}
-                      openParents={openParents}
-                      onToggleOpen={onToggleOpen}
-                      messagesUnreadCount={messagesUnreadCount}
-                      fridayBranchParentPortalPaused={fridayBranchParentPortalPaused}
-                      onLockedSelect={onLockedSelect}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        }
-
-        const childHref = resolveAdminNavChildHref(slug, parentFeature, child);
-        const leafActive = pathname === childHref || pathname.startsWith(`${childHref}/`);
-
-        if (childLocked) {
-          return (
-            <button
-              key={child.key}
-              type="button"
-              title={`${child.name}, locked`}
-              aria-haspopup="dialog"
-              onClick={() => onLockedSelect?.(child.name)}
-              className="block w-full py-[5px] text-left text-[11px] transition-colors"
-              style={{
-                color: "#7B898D",
-                fontWeight: 500,
-                paddingLeft: depth > 0 ? 4 : 0,
-              }}
-            >
-              <span className="flex min-w-0 items-center gap-1.5">
-                <Lock className="h-3 w-3 shrink-0" aria-hidden />
-                <span className="truncate">{child.name}</span>
-              </span>
-            </button>
-          );
-        }
-
-        return (
-          <Link
-            key={child.key}
-            href={childHref}
-            title={child.name}
-            className="block py-[5px] text-[11px] transition-colors"
-            style={{
-              color: leafActive ? theme.primary : "#7B898D",
-              fontWeight: leafActive ? 700 : 500,
-              textDecoration: "none",
-              paddingLeft: depth > 0 ? 4 : 0,
-            }}
-          >
-            <span className="flex min-w-0 items-center gap-1.5">
-              <span className="truncate">{child.name}</span>
-              {child.routeFeature === "messages" || child.key === "messages" ? (
-                <MessagesNavBadge
-                  count={messagesUnreadCount}
-                  theme={{ accent: theme.primary, accentLight: theme.primarySoft }}
-                />
-              ) : null}
-              {parentFeature === "my_school" &&
-              child.key === "friday_branch" &&
-              fridayBranchParentPortalPaused ? (
-                <FridayBranchPausedBadge compact />
-              ) : null}
-            </span>
-          </Link>
-        );
-      })}
-    </>
-  );
-}
-
-function SidebarNavItem({
-  slug,
-  item,
-  pathname,
-  isExpanded,
-  isOpen,
-  onToggleOpen,
-  openParents,
-  onToggleNestedOpen,
-  messagesUnreadCount,
-  fridayBranchParentPortalPaused = false,
-  onLockedSelect,
-}: {
-  slug: string;
-  item: AdminNavItem;
-  pathname: string;
-  isExpanded: boolean;
-  isOpen: boolean;
-  onToggleOpen: () => void;
-  openParents: Record<string, boolean>;
-  onToggleNestedOpen: (key: string) => void;
-  messagesUnreadCount: number;
-  fridayBranchParentPortalPaused?: boolean;
-  onLockedSelect?: (label: string) => void;
-}) {
-  const { theme, C } = useSchoolAdminStoryTheme();
-  const Icon = item.icon;
-  const iconColor = getAdminNavIconColor(item.key);
-  const hasChildren = Boolean(item.children?.length);
-  const parentActive = adminNavItemMatchesPath(slug, pathname, item);
-  const parentHref = hasChildren
-    ? (onLockedSelect
-        ? firstOpenAdminChildHref(slug, item.key, item.children!)
-        : null) ??
-      getFirstAdminNavChildPath(slug, item.key, item.children!) ??
-      schoolAdminPath(slug, item.key)
-    : schoolAdminPath(slug, item.key);
-
-  const hasOpenChild = item.children?.some((child) =>
-    isFreePlanNavChildOpen(item.key, child),
-  );
-  const locked =
-    Boolean(onLockedSelect) &&
-    !isFreePlanAdminPathOpen(item.key) &&
-    !hasOpenChild;
-
-  const activeRowStyle = (active: boolean) => ({
-    ...outlineActiveRowStyle(active, theme),
-    color: active ? theme.primary : C.textSecondary,
-    textDecoration: "none" as const,
-  });
-
-  if (!hasChildren && locked) {
-    return (
-      <button
-        type="button"
-        title={`${item.name}, locked`}
-        aria-haspopup="dialog"
-        onClick={() => onLockedSelect?.(item.name)}
-        className="relative mb-0.5 flex w-full items-center rounded-[10px] border px-2.5 py-2 text-left text-[13px] transition-colors"
-        style={{
-          justifyContent: isExpanded ? "flex-start" : "center",
-          gap: isExpanded ? "8px" : 0,
-          ...activeRowStyle(false),
-          fontWeight: 500,
-          opacity: 0.72,
-        }}
-      >
-        <Icon className="h-4 w-4 shrink-0" style={{ color: iconColor }} />
-        {isExpanded ? (
-          <span className="flex min-w-0 flex-1 items-center gap-1 truncate">
-            {item.name}
-            <Lock className="h-3 w-3 shrink-0" aria-hidden />
-          </span>
-        ) : null}
-      </button>
-    );
-  }
-
-  if (!hasChildren) {
-    const active = pathname === parentHref;
-    return (
-      <Link
-        href={parentHref}
-        title={item.name}
-        className="relative mb-0.5 flex w-full items-center rounded-[10px] border px-2.5 py-2 text-[13px] transition-colors"
-        style={{
-          justifyContent: isExpanded ? "flex-start" : "center",
-          gap: isExpanded ? "8px" : 0,
-          ...activeRowStyle(active),
-          fontWeight: active ? 700 : 500,
-        }}
-      >
-        <Icon className="h-4 w-4 shrink-0" style={{ color: iconColor }} />
-        {isExpanded ? (
-          <span className="flex min-w-0 flex-1 items-center gap-1 truncate">
-            {item.name}
-            {item.key === "messages" ? (
-              <MessagesNavBadge
-                count={messagesUnreadCount}
-                theme={{ accent: theme.primary, accentLight: theme.primarySoft }}
-              />
-            ) : null}
-          </span>
-        ) : null}
-        {!isExpanded && item.key === "messages" && messagesUnreadCount > 0 ? (
-          <span
-            className="absolute right-1 top-1 h-2 w-2 rounded-full"
-            style={{ backgroundColor: theme.primary }}
-            aria-hidden
-          />
-        ) : null}
-      </Link>
-    );
-  }
-
-  return (
-    <div className="mb-0.5">
-      <div
-        className="flex items-center rounded-[10px] border transition-colors"
-        style={activeRowStyle(parentActive)}
-      >
-        {locked ? (
-          <button
-            type="button"
-            title={`${item.name}, locked`}
-            aria-haspopup="dialog"
-            onClick={() => onLockedSelect?.(item.name)}
-            className="flex min-w-0 flex-1 items-center text-left"
-            style={{
-              justifyContent: isExpanded ? "flex-start" : "center",
-              gap: isExpanded ? "8px" : 0,
-              padding: isExpanded ? "8px 10px" : "8px 0",
-              color: C.textSecondary,
-              fontWeight: 500,
-              fontSize: "13px",
-              opacity: 0.72,
-            }}
-          >
-            <Icon className="h-4 w-4 shrink-0" style={{ color: iconColor }} />
-            {isExpanded ? (
-              <span className="flex min-w-0 items-center gap-1 truncate">
-                {item.name}
-                <Lock className="h-3 w-3 shrink-0" aria-hidden />
-              </span>
-            ) : null}
-          </button>
-        ) : (
-        <Link
-          href={parentHref}
-          title={item.name}
-          className="flex min-w-0 flex-1 items-center"
-          style={{
-            justifyContent: isExpanded ? "flex-start" : "center",
-            gap: isExpanded ? "8px" : 0,
-            padding: isExpanded ? "8px 10px" : "8px 0",
-            color: parentActive ? theme.primary : C.textSecondary,
-            textDecoration: "none",
-            fontWeight: parentActive ? 700 : 500,
-            fontSize: "13px",
-          }}
-        >
-          <Icon className="h-4 w-4 shrink-0" style={{ color: iconColor }} />
-          {isExpanded ? <span className="truncate">{item.name}</span> : null}
-        </Link>
-        )}
-        {isExpanded ? (
-          <button
-            type="button"
-            onClick={onToggleOpen}
-            className="mr-1 shrink-0 p-1"
-            style={{ color: parentActive ? theme.primary : C.textTertiary }}
-            aria-label={isOpen ? "Collapse sub-tabs" : "Expand sub-tabs"}
-          >
-            <ChevronDown
-              className="h-3.5 w-3.5 transition-transform duration-150"
-              style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}
-            />
-          </button>
-        ) : null}
-      </div>
-      {isExpanded ? (
-        <div
-          className={`grid transition-[grid-template-rows,opacity] duration-150 ease-out ${
-            isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-          }`}
-        >
-          <div className="overflow-hidden">
-            <div
-              className="ml-[25px] border-l pl-[7px]"
-              style={{ borderColor: "#DFE7DF" }}
-            >
-              <AdminNavChildLinks
-                slug={slug}
-                parentFeature={item.key}
-                navChildren={item.children!}
-                pathname={pathname}
-                depth={0}
-                openParents={openParents}
-                onToggleOpen={onToggleNestedOpen}
-                messagesUnreadCount={messagesUnreadCount}
-                fridayBranchParentPortalPaused={fridayBranchParentPortalPaused}
-                onLockedSelect={onLockedSelect}
-              />
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-}
+export const ADMIN_SIDEBAR_WIDTH_EXPANDED = 236;
+export const ADMIN_SIDEBAR_WIDTH_COLLAPSED = 68;
 
 type SchoolAdminStorySidebarProps = {
   branding: OrganizationBranding;
@@ -522,6 +37,8 @@ type SchoolAdminStorySidebarProps = {
   onOpenNotifications: () => void;
   unreadCount: number;
   messagesUnreadCount: number;
+  /** "Needs you" counts: Staff hours requests, applications, committee join requests. */
+  needsCounts?: Partial<AdminNavCountValues>;
   portalOptions?: SchoolPortalOption[];
   openPortalLinksInNewTab?: boolean;
   previewMode?: boolean;
@@ -529,6 +46,13 @@ type SchoolAdminStorySidebarProps = {
   fridayBranchParentPortalPaused?: boolean;
   onLockedFeature?: (label: string) => void;
   plan?: OrganizationPlan;
+  /** Bumped on ⌘K / Ctrl+K to focus "Find a page". */
+  searchFocusToken?: number;
+  /** Collapsed search icon: expand, then focus the search input. */
+  onRequestSearch?: () => void;
+  /** False until the remembered width is read, so it doesn't animate on load. */
+  animateWidth?: boolean;
+  className?: string;
 };
 
 export default function SchoolAdminStorySidebar({
@@ -544,6 +68,7 @@ export default function SchoolAdminStorySidebar({
   onOpenNotifications,
   unreadCount,
   messagesUnreadCount,
+  needsCounts,
   portalOptions = [],
   openPortalLinksInNewTab = false,
   previewMode = false,
@@ -551,268 +76,56 @@ export default function SchoolAdminStorySidebar({
   fridayBranchParentPortalPaused = false,
   onLockedFeature,
   plan = "custom",
+  searchFocusToken = 0,
+  onRequestSearch,
+  animateWidth = true,
+  className = "",
 }: SchoolAdminStorySidebarProps) {
   const routerPathname = usePathname();
   const pathname = pathnameOverride ?? routerPathname;
-  const { theme, C } = useSchoolAdminStoryTheme();
-  const { logo } = branding;
-  const isFree = plan === "free";
-  const storedLogoSrc = logo.src.trim();
-  const showMudKitchenLogo =
-    isFree &&
-    (!storedLogoSrc || storedLogoSrc === DEFAULT_BRANDING.logo.src);
-  const logoSrc = showMudKitchenLogo ? MUDKITCHEN_LOGO_PATH : storedLogoSrc;
-  const logoAlt = showMudKitchenLogo
-    ? MUDKITCHEN_LOGO_ALT
-    : logo.alt || schoolName;
-  const logoTitle = isFree
-    ? showMudKitchenLogo
-      ? "MudKitchen, Free"
-      : `${schoolName}, Free`
-    : logoAlt;
-  const homeHref = schoolAdminPath(slug, "home");
-  const homeActive = pathname === homeHref || pathname.startsWith(`${homeHref}/`);
-  const [openParents, setOpenParents] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    const next: Record<string, boolean> = {};
-    for (const group of navGroups) {
-      for (const item of group.items) {
-        if (item.children?.length && adminNavItemMatchesPath(slug, pathname, item)) {
-          next[item.key] = true;
-          for (const child of item.children) {
-            if (
-              child.children?.length &&
-              isAdminChildPathActive(slug, pathname, item.key, child)
-            ) {
-              next[`${item.key}:${child.key}`] = true;
-            }
-          }
-        }
-      }
-    }
-    queueMicrotask(() => {
-      setOpenParents((prev) => ({ ...prev, ...next }));
-    });
-  }, [pathname, slug, navGroups]);
+  const { theme } = useSchoolAdminStoryTheme();
+  const counts = useMemo(
+    () => ({ ...EMPTY_ADMIN_NAV_COUNTS, ...needsCounts, messagesUnread: messagesUnreadCount }),
+    [messagesUnreadCount, needsCounts],
+  );
 
   return (
-    <aside
-      className="relative z-[1] flex h-full shrink-0 flex-col overflow-hidden border-r bg-white transition-[width] duration-200 ease-in-out"
-      style={{
-        width: isExpanded ? 185 : 52,
-        borderColor: "#DDE6DE",
-      }}
+    <ParentGardenScope
+      theme={theme}
+      className={`relative z-[1] h-full shrink-0 ${
+        animateWidth ? "transition-[width] duration-200 ease-out motion-reduce:transition-none" : ""
+      } ${className}`}
+      style={{ width: isExpanded ? ADMIN_SIDEBAR_WIDTH_EXPANDED : ADMIN_SIDEBAR_WIDTH_COLLAPSED }}
     >
-      <div
-        className="flex overflow-hidden"
-        style={{
-          flexDirection: isExpanded && isFree ? "column" : "row",
-          alignItems: "center",
-          gap: isExpanded && isFree ? 8 : 0,
-          width: isExpanded && isFree ? "100%" : undefined,
-          padding: isExpanded ? "14px 16px" : "14px 0",
-          justifyContent: isExpanded && !isFree ? "flex-start" : "center",
-        }}
+      <aside
+        aria-label="Admin sidebar"
+        className="flex h-full w-full flex-col overflow-hidden border-r-[1.5px] border-[var(--sf-ink)]/10 bg-white shadow-[1px_0_0_rgba(29,26,22,0.04),8px_0_24px_-20px_rgba(29,26,22,0.25)]"
       >
-        {logoSrc ? (
-          <Image
-            src={logoSrc}
-            alt={logoAlt}
-            title={logoTitle}
-            width={isExpanded ? (showMudKitchenLogo ? 132 : (logo.width ?? 160)) : 36}
-            height={showMudKitchenLogo ? 40 : (logo.height ?? 40)}
-            className="shrink-0 object-contain"
-            style={{ maxHeight: 40 }}
-          />
-        ) : (
-          <span
-            className="truncate text-sm font-semibold"
-            style={{ color: C.accentDark }}
-            title={logoTitle}
-          >
-            {logoAlt}
-          </span>
-        )}
-        {isFree && isExpanded ? (
-          <span className="rounded-full bg-[#FDEFE4] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#1d1a16]">
-            Free
-          </span>
-        ) : null}
-      </div>
-
-      <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {isFree ? (
-          <Link
-            href={homeHref}
-            title="Home"
-            className="relative mb-3 flex w-full items-center rounded-[10px] border px-2.5 py-2 text-[13px] transition-colors"
-            style={{
-              justifyContent: isExpanded ? "flex-start" : "center",
-              gap: isExpanded ? "8px" : 0,
-              ...outlineActiveRowStyle(homeActive, theme),
-              color: homeActive ? theme.primary : C.textSecondary,
-              textDecoration: "none",
-              fontWeight: homeActive ? 700 : 500,
-            }}
-          >
-            <House className="h-4 w-4 shrink-0" aria-hidden />
-            {isExpanded ? <span className="truncate">Home</span> : null}
-          </Link>
-        ) : null}
-        {navGroups.map((group) => (
-          <div key={group.label} className="mb-3">
-            {isExpanded ? (
-              <p
-                className="mb-1.5 px-2 text-[10px] font-extrabold uppercase tracking-[0.11em]"
-                style={{ color: "#98A39F" }}
-              >
-                {formatNavGroupLabel(group.label)}
-              </p>
-            ) : group.label !== "Main" ? (
-              <div
-                className="mx-1.5 mb-2 h-px"
-                style={{ backgroundColor: C.border }}
-              />
-            ) : null}
-            <div>
-              {group.items.map((item) => (
-                <SidebarNavItem
-                  key={item.key}
-                  slug={slug}
-                  item={item}
-                  pathname={pathname}
-                  isExpanded={isExpanded}
-                  isOpen={openParents[item.key] ?? false}
-                  messagesUnreadCount={messagesUnreadCount}
-                  fridayBranchParentPortalPaused={fridayBranchParentPortalPaused}
-                  onToggleOpen={() =>
-                    setOpenParents((prev) => ({
-                      ...prev,
-                      [item.key]: !prev[item.key],
-                    }))
-                  }
-                  openParents={openParents}
-                  onToggleNestedOpen={(key) =>
-                    setOpenParents((prev) => ({
-                      ...prev,
-                      [key]: !prev[key],
-                    }))
-                  }
-                  onLockedSelect={onLockedFeature}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
-      </nav>
-
-      <div className="mt-auto border-t px-3 py-3" style={{ borderColor: "#DDE6DE" }}>
-        {isExpanded ? (
-          <button
-            type="button"
-            onClick={onOpenNotifications}
-            className="mb-2 flex w-full items-center gap-2 rounded-[10px] border px-2.5 py-2 text-left text-xs"
-            style={{ borderColor: "#DCE6DD", color: C.textSecondary }}
-          >
-            <Bell className="h-4 w-4 shrink-0" />
-            <span className="flex-1 font-medium">Notifications</span>
-            {unreadCount > 0 ? (
-              <span
-                className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-                style={{ backgroundColor: theme.primarySoft, color: theme.primary }}
-              >
-                {formatUnreadBadgeCount(unreadCount)}
-              </span>
-            ) : null}
-          </button>
-        ) : null}
-
-        {isExpanded ? (
-          <button
-            type="button"
-            onClick={onOpenSupport}
-            className="mb-2 w-full rounded-[10px] border px-3 py-[11px] text-left text-xs"
-            style={{
-              borderColor: "#EEE0B3",
-              backgroundColor: "#FFF9E9",
-              color: "#75633E",
-            }}
-          >
-            🌿 Need help?
-          </button>
-        ) : null}
-
-        <a
-          href={schoolMudKitchenPortalPath(slug)}
-          target="_blank"
-          rel="noopener noreferrer"
-          title="MudKitchen Account"
-          className="relative mb-2 flex w-full flex-col transition-[filter,transform] duration-150 hover:brightness-110 active:scale-[0.98]"
-          style={{
-            alignItems: isExpanded ? "flex-start" : "center",
-            padding: isExpanded ? "8px" : "8px 6px",
-            borderRadius: C.r.sm,
-            background: MUDKITCHEN_BRAND_GRADIENT,
-            color: MK.cream,
-            textDecoration: "none",
-          }}
-        >
-          {isExpanded ? (
-            <ExternalLink className="absolute right-2 top-2 h-3 w-3 opacity-80" aria-hidden />
-          ) : null}
-          <span
-            className={`mb-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white ${
-              isExpanded ? "" : "mx-auto"
-            }`}
-          >
-            <Image src="/images/Logo.png" alt="" width={24} height={24} className="h-6 w-6 object-contain" aria-hidden />
-          </span>
-          {isExpanded ? (
-            <div>
-              <span className="block text-xs font-semibold">MudKitchen Account</span>
-              <span className="mt-0.5 block text-[10px] opacity-85">
-                View your requests, logs, and more
-              </span>
-            </div>
-          ) : null}
-        </a>
-
-        {userProfile ? (
-          <SchoolAdminProfileMenu
-            C={C}
-            userProfile={userProfile}
-            isExpanded={isExpanded}
-            onSignOut={onSignOut}
-            portalOptions={portalOptions}
-            openPortalLinksInNewTab={openPortalLinksInNewTab}
-            currentPortal={detectPortalFromPathname(pathname, slug)}
-            previewMode={previewMode}
-          />
-        ) : null}
-
-        <button
-          type="button"
-          onClick={onToggleExpand}
-          title={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
-          className="mt-2 flex w-full items-center border-0 bg-transparent"
-          style={{
-            justifyContent: isExpanded ? "flex-start" : "center",
-            gap: isExpanded ? "8px" : 0,
-            padding: "6px 8px",
-            borderRadius: C.r.sm,
-            color: C.textTertiary,
-            cursor: "pointer",
-          }}
-        >
-          {isExpanded ? (
-            <PanelLeftClose className="h-4 w-4 shrink-0" />
-          ) : (
-            <PanelLeftOpen className="h-4 w-4 shrink-0" />
-          )}
-          {isExpanded ? <span className="text-xs font-medium">Collapse</span> : null}
-        </button>
-      </div>
-    </aside>
+        <AdminSidebarPanel
+          variant="desktop"
+          branding={branding}
+          schoolName={schoolName}
+          slug={slug}
+          pathname={pathname}
+          navGroups={navGroups}
+          isExpanded={isExpanded}
+          counts={counts}
+          unreadCount={unreadCount}
+          userProfile={userProfile}
+          onSignOut={onSignOut}
+          onOpenSupport={onOpenSupport}
+          onOpenNotifications={onOpenNotifications}
+          portalOptions={portalOptions}
+          openPortalLinksInNewTab={openPortalLinksInNewTab}
+          previewMode={previewMode}
+          fridayBranchParentPortalPaused={fridayBranchParentPortalPaused}
+          onLockedFeature={onLockedFeature}
+          plan={plan}
+          searchFocusToken={searchFocusToken}
+          onRequestSearch={onRequestSearch ?? onToggleExpand}
+          onToggleExpand={onToggleExpand}
+        />
+      </aside>
+    </ParentGardenScope>
   );
 }

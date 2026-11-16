@@ -2,10 +2,13 @@ import { useObserve } from '@/lib/mobile-observe';
 import { Slot, useIsFocused, useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { AnimatedTabContent } from '@/components/animated-tab-content';
+import { GardenToastProvider } from '@/components/parent/garden/toast';
+import { Garden } from '@/components/parent/garden/tokens';
 import { PortalPreviewBanner } from '@/components/platform-admin/portal-preview-banner';
 import { MoreMenuSheet } from '@/components/school-admin/more-menu-sheet';
 import {
@@ -41,6 +44,10 @@ import { toOrganizationBranding } from '@/lib/organizations';
 import { isPortalSessionAllowed } from '@/lib/platform-admin/portal-preview-layout';
 import { useExitPortalPreviewNavigation, usePortalPreview } from '@/lib/portal-preview-gating';
 import { useMobileFeatureVisitTracking } from '@/hooks/use-mobile-feature-visit-tracking';
+
+/** Routes on the Garden kit: the shell paints cream behind the status bar. */
+const GARDEN_SURFACE_PATH =
+  /\/(dashboard|admissions|students|messages|more\/(staff|classrooms|staff-hours|schedule|transactions|photos|attendance|committees))(\/|$)/;
 
 function getActiveTab(pathname: string): SchoolAdminTab | null {
   if (/\/submissions\/[^/]+$/.test(pathname)) return null;
@@ -268,30 +275,41 @@ function SchoolAdminLayoutContent() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
+    <SafeAreaView
+      style={[
+        styles.container,
+        // Garden sections paint cream under the status bar (stack screens can't bleed past the Stack).
+        { backgroundColor: GARDEN_SURFACE_PATH.test(pathname) ? Garden.cream : theme.bg },
+      ]}>
       <StatusBar style="dark" />
-      {isPreview ? <PortalPreviewBanner onExit={() => void exitPreview()} /> : null}
-      <View
-        style={[
-          styles.content,
-          showTabBar ? { paddingBottom: FLOATING_TAB_BAR_HEIGHT } : null,
-        ]}>
-        <AnimatedTabContent transitionKey={showTabBar ? pathTab : null}>
-          <Slot />
-        </AnimatedTabContent>
-      </View>
-      {showTabBar && activeTab ? (
-        <SchoolAdminFloatingTabBar
-          activeTab={activeTab}
-          onChange={handleTabChange}
-          messagesUnreadCount={unreadCount}
-        />
-      ) : null}
-      <MoreMenuSheet
-        visible={moreSheetOpen}
-        onClose={() => setMoreSheetOpen(false)}
-        onSelect={handleSelectMoreItem}
-      />
+      {/* Gestures + Garden toasts wrap the shell so the tab bar, More sheet and screens can toast. */}
+      <GestureHandlerRootView style={styles.content}>
+        <GardenToastProvider bottomOffset={showTabBar ? FLOATING_TAB_BAR_HEIGHT + 10 : 12}>
+          {isPreview ? <PortalPreviewBanner onExit={() => void exitPreview()} /> : null}
+          <View
+            style={[
+              styles.content,
+              showTabBar ? { paddingBottom: FLOATING_TAB_BAR_HEIGHT } : null,
+            ]}>
+            <AnimatedTabContent transitionKey={showTabBar ? pathTab : null}>
+              <Slot />
+            </AnimatedTabContent>
+          </View>
+          {showTabBar && activeTab ? (
+            <SchoolAdminFloatingTabBar
+              activeTab={activeTab}
+              moreSheetOpen={moreSheetOpen}
+              onChange={handleTabChange}
+              messagesUnreadCount={unreadCount}
+            />
+          ) : null}
+          <MoreMenuSheet
+            visible={moreSheetOpen}
+            onClose={() => setMoreSheetOpen(false)}
+            onSelect={handleSelectMoreItem}
+          />
+        </GardenToastProvider>
+      </GestureHandlerRootView>
     </SafeAreaView>
   );
 }

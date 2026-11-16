@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import {
   findOrCreateThread,
-  getStaffMemberIdForUser,
+  getTeacherPortalStaffMemberIdForUser,
   requireTeacherPortalUser,
   resolveParticipantsForContact,
 } from "@/lib/messages/api-helpers";
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
 
   try {
     const user = await requireTeacherPortalUser(supabase, organizationId, request);
-    const staffMemberId = await getStaffMemberIdForUser(
+    const staffMemberId = await getTeacherPortalStaffMemberIdForUser(
       supabase,
       user.id,
       organizationId,
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
     }
 
     const user = await requireTeacherPortalUser(supabase, organizationId, request);
-    const staffMemberId = await getStaffMemberIdForUser(
+    const staffMemberId = await getTeacherPortalStaffMemberIdForUser(
       supabase,
       user.id,
       organizationId,

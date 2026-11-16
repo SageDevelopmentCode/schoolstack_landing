@@ -9,17 +9,16 @@ import {
   type ReactNode,
 } from "react";
 import { CheckSquare, Trash2 } from "lucide-react";
-import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
-import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import SchoolAdminDatePicker from "@/components/school-admin/ui/SchoolAdminDatePicker";
-import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
+import {
+  CommitteeButton,
+  CommitteeConfirmDialog,
+  CommitteeDateField,
+  CommitteeSelectField,
+  useCommitteeInput,
+} from "@/components/school-admin/committees/committee-ui";
 import CommitteeFormSidePanel, {
   CommitteeFormSection,
 } from "@/components/school-admin/committees/sections/CommitteeFormSidePanel";
-import {
-  committeeStoryInputClassName,
-  committeeStoryInputStyle,
-} from "@/components/school-admin/committees/committee-story-input-style";
 import { CommitteeAttributionLabel } from "@/components/school-admin/committees/CommitteeAttributionLabel";
 import type {
   CommitteeMember,
@@ -176,7 +175,8 @@ export default function CommitteeTaskDetailPanel({
   onCancelNavigation,
 }: CommitteeTaskDetailPanelProps) {
   const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
-  const inputStyle = useMemo(() => committeeStoryInputStyle(theme), [theme]);
+  const input = useCommitteeInput(theme);
+  const inputStyle = input.style;
   const defaultGroup = taskGroups[0]?.id ?? "general";
 
   const [form, setForm] = useState<CommitteeTaskFormData>(() =>
@@ -366,7 +366,7 @@ export default function CommitteeTaskDetailPanel({
                 <span aria-hidden="true" />
               )}
               <div className="flex gap-2">
-                <AdminButton
+                <CommitteeButton
                   theme={theme}
                   variant="soft"
                   type="button"
@@ -374,8 +374,8 @@ export default function CommitteeTaskDetailPanel({
                   disabled={saving}
                 >
                   Cancel
-                </AdminButton>
-                <AdminButton
+                </CommitteeButton>
+                <CommitteeButton
                   theme={theme}
                   variant="primary"
                   type="submit"
@@ -388,7 +388,7 @@ export default function CommitteeTaskDetailPanel({
                     : mode === "create"
                       ? "Add task"
                       : "Save changes"}
-                </AdminButton>
+                </CommitteeButton>
               </div>
             </div>
           ) : undefined
@@ -410,7 +410,7 @@ export default function CommitteeTaskDetailPanel({
               }
               placeholder="What needs to be done?"
               disabled={!editable}
-              className={committeeStoryInputClassName}
+              className={input.className}
               style={inputStyle}
             />
           </div>
@@ -430,7 +430,7 @@ export default function CommitteeTaskDetailPanel({
               placeholder="Add details, links, or instructions"
               rows={4}
               disabled={!editable}
-              className={`${committeeStoryInputClassName} resize-y`}
+              className={`${input.className} resize-y`}
               style={inputStyle}
             />
           </div>
@@ -492,7 +492,7 @@ export default function CommitteeTaskDetailPanel({
           </div>
           <div className="space-y-2">
             <FieldLabel theme={theme}>Due date</FieldLabel>
-            <SchoolAdminDatePicker
+            <CommitteeDateField
               id="committee-task-due-date"
               C={C}
               value={form.dueDate}
@@ -517,7 +517,8 @@ export default function CommitteeTaskDetailPanel({
         ) : null}
       </CommitteeFormSidePanel>
 
-      <ConfirmDialog
+      <CommitteeConfirmDialog
+        theme={theme}
         C={C}
         open={discardDialogOpen}
         title="Unsaved changes"
@@ -529,7 +530,8 @@ export default function CommitteeTaskDetailPanel({
         onClose={handleCancelDiscard}
       />
 
-      <ConfirmDialog
+      <CommitteeConfirmDialog
+        theme={theme}
         C={C}
         open={deleteDialogOpen}
         title="Delete task?"
@@ -561,7 +563,7 @@ function TaskSelect({
   disabled?: boolean;
 }) {
   return (
-    <SchoolAdminSelect
+    <CommitteeSelectField
       C={C}
       value={value}
       onChange={onChange}

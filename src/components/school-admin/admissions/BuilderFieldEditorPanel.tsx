@@ -1,5 +1,8 @@
 "use client";
 
+import { useAdminGardenSkin } from "@/components/school-admin/garden/skin";
+import GSidePanel from "@/components/school-parent/garden/GSidePanel";
+import { gBtnOutlineSm } from "@/components/school-parent/garden/ui";
 import { useEffect, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
@@ -24,8 +27,9 @@ export default function BuilderFieldEditorPanel({
   subtitle = "Set up what families see and how they answer this question.",
   children,
 }: BuilderFieldEditorPanelProps) {
+  const skin = useAdminGardenSkin();
   useEffect(() => {
-    if (!open) return;
+    if (!open || skin) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -33,7 +37,30 @@ export default function BuilderFieldEditorPanel({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
+  }, [open, onClose, skin]);
+
+  if (skin) {
+    return (
+      <GSidePanel
+        theme={skin}
+        open={open}
+        onClose={onClose}
+        kicker={eyebrow}
+        title={title}
+        subtitle={subtitle}
+        testId="builder-field-editor"
+        panelId="builder-field-editor"
+        closeLabel="Close question editor"
+        footer={
+          <button type="button" onClick={onClose} className={gBtnOutlineSm}>
+            Done
+          </button>
+        }
+      >
+        {children}
+      </GSidePanel>
+    );
+  }
 
   return (
     <AnimatePresence>

@@ -1,41 +1,44 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { AnimatePresence } from "framer-motion";
-import { Loader2, Search } from "lucide-react";
-import type { StudentsApiResponse } from "@/app/api/school-admin/students/route";
-import { SchoolAdminTableSkeleton } from "@/components/school-admin/skeletons";
-import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
-import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import AdminCard from "@/components/school-admin/ui/story/AdminCard";
-import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
-import StudentContactCell from "./StudentContactCell";
-import StudentDetailPanel from "./StudentDetailPanel";
-import StudentEnrolledCell from "./StudentEnrolledCell";
-import StudentIdentityCell from "./StudentIdentityCell";
-import StudentClassroomTeachersCell from "./StudentClassroomTeachersCell";
-import StudentClassroomCell from "./StudentClassroomCell";
+import { useMemo, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { ChevronRight, GraduationCap, Loader2, UsersRound } from "lucide-react";
+import { GCard, GChip, GSkeleton, gBtnOutlineSm, gLinkSm } from "@/components/school-parent/garden/ui";
 import {
-  filterStudentsByRosterFilter,
-  isStudentUnassigned,
-  matchesStudentSearch,
-  type StudentRosterFilter,
-} from "@/lib/school-admin/admin-student-roster-metrics";
-import { adminStudentRowStyle } from "@/lib/school-admin/admin-student-row-style";
-import type { StudentsTableData } from "@/lib/school-admin/load-students-table-data";
-import type { StudentsPageMeta } from "@/lib/school-admin/students-page-meta";
+  AdminGardenPage,
+  AdminGardenPageHeader,
+  BusyLabel,
+  GardenEmptyState,
+  GardenFilterChips,
+  GardenLoadError,
+  GardenStatTiles,
+} from "@/components/school-admin/garden/kit";
 import {
-  formatEnrolledStudentName,
-  formatStudentGrade,
-  type AdminEnrolledStudentSummary,
-} from "@/lib/school-admin/enrolled-students";
+  G_TABLE,
+  G_TD,
+  G_TH,
+  GardenLeadStrip,
+  GardenRefetchVeil,
+  GardenSearchInput,
+  gRowClass,
+} from "@/components/school-admin/garden/blocks";
+import { buildParentThemeTokens, parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
-import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
-import type { ClassroomSummary } from "@/lib/school-admin/classrooms";
+import { formatEnrolledStudentName, formatStudentGrade, type AdminEnrolledStudentSummary } from "@/lib/school-admin/enrolled-students";
+import type { StudentsTableData } from "@/lib/school-admin/load-students-table-data";
+import type { StudentsPageMeta } from "@/lib/school-admin/students-page-meta";
+import StudentDetailPanel from "./StudentDetailPanel";
+import StudentClassroomPicker from "./StudentClassroomPicker";
+import {
+  GardenClassroomButton,
+  GardenStudentContact,
+  GardenStudentEnrolled,
+  GardenStudentIdentity,
+  GardenStudentTeachers,
+} from "./GardenStudentCells";
+import { useStudentsModel, type StudentsModel } from "./useStudentsModel";
 
 type StudentsPageProps = {
   organizationId: string;
@@ -47,46 +50,10 @@ type StudentsPageProps = {
   previewMode?: boolean;
 };
 
-const STUDENTS_PAGE_SIZE = 50;
+const HEADINGS = ["Student", "Grade", "Program", "Classroom", "Teacher", "Family", "Enrolled"];
 
-function StoryFilterPill({
-  active,
-  label,
-  count,
-  onClick,
-  theme,
-}: {
-  active: boolean;
-  label: string;
-  count?: number;
-  onClick: () => void;
-  theme: ReturnType<typeof useSchoolAdminStoryTheme>["theme"];
-}) {
-  const displayLabel = count != null ? `${label} · ${count}` : label;
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="cursor-pointer rounded-[9px] border px-2.5 py-2 text-[11px] font-medium transition-colors"
-      style={
-        active
-          ? {
-              backgroundColor: "#E9F2EA",
-              color: theme.primary,
-              borderColor: "#BCD4C1",
-              fontWeight: 700,
-            }
-          : {
-              backgroundColor: theme.white,
-              color: "#5D6D73",
-              borderColor: "#DCE4DC",
-            }
-      }
-    >
-      {displayLabel}
-    </button>
-  );
+function plural(count: number, one: string, many = `${one}s`) {
+  return `${count} ${count === 1 ? one : many}`;
 }
 
 export default function StudentsPage({
@@ -98,728 +65,421 @@ export default function StudentsPage({
   tableDeferred = false,
   previewMode = false,
 }: StudentsPageProps) {
-  const { theme, C } = useSchoolAdminStoryTheme();
-  const searchParams = useSearchParams();
-  const deepLinkStudentId = searchParams.get("student");
-  const hasInitialTable = initialTableData !== undefined;
+  const theme = useMemo(() => buildParentThemeTokens(branding), [branding]);
+  const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
+  const model = useStudentsModel({ organizationId, slug, initialMeta, initialTableData, tableDeferred, previewMode });
+  const { metrics } = model;
   const tableRef = useRef<HTMLDivElement>(null);
-
-  const [students, setStudents] = useState<AdminEnrolledStudentSummary[]>(
-    initialTableData?.students ?? [],
-  );
-  const [totalCount, setTotalCount] = useState(initialTableData?.totalCount ?? 0);
-  const [pageSize, setPageSize] = useState(initialTableData?.pageSize ?? STUDENTS_PAGE_SIZE);
-  const [metrics, setMetrics] = useState(initialMeta);
-  const [initialLoading, setInitialLoading] = useState(!hasInitialTable && !tableDeferred);
-  const [isRefetching, setIsRefetching] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [rosterFilter, setRosterFilter] = useState<StudentRosterFilter>("all");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [tableReady, setTableReady] = useState(hasInitialTable);
-  const [classrooms, setClassrooms] = useState<ClassroomSummary[]>([]);
-  const [classroomsLoading, setClassroomsLoading] = useState(false);
-  const [classroomsRequested, setClassroomsRequested] = useState(false);
-  const [assigningClassroomStudentId, setAssigningClassroomStudentId] = useState<
-    string | null
-  >(null);
-  const [prevInitialTableData, setPrevInitialTableData] = useState(initialTableData);
-
-  const studentsLengthRef = useRef(students.length);
-  const totalCountRef = useRef(totalCount);
-  const debouncedSearchRef = useRef(debouncedSearch);
-
-  useEffect(() => {
-    studentsLengthRef.current = students.length;
-  }, [students.length]);
-
-  useEffect(() => {
-    totalCountRef.current = totalCount;
-  }, [totalCount]);
-
-  useEffect(() => {
-    debouncedSearchRef.current = debouncedSearch;
-  }, [debouncedSearch]);
-
-  const submissionsPath = schoolAdminPath(slug, "admissions", "submissions");
+  const [pickerFor, setPickerFor] = useState<AdminEnrolledStudentSummary | null>(null);
   const classroomsPath = schoolAdminPath(slug, "my_school", "classrooms");
+  const submissionsPath = schoolAdminPath(slug, "admissions", "submissions");
 
-  const classroomsLoaded = classroomsRequested && !classroomsLoading;
-
-  const showProgramMetrics = metrics.programCount > 1;
-
-  const applyTableData = useCallback((tableData: StudentsTableData, { append = false } = {}) => {
-    setStudents((prev) =>
-      append ? [...prev, ...tableData.students] : tableData.students,
-    );
-    setTotalCount(tableData.totalCount);
-    setPageSize(tableData.pageSize);
-    setTableReady(true);
-    setInitialLoading(false);
-  }, []);
-
-  if (initialTableData && initialTableData !== prevInitialTableData) {
-    setPrevInitialTableData(initialTableData);
-    applyTableData(initialTableData);
-  }
-
-  useEffect(() => {
-    const handle = window.setTimeout(() => {
-      setDebouncedSearch(searchQuery.trim());
-    }, 300);
-    return () => window.clearTimeout(handle);
-  }, [searchQuery]);
-
-  const fetchStudentsPage = useCallback(
-    async ({
-      offset,
-      append,
-      includeMeta,
-    }: {
-      offset: number;
-      append: boolean;
-      includeMeta?: boolean;
-    }) => {
-      const params = new URLSearchParams({
-        organizationId,
-        offset: String(offset),
-        limit: String(pageSize),
-        filter: "all",
-      });
-      const search = debouncedSearchRef.current;
-      const useServerSearch =
-        Boolean(search) &&
-        !append &&
-        studentsLengthRef.current < totalCountRef.current;
-      if (useServerSearch) {
-        params.set("q", search);
-      }
-      if (includeMeta) {
-        params.set("includeMeta", "1");
-      }
-
-      const response = await fetch(`/api/school-admin/students?${params.toString()}`);
-      if (!response.ok) {
-        throw new Error("Failed to load students.");
-      }
-
-      const body = (await response.json()) as StudentsApiResponse;
-
-      if (body.meta) {
-        setMetrics(body.meta);
-      }
-
-      if (append) {
-        setStudents((prev) => [...prev, ...body.students]);
-        setTotalCount(body.totalCount);
-        setPageSize(body.limit);
-      } else {
-        applyTableData({
-          students: body.students,
-          totalCount: body.totalCount,
-          pageSize: body.limit,
-          hasMore: body.hasMore,
-        });
-      }
-    },
-    [applyTableData, organizationId, pageSize],
-  );
-
-  const loadStudents = useCallback(
-    async ({ append = false, offset }: { append?: boolean; offset?: number } = {}) => {
-      const requestOffset = offset ?? (append ? studentsLengthRef.current : 0);
-
-      if (append) {
-        setLoadingMore(true);
-      } else if (tableReady) {
-        setIsRefetching(true);
-      } else {
-        setInitialLoading(true);
-      }
-      setError(null);
-
-      try {
-        await fetchStudentsPage({
-          offset: requestOffset,
-          append,
-          includeMeta: !append,
-        });
-      } catch (err) {
-        void reportPortalOperationalError("school_admin", {
-          organizationId,
-          operation: "students.load",
-          error: "",
-        }, err);
-        const message = err instanceof Error ? err.message : "Failed to load students.";
-        if (!append && !tableReady) {
-          setError(message);
-        }
-      } finally {
-        setInitialLoading(false);
-        setIsRefetching(false);
-        setLoadingMore(false);
-      }
-    },
-    [fetchStudentsPage, tableReady],
-  );
-
-  const ensureClassroomsLoaded = useCallback(async () => {
-    if (previewMode || classroomsRequested) return;
-    setClassroomsRequested(true);
-    setClassroomsLoading(true);
-
-    try {
-      const response = await fetch(`/api/school/${slug}/classrooms`);
-      if (!response.ok) {
-        throw new Error("Failed to load classrooms.");
-      }
-      const payload = (await response.json()) as {
-        classrooms?: ClassroomSummary[];
-      };
-      setClassrooms(payload.classrooms ?? []);
-    } catch (err) {
-      void reportPortalOperationalError("school_admin", {
-        organizationId,
-        operation: "students.load_classrooms",
-        error: "",
-      }, err);
-      setClassrooms([]);
-    } finally {
-      setClassroomsLoading(false);
-    }
-  }, [classroomsRequested, organizationId, previewMode, slug]);
-
-  function changeRosterFilter(next: StudentRosterFilter) {
-    setRosterFilter(next);
-    setSelectedId(null);
-  }
-
-  const handleStudentHealthChange = useCallback(
-    (studentId: string, hasStandingHealthItems: boolean) => {
-      setStudents((current) =>
-        current.map((student) =>
-          student.id === studentId
-            ? { ...student, hasStandingHealthItems }
-            : student,
-        ),
-      );
-    },
-    [],
-  );
-
-  const handleSetClassrooms = useCallback(
-    async (studentId: string, classroomIds: string[]) => {
-      await ensureClassroomsLoaded();
-
-      let previousStudents: AdminEnrolledStudentSummary[] = [];
-
-      setAssigningClassroomStudentId(studentId);
-      setStudents((current) => {
-        previousStudents = current;
-        return current;
-      });
-
-      try {
-        const response = await fetch(
-          `/api/school/${slug}/students/${studentId}/classroom`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ classroomIds }),
-          },
-        );
-
-        if (!response.ok) {
-          const payload = (await response.json().catch(() => null)) as {
-            error?: string;
-          } | null;
-          throw new Error(payload?.error ?? "Failed to assign classrooms.");
-        }
-
-        const result = (await response.json()) as {
-          classroomIds: string[];
-          classroomNames: string[];
-          assignedTeachers: { id: string; name: string }[];
-          assignedTeacherNames: string;
-        };
-
-        if (classroomIds.length > 0 && result.classroomIds.length === 0) {
-          throw new Error(
-            "Selected classroom doesn't apply to this student's program.",
-          );
-        }
-
-        setStudents((current) =>
-          current.map((row) =>
-            row.id === studentId
-              ? {
-                  ...row,
-                  classroomIds: result.classroomIds,
-                  classroomNames: result.classroomNames,
-                  assignedTeachers: result.assignedTeachers,
-                  assignedTeacherNames: result.assignedTeacherNames,
-                }
-              : row,
-          ),
-        );
-
-        setMetrics((current) => {
-          const wasUnassigned = previousStudents.find((row) => row.id === studentId)
-            ? isStudentUnassigned(
-                previousStudents.find((row) => row.id === studentId)!,
-              )
-            : false;
-          const isUnassigned = isStudentUnassigned({
-            classroomNames: result.classroomNames,
-            assignedTeachers: result.assignedTeachers,
-          });
-          if (wasUnassigned === isUnassigned) return current;
-          const delta = wasUnassigned && !isUnassigned ? -1 : !wasUnassigned && isUnassigned ? 1 : 0;
-          return {
-            ...current,
-            unassignedCount: Math.max(0, current.unassignedCount + delta),
-          };
-        });
-
-        adminToast.success("Classrooms updated.");
-      } catch (error) {
-        void reportPortalOperationalError("school_admin", {
-          organizationId,
-          operation: "students.assign_classrooms",
-          error: "",
-        }, error);
-        setStudents(previousStudents);
-        adminToast.error(formatActionError(error, "Failed to assign classrooms."));
-      } finally {
-        setAssigningClassroomStudentId(null);
-      }
-    },
-    [ensureClassroomsLoaded, organizationId, slug],
-  );
-
-  const skipInitialLoadRef = useRef(true);
-  const skipSearchFetchRef = useRef(true);
-
-  useEffect(() => {
-    if (previewMode || tableDeferred) return;
-    if (skipInitialLoadRef.current) {
-      skipInitialLoadRef.current = false;
-      if (hasInitialTable) return;
-    }
-    queueMicrotask(() => {
-      void loadStudents({ offset: 0 });
-    });
-  }, [hasInitialTable, loadStudents, previewMode, tableDeferred]);
-
-  useEffect(() => {
-    if (previewMode || tableDeferred) return;
-    if (skipSearchFetchRef.current) {
-      skipSearchFetchRef.current = false;
-      return;
-    }
-    if (students.length >= totalCount && totalCount > 0) return;
-    queueMicrotask(() => {
-      void loadStudents({ offset: 0 });
-    });
-  }, [debouncedSearch, loadStudents, previewMode, students.length, tableDeferred, totalCount]);
-
-  const searchFilteredClientSide =
-    !debouncedSearch || students.length >= totalCount;
-
-  const filteredStudents = useMemo(() => {
-    let result = filterStudentsByRosterFilter(students, rosterFilter);
-    if (debouncedSearch && searchFilteredClientSide) {
-      result = result.filter((student) =>
-        matchesStudentSearch(
-          student,
-          debouncedSearch,
-          formatStudentGrade,
-          formatEnrolledStudentName,
-        ),
-      );
-    }
-    return result;
-  }, [debouncedSearch, rosterFilter, searchFilteredClientSide, students]);
-
-  useEffect(() => {
-    if (!deepLinkStudentId || initialLoading) return;
-    const match = students.find((row) => row.id === deepLinkStudentId);
-    if (match) {
-      queueMicrotask(() => setSelectedId(match.id));
-    }
-  }, [deepLinkStudentId, initialLoading, students]);
-
-  const selectedStudent =
-    filteredStudents.find((row) => row.id === selectedId) ??
-    students.find((row) => row.id === selectedId) ??
-    null;
-
-  const hasMoreStudents = students.length < totalCount;
-
-  const tableColumnCount = 7;
-  const tableMinWidth = "min-w-[1040px]";
-  const tableHeadings = [
-    "Student",
-    "Grade",
-    "Program",
-    "Classroom",
-    "Teacher",
-    "Family",
-    "Enrolled",
-  ];
-
-  const inputStyle = {
-    borderColor: "#DCE4DC",
-    backgroundColor: theme.white,
-    color: theme.ink,
+  const openPicker = (student: AdminEnrolledStudentSummary) => {
+    if (previewMode) return;
+    model.ensureClassroomsLoaded();
+    setPickerFor(student);
   };
 
-  const focusUnassignedStudents = () => {
-    changeRosterFilter("unassigned");
+  const showUnassigned = () => {
+    model.changeRosterFilter("unassigned");
     tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const showMetrics = metrics.totalCount > 0;
-  const showEmptyFilteredState =
-    tableReady &&
-    !initialLoading &&
-    filteredStudents.length === 0 &&
-    students.length > 0 &&
-    metrics.totalCount > 0;
+  const subtitle =
+    metrics.totalCount === 0
+      ? "Students appear here once their applications are marked enrolled."
+      : [
+          plural(metrics.totalCount, "enrolled student"),
+          metrics.unassignedCount > 0 ? `${metrics.unassignedCount} need a classroom or lead teacher` : "everyone is placed",
+          metrics.newEnrollmentCount > 0 ? `${metrics.newEnrollmentCount} new this month` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+
+  const pickerStudent = pickerFor ? model.students.find((s) => s.id === pickerFor.id) ?? pickerFor : null;
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14">
-          {showMetrics ? (
-            <>
-              <div className="mb-[19px] grid grid-cols-1 gap-[13px] showcase:grid-cols-4 sm:grid-cols-2 xl:grid-cols-4">
-                <AdminMetricCard
-                  theme={theme}
-                  value={String(metrics.totalCount)}
-                  label="All enrolled"
-                  accent="forest"
-                />
-                <AdminMetricCard
-                  theme={theme}
-                  value={String(metrics.unassignedCount)}
-                  label="Needs attention"
-                  accent="gold"
-                />
-                {showProgramMetrics ? (
-                  <AdminMetricCard
-                    theme={theme}
-                    value={String(metrics.programCount)}
-                    label="Programs"
-                    accent="sky"
-                  />
-                ) : null}
-                <AdminMetricCard
-                  theme={theme}
-                  value={String(metrics.newEnrollmentCount)}
-                  label="New enrollments"
-                  accent="berry"
-                />
-              </div>
+    <AdminGardenPage
+      theme={theme}
+      skinOverlays
+      data-testid="admin-students-page"
+      overlays={
+        <>
+          <StudentDetailPanel
+            open={Boolean(model.selectedId)}
+            studentId={model.selectedId}
+            student={model.selectedStudent}
+            organizationId={organizationId}
+            schoolSlug={slug}
+            theme={theme}
+            C={C}
+            classroomsPath={classroomsPath}
+            assigningClassroom={model.assigningStudentId === model.selectedId}
+            onOpenClassrooms={() => (model.selectedStudent ? openPicker(model.selectedStudent) : undefined)}
+            onStudentHealthChange={model.setStudentHealth}
+            onClose={model.closeStudent}
+          />
+          <StudentClassroomPicker
+            open={Boolean(pickerStudent)}
+            onClose={() => setPickerFor(null)}
+            studentName={pickerStudent ? formatEnrolledStudentName(pickerStudent) : ""}
+            studentProgramNames={pickerStudent?.programNames ?? []}
+            classroomIds={pickerStudent?.classroomIds ?? []}
+            classrooms={model.classrooms}
+            classroomsPath={classroomsPath}
+            loading={model.classroomsLoading}
+            loadError={model.classroomsError}
+            onRetryLoad={() => void model.retryClassrooms()}
+            onSave={(ids) => (pickerStudent ? model.setStudentClassrooms(pickerStudent.id, ids) : Promise.resolve(false))}
+          />
+        </>
+      }
+    >
+      <AdminGardenPageHeader
+        kicker="My school"
+        title={
+          <>
+            My <span className="text-[var(--sf-clay)]">students</span>
+          </>
+        }
+        subtitle={subtitle}
+        refresh={
+          previewMode || !model.tableReady
+            ? undefined
+            : {
+                onRefresh: () => void model.loadStudents({ offset: 0, announce: true }),
+                refreshing: model.isRefetching,
+                lastUpdatedAt: model.lastUpdatedAt,
+                label: "Refresh students",
+              }
+        }
+      />
 
-              {metrics.unassignedCount > 0 ? (
-                <div
-                  className="mb-[15px] flex flex-col items-start justify-between gap-3 rounded-[12px] border px-4 py-3.5 showcase:flex-row showcase:items-center sm:flex-row sm:items-center"
-                  style={{
-                    backgroundColor: "#EAF4EB",
-                    borderColor: "#C7DFCB",
-                    color: "#42694F",
-                  }}
-                >
-                  <span className="text-xs">
-                    <b>Needs attention:</b> {metrics.unassignedCount} enrolled student
-                    {metrics.unassignedCount === 1 ? "" : "s"} aren&apos;t in a classroom or
-                    are missing a lead teacher.
-                  </span>
-                  <AdminButton theme={theme} variant="soft" onClick={focusUnassignedStudents}>
-                    View unassigned →
-                  </AdminButton>
-                </div>
-              ) : null}
-            </>
+      {metrics.totalCount > 0 ? (
+        <>
+          {metrics.unassignedCount > 0 ? (
+            <GardenLeadStrip
+              icon={UsersRound}
+              kicker={`Needs attention · ${plural(metrics.unassignedCount, "student")}`}
+              title={`${plural(metrics.unassignedCount, "enrolled student")} ${
+                metrics.unassignedCount === 1 ? "isn't" : "aren't"
+              } in a classroom or ${metrics.unassignedCount === 1 ? "is" : "are"} missing a lead teacher`}
+              cta="View unassigned"
+              onClick={showUnassigned}
+              data-testid="students-view-unassigned"
+            />
           ) : null}
+          <GardenStatTiles
+            ariaLabel="Students at a glance"
+            stats={[
+              {
+                id: "all",
+                label: "All enrolled",
+                value: metrics.totalCount,
+                accent: "forest",
+                onClick: () => model.changeRosterFilter("all"),
+                active: model.rosterFilter === "all",
+              },
+              {
+                id: "unassigned",
+                label: "Needs attention",
+                value: metrics.unassignedCount,
+                accent: "gold",
+                onClick: showUnassigned,
+                active: model.rosterFilter === "unassigned",
+              },
+              ...(metrics.programCount > 1
+                ? [{ id: "programs", label: "Programs", value: metrics.programCount, accent: "sky" as const }]
+                : []),
+              {
+                id: "new",
+                label: "New enrollments",
+                value: metrics.newEnrollmentCount,
+                accent: "berry",
+                href: submissionsPath,
+                hint: "Last 30 days",
+              },
+            ]}
+          />
+        </>
+      ) : null}
 
-          <div className="mb-[15px] flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              {isRefetching ? (
-                <Loader2
-                  className="h-3.5 w-3.5 animate-spin"
-                  style={{ color: theme.primary }}
-                  aria-label="Updating students"
-                />
-              ) : null}
-              <StoryFilterPill
-                active={rosterFilter === "all"}
-                label="All"
-                count={metrics.totalCount}
-                onClick={() => changeRosterFilter("all")}
-                theme={theme}
-              />
-              {metrics.unassignedCount > 0 ? (
-                <StoryFilterPill
-                  active={rosterFilter === "unassigned"}
-                  label="Unassigned"
-                  count={metrics.unassignedCount}
-                  onClick={() => changeRosterFilter("unassigned")}
-                  theme={theme}
-                />
-              ) : null}
-            </div>
-            <div className="relative min-w-[12rem] max-w-xs flex-1 sm:max-w-sm">
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2"
-                style={{ color: "#8B9699" }}
-                aria-hidden="true"
-              />
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search students, families, or email"
-                className="w-full rounded-md border py-2 pl-9 pr-3 text-sm outline-none"
-                style={inputStyle}
-              />
-            </div>
-          </div>
+      <div ref={tableRef} className="scroll-mt-4">
+        <StudentsTableCard model={model} classroomsPath={classroomsPath} submissionsPath={submissionsPath} onOpenPicker={openPicker} />
+      </div>
+    </AdminGardenPage>
+  );
+}
 
-          {metrics.programOptions.length > 1 ? (
-            <div className="mb-[15px] flex flex-wrap items-center gap-2">
-              {metrics.programOptions.map(([programName]) => (
-                <StoryFilterPill
-                  key={programName}
-                  active={rosterFilter === programName}
-                  label={programName}
-                  onClick={() => changeRosterFilter(programName)}
-                  theme={theme}
-                />
-              ))}
-            </div>
-          ) : null}
+function StudentsTableCard({
+  model,
+  classroomsPath,
+  submissionsPath,
+  onOpenPicker,
+}: {
+  model: StudentsModel;
+  classroomsPath: string;
+  submissionsPath: string;
+  onOpenPicker: (student: AdminEnrolledStudentSummary) => void;
+}) {
+  const reduce = useReducedMotion() === true;
+  const { metrics } = model;
 
-          <div ref={tableRef}>
-            {initialLoading ? (
-              <AdminCard theme={theme} padding="none">
-                <SchoolAdminTableSkeleton
-                  C={C}
-                  rows={8}
-                  columns={tableColumnCount}
-                  showFilters={false}
-                  label="Loading students"
-                />
-              </AdminCard>
-            ) : error ? (
-              <AdminCard theme={theme} padding="canvas">
-                <p className="text-sm" style={{ color: C.error }}>
-                  {error}
-                </p>
-              </AdminCard>
-            ) : !tableReady && tableDeferred ? (
-              <AdminCard theme={theme} padding="none">
-                <SchoolAdminTableSkeleton
-                  C={C}
-                  rows={8}
-                  columns={tableColumnCount}
-                  showFilters={false}
-                  label="Loading students"
-                />
-              </AdminCard>
-            ) : metrics.totalCount === 0 ? (
-              <AdminCard theme={theme} padding="canvas">
-                <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
-                  No enrolled students yet. Mark applications as enrolled in Admissions to add
-                  students to your roster.
-                </p>
-                <Link
-                  href={submissionsPath}
-                  className="mt-3 inline-block text-sm font-extrabold"
-                  style={{ color: theme.primary }}
-                >
-                  Go to Admissions Submissions →
-                </Link>
-              </AdminCard>
-            ) : showEmptyFilteredState ? (
-              <AdminCard theme={theme} padding="canvas">
-                <p className="text-sm" style={{ color: theme.muted }}>
-                  No students match the current filters.
-                </p>
-              </AdminCard>
-            ) : (
-              <AdminCard theme={theme} padding="none" className="relative overflow-hidden">
-                {isRefetching ? (
+  if (model.initialLoading || (!model.tableReady && model.tableDeferred)) {
+    return (
+      <GCard index={2}>
+        <div className="flex flex-col gap-2" role="status" aria-live="polite">
+          <span className="sr-only">Loading students</span>
+          <GSkeleton className="h-11 w-full max-w-sm !rounded-[14px]" />
+          {Array.from({ length: 8 }).map((_, i) => (
+            <GSkeleton key={i} className="h-[58px] !rounded-[14px]" />
+          ))}
+        </div>
+      </GCard>
+    );
+  }
+  if (model.error) {
+    return (
+      <GardenLoadError
+        title="Students didn't load"
+        description={model.error}
+        onRetry={() => void model.loadStudents({ offset: 0 })}
+        retrying={model.initialLoading}
+      />
+    );
+  }
+  if (metrics.totalCount === 0) {
+    return (
+      <GCard index={2} kicker="Roster" title="No enrolled students yet">
+        <GardenEmptyState
+          icon={GraduationCap}
+          title="Your roster is empty"
+          description="Mark applications as enrolled in Admissions to add students to your roster."
+          action={
+            <Link href={submissionsPath} className={gLinkSm}>
+              Go to Admissions Submissions
+            </Link>
+          }
+        />
+      </GCard>
+    );
+  }
+
+  const filterOptions = [
+    { key: "all", label: "All", count: metrics.totalCount },
+    ...(metrics.unassignedCount > 0 ? [{ key: "unassigned", label: "Unassigned", count: metrics.unassignedCount }] : []),
+    ...(metrics.programOptions.length > 1 ? metrics.programOptions.map(([programName]) => ({ key: programName, label: programName })) : []),
+  ];
+  const shown = model.filteredStudents;
+
+  return (
+    <GCard
+      index={2}
+      kicker="Roster"
+      title="Enrolled students"
+      action={
+        <span className="text-[12.5px] font-bold tabular-nums text-[var(--sf-soft)]" aria-live="polite">
+          {model.searching || model.isRefetching ? (
+            <span className="inline-flex items-center gap-1.5">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--sf-clay)]" aria-hidden />
+              Updating…
+            </span>
+          ) : (
+            `${shown.length} shown${model.hasMore ? ` of ${model.totalCount}` : ""}`
+          )}
+        </span>
+      }
+      data-testid="students-roster"
+    >
+      <div className="mb-4 flex flex-col gap-3 border-b-[1.5px] border-dashed border-[var(--sf-ink)]/12 pb-4 lg:flex-row lg:items-center lg:justify-between">
+        <GardenFilterChips
+          options={filterOptions}
+          value={model.rosterFilter}
+          onChange={model.changeRosterFilter}
+          ariaLabel="Filter students"
+        />
+        <GardenSearchInput
+          value={model.searchQuery}
+          onChange={model.setSearchQuery}
+          placeholder="Search students, families, or email"
+          label="Search students"
+          className="w-full lg:max-w-sm"
+          data-testid="students-search"
+        />
+      </div>
+
+      {model.refetchError ? (
+        <div className="mb-4">
+          <GardenLoadError
+            title="Couldn't update the list"
+            description={`${model.refetchError} You're seeing the last students that loaded.`}
+            onRetry={() => void model.loadStudents({ offset: 0 })}
+            retrying={model.isRefetching}
+          />
+        </div>
+      ) : null}
+
+      {shown.length === 0 ? (
+        <div className="rounded-[16px] bg-[var(--sf-paper)] p-4 text-[13.5px] font-semibold text-[var(--sf-soft)]">
+          No students match {model.searchQuery.trim() ? <>&ldquo;{model.searchQuery.trim()}&rdquo;</> : "the current filters"}.{" "}
+          <button
+            type="button"
+            className={gLinkSm}
+            onClick={() => {
+              model.setSearchQuery("");
+              model.changeRosterFilter("all");
+            }}
+          >
+            Show everyone
+          </button>
+        </div>
+      ) : (
+        <GardenRefetchVeil active={model.isRefetching}>
+          {/* Phones: one tappable card per student */}
+          <ul className="m-0 flex list-none flex-col gap-2 p-0 md:hidden">
+            {shown.map((student) => {
+              const name = formatEnrolledStudentName(student);
+              const flashed = model.flashId === student.id;
+              return (
+                <li key={student.id}>
                   <div
-                    className="pointer-events-none absolute inset-0 z-10 flex items-start justify-center bg-white/55 pt-16"
-                    aria-hidden="true"
-                  >
-                    <Loader2
-                      className="h-5 w-5 animate-spin"
-                      style={{ color: theme.primary }}
-                    />
-                  </div>
-                ) : null}
-                <div
-                  className="overflow-x-auto transition-opacity duration-200"
-                  style={{ opacity: isRefetching ? 0.55 : 1 }}
-                >
-                  <table className={`w-full ${tableMinWidth} border-collapse text-left`}>
-                    <thead style={{ backgroundColor: "#FBFCFB" }}>
-                      <tr>
-                        {tableHeadings.map((heading) => (
-                          <th
-                            key={heading}
-                            className="px-[15px] py-2.5 text-left text-[10px] font-extrabold uppercase tracking-[0.08em]"
-                            style={{ color: "#8B9699" }}
-                          >
-                            {heading}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredStudents.map((student) => {
-                        const isSelected = student.id === selectedId;
-                        const isHovered = hoveredId === student.id;
-                        const rowStyle = adminStudentRowStyle(C, {
-                          isSelected,
-                          isHovered,
-                        });
-                        const studentName = formatEnrolledStudentName(student);
-                        const programLabel =
-                          student.programNames.length > 0
-                            ? student.programNames.join(", ")
-                            : "—";
-
-                        return (
-                          <tr
-                            key={student.id}
-                            onClick={() =>
-                              setSelectedId((prev) =>
-                                prev === student.id ? null : student.id,
-                              )
-                            }
-                            onMouseEnter={() => setHoveredId(student.id)}
-                            onMouseLeave={() => setHoveredId(null)}
-                            className="cursor-pointer transition-colors"
-                            style={{
-                              ...rowStyle,
-                              borderTop: "1px solid #EDF1ED",
-                            }}
-                          >
-                            <td className="px-[15px] py-3">
-                              <StudentIdentityCell
-                                name={studentName}
-                                familyName={student.familyName}
-                                photoUrl={student.profilePhotoUrl}
-                                hasStandingHealthItems={student.hasStandingHealthItems}
-                                C={C}
-                              />
-                            </td>
-                            <td
-                              className="px-[15px] py-3 text-xs"
-                              style={{ color: "#607078" }}
-                            >
-                              {formatStudentGrade(student.grade) ?? "—"}
-                            </td>
-                            <td className="px-[15px] py-3">
-                              <div
-                                className="max-w-[14rem] truncate text-xs font-semibold"
-                                style={{ color: theme.ink }}
-                              >
-                                {programLabel}
-                              </div>
-                            </td>
-                            <td className="px-[15px] py-3">
-                              <StudentClassroomCell
-                                C={C}
-                                studentId={student.id}
-                                studentName={studentName}
-                                studentProgramNames={student.programNames}
-                                classroomIds={student.classroomIds ?? []}
-                                classroomNames={student.classroomNames}
-                                classrooms={classrooms}
-                                classroomsPath={classroomsPath}
-                                classroomsLoading={classroomsLoading}
-                                classroomsLoaded={classroomsLoaded}
-                                disabled={assigningClassroomStudentId === student.id}
-                                onAssign={handleSetClassrooms}
-                                onInteract={() => void ensureClassroomsLoaded()}
-                              />
-                            </td>
-                            <td className="px-[15px] py-3">
-                              <StudentClassroomTeachersCell
-                                C={C}
-                                assignedTeachers={student.assignedTeachers}
-                                classroomNames={student.classroomNames}
-                                classroomsPath={classroomsPath}
-                              />
-                            </td>
-                            <td className="px-[15px] py-3">
-                              <StudentContactCell
-                                contactName={student.primaryContactName}
-                                contactEmail={student.primaryContactEmail}
-                              />
-                            </td>
-                            <td className="px-[15px] py-3">
-                              <StudentEnrolledCell enrolledAt={student.enrolledAt} />
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                {hasMoreStudents ? (
-                  <div
-                    className="flex justify-center border-t px-4 py-3"
-                    style={{ borderTop: "1px solid #EDF1ED" }}
+                    className={`relative flex flex-col gap-2.5 rounded-[16px] border-[1.5px] px-3.5 py-3 transition-colors duration-500 ${
+                      flashed
+                        ? "border-[var(--sf-forest)]/40 bg-[var(--sf-mint)]"
+                        : model.selectedId === student.id
+                          ? "border-[var(--sf-clay)]/40 bg-[var(--sf-accent-wash)]"
+                          : "border-[var(--sf-ink)]/10 bg-white"
+                    }`}
                   >
                     <button
                       type="button"
-                      disabled={loadingMore}
-                      onClick={() => void loadStudents({ append: true })}
-                      className="text-[11px] font-extrabold disabled:opacity-60"
-                      style={{ color: theme.primary }}
-                    >
-                      {loadingMore
-                        ? "Loading more..."
-                        : `Show more (${totalCount - students.length} remaining) →`}
-                    </button>
+                      onClick={() => model.openStudent(student.id)}
+                      aria-label={`Open ${name}`}
+                      className="absolute inset-0 rounded-[16px] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/35"
+                    />
+                    <div className="pointer-events-none flex items-start justify-between gap-2">
+                      <GardenStudentIdentity
+                        name={name}
+                        familyName={student.familyName}
+                        photoUrl={student.profilePhotoUrl}
+                        hasStandingHealthItems={student.hasStandingHealthItems}
+                      />
+                      <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-[var(--sf-ink)]/40" aria-hidden />
+                    </div>
+                    <div className="pointer-events-none text-[12.5px] font-semibold text-[var(--sf-soft)]">
+                      {[formatStudentGrade(student.grade), student.programNames.join(", ") || null].filter(Boolean).join(" · ") || "—"}
+                    </div>
+                    <div className="relative z-[1] flex flex-wrap items-center gap-2">
+                      <GardenClassroomButton
+                        classroomNames={student.classroomNames}
+                        busy={model.assigningStudentId === student.id}
+                        disabled={model.previewMode}
+                        onOpen={() => onOpenPicker(student)}
+                      />
+                      {student.assignedTeachers.length ? (
+                        <GChip tone="neutral">{student.assignedTeachers.map((t) => t.name).join(", ")}</GChip>
+                      ) : null}
+                    </div>
                   </div>
-                ) : null}
-              </AdminCard>
-            )}
-          </div>
-        </div>
-      </div>
+                </li>
+              );
+            })}
+          </ul>
 
-      <AnimatePresence>
-        {selectedStudent ? (
-          <StudentDetailPanel
-            key={selectedStudent.id}
-            student={selectedStudent}
-            organizationId={organizationId}
-            branding={branding}
-            schoolSlug={slug}
-            classrooms={classrooms}
-            classroomsPath={classroomsPath}
-            classroomsLoading={classroomsLoading}
-            classroomsLoaded={classroomsLoaded}
-            assigningClassroom={assigningClassroomStudentId === selectedStudent.id}
-            onAssignClassrooms={handleSetClassrooms}
-            onRequestClassrooms={() => void ensureClassroomsLoaded()}
-            onStudentHealthChange={handleStudentHealthChange}
-            onClose={() => setSelectedId(null)}
-          />
-        ) : null}
-      </AnimatePresence>
-    </div>
+          {/* Tablet and up: the full table */}
+          <div className="-mx-1 hidden overflow-x-auto md:block">
+            <table className={`${G_TABLE} min-w-[1040px]`}>
+              <thead>
+                <tr>
+                  {HEADINGS.map((heading) => (
+                    <th key={heading} scope="col" className={G_TH}>
+                      {heading}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <motion.tbody initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
+                {shown.map((student) => {
+                  const name = formatEnrolledStudentName(student);
+                  const open = () => model.openStudent(student.id);
+                  return (
+                    <tr
+                      key={student.id}
+                      tabIndex={0}
+                      onClick={open}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          open();
+                        }
+                      }}
+                      aria-label={`Open ${name}`}
+                      aria-selected={model.selectedId === student.id}
+                      className={gRowClass({
+                        interactive: true,
+                        selected: model.selectedId === student.id,
+                        flashed: model.flashId === student.id,
+                      })}
+                    >
+                      <td className={G_TD}>
+                        <GardenStudentIdentity
+                          name={name}
+                          familyName={student.familyName}
+                          photoUrl={student.profilePhotoUrl}
+                          hasStandingHealthItems={student.hasStandingHealthItems}
+                        />
+                      </td>
+                      <td className={`${G_TD} text-[13px] font-bold text-[var(--sf-ink)]/75`}>{formatStudentGrade(student.grade) ?? "—"}</td>
+                      <td className={G_TD}>
+                        <span className="block max-w-[14rem] truncate text-[13px] font-extrabold text-[var(--sf-ink)]">
+                          {student.programNames.length ? student.programNames.join(", ") : "—"}
+                        </span>
+                      </td>
+                      <td className={G_TD}>
+                        <GardenClassroomButton
+                          classroomNames={student.classroomNames}
+                          busy={model.assigningStudentId === student.id}
+                          disabled={model.previewMode}
+                          onOpen={() => onOpenPicker(student)}
+                        />
+                      </td>
+                      <td className={G_TD}>
+                        <GardenStudentTeachers student={student} classroomsPath={classroomsPath} />
+                      </td>
+                      <td className={G_TD}>
+                        <GardenStudentContact name={student.primaryContactName} email={student.primaryContactEmail} />
+                      </td>
+                      <td className={G_TD}>
+                        <GardenStudentEnrolled enrolledAt={student.enrolledAt} />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </motion.tbody>
+            </table>
+          </div>
+        </GardenRefetchVeil>
+      )}
+
+      {model.hasMore ? (
+        <div className="mt-4 flex flex-col items-center gap-1.5 border-t-[1.5px] border-dashed border-[var(--sf-ink)]/12 pt-4">
+          <button
+            type="button"
+            className={gBtnOutlineSm}
+            disabled={model.loadingMore}
+            aria-busy={model.loadingMore || undefined}
+            onClick={() => void model.loadStudents({ append: true })}
+            data-testid="students-load-more"
+          >
+            <BusyLabel busy={model.loadingMore} busyLabel="Loading more…">
+              Show more
+            </BusyLabel>
+          </button>
+          <span className="text-[12px] font-semibold tabular-nums text-[var(--sf-soft)]">
+            {model.students.length} of {model.totalCount} loaded · {model.remaining} remaining
+          </span>
+        </div>
+      ) : null}
+    </GCard>
   );
 }

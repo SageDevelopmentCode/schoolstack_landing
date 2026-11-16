@@ -20,12 +20,16 @@ import {
 import { saveFamilyPaymentMethod } from "@/lib/tuition/autopay";
 import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import { sendTuitionAchSettlementFailedNotifications } from "@/lib/stripe/ach-bank-verification-notifications";
-import { getPaymentById } from "@/lib/stripe/application-payments";
+import {
+  getPaymentById,
+  listPaymentRecordsPaginated,
+} from "@/lib/stripe/application-payments";
 import {
   handleAccountUpdated,
   handleCheckoutSessionAsyncPaymentFailed,
   handleCheckoutSessionAsyncPaymentSucceeded,
   handleCheckoutSessionCompleted,
+  handleCheckoutSessionExpired,
   handlePaymentIntentPaymentFailed,
   handlePaymentIntentSucceeded,
 } from "@/lib/stripe/webhook-handlers";
@@ -391,6 +395,69 @@ describeIntegration("handleCheckoutSessionCompleted", () => {
     assert.equal(paymentRow?.status, "failed");
     assert.equal(checklistItem?.payment_status, "pending");
     assert.equal(checklistItem?.status, "not_started");
+  });
+});
+
+describeIntegration("handleCheckoutSessionExpired", () => {
+  before(() => {
+    setupWebhookIntegrationTestEnv();
+  });
+
+  it("cancels abandoned pending payments and hides them from the ledger", async () => {
+    const admin = createTestAdminClient();
+    const fixture = await seedEnrollmentChecklistPayment(admin);
+
+    await handleCheckoutSessionExpired(admin, {
+      id: fixture.checkoutSessionId,
+      object: "checkout.session",
+      status: "expired",
+      payment_intent: null,
+      metadata: {},
+    } as unknown as Stripe.Checkout.Session);
+
+    const payment = await getPaymentById(admin, fixture.paymentId);
+    assert.equal(payment?.status, "canceled");
+
+    const ledger = await listPaymentRecordsPaginated(admin, {
+      organizationId: fixture.organizationId,
+    });
+    assert.ok(!ledger.records.some((record) => record.id === fixture.paymentId));
+
+    const { data: meta, error: metaError } = await admin.rpc(
+      "get_organization_payment_transactions_meta",
+      { p_organization_id: fixture.organizationId },
+    );
+    // Service role is not an org admin, so the RPC may refuse; only check
+    // the counts when it answers.
+    if (!metaError) {
+      assert.equal(
+        (meta as { status_counts: Record<string, number> }).status_counts
+          .canceled,
+        undefined,
+      );
+    }
+  });
+
+  it("leaves pending payments that already have a PaymentIntent", async () => {
+    const admin = createTestAdminClient();
+    const fixture = await seedEnrollmentChecklistPayment(admin);
+    const paymentIntentId = `pi_test_${randomUUID().slice(0, 8)}`;
+
+    await admin
+      .from("application_payments")
+      .update({ stripe_payment_intent_id: paymentIntentId })
+      .eq("id", fixture.paymentId);
+
+    await handleCheckoutSessionExpired(admin, {
+      id: fixture.checkoutSessionId,
+      object: "checkout.session",
+      status: "expired",
+      payment_intent: paymentIntentId,
+      metadata: {},
+    } as unknown as Stripe.Checkout.Session);
+
+    const payment = await getPaymentById(admin, fixture.paymentId);
+    assert.equal(payment?.status, "pending");
   });
 });
 

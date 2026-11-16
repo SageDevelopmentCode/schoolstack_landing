@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Loader2 } from "lucide-react";
+import { Check, Loader2, RotateCw } from "lucide-react";
+import { GChip } from "@/components/school-parent/garden/ui";
 import CreateCommitteeProjectModal, {
   type CreateCommitteeProjectFormInput,
 } from "@/components/school-admin/committees/modals/CreateCommitteeProjectModal";
-import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
-import AdminCard from "@/components/school-admin/ui/story/AdminCard";
+import { CommitteeCard, CommitteeConfirmDialog } from "@/components/school-admin/committees/committee-ui";
 import type { CommitteesApiNamespace } from "@/components/portal-committees/PortalCommitteesPage";
 import { committeesApiBaseForPortal } from "@/lib/committees/committees-api-base";
 import {
@@ -34,7 +34,8 @@ import type { Committee } from "@/lib/committees/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import type { CoopSupplyColorLegendEntry, CoopSupplyListItem } from "@/lib/admissions/program-coop-supply-list-mock";
-import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { formatActionError } from "@/lib/school-admin/admin-toast";
+import { useCommitteeNotify } from "@/components/school-admin/committees/committee-surface";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import CommitteeProjectDetailView, {
   type CommitteeProjectDetailTab,
@@ -89,6 +90,7 @@ export default function CommitteeProjectsSection({
   initialProjectId = null,
 }: CommitteeProjectsSectionProps) {
   const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
+  const notify = useCommitteeNotify();
   const [projects, setProjects] = useState<CommitteeProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<ProjectsView>("overview");
@@ -125,7 +127,7 @@ export default function CommitteeProjectsSection({
       const rows = await listCommitteeProjects(supabase, committee.id);
       setProjects(rows);
     } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to load projects."));
+      notify.error(formatActionError(err, "Failed to load projects."));
       void reportPortalOperationalError("school_admin", {
         organizationId,
         operation: "committees.projects.load",
@@ -135,7 +137,7 @@ export default function CommitteeProjectsSection({
     } finally {
       setLoading(false);
     }
-  }, [committee.id, organizationId, supabase]);
+  }, [committee.id, notify, organizationId, supabase]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -156,7 +158,7 @@ export default function CommitteeProjectsSection({
           ),
         );
       } catch (err) {
-        adminToast.error(formatActionError(err, "Failed to load supply list."));
+        notify.error(formatActionError(err, "Failed to load supply list."));
         void reportPortalOperationalError("school_admin", {
           organizationId,
           operation: "committees.projects.supply_load",
@@ -166,7 +168,7 @@ export default function CommitteeProjectsSection({
         setSupplyLoading(false);
       }
     },
-    [organizationId, supabase],
+    [notify, organizationId, supabase],
   );
 
   const handleOpenProject = useCallback(
@@ -212,8 +214,16 @@ export default function CommitteeProjectsSection({
       setProjects((current) => [...current, created]);
       setCreateModalOpen(false);
       handleOpenProject(created.id);
+      notify.success(`${created.name || "Project"} created.`, {
+        id: "committee-project-create",
+        description: "It's open now — add supplies or fill in the details. Changes save as you type.",
+      });
     } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to create project."));
+      notify.error(formatActionError(err, "Failed to create project."), {
+        title: "Couldn't create the project",
+        id: "committee-project-create",
+        retry: () => void handleCreateProjectSubmit(input),
+      });
       void reportPortalOperationalError("school_admin", {
         organizationId,
         operation: "committees.projects.create",
@@ -224,20 +234,53 @@ export default function CommitteeProjectsSection({
     }
   };
 
+  /** Autosave state for the open project (shown as a chip in Garden). */
+  const [projectSave, setProjectSave] = useState<
+    | { state: "idle" | "saving" | "saved" }
+    | { state: "error"; retry: () => void }
+  >({ state: "idle" });
+  const projectSaveSeq = useRef(0);
+  /** Latest saver, so "Retry" re-sends the same patch without a self-reference. */
+  const persistRef = useRef<((projectId: string, patch: Parameters<typeof updateCommitteeProject>[2]) => void) | null>(null);
+
   const persistProjectPatch = useCallback(
     (projectId: string, patch: Parameters<typeof updateCommitteeProject>[2]) => {
       if (readOnly) return;
-      void updateCommitteeProject(supabase, projectId, patch).catch((err) => {
-        adminToast.error(formatActionError(err, "Failed to save project."));
-        void reportPortalOperationalError("school_admin", {
-          organizationId,
-          operation: "committees.projects.update",
-          error: "",
-        }, err);
-      });
+      const seq = ++projectSaveSeq.current;
+      setProjectSave({ state: "saving" });
+      const retry = () => persistRef.current?.(projectId, patch);
+      void updateCommitteeProject(supabase, projectId, patch)
+        .then(() => {
+          if (seq !== projectSaveSeq.current) return;
+          notify.clearError("committee-project-save");
+          setProjectSave({ state: "saved" });
+        })
+        .catch((err) => {
+          if (seq === projectSaveSeq.current) setProjectSave({ state: "error", retry });
+          notify.error(formatActionError(err, "Failed to save project."), {
+            title: "Couldn't save the project",
+            id: "committee-project-save",
+            retry,
+          });
+          void reportPortalOperationalError("school_admin", {
+            organizationId,
+            operation: "committees.projects.update",
+            error: "",
+          }, err);
+        });
     },
-    [organizationId, readOnly, supabase],
+    [notify, organizationId, readOnly, supabase],
   );
+
+  useEffect(() => {
+    persistRef.current = persistProjectPatch;
+  }, [persistProjectPatch]);
+
+  useEffect(() => {
+    if (projectSave.state !== "saved") return undefined;
+    const timer = window.setTimeout(() => setProjectSave({ state: "idle" }), 2500);
+    return () => window.clearTimeout(timer);
+  }, [projectSave]);
 
   const flushPendingProjectSave = useCallback(() => {
     if (saveProjectTimeoutRef.current) {
@@ -345,7 +388,7 @@ export default function CommitteeProjectsSection({
       );
       return persisted;
     } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to add supply item."));
+      notify.error(formatActionError(err, "Failed to add supply item."));
       void reportPortalOperationalError("school_admin", {
         organizationId,
         operation: "committees.projects.supply_add",
@@ -358,7 +401,16 @@ export default function CommitteeProjectsSection({
   const handleRemoveSupplyItem = async (projectId: string, item: CoopSupplyListItem) => {
     if (readOnly) return;
     const ctx = supplyContext(projectId);
-    await deleteCommitteeProjectSupplyItem(supabase, ctx, item.id, item.name);
+    try {
+      await deleteCommitteeProjectSupplyItem(supabase, ctx, item.id, item.name);
+    } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.projects.supply_remove",
+        error: "",
+      }, err);
+      throw err;
+    }
     setProjects((current) =>
       current.map((project) =>
         project.id === projectId
@@ -378,7 +430,17 @@ export default function CommitteeProjectsSection({
   ) => {
     if (readOnly) return;
     const ctx = supplyContext(projectId);
-    const persisted = await replaceCommitteeProjectSupplyColorLegend(supabase, ctx, legend);
+    let persisted: CoopSupplyColorLegendEntry[];
+    try {
+      persisted = await replaceCommitteeProjectSupplyColorLegend(supabase, ctx, legend);
+    } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.projects.supply_legend",
+        error: "",
+      }, err);
+      throw err;
+    }
     setProjects((current) =>
       current.map((project) =>
         project.id === projectId ? { ...project, colorLegend: persisted } : project,
@@ -406,9 +468,9 @@ export default function CommitteeProjectsSection({
         handleBackToOverview();
       }
       setDeleteTarget(null);
-      adminToast.success("Project deleted.");
+      notify.success("Project deleted.");
     } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to delete project."));
+      notify.error(formatActionError(err, "Failed to delete project."));
       void reportPortalOperationalError("school_admin", {
         organizationId,
         operation: "committees.projects.delete",
@@ -420,7 +482,8 @@ export default function CommitteeProjectsSection({
   };
 
   const deleteConfirmDialog = (
-    <ConfirmDialog
+    <CommitteeConfirmDialog
+      theme={theme}
       C={C}
       open={deleteTarget != null}
       title="Delete project?"
@@ -443,12 +506,12 @@ export default function CommitteeProjectsSection({
 
   if (loading) {
     return (
-      <AdminCard theme={theme} className="flex items-center justify-center gap-2 py-16">
+      <CommitteeCard theme={theme} className="flex items-center justify-center gap-2 py-16">
         <Loader2 className="h-4 w-4 animate-spin" />
         <span className="text-sm" style={{ color: C.textSecondary }}>
           Loading projects…
         </span>
-      </AdminCard>
+      </CommitteeCard>
     );
   }
 
@@ -471,6 +534,26 @@ export default function CommitteeProjectsSection({
           onRemoveSupplyItem={(item) => handleRemoveSupplyItem(selectedProject.id, item)}
           onLegendChange={(legend) => handleLegendChange(selectedProject.id, legend)}
           onItemsChange={(items) => void handleItemsChange(selectedProject.id, items)}
+          saveStatus={
+            projectSave.state === "saving" ? (
+              <GChip tone="info" className="inline-flex items-center gap-1">
+                <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                Saving…
+              </GChip>
+            ) : projectSave.state === "saved" ? (
+              <GChip tone="success">
+                <Check className="h-3 w-3" aria-hidden />
+                Saved
+              </GChip>
+            ) : projectSave.state === "error" ? (
+              <button type="button" onClick={projectSave.retry} className="rounded-full">
+                <GChip tone="alert">
+                  <RotateCw className="h-3 w-3" aria-hidden />
+                  Couldn&apos;t save · Retry
+                </GChip>
+              </button>
+            ) : null
+          }
           onDeleteProject={
             readOnly ? undefined : () => requestDeleteProject(selectedProject)
           }

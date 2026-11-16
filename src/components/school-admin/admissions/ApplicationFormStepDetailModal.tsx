@@ -1,5 +1,9 @@
 "use client";
 
+import { GDialog } from "@/components/school-parent/garden/GDialog";
+import { PortalIsland } from "@/components/school-parent/garden/ParentGardenFrame";
+import { GChip, type GChipTone } from "@/components/school-parent/garden/ui";
+import { useSubmissionDetailStory } from "./SubmissionDetailStoryContext";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import ApplicationReadOnlyView from "@/components/admissions/ApplicationReadOnlyView";
@@ -32,6 +36,13 @@ type ApplicationFormStepDetailModalProps = {
   feeStatus: string;
   onClose: () => void;
 };
+
+function gardenStepTone(status: string): GChipTone {
+  if (/complete|approved|paid|signed|waived|not_required/.test(status)) return "success";
+  if (/progress|submitted|review|pending/.test(status)) return "info";
+  if (/reject|fail|declin/.test(status)) return "alert";
+  return "neutral";
+}
 
 function FeeReadOnlyPanel({
   C,
@@ -77,6 +88,43 @@ export default function ApplicationFormStepDetailModal({
   feeStatus,
   onClose,
 }: ApplicationFormStepDetailModalProps) {
+  const { variant, theme } = useSubmissionDetailStory();
+  if (variant === "garden" && theme) {
+    return (
+      <GDialog
+        theme={theme}
+        open={open && step != null}
+        onClose={onClose}
+        size="xl"
+        title={
+          <span className="inline-flex flex-wrap items-center gap-2">
+            {step?.label}
+            <GChip tone={gardenStepTone(stepStatus)}>{checklistItemStatusLabel(stepStatus)}</GChip>
+          </span>
+        }
+        data-testid="application-step-dialog"
+      >
+        {step ? (
+          step.kind === "fee" ? (
+            <FeeReadOnlyPanel C={C} detail={detail} feeStatus={feeStatus} />
+          ) : (
+            <PortalIsland>
+              <ApplicationReadOnlyView
+                branding={branding}
+                schoolName={schoolName}
+                schoolSlug={schoolSlug}
+                application={detail}
+                embedded
+                layout="detail"
+                view={step.kind === "acknowledgments" ? "acknowledgments" : "section"}
+                sectionId={step.kind === "section" ? step.id : undefined}
+              />
+            </PortalIsland>
+          )
+        ) : null}
+      </GDialog>
+    );
+  }
   return (
     <AnimatePresence>
       {open && step ? (

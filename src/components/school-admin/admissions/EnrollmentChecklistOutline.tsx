@@ -170,6 +170,7 @@ function ChecklistOutlineRow({
     <div
       className={`group mb-1.5 flex items-center gap-0.5 rounded-sm transition-colors ${indent ? "ml-6 mr-3 w-[calc(100%-36px)]" : "mx-3 w-[calc(100%-24px)]"}`}
       style={outlineItemCardStyle(C, active)}
+      data-flows-outline-row={active ? "active" : "idle"}
       onMouseEnter={(e) => {
         if (!active) {
           e.currentTarget.style.backgroundColor = C.elevated;
@@ -206,10 +207,10 @@ function ChecklistOutlineRow({
         ) : null}
         <span className="min-w-0 flex-1">
           <span
-            className="flex items-center gap-1.5 truncate text-xs font-medium"
+            className="flex items-start gap-1.5 text-xs font-medium"
             style={{ color: active ? C.accent : C.textPrimary }}
           >
-            {item.label}
+            <span className="line-clamp-2 break-words">{item.label}</span>
             {variantBadge ? (
               <span
                 className="shrink-0 rounded px-1 py-0.5 text-[9px] font-medium uppercase"
@@ -506,8 +507,9 @@ export default function EnrollmentChecklistOutline({
   if (theme) {
     return (
       <div
-        className="flex h-full w-[240px] shrink-0 flex-col overflow-hidden border-r bg-white"
+        className="flex h-full w-[240px] shrink-0 flex-col overflow-hidden border-r bg-white lg:w-[264px]"
         style={{ borderColor: "#EDF1ED" }}
+        data-flows-outline
       >
         {listContent}
       </div>

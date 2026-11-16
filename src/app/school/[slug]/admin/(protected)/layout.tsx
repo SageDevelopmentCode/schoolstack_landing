@@ -18,6 +18,7 @@ import { createClient } from "@/utils/supabase/server";
 import {
   getCachedActivityNotificationUnreadCount,
   getCachedAdminMessagesUnreadCount,
+  getCachedAdminNavCounts,
 } from "@/lib/school-admin/cached-admin-unread-counts";
 
 export const dynamic = "force-dynamic";
@@ -77,7 +78,16 @@ export default async function SchoolAdminProtectedLayout({
   const userProfile = user ? getSchoolAdminUserProfile(user) : null;
   const admin = createAdminClient();
   const messagesEnabled = Boolean(org.features.admin.messages);
-  const [initialMessagesUnreadCount, initialActivityUnreadCount] = user
+  const navCountFlags = {
+    staffHoursPending: Boolean(org.features.admin.my_school),
+    applicationsToReview: Boolean(org.features.admin.admissions),
+    committeeJoinRequests: Boolean(org.features.admin.committees),
+  };
+  const [
+    initialMessagesUnreadCount,
+    initialActivityUnreadCount,
+    initialNavCounts,
+  ] = user
     ? await Promise.all([
         messagesEnabled
           ? getCachedAdminMessagesUnreadCount(
@@ -90,8 +100,12 @@ export default async function SchoolAdminProtectedLayout({
         getCachedActivityNotificationUnreadCount(admin, user.id, org.id).catch(
           () => 0,
         ),
+        getCachedAdminNavCounts(admin, org.id, navCountFlags, {
+          organizationName: org.name,
+          organizationSlug: slug,
+        }).catch(() => null),
       ])
-    : [0, 0];
+    : [0, 0, null];
 
   const linkContext = user
     ? await getPortalAccountLinkContext(supabase, org.id, user.id)
@@ -110,6 +124,7 @@ export default async function SchoolAdminProtectedLayout({
       userProfile={userProfile}
       initialMessagesUnreadCount={initialMessagesUnreadCount}
       initialActivityUnreadCount={initialActivityUnreadCount}
+      initialNavCounts={initialNavCounts ?? undefined}
       openPortalLinksInNewTab={openPortalLinksInNewTab}
       fridayBranchParentPortalPaused={org.fridayBranchSettings.parent_portal_paused}
       plan={org.plan}

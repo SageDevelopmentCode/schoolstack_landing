@@ -1,11 +1,12 @@
 import { Slot, usePathname, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import type { Href } from 'expo-router';
 
 import { AnimatedTabContent } from '@/components/animated-tab-content';
 import { PortalPreviewBanner } from '@/components/platform-admin/portal-preview-banner';
+import { GardenToastProvider } from '@/components/parent/garden/toast';
 import { ParentMoreMenuSheet } from '@/components/parent/parent-more-menu-sheet';
 import {
   ParentPortalCoopTabBarBanner,
@@ -84,7 +85,6 @@ export function ParentPortalShell() {
   );
   const reserveCoopBannerChrome = showCoopTabBarBanner || showCoopTabBarBannerSkeleton;
   const bottomChromeHeight = resolveParentBottomChromeHeight(reserveCoopBannerChrome);
-  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     void refreshUnreadCount();
@@ -166,51 +166,43 @@ export function ParentPortalShell() {
     ) : null;
 
   return (
-    <>
-      {isPreview ? <PortalPreviewBanner onExit={() => void exitPreview()} /> : null}
-      <View
-        testID={showTabBar && !portalContextsLoading ? 'parent-portal-ready' : undefined}
-        style={[
-          styles.content,
-          showTabBar ? { paddingBottom: bottomChromeHeight } : null,
-        ]}>
-        <AnimatedTabContent transitionKey={showTabBar ? pathTab : null}>
-          <Slot />
-        </AnimatedTabContent>
-      </View>
-      {showTabBar && activeTab ? (
+    // Gestures + Garden toasts wrap the whole shell, so the tab bar and the More sheet can toast too.
+    <GestureHandlerRootView style={styles.content}>
+      <GardenToastProvider bottomOffset={showTabBar ? bottomChromeHeight + 10 : 12}>
+        {isPreview ? <PortalPreviewBanner onExit={() => void exitPreview()} /> : null}
         <View
-          pointerEvents="box-none"
-          style={[styles.bottomChrome, { bottom: insets.bottom + 4 }]}>
-          {coopBanner}
+          testID={showTabBar && !portalContextsLoading ? 'parent-portal-ready' : undefined}
+          style={[
+            styles.content,
+            showTabBar ? { paddingBottom: bottomChromeHeight } : null,
+          ]}>
+          <AnimatedTabContent transitionKey={showTabBar ? pathTab : null}>
+            <Slot />
+          </AnimatedTabContent>
+        </View>
+        {showTabBar && activeTab ? (
           <ParentFloatingTabBar
-            embedded
+            header={coopBanner}
             tabs={tabBarTabs}
             activeTab={activeTab}
+            moreSheetOpen={moreSheetOpen}
             onChange={handleTabChange}
             messagesUnreadCount={unreadCount}
           />
-        </View>
-      ) : null}
-      <ParentMoreMenuSheet
-        visible={moreSheetOpen}
-        onClose={() => setMoreSheetOpen(false)}
-        onSelect={handleSelectMoreItem}
-        onSelectAccount={handleSelectAccount}
-      />
-    </>
+        ) : null}
+        <ParentMoreMenuSheet
+          visible={moreSheetOpen}
+          onClose={() => setMoreSheetOpen(false)}
+          onSelect={handleSelectMoreItem}
+          onSelectAccount={handleSelectAccount}
+        />
+      </GardenToastProvider>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
   content: {
     flex: 1,
-  },
-  bottomChrome: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    zIndex: 30,
-    alignItems: 'stretch',
   },
 });

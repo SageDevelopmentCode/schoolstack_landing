@@ -35,7 +35,8 @@ Companion files:
 |---|---|---|
 | Home page and public marketing pages (`/about`, `/customers`, `/blog`, `/tools` and the free tools, `/get-started`, `/try`, landing pages) | **Full Garden** (this file) | Pages not yet migrated still use Bright (`.agents/skills/bright-marketing-design`). Migrate them to Garden when you touch them. |
 | MudKitchen-owned app surfaces: auth, `/try` signup, onboarding, free-plan upgrade, empty states, success moments, mobile onboarding | **Calm Garden** (`in-app.md`) | Same tokens and type, far less play. |
-| School-branded portal content (school admin, parent, teacher; web and mobile) | **School Day Story** (`admin-workspace-design`, `parent-portal-story-design`) | The school's accent colour owns it. Borrow only the Garden craft rules in `in-app.md`. |
+| School-branded **parent** portal (web) | **Garden dashboard** (`parent-portal-garden-design`) | Garden type and materials at portal density; the school's accent drives the action colour through `ParentGardenFrame`. |
+| School-branded admin and teacher portals (web), and all portals on mobile | **School Day Story** (`admin-workspace-design`) | The school's accent colour owns it. Borrow only the Garden craft rules in `in-app.md`. |
 | Internal superadmin (`src/components/admin/AdminShell.tsx`) | `.admin-app` slate tokens | Don't restyle. |
 
 ## 2. The feel

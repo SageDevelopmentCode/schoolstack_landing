@@ -1,390 +1,224 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence } from "framer-motion";
+import { Fragment } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AlertTriangle, ArrowDown, ArrowRight, RotateCcw } from "lucide-react";
 import ParentChildRecordWorkspace from "@/components/school-parent/children/ParentChildRecordWorkspace";
-import ParentChildrenLearnerStrip from "@/components/school-parent/children/ParentChildrenLearnerStrip";
-import ParentChildrenOverview from "@/components/school-parent/children/ParentChildrenOverview";
-import ParentChildrenOverviewSkeleton from "@/components/school-parent/children/ParentChildrenOverviewSkeleton";
-import ParentChildrenRecordSkeleton from "@/components/school-parent/children/ParentChildrenRecordSkeleton";
-import ParentChildrenStoryHeader from "@/components/school-parent/children/ParentChildrenStoryHeader";
+import ChildNextStepsCard from "@/components/school-parent/children/garden/ChildNextStepsCard";
+import ChildRecordSkeleton from "@/components/school-parent/children/garden/ChildRecordSkeleton";
+import ChildSnapshotCard from "@/components/school-parent/children/garden/ChildSnapshotCard";
+import ChildTeamCard from "@/components/school-parent/children/garden/ChildTeamCard";
+import ChildrenSwitcher from "@/components/school-parent/children/garden/ChildrenSwitcher";
 import {
-  isParentChildRecordSection,
+  familyChildrenSubtitle,
+  formatChildrenPageDate,
   programPortalChildrenEmptyMessage,
-  type ParentChildRecordSection,
 } from "@/components/school-parent/children/parent-children-utils";
-import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
-import ParentCard from "@/components/school-parent/ui/ParentCard";
-import { loadEnrollmentChecklistForApplication } from "@/lib/admissions/enrollment-checklist-materialization";
-import type {
-  ChildProfileData,
-  FamilyChildOverview,
-  FamilyUserProfile,
-} from "@/lib/admissions/parent-portal-access";
-import { loadApplicationDetail } from "@/lib/admissions/parent-portal-access";
-import type { StudentHealthProfile } from "@/components/school-parent/health/parent-health-types";
-import { fetchAssignedTeachersForStudent } from "@/lib/school-parent/fetch-assigned-teachers";
-import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import { createClient } from "@/utils/supabase/client";
-import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
+import {
+  useParentChildrenModel,
+  type ParentChildrenPageProps,
+} from "@/components/school-parent/children/useParentChildrenModel";
+import ParentGardenFrame from "@/components/school-parent/garden/ParentGardenFrame";
+import ParentGardenPageHeader from "@/components/school-parent/garden/ParentGardenPageHeader";
+import { PORTAL_EASE } from "@/components/school-parent/garden/motion";
+import { GCard, GIcon, gBtnOutlineSm, gBtnPopSm } from "@/components/school-parent/garden/ui";
+import { PORTAL_HOME_CONTAINER_CLASS } from "@/lib/portal-home/layout";
 
-type ParentChildrenPageProps = {
-  branding: OrganizationBranding;
-  schoolName: string;
-  schoolSlug: string;
-  organizationId: string;
-  familyChildren: FamilyChildOverview[];
-  userProfile?: FamilyUserProfile;
-  childProfiles?: Record<string, ChildProfileData>;
-  initialHealthProfiles?: Record<string, StudentHealthProfile>;
-  previewBasePath?: string;
-  previewMode?: boolean;
-  programPortalLabel?: string;
-};
-
-export default function ParentChildrenPage({
-  branding,
-  schoolName,
-  schoolSlug,
-  organizationId,
-  familyChildren,
-  userProfile: _userProfile,
-  childProfiles: initialProfiles,
-  initialHealthProfiles,
-  previewBasePath,
-  previewMode = false,
-  programPortalLabel,
-}: ParentChildrenPageProps) {
-  const { theme, adminCompat } = useParentTheme();
-  const supabase = useMemo(() => createClient(), []);
-  const [children, setChildren] = useState(familyChildren);
-  const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(
-    familyChildren[0]?.applicationId ?? null,
-  );
-  const [profiles, setProfiles] = useState<Record<string, ChildProfileData>>(
-    initialProfiles ?? {},
-  );
-  const [healthProfiles, setHealthProfiles] = useState<Record<string, StudentHealthProfile>>(
-    initialHealthProfiles ?? {},
-  );
-  const initialApplicationId = familyChildren[0]?.applicationId ?? null;
-  const [profileLoading, setProfileLoading] = useState(
-    () =>
-      !previewMode &&
-      Boolean(initialApplicationId) &&
-      !(initialProfiles?.[initialApplicationId ?? ""]),
-  );
-  const [profileError, setProfileError] = useState<string | null>(null);
-  const [recordSection, setRecordSection] = useState<ParentChildRecordSection>("application");
-  const recordWorkspaceRef = useRef<HTMLElement>(null);
-  const applyDashboardHref = previewBasePath ?? `/school/${schoolSlug}/apply`;
-  const readOnly = Boolean(previewBasePath || previewMode);
-
-  const selectedChild = useMemo(
-    () => children.find((child) => child.applicationId === selectedApplicationId) ?? null,
-    [children, selectedApplicationId],
-  );
-
-  const selectedProfile = selectedApplicationId
-    ? profiles[selectedApplicationId] ?? null
-    : null;
-
-  const selectedHealthProfile =
-    selectedChild?.studentId != null
-      ? healthProfiles[selectedChild.studentId] ?? null
-      : null;
-
-  const handleHealthProfileChange = useCallback((studentId: string, profile: StudentHealthProfile) => {
-    setHealthProfiles((prev) => ({
-      ...prev,
-      [studentId]: profile,
-    }));
-  }, []);
-
-  const isRecordLoading =
-    Boolean(selectedChild) && !selectedProfile?.application && !profileError;
-
-  const handlePhotoUpdated = useCallback(
-    (applicationId: string, profilePhotoUrl: string) => {
-      setChildren((prev) =>
-        prev.map((child) =>
-          child.applicationId === applicationId
-            ? { ...child, profilePhotoUrl }
-            : child,
-        ),
-      );
-      setProfiles((prev) => {
-        const existing = prev[applicationId];
-        if (!existing) return prev;
-        return {
-          ...prev,
-          [applicationId]: {
-            ...existing,
-            application: { ...existing.application, profilePhotoUrl },
-          },
-        };
-      });
-    },
-    [],
-  );
-
-  const loadProfile = useCallback(
-    async (applicationId: string) => {
-      if (profiles[applicationId]) {
-        setProfileLoading(false);
-        return;
-      }
-      if (previewMode) {
-        setProfileLoading(false);
-        return;
-      }
-      setProfileLoading(true);
-      setProfileError(null);
-      let res: Response | undefined;
-      try {
-        if (previewBasePath) {
-          const [application, checklist] = await Promise.all([
-            loadApplicationDetail(supabase, applicationId, organizationId),
-            loadEnrollmentChecklistForApplication(
-              supabase,
-              applicationId,
-              organizationId,
-            ),
-          ]);
-          if (!application) {
-            setProfileError("Could not load this student profile.");
-            return;
-          }
-          const assignedTeachers = application.studentId
-            ? await fetchAssignedTeachersForStudent(organizationId, application.studentId)
-            : [];
-          setProfiles((prev) => ({
-            ...prev,
-            [applicationId]: { application, checklist, assignedTeachers },
-          }));
-          return;
-        }
-
-        const params = new URLSearchParams({ organizationId });
-        res = await fetch(
-          `/api/parent-portal/children/${applicationId}/profile?${params}`,
-        );
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          setProfileError(data.error ?? "Could not load this student profile.");
-          void reportPortalOperationalError(
-            "parent_portal",
-            {
-              organizationId,
-              operation: "children.load_profile",
-              error: "",
-            },
-            new Error(data.error ?? "Could not load this student profile."),
-            res.status,
-          );
-          return;
-        }
-        if (!data.profile?.application) {
-          setProfileError("Could not load this student profile.");
-          return;
-        }
-        setProfiles((prev) => ({
-          ...prev,
-          [applicationId]: data.profile,
-        }));
-      } catch (err) {
-        setProfileError(
-          err instanceof Error ? err.message : "Failed to load student profile.",
-        );
-        void reportPortalOperationalError(
-          "parent_portal",
-          {
-            organizationId,
-            operation: "children.load_profile",
-            error: "",
-          },
-          err,
-          res?.status,
-        );
-      } finally {
-        setProfileLoading(false);
-      }
-    },
-    [organizationId, previewBasePath, previewMode, profiles, supabase],
-  );
-
-  const selectChild = useCallback(
-    (applicationId: string) => {
-      setSelectedApplicationId(applicationId);
-      setRecordSection("application");
-      if (!profiles[applicationId]) {
-        setProfileLoading(true);
-      }
-      void loadProfile(applicationId);
-    },
-    [loadProfile, profiles],
-  );
-
-  const openRecordSection = useCallback(
-    (section: ParentChildRecordSection) => {
-      if (!selectedApplicationId) return;
-      setRecordSection(section);
-      void loadProfile(selectedApplicationId);
-      requestAnimationFrame(() => {
-        recordWorkspaceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    },
-    [loadProfile, selectedApplicationId],
-  );
-
-  const searchParams = useSearchParams();
-  const deepLinkHandled = useRef(false);
-  useEffect(() => {
-    if (deepLinkHandled.current) return;
-    const applicationId = searchParams.get("applicationId");
-    const sectionParam = searchParams.get("section");
-    const section = isParentChildRecordSection(sectionParam) ? sectionParam : null;
-
-    if (!applicationId) {
-      if (familyChildren[0]) {
-        queueMicrotask(() => {
-          void loadProfile(familyChildren[0].applicationId);
-        });
-      }
-      return;
-    }
-    if (!children.some((child) => child.applicationId === applicationId)) {
-      return;
-    }
-    deepLinkHandled.current = true;
-    queueMicrotask(() => {
-      setSelectedApplicationId(applicationId);
-      if (section) {
-        setRecordSection(section);
-      }
-      void loadProfile(applicationId);
-      requestAnimationFrame(() => {
-        recordWorkspaceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    });
-  }, [children, familyChildren, loadProfile, searchParams]);
-
-  useEffect(() => {
-    if (!selectedApplicationId) return;
-    queueMicrotask(() => {
-      void loadProfile(selectedApplicationId);
-    });
-  }, [loadProfile, selectedApplicationId]);
+/**
+ * Parent portal "My children" — Garden dashboard (parent-portal-garden-design).
+ *
+ * Header → child switcher → [Next steps | rail: at a glance, guides at school]
+ *        → School record (Application · Checklist · Teachers · Health · Pickup).
+ *
+ * Rendered by the live portal, the admin family preview (read-only),
+ * program portal previews and the marketing demo, so props stay stable.
+ */
+export default function ParentChildrenPage(props: ParentChildrenPageProps) {
+  const model = useParentChildrenModel(props);
+  const reduce = useReducedMotion() === true;
+  const {
+    theme,
+    adminCompat,
+    children,
+    selectedChild,
+    selectedProfile,
+    healthProfiles,
+    handleHealthProfileChange,
+    profileError,
+    isRecordLoading,
+    recordSection,
+    setRecordSection,
+    recordWorkspaceRef,
+    applyDashboardHref,
+    readOnly,
+    firstName,
+  } = model;
 
   if (children.length === 0) {
     return (
-      <div className="min-h-full w-full" style={{ backgroundColor: theme.paper }}>
-        <div className="mx-auto max-w-[1250px] px-4 py-6 sm:py-8 md:px-9">
-          <ParentCard theme={theme} className="text-center">
-            <p className="m-0 text-sm leading-relaxed" style={{ color: theme.muted }}>
-              {programPortalLabel ? (
-                programPortalChildrenEmptyMessage(programPortalLabel)
+      <ParentGardenFrame theme={theme} className="shrink-0">
+        <div className={PORTAL_HOME_CONTAINER_CLASS}>
+          <ParentGardenPageHeader
+            data-testid="parent-children-story-header"
+            kicker={`My children · ${formatChildrenPageDate()}`}
+            title="Follow their day."
+          />
+          <GCard index={1} kicker="Your family" title="No student records yet" data-testid="parent-children-empty">
+            <p className="m-0 max-w-2xl text-[15px] leading-relaxed text-[var(--sf-soft)]">
+              {props.programPortalLabel ? (
+                programPortalChildrenEmptyMessage(props.programPortalLabel)
               ) : (
                 <>
-                  We don&apos;t have any student records from your applications yet. Visit
-                  your{" "}
-                  <Link
-                    href={applyDashboardHref}
-                    className="font-bold underline underline-offset-2"
-                    style={{ color: theme.primary }}
-                  >
-                    application dashboard
-                  </Link>{" "}
-                  to get started.
+                  We don&apos;t have any student records from your applications yet. Visit your
+                  application dashboard to get started.
                 </>
               )}
             </p>
-          </ParentCard>
+            {props.programPortalLabel ? null : (
+              <div className="mt-5">
+                <Link href={applyDashboardHref} className={gBtnPopSm}>
+                  Go to application dashboard <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+              </div>
+            )}
+          </GCard>
         </div>
-      </div>
+      </ParentGardenFrame>
     );
   }
 
+  const panelMotion = reduce
+    ? { initial: false as const }
+    : {
+        initial: { opacity: 0, y: 10 },
+        animate: { opacity: 1, y: 0 },
+        exit: { opacity: 0, y: -6 },
+        transition: { duration: 0.26, ease: PORTAL_EASE },
+      };
+
   return (
-    <div className="min-h-full w-full" style={{ backgroundColor: theme.paper }}>
-      <div className="mx-auto flex w-full max-w-[1250px] flex-col gap-5 px-4 py-6 sm:gap-6 sm:py-8 md:px-9">
-        <ParentChildrenStoryHeader
-          theme={theme}
-          learners={children}
-          selectedChild={selectedChild}
-          onViewRecord={() => openRecordSection("application")}
-        />
-
-        <ParentChildrenLearnerStrip
-          theme={theme}
-          adminCompat={adminCompat}
-          learners={children}
-          selectedApplicationId={selectedApplicationId ?? children[0].applicationId}
-          onSelect={selectChild}
-        />
-
-        <AnimatePresence mode="wait">
-          {selectedChild && isRecordLoading ? (
-            <div key={`${selectedChild.applicationId}-loading`} data-testid="parent-children-loading">
-              <ParentChildrenOverviewSkeleton theme={theme} />
-            </div>
-          ) : selectedChild ? (
-            <ParentChildrenOverview
-              key={selectedChild.applicationId}
-              theme={theme}
-              adminCompat={adminCompat}
-              child={selectedChild}
-              profile={selectedProfile}
-              healthProfile={selectedHealthProfile}
-              onOpenRecordSection={openRecordSection}
-            />
-          ) : null}
-        </AnimatePresence>
-
-        {isRecordLoading ? (
-          <ParentChildrenRecordSkeleton theme={theme} />
-        ) : null}
-
-        {selectedProfile?.application ? (
-          <ParentChildRecordWorkspace
-            key={selectedProfile.application.id}
-            theme={theme}
-            adminCompat={adminCompat}
-            branding={branding}
-            schoolName={schoolName}
-            schoolSlug={schoolSlug}
-            organizationId={organizationId}
-            application={selectedProfile.application}
-            checklist={selectedProfile.checklist}
-            assignedTeachers={selectedProfile.assignedTeachers}
-            enrolledPrograms={selectedChild?.enrolledPrograms ?? []}
-            readOnly={readOnly}
-            activeSection={recordSection}
-            onSectionChange={setRecordSection}
-            onPhotoUpdated={handlePhotoUpdated}
-            initialHealthProfile={
-              selectedProfile.application.studentId
-                ? healthProfiles[selectedProfile.application.studentId] ?? null
-                : null
+    <Fragment>
+      <ParentGardenFrame theme={theme} className="shrink-0">
+        <div className={PORTAL_HOME_CONTAINER_CLASS}>
+          <ParentGardenPageHeader
+            data-testid="parent-children-story-header"
+            kicker={`My children · ${formatChildrenPageDate()}`}
+            title={
+              selectedChild ? (
+                <>
+                  <span className="text-[var(--sf-clay)]">{firstName}</span>&apos;s profile
+                </>
+              ) : (
+                "Follow their day."
+              )
             }
-            onHealthProfileChange={
-              selectedProfile.application.studentId
-                ? (profile) =>
-                    handleHealthProfileChange(selectedProfile.application.studentId!, profile)
-                : undefined
+            subtitle={familyChildrenSubtitle(children) || undefined}
+            actions={
+              selectedChild ? (
+                <button
+                  type="button"
+                  className={`${gBtnOutlineSm} w-full sm:w-auto`}
+                  onClick={() => model.openRecordSection("application")}
+                >
+                  View school record <ArrowDown className="h-4 w-4" aria-hidden="true" />
+                </button>
+              ) : null
             }
-            workspaceRef={recordWorkspaceRef}
           />
-        ) : null}
 
-        {profileError ? (
-          <p className="text-center text-sm" style={{ color: theme.alert }}>
-            {profileError}
+          <p className="sr-only" aria-live="polite">
+            {selectedChild ? `Showing ${firstName}'s profile` : ""}
           </p>
-        ) : null}
-      </div>
-    </div>
+
+          <ChildrenSwitcher
+            learners={children}
+            selectedApplicationId={model.selectedApplicationId ?? children[0].applicationId}
+            onSelect={model.selectChild}
+          />
+
+          <AnimatePresence mode="wait" initial={false}>
+            {selectedChild ? (
+              <motion.div
+                key={selectedChild.applicationId}
+                {...panelMotion}
+                className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:grid-rows-[auto_1fr] xl:grid-cols-[minmax(0,1fr)_340px]"
+                data-testid="parent-children-overview"
+              >
+                <div className="min-w-0 lg:col-start-1 lg:row-start-1">
+                  <ChildNextStepsCard model={model} />
+                </div>
+                {/* Rail spans both rows so the School record sits right under Next steps. */}
+                <div className="flex min-w-0 flex-col gap-5 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+                  <ChildSnapshotCard
+                    model={model}
+                    schoolSlug={props.schoolSlug}
+                    previewBasePath={props.previewBasePath}
+                  />
+                  <ChildTeamCard model={model} />
+                </div>
+                <div className="flex min-w-0 flex-col gap-5 lg:col-start-1 lg:row-start-2">
+                  {profileError ? (
+                    <GCard index={2} className="!bg-[var(--sf-peach)]" data-testid="parent-children-profile-error">
+                      <div role="alert" className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                        <GIcon size="md">
+                          <AlertTriangle />
+                        </GIcon>
+                        <div className="min-w-0 flex-1">
+                          <p className="m-0 text-[15px] font-extrabold text-[var(--sf-ink)]">
+                            We couldn&apos;t open {firstName ? `${firstName}'s` : "this"} school record
+                          </p>
+                          <p className="m-0 mt-0.5 text-[13px] font-semibold text-[var(--sf-ink)]/70">{profileError}</p>
+                        </div>
+                        <button type="button" className={gBtnOutlineSm} onClick={model.retryProfile}>
+                          <RotateCcw className="h-4 w-4" aria-hidden="true" /> Try again
+                        </button>
+                      </div>
+                    </GCard>
+                  ) : null}
+
+                  {isRecordLoading ? <ChildRecordSkeleton /> : null}
+
+                  {selectedProfile?.application ? (
+                    <ParentChildRecordWorkspace
+                      key={selectedProfile.application.id}
+                      theme={theme}
+                      adminCompat={adminCompat}
+                      branding={props.branding}
+                      schoolName={props.schoolName}
+                      schoolSlug={props.schoolSlug}
+                      organizationId={props.organizationId}
+                      application={selectedProfile.application}
+                      checklist={selectedProfile.checklist}
+                      assignedTeachers={selectedProfile.assignedTeachers}
+                      enrolledPrograms={selectedChild?.enrolledPrograms ?? []}
+                      readOnly={readOnly}
+                      activeSection={recordSection}
+                      onSectionChange={setRecordSection}
+                      onPhotoUpdated={model.handlePhotoUpdated}
+                      initialHealthProfile={
+                        selectedProfile.application.studentId
+                          ? healthProfiles[selectedProfile.application.studentId] ?? null
+                          : null
+                      }
+                      onHealthProfileChange={
+                        selectedProfile.application.studentId
+                          ? (profile) =>
+                              handleHealthProfileChange(selectedProfile.application.studentId!, profile)
+                          : undefined
+                      }
+                      workspaceRef={recordWorkspaceRef}
+                      studentName={selectedChild?.studentName}
+                      checklistLeft={model.attentionItems.length}
+                      healthNeedsAttention={model.showHealthAttention}
+                    />
+                  ) : null}
+                </div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+        </div>
+      </ParentGardenFrame>
+    </Fragment>
   );
 }

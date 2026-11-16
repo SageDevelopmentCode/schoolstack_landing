@@ -3,14 +3,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Loader2, X } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
+import {
+  AdminGardenPage,
+  AdminGardenPageHeader,
+  GardenLoadError,
+  GardenNotice,
+  GardenStatTiles,
+  gIconBtn,
+} from "@/components/school-admin/garden/kit";
+import { GardenRefetchVeil } from "@/components/school-admin/garden/blocks";
+import { gBtnOutlineSm } from "@/components/school-parent/garden/ui";
 import {
   tabPanelTransition,
   tabPanelVariants,
 } from "@/lib/school-admin/admin-modal-motion";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
-import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
 import TuitionAdjustPanel from "@/components/school-admin/tuition/TuitionAdjustPanel";
 import TuitionAssignmentModal from "@/components/school-admin/tuition/TuitionAssignmentModal";
 import TuitionFamiliesPanel from "@/components/school-admin/tuition/TuitionFamiliesPanel";
@@ -23,8 +31,9 @@ import type { TuitionRateCatalogTabId } from "@/components/school-admin/tuition/
 import TuitionRulesPanel from "@/components/school-admin/tuition/TuitionRulesPanel";
 import TuitionSetupPanel from "@/components/school-admin/tuition/TuitionSetupPanel";
 import TuitionSetupWizardModal from "@/components/school-admin/tuition/TuitionSetupWizardModal";
-import TuitionStoryHeader from "@/components/school-admin/tuition/TuitionStoryHeader";
 import {
+  TUITION_DASHBOARD_TABS,
+  TUITION_DASHBOARD_TAB_ICON_CLASS,
   parseTuitionDashboardTabFromSearchParam,
   tuitionDashboardTabShowsKpi,
   type TuitionDashboardTabId,
@@ -106,59 +115,29 @@ const CLICKABLE_KPI_CARDS: Array<{
   },
 ];
 
-function TuitionOutstandingMetricCard({
-  theme,
-  C,
-  value,
-  outstandingPeriod,
-  onOutstandingPeriodChange,
-  schoolYearBounds,
-  onClick,
-}: {
-  theme: ReturnType<typeof useSchoolAdminStoryTheme>["theme"];
-  C: ReturnType<typeof parentThemeToAdminCompat>;
-  value: string;
-  outstandingPeriod: OutstandingPeriod;
-  onOutstandingPeriodChange: (period: OutstandingPeriod) => void;
-  schoolYearBounds: ReturnType<typeof deriveSchoolYearBounds>;
-  onClick: () => void;
-}) {
-  return (
-    <div
-      className="relative overflow-hidden rounded-[15px] border bg-white p-[15px] text-left transition-transform hover:-translate-y-px"
-      style={{ borderColor: "#E0E7E0" }}
-    >
-      <span
-        className="absolute inset-y-0 left-0 w-1"
-        style={{ backgroundColor: "#8ABAC6" }}
-        aria-hidden
-      />
-      <button
-        type="button"
-        onClick={onClick}
-        aria-label="View outstanding breakdown"
-        className="block w-full cursor-pointer text-left"
-      >
-        <b
-          className="mb-0.5 block font-heading text-2xl font-semibold"
-          style={{ fontFamily: theme.fontDisplay, color: theme.ink }}
-        >
-          {value}
-        </b>
-        <span className="text-[11px]" style={{ color: theme.muted }}>
-          Outstanding
-        </span>
-      </button>
-      <div className="mt-2">
-        <TuitionOutstandingPeriodSelect
-          value={outstandingPeriod}
-          onChange={onOutstandingPeriodChange}
-          schoolYearBounds={schoolYearBounds}
-          C={C}
-        />
-      </div>
-    </div>
-  );
+function tuitionSubtitleForTab(
+  tab: TuitionDashboardTabId,
+  kpis: { collectedYtdCents: number; outstandingCents: number; familiesAtRisk: number },
+): string {
+  const overviewParts: string[] = [
+    `${formatCents(kpis.collectedYtdCents)} collected YTD`,
+    `${formatCents(kpis.outstandingCents)} outstanding`,
+  ];
+  if (kpis.familiesAtRisk > 0) {
+    overviewParts.push(`${kpis.familiesAtRisk} ${kpis.familiesAtRisk === 1 ? "family" : "families"} at risk`);
+  }
+  switch (tab) {
+    case "families":
+      return overviewParts.join(" · ");
+    case "catalog":
+      return "Rate plans, payment options, and fees for each program";
+    case "rules":
+      return "Late fees and tuition adjustment rules";
+    case "payment_history":
+      return "All tuition payments across families";
+    case "forms":
+      return "Service-for-tuition agreements and family signatures";
+  }
 }
 
 export default function TuitionDashboard({
@@ -357,11 +336,12 @@ export default function TuitionDashboard({
     });
   }, [loadData, outstandingPeriod]);
 
+  const syncRef = useRef<() => Promise<void>>(async () => {});
   const handleSyncAssignments = useCallback(async () => {
     if (previewMode) return;
 
     setSyncLoading(true);
-    setError(null);
+    adminToast.dismiss("tuition-sync-error");
     try {
       const response = await fetch("/api/tuition/sync-assignments", {
         method: "POST",
@@ -387,12 +367,18 @@ export default function TuitionDashboard({
         operation: "tuition.dashboard.sync",
         error: "",
       }, err);
-      setError(message);
-      adminToast.error(message);
+      adminToast.error("Couldn't sync tuition assignments.", {
+        id: "tuition-sync-error",
+        description: `${message} Nothing was assigned.`,
+        action: { label: "Retry", onClick: () => void syncRef.current() },
+      });
     } finally {
       setSyncLoading(false);
     }
   }, [loadData, organizationId, previewMode]);
+  useEffect(() => {
+    syncRef.current = handleSyncAssignments;
+  }, [handleSyncAssignments]);
 
   const refreshMetaOnly = useCallback(async () => {
     await loadData();
@@ -403,118 +389,174 @@ export default function TuitionDashboard({
     !unassignedBannerDismissed &&
     (readiness?.unassignedEnrollmentCount ?? 0) > 0;
 
+  const tabItems = TUITION_DASHBOARD_TABS.map((entry) => {
+    const Icon = entry.icon;
+    const tabLoading = isRefetching && entry.id === tab;
+    return {
+      key: entry.id,
+      label: entry.label,
+      icon: <Icon className={TUITION_DASHBOARD_TAB_ICON_CLASS} aria-hidden />,
+      ariaBusy: tabLoading,
+      testId: `tuition-tab-${entry.id}`,
+      suffix: tabLoading ? <Loader2 className="h-3 w-3 animate-spin" data-testid="tuition-tab-loading" /> : undefined,
+    };
+  });
+  const setupAllComplete = readiness ? readiness.completedCount === readiness.totalCount : true;
+  const setupNeedsAttention = readiness ? !setupAllComplete || readiness.unassignedEnrollmentCount > 0 : false;
+  const unassignedCount = readiness?.unassignedEnrollmentCount ?? 0;
+
   return (
-    <div
-      className={`relative flex h-full min-h-0 flex-col${embeddedAdjustPreview ? " overflow-hidden" : ""}`}
+    <AdminGardenPage
+      theme={theme}
+      skinOverlays
+      scroll={!embeddedAdjustPreview}
+      className={embeddedAdjustPreview ? "h-full overflow-hidden" : ""}
+      data-testid="admin-tuition-page"
+      overlays={
+        <TuitionAdjustPanel
+          open={adjustFamilyId != null && adjustAssignmentId != null}
+          organizationId={organizationId}
+          familyId={adjustFamilyId ?? ""}
+          assignmentId={adjustAssignmentId ?? ""}
+          studentName={adjustStudentName}
+          branding={branding}
+          layout={embeddedAdjustPreview ? "embedded" : "overlay"}
+          previewSnapshot={embeddedAdjustPreview ? adjustPreviewSnapshot : undefined}
+          onClose={() => {
+            setAdjustFamilyId(null);
+            setAdjustAssignmentId(null);
+            setAdjustStudentName(null);
+          }}
+          onSaved={() => {
+            setAdjustFamilyId(null);
+            setAdjustAssignmentId(null);
+            setAdjustStudentName(null);
+            setFamiliesReloadToken((value) => value + 1);
+            void refreshMetaOnly();
+          }}
+        />
+      }
     >
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14">
-          <TuitionStoryHeader
-            theme={theme}
-            C={C}
-            activeTab={tab}
-            kpis={kpis}
-            readiness={readiness}
-            loadingTabKey={isRefetching ? tab : null}
-            onTabChange={setTab}
-            onOpenSetupPanel={() => setShowSetupPanel(true)}
-            onOpenSetupWizard={openCreateRatePlanWizard}
+          <AdminGardenPageHeader
+            kicker="My school"
+            title={<span className="text-[var(--sf-clay)]">Tuition</span>}
+            subtitle={tuitionSubtitleForTab(tab, kpis)}
+            actions={
+              <>
+                {readiness ? (
+                  <button
+                    type="button"
+                    className={setupAllComplete ? gBtnOutlineSm : `${gBtnOutlineSm} !border-[var(--sf-clay)]/40 !bg-[var(--sf-accent-wash)]`}
+                    onClick={() => setShowSetupPanel(true)}
+                    data-testid="tuition-setup-button"
+                  >
+                    {setupNeedsAttention ? <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--sf-clay)]" aria-hidden /> : null}
+                    Setup · {readiness.completedCount}/{readiness.totalCount}
+                  </button>
+                ) : null}
+                <button type="button" className={gBtnOutlineSm} onClick={openCreateRatePlanWizard} data-testid="tuition-new-rate-plan">
+                  <Plus className="h-4 w-4" aria-hidden />
+                  New rate plan
+                </button>
+              </>
+            }
+            tabs={{
+              items: tabItems,
+              activeKey: tab,
+              onChange: (key) => setTab(key as TuitionDashboardTabId),
+              ariaLabel: "Tuition sections",
+              "data-testid": "tuition-tab-nav",
+            }}
           />
 
           {showUnassignedBanner && tuitionDashboardTabShowsKpi(tab) ? (
-            <div
-              className="mb-[15px] flex flex-col items-start justify-between gap-3 rounded-[12px] border px-4 py-3.5 sm:flex-row sm:items-center"
-              style={{
-                backgroundColor: "#EAF4EB",
-                borderColor: "#C7DFCB",
-                color: "#42694F",
-              }}
+            <GardenNotice
+              tone="warning"
+              title="Needs attention"
+              data-testid="tuition-unassigned-banner"
+              action={
+                <>
+                  <button
+                    type="button"
+                    className={gBtnOutlineSm}
+                    onClick={() => void handleSyncAssignments()}
+                    disabled={syncLoading}
+                    aria-busy={syncLoading || undefined}
+                  >
+                    {syncLoading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+                    {syncLoading ? "Syncing…" : "Sync assignments"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUnassignedBannerDismissed(true)}
+                    className={gIconBtn}
+                    aria-label="Dismiss"
+                  >
+                    <X className="h-4 w-4" aria-hidden />
+                  </button>
+                </>
+              }
             >
-              <span className="text-xs">
-                <b>Needs attention:</b>{" "}
-                {readiness?.unassignedEnrollmentCount === 1
-                  ? "1 enrollment needs a tuition assignment."
-                  : `${readiness?.unassignedEnrollmentCount ?? 0} enrollments need tuition assignments.`}
-              </span>
-              <div className="flex items-center gap-2">
-                <AdminButton
-                  theme={theme}
-                  variant="soft"
-                  onClick={() => void handleSyncAssignments()}
-                  disabled={syncLoading}
-                >
-                  {syncLoading ? "Syncing…" : "Sync assignments"}
-                </AdminButton>
-                <button
-                  type="button"
-                  onClick={() => setUnassignedBannerDismissed(true)}
-                  className="rounded-full p-1.5 cursor-pointer"
-                  aria-label="Dismiss"
-                >
-                  <X className="h-4 w-4" style={{ color: theme.muted }} />
-                </button>
-              </div>
-            </div>
+              {unassignedCount === 1
+                ? "1 enrollment needs a tuition assignment."
+                : `${unassignedCount} enrollments need tuition assignments.`}{" "}
+              Sync assigns each one to the matching rate plan.
+            </GardenNotice>
           ) : null}
 
           {tuitionDashboardTabShowsKpi(tab) ? (
-            <div className="relative mb-[19px]">
-              {isRefetching ? (
-                <div
-                  className="pointer-events-none absolute inset-0 z-10 flex items-start justify-center bg-white/60 pt-6"
-                  aria-hidden="true"
-                >
-                  <Loader2 className="h-5 w-5 animate-spin" style={{ color: theme.muted }} />
+            <div className={`flex flex-col gap-2 ${initialLoading ? "animate-pulse opacity-70" : ""}`}>
+              <GardenRefetchVeil active={isRefetching}>
+                <GardenStatTiles
+                  ariaLabel="Tuition at a glance"
+                  stats={[
+                    {
+                      id: "collected_ytd",
+                      label: "Collected YTD",
+                      value: formatCents(kpis.collectedYtdCents),
+                      accent: "forest",
+                      onClick: () => setKpiBreakdownKind("collected_ytd"),
+                    },
+                    {
+                      id: "outstanding",
+                      label: "Outstanding",
+                      value: formatCents(kpis.outstandingCents),
+                      accent: "sky",
+                      onClick: () => setKpiBreakdownKind("outstanding"),
+                      testId: "tuition-kpi-outstanding",
+                    },
+                    {
+                      id: "at_risk",
+                      label: "Families at risk",
+                      value: kpis.familiesAtRisk,
+                      accent: "berry",
+                      onClick: () => setKpiBreakdownKind("at_risk"),
+                    },
+                    { id: "active", label: "Active assignments", value: kpis.activeAssignments, accent: "gold" },
+                  ]}
+                />
+              </GardenRefetchVeil>
+              <div className="flex flex-wrap items-center justify-end gap-2 text-[12.5px] font-bold text-[var(--sf-soft)]">
+                <span>Outstanding covers</span>
+                <div className="w-[13rem]">
+                  <TuitionOutstandingPeriodSelect
+                    value={outstandingPeriod}
+                    onChange={setOutstandingPeriod}
+                    schoolYearBounds={schoolYearBounds}
+                    C={C}
+                  />
                 </div>
-              ) : null}
-              <div
-                className={`grid grid-cols-1 gap-[13px] showcase:grid-cols-4 sm:grid-cols-2 xl:grid-cols-4 ${
-                  initialLoading ? "animate-pulse opacity-70" : ""
-                }`}
-              >
-                {CLICKABLE_KPI_CARDS.slice(0, 1).map((card) => (
-                  <AdminMetricCard
-                    key={card.kind}
-                    theme={theme}
-                    value={card.getValue(kpis)}
-                    label={card.label}
-                    accent={card.accent}
-                    onClick={() => setKpiBreakdownKind(card.kind)}
-                  />
-                ))}
-                <TuitionOutstandingMetricCard
-                  theme={theme}
-                  C={C}
-                  value={formatCents(kpis.outstandingCents)}
-                  outstandingPeriod={outstandingPeriod}
-                  onOutstandingPeriodChange={setOutstandingPeriod}
-                  schoolYearBounds={schoolYearBounds}
-                  onClick={() => setKpiBreakdownKind("outstanding")}
-                />
-                {CLICKABLE_KPI_CARDS.slice(1).map((card) => (
-                  <AdminMetricCard
-                    key={card.kind}
-                    theme={theme}
-                    value={card.getValue(kpis)}
-                    label={card.label}
-                    accent={card.accent}
-                    onClick={() => setKpiBreakdownKind(card.kind)}
-                  />
-                ))}
-                <AdminMetricCard
-                  theme={theme}
-                  value={String(kpis.activeAssignments)}
-                  label="Active assignments"
-                  accent="gold"
-                />
               </div>
             </div>
           ) : null}
 
           {error ? (
-            <p className="mb-[15px] text-sm" style={{ color: "#AD574C" }}>
-              {error}
-            </p>
+            <GardenLoadError
+              title="Tuition didn't fully load"
+              description={error}
+              onRetry={() => void loadData()}
+              retrying={isRefetching}
+            />
           ) : null}
 
           <AnimatePresence mode="wait">
@@ -661,31 +703,6 @@ export default function TuitionDashboard({
             onClose={() => setCreateRatePlanWizardOpen(false)}
             onComplete={() => void handleCreateRatePlanComplete()}
           />
-        </div>
-      </div>
-
-      <TuitionAdjustPanel
-        open={adjustFamilyId != null && adjustAssignmentId != null}
-        organizationId={organizationId}
-        familyId={adjustFamilyId ?? ""}
-        assignmentId={adjustAssignmentId ?? ""}
-        studentName={adjustStudentName}
-        branding={branding}
-        layout={embeddedAdjustPreview ? "embedded" : "overlay"}
-        previewSnapshot={embeddedAdjustPreview ? adjustPreviewSnapshot : undefined}
-        onClose={() => {
-          setAdjustFamilyId(null);
-          setAdjustAssignmentId(null);
-          setAdjustStudentName(null);
-        }}
-        onSaved={() => {
-          setAdjustFamilyId(null);
-          setAdjustAssignmentId(null);
-          setAdjustStudentName(null);
-          setFamiliesReloadToken((value) => value + 1);
-          void refreshMetaOnly();
-        }}
-      />
-    </div>
+    </AdminGardenPage>
   );
 }

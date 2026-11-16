@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import PaymentSchedulePreviewModal from "@/components/school-admin/tuition/PaymentSchedulePreviewModal";
-import { PaymentScheduleSelectionCard } from "@/components/school-admin/tuition/TuitionPaymentScheduleCards";
 import {
   filterPaymentPlansForBillingStart,
   maxInstallmentsForBillingStart,
@@ -16,7 +15,8 @@ import {
   schoolYearMonthSpan,
 } from "@/lib/tuition/setup-wizard";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { G_FOCUS, gBtnOutlineSm, gBtnPopSm } from "@/components/school-parent/garden/ui";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 function possessiveFirstName(fullName: string): string {
@@ -27,6 +27,7 @@ function possessiveFirstName(fullName: string): string {
 
 type ParentTuitionPlanSelectorProps = {
   C: AdminThemeTokens;
+  theme?: ParentThemeTokens;
   context: EnrollmentTuitionSelectionContext;
   studentName?: string;
   onComplete: () => void;
@@ -35,6 +36,7 @@ type ParentTuitionPlanSelectorProps = {
 
 export default function ParentTuitionPlanSelector({
   C,
+  theme,
   context,
   studentName,
   onComplete,
@@ -144,62 +146,89 @@ export default function ParentTuitionPlanSelector({
   return (
     <div
       id="parent-tuition-plan-selector"
-      className="flex flex-col gap-6 w-full rounded-xl p-5"
-      style={{
-        backgroundColor: C.surface,
-        border: `1px solid ${C.warningBorder}`,
-      }}
+      className="flex w-full scroll-mt-6 flex-col gap-6 rounded-[24px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white p-5 shadow-[0_3px_0_0_rgba(43,36,29,0.08)] sm:p-6"
       data-testid="parent-tuition-plan-selector"
     >
       <div>
-        <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
+        <p className="m-0 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[var(--sf-soft)]">
+          Pick a plan · preview it · confirm
+        </p>
+        <h2 className="sf-display m-0 mt-1 text-[1.4rem] leading-[1.05] text-[var(--sf-ink)]">
           {heading}
         </h2>
-        <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
+        <p className="m-0 mt-1.5 text-[13px] font-semibold text-[var(--sf-soft)]">
           Required before tuition charges are generated.
         </p>
-        <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
+        <p className="m-0 mt-0.5 text-[13px] font-semibold text-[var(--sf-soft)]">
           Annual tuition {formatCents(annualAmountCents)} · {ratePlan.name}
           {tier ? ` (${tier.label})` : ""} for the school year.
         </p>
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div
+        role="radiogroup"
+        aria-label="Payment plan options"
+        className="grid gap-2.5 sm:grid-cols-2"
+      >
         {availablePaymentPlans.map((plan) => {
           const amountCents = computeInstallmentAmountCents(
             annualAmountCents,
             plan.installmentCount,
           );
+          const selected = selectedPlanId === plan.id;
           return (
-            <PaymentScheduleSelectionCard
+            <button
               key={plan.id}
-              C={C}
-              selected={selectedPlanId === plan.id}
-              label={plan.name}
-              cadence={paymentScheduleCadence(plan.installmentCount, schoolYearMonths)}
-              perPayment={formatCents(amountCents)}
-              annualTotal={formatCents(amountCents * plan.installmentCount)}
-              onSelect={() => {
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              aria-disabled={readOnly || undefined}
+              onClick={() => {
                 if (!readOnly) setSelectedPlanId(plan.id);
               }}
-            />
+              className={`flex w-full items-start gap-3 rounded-[18px] border-2 p-4 text-left transition-all duration-200 ${G_FOCUS} ${
+                selected
+                  ? "border-[var(--sf-ink)] bg-[var(--sf-accent-wash)] shadow-[0_3px_0_0_var(--sf-ink)]"
+                  : "border-[var(--sf-ink)]/15 bg-white hover:-translate-y-0.5 hover:border-[var(--sf-ink)]/40"
+              }`}
+            >
+              <span
+                aria-hidden="true"
+                className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
+                  selected
+                    ? "border-[var(--sf-ink)] bg-[var(--sf-clay)] text-white"
+                    : "border-[var(--sf-ink)]/30 bg-white"
+                }`}
+              >
+                {selected ? <Check className="h-3 w-3" strokeWidth={3} /> : null}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[15px] font-extrabold text-[var(--sf-ink)]">
+                  {plan.name}
+                </span>
+                <span className="mt-0.5 block text-xs font-semibold text-[var(--sf-soft)]">
+                  {paymentScheduleCadence(plan.installmentCount, schoolYearMonths)}
+                </span>
+                <span className="mt-1.5 block text-[13px] font-bold text-[var(--sf-ink)]/80">
+                  {formatCents(amountCents)} per payment ·{" "}
+                  {formatCents(amountCents * plan.installmentCount)}/yr
+                </span>
+              </span>
+            </button>
           );
         })}
       </div>
 
       {enrollmentFees.length > 0 ? (
-        <div
-          className="rounded-lg p-4"
-          style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
-        >
-          <p className="text-sm font-medium mb-2" style={{ color: C.textPrimary }}>
+        <div className="sf-paper rounded-[18px] p-4">
+          <p className="m-0 mb-2 text-sm font-extrabold text-[var(--sf-ink)]">
             Due at enrollment
           </p>
-          <ul className="flex flex-col gap-2 text-sm">
+          <ul className="m-0 flex list-none flex-col gap-2 p-0 text-sm font-semibold">
             {enrollmentFees.map((fee) => (
               <li key={fee.id} className="flex items-center justify-between gap-3">
-                <span style={{ color: C.textSecondary }}>{fee.label}</span>
-                <span className="tabular-nums" style={{ color: C.textPrimary }}>
+                <span className="text-[var(--sf-ink)]/70">{fee.label}</span>
+                <span className="tabular-nums text-[var(--sf-ink)]">
                   {formatCents(fee.amountCents)}
                 </span>
               </li>
@@ -209,7 +238,7 @@ export default function ParentTuitionPlanSelector({
       ) : null}
 
       {error ? (
-        <p className="text-sm" style={{ color: C.error }}>
+        <p className="text-sm font-bold text-[var(--sf-clay-deep)]" role="alert">
           {error}
         </p>
       ) : null}
@@ -223,8 +252,7 @@ export default function ParentTuitionPlanSelector({
           }}
           disabled={readOnly || !selectedPreview}
           data-testid="parent-schedule-preview-button"
-          style={getAdminButtonStyle(C, "secondary")}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          className={gBtnOutlineSm}
         >
           See schedule preview
           {readOnly ? " (preview)" : ""}
@@ -234,8 +262,8 @@ export default function ParentTuitionPlanSelector({
           type="button"
           onClick={() => void handleConfirm()}
           disabled={readOnly || saving}
-          style={getAdminButtonStyle(C, "primary")}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-busy={saving || undefined}
+          className={gBtnPopSm}
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
           Confirm payment schedule
@@ -258,6 +286,8 @@ export default function ParentTuitionPlanSelector({
         effectiveEnd={ratePlan.effectiveEnd}
         schoolYearMonths={schoolYearMonths}
         testId="parent-schedule-preview-modal"
+        appearance={theme ? "parent-garden" : "default"}
+        theme={theme}
         onClose={() => setShowPreview(false)}
       />
     </div>

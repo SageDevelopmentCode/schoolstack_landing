@@ -19,7 +19,7 @@ import { formatEventTimeRange } from "@/lib/school-events/calendar-time";
 import type { OrganizationEvent } from "@/lib/school-events/types";
 import type { BulletinPost } from "@/lib/school-bulletin/types";
 import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts-home";
-import { getStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access";
+import { getTeacherPortalStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access";
 import {
   listClassroomSignupResponsesBySignupIds,
   listTeacherClassroomSignups,
@@ -100,7 +100,7 @@ export async function fetchTeacherDashboardSummary(
 
   let staffMemberId = options.staffMemberId ?? null;
   if (!staffMemberId && options.userId) {
-    staffMemberId = await getStaffMemberIdForUser(
+    staffMemberId = await getTeacherPortalStaffMemberIdForUser(
       supabase,
       options.userId,
       organizationId,

@@ -1,37 +1,28 @@
-import { Ionicons } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { ParentCommitteeRequestStatusChip } from '@/components/parent/committees/parent-committee-request-status-chip';
-import { ParentCommitteesSkeleton } from '@/components/parent/committees/parent-committees-skeleton';
+import { GBackHeader } from '@/components/parent/garden/back-header';
+import { confirmDestructive, useGardenReadOnlyGate } from '@/components/parent/garden/feedback';
+import { GChoiceChips, GInlineBanner, GTextField } from '@/components/parent/garden/fields';
+import { GStepList } from '@/components/parent/garden/steps';
+import { useGardenToast } from '@/components/parent/garden/toast';
+import { Garden } from '@/components/parent/garden/tokens';
+import { GCard, GChip, GOutlineButton, GSkeleton, GToyButton, gText } from '@/components/parent/garden/ui';
 import { ParentKeyboardAwareScrollView } from '@/components/parent/parent-keyboard-aware-scroll-view';
-import { StoryButton } from '@/components/story/story-button';
-import { StoryCard } from '@/components/story/story-card';
-import { StoryChip } from '@/components/story/story-chip';
-import { StoryDisplayHeading } from '@/components/story/story-display-heading';
-import { StoryTextField } from '@/components/story/story-text-field';
 import { useParentCommittees } from '@/contexts/parent-committees-context';
 import { useParentHome } from '@/contexts/parent-home-context';
-import { useParentTheme } from '@/contexts/parent-theme-context';
-import type {
-  CommitteesContextValue,
-  CommitteesPortal,
-} from '@/lib/committees/committees-portal-config';
-import { getCommitteesWorkspaceRoute } from '@/lib/committees/committees-portal-config';
 import {
-  submitCommitteeJoinRequest,
-  withdrawCommitteeJoinRequest,
-} from '@/lib/parent/parent-portal-api';
-import { Story, StoryCardPadding, StoryFonts } from '@/constants/story-theme';
-import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
-import { Radius, Spacing } from '@/constants/theme';
+  getCommitteesWorkspaceRoute,
+  type CommitteesContextValue,
+  type CommitteesPortal,
+} from '@/lib/committees/committees-portal-config';
+import { REQUEST_STATUS_CHIP, buildJoinSteps, canRequestToJoin } from '@/lib/parent/parent-committees-garden';
+import { submitCommitteeJoinRequest, withdrawCommitteeJoinRequest } from '@/lib/parent/parent-portal-api';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
+
+// keyboard: ParentKeyboardAwareScrollView (grade + note fields)
 
 type CommitteeExploreDetailScreenProps = {
   slug: string;
@@ -60,6 +51,8 @@ type CommitteeExploreDetailScreenProps = {
   }) => Promise<void>;
 };
 
+const NO_PREFERENCE = '__none__';
+
 function CommitteeExploreDetailScreen({
   slug,
   organizationId,
@@ -72,43 +65,29 @@ function CommitteeExploreDetailScreen({
   onSubmitJoinRequest,
   onWithdrawJoinRequest,
 }: CommitteeExploreDetailScreenProps) {
-  const theme = useParentTheme();
   const router = useRouter();
+  const toast = useGardenToast();
+  const { readOnly, notifyReadOnly } = useGardenReadOnlyGate();
   const { getBrowseCommittee, ensureLoaded, refresh } = useCommittees();
   const { reportError } = useMobileErrorReporter(organizationId);
-
   const committee = getBrowseCommittee(committeeId);
 
-  const [preferredDutyRoleId, setPreferredDutyRoleId] = useState('');
+  const [preferredDutyRoleId, setPreferredDutyRoleId] = useState(NO_PREFERENCE);
   const [grade, setGrade] = useState('');
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
-    null,
-  );
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     ensureLoaded();
   }, [ensureLoaded]);
 
-  const showRequestForm = useMemo(
-    () =>
-      committee &&
-      !committee.isMember &&
-      (!committee.requestStatus || committee.requestStatus === 'declined'),
-    [committee],
-  );
-
-  const showWithdrawSection = useMemo(
-    () => committee?.requestStatus === 'pending' && committee.requestId,
-    [committee],
-  );
-
   const handleSubmit = useCallback(async () => {
     if (!committee) return;
+    if (readOnly) return notifyReadOnly();
     setSubmitting(true);
-    setFeedback(null);
+    setError(null);
     try {
       await onSubmitJoinRequest({
         organizationId,
@@ -116,17 +95,19 @@ function CommitteeExploreDetailScreen({
         schoolSlug: slug,
         schoolName,
         committeeName: committee.name,
-        preferredDutyRoleId: preferredDutyRoleId || null,
+        preferredDutyRoleId: preferredDutyRoleId === NO_PREFERENCE ? null : preferredDutyRoleId,
         grade: showGradeField ? grade.trim() || null : null,
         note: note.trim() || null,
       });
-      setFeedback({ type: 'success', message: 'Join request submitted.' });
+      toast.success('Join request submitted.', {
+        description: `${committee.name} will show "Request pending" until the school reviews it.`,
+      });
       await refresh();
     } catch (err) {
       reportError('committees.join_request_submit', err, { responseStatus: undefined });
-      setFeedback({
-        type: 'error',
-        message: err instanceof Error ? err.message : 'Failed to submit request.',
+      setError(err instanceof Error ? err.message : 'Failed to submit request.');
+      toast.error("Couldn't send your request", {
+        description: 'Your answers are still here. Try again.',
       });
     } finally {
       setSubmitting(false);
@@ -135,20 +116,31 @@ function CommitteeExploreDetailScreen({
     committee,
     grade,
     note,
+    notifyReadOnly,
     onSubmitJoinRequest,
     organizationId,
     preferredDutyRoleId,
+    readOnly,
     refresh,
     reportError,
     schoolName,
     showGradeField,
     slug,
+    toast,
   ]);
 
   const handleWithdraw = useCallback(async () => {
     if (!committee?.requestId) return;
+    if (readOnly) return notifyReadOnly();
+    const confirmed = await confirmDestructive({
+      title: 'Withdraw request?',
+      message: `Your request to join ${committee.name} will be cancelled.`,
+      confirmLabel: 'Withdraw',
+      cancelLabel: 'Keep request',
+    });
+    if (!confirmed) return;
     setWithdrawing(true);
-    setFeedback(null);
+    setError(null);
     try {
       await onWithdrawJoinRequest({
         requestId: committee.requestId,
@@ -156,207 +148,187 @@ function CommitteeExploreDetailScreen({
         committeeName: committee.name,
         requesterName,
       });
-      setFeedback({ type: 'success', message: 'Request withdrawn.' });
+      toast.success('Request withdrawn.', { description: `You're no longer waiting on ${committee.name}.` });
       await refresh();
     } catch (err) {
       reportError('committees.join_request_withdraw', err);
-      setFeedback({
-        type: 'error',
-        message: err instanceof Error ? err.message : 'Failed to withdraw request.',
-      });
+      setError(err instanceof Error ? err.message : 'Failed to withdraw request.');
+      toast.error("Couldn't withdraw the request", { description: 'Check your connection, then try again.' });
     } finally {
       setWithdrawing(false);
     }
-  }, [committee, onWithdrawJoinRequest, organizationId, refresh, reportError, requesterName]);
+  }, [committee, notifyReadOnly, onWithdrawJoinRequest, organizationId, readOnly, refresh, reportError, requesterName, toast]);
+
+  const back = (
+    <GBackHeader
+      backLabel="Explore"
+      backAccessibilityLabel="Back to explore"
+      onBack={() => router.back()}
+      title={committee?.name ?? 'Committee'}
+    />
+  );
 
   if (!committee) {
-    return <ParentCommitteesSkeleton rowCount={2} />;
+    return (
+      <View style={styles.root}>
+        <StatusBar style="dark" />
+        <View style={styles.content} accessibilityLabel="Loading committee" accessibilityState={{ busy: true }}>
+          {back}
+          <GSkeleton style={{ height: 120, borderRadius: 22 }} />
+          <GSkeleton style={{ height: 220, borderRadius: 22 }} />
+        </View>
+      </View>
+    );
   }
 
+  const request = committee.requestStatus && !committee.isMember ? REQUEST_STATUS_CHIP[committee.requestStatus] : null;
+  const showForm = canRequestToJoin(committee);
+  const showWithdraw = committee.requestStatus === 'pending' && Boolean(committee.requestId);
+
   return (
-    <ParentKeyboardAwareScrollView
-      style={[styles.container, { backgroundColor: Story.paper }]}
-      contentContainerStyle={styles.content}>
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => router.back()}
-        style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.7 }]}>
-        <Ionicons name="chevron-back" size={18} color={theme.muted} />
-        <Text style={[styles.backLabel, { color: theme.muted }]}>Back to explore</Text>
-      </Pressable>
-
-      <View style={styles.titleBlock}>
-        <View style={styles.chipRow}>
-          <StoryDisplayHeading size="section">{committee.name}</StoryDisplayHeading>
-          <StoryChip tone="info" label={committee.termLabel} />
-          {committee.isMember ? <StoryChip tone="success" label="Member" /> : null}
-          {committee.requestStatus && !committee.isMember ? (
-            <ParentCommitteeRequestStatusChip status={committee.requestStatus} />
-          ) : null}
-        </View>
-        <Text style={[styles.description, { color: theme.muted }]}>{committee.description}</Text>
-      </View>
-
-      {committee.isMember ? (
-        <StoryButton
-          label="Open workspace"
-          onPress={() =>
-            router.push(getCommitteesWorkspaceRoute(slug, portal, committee.id))
-          }
-        />
-      ) : null}
-
-      {feedback ? (
-        <View
-          style={[
-            styles.feedbackBanner,
-            {
-              backgroundColor: feedback.type === 'success' ? theme.successBg : theme.alertBg,
-            },
-          ]}>
-          <Text
-            style={{
-              color: feedback.type === 'success' ? theme.success : theme.alert,
-              fontFamily: StoryFonts.body,
-              fontSize: 14,
-            }}>
-            {feedback.message}
-          </Text>
-        </View>
-      ) : null}
-
-      {committee.dutyRoles.length > 0 ? (
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.ink }]}>Duty roles</Text>
-          <View style={styles.dutyRoleList}>
-            {committee.dutyRoles.map((role) => (
-              <StoryCard key={role.id} compact style={styles.dutyRoleCard}>
-                <Text style={[styles.dutyRoleTitle, { color: theme.ink }]}>{role.title}</Text>
-                <Text style={[styles.dutyRoleDescription, { color: theme.muted }]}>
-                  {role.description}
-                </Text>
-              </StoryCard>
-            ))}
+    <View style={styles.root} testID="parent-committee-explore-screen">
+      <StatusBar style="dark" />
+      <ParentKeyboardAwareScrollView style={styles.root} contentContainerStyle={styles.content}>
+        <GBackHeader
+          backLabel="Explore"
+          backAccessibilityLabel="Back to explore"
+          onBack={() => router.back()}
+          title={committee.name}>
+          <View style={styles.chips}>
+            <GChip label={committee.termLabel} tone="info" />
+            {committee.isMember ? <GChip label="Member" tone="success" icon="checkmark" /> : null}
+            {request ? <GChip label={request.label} tone={request.tone} /> : null}
           </View>
-        </View>
-      ) : null}
+        </GBackHeader>
 
-      {showRequestForm ? (
-        <StoryCard compact style={styles.formCard}>
-          <View style={styles.formHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.ink }]}>Request to join</Text>
-            <Text style={[styles.formHint, { color: theme.muted }]}>
-              Your request will be reviewed by the school. You will get read-only access to the
-              committee workspace after approval.
-            </Text>
-          </View>
+        {committee.description ? <Text style={gText.body}>{committee.description}</Text> : null}
 
-          {committee.dutyRoles.length > 0 ? (
-            <View style={styles.fieldBlock}>
-              <Text style={[styles.fieldLabel, { color: theme.muted }]}>
-                Preferred role (optional)
-              </Text>
-              <View style={styles.rolePicker}>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => setPreferredDutyRoleId('')}
-                  style={[
-                    styles.roleOption,
-                    {
-                      borderColor: preferredDutyRoleId === '' ? theme.primary : theme.line,
-                      backgroundColor: preferredDutyRoleId === '' ? theme.primarySoft : theme.white,
-                    },
-                  ]}>
-                  <Text style={[styles.roleOptionText, { color: theme.ink }]}>No preference</Text>
-                </Pressable>
-                {committee.dutyRoles.map((role) => {
-                  const selected = preferredDutyRoleId === role.id;
-                  return (
-                    <Pressable
-                      key={role.id}
-                      accessibilityRole="button"
-                      onPress={() => setPreferredDutyRoleId(role.id)}
-                      style={[
-                        styles.roleOption,
-                        {
-                          borderColor: selected ? theme.primary : theme.line,
-                          backgroundColor: selected ? theme.primarySoft : theme.white,
-                        },
-                      ]}>
-                      <Text style={[styles.roleOptionText, { color: theme.ink }]}>{role.title}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-          ) : null}
-
-          {showGradeField ? (
-            <StoryTextField
-              label="Child's grade (optional)"
-              value={grade}
-              onChangeText={setGrade}
-              placeholder="e.g. 3rd grade"
+        {committee.isMember ? (
+          <GCard title="Your workspace is ready" index={1}>
+            <GToyButton
+              label="Open workspace"
+              size="md"
+              onPress={() => router.push(getCommitteesWorkspaceRoute(slug, portal, committee.id))}
             />
-          ) : null}
+          </GCard>
+        ) : (
+          <GCard title="How joining works" index={1}>
+            <GStepList steps={buildJoinSteps(committee)} accessibilityLabel="How joining works" />
+          </GCard>
+        )}
 
-          <StoryTextField
-            label="Note (optional)"
-            value={note}
-            onChangeText={setNote}
-            placeholder="Share relevant experience or availability…"
-            multiline
-            numberOfLines={3}
-            style={styles.noteInput}
+        {committee.dutyRoles.length > 0 && !showForm ? (
+          <GCard title={`${committee.dutyRoles.length} ways to help`} tone="paper" index={2}>
+            <View style={styles.roles}>
+              {committee.dutyRoles.map((role) => (
+                <View key={role.id} style={styles.role}>
+                  <Text style={gText.itemTitle}>{role.title}</Text>
+                  {role.description ? <Text style={gText.meta}>{role.description}</Text> : null}
+                </View>
+              ))}
+            </View>
+          </GCard>
+        ) : null}
+
+        {showForm ? (
+          <GCard title="Tell the school you'd like to help" index={2}>
+            <View style={styles.form}>
+              <Text style={gText.meta}>
+                Your request will be reviewed by the school. You will get read-only access to the
+                committee workspace after approval.
+              </Text>
+              {committee.dutyRoles.length > 0 ? (
+                <GChoiceChips
+                  label="Preferred role (optional)"
+                  layout="stack"
+                  value={preferredDutyRoleId}
+                  onChange={setPreferredDutyRoleId}
+                  disabled={readOnly}
+                  onBlocked={notifyReadOnly}
+                  options={[
+                    { id: NO_PREFERENCE, label: 'No preference' },
+                    ...committee.dutyRoles.map((role) => ({
+                      id: role.id,
+                      label: role.title,
+                      description: role.description,
+                    })),
+                  ]}
+                />
+              ) : null}
+              {showGradeField ? (
+                <GTextField
+                  label="Child's grade"
+                  optional
+                  value={grade}
+                  onChangeText={setGrade}
+                  placeholder="e.g. 3rd grade"
+                  disabled={readOnly}
+                />
+              ) : null}
+              <GTextField
+                label="Note"
+                optional
+                value={note}
+                onChangeText={setNote}
+                placeholder="Share relevant experience or availability…"
+                multiline
+                disabled={readOnly}
+              />
+              {error ? <GInlineBanner tone="error" title="That didn't go through" description={error} /> : null}
+              <GToyButton
+                label={submitting ? 'Submitting…' : 'Submit request'}
+                icon="send"
+                size="md"
+                fullWidth
+                loading={submitting}
+                onPress={() => void handleSubmit()}
+              />
+            </View>
+          </GCard>
+        ) : null}
+
+        {showWithdraw ? (
+          <GCard title="Request pending" index={3}>
+            <View style={styles.form}>
+              <Text style={gText.body}>Your request is waiting for school review.</Text>
+              {error ? <GInlineBanner tone="error" title="That didn't go through" description={error} /> : null}
+              <GOutlineButton
+                label={withdrawing ? 'Withdrawing…' : 'Withdraw request'}
+                icon={withdrawing ? undefined : 'close'}
+                onPress={() => {
+                  if (!withdrawing) void handleWithdraw();
+                }}
+              />
+            </View>
+          </GCard>
+        ) : null}
+
+        {committee.requestStatus === 'approved' && !committee.isMember ? (
+          <GInlineBanner
+            tone="success"
+            title="Your request was approved"
+            description="Open this committee from My committees to view the workspace."
           />
+        ) : null}
 
-          <StoryButton
-            label={submitting ? 'Submitting…' : 'Submit request'}
-            onPress={() => void handleSubmit()}
-            disabled={submitting}
-          />
-        </StoryCard>
-      ) : null}
-
-      {showWithdrawSection ? (
-        <StoryCard compact style={styles.formCard}>
-          <Text style={[styles.formHint, { color: theme.muted }]}>
-            Your request is waiting for school review.
-          </Text>
-          <StoryButton
-            label={withdrawing ? 'Withdrawing…' : 'Withdraw request'}
-            variant="outline"
-            onPress={() => void handleWithdraw()}
-            disabled={withdrawing}
-          />
-        </StoryCard>
-      ) : null}
-
-      {committee.requestStatus === 'approved' && !committee.isMember ? (
-        <Text style={[styles.approvedHint, { color: theme.muted }]}>
-          Your request was approved. Open this committee from My committees to view the workspace.
-        </Text>
-      ) : null}
-    </ParentKeyboardAwareScrollView>
+      </ParentKeyboardAwareScrollView>
+    </View>
   );
 }
-
-type ParentCommitteeExploreDetailScreenProps = {
-  slug: string;
-  organizationId: string;
-  schoolName: string;
-  committeeId: string;
-};
 
 export function ParentCommitteeExploreDetailScreen({
   slug,
   organizationId,
   schoolName,
   committeeId,
-}: ParentCommitteeExploreDetailScreenProps) {
+}: {
+  slug: string;
+  organizationId: string;
+  schoolName: string;
+  committeeId: string;
+}) {
   const { data: homeData } = useParentHome();
   const requesterName = homeData?.userProfile.displayName ?? 'Parent';
-
   return (
     <CommitteeExploreDetailScreen
       slug={slug}
@@ -368,8 +340,8 @@ export function ParentCommitteeExploreDetailScreen({
       requesterName={requesterName}
       useCommittees={useParentCommittees}
       onSubmitJoinRequest={submitCommitteeJoinRequest}
-      onWithdrawJoinRequest={({ requestId, organizationId, committeeName, requesterName }) =>
-        withdrawCommitteeJoinRequest(requestId, organizationId, committeeName, requesterName)
+      onWithdrawJoinRequest={({ requestId, organizationId: orgId, committeeName, requesterName: name }) =>
+        withdrawCommitteeJoinRequest(requestId, orgId, committeeName, name)
       }
     />
   );
@@ -378,117 +350,10 @@ export function ParentCommitteeExploreDetailScreen({
 export { CommitteeExploreDetailScreen };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-    paddingTop: Spacing.two,
-    paddingBottom: Spacing.six,
-    gap: Spacing.four,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.two,
-  },
-  loadingCopy: {
-    fontFamily: StoryFonts.body,
-    fontSize: 14,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    alignSelf: 'flex-start',
-  },
-  backLabel: {
-    fontFamily: StoryFonts.bodyMedium,
-    fontSize: 13,
-  },
-  titleBlock: {
-    gap: Spacing.two,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-  description: {
-    fontFamily: StoryFonts.body,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  feedbackBanner: {
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-  },
-  section: {
-    gap: Spacing.three,
-  },
-  sectionTitle: {
-    fontFamily: StoryFonts.display,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  dutyRoleList: {
-    gap: Spacing.two,
-  },
-  dutyRoleCard: {
-    padding: StoryCardPadding,
-    gap: Spacing.one,
-  },
-  dutyRoleTitle: {
-    fontFamily: StoryFonts.bodySemiBold,
-    fontSize: 14,
-  },
-  dutyRoleDescription: {
-    fontFamily: StoryFonts.body,
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  formCard: {
-    padding: StoryCardPadding,
-    gap: Spacing.three,
-  },
-  formHeader: {
-    gap: Spacing.one,
-  },
-  formHint: {
-    fontFamily: StoryFonts.body,
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  fieldBlock: {
-    gap: Spacing.two,
-  },
-  fieldLabel: {
-    fontFamily: StoryFonts.bodyMedium,
-    fontSize: 12,
-  },
-  rolePicker: {
-    gap: Spacing.two,
-  },
-  roleOption: {
-    borderWidth: 1,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-  },
-  roleOptionText: {
-    fontFamily: StoryFonts.body,
-    fontSize: 14,
-  },
-  noteInput: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  approvedHint: {
-    fontFamily: StoryFonts.body,
-    fontSize: 13,
-    lineHeight: 18,
-  },
+  root: { flex: 1, backgroundColor: Garden.cream },
+  content: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 56, gap: 16 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  roles: { gap: 12 },
+  role: { gap: 3 },
+  form: { gap: 14 },
 });

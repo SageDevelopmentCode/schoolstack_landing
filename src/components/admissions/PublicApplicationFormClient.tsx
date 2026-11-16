@@ -46,6 +46,7 @@ import type {
   ApplicationFormSchema,
 } from "@/lib/admissions/application-form-schema";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import { buildParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { ApplyAuthEntryOption } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
@@ -151,6 +152,7 @@ function PublicApplicationFormClientContent({
   tourEntryOption = null,
 }: PublicApplicationFormClientProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  const gardenTheme = useMemo(() => buildParentThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const pathname = usePathname();
@@ -594,6 +596,7 @@ function PublicApplicationFormClientContent({
         </ApplicationFormPageShell>
         <PortalHelpFab
           C={C}
+          theme={gardenTheme}
           organizationId={organizationId}
           userEmail={userEmail}
           currentPath={pathname}

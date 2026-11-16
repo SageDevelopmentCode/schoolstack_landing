@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { DetailButton } from "@/components/school-admin/admissions/detail-garden";
 import { FileText } from "lucide-react";
 import ApplicationReadOnlyView from "@/components/admissions/ApplicationReadOnlyView";
 import ApplicationAnswersModal from "@/components/school-admin/admissions/ApplicationAnswersModal";
@@ -24,7 +25,6 @@ import {
   type ApplicationFormStep,
 } from "@/lib/admissions/application-form-steps";
 import type { ApplicationDetail } from "@/lib/admissions/parent-portal-access";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
@@ -66,7 +66,8 @@ function buildProgressSubtitle(
   }
 
   if (feeEnabled && feeStatus !== "not_required") {
-    const feeLabel = FEE_STATUS_LABELS[feeStatus] ?? feeStatus.replace(/_/g, " ");
+    const feeLabel =
+      FEE_STATUS_LABELS[feeStatus] ?? feeStatus.replace(/_/g, " ");
     parts.push(`Fee ${feeLabel.toLowerCase()}`);
   }
 
@@ -99,14 +100,21 @@ export default function ApplicationFormStatusCard({
       stepIndex: detail.stepIndex,
       feeStatus,
     });
-  }, [applicationStatus, detail.feeConfig, detail.schema, detail.stepIndex, feeStatus]);
+  }, [
+    applicationStatus,
+    detail.feeConfig,
+    detail.schema,
+    detail.stepIndex,
+    feeStatus,
+  ]);
 
   const progress = useMemo(
     () => summarizeApplicationFormProgress(stepsWithStatus),
     [stepsWithStatus],
   );
 
-  const selectedStep = stepsWithStatus.find((step) => step.id === selectedStepId) ?? null;
+  const selectedStep =
+    stepsWithStatus.find((step) => step.id === selectedStepId) ?? null;
   const statusStyle = applicationStatusBadgeStyle(applicationStatus, C);
   const progressSubtitle = buildProgressSubtitle(
     applicationStatus,
@@ -172,15 +180,16 @@ export default function ApplicationFormStatusCard({
         />
 
         <div className="mb-3 flex flex-wrap items-start gap-2">
-          <button
+          <DetailButton
+            kind="secondary"
+            C={C}
             type="button"
             onClick={() => setAnswersOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition hover:opacity-90"
-            style={getAdminButtonStyle(C, "secondary")}
+            storyClassName="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition hover:opacity-90"
           >
             <FileText className="h-3.5 w-3.5" />
             View application answers
-          </button>
+          </DetailButton>
           <ApplicationPdfDownloadButton
             C={C}
             downloadLabel={resolvedDownloadLabel}

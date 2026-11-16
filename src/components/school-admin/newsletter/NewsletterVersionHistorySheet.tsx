@@ -48,7 +48,7 @@ type NewsletterVersionHistorySheetProps = {
   staffMembers: StaffMemberRecord[];
   onClose: () => void;
   onRestored: (edition: NewsletterEdition) => void;
-  onToast: (message: string) => void;
+  onToast: (message: string, tone?: "success" | "error" | "info") => void;
 };
 
 export default function NewsletterVersionHistorySheet({
@@ -148,12 +148,12 @@ export default function NewsletterVersionHistorySheet({
         setRestoreTarget(null);
         setPreviewVersionId(null);
         setLoadedPreview(null);
-        onToast("Restored that version.");
+        onToast("Restored that version.", "success");
         reloadVersions();
         handleClose();
       })
       .catch((err: unknown) => {
-        onToast(err instanceof Error ? err.message : "Could not restore this version.");
+        onToast(err instanceof Error ? err.message : "Could not restore this version.", "error");
       })
       .finally(() => setRestoring(false));
   };

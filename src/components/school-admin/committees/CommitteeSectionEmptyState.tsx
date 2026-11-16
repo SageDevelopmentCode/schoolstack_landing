@@ -5,6 +5,8 @@ import type { LucideIcon } from "lucide-react";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { GIcon } from "@/components/school-parent/garden/ui";
+import { useIsGardenCommittee } from "./committee-surface";
 
 type CommitteeSectionEmptyStateProps = {
   theme: ParentThemeTokens;
@@ -23,6 +25,21 @@ export default function CommitteeSectionEmptyState({
   action,
   className = "",
 }: CommitteeSectionEmptyStateProps) {
+  const garden = useIsGardenCommittee();
+  if (garden) {
+    return (
+      <div
+        className={`flex flex-col items-center justify-center rounded-[24px] border-[1.5px] border-dashed border-[var(--sf-ink)]/20 bg-[var(--sf-paper)] px-6 py-10 text-center sm:py-12 ${className}`}
+      >
+        <GIcon size="lg">
+          <Icon />
+        </GIcon>
+        <h3 className="sf-display m-0 mt-4 text-[1.35rem] leading-[1.05] text-[var(--sf-ink)]">{title}</h3>
+        <p className="m-0 mt-2 max-w-sm text-[14px] font-semibold leading-relaxed text-[var(--sf-soft)]">{description}</p>
+        {action ? <div className="mt-5">{action}</div> : null}
+      </div>
+    );
+  }
   return (
     <ParentCard
       theme={theme}

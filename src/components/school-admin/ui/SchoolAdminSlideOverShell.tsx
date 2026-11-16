@@ -1,8 +1,11 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
+import GSidePanel from "@/components/school-parent/garden/GSidePanel";
+import { useAdminGardenSkin } from "@/components/school-admin/garden/skin";
+import { GardenOverlayScope } from "@/components/school-admin/garden/blocks";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 type SchoolAdminSlideOverShellProps = {
@@ -14,7 +17,15 @@ type SchoolAdminSlideOverShellProps = {
   footer?: ReactNode;
   C: AdminThemeTokens;
   widthClassName?: string;
+  /** Garden only: data-testid on the drawer. */
+  testId?: string;
 };
+
+/** Wide story drawers (≥ 36rem) become the xl Garden drawer. */
+function gardenSize(widthClassName: string): "md" | "xl" {
+  const rem = /(\d+(?:\.\d+)?)rem/.exec(widthClassName);
+  return rem && Number(rem[1]) >= 36 ? "xl" : "md";
+}
 
 export default function SchoolAdminSlideOverShell({
   open,
@@ -25,7 +36,32 @@ export default function SchoolAdminSlideOverShell({
   footer,
   C,
   widthClassName = "w-[min(100%,28rem)]",
+  testId,
 }: SchoolAdminSlideOverShellProps) {
+  const skin = useAdminGardenSkin();
+  const panelId = `slide-over-${useId().replace(/:/g, "")}`;
+
+  // Inside a Garden admin page: the Garden drawer (portalled, skinned body).
+  if (skin) {
+    return (
+      <GardenOverlayScope theme={skin}>
+        <GSidePanel
+          theme={skin}
+          open={open}
+          onClose={onClose}
+          title={title}
+          subtitle={subtitle}
+          footer={footer ? <div className="flex w-full flex-wrap items-center justify-end gap-2.5">{footer}</div> : undefined}
+          testId={testId ?? panelId}
+          panelId={panelId}
+          size={gardenSize(widthClassName)}
+        >
+          <div className="sf-admin-garden-skin flex flex-col gap-4">{children}</div>
+        </GSidePanel>
+      </GardenOverlayScope>
+    );
+  }
+
   return (
     <AnimatePresence>
       {open ? (

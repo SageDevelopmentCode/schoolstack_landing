@@ -28,6 +28,7 @@ import { computeChecklistProgress } from "@/lib/admissions/enrollment-checklist-
 import { resolveEnrollmentChecklistInitialItemId } from "@/lib/admissions/enrollment-checklist-progress";
 import { buildChecklistPreviewSidebarItems } from "@/lib/admissions/enrollment-checklist-variants";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import { buildParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
@@ -284,6 +285,7 @@ export default function EnrollmentChecklistExperience({
 }: EnrollmentChecklistExperienceProps) {
   const parentThemeCtx = useOptionalParentTheme();
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  const gardenTheme = useMemo(() => buildParentThemeTokens(branding), [branding]);
   const previewLayout = useMemo(() => {
     if (mode === "preview" && allItems && allItems.length > 0) {
       return buildChecklistPreviewSidebarItems(allItems, initialItemId);
@@ -457,6 +459,7 @@ export default function EnrollmentChecklistExperience({
           {helpButton ? (
             <PortalHelpFab
               C={C}
+              theme={gardenTheme}
               organizationId={helpButton.organizationId}
               userEmail={helpButton.userEmail}
               currentPath={helpButton.currentPath}

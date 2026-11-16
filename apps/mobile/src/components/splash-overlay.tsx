@@ -4,7 +4,7 @@ import { Modal, StyleSheet } from 'react-native';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { BrandedSplashContent } from '@/components/branded-splash-content';
-import { Brand } from '@/constants/theme';
+import { Garden } from '@/components/parent/garden/tokens';
 import { useAuth } from '@/contexts/auth-context';
 import { isMobileE2e } from '@/lib/e2e';
 
@@ -94,6 +94,6 @@ export function SplashOverlay() {
 const styles = StyleSheet.create({
   modalBody: {
     flex: 1,
-    backgroundColor: Brand.bg,
+    backgroundColor: Garden.cream,
   },
 });

@@ -1,7 +1,8 @@
-import { StoryEmbeddedSwitcherSection } from '@/components/story/more/story-embedded-switcher-section';
-import { StoryEmbeddedSwitcherSkeleton } from '@/components/story/more/story-embedded-switcher-skeleton';
-import { StoryMoreMenuIcon } from '@/components/story/more/story-more-menu-icon';
-import { StoryMoreMenuSelectionRow } from '@/components/story/more/story-more-menu-selection-row';
+import {
+  GardenSelectionList,
+  GardenSelectionRow,
+  GardenSelectionSkeleton,
+} from '@/components/garden-nav/garden-more';
 
 export type ProgramSwitcherContext = {
   id: string;
@@ -19,7 +20,6 @@ type ProgramSwitcherPanelProps = {
 const PROGRAM_ICON = {
   icon: 'school-outline' as const,
   iconBg: '#E9F2EA',
-  iconColor: '#3D6B4F',
 };
 
 export function useProgramSwitcherVisibility(input: {
@@ -38,7 +38,7 @@ export function ProgramSwitcherPanel({
   onSelect,
 }: ProgramSwitcherPanelProps) {
   if (loading) {
-    return <StoryEmbeddedSwitcherSkeleton kicker={sectionTitle} rowCount={2} />;
+    return <GardenSelectionSkeleton kicker={sectionTitle} rowCount={2} />;
   }
 
   if (contexts.length < 2) {
@@ -46,31 +46,26 @@ export function ProgramSwitcherPanel({
   }
 
   return (
-    <StoryEmbeddedSwitcherSection kicker={sectionTitle}>
+    <GardenSelectionList kicker={sectionTitle} hint="Pick which program your tabs and menu show.">
       {contexts.map((context, index) => {
         const isCurrent = context.id === activeContextId;
         return (
-          <StoryMoreMenuSelectionRow
+          <GardenSelectionRow
             key={context.id}
             isFirst={index === 0}
             label={context.label}
             subtitle="Co-op program portal"
+            icon={PROGRAM_ICON.icon}
+            iconBg={PROGRAM_ICON.iconBg}
             selected={isCurrent}
             onPress={() => {
               if (!isCurrent) {
                 onSelect(context);
               }
             }}
-            icon={
-              <StoryMoreMenuIcon
-                name={PROGRAM_ICON.icon}
-                iconBg={PROGRAM_ICON.iconBg}
-                iconColor={PROGRAM_ICON.iconColor}
-              />
-            }
           />
         );
       })}
-    </StoryEmbeddedSwitcherSection>
+    </GardenSelectionList>
   );
 }

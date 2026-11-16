@@ -1,0 +1,16 @@
+appId: com.mudkitchen.schoolstack.mobile
+---
+- runFlow: ../parent-logged-in.yaml
+- tapOn: 'More'
+- tapOn: 'Classroom signups'
+- extendedWaitUntil:
+    visible:
+      id: parent-classroom-signups-screen
+    timeout: 30000
+- takeScreenshot: visual-capture
+- scrollUntilVisible:
+    element:
+      id: parent-signups-how
+    direction: DOWN
+    optional: true
+- takeScreenshot: visual-capture-list

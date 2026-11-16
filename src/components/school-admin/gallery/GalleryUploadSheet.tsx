@@ -1,16 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { Check, Loader2 } from "lucide-react";
 import SchoolAdminSlideOverShell from "@/components/school-admin/ui/SchoolAdminSlideOverShell";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
-import { uploadGalleryBatch } from "@/lib/school-gallery/upload-gallery-batch";
-import { isGalleryUploadPartialFailure } from "@/lib/school-gallery/gallery-upload-partial-error";
+import { useGalleryUpload } from "@/components/school-gallery/useGalleryUpload";
 import type { GalleryPhoto } from "@/lib/school-gallery/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
-import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type GalleryUploadSheetProps = {
   open: boolean;
@@ -24,34 +22,6 @@ type GalleryUploadSheetProps = {
   operationalErrorSurface?: "school_admin" | "teacher_portal";
 };
 
-type UploadPhase = "idle" | "preparing" | "uploading";
-
-function todayIsoDate(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function computeProgressPercent(
-  phase: UploadPhase,
-  prepareIndex: number,
-  prepareTotal: number,
-  uploadLoaded: number,
-  uploadTotal: number,
-): number {
-  if (phase === "idle") return 0;
-  if (phase === "preparing") {
-    if (prepareTotal <= 0) return 5;
-    return Math.round((prepareIndex / prepareTotal) * 40);
-  }
-  if (uploadTotal > 0) {
-    return 40 + Math.round((uploadLoaded / uploadTotal) * 60);
-  }
-  return 55;
-}
-
 export default function GalleryUploadSheet({
   open,
   onClose,
@@ -64,136 +34,47 @@ export default function GalleryUploadSheet({
   operationalErrorSurface = "school_admin",
 }: GalleryUploadSheetProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [photoDate, setPhotoDate] = useState(todayIsoDate());
-  const [uploading, setUploading] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [pendingPreparedRetry, setPendingPreparedRetry] = useState<File[] | null>(
-    null,
-  );
-  const [phase, setPhase] = useState<UploadPhase>("idle");
-  const [prepareIndex, setPrepareIndex] = useState(0);
-  const [prepareTotal, setPrepareTotal] = useState(0);
-  const [preparedFileNames, setPreparedFileNames] = useState<Set<string>>(
-    () => new Set(),
-  );
-  const [uploadLoaded, setUploadLoaded] = useState(0);
-  const [uploadTotal, setUploadTotal] = useState(0);
-  const [statusLine, setStatusLine] = useState("");
-
-  const resetProgress = () => {
-    setPhase("idle");
-    setPrepareIndex(0);
-    setPrepareTotal(0);
-    setPreparedFileNames(new Set());
-    setUploadLoaded(0);
-    setUploadTotal(0);
-    setStatusLine("");
-  };
+  const upload = useGalleryUpload({
+    slug,
+    organizationId,
+    uploadUrl,
+    operationalErrorSurface,
+    onUploaded,
+  });
+  const {
+    photoDate,
+    setPhotoDate,
+    uploading,
+    selectedFiles,
+    phase,
+    statusLine,
+    preparedFileNames,
+    progressPercent,
+    showProgress,
+  } = upload;
 
   const handleClose = () => {
     if (uploading) return;
     onClose();
   };
 
-  const handleUpload = async (files: File[]) => {
-    if (files.length === 0) return;
-
-    const fileArray = pendingPreparedRetry ?? files;
-    const alreadyPrepared = pendingPreparedRetry !== null;
-    setUploading(true);
-    resetProgress();
-    if (alreadyPrepared) {
-      setPhase("uploading");
-      setStatusLine("Uploading…");
-    } else {
-      setPhase("preparing");
-      setPrepareTotal(fileArray.length);
-      setStatusLine(`Compressing 0 of ${fileArray.length}…`);
-    }
-
-    try {
-      const targetUrl = uploadUrl ?? `/api/school/${slug}/gallery`;
-      const { photos } = await uploadGalleryBatch({
-        files: fileArray,
-        photoDate,
-        uploadUrl: targetUrl,
-        alreadyPrepared,
-        onPrepareProgress: ({ index, total, fileName }) => {
-          setPrepareIndex(index);
-          setPrepareTotal(total);
-          setStatusLine(`Compressing ${index} of ${total}…`);
-          setPreparedFileNames((current) => {
-            const next = new Set(current);
-            next.add(fileName);
-            return next;
-          });
-        },
-        onUploadProgress: ({ loaded, total }) => {
-          setPhase("uploading");
-          setUploadLoaded(loaded);
-          setUploadTotal(total);
-          if (total > 0) {
-            const pct = Math.round((loaded / total) * 100);
-            setStatusLine(`Uploading… ${pct}%`);
-          } else {
-            setStatusLine("Uploading…");
-          }
-        },
-      });
-
-      onUploaded(photos);
-      adminToast.success(`Uploaded ${photos.length} photo(s).`);
+  const handleUpload = async () => {
+    const result = await upload.upload();
+    if (!result) return;
+    if (inputRef.current) inputRef.current.value = "";
+    if (result.status === "done") {
+      adminToast.success(`Uploaded ${result.photos.length} photo(s).`);
       onClose();
-      setSelectedFiles([]);
-      setPendingPreparedRetry(null);
-      resetProgress();
-      if (inputRef.current) inputRef.current.value = "";
-    } catch (error) {
-      resetProgress();
-      if (isGalleryUploadPartialFailure(error)) {
-        if (error.cause !== undefined) {
-          void reportPortalOperationalError(
-            operationalErrorSurface,
-            {
-              organizationId,
-              operation: "gallery.upload",
-              error: "",
-            },
-            error.cause,
-          );
-        }
-        onUploaded(error.uploadedPhotos);
-        setSelectedFiles(error.remainingFiles);
-        setPendingPreparedRetry(error.remainingFiles);
-        if (inputRef.current) inputRef.current.value = "";
-        adminToast.info(
-          `Uploaded ${error.uploadedPhotos.length} photo(s). ${error.remainingFiles.length} left — tap Upload to retry.`,
-        );
-        return;
-      }
-      void reportPortalOperationalError(
-        operationalErrorSurface,
-        {
-          organizationId,
-          operation: "gallery.upload",
-          error: "",
-        },
-        error,
-      );
-      adminToast.error(formatActionError(error, "Could not upload photos."));
-    } finally {
-      setUploading(false);
+      return;
     }
+    if (result.status === "partial") {
+      adminToast.info(
+        `Uploaded ${result.photos.length} photo(s). ${result.remaining} left — tap Upload to retry.`,
+      );
+      return;
+    }
+    adminToast.error(formatActionError(result.error, "Could not upload photos."));
   };
-
-  const progressPercent = computeProgressPercent(
-    phase,
-    prepareIndex,
-    prepareTotal,
-    uploadLoaded,
-    uploadTotal,
-  );
-  const showProgress = phase !== "idle";
 
   return (
     <SchoolAdminSlideOverShell
@@ -218,7 +99,7 @@ export default function GalleryUploadSheet({
             type="button"
             theme={theme}
             disabled={uploading || selectedFiles.length === 0}
-            onClick={() => void handleUpload(selectedFiles)}
+            onClick={() => void handleUpload()}
           >
             {uploading ? (
               <>
@@ -257,9 +138,7 @@ export default function GalleryUploadSheet({
               const files = event.target.files
                 ? Array.from(event.target.files)
                 : [];
-              setSelectedFiles(files);
-              setPendingPreparedRetry(null);
-              resetProgress();
+              upload.selectFiles(files);
             }}
           />
           <AdminButton

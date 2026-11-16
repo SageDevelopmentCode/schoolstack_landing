@@ -5,6 +5,7 @@ import {
   gotoSubmissions,
   openSubmissionByStudent,
   statusFilterButton,
+  submissionDetailStatus,
   SUBMISSIONS_PATH,
 } from "../helpers/admin-submissions";
 import { ensureAlphaChildSubmittedFixture } from "../helpers/api-fixtures";
@@ -30,7 +31,7 @@ test("admin can open a submission detail panel", async ({ page }) => {
     "true",
   );
   await expect(page.getByText("Decision", { exact: true })).toBeVisible();
-  await expect(page.getByText("Submitted", { exact: true }).first()).toBeVisible();
+  await expect(submissionDetailStatus(page, "Submitted")).toBeVisible();
 });
 
 test("admin can view application answers", async ({ page }) => {
@@ -95,9 +96,9 @@ test("admin can change application status", async ({ page }) => {
 
   await page.getByRole("button", { name: "Mark under review" }).click();
 
-  await expect(
-    page.getByText("Under review", { exact: true }).first(),
-  ).toBeVisible({ timeout: 15_000 });
+  await expect(submissionDetailStatus(page, "Under review")).toBeVisible({
+    timeout: 15_000,
+  });
 
   await closeSubmissionDetail(page);
 
@@ -106,6 +107,11 @@ test("admin can change application status", async ({ page }) => {
 
 test("admin can download application PDF", async ({ page }) => {
   test.setTimeout(90_000);
+
+  // html2canvas waits for every <img> in its clone of the page with no
+  // timeout. A page image that never loads (in CI: the lazy sidebar logo)
+  // must not stall the export, so hold one open on purpose.
+  await page.route("**/*Logo.png*", () => {});
 
   await gotoSubmissions(page);
   await openSubmissionByStudent(page, "Alpha Child");

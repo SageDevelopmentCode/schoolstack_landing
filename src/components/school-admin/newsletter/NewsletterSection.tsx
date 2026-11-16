@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AdminGardenPage } from "@/components/school-admin/garden/kit";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
@@ -290,7 +291,7 @@ export default function NewsletterSection({
 
   if (hydrated && editionId && workspace.editions.some((e) => e.id === editionId)) {
     return (
-      <>
+      <AdminGardenPage theme={theme} containerClassName="!max-w-none !gap-0 !p-0" data-testid="admin-newsletter-editor">
         <NewsletterWorkspace
           organizationId={organizationId}
           slug={slug}
@@ -310,12 +311,12 @@ export default function NewsletterSection({
           onSaveNow={saveNow}
         />
         {leaveDialog}
-      </>
+      </AdminGardenPage>
     );
   }
 
   return (
-    <>
+    <AdminGardenPage theme={theme} data-testid="admin-newsletters-page">
       <NewsletterOverviewPage
         slug={slug}
         workspace={workspace}
@@ -323,6 +324,6 @@ export default function NewsletterSection({
         onOpenEdition={guardedOpenEdition}
       />
       {leaveDialog}
-    </>
+    </AdminGardenPage>
   );
 }

@@ -197,7 +197,12 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   contentAreaFill: {
-    flex: 1,
+    // Explicit longhands: `contentArea` sets flexGrow: 0, which overrides the `flex: 1`
+    // shorthand, so scrollable={false} sheets used to collapse their content to 0pt
+    // (lists inside them rendered blank).
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
     minHeight: 0,
   },
   scroll: {

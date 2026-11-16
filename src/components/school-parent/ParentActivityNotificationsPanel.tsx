@@ -1,15 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { Bell, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { AlertTriangle, ArrowRight, Check, Settings2 } from "lucide-react";
 import ParentActivityNotificationRow from "@/components/school-parent/ParentActivityNotificationRow";
-import ParentActivityNotificationsPanelSkeleton from "@/components/school-parent/ParentActivityNotificationsPanelSkeleton";
-import ParentButton from "@/components/school-parent/ui/ParentButton";
-import ParentCard from "@/components/school-parent/ui/ParentCard";
-import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
-import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
+import NavigationLink from "@/components/school/shared/NavigationLink";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
+import GSidePanel from "@/components/school-parent/garden/GSidePanel";
+import { PORTAL_EASE } from "@/components/school-parent/garden/motion";
+import {
+  GChip,
+  GKicker,
+  GSkeleton,
+  gBtnOutlineSm,
+  gLinkSm,
+} from "@/components/school-parent/garden/ui";
+import { Tick } from "@/components/garden/ui";
 import type { ParentActivityNotification } from "@/lib/parent-portal/parent-activity-notifications";
 import type { ParentNotificationContext } from "@/lib/parent-portal/parent-notification-context";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
@@ -26,14 +32,65 @@ type ParentActivityNotificationsPanelProps = {
   previewFamilyId?: string;
   onMarkedRead?: () => void;
   onNavigate?: (href: string) => void;
+  /** Bell count when the drawer opened: the newest N rows are "New". */
+  unreadCountAtOpen?: number;
+  /** Notification settings page (footer link). */
+  notificationSettingsHref?: string;
 };
 
 const PAGE_SIZE = 20;
-const LIST_MOTION = {
-  initial: { opacity: 0, y: 6 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.22, ease: [0.16, 1, 0.3, 1] as const },
-};
+
+type DayGroup = { label: string; items: { notification: ParentActivityNotification; index: number }[] };
+
+function startOfLocalDay(date: Date): number {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
+
+/** "Today" / "Yesterday" / "Earlier this week" / "Earlier", newest first. */
+function groupByDay(notifications: ParentActivityNotification[]): DayGroup[] {
+  const today = startOfLocalDay(new Date());
+  const day = 24 * 60 * 60 * 1000;
+  const groups: DayGroup[] = [];
+  notifications.forEach((notification, index) => {
+    const created = new Date(notification.createdAt);
+    const start = Number.isNaN(created.getTime()) ? 0 : startOfLocalDay(created);
+    const label =
+      start >= today
+        ? "Today"
+        : start >= today - day
+          ? "Yesterday"
+          : start >= today - 6 * day
+            ? "Earlier this week"
+            : "Earlier";
+    const last = groups[groups.length - 1];
+    if (last && last.label === label) {
+      last.items.push({ notification, index });
+    } else {
+      groups.push({ label, items: [{ notification, index }] });
+    }
+  });
+  return groups;
+}
+
+function NotificationSkeleton({ count = 4 }: { count?: number }) {
+  return (
+    <div className="flex flex-col gap-2.5" aria-hidden="true">
+      {Array.from({ length: count }, (_, i) => (
+        <div
+          key={i}
+          className="flex items-start gap-3 rounded-[18px] border-[1.5px] border-[var(--sf-ink)]/[0.07] bg-white px-3.5 py-3.5"
+        >
+          <GSkeleton className="h-11 w-11 shrink-0 !rounded-full" />
+          <div className="flex min-w-0 flex-1 flex-col gap-2 pt-1">
+            <GSkeleton className="h-3.5 w-[60%] !rounded-full" />
+            <GSkeleton className="h-3 w-[85%] !rounded-full" />
+            <GSkeleton className="h-2.5 w-[35%] !rounded-full" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function ParentActivityNotificationsPanel({
   open,
@@ -47,8 +104,12 @@ export default function ParentActivityNotificationsPanel({
   previewFamilyId,
   onMarkedRead,
   onNavigate,
+  unreadCountAtOpen = 0,
+  notificationSettingsHref,
 }: ParentActivityNotificationsPanelProps) {
   const { theme } = useParentTheme();
+  const reduce = useReducedMotion() === true;
+  const [markState, setMarkState] = useState<"idle" | "marking" | "done">("idle");
   const [notifications, setNotifications] = useState<ParentActivityNotification[]>(
     [],
   );
@@ -57,7 +118,7 @@ export default function ParentActivityNotificationsPanel({
   const [error, setError] = useState<string | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const fetchPage = useCallback(
@@ -179,6 +240,7 @@ export default function ParentActivityNotificationsPanel({
   useEffect(() => {
     if (!open || previewMode) return;
 
+    queueMicrotask(() => setMarkState("marking"));
     void (async () => {
       try {
         const response = await fetch(
@@ -191,9 +253,13 @@ export default function ParentActivityNotificationsPanel({
         );
         if (response.ok) {
           onMarkedRead?.();
+          setMarkState("done");
+        } else {
+          setMarkState("idle");
         }
       } catch {
         // ignore transient mark-read errors
+        setMarkState("idle");
       }
     })();
   }, [open, organizationId, onMarkedRead, previewMode]);
@@ -208,17 +274,6 @@ export default function ParentActivityNotificationsPanel({
       void loadNotifications();
     });
   }, [open, loadNotifications]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
 
   useEffect(() => {
     if (!open || !hasMore || loading || loadingMore) return;
@@ -241,164 +296,149 @@ export default function ParentActivityNotificationsPanel({
   }, [hasMore, loadMoreNotifications, loading, loadingMore, open, notifications.length]);
 
   const showInitialSkeleton = loading && notifications.length === 0;
+  const groups = useMemo(() => groupByDay(notifications), [notifications]);
+  const newCount = previewMode ? 0 : unreadCountAtOpen;
+
+  const statusChip = previewMode ? (
+    <GChip tone="neutral">Preview · not marked read</GChip>
+  ) : newCount > 0 && markState === "done" ? (
+    <GChip tone="success">
+      <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />
+      Marked as read
+    </GChip>
+  ) : newCount > 0 ? (
+    <GChip tone="info">{newCount > 99 ? "99+" : newCount} new</GChip>
+  ) : null;
+
+  const settingsLinkContent = (
+    <>
+      <Settings2 className="h-4 w-4" aria-hidden />
+      Notification settings
+      <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+    </>
+  );
+  const footer = notificationSettingsHref ? (
+    <div className="flex w-full flex-wrap items-center justify-between gap-2">
+      <span className="text-[13px] font-semibold text-[var(--sf-soft)]">
+        Choose which emails get these.
+      </span>
+      {onNavigate ? (
+        <button
+          type="button"
+          className={gLinkSm}
+          onClick={() => {
+            onClose();
+            onNavigate(notificationSettingsHref);
+          }}
+        >
+          {settingsLinkContent}
+        </button>
+      ) : (
+        <NavigationLink href={notificationSettingsHref} className={gLinkSm} onClick={onClose}>
+          {settingsLinkContent}
+        </NavigationLink>
+      )}
+    </div>
+  ) : undefined;
 
   return (
-    <AnimatePresence>
-      {open ? (
-        <motion.div
-          className="fixed inset-0 z-[10000]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-        >
+    <GSidePanel
+      theme={theme}
+      open={open}
+      onClose={onClose}
+      panelId="parent-activity-notifications"
+      testId="parent-activity-notifications"
+      kicker="Your updates"
+      title="Notifications"
+      subtitle={
+        previewMode
+          ? "Read-only preview — does not mark notifications read."
+          : "Updates from your school in the last 30 days."
+      }
+      headerAside={statusChip}
+      closeLabel="Close notifications"
+      bodyRef={scrollContainerRef}
+      footer={footer}
+    >
+      <div aria-busy={showInitialSkeleton || loadingMore} className="flex flex-col gap-4">
+        {showInitialSkeleton ? (
+          <NotificationSkeleton />
+        ) : error ? (
           <div
-            className="absolute inset-0"
-            onClick={onClose}
-            aria-hidden="true"
-            style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
-          />
-          <motion.div
-            initial={{ x: "100%", opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: "100%", opacity: 0 }}
-            transition={{ type: "spring", damping: 28, stiffness: 300 }}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="parent-activity-notifications-title"
-            className="absolute inset-y-0 right-0 z-[15] flex w-[min(100%,28rem)] max-w-full flex-col overflow-hidden"
-            style={{
-              backgroundColor: theme.paper,
-              borderLeft: `1px solid ${theme.line}`,
-              boxShadow: theme.shadowCard,
-            }}
-            onClick={(event) => event.stopPropagation()}
+            role="alert"
+            className="flex flex-col items-center rounded-[22px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white px-5 py-7 text-center"
           >
-            <div
-              className="flex flex-shrink-0 items-start justify-between gap-3 px-5 py-4"
-              style={{
-                borderBottom: `1px solid ${theme.line}`,
-                backgroundColor: theme.cream,
-              }}
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--sf-peach)] ring-[1.5px] ring-[var(--sf-ink)]">
+              <AlertTriangle className="h-5 w-5 text-[var(--sf-clay-deep)]" strokeWidth={2.4} aria-hidden />
+            </span>
+            <p className="sf-display m-0 mt-3 text-[1.15rem] text-[var(--sf-ink)]">
+              Couldn&apos;t load notifications
+            </p>
+            <p className="m-0 mt-1.5 max-w-[22rem] text-[13px] font-semibold text-[var(--sf-soft)]">
+              {error}
+            </p>
+            <button
+              type="button"
+              className={`${gBtnOutlineSm} mt-4`}
+              onClick={() => void loadNotifications()}
             >
-              <div className="min-w-0">
-                <ParentSectionKicker theme={theme} className="mb-1.5">
-                  Your updates
-                </ParentSectionKicker>
-                <ParentDisplayHeading
-                  theme={theme}
-                  as="h2"
-                  size="section"
-                  id="parent-activity-notifications-title"
-                  className="!text-[1.35rem]"
-                >
-                  Notifications
-                </ParentDisplayHeading>
-                <p className="mt-1.5 text-xs leading-relaxed" style={{ color: theme.muted }}>
-                  {previewMode
-                    ? "Read-only preview — does not mark notifications read."
-                    : "Updates from your school in the last 30 days."}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-[10px] p-2 transition-colors"
-                style={{ color: theme.muted }}
-                onMouseEnter={(event) => {
-                  event.currentTarget.style.backgroundColor = theme.white;
-                }}
-                onMouseLeave={(event) => {
-                  event.currentTarget.style.backgroundColor = "transparent";
-                }}
-                aria-label="Close notifications"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div
-              ref={scrollContainerRef}
-              className="min-h-0 flex-1 overflow-y-auto px-4 py-3"
-              aria-busy={showInitialSkeleton || loadingMore}
-            >
-              {showInitialSkeleton ? (
-                <ParentActivityNotificationsPanelSkeleton theme={theme} />
-              ) : error ? (
-                <ParentCard theme={theme} className="!p-5 text-center">
-                  <p className="text-sm" style={{ color: theme.alert }}>
-                    {error}
-                  </p>
-                  <div className="mt-4">
-                    <ParentButton
-                      theme={theme}
-                      variant="outline"
-                      className="!px-4 !py-2"
-                      onClick={() => void loadNotifications()}
+              Try again
+            </button>
+          </div>
+        ) : notifications.length === 0 ? (
+          <div className="flex flex-col items-center rounded-[22px] border-[1.5px] border-[var(--sf-ink)]/10 bg-[var(--sf-mint)] px-5 py-8 text-center">
+            <Tick className="h-12 w-12" />
+            <p className="sf-display m-0 mt-3 text-[1.25rem] text-[var(--sf-ink)]">
+              You&apos;re all caught up
+            </p>
+            <p className="m-0 mt-1.5 text-[13px] font-semibold text-[var(--sf-ink)]/70">
+              No recent notifications in the last 30 days.
+            </p>
+            <p aria-hidden="true" className="sf-hand m-0 mt-3 text-[1.15rem] text-[var(--sf-forest)]">
+              enjoy the quiet ✿
+            </p>
+          </div>
+        ) : (
+          <>
+            {groups.map((group) => (
+              <section key={group.label} aria-label={group.label} className="flex flex-col gap-2.5">
+                <div className="sticky -top-5 z-[1] -mx-1 bg-[var(--sf-cream)]/95 px-1 py-1 backdrop-blur-sm">
+                  <GKicker>{group.label}</GKicker>
+                </div>
+                <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+                  {group.items.map(({ notification, index }) => (
+                    <motion.li
+                      key={notification.id}
+                      initial={reduce ? false : { opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        duration: 0.22,
+                        ease: PORTAL_EASE,
+                        delay: reduce ? 0 : Math.min(index % 20, 8) * 0.035,
+                      }}
                     >
-                      Try again
-                    </ParentButton>
-                  </div>
-                </ParentCard>
-              ) : notifications.length === 0 ? (
-                <ParentCard
-                  theme={theme}
-                  variant="today"
-                  className="flex flex-col items-center !p-8 text-center"
-                >
-                  <div
-                    className="mb-3 flex h-12 w-12 items-center justify-center rounded-[14px]"
-                    style={{ backgroundColor: theme.primarySoft }}
-                  >
-                    <Bell className="h-5 w-5" style={{ color: theme.primary }} aria-hidden />
-                  </div>
-                  <p
-                    className="text-sm font-semibold"
-                    style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
-                  >
-                    You&apos;re all caught up
-                  </p>
-                  <p className="mt-1.5 text-xs leading-relaxed" style={{ color: theme.muted }}>
-                    No recent notifications in the last 30 days.
-                  </p>
-                </ParentCard>
-              ) : (
-                <>
-                  <motion.ul
-                    className="flex flex-col gap-2"
-                    initial="initial"
-                    animate="animate"
-                    variants={{
-                      animate: {
-                        transition: { staggerChildren: 0.04 },
-                      },
-                    }}
-                  >
-                    {notifications.map((notification) => (
-                      <motion.li key={notification.id} {...LIST_MOTION}>
-                        <ParentActivityNotificationRow
-                          notification={notification}
-                          theme={theme}
-                          onClose={onClose}
-                          onNavigate={onNavigate}
-                        />
-                      </motion.li>
-                    ))}
-                  </motion.ul>
-                  <div ref={loadMoreRef} className="h-2" aria-hidden />
-                  {loadingMore ? (
-                    <ParentActivityNotificationsPanelSkeleton
-                      theme={theme}
-                      count={2}
-                      className="mt-2"
-                    />
-                  ) : null}
-                </>
-              )}
-            </div>
-          </motion.div>
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
+                      <ParentActivityNotificationRow
+                        notification={notification}
+                        theme={theme}
+                        onClose={onClose}
+                        onNavigate={onNavigate}
+                        isNew={index < newCount}
+                      />
+                    </motion.li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+            <div ref={loadMoreRef} className="h-1" aria-hidden />
+            {loadingMore ? <NotificationSkeleton count={2} /> : null}
+            {!hasMore && !loadingMore ? (
+              <p className="m-0 rounded-[16px] border-[1.5px] border-dashed border-[var(--sf-ink)]/15 px-4 py-3 text-center text-[13px] font-semibold text-[var(--sf-soft)]">
+                That&apos;s everything from the last 30 days.
+              </p>
+            ) : null}
+          </>
+        )}
+      </div>
+    </GSidePanel>
   );
 }

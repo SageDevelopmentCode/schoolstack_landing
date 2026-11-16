@@ -22,7 +22,7 @@ inventing a new one.
 - Restyling or building a **public marketing page** so it matches the home page.
 - Adding a new section to the home page.
 - Not for logged-in portals (parent, teacher, school admin). Those use
-  [`parent-portal-story-design`](../parent-portal-story-design/SKILL.md) and
+  [`parent-portal-garden-design`](../parent-portal-garden-design/SKILL.md) and
   [`admin-workspace-design`](../admin-workspace-design/SKILL.md).
 - **School website demos** at `/demo/{slug}`: same bright **layout** (white
   canvas, pastel blocks, Poppins bold headings, pill CTAs) with **per-school**

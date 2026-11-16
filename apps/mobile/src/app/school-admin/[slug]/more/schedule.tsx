@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { ScheduleScreen } from '@/components/school-admin/schedule/schedule-screen';
+import { ScheduleScreen } from '@/components/school-admin/schedule/garden/schedule-screen';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function SchoolAdminSchedulePage() {

@@ -1,34 +1,31 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { useMemo, useRef, useState } from "react";
+import { CalendarRange, Copy, PauseCircle, Pencil, PlayCircle, Plus } from "lucide-react";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
-import { FridayBranchPageSkeleton } from "@/components/school-admin/skeletons";
-import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
-import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
-import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
-import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
-import { reportClientOperationalError } from "@/lib/operational-errors-client";
-import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import {
-  createEmptyBlock,
-  duplicateBlock,
+  AdminGardenPage,
+  AdminGardenPageHeader,
+  AdminGardenPageSkeleton,
+  BusyLabel,
+  GardenEmptyState,
+  GardenLoadError,
+  GardenNotice,
+  GardenSaveBar,
+} from "@/components/school-admin/garden/kit";
+import { GCard, GChip, G_FOCUS, gBtnOutlineSm, gBtnPopSm } from "@/components/school-parent/garden/ui";
+import { buildParentThemeTokens, parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
+import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import {
+  countBlockClasses,
+  formatBlockTabDateRange,
+  getBlockDisplayLabel,
   getScheduleGaps,
 } from "@/lib/school-admin/friday-branch/friday-branch-mock";
-import { diffRemovedFridayBranchFlyerPaths } from "@/lib/school-admin/friday-branch/friday-branch-flyer-paths";
-import { removeFridayBranchClassFlyer } from "@/lib/school-admin/friday-branch/friday-branch-class-flyer-storage";
-import { putFridayBranchSchedule } from "@/lib/school-admin/friday-branch/friday-branch-schedule-api";
-import { patchFridayBranchSettings } from "@/lib/school-admin/friday-branch/friday-branch-settings-api";
-import type { FridayBranchBlock } from "@/lib/school-admin/friday-branch/friday-branch-types";
-import { createClient } from "@/utils/supabase/client";
 import FridayBranchBlockDetailsSheet from "./FridayBranchBlockDetailsSheet";
-import FridayBranchBlockStrip from "./FridayBranchBlockStrip";
-import FridayBranchPausedBadge from "./FridayBranchPausedBadge";
 import FridayBranchRecentActivity from "./FridayBranchRecentActivity";
 import FridayBranchScheduleCard from "./FridayBranchScheduleCard";
+import { useFridayBranchModel } from "./useFridayBranchModel";
 
 type FridayBranchPageProps = {
   organizationId: string;
@@ -37,8 +34,8 @@ type FridayBranchPageProps = {
   initialParentPortalPaused?: boolean;
 };
 
-function cloneBlocks(blocks: FridayBranchBlock[]): FridayBranchBlock[] {
-  return JSON.parse(JSON.stringify(blocks)) as FridayBranchBlock[];
+function plural(count: number, one: string, many = `${one}s`) {
+  return `${count} ${count === 1 ? one : many}`;
 }
 
 export default function FridayBranchPage({
@@ -47,396 +44,265 @@ export default function FridayBranchPage({
   slug,
   initialParentPortalPaused = false,
 }: FridayBranchPageProps) {
-  void branding;
   void slug;
-
-  const router = useRouter();
-  const { theme, C } = useSchoolAdminStoryTheme();
-  const reduceMotion = useReducedMotion();
+  const theme = useMemo(() => buildParentThemeTokens(branding), [branding]);
+  const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
+  const model = useFridayBranchModel({ organizationId, initialParentPortalPaused });
   const scheduleRef = useRef<HTMLDivElement>(null);
-  const [blocks, setBlocks] = useState<FridayBranchBlock[]>([]);
-  const [savedBlocks, setSavedBlocks] = useState<FridayBranchBlock[]>([]);
-  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [highlightClassId, setHighlightClassId] = useState<string | null>(null);
   const [requestedClassId, setRequestedClassId] = useState<string | null>(null);
-  const [blockDetailsOpen, setBlockDetailsOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [parentPortalPaused, setParentPortalPaused] = useState(initialParentPortalPaused);
-  const [prevInitialPaused, setPrevInitialPaused] = useState(initialParentPortalPaused);
-  if (initialParentPortalPaused !== prevInitialPaused) {
-    setPrevInitialPaused(initialParentPortalPaused);
-    setParentPortalPaused(initialParentPortalPaused);
-  }
-  const [pauseDialogOpen, setPauseDialogOpen] = useState(false);
-  const [togglingPause, setTogglingPause] = useState(false);
 
-  const selectedBlock = useMemo(
-    () => blocks.find((block) => block.id === selectedBlockId) ?? null,
-    [blocks, selectedBlockId],
-  );
-
-  const isDirty = useMemo(
-    () => JSON.stringify(blocks) !== JSON.stringify(savedBlocks),
-    [blocks, savedBlocks],
-  );
-
-  const { dialogOpen: leaveDialogOpen, confirmLeave, cancelLeave } =
-    useUnsavedChangesGuard({ isDirty, enabled: !loading });
-
-  const loadSchedule = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `/api/school-admin/friday-branch/schedule?organizationId=${encodeURIComponent(organizationId)}`,
-      );
-
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error ?? "Failed to load Friday Branch schedule.");
-      }
-
-      const payload = (await response.json()) as { blocks: FridayBranchBlock[] };
-      const nextBlocks = payload.blocks ?? [];
-      setBlocks(cloneBlocks(nextBlocks));
-      setSavedBlocks(cloneBlocks(nextBlocks));
-      setSelectedBlockId(nextBlocks[0]?.id ?? null);
-    } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to load Friday Branch schedule."));
-      void reportClientOperationalError({
-        organizationId,
-        operation: "friday_branch.schedule.load",
-        error: formatActionError(err, "Failed to load Friday Branch schedule."),
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [organizationId]);
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      void loadSchedule();
-    });
-  }, [loadSchedule]);
-
-  const handleAddBlock = () => {
-    const nextBlock = createEmptyBlock(blocks.length + 1);
-    setBlocks((current) => [...current, nextBlock]);
-    setSelectedBlockId(nextBlock.id);
-  };
-
-  const handleDuplicateBlock = () => {
-    if (!selectedBlock) return;
-    const copy = duplicateBlock(selectedBlock);
-    setBlocks((current) => [...current, copy]);
-    setSelectedBlockId(copy.id);
-  };
-
-  const handleUpdateBlock = (nextBlock: FridayBranchBlock) => {
-    setBlocks((current) =>
-      current.map((block) => (block.id === nextBlock.id ? nextBlock : block)),
-    );
-  };
-
-  const handleOpenClass = (classId: string, blockId: string) => {
-    setSelectedBlockId(blockId);
-    setRequestedClassId(classId);
+  const flashClass = (classId: string) => {
     setHighlightClassId(classId);
     scheduleRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     window.setTimeout(() => setHighlightClassId(null), 3000);
   };
 
+  const handleOpenClass = (classId: string, blockId: string) => {
+    model.setSelectedBlockId(blockId);
+    setRequestedClassId(classId);
+    flashClass(classId);
+  };
+
   const handleReviewGaps = () => {
-    if (!selectedBlock) return;
-    const gaps = getScheduleGaps(selectedBlock);
-    if (gaps.length === 0) return;
-    setHighlightClassId(gaps[0].classId);
-    scheduleRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    window.setTimeout(() => setHighlightClassId(null), 3000);
+    if (!model.selectedBlock) return;
+    const gaps = getScheduleGaps(model.selectedBlock);
+    if (gaps.length) flashClass(gaps[0].classId);
   };
 
-  const persistSchedule = useCallback(
-    async (blocksToSave: FridayBranchBlock[], successMessage: string) => {
-      const pathsToDelete = diffRemovedFridayBranchFlyerPaths(savedBlocks, blocksToSave);
-      setSaving(true);
-      try {
-        const nextBlocks = await putFridayBranchSchedule(organizationId, blocksToSave);
-        setBlocks(cloneBlocks(nextBlocks));
-        setSavedBlocks(cloneBlocks(nextBlocks));
-        setSelectedBlockId((current) => {
-          if (current && nextBlocks.some((block) => block.id === current)) {
-            return current;
-          }
-          return nextBlocks[0]?.id ?? null;
-        });
+  const subtitle = model.loaded
+    ? [
+        plural(model.blocks.length, "block"),
+        plural(model.totalClasses, "class", "classes"),
+        model.parentPortalPaused ? "parent signup paused" : "parent signup open",
+      ].join(" · ")
+    : "Pick a block, then build its Friday classes by time.";
 
-        if (pathsToDelete.length > 0) {
-          const supabase = createClient();
-          for (const path of pathsToDelete) {
-            try {
-              await removeFridayBranchClassFlyer(supabase, path);
-            } catch {
-              // Best-effort cleanup of orphaned flyer files.
-            }
-          }
-        }
+  const busy = !model.loaded || model.saving;
 
-        adminToast.success(successMessage);
-      } catch (err) {
-        adminToast.error(formatActionError(err, "Failed to save Friday Branch schedule."));
-        void reportClientOperationalError({
-          organizationId,
-          operation: "friday_branch.schedule.save",
-          error: formatActionError(err, "Failed to save Friday Branch schedule."),
-        });
-        throw err;
-      } finally {
-        setSaving(false);
-      }
-    },
-    [organizationId, savedBlocks],
-  );
-
-  const handleSave = async () => {
-    await persistSchedule(blocks, "Friday Branch schedule saved");
-  };
-
-  const handleClassSaved = useCallback(
-    async (nextBlock: FridayBranchBlock) => {
-      let blocksToSave: FridayBranchBlock[] = [];
-      setBlocks((current) => {
-        blocksToSave = current.map((block) =>
-          block.id === nextBlock.id ? nextBlock : block,
-        );
-        return cloneBlocks(blocksToSave);
-      });
-      await persistSchedule(blocksToSave, "Class saved");
-    },
-    [persistSchedule],
-  );
-
-  const handleToggleParentPortalPause = async () => {
-    if (parentPortalPaused) {
-      setTogglingPause(true);
-      try {
-        const settings = await patchFridayBranchSettings(organizationId, {
-          parent_portal_paused: false,
-        });
-        setParentPortalPaused(settings.parent_portal_paused);
-        adminToast.success("Friday Branch parent signup resumed.");
-        router.refresh();
-      } catch (err) {
-        adminToast.error(formatActionError(err, "Failed to resume parent signup."));
-        void reportClientOperationalError({
-          organizationId,
-          operation: "friday_branch.settings.resume",
-          error: formatActionError(err, "Failed to resume parent signup."),
-        });
-      } finally {
-        setTogglingPause(false);
-      }
-      return;
-    }
-
-    setPauseDialogOpen(true);
-  };
-
-  const confirmPauseParentPortal = async () => {
-    setTogglingPause(true);
-    try {
-      const settings = await patchFridayBranchSettings(organizationId, {
-        parent_portal_paused: true,
-      });
-      setParentPortalPaused(settings.parent_portal_paused);
-      setPauseDialogOpen(false);
-      adminToast.success("Friday Branch parent signup paused.");
-      router.refresh();
-    } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to pause parent signup."));
-      void reportClientOperationalError({
-        organizationId,
-        operation: "friday_branch.settings.pause",
-        error: formatActionError(err, "Failed to pause parent signup."),
-      });
-    } finally {
-      setTogglingPause(false);
-    }
-  };
-
-  const transition = reduceMotion
-    ? { duration: 0 }
-    : { duration: 0.15, ease: "easeOut" as const };
-
-  return (
-    <div className="mx-auto w-full max-w-[1360px] px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <AdminSectionKicker theme={theme}>Friday Branch</AdminSectionKicker>
-            {parentPortalPaused ? <FridayBranchPausedBadge /> : null}
+  let content;
+  if (model.status === "loading") {
+    content = <AdminGardenPageSkeleton label="Loading Friday Branch" layout="table" />;
+  } else if (model.status === "error") {
+    content = (
+      <GardenLoadError
+        title="The Friday Branch schedule didn't load"
+        description={`${model.loadError ?? "Something went wrong."} Saving is off until it loads, so your real schedule stays safe.`}
+        onRetry={() => void model.retryLoad()}
+        retrying={model.retrying}
+      />
+    );
+  } else {
+    content = (
+      <>
+        {/* Block picker */}
+        <section aria-label="Blocks" className="flex flex-col gap-2">
+          <div className="flex items-end justify-between gap-3">
+            <p className="m-0 text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--sf-soft)]">Blocks</p>
+            {model.selectedBlock ? (
+              <p className="m-0 text-[12.5px] font-semibold text-[var(--sf-soft)]">Pick a block, then build its Friday classes by time.</p>
+            ) : null}
           </div>
-          <AdminDisplayHeading theme={theme} as="h1" size="display" className="mt-1.5">
-            Program schedule
-          </AdminDisplayHeading>
-          <p className="mt-2 text-[13px]" style={{ color: theme.muted }}>
-            Pick a block, then build its Friday classes by time.
-          </p>
-          {parentPortalPaused ? (
-            <p
-              className="mt-3 rounded-lg border px-3 py-2 text-[13px]"
-              style={{
-                backgroundColor: "#FFFBEB",
-                borderColor: "#FDE68A",
-                color: "#92400E",
-              }}
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]" role="radiogroup" aria-label="Choose a block">
+            {model.blocks.map((block, index) => {
+              const active = block.id === model.selectedBlockId;
+              const gaps = getScheduleGaps(block).length;
+              return (
+                <button
+                  key={block.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => model.setSelectedBlockId(block.id)}
+                  className={`flex min-w-[150px] shrink-0 flex-col items-start gap-1 rounded-[18px] border-[1.5px] px-4 py-3 text-left transition-all ${
+                    active
+                      ? "border-[var(--sf-ink)] bg-[var(--sf-clay)] text-white shadow-[0_3px_0_0_var(--sf-ink)]"
+                      : "border-[var(--sf-ink)]/12 bg-white text-[var(--sf-ink)] hover:-translate-y-0.5 hover:border-[var(--sf-ink)]/30"
+                  } ${G_FOCUS}`}
+                  data-testid={`friday-branch-block-${index}`}
+                >
+                  <span className="text-[14px] font-extrabold">{getBlockDisplayLabel(block, index)}</span>
+                  <span className={`text-[12px] font-semibold ${active ? "text-white/80" : "text-[var(--sf-soft)]"}`}>
+                    {formatBlockTabDateRange(block.startDate, block.endDate)}
+                  </span>
+                  <span className={`text-[12px] font-bold tabular-nums ${active ? "text-white/85" : "text-[var(--sf-ink)]/60"}`}>
+                    {plural(countBlockClasses(block), "class", "classes")}
+                    {gaps ? ` · ${gaps} to fix` : ""}
+                  </span>
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={model.addBlock}
+              className={`flex min-w-[140px] shrink-0 items-center justify-center gap-1.5 rounded-[18px] border-2 border-dashed border-[var(--sf-ink)]/20 px-4 py-3 text-[14px] font-extrabold text-[var(--sf-clay-deep)] transition-colors hover:border-[var(--sf-clay)]/60 hover:bg-[var(--sf-accent-wash)] ${G_FOCUS}`}
+              data-testid="friday-branch-add-block"
             >
-              Paused — parent signup is hidden on the parent portal until you resume.
-            </p>
-          ) : null}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {isDirty && !saving ? (
-            <span className="text-xs" style={{ color: theme.muted }}>
-              Unsaved changes
-            </span>
-          ) : null}
-          <AdminButton
-            theme={theme}
-            variant={parentPortalPaused ? "primary" : "outline"}
-            type="button"
-            onClick={() => void handleToggleParentPortalPause()}
-            disabled={loading || saving || togglingPause}
-          >
-            {togglingPause
-              ? "Updating…"
-              : parentPortalPaused
-                ? "Resume parent signup"
-                : "Pause parent signup"}
-          </AdminButton>
-          <AdminButton
-            theme={theme}
-            variant="outline"
-            type="button"
-            onClick={handleDuplicateBlock}
-            disabled={loading || !selectedBlock || saving}
-          >
-            Duplicate block
-          </AdminButton>
-          <AdminButton
-            theme={theme}
-            variant="outline"
-            type="button"
-            onClick={() => setBlockDetailsOpen(true)}
-            disabled={loading || !selectedBlock || saving}
-          >
-            Edit block details
-          </AdminButton>
-          <AdminButton
-            theme={theme}
-            variant="primary"
-            type="button"
-            onClick={handleSave}
-            disabled={loading || !isDirty || saving}
-          >
-            {saving ? "Saving…" : "Save schedule"}
-          </AdminButton>
-        </div>
-      </div>
+              <Plus className="h-4 w-4" aria-hidden />
+              Add block
+            </button>
+          </div>
+        </section>
 
-      {loading ? (
-        <FridayBranchPageSkeleton C={C} />
-      ) : (
-        <>
-          <FridayBranchBlockStrip
-            theme={theme}
-            blocks={blocks}
-            selectedId={selectedBlockId}
-            onSelect={setSelectedBlockId}
-            onAddBlock={handleAddBlock}
-          />
-
-          <AnimatePresence mode="wait">
-            {selectedBlock ? (
-              <motion.div
-                key={selectedBlock.id}
-                initial={reduceMotion ? false : { opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={reduceMotion ? undefined : { opacity: 0 }}
-                transition={transition}
-              >
-                <div ref={scheduleRef} className="mt-4">
-                  <FridayBranchScheduleCard
-                    C={C}
-                    theme={theme}
-                    organizationId={organizationId}
-                    block={selectedBlock}
-                    onChange={handleUpdateBlock}
-                    onClassSaved={handleClassSaved}
-                    saving={saving}
-                    highlightClassId={highlightClassId}
-                    requestedClassId={requestedClassId}
-                    onRequestedClassHandled={() => setRequestedClassId(null)}
-                    onReviewGaps={handleReviewGaps}
-                  />
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="empty"
-                initial={reduceMotion ? false : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="mt-8 py-16 text-center"
-              >
-                <p className="text-sm" style={{ color: theme.muted }}>
-                  Add a block to start building your Friday Branch schedule.
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {!loading ? (
-            <FridayBranchRecentActivity
+        {model.selectedBlock ? (
+          <div ref={scheduleRef} className="scroll-mt-4">
+            <FridayBranchScheduleCard
               C={C}
               theme={theme}
               organizationId={organizationId}
-              onOpenClass={handleOpenClass}
+              block={model.selectedBlock}
+              onChange={model.updateBlock}
+              onLocalChange={model.replaceBlockWithUndo}
+              onClassSaved={(nextBlock) => model.saveClass(nextBlock)}
+              saving={model.saving}
+              highlightClassId={highlightClassId}
+              requestedClassId={requestedClassId}
+              onRequestedClassHandled={() => setRequestedClassId(null)}
+              onReviewGaps={handleReviewGaps}
+              headerActions={
+                <>
+                  <button type="button" className={gBtnOutlineSm} onClick={() => model.setBlockDetailsOpen(true)} disabled={busy} data-testid="friday-branch-edit-block">
+                    <Pencil className="h-4 w-4" aria-hidden />
+                    Edit block details
+                  </button>
+                  <button type="button" className={gBtnOutlineSm} onClick={model.duplicateSelected} disabled={busy} data-testid="friday-branch-duplicate-block">
+                    <Copy className="h-4 w-4" aria-hidden />
+                    Duplicate block
+                  </button>
+                </>
+              }
             />
-          ) : null}
+          </div>
+        ) : (
+          <GCard index={2} kicker="Schedule">
+            <GardenEmptyState
+              icon={CalendarRange}
+              title="No blocks yet"
+              description="Add a block to start building your Friday Branch schedule."
+              action={
+                <button type="button" className={gBtnPopSm} onClick={model.addBlock}>
+                  <Plus className="h-4 w-4" aria-hidden />
+                  Add block
+                </button>
+              }
+            />
+          </GCard>
+        )}
+
+        {model.isDirty || model.savedAt ? (
+          <GardenSaveBar
+            dirty={model.isDirty}
+            saving={model.saving}
+            savedAt={model.savedAt}
+            onSave={() => void model.save()}
+            onDiscard={model.discard}
+            saveLabel="Save schedule"
+            disabled={!model.loaded}
+            extra={
+              model.isDirty ? (
+                <GChip tone="warning">{plural(model.changedBlockCount, "block")} changed</GChip>
+              ) : null
+            }
+            data-testid="friday-branch-save-bar"
+          />
+        ) : null}
+
+        <FridayBranchRecentActivity organizationId={organizationId} onOpenClass={handleOpenClass} />
+      </>
+    );
+  }
+
+  return (
+    <AdminGardenPage
+      theme={theme}
+      skinOverlays
+      data-testid="admin-friday-branch-page"
+      overlays={
+        <>
+          <FridayBranchBlockDetailsSheet
+            open={model.blockDetailsOpen}
+            onClose={() => model.setBlockDetailsOpen(false)}
+            block={model.selectedBlock}
+            onChange={model.updateBlock}
+            theme={theme}
+            C={C}
+          />
+          <ConfirmDialog
+            C={C}
+            open={model.pauseDialogOpen}
+            title="Pause parent signup?"
+            description="Families will not see Friday Branch on the parent portal or mobile app until you resume. Existing enrollments stay on your roster."
+            confirmLabel="Pause parent signup"
+            cancelLabel="Keep open"
+            variant="destructive"
+            loading={model.togglingPause}
+            onConfirm={() => void model.confirmPause()}
+            onClose={model.closePauseDialog}
+          />
+          <ConfirmDialog
+            C={C}
+            open={model.leaveDialogOpen}
+            title="Unsaved changes"
+            description="You have unsaved changes. If you leave now, your changes will be lost."
+            confirmLabel="Leave without saving"
+            cancelLabel="Keep editing"
+            variant="destructive"
+            onConfirm={model.confirmLeave}
+            onClose={model.cancelLeave}
+          />
         </>
-      )}
-
-      <FridayBranchBlockDetailsSheet
-        open={blockDetailsOpen}
-        onClose={() => setBlockDetailsOpen(false)}
-        block={selectedBlock}
-        onChange={handleUpdateBlock}
-        theme={theme}
-        C={C}
+      }
+    >
+      <AdminGardenPageHeader
+        kicker="My school · Friday Branch"
+        title={
+          <>
+            Program <span className="text-[var(--sf-clay)]">schedule</span>
+          </>
+        }
+        subtitle={subtitle}
+        actions={
+          model.loaded && !model.parentPortalPaused ? (
+            <button
+              type="button"
+              className={gBtnOutlineSm}
+              onClick={model.openPauseDialog}
+              disabled={busy || model.togglingPause}
+              data-testid="friday-branch-pause"
+            >
+              <PauseCircle className="h-4 w-4" aria-hidden />
+              Pause parent signup
+            </button>
+          ) : null
+        }
       />
 
-      <ConfirmDialog
-        C={C}
-        open={pauseDialogOpen}
-        title="Pause parent signup?"
-        description="Families will not see Friday Branch on the parent portal or mobile app until you resume. Existing enrollments stay on your roster."
-        confirmLabel="Pause parent signup"
-        cancelLabel="Keep open"
-        variant="destructive"
-        onConfirm={() => void confirmPauseParentPortal()}
-        onClose={() => setPauseDialogOpen(false)}
-      />
+      {model.loaded && model.parentPortalPaused ? (
+        <GardenNotice
+          tone="warning"
+          icon={PauseCircle}
+          title="Parent signup is paused"
+          role="status"
+          action={
+            <button
+              type="button"
+              className={gBtnOutlineSm}
+              onClick={() => void model.resume()}
+              disabled={model.togglingPause}
+              aria-busy={model.togglingPause || undefined}
+              data-testid="friday-branch-resume"
+            >
+              <BusyLabel busy={model.togglingPause} busyLabel="Resuming…" icon={<PlayCircle className="h-4 w-4" aria-hidden />}>
+                Resume parent signup
+              </BusyLabel>
+            </button>
+          }
+        >
+          Parent signup is hidden on the parent portal until you resume.
+        </GardenNotice>
+      ) : null}
 
-      <ConfirmDialog
-        C={C}
-        open={leaveDialogOpen}
-        title="Unsaved changes"
-        description="You have unsaved changes. If you leave now, your changes will be lost."
-        confirmLabel="Leave without saving"
-        cancelLabel="Keep editing"
-        variant="destructive"
-        onConfirm={confirmLeave}
-        onClose={cancelLeave}
-      />
-    </div>
+      {content}
+    </AdminGardenPage>
   );
 }

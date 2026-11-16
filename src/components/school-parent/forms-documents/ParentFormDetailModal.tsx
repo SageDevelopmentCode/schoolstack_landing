@@ -1,8 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, X } from "lucide-react";
-import { parseStoredSignerName } from "@/components/admissions/TypedSignatureField";
 import SchoolAdminModalShell from "@/components/school-admin/ui/SchoolAdminModalShell";
 import ParentButton from "@/components/school-parent/ui/ParentButton";
 import ParentChip from "@/components/school-parent/ui/ParentChip";
@@ -10,13 +8,10 @@ import ParentFormBuilderFields from "./ParentFormBuilderFields";
 import ParentFormDetailSkeleton from "./ParentFormDetailSkeleton";
 import ParentFormDocumentPreview from "./ParentFormDocumentPreview";
 import ParentFormSignatureField from "./ParentFormSignatureField";
+import { useParentFormDetail } from "./useParentFormDetail";
 import type { ParentFormDetail, ParentFormListItem } from "@/lib/school-parent/forms-documents/types";
-import {
-  areBuilderFieldValuesComplete,
-  PARENT_FORM_MODAL_PREVIEW_HEIGHT_CLASS,
-} from "@/lib/school-parent/forms-documents/utils";
+import { PARENT_FORM_MODAL_PREVIEW_HEIGHT_CLASS } from "@/lib/school-parent/forms-documents/utils";
 import { formatFormDueDate } from "@/lib/school-teacher/forms-documents/utils";
-import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { parentToast } from "@/lib/school-parent/parent-toast";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
@@ -76,283 +71,52 @@ export default function ParentFormDetailModal({
   onClose,
   onSubmitted,
 }: ParentFormDetailModalProps) {
-  const isStaffPreview = staffPreviewDetail != null;
-  const [detail, setDetail] = useState<ParentFormDetail | null>(
-    initialItem
-      ? { form: initialItem.form, response: initialItem.response }
-      : null,
-  );
-  const [fieldValues, setFieldValues] = useState<
-    Record<string, string | boolean | string[]>
-  >({});
-  const [signerName, setSignerName] = useState("");
-  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [detailError, setDetailError] = useState<string | null>(null);
-  const [isSignSectionInView, setIsSignSectionInView] = useState(false);
-  const scrollBodyRef = useRef<HTMLDivElement>(null);
-  const signSectionRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    if (staffPreviewDetail) {
-      queueMicrotask(() => {
-        setDetail(staffPreviewDetail);
-        setSignerName("");
-        setFieldValues({});
-        setDetailError(null);
-        setIsLoadingDetail(false);
-      });
-      return;
-    }
-
-    if (
-      readOnly &&
-      initialItem &&
-      formId &&
-      initialItem.form.id === formId
-    ) {
-      queueMicrotask(() => {
-        setDetail({ form: initialItem.form, response: initialItem.response });
-        setSignerName(parseStoredSignerName(initialItem.response.responses));
-        setFieldValues({});
-        setDetailError(null);
-        setIsLoadingDetail(false);
-      });
-      return;
-    }
-
-    if (!formId) return;
-
-    const activeFormId = formId;
-    let cancelled = false;
-
-    async function loadDetail() {
-      setIsLoadingDetail(true);
-      setDetailError(null);
-      setDetail(
-        initialItem?.form.id === activeFormId
-          ? { form: initialItem.form, response: initialItem.response }
-          : null,
-      );
-      setSignerName(
-        initialItem?.form.id === activeFormId
-          ? parseStoredSignerName(initialItem.response.responses)
-          : "",
-      );
-      setFieldValues({});
-
-      let fetchResponse: Response | undefined;
-      try {
-        const query = new URLSearchParams({ organizationId }).toString();
-        fetchResponse = await fetch(
-          `/api/parent-portal/forms-documents/${encodeURIComponent(activeFormId)}?${query}`,
-        );
-        const payload = (await fetchResponse.json()) as ParentFormDetail & {
-          error?: string;
-        };
-
-        if (!fetchResponse.ok) {
-          throw new Error(payload.error ?? "Failed to load form.");
-        }
-
-        if (cancelled) return;
-
-        setDetail(payload);
-        setSignerName(parseStoredSignerName(payload.response.responses));
-      } catch (error) {
-        if (cancelled) return;
-        setDetailError(
-          error instanceof Error ? error.message : "Failed to load form.",
-        );
-        void reportPortalOperationalError(
-          "parent_portal",
-          {
-            organizationId,
-            operation: "forms_documents.load_detail",
-            error: "",
-          },
-          error,
-          fetchResponse?.status,
-        );
-      } finally {
-        if (!cancelled) {
-          setIsLoadingDetail(false);
-        }
-      }
-    }
-
-    queueMicrotask(() => {
-      void loadDetail();
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [formId, initialItem, open, organizationId, readOnly, staffPreviewDetail]);
-
-  const isSigned = detail?.response.status === "signed";
-  const formReadOnly = readOnly || isSigned || isStaffPreview;
-
-  const builderFields = detail?.form.fields ?? [];
-  const { bodyBuilderFields, bodySignatureFields } = useMemo(() => {
-    if (detail?.form.formType !== "builder") {
-      return { bodyBuilderFields: [], bodySignatureFields: [] };
-    }
-    if (formReadOnly) {
-      return {
-        bodyBuilderFields: builderFields.filter((field) => field.type !== "signature"),
-        bodySignatureFields: builderFields.filter((field) => field.type === "signature"),
-      };
-    }
-    return {
-      bodyBuilderFields: builderFields.filter((field) => field.type !== "signature"),
-      bodySignatureFields: builderFields.filter((field) => field.type === "signature"),
-    };
-  }, [builderFields, detail?.form.formType, formReadOnly]);
-
-  const bodySignatureField = bodySignatureFields[0] ?? null;
-  const builderSignatureValue = (() => {
-    if (!bodySignatureField) return "";
-    const raw = fieldValues[bodySignatureField.id];
-    return typeof raw === "string" ? raw : "";
-  })();
-
-  const storedSignerName = detail
-    ? parseStoredSignerName(detail.response.responses)
-    : "";
-
-  const canSign = useMemo(() => {
-    if (!detail || formReadOnly || isSubmitting) return false;
-
-    if (detail.form.formType === "upload") {
-      if (!detail.form.requireSignature) return true;
-      return signerName.trim().length > 0;
-    }
-
-    if (detail.form.formType === "builder") {
-      return areBuilderFieldValuesComplete(builderFields, fieldValues);
-    }
-
-    return false;
-  }, [builderFields, detail, fieldValues, formReadOnly, isSubmitting, signerName]);
-
-  const submitActionLabel = useMemo(() => {
-    if (!detail) return "Sign now";
-    if (
-      detail.form.formType === "upload" &&
-      !detail.form.requireSignature
-    ) {
-      return "Acknowledge";
-    }
-    return "Sign now";
-  }, [detail]);
+  const state = useParentFormDetail({
+    open,
+    organizationId,
+    formId,
+    initialItem,
+    readOnly,
+    staffPreviewDetail,
+    onSubmitted,
+  });
+  const {
+    detail,
+    isStaffPreview,
+    isSigned,
+    formReadOnly,
+    isLoadingDetail,
+    isSubmitting,
+    detailError,
+    fieldValues,
+    setFieldValue,
+    signerName,
+    setSignerName,
+    bodyBuilderFields,
+    bodySignatureField,
+    builderSignatureValue,
+    setBuilderSignature,
+    storedSignerName,
+    canSign,
+    submitActionLabel,
+    statusTone: statusChipVariant,
+    statusLabel,
+    showSignSection,
+    isSignSectionInView,
+    scrollToSignSection,
+    scrollBodyRef,
+    signSectionRef,
+  } = state;
 
   async function handleSubmit() {
-    if (!detail || formReadOnly || !canSign) return;
-
-    setIsSubmitting(true);
-    let fetchResponse: Response | undefined;
-    try {
-      fetchResponse = await fetch(
-        `/api/parent-portal/forms-documents/${encodeURIComponent(detail.form.id)}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            organizationId,
-            signerName,
-            fieldValues,
-          }),
-        },
-      );
-      const payload = (await fetchResponse.json()) as ParentFormDetail & {
-        error?: string;
-      };
-
-      if (!fetchResponse.ok) {
-        throw new Error(payload.error ?? "Failed to submit form.");
-      }
-
-      setDetail(payload);
-      onSubmitted(payload);
-      parentToast.success("Form signed successfully.");
-    } catch (error) {
-      parentToast.error(
-        error instanceof Error ? error.message : "Failed to submit form.",
-      );
-      void reportPortalOperationalError(
-        "parent_portal",
-        {
-          organizationId,
-          operation: "forms_documents.submit",
-          error: "",
-        },
-        error,
-        fetchResponse?.status,
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
+    const result = await state.submit();
+    if (!result) return;
+    if (result.ok) parentToast.success("Form signed successfully.");
+    else parentToast.error(result.message);
   }
-
-  const statusChipVariant = isStaffPreview
-    ? "info"
-    : detail?.response.status === "signed"
-      ? "success"
-      : detail?.response.status === "overdue"
-        ? "alert"
-        : "warning";
-
-  const statusLabel = isStaffPreview
-    ? "Preview"
-    : detail?.response.status === "signed"
-      ? "Signed"
-      : detail?.response.status === "overdue"
-        ? "Overdue"
-        : "Needs your signature";
-
-  const showSignSection = Boolean(
-    detail &&
-      !isLoadingDetail &&
-      !detailError &&
-      (isStaffPreview
-        ? detail.form.formType === "upload" ||
-          (detail.form.formType === "builder" && bodySignatureField != null)
-        : formReadOnly
-          ? isSigned
-          : detail.form.formType === "upload" ||
-            (detail.form.formType === "builder" && bodySignatureField != null)),
-  );
 
   const showHeaderGoToSign =
     showSignSection && !isSignSectionInView && (isStaffPreview || !formReadOnly);
-
-  const scrollToSignSection = useCallback(() => {
-    signSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
-
-  useEffect(() => {
-    if (!showSignSection) {
-      queueMicrotask(() => setIsSignSectionInView(false));
-      return;
-    }
-
-    const root = scrollBodyRef.current;
-    const target = signSectionRef.current;
-    if (!root || !target) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsSignSectionInView(entry.isIntersecting);
-      },
-      { root, threshold: 0.3 },
-    );
-
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [showSignSection, isLoadingDetail, open, formId]);
 
   const showModal = open && Boolean(detail ?? staffPreviewDetail);
 
@@ -480,12 +244,7 @@ export default function ParentFormDetailModal({
                           <ParentFormBuilderFields
                             fields={bodyBuilderFields}
                             values={fieldValues}
-                            onChange={(fieldId, value) =>
-                              setFieldValues((current) => ({
-                                ...current,
-                                [fieldId]: value,
-                              }))
-                            }
+                            onChange={setFieldValue}
                             disabled={formReadOnly}
                             storedResponses={detail.response.responses}
                           />
@@ -495,12 +254,7 @@ export default function ParentFormDetailModal({
                       <ParentFormBuilderFields
                         fields={bodyBuilderFields}
                         values={fieldValues}
-                        onChange={(fieldId, value) =>
-                          setFieldValues((current) => ({
-                            ...current,
-                            [fieldId]: value,
-                          }))
-                        }
+                        onChange={setFieldValue}
                         disabled={formReadOnly}
                         storedResponses={detail.response.responses}
                       />
@@ -613,12 +367,7 @@ export default function ParentFormDetailModal({
                         <ParentFormSignatureField
                           theme={theme}
                           value={builderSignatureValue}
-                          onChange={(value) =>
-                            setFieldValues((current) => ({
-                              ...current,
-                              [bodySignatureField.id]: value,
-                            }))
-                          }
+                          onChange={setBuilderSignature}
                           onSubmit={() => void handleSubmit()}
                           disabled={isSubmitting}
                         />

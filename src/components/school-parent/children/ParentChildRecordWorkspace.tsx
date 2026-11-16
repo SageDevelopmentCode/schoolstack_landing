@@ -1,25 +1,20 @@
 "use client";
 
-import { createElement, useCallback, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { createElement, useId, useMemo, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Car, ChevronDown, ClipboardCheck, FileText, HeartPulse, Users } from "lucide-react";
+import { Tick } from "@/components/garden/ui";
 import ApplicationReadOnlyView from "@/components/admissions/ApplicationReadOnlyView";
 import EnrollmentChecklistItemReadOnlyPanel from "@/components/admissions/EnrollmentChecklistItemReadOnlyPanel";
-import StudentPhoto from "@/components/students/StudentPhoto";
-import {
-  applicationStatusBadgeStyle,
-  applicationStatusLabel,
-} from "@/lib/admissions/application-status-ui";
-import { extractStudentFromResponses } from "@/lib/admissions/apply-system-fields";
 import {
   checklistItemStatusLabel,
-  checklistItemStatusStyle,
   getChecklistItemTypeIcon,
 } from "@/lib/admissions/enrollment-checklist-item-status-ui";
 import { computeChecklistProgress } from "@/lib/admissions/enrollment-checklist-materialization";
 import type { LoadedEnrollmentChecklist } from "@/lib/admissions/enrollment-checklist-materialization";
 import {
   CHECKLIST_ITEM_TYPE_LABELS,
+  type ChecklistItemInstanceStatus,
   type EnrollmentChecklistItem,
   type EnrollmentChecklistItemInstance,
 } from "@/lib/admissions/enrollment-checklist-schema";
@@ -32,17 +27,17 @@ import ParentChildTeachersTab from "@/components/school-parent/ParentChildTeache
 import ParentChildHealthTab from "@/components/school-parent/health/ParentChildHealthTab";
 import ParentChildPickupTab from "@/components/school-parent/pickup/ParentChildPickupTab";
 import type { StudentHealthProfile } from "@/components/school-parent/health/parent-health-types";
-import ParentCard from "@/components/school-parent/ui/ParentCard";
-import ParentChip from "@/components/school-parent/ui/ParentChip";
-import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
-import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
-import ParentStoryPillNav from "@/components/school-parent/ui/ParentStoryPillNav";
+import { PortalIsland } from "@/components/school-parent/garden/ParentGardenFrame";
+import { PORTAL_EASE } from "@/components/school-parent/garden/motion";
 import {
-  StudentProfilePhotoClientError,
-  uploadStudentProfilePhotoFromParent,
-} from "@/lib/students/upload-student-profile-photo-client";
-import { parentToast } from "@/lib/school-parent/parent-toast";
-import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
+  GCard,
+  GChip,
+  GProgress,
+  GTabBar,
+  G_FOCUS,
+  type GChipTone,
+  type GTabBarItem,
+} from "@/components/school-parent/garden/ui";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
@@ -50,7 +45,7 @@ import {
   childFirstName,
   type ParentChildRecordSection,
 } from "@/components/school-parent/children/parent-children-utils";
-import { parentChildrenViewTransition } from "@/components/school-parent/children/parent-children-view-transition";
+import { applicationStudentFacts } from "@/components/school-parent/children/garden/child-record-format";
 
 const RECORD_TAB_ICON_CLASS = "h-3.5 w-3.5 shrink-0";
 
@@ -68,106 +63,118 @@ type ParentChildRecordWorkspaceProps = {
   readOnly?: boolean;
   activeSection: ParentChildRecordSection;
   onSectionChange: (section: ParentChildRecordSection) => void;
+  /** Photo upload now lives in the "at a glance" card; kept for API stability. */
   onPhotoUpdated?: (applicationId: string, profilePhotoUrl: string) => void;
   initialHealthProfile?: StudentHealthProfile | null;
   onHealthProfileChange?: (profile: StudentHealthProfile) => void;
   workspaceRef?: React.RefObject<HTMLElement | null>;
+  /** The child's name from the family overview (fallback when the application has none). */
+  studentName?: string;
+  /** Required checklist items still to do (tab badge). */
+  checklistLeft?: number;
+  /** Health profile has items teachers should know about (tab badge). */
+  healthNeedsAttention?: boolean;
 };
 
-function formatBirthDate(value: string): string | null {
-  const [y, m, d] = value.split("-").map(Number);
-  if (!y || !m || !d) return null;
-  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function calculateAge(value: string): number | null {
-  const [y, m, d] = value.split("-").map(Number);
-  if (!y || !m || !d) return null;
-  const birth = new Date(y, m - 1, d);
-  const now = new Date();
-  let age = now.getFullYear() - birth.getFullYear();
-  const hasHadBirthdayThisYear =
-    now.getMonth() > birth.getMonth() ||
-    (now.getMonth() === birth.getMonth() && now.getDate() >= birth.getDate());
-  if (!hasHadBirthdayThisYear) age -= 1;
-  return age >= 0 ? age : null;
-}
+const STATUS_TONE: Record<ChecklistItemInstanceStatus, GChipTone> = {
+  completed: "success",
+  in_progress: "info",
+  waived: "neutral",
+  not_started: "warning",
+};
 
 function ChecklistItemRow({
   C,
-  theme,
   organizationId,
   item,
   instance,
+  step,
 }: {
   C: AdminThemeTokens;
-  theme: ParentThemeTokens;
   organizationId: string;
   item: EnrollmentChecklistItem;
   instance?: EnrollmentChecklistItemInstance;
+  /** Position among required steps (null for optional items). */
+  step: number | null;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const reduce = useReducedMotion() === true;
+  const panelId = useId();
   const status = instance?.status ?? "not_started";
+  const done = status === "completed" || status === "waived";
   const icon = getChecklistItemTypeIcon(item.type);
-  const statusStyle = checklistItemStatusStyle(status, C);
 
   return (
-    <div
-      className="overflow-hidden rounded-xl border"
-      style={{ borderColor: theme.line, backgroundColor: theme.white }}
-    >
+    <li className="border-b-[1.5px] border-dashed border-[var(--sf-ink)]/10 last:border-b-0">
       <button
         type="button"
         onClick={() => setExpanded((prev) => !prev)}
-        className="flex w-full min-h-[44px] items-center gap-3 px-4 py-3.5 text-left"
+        className={`group flex min-h-[60px] w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left hover:bg-white/70 ${G_FOCUS} focus-visible:ring-inset`}
         aria-expanded={expanded}
+        aria-controls={panelId}
       >
-        <div
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg"
-          style={{ backgroundColor: C.accentGlow }}
-        >
-          {createElement(icon, { className: "h-4 w-4", style: { color: C.accent } })}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold" style={{ color: theme.ink }}>
-            {item.label}
-          </p>
-          <p className="mt-0.5 text-xs" style={{ color: theme.muted }}>
+        {done ? (
+          <Tick className="h-7 w-7" color="var(--sf-forest)" fill="var(--sf-mint)" />
+        ) : (
+          <span
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-[var(--sf-ink)]/60 bg-white text-xs font-extrabold text-[var(--sf-ink)]"
+            aria-hidden="true"
+          >
+            {step ?? "·"}
+          </span>
+        )}
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[15px] font-extrabold text-[var(--sf-ink)]">{item.label}</span>
+          <span className="mt-0.5 flex items-center gap-1.5 text-xs font-semibold text-[var(--sf-soft)]">
+            {createElement(icon, { className: "h-3.5 w-3.5 shrink-0", "aria-hidden": true })}
             {CHECKLIST_ITEM_TYPE_LABELS[item.type]}
             {!item.required ? (
               <>
-                <span className="mx-1.5 opacity-50">·</span>
+                <span className="opacity-50" aria-hidden="true">·</span>
                 Optional
               </>
             ) : null}
-          </p>
-        </div>
-        <span
-          className="flex-shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
-          style={statusStyle}
-        >
-          {checklistItemStatusLabel(status)}
+          </span>
         </span>
+        <GChip tone={STATUS_TONE[status]}>{checklistItemStatusLabel(status)}</GChip>
         <ChevronDown
-          className="h-4 w-4 flex-shrink-0 transition-transform duration-200"
-          style={{ color: theme.muted, transform: expanded ? "rotate(180deg)" : undefined }}
+          className={`h-4 w-4 shrink-0 text-[var(--sf-ink)]/45 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+          aria-hidden="true"
         />
       </button>
-      {expanded ? (
-        <div className="border-t px-4 py-4" style={{ borderColor: theme.line }}>
-          <EnrollmentChecklistItemReadOnlyPanel
-            C={C}
-            organizationId={organizationId}
-            item={item}
-            instance={instance}
-          />
-        </div>
-      ) : null}
-    </div>
+      <AnimatePresence initial={false}>
+        {expanded ? (
+          <motion.div
+            id={panelId}
+            key="panel"
+            initial={reduce ? false : { height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={reduce ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            transition={{ duration: 0.24, ease: PORTAL_EASE }}
+            className="overflow-hidden"
+          >
+            <div className="mx-2 mb-3 rounded-[14px] border-[1.5px] border-[var(--sf-ink)]/10 bg-white px-4 py-4">
+              <PortalIsland>
+                <EnrollmentChecklistItemReadOnlyPanel
+                  C={C}
+                  organizationId={organizationId}
+                  item={item}
+                  instance={instance}
+                />
+              </PortalIsland>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </li>
+  );
+}
+
+function NotLinkedNote({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="m-0 rounded-[16px] border-[1.5px] border-dashed border-[var(--sf-ink)]/15 px-5 py-8 text-center text-[14px] font-semibold text-[var(--sf-soft)]">
+      {children}
+    </p>
   );
 }
 
@@ -181,68 +188,24 @@ export default function ParentChildRecordWorkspace({
   application,
   checklist,
   assignedTeachers,
-  enrolledPrograms = [],
   readOnly = false,
   activeSection,
   onSectionChange,
-  onPhotoUpdated,
   initialHealthProfile,
   onHealthProfileChange,
   workspaceRef,
+  studentName,
+  checklistLeft = 0,
+  healthNeedsAttention = false,
 }: ParentChildRecordWorkspaceProps) {
+  const reduce = useReducedMotion() === true;
   const hasChecklist = Boolean(checklist && checklist.items.length > 0);
   const hasTeachersTab = Boolean(application.studentId);
   const hasHealthTab = Boolean(application.studentId);
   const hasPickupTab = Boolean(application.studentId);
-  const [profilePhotoUrl, setProfilePhotoUrl] = useState(application.profilePhotoUrl);
-  const [photoUploading, setPhotoUploading] = useState(false);
 
-  const student = extractStudentFromResponses(application.responses);
-  const fullName = student ? `${student.firstName} ${student.lastName}` : "Student";
-  const firstName = childFirstName(fullName);
-  const birthDate = student ? formatBirthDate(student.dateOfBirth) : null;
-  const age = student ? calculateAge(student.dateOfBirth) : null;
-  const statusStyle = applicationStatusBadgeStyle(application.status, C);
-  const canUploadPhoto = !readOnly && Boolean(application.studentId);
-
-  const handlePhotoUpload = useCallback(
-    async (file: File) => {
-      if (!application.studentId || readOnly) return;
-
-      setPhotoUploading(true);
-
-      try {
-        const nextUrl = await uploadStudentProfilePhotoFromParent(
-          organizationId,
-          application.studentId,
-          file,
-        );
-        setProfilePhotoUrl(nextUrl);
-        onPhotoUpdated?.(application.id, nextUrl);
-        parentToast.success("Profile photo updated.");
-      } catch (error) {
-        parentToast.error(
-          error instanceof StudentProfilePhotoClientError
-            ? error.message
-            : error instanceof Error
-              ? error.message
-              : "Failed to upload photo.",
-        );
-        void reportPortalOperationalError(
-          "parent_portal",
-          {
-            organizationId,
-            operation: "children.upload_photo",
-            error: "",
-          },
-          error,
-        );
-      } finally {
-        setPhotoUploading(false);
-      }
-    },
-    [application.id, application.studentId, onPhotoUpdated, organizationId, readOnly],
-  );
+  const facts = applicationStudentFacts(application);
+  const firstName = childFirstName(facts.student ? facts.fullName : (studentName ?? facts.fullName));
 
   const progress = checklist
     ? computeChecklistProgress(checklist.items, checklist.instances)
@@ -256,11 +219,41 @@ export default function ParentChildRecordWorkspace({
     return map;
   }, [checklist]);
 
-  const tabs: Array<{
-    key: ParentChildRecordSection;
-    label: string;
-    icon: React.ReactNode;
-  }> = [
+  const stepByItemId = useMemo(() => {
+    const map = new Map<string, number>();
+    let step = 0;
+    for (const item of checklist?.items ?? []) {
+      if (item.required) {
+        step += 1;
+        map.set(item.id, step);
+      }
+    }
+    return map;
+  }, [checklist]);
+
+  const statusCounts = useMemo(() => {
+    const counts = { done: 0, todo: 0 };
+    // Required steps only, so the chips agree with the tab badge and "x/y required steps".
+    for (const item of checklist?.items ?? []) {
+      if (!item.required) continue;
+      const status = instanceByTemplateItemId.get(item.id)?.status ?? "not_started";
+      if (status === "completed" || status === "waived") counts.done += 1;
+      else counts.todo += 1;
+    }
+    return counts;
+  }, [checklist, instanceByTemplateItemId]);
+
+  const badge = (text: string, tone: "accent" | "soft" = "soft") => (
+    <span
+      className={`ml-0.5 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-extrabold leading-5 ${
+        tone === "accent" ? "bg-[var(--sf-butter)] text-[var(--sf-ink)]" : "bg-[var(--sf-ink)]/10 text-current"
+      }`}
+    >
+      {text}
+    </span>
+  );
+
+  const tabs: GTabBarItem[] = [
     {
       key: "application",
       label: "Application",
@@ -272,6 +265,13 @@ export default function ParentChildRecordWorkspace({
       key: "checklist",
       label: "Enrollment checklist",
       icon: <ClipboardCheck className={RECORD_TAB_ICON_CLASS} aria-hidden />,
+      suffix:
+        checklistLeft > 0 ? (
+          <>
+            {badge(String(checklistLeft), "accent")}
+            <span className="sr-only"> to do</span>
+          </>
+        ) : null,
     });
   }
   if (hasTeachersTab) {
@@ -279,6 +279,7 @@ export default function ParentChildRecordWorkspace({
       key: "teachers",
       label: "Teachers",
       icon: <Users className={RECORD_TAB_ICON_CLASS} aria-hidden />,
+      suffix: assignedTeachers.length > 0 ? badge(String(assignedTeachers.length)) : null,
     });
   }
   if (hasHealthTab) {
@@ -286,6 +287,12 @@ export default function ParentChildRecordWorkspace({
       key: "health",
       label: "Health",
       icon: <HeartPulse className={RECORD_TAB_ICON_CLASS} aria-hidden />,
+      suffix: healthNeedsAttention ? (
+        <>
+          <span className="ml-0.5 h-2 w-2 rounded-full bg-[var(--sf-butter)] ring-[1.5px] ring-[var(--sf-ink)]" aria-hidden="true" />
+          <span className="sr-only"> (needs attention)</span>
+        </>
+      ) : null,
     });
   }
   if (hasPickupTab) {
@@ -296,181 +303,126 @@ export default function ParentChildRecordWorkspace({
     });
   }
 
-  return (
-    <section ref={workspaceRef} data-testid="parent-children-record-workspace">
-    <ParentCard
-      theme={theme}
-      className="!p-0"
-    >
-      <div className="flex flex-col gap-0 border-b px-5 py-5 sm:px-6" style={{ borderColor: theme.line }}>
-        <ParentSectionKicker theme={theme}>School record</ParentSectionKicker>
-        <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-4">
-            <StudentPhoto
-              name={fullName}
-              photoUrl={profilePhotoUrl}
-              size="2xl"
-              shape="square"
-              theme={C}
-              editable={canUploadPhoto}
-              uploading={photoUploading}
-              showEditHint={canUploadPhoto}
-              onFileSelect={(file) => void handlePhotoUpload(file)}
-            />
-            <div className="min-w-0">
-              <ParentDisplayHeading theme={theme} as="h2" size="section" className="!text-[1.4rem]">
-                {fullName}
-              </ParentDisplayHeading>
-              <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                <span
-                  className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
-                  style={statusStyle}
-                >
-                  {applicationStatusLabel(application.status)}
-                </span>
-                {student?.grade ? (
-                  <ParentChip theme={theme} tone="info" className="!normal-case !tracking-normal">
-                    Grade {student.grade}
-                  </ParentChip>
-                ) : null}
-                {enrolledPrograms.map((program) => (
-                  <ParentChip
-                    key={program.programId}
-                    theme={theme}
-                    tone="info"
-                    className="!normal-case !tracking-normal"
-                  >
-                    {program.portalLabel || program.programName}
-                  </ParentChip>
-                ))}
-                {birthDate ? (
-                  <ParentChip theme={theme} tone="info" className="!normal-case !tracking-normal">
-                    Born {birthDate}
-                    {age !== null ? ` · Age ${age}` : ""}
-                  </ParentChip>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+  const activeLabel = tabs.find((tab) => tab.key === activeSection)?.label ?? "School record";
 
-      <div className="px-5 py-4 sm:px-6">
-        <ParentStoryPillNav
-          theme={theme}
-          items={tabs.map(({ key, label, icon }) => ({ key, label, icon }))}
+  return (
+    <section ref={workspaceRef} data-testid="parent-children-record-workspace" className="scroll-mt-6">
+      <GCard index={4} kicker="School record" title={`${firstName}'s school record`}>
+        <GTabBar
+          items={tabs}
           activeKey={activeSection}
           onChange={(key) => onSectionChange(key as ParentChildRecordSection)}
           ariaLabel={`${firstName} school record sections`}
           data-testid="parent-children-record-nav"
         />
-      </div>
 
-      <div className="px-5 pb-5 sm:px-6 sm:pb-6">
-        <AnimatePresence mode="wait">
-          <motion.div key={`${application.id}-${activeSection}`} {...parentChildrenViewTransition}>
-            {activeSection === "application" ? (
-              <div
-                className="rounded-2xl border px-5 py-6 sm:px-6"
-                style={{ borderColor: theme.line, backgroundColor: theme.white }}
-              >
-                <ApplicationReadOnlyView
-                  branding={branding}
-                  schoolName={schoolName}
-                  schoolSlug={schoolSlug}
-                  application={application}
-                  embedded
+        <div className="mt-5" role="tabpanel" aria-label={activeLabel}>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={`${application.id}-${activeSection}`}
+              initial={reduce ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduce ? { opacity: 0 } : { opacity: 0, y: -4 }}
+              transition={{ duration: 0.22, ease: PORTAL_EASE }}
+            >
+              {activeSection === "application" ? (
+                <div className="rounded-[18px] border-[1.5px] border-[var(--sf-ink)]/10 bg-white px-5 py-6 sm:px-6">
+                  <PortalIsland>
+                    <ApplicationReadOnlyView
+                      branding={branding}
+                      schoolName={schoolName}
+                      schoolSlug={schoolSlug}
+                      application={application}
+                      embedded
+                    />
+                  </PortalIsland>
+                </div>
+              ) : null}
+
+              {activeSection === "checklist" && checklist && progress ? (
+                <div className="flex flex-col gap-4" data-testid="parent-children-checklist">
+                  <div className="rounded-[18px] border-[1.5px] border-[var(--sf-ink)]/10 bg-[var(--sf-paper)] px-5 py-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="m-0 text-[17px] font-extrabold text-[var(--sf-ink)]">{checklist.title}</h3>
+                        <p className="m-0 mt-0.5 text-[13px] font-semibold text-[var(--sf-soft)]">
+                          {progress.completed}/{progress.total} required steps complete
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {statusCounts.todo > 0 ? <GChip tone="warning">To do · {statusCounts.todo}</GChip> : null}
+                        {statusCounts.done > 0 ? <GChip tone="success">Done · {statusCounts.done}</GChip> : null}
+                      </div>
+                    </div>
+                    <GProgress
+                      className="mt-3"
+                      value={progress.completed}
+                      total={progress.total}
+                      done={progress.total > 0 && progress.completed >= progress.total}
+                      label={`${checklist.title} progress`}
+                    />
+                    <p className="m-0 mt-3 text-xs font-semibold text-[var(--sf-soft)]">
+                      Tap a step to see its details.
+                    </p>
+                  </div>
+
+                  <ul className="sf-paper m-0 flex list-none flex-col rounded-[18px] border-[1.5px] border-[var(--sf-ink)]/10 p-1.5">
+                    {checklist.items.map((item) => (
+                      <ChecklistItemRow
+                        key={item.id}
+                        C={C}
+                        organizationId={organizationId}
+                        item={item}
+                        instance={instanceByTemplateItemId.get(item.id)}
+                        step={stepByItemId.get(item.id) ?? null}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {activeSection === "teachers" && hasTeachersTab ? (
+                <ParentChildTeachersTab teachers={assignedTeachers} C={C} />
+              ) : null}
+
+              {activeSection === "health" && hasHealthTab && application.studentId ? (
+                <ParentChildHealthTab
+                  theme={theme}
+                  adminCompat={C}
+                  organizationId={organizationId}
+                  studentId={application.studentId}
+                  studentFirstName={firstName}
+                  readOnly={readOnly}
+                  initialProfile={initialHealthProfile}
+                  onProfileChange={onHealthProfileChange}
                 />
-              </div>
-            ) : null}
+              ) : null}
 
-            {activeSection === "checklist" && checklist && progress ? (
-              <div className="space-y-4">
-                <div
-                  className="flex items-center justify-between rounded-2xl border px-5 py-4"
-                  style={{ borderColor: theme.line, backgroundColor: theme.white }}
-                >
-                  <div>
-                    <p className="text-sm font-semibold" style={{ color: theme.ink }}>
-                      {checklist.title}
-                    </p>
-                    <p className="mt-0.5 text-xs" style={{ color: theme.muted }}>
-                      {progress.completed}/{progress.total} required steps complete
-                    </p>
-                  </div>
-                  <div
-                    className="h-2 w-24 overflow-hidden rounded-full sm:w-32"
-                    style={{ backgroundColor: theme.primarySoft }}
-                  >
-                    <div
-                      className="h-full rounded-full transition-all duration-300"
-                      style={{
-                        backgroundColor: theme.primary,
-                        width: `${progress.total > 0 ? Math.min(100, (progress.completed / progress.total) * 100) : 0}%`,
-                      }}
-                    />
-                  </div>
-                </div>
+              {activeSection === "health" && !hasHealthTab ? (
+                <NotLinkedNote>
+                  Health information will be available once your child&apos;s student record is linked.
+                </NotLinkedNote>
+              ) : null}
 
-                <div className="space-y-3">
-                  {checklist.items.map((item) => (
-                    <ChecklistItemRow
-                      key={item.id}
-                      C={C}
-                      theme={theme}
-                      organizationId={organizationId}
-                      item={item}
-                      instance={instanceByTemplateItemId.get(item.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            ) : null}
+              {activeSection === "pickup" && hasPickupTab && application.studentId ? (
+                <ParentChildPickupTab
+                  theme={theme}
+                  organizationId={organizationId}
+                  studentId={application.studentId}
+                  studentFirstName={firstName}
+                  readOnly={readOnly}
+                />
+              ) : null}
 
-            {activeSection === "teachers" && hasTeachersTab ? (
-              <ParentChildTeachersTab teachers={assignedTeachers} C={C} />
-            ) : null}
-
-            {activeSection === "health" && hasHealthTab && application.studentId ? (
-              <ParentChildHealthTab
-                theme={theme}
-                adminCompat={C}
-                organizationId={organizationId}
-                studentId={application.studentId}
-                studentFirstName={firstName}
-                readOnly={readOnly}
-                initialProfile={initialHealthProfile}
-                onProfileChange={onHealthProfileChange}
-              />
-            ) : null}
-
-            {activeSection === "health" && !hasHealthTab ? (
-              <p className="m-0 py-6 text-center text-sm" style={{ color: theme.muted }}>
-                Health information will be available once your child&apos;s student record is
-                linked.
-              </p>
-            ) : null}
-
-            {activeSection === "pickup" && hasPickupTab && application.studentId ? (
-              <ParentChildPickupTab
-                theme={theme}
-                organizationId={organizationId}
-                studentId={application.studentId}
-                studentFirstName={firstName}
-                readOnly={readOnly}
-              />
-            ) : null}
-
-            {activeSection === "pickup" && !hasPickupTab ? (
-              <p className="m-0 py-6 text-center text-sm" style={{ color: theme.muted }}>
-                Authorized pickup will be available once your child&apos;s student record is
-                linked.
-              </p>
-            ) : null}
-          </motion.div>
-        </AnimatePresence>
-      </div>
-    </ParentCard>
+              {activeSection === "pickup" && !hasPickupTab ? (
+                <NotLinkedNote>
+                  Authorized pickup will be available once your child&apos;s student record is linked.
+                </NotLinkedNote>
+              ) : null}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </GCard>
     </section>
   );
 }

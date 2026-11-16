@@ -1,12 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
-import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "framer-motion";
 import {
   Bell,
   CalendarDays,
+  Check,
   ChevronRight,
   ClipboardList,
   CreditCard,
@@ -14,111 +13,84 @@ import {
   Heart,
   Loader2,
   MessageSquare,
-  X,
+  RotateCw,
   type LucideIcon,
 } from "lucide-react";
+import GSidePanel from "@/components/school-parent/garden/GSidePanel";
+import { GChip, GSkeleton, gLinkSm } from "@/components/school-parent/garden/ui";
 import {
+  GardenEmptyState,
+  GardenFilterChips,
+  GardenLoadError,
+  ROW_INTERACTIVE,
+  gBtnOutlineXs,
+  useRelativeTime,
+} from "@/components/school-admin/garden/kit";
+import { GardenGroupHeading } from "@/components/school-admin/garden/blocks";
+import {
+  useActivityNotifications,
+  useInfiniteScroll,
+} from "@/components/school-admin/activity/useActivityNotifications";
+import {
+  ACTIVITY_NOTIFICATION_DAYS,
   formatRelativeTime,
   type ActivityNotificationCategory,
   type SchoolAdminActivityNotification,
 } from "@/lib/school-admin/activity-notifications";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
-import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type AdminActivityNotificationsPanelProps = {
-  C: AdminThemeTokens;
+  /** Story theme tokens (school accent + fonts) for the Garden drawer. */
+  theme: ParentThemeTokens;
   open: boolean;
   onClose: () => void;
   organizationId: string;
   onMarkedRead?: () => void;
+  /** Unread count when the drawer opened: the newest N rows get a "New" marker. */
+  newCount?: number;
 };
 
-const PAGE_SIZE = 20;
+/* ------------------------------------------------------------------ */
+/* Category look                                                       */
+/* ------------------------------------------------------------------ */
 
-type NotificationVisual = {
-  Icon: LucideIcon;
-  badgeStyle: CSSProperties;
+const CATEGORY_VISUAL: Record<
+  ActivityNotificationCategory,
+  { Icon: LucideIcon; tint: string; label: string }
+> = {
+  applications: { Icon: ClipboardList, tint: "bg-[var(--sf-butter)]", label: "Admissions" },
+  enrollment: { Icon: GraduationCap, tint: "bg-[var(--sf-mint)]", label: "Enrollment" },
+  payments: { Icon: CreditCard, tint: "bg-[var(--sf-sky)]", label: "Payments" },
+  committees: { Icon: Heart, tint: "bg-[var(--sf-peach)]", label: "Community" },
+  program_signups: { Icon: CalendarDays, tint: "bg-[var(--sf-butter)]", label: "Program sign-ups" },
+  messages: { Icon: MessageSquare, tint: "bg-[var(--sf-lav)]", label: "Messages" },
+  other: { Icon: Bell, tint: "bg-[var(--sf-ink)]/[0.06]", label: "School" },
 };
 
-function getActivityNotificationVisual(
-  category: ActivityNotificationCategory,
-  C: AdminThemeTokens,
-): NotificationVisual {
-  switch (category) {
-    case "enrollment":
-      return {
-        Icon: GraduationCap,
-        badgeStyle: {
-          backgroundColor: C.successBg,
-          color: C.success,
-          border: `1px solid ${C.successBorder}`,
-        },
-      };
-    case "payments":
-      return {
-        Icon: CreditCard,
-        badgeStyle: {
-          backgroundColor: C.infoBg,
-          color: C.info,
-          border: `1px solid ${C.infoBorder}`,
-        },
-      };
-    case "committees":
-      return {
-        Icon: Heart,
-        badgeStyle: {
-          backgroundColor: C.accentLight,
-          color: C.accent,
-          border: `1px solid ${C.secondaryBtnBorder}`,
-        },
-      };
-    case "program_signups":
-      return {
-        Icon: CalendarDays,
-        badgeStyle: {
-          backgroundColor: C.warningBg,
-          color: C.warning,
-          border: `1px solid ${C.warningBorder}`,
-        },
-      };
-    case "messages":
-      return {
-        Icon: MessageSquare,
-        badgeStyle: {
-          backgroundColor: C.infoBg,
-          color: C.info,
-          border: `1px solid ${C.infoBorder}`,
-        },
-      };
-    case "other":
-      return {
-        Icon: Bell,
-        badgeStyle: {
-          backgroundColor: C.elevated,
-          color: C.textSecondary,
-          border: `1px solid ${C.border}`,
-        },
-      };
-    case "applications":
-    default:
-      return {
-        Icon: ClipboardList,
-        badgeStyle: {
-          backgroundColor: C.accentLight,
-          color: C.accent,
-          border: `1px solid ${C.secondaryBtnBorder}`,
-        },
-      };
-  }
+const CATEGORY_ORDER: ActivityNotificationCategory[] = [
+  "applications",
+  "enrollment",
+  "payments",
+  "program_signups",
+  "messages",
+  "committees",
+  "other",
+];
+
+function categoryVisual(category: ActivityNotificationCategory) {
+  return CATEGORY_VISUAL[category] ?? CATEGORY_VISUAL.other;
 }
 
-const DOLLAR_AMOUNT_PATTERN = /(\$[\d,]+)/g;
+/* ------------------------------------------------------------------ */
+/* Text helpers                                                        */
+/* ------------------------------------------------------------------ */
+
+const DOLLAR_AMOUNT_PATTERN = /(\$[\d,]+(?:\.\d{2})?)/g;
 
 function renderEmphasizedText(text: string) {
-  const parts = text.split(DOLLAR_AMOUNT_PATTERN);
-  return parts.map((part, index) =>
+  return text.split(DOLLAR_AMOUNT_PATTERN).map((part, index) =>
     part.startsWith("$") ? (
-      <span key={index} className="font-semibold">
+      <span key={index} className="font-extrabold tabular-nums text-[var(--sf-ink)]">
         {part}
       </span>
     ) : (
@@ -127,461 +99,386 @@ function renderEmphasizedText(text: string) {
   );
 }
 
+/** Bold the guardian or student name the detail starts with, plus $ amounts. */
 function NotificationDetailText({
-  detail,
-  subjectLabel,
-  guardianLabel,
-  C,
+  notification,
 }: {
-  detail: string;
-  subjectLabel: string | null;
-  guardianLabel: string | null;
-  C: AdminThemeTokens;
+  notification: SchoolAdminActivityNotification;
 }) {
-  if (guardianLabel && detail.startsWith(guardianLabel)) {
-    const remainder = detail.slice(guardianLabel.length);
-    return (
-      <p
-        className="truncate text-sm font-normal leading-snug"
-        style={{ color: C.textPrimary }}
-      >
-        <span className="font-semibold">{guardianLabel}</span>
-        {renderEmphasizedText(remainder)}
-      </p>
-    );
-  }
-
-  if (subjectLabel && detail.startsWith(subjectLabel)) {
-    const remainder = detail.slice(subjectLabel.length);
-    return (
-      <p
-        className="truncate text-sm font-normal leading-snug"
-        style={{ color: C.textPrimary }}
-      >
-        <span className="font-semibold">{subjectLabel}</span>
-        {renderEmphasizedText(remainder)}
-      </p>
-    );
-  }
-
+  const { detail, guardianLabel, subjectLabel } = notification;
+  const lead =
+    guardianLabel && detail.startsWith(guardianLabel)
+      ? guardianLabel
+      : subjectLabel && detail.startsWith(subjectLabel)
+        ? subjectLabel
+        : null;
   return (
-    <p
-      className="truncate text-sm font-normal leading-snug"
-      style={{ color: C.textPrimary }}
-    >
-      {renderEmphasizedText(detail)}
-    </p>
+    <span className="line-clamp-2 text-[14px] font-semibold leading-snug text-[var(--sf-ink)]/85">
+      {lead ? (
+        <>
+          <span className="font-extrabold text-[var(--sf-ink)]">{lead}</span>
+          {renderEmphasizedText(detail.slice(lead.length))}
+        </>
+      ) : (
+        renderEmphasizedText(detail)
+      )}
+    </span>
   );
 }
 
-function notificationRowDividerStyle(
-  C: AdminThemeTokens,
-  showDivider: boolean,
-): CSSProperties | undefined {
-  if (!showDivider) return undefined;
-  return { borderBottom: `1px solid ${C.border}` };
+function ctaText(label: string): string {
+  return label.replace(/\s*(→|->)\s*$/, "").trim();
 }
 
-function NotificationSkeleton({
-  C,
-  showDivider,
-}: {
-  C: AdminThemeTokens;
-  showDivider: boolean;
-}) {
-  return (
-    <div
-      className="flex items-center gap-2.5 px-1.5 py-2"
-      style={notificationRowDividerStyle(C, showDivider)}
-    >
-      <div
-        className="h-8 w-8 shrink-0 rounded-full"
-        style={{ backgroundColor: C.elevated }}
-      />
-      <div className="min-w-0 flex-1">
-        <div
-          className="h-3.5 w-4/5 rounded"
-          style={{ backgroundColor: C.elevated }}
-        />
-        <div
-          className="mt-1.5 h-2.5 w-16 rounded"
-          style={{ backgroundColor: C.elevated }}
-        />
-      </div>
-    </div>
-  );
+/* ------------------------------------------------------------------ */
+/* Day groups                                                          */
+/* ------------------------------------------------------------------ */
+
+type DayGroupKey = "today" | "yesterday" | "week" | "older";
+
+const DAY_GROUP_LABEL: Record<DayGroupKey, string> = {
+  today: "Today",
+  yesterday: "Yesterday",
+  week: "Earlier this week",
+  older: "Older",
+};
+
+function startOfDay(ms: number): number {
+  const date = new Date(ms);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
 }
+
+function dayGroupOf(iso: string, todayStart: number): DayGroupKey {
+  const time = new Date(iso).getTime();
+  if (Number.isNaN(time) || time >= todayStart) return "today";
+  const day = 24 * 60 * 60 * 1000;
+  if (time >= todayStart - day) return "yesterday";
+  if (time >= todayStart - 6 * day) return "week";
+  return "older";
+}
+
+/* ------------------------------------------------------------------ */
+/* Rows                                                                */
+/* ------------------------------------------------------------------ */
 
 function NotificationRow({
-  C,
   notification,
-  onClose,
-  showDivider,
+  isNew,
+  onNavigate,
 }: {
-  C: AdminThemeTokens;
   notification: SchoolAdminActivityNotification;
-  onClose: () => void;
-  showDivider: boolean;
+  isNew: boolean;
+  onNavigate: () => void;
 }) {
-  const { Icon, badgeStyle } = getActivityNotificationVisual(
-    notification.category,
-    C,
-  );
-
+  const { Icon, tint, label } = categoryVisual(notification.category);
+  const cta = ctaText(notification.ctaLabel || "Open");
   return (
-    <li style={notificationRowDividerStyle(C, showDivider)}>
+    <li>
       <Link
         href={notification.href}
-        onClick={onClose}
-        className="group flex items-center gap-2.5 rounded-lg px-1.5 py-2 transition-colors"
-        style={{ textDecoration: "none", color: "inherit" }}
-        onMouseEnter={(event) => {
-          event.currentTarget.style.backgroundColor = C.surface;
-        }}
-        onMouseLeave={(event) => {
-          event.currentTarget.style.backgroundColor = "transparent";
-        }}
+        onClick={onNavigate}
+        data-testid="admin-activity-row"
+        data-new={isNew ? "true" : undefined}
+        className={`${ROW_INTERACTIVE} relative !items-start no-underline ${
+          isNew ? "bg-[var(--sf-accent-wash)]/55" : ""
+        }`}
       >
-        <div
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-          style={badgeStyle}
-        >
-          <Icon className="h-3.5 w-3.5" aria-hidden />
-        </div>
-        <div className="min-w-0 flex-1">
-          <NotificationDetailText
-            detail={notification.detail}
-            subjectLabel={notification.subjectLabel}
-            guardianLabel={notification.guardianLabel}
-            C={C}
+        {isNew ? (
+          <span
+            aria-hidden
+            className="absolute bottom-3 left-0 top-3 w-[3px] rounded-full bg-[var(--sf-clay)]"
           />
-          <p
-            className="mt-0.5 text-[11px] leading-snug"
-            style={{ color: C.textTertiary }}
-          >
-            {formatRelativeTime(notification.createdAt)}
-          </p>
-        </div>
-        <ChevronRight
-          className="h-3.5 w-3.5 shrink-0 opacity-35 transition-opacity group-hover:opacity-70"
-          style={{ color: C.textTertiary }}
+        ) : null}
+        <span
           aria-hidden
-        />
+          className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] border-[1.5px] border-[var(--sf-ink)]/10 ${tint}`}
+        >
+          <Icon className="h-4 w-4 text-[var(--sf-ink)]/75" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <NotificationDetailText notification={notification} />
+          <span className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px] font-bold text-[var(--sf-ink)]/45">
+            {isNew ? (
+              <GChip tone="alert" className="!px-2 !py-0 !text-[11px]">
+                New
+              </GChip>
+            ) : null}
+            <span>{formatRelativeTime(notification.createdAt)}</span>
+            <span aria-hidden>·</span>
+            <span>{label}</span>
+          </span>
+        </span>
+        <span className="mt-1 inline-flex shrink-0 items-center gap-1 text-[12.5px] font-extrabold text-[var(--sf-clay-deep)]">
+          <span className="hidden opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 sm:inline">
+            {cta}
+          </span>
+          <ChevronRight
+            className="h-4 w-4 text-[var(--sf-ink)]/35 transition-colors group-hover:text-[var(--sf-clay-deep)]"
+            aria-hidden
+          />
+        </span>
       </Link>
     </li>
   );
 }
 
+function ActivitySkeleton() {
+  return (
+    <div role="status" aria-live="polite" className="flex flex-col gap-2">
+      <span className="sr-only">Loading activity…</span>
+      <GSkeleton className="h-3 w-20 !rounded-full" />
+      <div className="flex flex-col gap-1 rounded-[18px] border-[1.5px] border-[var(--sf-ink)]/10 bg-white p-1">
+        {[0, 1, 2, 3, 4].map((index) => (
+          <div key={index} className="flex items-start gap-3 px-3 py-3" aria-hidden>
+            <GSkeleton className="h-9 w-9 shrink-0 !rounded-[12px]" />
+            <div className="min-w-0 flex-1">
+              <GSkeleton className={`h-3.5 !rounded-full ${index % 2 ? "w-3/5" : "w-4/5"}`} />
+              <GSkeleton className="mt-2 h-2.5 w-24 !rounded-full" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function UpdatedLabel({ at }: { at: number }) {
+  const relative = useRelativeTime(at);
+  return (
+    <span className="text-[12px] font-bold text-[var(--sf-ink)]/45" aria-live="polite">
+      Updated {relative}
+    </span>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Panel                                                               */
+/* ------------------------------------------------------------------ */
+
 export default function AdminActivityNotificationsPanel({
-  C,
+  theme,
   open,
   onClose,
   organizationId,
   onMarkedRead,
+  newCount = 0,
 }: AdminActivityNotificationsPanelProps) {
-  const [notifications, setNotifications] = useState<
-    SchoolAdminActivityNotification[]
-  >([]);
-  const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const model = useActivityNotifications({ organizationId, open, onMarkedRead });
+  const {
+    notifications,
+    loading,
+    loadingMore,
+    refreshing,
+    loadError,
+    loadMoreError,
+    hasMore,
+    lastLoadedAt,
+  } = model;
 
-  const fetchPage = useCallback(
-    async (cursor: string | null, append: boolean) => {
-      if (append) {
-        setLoadingMore(true);
-      } else {
-        setLoading(true);
-      }
-      setError(null);
+  // The shell resets its unread count once mark-read lands; keep the count the
+  // admin opened the drawer with so the newest rows stay marked.
+  const [newCountAtOpen] = useState(() => Math.max(0, newCount));
+  const [filter, setFilter] = useState<string>("all");
 
-      try {
-        const params = new URLSearchParams({
-          organizationId,
-          limit: String(PAGE_SIZE),
-        });
-        if (cursor) {
-          params.set("cursor", cursor);
-        }
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-        const response = await fetch(
-          `/api/school-admin/activity-notifications?${params.toString()}`,
-        );
-
-        if (!response.ok) {
-          let message = "Failed to load activity.";
-          try {
-            const payload = (await response.json()) as { error?: string };
-            if (payload.error?.trim()) {
-              message = payload.error.trim();
-            }
-          } catch {
-            // ignore JSON parse errors
-          }
-          throw new Error(message);
-        }
-
-        const payload = (await response.json()) as {
-          notifications?: SchoolAdminActivityNotification[];
-          nextCursor?: string | null;
-          hasMore?: boolean;
-        };
-
-        const pageNotifications = payload.notifications ?? [];
-        setNotifications((current) =>
-          append ? [...current, ...pageNotifications] : pageNotifications,
-        );
-        setNextCursor(payload.nextCursor ?? null);
-        setHasMore(Boolean(payload.hasMore));
-      } catch (err) {
-        void reportPortalOperationalError("school_admin", {
-          organizationId,
-          operation: "activity_notifications.load",
-          error: "",
-        }, err);
-        setError(err instanceof Error ? err.message : "Failed to load activity.");
-        if (!append) {
-          setNotifications([]);
-          setNextCursor(null);
-          setHasMore(false);
-        }
-      } finally {
-        if (append) {
-          setLoadingMore(false);
-        } else {
-          setLoading(false);
-        }
-      }
-    },
-    [organizationId],
+  const newIds = useMemo(
+    () => new Set(notifications.slice(0, newCountAtOpen).map((item) => item.id)),
+    [newCountAtOpen, notifications],
   );
 
-  const loadNotifications = useCallback(async () => {
-    await fetchPage(null, false);
-  }, [fetchPage]);
+  const presentCategories = useMemo(() => {
+    const seen = new Set(notifications.map((item) => item.category));
+    return CATEGORY_ORDER.filter((category) => seen.has(category));
+  }, [notifications]);
 
-  const loadMoreNotifications = useCallback(async () => {
-    if (!hasMore || loadingMore || loading || !nextCursor) return;
-    await fetchPage(nextCursor, true);
-  }, [fetchPage, hasMore, loading, loadingMore, nextCursor]);
+  const activeFilter =
+    filter !== "all" && presentCategories.includes(filter as ActivityNotificationCategory)
+      ? (filter as ActivityNotificationCategory)
+      : "all";
 
-  useEffect(() => {
-    if (!open) return;
+  const visible = useMemo(
+    () =>
+      activeFilter === "all"
+        ? notifications
+        : notifications.filter((item) => item.category === activeFilter),
+    [activeFilter, notifications],
+  );
 
-    void (async () => {
-      try {
-        const response = await fetch(
-          "/api/school-admin/activity-notifications/mark-read",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ organizationId }),
-          },
-        );
-        if (response.ok) {
-          onMarkedRead?.();
+  const groups = useMemo(() => {
+    const todayStart = startOfDay(lastLoadedAt ?? 0);
+    const result: { key: DayGroupKey; items: SchoolAdminActivityNotification[] }[] = [];
+    for (const item of visible) {
+      const key = dayGroupOf(item.createdAt, todayStart);
+      const last = result[result.length - 1];
+      if (last && last.key === key) last.items.push(item);
+      else result.push({ key, items: [item] });
+    }
+    return result;
+  }, [lastLoadedAt, visible]);
+
+  useInfiniteScroll({
+    enabled: open && hasMore && !loading && !loadingMore && !loadMoreError && !loadError,
+    rootRef: bodyRef,
+    sentinelRef,
+    onReachEnd: () => void model.loadMore(),
+    watch: notifications.length,
+  });
+
+  const showFilters = !loadError && presentCategories.length > 1;
+  const newShown = Math.min(newCountAtOpen, notifications.length);
+
+  const headerAside = (
+    <div className="flex flex-wrap items-center gap-2">
+      {newShown > 0 ? (
+        <GChip tone="alert" className="tabular-nums">
+          ● {newShown} new
+        </GChip>
+      ) : null}
+      <button
+        type="button"
+        onClick={() => void model.refresh()}
+        disabled={loading || refreshing}
+        aria-busy={refreshing || undefined}
+        className={gBtnOutlineXs}
+        data-testid="admin-activity-refresh"
+      >
+        <RotateCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
+        {refreshing ? "Refreshing…" : "Refresh"}
+      </button>
+      {lastLoadedAt ? <UpdatedLabel at={lastLoadedAt} /> : null}
+    </div>
+  );
+
+  const filterOptions = [
+    { key: "all", label: "All" },
+    ...presentCategories.map((category) => ({
+      key: category,
+      label: categoryVisual(category).label,
+    })),
+  ];
+
+  let body: React.ReactNode;
+  if (loading && notifications.length === 0) {
+    body = <ActivitySkeleton />;
+  } else if (loadError) {
+    body = (
+      <GardenLoadError
+        title="Couldn't load activity"
+        description={
+          loadError === "Failed to load activity."
+            ? "Your activity is safe. Try again in a moment."
+            : `${loadError} Your activity is safe — try again in a moment.`
         }
-      } catch {
-        // ignore transient mark-read errors
-      }
-    })();
-  }, [open, organizationId, onMarkedRead]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    queueMicrotask(() => {
-      setNotifications([]);
-      setNextCursor(null);
-      setHasMore(false);
-      void loadNotifications();
-    });
-  }, [open, loadNotifications]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
-
-  useEffect(() => {
-    if (!open || !hasMore || loading || loadingMore) return;
-
-    const root = scrollContainerRef.current;
-    const sentinel = loadMoreRef.current;
-    if (!root || !sentinel) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          void loadMoreNotifications();
-        }
-      },
-      {
-        root,
-        rootMargin: "120px",
-      },
+        onRetry={() => void model.reload()}
+        retrying={loading}
+      />
     );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [hasMore, loadMoreNotifications, loading, loadingMore, open, notifications.length]);
-
-  return (
-    <AnimatePresence>
-      {open ? (
-        <motion.div
-          className="fixed inset-0 z-[10000]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          <div
-            className="absolute inset-0"
-            onClick={onClose}
-            aria-hidden="true"
-            style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+  } else if (notifications.length === 0) {
+    body = (
+      <GardenEmptyState
+        icon={Bell}
+        tint="bg-[var(--sf-mint)]"
+        title="No recent activity yet"
+        description="New applications, payments, and enrollment updates will show up here."
+        data-testid="admin-activity-empty"
+      />
+    );
+  } else {
+    body = (
+      <>
+        {visible.length === 0 ? (
+          <GardenEmptyState
+            title={`No ${categoryVisual(activeFilter as ActivityNotificationCategory).label.toLowerCase()} updates in what's loaded.`}
+            description={hasMore ? "Scroll to load older activity, or show everything." : undefined}
+            action={
+              <button type="button" onClick={() => setFilter("all")} className={gLinkSm}>
+                Show everything
+              </button>
+            }
           />
-          <motion.div
-            initial={{ x: "100%", opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: "100%", opacity: 0 }}
-            transition={{ type: "spring", damping: 28, stiffness: 300 }}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="admin-activity-notifications-title"
-            className="absolute inset-y-0 right-0 z-[15] flex w-[min(100%,28rem)] max-w-full flex-col overflow-hidden"
-            style={{
-              backgroundColor: C.surface,
-              borderLeft: `1px solid ${C.border}`,
-              boxShadow: C.shadowMedium,
-            }}
-            onClick={(event) => event.stopPropagation()}
-          >
+        ) : (
+          groups.map((group, index) => (
+            <section key={`${group.key}-${index}`} aria-label={DAY_GROUP_LABEL[group.key]}>
+              <GardenGroupHeading>{DAY_GROUP_LABEL[group.key]}</GardenGroupHeading>
+              <ul className="m-0 flex list-none flex-col divide-y divide-[var(--sf-ink)]/[0.07] rounded-[18px] border-[1.5px] border-[var(--sf-ink)]/10 bg-white p-1">
+                {group.items.map((notification) => (
+                  <NotificationRow
+                    key={notification.id}
+                    notification={notification}
+                    isNew={newIds.has(notification.id)}
+                    onNavigate={onClose}
+                  />
+                ))}
+              </ul>
+            </section>
+          ))
+        )}
+
+        <div ref={sentinelRef} className="h-px shrink-0" aria-hidden />
+
+        <div aria-live="polite" className="shrink-0">
+          {loadingMore ? (
+            <p className="m-0 flex items-center justify-center gap-2 py-2 text-[13px] font-bold text-[var(--sf-soft)]">
+              <Loader2 className="h-4 w-4 animate-spin text-[var(--sf-clay)]" aria-hidden />
+              Loading more activity…
+            </p>
+          ) : loadMoreError ? (
             <div
-              className="flex flex-shrink-0 items-start justify-between gap-3 px-4 py-3 sm:px-5"
-              style={{ borderBottom: `1px solid ${C.border}` }}
+              role="alert"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-[14px] border-[1.5px] border-dashed border-[var(--sf-ink)]/20 bg-[var(--sf-paper)] px-3.5 py-2.5"
             >
-              <div className="min-w-0">
-                <h2
-                  id="admin-activity-notifications-title"
-                  className="text-sm font-semibold"
-                  style={{ color: C.textPrimary }}
-                >
-                  Activity
-                </h2>
-                <p
-                  className="mt-1 text-xs leading-relaxed"
-                  style={{ color: C.textTertiary }}
-                >
-                  Recent admissions and enrollment updates
-                </p>
-              </div>
+              <span className="text-[13px] font-bold text-[var(--sf-ink)]/80">
+                Couldn&apos;t load older activity.
+              </span>
               <button
                 type="button"
-                onClick={onClose}
-                className="flex-shrink-0 rounded p-1"
-                style={{
-                  color: C.textTertiary,
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-                aria-label="Close"
+                onClick={() => void model.retryLoadMore()}
+                className={gBtnOutlineXs}
               >
-                <X className="h-4 w-4" />
+                <RotateCw className="h-3.5 w-3.5" aria-hidden />
+                Try again
               </button>
             </div>
+          ) : !hasMore ? (
+            <p className="m-0 flex items-center justify-center gap-1.5 py-2 text-[12.5px] font-bold text-[var(--sf-ink)]/45">
+              <Check className="h-3.5 w-3.5 text-[var(--sf-forest)]" aria-hidden />
+              That&apos;s everything from the last {ACTIVITY_NOTIFICATION_DAYS} days.
+            </p>
+          ) : null}
+        </div>
+      </>
+    );
+  }
 
-            <div
-              ref={scrollContainerRef}
-              className="flex-1 overflow-y-auto px-1.5 py-3 sm:px-2"
-              style={{ backgroundColor: C.bg }}
-            >
-              {loading && notifications.length === 0 ? (
-                <div className="flex flex-col">
-                  <NotificationSkeleton C={C} showDivider />
-                  <NotificationSkeleton C={C} showDivider />
-                  <NotificationSkeleton C={C} showDivider />
-                  <NotificationSkeleton C={C} showDivider={false} />
-                </div>
-              ) : error ? (
-                <div
-                  className="rounded-lg px-4 py-6 text-center"
-                  style={{ backgroundColor: C.elevated }}
-                >
-                  <p className="text-sm" style={{ color: C.error }}>
-                    {error}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => void loadNotifications()}
-                    className="mt-3 rounded-md px-3 py-1.5 text-xs font-semibold"
-                    style={getAdminButtonStyle(C, "secondary")}
-                  >
-                    Try again
-                  </button>
-                </div>
-              ) : notifications.length === 0 ? (
-                <div
-                  className="rounded-lg px-4 py-8 text-center"
-                  style={{ backgroundColor: C.elevated }}
-                >
-                  <p
-                    className="text-sm font-medium"
-                    style={{ color: C.textPrimary }}
-                  >
-                    No recent activity yet
-                  </p>
-                  <p
-                    className="mt-1 text-xs leading-relaxed"
-                    style={{ color: C.textTertiary }}
-                  >
-                    New applications, payments, and enrollment updates will show
-                    up here.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <ul className="flex flex-col">
-                    {notifications.map((notification, index) => (
-                      <NotificationRow
-                        key={notification.id}
-                        C={C}
-                        notification={notification}
-                        onClose={onClose}
-                        showDivider={index < notifications.length - 1}
-                      />
-                    ))}
-                  </ul>
-                  <div ref={loadMoreRef} className="h-4" aria-hidden />
-                  {loadingMore ? (
-                    <div className="flex justify-center py-3">
-                      <Loader2
-                        className="h-4 w-4 animate-spin"
-                        style={{ color: C.textTertiary }}
-                        aria-label="Loading more activity"
-                      />
-                    </div>
-                  ) : null}
-                </>
-              )}
-            </div>
-          </motion.div>
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
+  return (
+    <GSidePanel
+      theme={theme}
+      open={open}
+      onClose={onClose}
+      panelId="admin-activity-notifications"
+      testId="admin-activity-panel"
+      kicker="School activity"
+      title="Activity"
+      subtitle="Recent admissions and enrollment updates"
+      headerAside={headerAside}
+      headerBelow={
+        showFilters ? (
+          <GardenFilterChips
+            ariaLabel="Filter activity"
+            options={filterOptions}
+            value={activeFilter}
+            onChange={setFilter}
+            className="-mx-1 !flex-nowrap overflow-x-auto px-1 py-1 [scrollbar-width:none] [&>button]:shrink-0"
+          />
+        ) : undefined
+      }
+      bodyRef={bodyRef}
+      closeLabel="Close activity"
+    >
+      {body}
+    </GSidePanel>
   );
 }

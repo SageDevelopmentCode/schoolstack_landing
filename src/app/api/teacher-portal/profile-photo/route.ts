@@ -5,7 +5,7 @@ import {
   uploadStaffProfilePhoto,
 } from "@/lib/staff/staff-photo-storage";
 import {
-  getStaffMemberIdForUser,
+  getTeacherPortalStaffMemberIdForUser,
   TeacherPortalAuthError,
 } from "@/lib/staff/teacher-portal-access";
 import { requireTeacherPortalUser } from "@/lib/staff/teacher-portal-access-server";
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
   try {
     const user = await requireTeacherPortalUser(supabase, organizationId, request);
 
-    const staffMemberId = await getStaffMemberIdForUser(
+    const staffMemberId = await getTeacherPortalStaffMemberIdForUser(
       supabase,
       user.id,
       organizationId,

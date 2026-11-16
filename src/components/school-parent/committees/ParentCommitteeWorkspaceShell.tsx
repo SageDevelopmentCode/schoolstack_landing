@@ -1,22 +1,16 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import {
-  CalendarDays,
-  CheckSquare,
-  FileText,
-  FolderKanban,
-  Home,
-  Loader2,
-  MessageCircle,
-  Users,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { CommitteeWorkspaceSidePanel } from "@/components/school-admin/committees/CommitteeWorkspaceStoryHeader";
-import CommitteeWorkspaceLayout from "@/components/school-admin/committees/CommitteeWorkspaceLayout";
+import GardenCommitteeWorkspaceLayout from "@/components/school-parent/committees/garden/GardenCommitteeWorkspaceLayout";
+import type { GardenCommitteeNavItem } from "@/components/school-parent/committees/garden/GardenCommitteeSectionNav";
+import { COMMITTEE_SECTION_ICONS } from "@/components/school-parent/committees/garden/committee-garden-shared";
 import type { CommitteesApiNamespace } from "@/components/portal-committees/PortalCommitteesPage";
+import {
+  CommitteeSurfaceProvider,
+  gardenCommitteeTheme,
+} from "@/components/school-admin/committees/committee-surface";
 import ParentCommitteeWorkspaceSkeleton from "@/components/school-parent/committees/ParentCommitteeWorkspaceSkeleton";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
@@ -26,8 +20,6 @@ import {
   type Committee,
   type CommitteeWorkspaceSection,
 } from "@/lib/committees/types";
-import { MessagesNavBadge } from "@/components/messages/MessagesNavBadge";
-import ParentChip from "@/components/school-parent/ui/ParentChip";
 import { committeesApiBaseForPortal } from "@/lib/committees/committees-api-base";
 import type { CommitteeActivityItem } from "@/lib/committees/activity-feed";
 import type { CommitteeSectionUnreadCounts } from "@/lib/committees/committee-unread-types";
@@ -75,18 +67,6 @@ const CommitteeProjectsSection = dynamic(
     import("@/components/school-admin/committees/sections/CommitteeProjectsSection"),
   { loading: () => <CommitteeSectionLoading section="projects" /> },
 );
-
-const PARENT_SECTION_ICONS: Partial<Record<CommitteeWorkspaceSection, LucideIcon>> = {
-  home: Home,
-  resources: FileText,
-  calendar: CalendarDays,
-  tasks: CheckSquare,
-  projects: FolderKanban,
-  messages: MessageCircle,
-  members: Users,
-};
-
-const SECTION_ICON_CLASS = "h-3.5 w-3.5 shrink-0";
 
 const PARENT_VISIBLE_SECTIONS: CommitteeWorkspaceSection[] = [
   "home",
@@ -343,38 +323,25 @@ export default function ParentCommitteeWorkspaceShell({
     [onSectionChange, resolvedSection],
   );
 
-  const navItems = sections.map((section) => {
-    const Icon = PARENT_SECTION_ICONS[section];
-    const isPending = pendingSection === section;
-    const unreadCount = unreadCountForSection(section);
+  const navItems: GardenCommitteeNavItem[] = sections.map((section) => {
+    const Icon = COMMITTEE_SECTION_ICONS[section];
     return {
       key: section,
       label: COMMITTEE_SECTION_LABELS[section],
-      icon: Icon ? <Icon className={SECTION_ICON_CLASS} /> : undefined,
+      icon: Icon ? <Icon /> : undefined,
       testId: `parent-committee-section-${section}`,
-      disabled: isPending,
-      ariaBusy: isPending,
-      suffix: isPending ? (
-        <Loader2 className="h-3 w-3 animate-spin" data-testid="parent-committee-tab-loading" />
-      ) : unreadCount > 0 ? (
-        <MessagesNavBadge
-          count={unreadCount}
-          theme={{
-            accent: composeTokens.accent,
-            accentLight: composeTokens.accentLight,
-          }}
-        />
-      ) : section === "projects" ? (
-        <ParentChip theme={theme} tone="success" className="!px-1.5 !py-0 text-[9px] uppercase">
-          New!
-        </ParentChip>
-      ) : undefined,
+      pending: pendingSection === section,
+      unreadCount: unreadCountForSection(section),
+      isNew: section === "projects",
     };
   });
 
+  // Sections render on the Garden surface: Garden neutrals + fonts, school accent.
+  const sectionTheme = useMemo(() => gardenCommitteeTheme(theme), [theme]);
+
   const sectionProps = {
     committee,
-    theme,
+    theme: sectionTheme,
     supabase,
     organizationId,
     schoolSlug,
@@ -403,24 +370,19 @@ export default function ParentCommitteeWorkspaceShell({
   const fillContent = resolvedSection === "messages";
 
   return (
-    <CommitteeWorkspaceLayout
+    <GardenCommitteeWorkspaceLayout
       theme={theme}
+      committee={committee}
+      navItems={navItems}
+      activeSection={resolvedSection}
+      activeSectionLabel={COMMITTEE_SECTION_LABELS[resolvedSection]}
+      onSectionChange={(key) => handleSectionChange(key as CommitteeWorkspaceSection)}
+      onBack={onBack}
+      backLabel={backLabel}
+      navTestId="parent-committee-section-nav"
       fillContent={fillContent}
-      sidePanel={
-        <CommitteeWorkspaceSidePanel
-          committee={committee}
-          theme={theme}
-          sections={sections}
-          activeSection={resolvedSection}
-          onSectionChange={handleSectionChange}
-          onBack={onBack}
-          backLabel={backLabel}
-          variant="parent"
-          navItems={navItems}
-          navTestId="parent-committee-section-nav"
-        />
-      }
     >
+      <CommitteeSurfaceProvider value="garden">
       {visibleMountedSections.map((section) => {
         const isActive = section === resolvedSection;
         return (
@@ -445,6 +407,7 @@ export default function ParentCommitteeWorkspaceShell({
           </div>
         );
       })}
-    </CommitteeWorkspaceLayout>
+      </CommitteeSurfaceProvider>
+    </GardenCommitteeWorkspaceLayout>
   );
 }

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { DetailButton } from "@/components/school-admin/admissions/detail-garden";
 import { ChevronDown, ExternalLink, Eye } from "lucide-react";
 import { schoolAdminEnrollmentChecklistPreviewPath } from "@/lib/admissions/enrollment-checklist-templates";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import { adminToast } from "@/lib/school-admin/admin-toast";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
@@ -126,19 +126,20 @@ export default function ChecklistPreviewMenuButton({
 
   return (
     <div className="relative shrink-0" ref={menuRef}>
-      <button
+      <DetailButton
+ kind="warning"
+ C={C}
         type="button"
         onClick={() => !disabled && setOpen((value) => !value)}
         disabled={disabled}
         aria-expanded={open}
         aria-haspopup="menu"
-        className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-        style={getAdminButtonStyle(C, "warning")}
+        storyClassName="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
       >
         <Eye className="h-3.5 w-3.5" />
         Preview
         <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-70" />
-      </button>
+      </DetailButton>
       {menu}
     </div>
   );

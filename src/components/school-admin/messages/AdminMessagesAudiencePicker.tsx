@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Check, Search } from "lucide-react";
 import { STUDENT_GRADE_OPTIONS } from "@/lib/admissions/apply-system-fields";
 import { filterContactsForPicker } from "@/lib/messages/contact-filters";
 import type { MessageContact } from "@/lib/messages/types";
-import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import MessagesAvatar from "@/components/messages/MessagesAvatar";
 import MessageStudentSubtitle from "@/components/messages/MessageStudentSubtitle";
+import { GKicker, G_FOCUS, gLinkSm } from "@/components/school-parent/garden/ui";
 
 export type AdminBroadcastAudienceState = {
   programIds: string[];
@@ -30,7 +30,6 @@ export type AdminBroadcastOptionClassroom = {
 };
 
 type AdminMessagesAudiencePickerProps = {
-  theme: ParentThemeTokens;
   C: AdminThemeTokens;
   audience: AdminBroadcastAudienceState;
   onAudienceChange: (next: AdminBroadcastAudienceState) => void;
@@ -38,8 +37,6 @@ type AdminMessagesAudiencePickerProps = {
   classrooms: AdminBroadcastOptionClassroom[];
   parentContacts: MessageContact[];
 };
-
-type BroadcastChipVariant = "program" | "classroom" | "grade";
 
 const PROGRAMS_COLLAPSED_COUNT = 3;
 const CLASSROOMS_COLLAPSED_COUNT = 3;
@@ -51,53 +48,34 @@ function toggleValue(values: string[], value: string): string[] {
     : [...values, value];
 }
 
-function chipStyle(theme: ParentThemeTokens, variant: BroadcastChipVariant, selected: boolean) {
-  if (selected) {
-    switch (variant) {
-      case "program":
-        return {
-          borderColor: theme.primary,
-          backgroundColor: theme.primarySoft,
-          color: theme.primary,
-        };
-      case "classroom":
-        return {
-          borderColor: theme.sky,
-          backgroundColor: theme.infoBg,
-          color: theme.ink,
-        };
-      case "grade":
-        return {
-          borderColor: theme.sun,
-          backgroundColor: theme.warningBg,
-          color: theme.ink,
-        };
-    }
-  }
-
-  return {
-    borderColor: theme.line,
-    backgroundColor: theme.white,
-    color: theme.ink,
-  };
-}
-
 function FilterSection({
   title,
+  selectedCount,
+  onClear,
   children,
-  theme,
 }: {
   title: string;
-  children: React.ReactNode;
-  theme: ParentThemeTokens;
+  selectedCount: number;
+  onClear: () => void;
+  children: ReactNode;
 }) {
   return (
-    <div>
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide" style={{ color: theme.muted }}>
-        {title}
-      </p>
+    <section aria-label={title}>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <GKicker>
+          {title}
+          {selectedCount > 0 ? (
+            <span className="ml-1.5 tabular-nums text-[var(--sf-clay-deep)]">· {selectedCount} selected</span>
+          ) : null}
+        </GKicker>
+        {selectedCount > 0 ? (
+          <button type="button" className={`${gLinkSm} !text-[12px]`} onClick={onClear}>
+            Clear
+          </button>
+        ) : null}
+      </div>
       {children}
-    </div>
+    </section>
   );
 }
 
@@ -105,22 +83,23 @@ function SelectableChip({
   label,
   selected,
   onClick,
-  theme,
-  variant,
 }: {
   label: string;
   selected: boolean;
   onClick: () => void;
-  theme: ParentThemeTokens;
-  variant: BroadcastChipVariant;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="rounded-full border px-3 py-1.5 text-xs font-medium transition cursor-pointer"
-      style={chipStyle(theme, variant, selected)}
+      aria-pressed={selected}
+      className={`inline-flex items-center gap-1.5 rounded-full border-[1.5px] px-3 py-1.5 text-[13px] font-extrabold transition-all ${
+        selected
+          ? "border-[var(--sf-ink)] bg-[var(--sf-accent-wash)] text-[var(--sf-clay-deep)] shadow-[0_2px_0_0_rgba(43,36,29,0.12)]"
+          : "border-[var(--sf-ink)]/15 bg-white text-[var(--sf-ink)]/80 hover:border-[var(--sf-ink)]/40"
+      } ${G_FOCUS} focus-visible:ring-offset-0`}
     >
+      {selected ? <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden /> : null}
       {label}
     </button>
   );
@@ -137,8 +116,6 @@ function CollapsibleChipRow<T>({
   onToggle,
   showMoreLabel,
   showFewerLabel,
-  variant,
-  theme,
 }: {
   items: T[];
   collapsedCount: number;
@@ -150,8 +127,6 @@ function CollapsibleChipRow<T>({
   onToggle: (id: string) => void;
   showMoreLabel: string;
   showFewerLabel: string;
-  variant: BroadcastChipVariant;
-  theme: ParentThemeTokens;
 }) {
   const visibleItems = expanded ? items : items.slice(0, collapsedCount);
   const canCollapse = items.length > collapsedCount;
@@ -167,8 +142,6 @@ function CollapsibleChipRow<T>({
               label={getLabel(item)}
               selected={selectedIds.includes(id)}
               onClick={() => onToggle(id)}
-              theme={theme}
-              variant={variant}
             />
           );
         })}
@@ -177,10 +150,10 @@ function CollapsibleChipRow<T>({
         <button
           type="button"
           onClick={() => onExpandedChange(!expanded)}
-          className="mt-2 text-xs font-medium underline-offset-2 hover:underline cursor-pointer"
-          style={{ color: theme.muted }}
+          className={`${gLinkSm} mt-2 !text-[12.5px]`}
+          aria-expanded={expanded}
         >
-          {expanded ? showFewerLabel : showMoreLabel}
+          {expanded ? showFewerLabel : `${showMoreLabel} (${items.length - collapsedCount})`}
         </button>
       ) : null}
     </>
@@ -204,64 +177,37 @@ function useAutoExpandWhenHiddenSelected(
   }, [hasHiddenSelection, onExpand]);
 }
 
-function ParentSelectIndicator({
-  selected,
-  theme,
-}: {
-  selected: boolean;
-  theme: ParentThemeTokens;
-}) {
-  return (
-    <span
-      aria-hidden
-      className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2"
-      style={{
-        borderColor: selected ? theme.primary : theme.line,
-        backgroundColor: selected ? theme.primary : "transparent",
-      }}
-    >
-      {selected ? <Check className="h-3 w-3 text-white" strokeWidth={3} aria-hidden /> : null}
-    </span>
-  );
-}
-
 function ParentSelectRow({
   contact,
   selected,
   onToggle,
-  theme,
   C,
 }: {
   contact: MessageContact;
   selected: boolean;
   onToggle: () => void;
-  theme: ParentThemeTokens;
   C: AdminThemeTokens;
 }) {
-  const focusRing = { "--tw-ring-color": `${theme.primary}40` } as CSSProperties;
-
   return (
     <button
       type="button"
       role="checkbox"
       aria-checked={selected}
       onClick={onToggle}
-      className="flex w-full items-center gap-3 rounded-md border px-3 py-2.5 text-left transition-all duration-150 focus:outline-none focus-visible:ring-2 cursor-pointer"
-      style={
+      className={`flex w-full items-center gap-3 rounded-[14px] border-[1.5px] px-3 py-2.5 text-left transition-colors ${
         selected
-          ? {
-              backgroundColor: theme.primarySoft,
-              borderColor: theme.primary,
-              ...focusRing,
-            }
-          : {
-              backgroundColor: theme.white,
-              borderColor: theme.line,
-              ...focusRing,
-            }
-      }
+          ? "border-[var(--sf-clay)]/45 bg-[var(--sf-accent-wash)]"
+          : "border-[var(--sf-ink)]/10 bg-white hover:bg-[var(--sf-ink)]/[0.03]"
+      } ${G_FOCUS} focus-visible:ring-offset-0`}
     >
-      <ParentSelectIndicator selected={selected} theme={theme} />
+      <span
+        aria-hidden
+        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-[1.5px] ${
+          selected ? "border-[var(--sf-ink)] bg-[var(--sf-clay)] text-white" : "border-[var(--sf-ink)]/25 bg-white"
+        }`}
+      >
+        {selected ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : null}
+      </span>
       <MessagesAvatar
         name={contact.name}
         color={contact.color}
@@ -269,9 +215,7 @@ function ParentSelectRow({
         size="sm"
       />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium" style={{ color: theme.ink }}>
-          {contact.name}
-        </p>
+        <p className="m-0 truncate text-[14px] font-extrabold text-[var(--sf-ink)]">{contact.name}</p>
         <MessageStudentSubtitle
           students={contact.subtitleStudents}
           subtitle={contact.subtitle}
@@ -283,8 +227,11 @@ function ParentSelectRow({
   );
 }
 
+/**
+ * Step 1 of Bulk message (Garden): programs, classes, grades and individual
+ * parents. Choices combine; each parent receives the message once.
+ */
 export default function AdminMessagesAudiencePicker({
-  theme,
   C,
   audience,
   onAudienceChange,
@@ -296,6 +243,9 @@ export default function AdminMessagesAudiencePicker({
   const [programsExpanded, setProgramsExpanded] = useState(false);
   const [classroomsExpanded, setClassroomsExpanded] = useState(false);
   const [gradesExpanded, setGradesExpanded] = useState(false);
+  const expandPrograms = useCallback(() => setProgramsExpanded(true), []);
+  const expandClassrooms = useCallback(() => setClassroomsExpanded(true), []);
+  const expandGrades = useCallback(() => setGradesExpanded(true), []);
 
   const collapsedProgramIds = useMemo(
     () => programs.slice(0, PROGRAMS_COLLAPSED_COUNT).map((program) => program.id),
@@ -312,23 +262,9 @@ export default function AdminMessagesAudiencePicker({
     [],
   );
 
-  useAutoExpandWhenHiddenSelected(
-    audience.programIds,
-    collapsedProgramIds,
-    () => setProgramsExpanded(true),
-  );
-
-  useAutoExpandWhenHiddenSelected(
-    audience.classroomIds,
-    collapsedClassroomIds,
-    () => setClassroomsExpanded(true),
-  );
-
-  useAutoExpandWhenHiddenSelected(
-    audience.gradeValues,
-    collapsedGradeValues,
-    () => setGradesExpanded(true),
-  );
+  useAutoExpandWhenHiddenSelected(audience.programIds, collapsedProgramIds, expandPrograms);
+  useAutoExpandWhenHiddenSelected(audience.classroomIds, collapsedClassroomIds, expandClassrooms);
+  useAutoExpandWhenHiddenSelected(audience.gradeValues, collapsedGradeValues, expandGrades);
 
   const filteredParents = useMemo(
     () => filterContactsForPicker(parentContacts, "parents", searchQuery),
@@ -341,11 +277,18 @@ export default function AdminMessagesAudiencePicker({
 
   return (
     <div className="space-y-5">
-      <FilterSection title="Program" theme={theme}>
+      <p className="sf-paper m-0 rounded-2xl px-3.5 py-2.5 text-[13px] font-semibold leading-snug text-[var(--sf-ink)]/75">
+        Mix any choices below. Everyone who matches gets the message once, privately, in their school
+        office conversation.
+      </p>
+
+      <FilterSection
+        title="Program"
+        selectedCount={audience.programIds.length}
+        onClear={() => updateAudience({ programIds: [] })}
+      >
         {programs.length === 0 ? (
-          <p className="text-sm" style={{ color: theme.muted }}>
-            No programs available.
-          </p>
+          <p className="m-0 text-[13px] font-semibold text-[var(--sf-soft)]">No programs available.</p>
         ) : (
           <CollapsibleChipRow
             items={programs}
@@ -355,22 +298,20 @@ export default function AdminMessagesAudiencePicker({
             onExpandedChange={setProgramsExpanded}
             getKey={(program) => program.id}
             getLabel={(program) => program.name}
-            onToggle={(id) =>
-              updateAudience({ programIds: toggleValue(audience.programIds, id) })
-            }
+            onToggle={(id) => updateAudience({ programIds: toggleValue(audience.programIds, id) })}
             showMoreLabel="Show more programs"
             showFewerLabel="Show fewer programs"
-            variant="program"
-            theme={theme}
           />
         )}
       </FilterSection>
 
-      <FilterSection title="Class / group" theme={theme}>
+      <FilterSection
+        title="Class / group"
+        selectedCount={audience.classroomIds.length}
+        onClear={() => updateAudience({ classroomIds: [] })}
+      >
         {classrooms.length === 0 ? (
-          <p className="text-sm" style={{ color: theme.muted }}>
-            No classes available.
-          </p>
+          <p className="m-0 text-[13px] font-semibold text-[var(--sf-soft)]">No classes available.</p>
         ) : (
           <CollapsibleChipRow
             items={classrooms}
@@ -380,22 +321,20 @@ export default function AdminMessagesAudiencePicker({
             onExpandedChange={setClassroomsExpanded}
             getKey={(classroom) => classroom.id}
             getLabel={(classroom) =>
-              classroom.programName
-                ? `${classroom.name} · ${classroom.programName}`
-                : classroom.name
+              classroom.programName ? `${classroom.name} · ${classroom.programName}` : classroom.name
             }
-            onToggle={(id) =>
-              updateAudience({ classroomIds: toggleValue(audience.classroomIds, id) })
-            }
+            onToggle={(id) => updateAudience({ classroomIds: toggleValue(audience.classroomIds, id) })}
             showMoreLabel="Show more classes"
             showFewerLabel="Show fewer classes"
-            variant="classroom"
-            theme={theme}
           />
         )}
       </FilterSection>
 
-      <FilterSection title="Grade" theme={theme}>
+      <FilterSection
+        title="Grade"
+        selectedCount={audience.gradeValues.length}
+        onClear={() => updateAudience({ gradeValues: [] })}
+      >
         <CollapsibleChipRow
           items={STUDENT_GRADE_OPTIONS}
           collapsedCount={GRADES_COLLAPSED_COUNT}
@@ -404,21 +343,20 @@ export default function AdminMessagesAudiencePicker({
           onExpandedChange={setGradesExpanded}
           getKey={(grade) => grade.value}
           getLabel={(grade) => grade.label}
-          onToggle={(value) =>
-            updateAudience({ gradeValues: toggleValue(audience.gradeValues, value) })
-          }
+          onToggle={(value) => updateAudience({ gradeValues: toggleValue(audience.gradeValues, value) })}
           showMoreLabel="Show more grades"
           showFewerLabel="Show fewer grades"
-          variant="grade"
-          theme={theme}
         />
       </FilterSection>
 
-      <FilterSection title="Individual parents" theme={theme}>
+      <FilterSection
+        title="Individual parents"
+        selectedCount={audience.guardianIds.length}
+        onClear={() => updateAudience({ guardianIds: [] })}
+      >
         <div className="relative mb-3">
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2"
-            style={{ color: theme.muted }}
+            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--sf-ink)]/45"
             aria-hidden
           />
           <input
@@ -426,25 +364,27 @@ export default function AdminMessagesAudiencePicker({
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Search parents"
-            className="w-full rounded-full border py-2 pl-9 pr-3 text-[16px] outline-none transition-colors focus:ring-1 sm:text-[13px]"
-            style={{
-              backgroundColor: "#F4F7F5",
-              borderColor: theme.line,
-              color: theme.ink,
-            }}
+            aria-label="Search parents"
+            className="w-full rounded-full border-2 border-[var(--sf-ink)]/15 bg-[var(--sf-paper)] py-2 pl-10 pr-4 text-[16px] font-semibold text-[var(--sf-ink)] outline-none placeholder:text-[var(--sf-ink)]/40 focus:border-[var(--sf-ink)] sm:text-sm"
           />
         </div>
 
-        <div className="max-h-48 space-y-2 overflow-y-auto pr-0.5">
+        <div className="max-h-56 space-y-1.5 overflow-y-auto overscroll-contain pr-0.5">
           {filteredParents.length === 0 ? (
-            <p className="py-6 text-center text-sm" style={{ color: theme.muted }}>
-              No parents match this search.
-            </p>
+            <div className="py-5 text-center">
+              <p className="m-0 text-[13px] font-semibold text-[var(--sf-soft)]">
+                {searchQuery.trim() ? "No parents match this search." : "No parents to show."}
+              </p>
+              {searchQuery.trim() ? (
+                <button type="button" className={`${gLinkSm} mt-1.5`} onClick={() => setSearchQuery("")}>
+                  Clear search
+                </button>
+              ) : null}
+            </div>
           ) : (
             filteredParents.map((contact) => {
               const selected =
-                contact.guardianId != null &&
-                audience.guardianIds.includes(contact.guardianId);
+                contact.guardianId != null && audience.guardianIds.includes(contact.guardianId);
               return (
                 <ParentSelectRow
                   key={contact.key}
@@ -456,7 +396,6 @@ export default function AdminMessagesAudiencePicker({
                       guardianIds: toggleValue(audience.guardianIds, contact.guardianId),
                     });
                   }}
-                  theme={theme}
                   C={C}
                 />
               );

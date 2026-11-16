@@ -1,5 +1,7 @@
 "use client";
 
+import { useAdminConfirm } from "@/components/school-admin/garden/useAdminConfirm";
+import { GardenLoadError } from "@/components/school-admin/garden/kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
@@ -296,6 +298,8 @@ export default function TuitionFamiliesPanel({
   void branding;
   const { theme } = useSchoolAdminStoryTheme();
   const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
+  const { confirm, dialog: confirmDialog } = useAdminConfirm(C);
+  const [familiesLoadError, setFamiliesLoadError] = useState<string | null>(null);
   const supabase = useMemo(() => createClient(), []);
   const hasInitialFamilies = initialFamilies !== undefined;
   const [familySearchQuery, setFamilySearchQuery] = useState("");
@@ -405,6 +409,14 @@ export default function TuitionFamiliesPanel({
       }
       selectedFamilyIdRef.current = next;
       setSelectedFamilyId(next);
+      setFamiliesLoadError(null);
+    } catch (err) {
+      setFamiliesLoadError(formatActionError(err, "Failed to load families."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.families.load",
+        error: "",
+      }, err);
     } finally {
       setLoading(false);
     }
@@ -528,7 +540,13 @@ export default function TuitionFamiliesPanel({
       ? `Waive this ${formatCents(charge.amountCents)} late fee? It will be removed from the family's balance.`
       : `Waive ${charge.label}? This forgives the overdue installment and any linked late fees.`;
 
-    if (!window.confirm(confirmMessage)) {
+    if (
+      !(await confirm({
+        title: isLateFee ? `Waive the ${formatCents(charge.amountCents)} late fee?` : `Waive ${charge.label}?`,
+        description: confirmMessage,
+        confirmLabel: isLateFee ? "Waive late fee" : "Waive charge",
+      }))
+    ) {
       return;
     }
 
@@ -544,7 +562,9 @@ export default function TuitionFamiliesPanel({
         const payload = (await response.json()) as { error?: string };
         throw new Error(payload.error ?? "Failed to waive charge.");
       }
-      adminToast.success(isLateFee ? "Late fee waived" : "Charge waived");
+      adminToast.success(isLateFee ? "Late fee waived." : `${charge.label} waived.`, {
+        description: `${formatCents(charge.amountCents)} was removed from the family's balance.`,
+      });
       await refreshFamilySummaries();
       if (selectedFamilyId) {
         await refreshSelectedFamilyDetails(selectedFamilyId);
@@ -603,7 +623,16 @@ export default function TuitionFamiliesPanel({
     }
   };
 
-  const handleRefund = async (paymentId: string) => {
+  const handleRefund = async (paymentId: string, amountCents?: number) => {
+    if (
+      !(await confirm({
+        title: amountCents != null ? `Refund ${formatCents(amountCents)}?` : "Refund this payment?",
+        description: "The payment is refunded to the family. This can't be undone from here.",
+        confirmLabel: "Refund payment",
+      }))
+    ) {
+      return;
+    }
     setActionLoading(paymentId);
     try {
       const response = await fetch(`/api/tuition/payments/${paymentId}/refund`, {
@@ -613,7 +642,9 @@ export default function TuitionFamiliesPanel({
         const payload = (await response.json()) as { error?: string };
         throw new Error(payload.error ?? "Failed to process refund.");
       }
-      adminToast.success("Refund processed");
+      adminToast.success("Refund processed.", {
+        description: amountCents != null ? `${formatCents(amountCents)} refunded.` : undefined,
+      });
       await refreshFamilySummaries();
       if (selectedFamilyId) {
         await refreshSelectedFamilyDetails(selectedFamilyId);
@@ -634,9 +665,11 @@ export default function TuitionFamiliesPanel({
 
   const handleUnassign = async (assignmentId: string) => {
     if (
-      !window.confirm(
-        "Unassign tuition for this student? Future unpaid charges will be removed.",
-      )
+      !(await confirm({
+        title: "Unassign tuition for this student?",
+        description: "Future unpaid charges will be removed.",
+        confirmLabel: "Unassign tuition",
+      }))
     ) {
       return;
     }
@@ -979,6 +1012,17 @@ export default function TuitionFamiliesPanel({
 
   if (loading) {
     return <SchoolAdminSplitPaneSkeleton C={C} label="Loading families" />;
+  }
+
+  if (!families.length && familiesLoadError) {
+    return (
+      <GardenLoadError
+        title="Families didn't load"
+        description={`${familiesLoadError} Your family billing is unchanged.`}
+        onRetry={() => void loadFamilies()}
+        retrying={loading}
+      />
+    );
   }
 
   if (!families.length) {
@@ -1545,7 +1589,7 @@ export default function TuitionFamiliesPanel({
                             variant="outline"
                             size="compact"
                             disabled={actionLoading === payment.id}
-                            onClick={() => void handleRefund(payment.id)}
+                            onClick={() => void handleRefund(payment.id, payment.amountCents)}
                           >
                             Refund
                           </AdminButton>
@@ -1644,6 +1688,7 @@ export default function TuitionFamiliesPanel({
           }}
         />
       ) : null}
+      {confirmDialog}
     </>
   );
 }

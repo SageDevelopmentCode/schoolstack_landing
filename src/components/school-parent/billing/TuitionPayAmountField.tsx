@@ -21,11 +21,13 @@ import {
 import { EXTRA_PAY_MODE_LABEL } from "@/lib/tuition/tuition-pay-copy";
 import TuitionPaySchedulePreview from "@/components/school-parent/billing/TuitionPaySchedulePreview";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { G_FOCUS } from "@/components/school-parent/garden/ui";
 
 export type TuitionPayAmountMode = "balance" | "custom";
 
 type TuitionPayAmountFieldProps = {
-  C: AdminThemeTokens;
+  /** Kept for call-site compatibility; renders with Garden tokens inside the parent pay modal. */
+  C?: AdminThemeTokens;
   remainingCents: number;
   mode: TuitionPayAmountMode;
   customDraft: string;
@@ -69,7 +71,6 @@ export function resolveTuitionPayAmountCents(input: {
 }
 
 export default function TuitionPayAmountField({
-  C,
   remainingCents,
   mode,
   customDraft,
@@ -116,21 +117,20 @@ export default function TuitionPayAmountField({
     onCustomDraftChange(formatCentsForInput(presetCents));
   };
 
+  const segment = (active: boolean) =>
+    `flex-1 rounded-full px-3 py-2 text-[13px] font-extrabold transition-all duration-200 ${G_FOCUS} focus-visible:ring-offset-0 ${
+      active
+        ? "bg-[var(--sf-clay)] text-white shadow-[0_2px_0_0_var(--sf-ink)]"
+        : "text-[var(--sf-ink)]/70 hover:bg-[var(--sf-accent-wash)] hover:text-[var(--sf-ink)]"
+    }`;
+
   return (
-    <div
-      className="mb-4 space-y-3"
-      data-testid="tuition-pay-amount-field"
-    >
-      <div className="flex gap-2">
+    <div className="mb-4 flex flex-col gap-3" data-testid="tuition-pay-amount-field">
+      <div className="flex gap-1 rounded-full border-[1.5px] border-[var(--sf-ink)]/12 bg-white p-1">
         <button
           type="button"
           onClick={() => onModeChange("balance")}
-          className="flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition"
-          style={{
-            borderColor: mode === "balance" ? C.accent : C.border,
-            backgroundColor: mode === "balance" ? C.accentLight : C.surface,
-            color: C.textPrimary,
-          }}
+          className={segment(mode === "balance")}
           aria-pressed={mode === "balance"}
         >
           Pay balance ({formatCents(remainingCents)})
@@ -138,12 +138,7 @@ export default function TuitionPayAmountField({
         <button
           type="button"
           onClick={() => onModeChange("custom")}
-          className="flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition"
-          style={{
-            borderColor: mode === "custom" ? C.accent : C.border,
-            backgroundColor: mode === "custom" ? C.accentLight : C.surface,
-            color: C.textPrimary,
-          }}
+          className={segment(mode === "custom")}
           aria-pressed={mode === "custom"}
           data-testid="tuition-pay-extra-mode-button"
         >
@@ -152,8 +147,8 @@ export default function TuitionPayAmountField({
       </div>
 
       {mode === "custom" ? (
-        <div className="space-y-3">
-          <p className="text-xs" style={{ color: C.textTertiary }}>
+        <div className="flex flex-col gap-3">
+          <p className="m-0 text-xs font-semibold text-[var(--sf-soft)]">
             Use a tax credit, bonus, or lump sum to pay ahead. Extra amounts reduce future
             installments automatically.
           </p>
@@ -163,12 +158,7 @@ export default function TuitionPayAmountField({
               <button
                 type="button"
                 onClick={() => applyPreset(taxCreditAmountCents)}
-                className="rounded-lg border px-3 py-1.5 text-xs font-medium transition"
-                style={{
-                  borderColor: C.border,
-                  backgroundColor: C.surface,
-                  color: C.textPrimary,
-                }}
+                className={`rounded-full bg-[var(--sf-butter)] px-3 py-1.5 text-xs font-extrabold text-[var(--sf-ink)] transition-all hover:-translate-y-0.5 ${G_FOCUS}`}
                 data-testid="tuition-pay-tax-credit-preset"
               >
                 Apply $5,000 tax credit ({formatCents(taxCreditAmountCents)})
@@ -179,16 +169,12 @@ export default function TuitionPayAmountField({
           <div>
             <label
               htmlFor="tuition-pay-custom-amount"
-              className="mb-1 block text-xs font-medium"
-              style={{ color: C.textSecondary }}
+              className="mb-1 block text-xs font-extrabold text-[var(--sf-ink)]/75"
             >
               Payment amount
             </label>
             <div className="relative">
-              <span
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm"
-                style={{ color: C.textTertiary }}
-              >
+              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-extrabold text-[var(--sf-soft)]">
                 $
               </span>
               <input
@@ -203,22 +189,24 @@ export default function TuitionPayAmountField({
                   const cents = parseDollarInputToCents(customDraft);
                   onCustomDraftChange(formatCentsForInput(cents ?? 0));
                 }}
-                className="w-full rounded-lg border py-2 pl-7 pr-3 text-sm"
-                style={{
-                  borderColor: error ? C.error : C.border,
-                  backgroundColor: C.surface,
-                  color: C.textPrimary,
-                }}
+                aria-invalid={error ? true : undefined}
+                aria-describedby="tuition-pay-custom-amount-hint"
+                className={`w-full rounded-2xl border-2 bg-white py-2.5 pl-8 pr-3 text-[15px] font-extrabold tabular-nums text-[var(--sf-ink)] ${
+                  error ? "border-[var(--sf-clay-deep)]" : "border-[var(--sf-ink)]/25 focus:border-[var(--sf-ink)]"
+                } ${G_FOCUS}`}
                 placeholder={formatCentsForInput(remainingCents)}
                 data-testid="tuition-pay-custom-amount-input"
               />
             </div>
-            <p className="mt-1 text-xs" style={{ color: C.textTertiary }}>
+            <p
+              id="tuition-pay-custom-amount-hint"
+              className="m-0 mt-1 text-xs font-semibold text-[var(--sf-soft)]"
+            >
               Pay from {formatCents(remainingCents)} (this installment) up to{" "}
               {formatCents(maxCents)} (all remaining for this student).
             </p>
             {error ? (
-              <p className="mt-1 text-xs" style={{ color: C.error }} role="alert">
+              <p className="m-0 mt-1 text-xs font-bold text-[var(--sf-clay-deep)]" role="alert">
                 {error}
               </p>
             ) : null}
@@ -226,7 +214,6 @@ export default function TuitionPayAmountField({
 
           {schedulePreview ? (
             <TuitionPaySchedulePreview
-              C={C}
               paymentAmountCents={amountCents}
               currentChargeRemainingCents={remainingCents}
               preview={schedulePreview}
@@ -234,7 +221,7 @@ export default function TuitionPayAmountField({
           ) : null}
         </div>
       ) : (
-        <p className="text-xs" style={{ color: C.textTertiary }}>
+        <p className="m-0 text-xs font-semibold text-[var(--sf-soft)]">
           Pay extra toward tuition to apply a tax credit, bonus, or lump sum — future
           installments are recalculated automatically.
         </p>

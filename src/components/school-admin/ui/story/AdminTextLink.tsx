@@ -1,4 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { useAdminGardenSkin } from "@/components/school-admin/garden/skin";
+import { gLinkSm } from "@/components/school-parent/garden/ui";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type AdminTextLinkProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -12,6 +14,14 @@ export default function AdminTextLink({
   className = "",
   ...props
 }: AdminTextLinkProps) {
+  const skin = useAdminGardenSkin();
+  if (skin) {
+    return (
+      <button type="button" className={`${gLinkSm} cursor-pointer border-0 bg-transparent p-0 !text-[13px] ${className}`} {...props}>
+        {children}
+      </button>
+    );
+  }
   return (
     <button
       type="button"

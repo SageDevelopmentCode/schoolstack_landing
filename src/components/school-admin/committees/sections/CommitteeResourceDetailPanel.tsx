@@ -11,15 +11,15 @@ import {
 } from "react";
 import { ExternalLink, FileText, Link2, ListChecks, Trash2, Upload, X } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
-import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import AdminChip from "@/components/school-admin/ui/story/AdminChip";
-import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
-import CommitteeFormSidePanel from "@/components/school-admin/committees/sections/CommitteeFormSidePanel";
 import {
-  committeeStoryInputClassName,
-  committeeStoryInputStyle,
-} from "@/components/school-admin/committees/committee-story-input-style";
+  CommitteeButton,
+  CommitteeChip,
+  CommitteeConfirmDialog,
+  CommitteeSelectField,
+  useCommitteeInput,
+} from "@/components/school-admin/committees/committee-ui";
+import { useCommitteeNotify } from "@/components/school-admin/committees/committee-surface";
+import CommitteeFormSidePanel from "@/components/school-admin/committees/sections/CommitteeFormSidePanel";
 import { CommitteeAttributionLabel } from "@/components/school-admin/committees/CommitteeAttributionLabel";
 import type { CommitteeMember, CommitteeResource, CommitteeResourceType } from "@/lib/committees/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
@@ -32,7 +32,7 @@ import {
   validateCommitteeResourceFile,
 } from "@/lib/committees/resource-file-storage";
 import { committeeOperationalSurface } from "@/components/school-admin/committees/CommitteeAttributionLabel";
-import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 export type CommitteeResourceFormData = {
@@ -228,7 +228,9 @@ export default function CommitteeResourceDetailPanel({
   isAdmin = true,
 }: CommitteeResourceDetailPanelProps) {
   const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
-  const inputStyle = useMemo(() => committeeStoryInputStyle(theme), [theme]);
+  const input = useCommitteeInput(theme);
+  const inputStyle = input.style;
+  const notify = useCommitteeNotify();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState<CommitteeResourceFormData>(emptyResourceForm);
@@ -376,7 +378,7 @@ export default function CommitteeResourceDetailPanel({
     try {
       await openCommitteeResource(supabase, resource);
     } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to open file."));
+      notify.error(formatActionError(err, "Failed to open file."), { title: "Couldn't open the file" });
       void reportPortalOperationalError(committeeOperationalSurface(isAdmin), {
         organizationId,
         operation: "committees.resources.open",
@@ -411,7 +413,7 @@ export default function CommitteeResourceDetailPanel({
             <div className="flex items-center justify-between gap-2">
               <span aria-hidden="true" />
               <div className="flex gap-2">
-                <AdminButton
+                <CommitteeButton
                   theme={theme}
                   variant="soft"
                   type="button"
@@ -419,15 +421,15 @@ export default function CommitteeResourceDetailPanel({
                   disabled={saving}
                 >
                   Cancel
-                </AdminButton>
-                <AdminButton
+                </CommitteeButton>
+                <CommitteeButton
                   theme={theme}
                   variant="primary"
                   type="submit"
                   disabled={saving || !canSubmit}
                 >
                   {saving ? "Adding…" : "Add resource"}
-                </AdminButton>
+                </CommitteeButton>
               </div>
             </div>
           ) : mode === "view" ? (
@@ -447,7 +449,7 @@ export default function CommitteeResourceDetailPanel({
                 <span aria-hidden="true" />
               )}
               <div className="flex gap-2">
-                <AdminButton
+                <CommitteeButton
                   theme={theme}
                   variant="soft"
                   type="button"
@@ -455,9 +457,9 @@ export default function CommitteeResourceDetailPanel({
                   disabled={saving}
                 >
                   Close
-                </AdminButton>
+                </CommitteeButton>
                 {(resource?.url || resource?.storagePath) && (
-                  <AdminButton
+                  <CommitteeButton
                     theme={theme}
                     variant="primary"
                     type="button"
@@ -466,7 +468,7 @@ export default function CommitteeResourceDetailPanel({
                   >
                     {openingFile ? "Opening…" : "Open"}
                     <ExternalLink className="ml-1 h-3.5 w-3.5" />
-                  </AdminButton>
+                  </CommitteeButton>
                 )}
               </div>
             </div>
@@ -488,7 +490,7 @@ export default function CommitteeResourceDetailPanel({
                     setForm((current) => ({ ...current, title: event.target.value }))
                   }
                   placeholder="Resource title"
-                  className={committeeStoryInputClassName}
+                  className={input.className}
                   style={inputStyle}
                 />
               </div>
@@ -514,7 +516,7 @@ export default function CommitteeResourceDetailPanel({
                       setForm((current) => ({ ...current, url: event.target.value }))
                     }
                     placeholder="https://"
-                    className={committeeStoryInputClassName}
+                    className={input.className}
                     style={inputStyle}
                   />
                 </div>
@@ -605,7 +607,7 @@ export default function CommitteeResourceDetailPanel({
                 }
                 placeholder="Optional description for committee members"
                 rows={4}
-                className={`${committeeStoryInputClassName} resize-y`}
+                className={`${input.className} resize-y`}
                 style={inputStyle}
               />
             </div>
@@ -613,9 +615,9 @@ export default function CommitteeResourceDetailPanel({
         ) : resource ? (
           <div className="space-y-4">
             <div className="space-y-3">
-              <AdminChip theme={theme} tone="info" className="!text-[10px]">
+              <CommitteeChip theme={theme} tone="info" className="!text-[10px]">
                 {COMMITTEE_RESOURCE_TYPE_LABELS[resource.type]}
-              </AdminChip>
+              </CommitteeChip>
               {resource.fileName ? (
                 <ResourceOpenLink
                   theme={theme}
@@ -654,7 +656,8 @@ export default function CommitteeResourceDetailPanel({
         ) : null}
       </CommitteeFormSidePanel>
 
-      <ConfirmDialog
+      <CommitteeConfirmDialog
+        theme={theme}
         C={C}
         open={discardDialogOpen}
         title="Unsaved changes"
@@ -666,7 +669,8 @@ export default function CommitteeResourceDetailPanel({
         onClose={handleCancelDiscard}
       />
 
-      <ConfirmDialog
+      <CommitteeConfirmDialog
+        theme={theme}
         C={C}
         open={deleteDialogOpen}
         title="Delete resource?"
@@ -701,7 +705,7 @@ function ResourceSelect({
   disabled?: boolean;
 }) {
   return (
-    <SchoolAdminSelect
+    <CommitteeSelectField
       C={C}
       value={value}
       onChange={onChange}

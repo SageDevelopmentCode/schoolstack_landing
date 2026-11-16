@@ -1,15 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import SchoolGalleryPage from "@/components/school-gallery/SchoolGalleryPage";
-import type { GalleryPhotosFeedInitial } from "@/components/school-gallery/useGalleryPhotosFeed";
-import ParentPhotoPermissionsBanner from "@/components/school-parent/photos/ParentPhotoPermissionsBanner";
-import ParentPhotoPermissionsSidebar from "@/components/school-parent/photos/ParentPhotoPermissionsSidebar";
-import type { PhotoPermissionLearner } from "@/components/school-parent/photos/photo-permissions-ui";
-import ParentPhotosStoryHeader from "@/components/school-parent/photos/ParentPhotosStoryHeader";
+import ParentGardenFrame from "@/components/school-parent/garden/ParentGardenFrame";
+import ParentGardenPageHeader from "@/components/school-parent/garden/ParentGardenPageHeader";
+import { useCelebrate } from "@/components/school-parent/garden/motion";
+import ParentGardenGallery from "@/components/school-parent/photos/garden/ParentGardenGallery";
+import PhotoPermissionsCard from "@/components/school-parent/photos/garden/PhotoPermissionsCard";
+import PhotoPermissionsGuideCard from "@/components/school-parent/photos/garden/PhotoPermissionsGuideCard";
+import PhotoPermissionsPanel from "@/components/school-parent/photos/garden/PhotoPermissionsPanel";
+import { useParentPhotosModel } from "@/components/school-parent/photos/useParentPhotosModel";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
-import ParentCard from "@/components/school-parent/ui/ParentCard";
+import type { GalleryPhotosFeedInitial } from "@/components/school-gallery/useGalleryPhotosFeed";
 import type { FamilyChildOverview } from "@/lib/admissions/parent-portal-access";
+import { PORTAL_HOME_CONTAINER_CLASS } from "@/lib/portal-home/layout";
 import type { PhotoMediaConsentState } from "@/lib/students/load-student-photo-media-consents";
 
 type ParentPhotosPageProps = {
@@ -23,6 +25,11 @@ type ParentPhotosPageProps = {
   initialFeed?: GalleryPhotosFeedInitial | null;
 };
 
+/**
+ * Parent Photos tab (Garden): the school gallery in the main column, each
+ * child's photo permission in the rail. Preview mode shows everything with
+ * permission editing disabled.
+ */
 export default function ParentPhotosPage({
   organizationId,
   slug,
@@ -34,80 +41,73 @@ export default function ParentPhotosPage({
   initialFeed,
 }: ParentPhotosPageProps) {
   const { theme } = useParentTheme();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [consentsByStudentId, setConsentsByStudentId] = useState(
+  const model = useParentPhotosModel({
+    organizationId,
+    eligibleChildren,
     initialConsentsByStudentId,
-  );
+  });
 
-  const learners = useMemo<PhotoPermissionLearner[]>(
-    () =>
-      eligibleChildren
-        .filter((child): child is FamilyChildOverview & { studentId: string } =>
-          Boolean(child.studentId),
-        )
-        .map((child) => ({
-          studentId: child.studentId,
-          studentName: child.studentName,
-        })),
-    [eligibleChildren],
-  );
-
-  const handleSaved = (updates: Record<string, PhotoMediaConsentState>) => {
-    setConsentsByStudentId((prev) => ({ ...prev, ...updates }));
-  };
+  useCelebrate(model.justCompletedAll, theme, "parent-photos-permissions-complete");
 
   return (
-    <div
-      className="mx-auto max-w-[1250px] px-4 py-6 sm:py-8 md:px-9"
-      data-testid="parent-photos-page"
-    >
-      <ParentPhotosStoryHeader theme={theme} />
+    <>
+      <ParentGardenFrame theme={theme}>
+        <div className={PORTAL_HOME_CONTAINER_CLASS} data-testid="parent-photos-page">
+          <ParentGardenPageHeader
+            kicker="Your family"
+            title="Photos"
+            subtitle="School gallery and your child's photo permissions in one place."
+            data-testid="parent-photos-story-header"
+          />
 
-      {learners.length === 0 ? (
-        <ParentCard theme={theme} className="mt-6">
-          <p className="text-[13px]" style={{ color: theme.muted }}>
-            Photo permissions are available once a learner is enrolled.
-          </p>
-        </ParentCard>
-      ) : (
-        <ParentPhotoPermissionsBanner
-          theme={theme}
-          learners={learners}
-          consentsByStudentId={consentsByStudentId}
-          previewMode={previewMode}
-          onEdit={() => setSidebarOpen(true)}
-        />
-      )}
+          {/* Phones: permissions → gallery → guide. lg: gallery left, permissions + guide in the rail. */}
+          <div className="grid items-start gap-5 lg:grid-cols-[1.55fr_1fr] lg:grid-rows-[auto_1fr]">
+            <div className="min-w-0 lg:col-start-2 lg:row-start-1">
+              <PhotoPermissionsCard
+                index={1}
+                learners={model.learners}
+                consentsByStudentId={model.consentsByStudentId}
+                unsetLearners={model.unsetLearners}
+                total={model.total}
+                setCount={model.setCount}
+                allSet={model.allSet}
+                previewMode={previewMode}
+                recentlyUpdatedIds={model.recentlyUpdatedIds}
+                onEdit={model.openPanel}
+              />
+            </div>
 
-      {!previewMode && learners.length > 0 ? (
-        <ParentPhotoPermissionsSidebar
+            <div className="min-w-0 lg:col-start-1 lg:row-span-2 lg:row-start-1">
+              <ParentGardenGallery
+                index={2}
+                theme={theme}
+                organizationId={organizationId}
+                slug={slug}
+                programId={programId}
+                previewFamilyId={previewFamilyId}
+                initialFeed={initialFeed}
+              />
+            </div>
+
+            {model.learners.length > 0 ? (
+              <div className="min-w-0 lg:col-start-2 lg:row-start-2">
+                <PhotoPermissionsGuideCard index={3} />
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </ParentGardenFrame>
+
+      {!previewMode && model.learners.length > 0 ? (
+        <PhotoPermissionsPanel
           theme={theme}
-          open={sidebarOpen}
-          organizationId={organizationId}
-          learners={learners}
-          consentsByStudentId={consentsByStudentId}
-          onClose={() => setSidebarOpen(false)}
-          onSaved={handleSaved}
+          open={model.panelOpen}
+          learners={model.learners}
+          consentsByStudentId={model.consentsByStudentId}
+          onClose={model.closePanel}
+          onSave={model.savePermissions}
         />
       ) : null}
-
-      <div className="mt-6">
-        <SchoolGalleryPage
-          organizationId={organizationId}
-          slug={slug}
-          programId={programId}
-          portal="parent"
-          initialFeed={initialFeed}
-          readOnly={previewMode}
-          previewFamilyId={previewFamilyId}
-        />
-      </div>
-
-      {previewMode ? (
-        <p className="mt-4 text-[11px]" style={{ color: theme.muted }}>
-          Preview mode — photo permissions cannot be changed here.
-        </p>
-      ) : null}
-    </div>
+    </>
   );
 }

@@ -1,19 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
-import ParentAttendanceHistoryDetailSidebar from "@/components/school-parent/attendance/ParentAttendanceHistoryDetailSidebar";
-import ParentAttendanceHistoryList from "@/components/school-parent/attendance/ParentAttendanceHistoryList";
-import ParentButton from "@/components/school-parent/ui/ParentButton";
-import ParentCard from "@/components/school-parent/ui/ParentCard";
-import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
+import { useCallback, useMemo, useState } from "react";
+import AttendanceDayDrawer from "@/components/school-parent/attendance/garden/AttendanceDayDrawer";
+import AttendanceHistoryCard from "@/components/school-parent/attendance/garden/AttendanceHistoryCard";
+import AttendanceLatestDayCard from "@/components/school-parent/attendance/garden/AttendanceLatestDayCard";
+import AttendanceRecentWeeksCard from "@/components/school-parent/attendance/garden/AttendanceRecentWeeksCard";
+import {
+  buildAttendanceRecentWeeks,
+  countAttendanceByStatus,
+  type AttendanceFilter,
+} from "@/components/school-parent/attendance/attendance-format";
+import { useParentAttendanceHistory } from "@/components/school-parent/attendance/useParentAttendanceHistory";
 import type {
   AttendanceHistoryEntry,
   AttendanceHistoryResponse,
 } from "@/lib/school-admin/attendance/attendance-types";
-import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
-
-const PAGE_SIZE = 20;
 
 type ParentAttendanceHistoryPanelProps = {
   organizationId: string;
@@ -23,6 +24,11 @@ type ParentAttendanceHistoryPanelProps = {
   initialHistory?: AttendanceHistoryResponse;
 };
 
+/**
+ * One child's attendance (keyed per child by the page):
+ *   [latest day · history]  |  rail: [recent weeks]
+ * plus the day drawer. All data comes from useParentAttendanceHistory.
+ */
 export default function ParentAttendanceHistoryPanel({
   organizationId,
   studentId,
@@ -30,165 +36,80 @@ export default function ParentAttendanceHistoryPanel({
   previewMode = false,
   initialHistory,
 }: ParentAttendanceHistoryPanelProps) {
-  const { theme } = useParentTheme();
-  const [entries, setEntries] = useState<AttendanceHistoryEntry[]>(
-    initialHistory?.entries ?? [],
+  const history = useParentAttendanceHistory({
+    organizationId,
+    studentId,
+    studentName,
+    previewMode,
+    initialHistory,
+  });
+  const { entries, loading, firstName } = history;
+
+  const [filter, setFilter] = useState<AttendanceFilter>("all");
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  const counts = useMemo(() => countAttendanceByStatus(entries), [entries]);
+  const weeks = useMemo(() => buildAttendanceRecentWeeks(entries), [entries]);
+  const selectedEntry = useMemo(
+    () => entries.find((entry) => entry.date === selectedDate) ?? null,
+    [entries, selectedDate],
   );
-  const [totalCount, setTotalCount] = useState(initialHistory?.totalCount ?? 0);
-  const [hasMore, setHasMore] = useState(
-    previewMode ? false : (initialHistory?.hasMore ?? false),
-  );
-  const [loading, setLoading] = useState(!previewMode && !initialHistory);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedEntry, setSelectedEntry] = useState<AttendanceHistoryEntry | null>(null);
+  const latest = entries[0] ?? null;
 
-  useEffect(() => {
-    queueMicrotask(() => {
-      setSelectedEntry(null);
-    });
-  }, [studentId]);
+  const selectEntry = useCallback((entry: AttendanceHistoryEntry) => setSelectedDate(entry.date), []);
+  const closeDrawer = useCallback(() => setSelectedDate(null), []);
 
-  const loadHistory = useCallback(
-    async (offset: number, append: boolean) => {
-      if (previewMode) {
-        return;
-      }
+  const loadOlderFromDrawer = useCallback(async () => {
+    const next = await history.loadMore();
+    if (next && next[0]) setSelectedDate(next[0].date);
+  }, [history]);
 
-      if (append) {
-        setLoadingMore(true);
-      } else {
-        setLoading(true);
-      }
-      setError(null);
-
-      try {
-        const response = await fetch(
-          `/api/parent-portal/students/${encodeURIComponent(studentId)}/attendance/history?organizationId=${encodeURIComponent(organizationId)}&limit=${PAGE_SIZE}&offset=${offset}`,
-        );
-        const payload = (await response.json().catch(() => null)) as {
-          entries?: AttendanceHistoryEntry[];
-          totalCount?: number;
-          hasMore?: boolean;
-          error?: string;
-        } | null;
-
-        if (!response.ok) {
-          throw new Error(payload?.error ?? "Failed to load attendance history.");
-        }
-
-        const nextEntries = payload?.entries ?? [];
-        setEntries((current) => (append ? [...current, ...nextEntries] : nextEntries));
-        setTotalCount(payload?.totalCount ?? 0);
-        setHasMore(payload?.hasMore ?? false);
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Failed to load attendance history.";
-        setError(message);
-        if (!append) {
-          setEntries([]);
-          setTotalCount(0);
-          setHasMore(false);
-        }
-        void reportPortalOperationalError(
-          "parent_portal",
-          {
-            organizationId,
-            operation: "attendance.load_history",
-            error: "",
-            entityType: "student",
-            entityId: studentId,
-          },
-          err,
-        );
-      } finally {
-        setLoading(false);
-        setLoadingMore(false);
-      }
-    },
-    [organizationId, previewMode, studentId],
-  );
-
-  useEffect(() => {
-    if (previewMode) {
-      queueMicrotask(() => {
-        setEntries(initialHistory?.entries ?? []);
-        setTotalCount(initialHistory?.totalCount ?? 0);
-        setHasMore(false);
-        setLoading(false);
-        setError(null);
-      });
-      return;
-    }
-
-    queueMicrotask(() => {
-      void loadHistory(0, false);
-    });
-  }, [initialHistory, loadHistory, previewMode, studentId]);
-
-  const handleLoadMore = () => {
-    if (loadingMore || !hasMore) return;
-    void loadHistory(entries.length, true);
-  };
-
-  const firstName = studentName.trim().split(/\s+/)[0] ?? studentName;
+  const showRail = !history.error && (loading || entries.length > 0);
 
   return (
     <>
-      <ParentCard theme={theme} data-testid="parent-attendance-history-panel">
-        <div className="mb-3 flex items-baseline justify-between gap-3">
-          <h2 className="text-[15px] font-bold" style={{ color: theme.ink }}>
-            {firstName}&apos;s history
-          </h2>
-          {totalCount > 0 ? (
-            <p className="text-[11px]" style={{ color: theme.muted }}>
-              {entries.length} of {totalCount}
-            </p>
+      <div className={`grid items-start gap-5 ${showRail ? "lg:grid-cols-[1.55fr_1fr]" : ""}`}>
+        <div className="flex min-w-0 flex-col gap-5">
+          {!history.error ? (
+            <AttendanceLatestDayCard
+              entry={latest}
+              firstName={firstName}
+              loading={loading}
+              onOpen={selectEntry}
+            />
           ) : null}
+          <AttendanceHistoryCard
+            history={history}
+            counts={counts}
+            filter={filter}
+            onFilterChange={setFilter}
+            selectedDate={selectedDate}
+            onSelectEntry={selectEntry}
+            previewMode={previewMode}
+          />
         </div>
 
-        {error ? (
-          <p className="py-2 text-[13px]" style={{ color: theme.alert }} data-testid="parent-attendance-history-error">
-            {error}
-          </p>
-        ) : (
-          <ParentAttendanceHistoryList
-            entries={entries}
-            theme={theme}
-            loading={loading}
-            loadingMore={loadingMore}
-            onSelectEntry={setSelectedEntry}
-          />
-        )}
-
-        {!previewMode && hasMore ? (
-          <div className="mt-4 flex justify-center">
-            <ParentButton
-              theme={theme}
-              variant="outline"
-              type="button"
-              onClick={handleLoadMore}
-              disabled={loadingMore}
-              data-testid="parent-attendance-load-more"
-            >
-              {loadingMore ? (
-                <>
-                  <Loader2 className="mr-1.5 inline h-4 w-4 animate-spin" aria-hidden />
-                  Loading…
-                </>
-              ) : (
-                "Load more"
-              )}
-            </ParentButton>
+        {showRail ? (
+          <div className="flex min-w-0 flex-col gap-5 lg:sticky lg:top-6">
+            <AttendanceRecentWeeksCard
+              weeks={weeks}
+              loading={loading}
+              selectedDate={selectedDate}
+              onSelectEntry={selectEntry}
+            />
           </div>
         ) : null}
-      </ParentCard>
+      </div>
 
-      <ParentAttendanceHistoryDetailSidebar
-        open={selectedEntry !== null}
+      <AttendanceDayDrawer
         entry={selectedEntry}
-        studentName={studentName}
-        onClose={() => setSelectedEntry(null)}
+        entries={entries}
+        firstName={firstName}
+        hasMore={!previewMode && history.hasMore}
+        loadingMore={history.loadingMore}
+        onClose={closeDrawer}
+        onNavigate={selectEntry}
+        onLoadOlder={() => void loadOlderFromDrawer()}
       />
     </>
   );

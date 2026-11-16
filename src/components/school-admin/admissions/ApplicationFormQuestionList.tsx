@@ -1,5 +1,6 @@
 "use client";
 
+import { useAdminGardenSkin } from "@/components/school-admin/garden/skin";
 import { useState } from "react";
 import { Reorder, useDragControls } from "framer-motion";
 import { ChevronRight, GripVertical, Plus } from "lucide-react";
@@ -40,6 +41,7 @@ function QuestionRow({
   lockSystemFields: boolean;
   onSelect: () => void;
 }) {
+  const skin = useAdminGardenSkin();
   const dragControls = useDragControls();
   const isLocked = lockSystemFields && (field.system === true || isSystemFieldId(field.id));
   const canDrag = !readOnly && !isLocked;
@@ -83,7 +85,7 @@ function QuestionRow({
             className="min-w-0 flex-1 truncate text-sm font-medium"
             style={{ color: C.textPrimary }}
           >
-            {field.label || "Untitled question"}
+            {field.label || (skin ? <span className="text-[#9a3422]">Untitled question · add a label</span> : "Untitled question")}
           </span>
           <span
             className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium"
@@ -91,13 +93,18 @@ function QuestionRow({
           >
             {isLocked ? "System" : fieldTypeLabel(field.type)}
           </span>
-          {field.required && (
-            <span
-              className="h-1.5 w-1.5 shrink-0 rounded-full"
-              style={{ backgroundColor: C.error }}
-              title="Required"
-            />
-          )}
+          {field.required &&
+            (skin ? (
+              <span className="shrink-0 rounded-full bg-[var(--sf-peach)] px-2 py-0.5 text-[11px] font-extrabold text-[var(--sf-clay-deep)]">
+                Required
+              </span>
+            ) : (
+              <span
+                className="h-1.5 w-1.5 shrink-0 rounded-full"
+                style={{ backgroundColor: C.error }}
+                title="Required"
+              />
+            ))}
           <ChevronRight className="h-4 w-4 shrink-0" style={{ color: C.textQuaternary }} />
         </button>
       </div>

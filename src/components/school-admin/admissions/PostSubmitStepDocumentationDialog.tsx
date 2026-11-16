@@ -1,5 +1,10 @@
 "use client";
 
+import { GDialog } from "@/components/school-parent/garden/GDialog";
+import { gBtnOutlineSm, gBtnPopSm } from "@/components/school-parent/garden/ui";
+import { BusyLabel } from "@/components/school-admin/garden/kit";
+import PostSubmitGardenFields from "./PostSubmitGardenFields";
+import { useSubmissionDetailStory } from "./SubmissionDetailStoryContext";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
@@ -58,6 +63,8 @@ export default function PostSubmitStepDocumentationDialog({
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { variant, theme } = useSubmissionDetailStory();
+  const garden = variant === "garden" && theme != null;
 
   useEffect(() => {
     if (!open || !step) return;
@@ -71,7 +78,7 @@ export default function PostSubmitStepDocumentationDialog({
   }, [open, step?.actionId, step?.booking?.adminCompletionNotes, step?.booking?.completionFiles]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || garden) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !loading) {
@@ -81,7 +88,7 @@ export default function PostSubmitStepDocumentationDialog({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, loading, onClose]);
+  }, [open, loading, onClose, garden]);
 
   const visibleExistingFiles = existingFiles.filter(
     (file) => !removedFileIds.includes(file.id),
@@ -117,6 +124,75 @@ export default function PostSubmitStepDocumentationDialog({
 
   const primaryStyle = getAdminButtonStyle(C, "primary");
   const secondaryStyle = getAdminButtonStyle(C, "secondary");
+
+  const save = () => {
+    void (async () => {
+      const prepared = await preparePostSubmitStepAttachmentFiles(pendingFiles);
+      onSave({ notes: notes.trim(), pendingFiles: prepared, removedFileIds }, { commitFileRemoval });
+    })();
+  };
+
+  if (garden && theme) {
+    return (
+      <GDialog
+        theme={theme}
+        open={open && step != null}
+        onClose={onClose}
+        closeDisabled={loading}
+        size="md"
+        title="Notes & files"
+        description={step ? `${step.title} — internal to your team only.` : undefined}
+        data-testid="post-submit-docs-dialog"
+        footer={
+          <>
+            <button type="button" disabled={loading} onClick={onClose} className={gBtnOutlineSm}>
+              Cancel
+            </button>
+            <button type="button" disabled={loading} onClick={save} aria-busy={loading || undefined} className={gBtnPopSm}>
+              <BusyLabel busy={loading} busyLabel="Saving…">
+                Save
+              </BusyLabel>
+            </button>
+          </>
+        }
+      >
+        <PostSubmitGardenFields
+          idPrefix="post-submit-docs"
+          notesLabel="Notes"
+          notes={notes}
+          onNotesChange={setNotes}
+          notesMaxLength={MAX_POST_SUBMIT_STEP_COMPLETION_NOTES_LENGTH}
+          rows={4}
+          loading={loading}
+          fileInputRef={fileInputRef}
+          accept={POST_SUBMIT_STEP_FILE_ACCEPT}
+          atFileLimit={atFileLimit}
+          fileCount={totalFileCount}
+          maxFiles={MAX_POST_SUBMIT_STEP_FILES}
+          pendingFiles={pendingFiles}
+          onRemovePending={(file) => setPendingFiles((current) => current.filter((entry) => entry !== file))}
+          onSelectFiles={(files) => void handleSelectFiles(files)}
+          fileError={fileError}
+          existingFiles={
+            visibleExistingFiles.length > 0 ? (
+              <div className="mb-2">
+                <ApplicationUploadedFileList
+                  files={visibleExistingFiles}
+                  C={C}
+                  organizationId={organizationId}
+                  supabase={supabase}
+                  removable={!loading}
+                  onRemove={(file) => {
+                    setRemovedFileIds((current) => [...current, file.id]);
+                  }}
+                />
+              </div>
+            ) : null
+          }
+        />
+      </GDialog>
+    );
+  }
 
   return (
     <AnimatePresence>

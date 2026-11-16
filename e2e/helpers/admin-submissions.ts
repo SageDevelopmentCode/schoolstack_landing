@@ -58,13 +58,26 @@ export async function openSubmissionByStudent(
   await expect(page.getByRole("tab", { name: "Overview" })).toBeVisible();
 }
 
+/** The submission review drawer (Garden `GSidePanel`). */
+export function submissionDetailPanel(page: Page): Locator {
+  return page.getByTestId("submission-detail-panel");
+}
+
+/**
+ * Status text inside the review drawer. The header chip reads "● Submitted",
+ * and the submissions page also renders a phone-only card list (hidden on
+ * desktop) with the same labels, so page-wide text lookups hit hidden chips.
+ */
+export function submissionDetailStatus(page: Page, statusLabel: string): Locator {
+  return submissionDetailPanel(page)
+    .getByText(new RegExp(`^(●\\s*)?${escapeRegExp(statusLabel)}$`))
+    .first();
+}
+
 export async function closeSubmissionDetail(page: Page): Promise<void> {
   const tablist = page.getByRole("tablist", { name: "Application sections" });
-  await tablist
-    .locator(
-      'xpath=ancestor::motion.div[contains(@class,"flex-col")][contains(@class,"overflow-hidden")] | ancestor::div[contains(@class,"flex-col")][contains(@class,"overflow-hidden")]',
-    )
-    .getByLabel("Close")
+  await submissionDetailPanel(page)
+    .getByRole("button", { name: "Close", exact: true })
     .click();
   await expect(tablist).toBeHidden({ timeout: 10_000 });
 }

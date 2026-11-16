@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { getGuardianIdsForUser } from "@/lib/messages/messages";
 import { reportOperationalError } from "@/lib/operational-errors";
-import { getStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access";
+import { getTeacherPortalStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access";
 import {
   countAdminUnreadMessages,
   getTotalUnreadCount,
@@ -102,7 +102,7 @@ export async function getTeacherMessagesUnreadCount(
   userId: string,
   schoolName: string,
 ): Promise<number> {
-  const staffMemberId = await getStaffMemberIdForUser(
+  const staffMemberId = await getTeacherPortalStaffMemberIdForUser(
     supabase,
     userId,
     organizationId,

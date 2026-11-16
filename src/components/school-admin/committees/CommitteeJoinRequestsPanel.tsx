@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Check, Loader2, X } from "lucide-react";
-import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import AdminCard from "@/components/school-admin/ui/story/AdminCard";
-import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
+import { Check, Loader2, UserPlus, X } from "lucide-react";
+import { GChip, GKicker, GSkeleton, gBtnOutlineSm } from "@/components/school-parent/garden/ui";
+import { GardenLoadError } from "@/components/school-admin/dashboard/garden/shared";
+import { GardenSelect, gBtnDangerSm } from "@/components/school-admin/garden/kit";
+import { COMMITTEE_ROLE_LABELS } from "@/lib/committees/committee-role-labels";
 import type { CommitteeDutyRoleSummary } from "@/lib/committees/duty-roles";
 import { getCommitteeJoinRequestDisplayName } from "@/lib/committees/join-request-display";
 import { COMMITTEE_ASSIGNABLE_ROLE_OPTIONS } from "@/lib/committees/committee-role-labels";
@@ -13,13 +14,13 @@ import type { CommitteeJoinRequest, CommitteeRole } from "@/lib/committees/types
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
-import { committeeStoryInputStyle } from "@/components/school-admin/committees/committee-story-input-style";
 import { staggerContainer, staggerItem } from "@/components/school-admin/committees/committee-motion";
 
 type CommitteeJoinRequestsPanelProps = {
   organizationId: string;
   schoolSlug: string;
-  theme: ParentThemeTokens;
+  /** Kept for callers; the panel renders in the admin Garden look. */
+  theme?: ParentThemeTokens;
   committeeId?: string;
   committeeDutyRoles?: CommitteeDutyRoleSummary[];
   compact?: boolean;
@@ -52,7 +53,6 @@ function buildDefaultDutyRoleIds(
 export default function CommitteeJoinRequestsPanel({
   organizationId,
   schoolSlug,
-  theme,
   committeeId,
   committeeDutyRoles,
   compact = false,
@@ -66,8 +66,9 @@ export default function CommitteeJoinRequestsPanel({
   const [actingId, setActingId] = useState<string | null>(null);
   const [memberRoles, setMemberRoles] = useState<Record<string, CommitteeRole>>({});
   const [assignDutyRoleIds, setAssignDutyRoleIds] = useState<Record<string, string>>({});
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadNonce, setReloadNonce] = useState(0);
   const reducedMotion = useReducedMotion() ?? false;
-  const inputStyle = committeeStoryInputStyle(theme);
 
   const applyRequestsResponse = useCallback(
     (
@@ -103,9 +104,7 @@ export default function CommitteeJoinRequestsPanel({
         operation: "committees.join_requests.load",
         error: "",
       }, err);
-      adminToast.error(formatActionError(err, "Failed to load join requests."));
-      setRequests([]);
-      setAssignDutyRoleIds({});
+      setLoadError(formatActionError(err, "Failed to load join requests."));
     }
   }, [applyRequestsResponse, committeeDutyRoles, committeeId, organizationId]);
 
@@ -113,6 +112,7 @@ export default function CommitteeJoinRequestsPanel({
     let cancelled = false;
     (async () => {
       setLoading(true);
+      setLoadError(null);
       try {
         const params = new URLSearchParams({
           organizationId,
@@ -135,7 +135,8 @@ export default function CommitteeJoinRequestsPanel({
           error: "",
         }, err);
         if (!cancelled) {
-          adminToast.error(formatActionError(err, "Failed to load join requests."));
+          // Load failures show inline with "Try again" (admin feedback contract).
+          setLoadError(formatActionError(err, "Failed to load join requests."));
           setRequests([]);
           setAssignDutyRoleIds({});
         }
@@ -146,7 +147,7 @@ export default function CommitteeJoinRequestsPanel({
     return () => {
       cancelled = true;
     };
-  }, [applyRequestsResponse, committeeDutyRoles, committeeId, organizationId]);
+  }, [applyRequestsResponse, committeeDutyRoles, committeeId, organizationId, reloadNonce]);
 
   const resolveDutyRoles = useCallback(
     (request: CommitteeJoinRequest): CommitteeDutyRoleSummary[] => {
@@ -157,9 +158,13 @@ export default function CommitteeJoinRequestsPanel({
   );
 
   const handleApprove = async (request: CommitteeJoinRequest) => {
+    const errorId = `committee-join-${request.id}-error`;
+    const requesterName = getCommitteeJoinRequestDisplayName(request);
+    const memberRole = memberRoles[request.id] ?? "member";
     setActingId(request.id);
     try {
       const selectedDutyRoleId = assignDutyRoleIds[request.id] ?? "";
+      const dutyRoleTitle = resolveDutyRoles(request).find((role) => role.id === selectedDutyRoleId)?.title;
       const res = await fetch(
         `/api/school-admin/committees/join-requests/${request.id}/approve`,
         {
@@ -168,14 +173,20 @@ export default function CommitteeJoinRequestsPanel({
           body: JSON.stringify({
             organizationId,
             schoolSlug,
-            memberRole: memberRoles[request.id] ?? "member",
+            memberRole,
             assignDutyRoleId: selectedDutyRoleId || null,
           }),
         },
       );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Failed to approve request.");
-      adminToast.success("Join request approved");
+      adminToast.dismiss(errorId);
+      adminToast.success(`${requesterName} joined${request.committeeName ? ` ${request.committeeName}` : ""}.`, {
+        id: `committee-join-${request.id}`,
+        description: `Added as ${COMMITTEE_ROLE_LABELS[memberRole] ?? memberRole}${
+          dutyRoleTitle ? ` · ${dutyRoleTitle}` : ""
+        }. They can open the committee workspace now.`,
+      });
       await reloadRequests();
       onChanged?.();
     } catch (err) {
@@ -184,13 +195,19 @@ export default function CommitteeJoinRequestsPanel({
         operation: "committees.join_requests.approve",
         error: "",
       }, err);
-      adminToast.error(formatActionError(err, "Failed to approve request."));
+      adminToast.error(`Couldn't approve ${requesterName}.`, {
+        id: errorId,
+        description: `${formatActionError(err, "Failed to approve request.")} Their request is still waiting.`,
+        action: { label: "Retry", onClick: () => void handleApprove(request) },
+      });
     } finally {
       setActingId(null);
     }
   };
 
   const handleDecline = async (request: CommitteeJoinRequest) => {
+    const errorId = `committee-join-${request.id}-error`;
+    const requesterName = getCommitteeJoinRequestDisplayName(request);
     setActingId(request.id);
     try {
       const res = await fetch(
@@ -203,7 +220,11 @@ export default function CommitteeJoinRequestsPanel({
       );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Failed to decline request.");
-      adminToast.success("Join request declined");
+      adminToast.dismiss(errorId);
+      adminToast.success(`Declined ${requesterName}'s request.`, {
+        id: `committee-join-${request.id}`,
+        description: "They weren't added to the committee.",
+      });
       await reloadRequests();
       onChanged?.();
     } catch (err) {
@@ -212,58 +233,88 @@ export default function CommitteeJoinRequestsPanel({
         operation: "committees.join_requests.decline",
         error: "",
       }, err);
-      adminToast.error(formatActionError(err, "Failed to decline request."));
+      adminToast.error(`Couldn't decline ${requesterName}'s request.`, {
+        id: errorId,
+        description: `${formatActionError(err, "Failed to decline request.")} Their request is still waiting.`,
+        action: { label: "Retry", onClick: () => void handleDecline(request) },
+      });
     } finally {
       setActingId(null);
     }
   };
 
+  const header = !compact ? (
+    <div className="mb-3 flex items-start justify-between gap-3">
+      <div>
+        <GKicker>Join requests</GKicker>
+        <h3 className="sf-display m-0 mt-1 text-[1.2rem] leading-tight text-[var(--sf-ink)]">
+          {requests.length > 0 ? "People who want to help" : "Join requests"}
+        </h3>
+      </div>
+      {requests.length > 0 ? (
+        <GChip tone="alert" className="tabular-nums">
+          {requests.length} waiting
+        </GChip>
+      ) : null}
+    </div>
+  ) : null;
+
   if (loading) {
     return (
-      <div
-        className="flex items-center gap-2 text-sm py-4"
-        style={{ color: theme.muted }}
-      >
-        <Loader2 className="w-4 h-4 animate-spin" />
-        Loading join requests…
-      </div>
+      <section aria-label="Join requests" aria-busy="true" className={compact ? "" : "rounded-[24px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white p-5 shadow-[0_3px_0_0_rgba(43,36,29,0.08)]"}>
+        {header}
+        <div className="space-y-2" role="status" aria-label="Loading join requests">
+          <GSkeleton className="h-16 w-full !rounded-[16px]" />
+          <GSkeleton className="h-16 w-full !rounded-[16px]" />
+        </div>
+      </section>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <section aria-label="Join requests" className={compact ? "" : "rounded-[24px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white p-5 shadow-[0_3px_0_0_rgba(43,36,29,0.08)]"}>
+        {header}
+        <GardenLoadError
+          title="Couldn't load join requests."
+          description={`${loadError} Nobody was approved or declined.`}
+          onRetry={() => setReloadNonce((n) => n + 1)}
+        />
+      </section>
     );
   }
 
   if (requests.length === 0) {
     if (compact) return null;
     return (
-      <AdminCard theme={theme} padding="default">
-        <AdminDisplayHeading theme={theme} as="h3" size="section">
-          Join requests
-        </AdminDisplayHeading>
-        <p className="text-xs mt-1" style={{ color: theme.muted }}>
-          No pending requests right now.
+      <section aria-label="Join requests" className="rounded-[24px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white p-5 shadow-[0_3px_0_0_rgba(43,36,29,0.08)]">
+        {header}
+        <p className="sf-paper m-0 flex items-center gap-2 rounded-2xl px-3.5 py-3 text-[13px] font-semibold text-[var(--sf-soft)]">
+          <UserPlus className="h-4 w-4 shrink-0 text-[var(--sf-forest)]" aria-hidden />
+          No pending requests right now. When parents or staff ask to join a committee, they&apos;ll show up here.
         </p>
-      </AdminCard>
+      </section>
     );
   }
 
   return (
-    <AdminCard theme={theme} padding="none">
-      {!compact && (
-        <div
-          className="px-5 py-4 border-b"
-          style={{ borderColor: "#E0E7E0" }}
-        >
-          <AdminDisplayHeading theme={theme} as="h3" size="section">
-            Join requests
-          </AdminDisplayHeading>
-          <p className="text-xs mt-0.5" style={{ color: theme.muted }}>
-            {requests.length} pending request{requests.length !== 1 ? "s" : ""}
-          </p>
+    <section
+      aria-label="Join requests"
+      data-testid="committee-join-requests"
+      className={compact ? "rounded-[20px] border-[1.5px] border-[var(--sf-clay)]/30 bg-[var(--sf-accent-wash)] p-4" : "rounded-[24px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white p-5 shadow-[0_3px_0_0_rgba(43,36,29,0.08)]"}
+    >
+      {compact ? (
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <GKicker>Waiting to join</GKicker>
+          <GChip tone="alert" className="tabular-nums">{requests.length}</GChip>
         </div>
+      ) : (
+        header
       )}
 
-      <motion.div
+      <motion.ul
         key={requests.map((request) => request.id).join("-")}
-        className="divide-y"
-        style={{ borderColor: "#E0E7E0" }}
+        className="m-0 flex list-none flex-col gap-2.5 p-0"
         variants={staggerContainer(reducedMotion)}
         initial="initial"
         animate="animate"
@@ -283,145 +334,102 @@ export default function CommitteeJoinRequestsPanel({
           const selectedDutyRole = dutyRoles.find(
             (dutyRole) => dutyRole.id === selectedDutyRoleId,
           );
+          const accessId = `join-access-${request.id}`;
+          const dutyId = `join-duty-${request.id}`;
           return (
-            <motion.div
+            <motion.li
               key={request.id}
               variants={staggerItem(reducedMotion)}
-              className="px-5 py-4 space-y-3"
+              aria-busy={busy || undefined}
+              className="rounded-[18px] border-[1.5px] border-[var(--sf-ink)]/10 bg-white p-3.5"
             >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-semibold" style={{ color: theme.ink }}>
-                      {requesterName}
-                    </p>
-                    {requesterBadge && (
-                      <span
-                        className="text-[10px] font-medium uppercase tracking-wide rounded-full px-2 py-0.5"
-                        style={{
-                          color: theme.muted,
-                          backgroundColor: "#F3F6F4",
-                        }}
-                      >
-                        {requesterBadge}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs mt-0.5" style={{ color: theme.muted }}>
-                    {request.committeeName ?? "Committee"}
-                    {request.grade ? ` · ${request.grade}` : ""}
-                  </p>
-                  {request.preferredDutyRoleTitle && (
-                    <p className="text-xs mt-1" style={{ color: theme.muted }}>
-                      Preferred role: {request.preferredDutyRoleTitle}
-                    </p>
-                  )}
-                  {request.note && (
-                    <p className="text-xs mt-2 italic" style={{ color: theme.muted }}>
-                      &ldquo;{request.note}&rdquo;
-                    </p>
-                  )}
-                  <p className="text-[10px] mt-2" style={{ color: theme.muted }}>
-                    Submitted {formatSubmittedAt(request.createdAt)}
-                  </p>
-                </div>
-
-                <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-end sm:flex-wrap">
-                  <div className="flex flex-col gap-1">
-                    <label
-                      className="text-[10px] font-medium uppercase tracking-wide"
-                      style={{ color: theme.muted }}
-                    >
-                      Access level
-                    </label>
-                    <select
-                      value={selectedAccessLevel}
-                      onChange={(e) =>
-                        setMemberRoles((prev) => ({
-                          ...prev,
-                          [request.id]: e.target.value as CommitteeRole,
-                        }))
-                      }
-                      className="text-xs rounded-lg border px-2 py-1.5 min-w-[9rem]"
-                      style={inputStyle}
-                      disabled={busy}
-                    >
-                      {COMMITTEE_ASSIGNABLE_ROLE_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {dutyRoles.length > 0 && (
-                    <div className="flex flex-col gap-1">
-                      <label
-                        className="text-[10px] font-medium uppercase tracking-wide"
-                        style={{ color: theme.muted }}
-                      >
-                        Duty role
-                      </label>
-                      <select
-                        value={selectedDutyRoleId}
-                        onChange={(e) =>
-                          setAssignDutyRoleIds((prev) => ({
-                            ...prev,
-                            [request.id]: e.target.value,
-                          }))
-                        }
-                        className="text-xs rounded-lg border px-2 py-1.5 min-w-[9rem]"
-                        style={inputStyle}
-                        disabled={busy}
-                      >
-                        <option value="">None</option>
-                        {dutyRoles.map((dutyRole) => (
-                          <option key={dutyRole.id} value={dutyRole.id}>
-                            {dutyRole.title}
-                            {dutyRole.assigneeId ? " (assigned)" : ""}
-                          </option>
-                        ))}
-                      </select>
-                      {selectedDutyRole?.assigneeName ? (
-                        <p
-                          className="max-w-[12rem] text-[10px] leading-snug"
-                          style={{ color: theme.muted }}
-                        >
-                          Currently assigned to {selectedDutyRole.assigneeName}. Approving
-                          will reassign this role.
-                        </p>
-                      ) : null}
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-2">
-                    <AdminButton
-                      theme={theme}
-                      variant="primary"
-                      size="compact"
-                      onClick={() => void handleApprove(request)}
-                      disabled={busy}
-                    >
-                      {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                      Approve
-                    </AdminButton>
-                    <AdminButton
-                      theme={theme}
-                      variant="danger"
-                      size="compact"
-                      onClick={() => void handleDecline(request)}
-                      disabled={busy}
-                    >
-                      <X className="w-3 h-3" />
-                      Decline
-                    </AdminButton>
-                  </div>
-                </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="m-0 text-[15px] font-extrabold text-[var(--sf-ink)]">{requesterName}</p>
+                {requesterBadge ? <GChip tone="neutral">{requesterBadge}</GChip> : null}
               </div>
-            </motion.div>
+              <p className="m-0 mt-0.5 text-[13px] font-semibold text-[var(--sf-soft)]">
+                {request.committeeName ?? "Committee"}
+                {request.grade ? ` · ${request.grade}` : ""}
+                {` · Asked ${formatSubmittedAt(request.createdAt)}`}
+              </p>
+              {request.preferredDutyRoleTitle ? (
+                <p className="m-0 mt-1 text-[12.5px] font-semibold text-[var(--sf-ink)]/70">
+                  Would like to be: <span className="font-extrabold">{request.preferredDutyRoleTitle}</span>
+                </p>
+              ) : null}
+              {request.note ? (
+                <p className="sf-paper m-0 mt-2 rounded-xl px-3 py-2 text-[13px] font-semibold italic text-[var(--sf-ink)]/75">
+                  &ldquo;{request.note}&rdquo;
+                </p>
+              ) : null}
+
+              <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
+                <div>
+                  <label htmlFor={accessId} className="mb-1 block text-[12px] font-extrabold text-[var(--sf-ink)]/70">
+                    Access level
+                  </label>
+                  <GardenSelect
+                    id={accessId}
+                    value={selectedAccessLevel}
+                    onChange={(value) =>
+                      setMemberRoles((prev) => ({ ...prev, [request.id]: value as CommitteeRole }))
+                    }
+                    options={COMMITTEE_ASSIGNABLE_ROLE_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
+                    disabled={busy}
+                  />
+                </div>
+                {dutyRoles.length > 0 ? (
+                  <div>
+                    <label htmlFor={dutyId} className="mb-1 block text-[12px] font-extrabold text-[var(--sf-ink)]/70">
+                      Duty role
+                    </label>
+                    <GardenSelect
+                      id={dutyId}
+                      value={selectedDutyRoleId}
+                      onChange={(value) => setAssignDutyRoleIds((prev) => ({ ...prev, [request.id]: value }))}
+                      options={[
+                        { value: "", label: "None" },
+                        ...dutyRoles.map((dutyRole) => ({
+                          value: dutyRole.id,
+                          label: `${dutyRole.title}${dutyRole.assigneeId ? " (assigned)" : ""}`,
+                        })),
+                      ]}
+                      disabled={busy}
+                    />
+                    {selectedDutyRole?.assigneeName ? (
+                      <p className="m-0 mt-1 text-[12px] font-semibold leading-snug text-[#6b4f00]">
+                        Currently {selectedDutyRole.assigneeName}. Approving reassigns this role.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className={`${gBtnOutlineSm} !border-[var(--sf-forest)]/45 !text-[var(--sf-forest)]`}
+                  onClick={() => void handleApprove(request)}
+                  disabled={busy}
+                  aria-busy={busy || undefined}
+                >
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
+                  {busy ? "Saving…" : "Approve"}
+                </button>
+                <button
+                  type="button"
+                  className={gBtnDangerSm}
+                  onClick={() => void handleDecline(request)}
+                  disabled={busy}
+                >
+                  <X className="h-4 w-4" aria-hidden />
+                  Decline
+                </button>
+              </div>
+            </motion.li>
           );
         })}
-      </motion.div>
-    </AdminCard>
+      </motion.ul>
+    </section>
   );
 }

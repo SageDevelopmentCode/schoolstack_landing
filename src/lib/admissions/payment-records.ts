@@ -55,6 +55,7 @@ export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   succeeded: "Succeeded",
   failed: "Failed",
   refunded: "Refunded",
+  canceled: "Canceled",
 };
 
 export const PAYMENT_METHOD_LABELS = {

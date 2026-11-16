@@ -66,6 +66,11 @@ export function resolveSchoolAdminNativeRoute(slug: string, href: string): strin
 
   const scheduleBase = `/school/${slug}/admin/schedule`;
   if (pathname === scheduleBase || pathname.startsWith(`${scheduleBase}/`)) {
+    // Keep the native tabs the screen understands (`?tab=shadow` from the dashboard tile).
+    const tab = query.get('tab');
+    if (tab === 'events' || tab === 'tours' || tab === 'shadow' || tab === 'visits') {
+      return `/school-admin/${slug}/more/schedule?tab=${tab}`;
+    }
     return `/school-admin/${slug}/more/schedule`;
   }
 

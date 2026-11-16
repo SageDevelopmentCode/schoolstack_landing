@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import AdminPageSkeleton from "@/components/school-admin/AdminPageSkeleton";
+import AdminGardenRouteSkeleton from "@/components/school-admin/garden/AdminGardenRouteSkeleton";
 import ApplicationSubmissionsPageShell from "@/components/school-admin/admissions/ApplicationSubmissionsPageShell";
 import ApplicationSubmissionsTableLoader from "@/components/school-admin/admissions/ApplicationSubmissionsTableLoader";
 import ApplicationSubmissionsTableSkeleton from "@/components/school-admin/admissions/ApplicationSubmissionsTableSkeleton";
@@ -48,42 +49,42 @@ const PaymentsSetupPage = nextDynamic(
 );
 const FinancesRevenuePage = nextDynamic(
   () => import("@/components/school-admin/finances/FinancesRevenuePage"),
-  { loading: () => <AdminPageSkeleton label="Loading revenue" /> },
+  { loading: () => <AdminGardenRouteSkeleton label="Loading revenue" layout="table" /> },
 );
 const FinancesTransactionsPage = nextDynamic(
   () => import("@/components/school-admin/finances/FinancesTransactionsPage"),
-  { loading: () => <AdminPageSkeleton label="Loading transactions" /> },
+  { loading: () => <AdminGardenRouteSkeleton label="Loading transactions" layout="table" /> },
 );
 import TuitionPageShell from "@/components/school-admin/tuition/TuitionPageShell";
 import TuitionDashboardLoader from "@/components/school-admin/tuition/TuitionDashboardLoader";
 import { fetchTuitionSetupStatus } from "@/lib/tuition/setup-status";
 const StaffPage = nextDynamic(
   () => import("@/components/school-admin/staff/StaffPage"),
-  { loading: () => <AdminPageSkeleton label="Loading staff" /> },
+  { loading: () => <AdminGardenRouteSkeleton label="Loading staff" layout="split" /> },
 );
 const ClassroomsPage = nextDynamic(
   () => import("@/components/school-admin/classrooms/ClassroomsPage"),
-  { loading: () => <AdminPageSkeleton label="Loading classrooms" /> },
+  { loading: () => <AdminGardenRouteSkeleton label="Loading classrooms" layout="split" /> },
 );
 const AdminFormsDocumentsPage = nextDynamic(
   () => import("@/components/school-admin/forms-documents/AdminFormsDocumentsPage"),
-  { loading: () => <AdminPageSkeleton label="Loading forms" /> },
+  { loading: () => <AdminGardenRouteSkeleton label="Loading forms" layout="table" /> },
 );
 const FridayBranchPage = nextDynamic(
   () => import("@/components/school-admin/friday-branch/FridayBranchPage"),
-  { loading: () => <AdminPageSkeleton label="Loading Friday Branch" /> },
+  { loading: () => <AdminGardenRouteSkeleton label="Loading Friday Branch" layout="table" /> },
 );
-const AttendancePage = nextDynamic(
-  () => import("@/components/school-admin/attendance/AttendancePage"),
-  { loading: () => <AdminPageSkeleton label="Loading attendance" /> },
+const GardenAttendancePage = nextDynamic(
+  () => import("@/components/school-admin/attendance/GardenAttendancePage"),
+  { loading: () => <AdminGardenRouteSkeleton label="Loading attendance" layout="table" /> },
 );
 const StaffHoursPage = nextDynamic(
   () => import("@/components/school-admin/staff-hours/StaffHoursPage"),
-  { loading: () => <AdminPageSkeleton label="Loading staff hours" /> },
+  { loading: () => <AdminGardenRouteSkeleton label="Loading staff hours" /> },
 );
 const SchoolProfilePage = nextDynamic(
   () => import("@/components/school-admin/school-profile/SchoolProfilePage"),
-  { loading: () => <AdminPageSkeleton label="Loading school profile" /> },
+  { loading: () => <AdminGardenRouteSkeleton label="Loading school profile" /> },
 );
 const NewsletterPage = nextDynamic(
   () => import("@/components/school-admin/newsletter/NewsletterPage"),
@@ -244,21 +245,29 @@ export default async function SchoolAdminSubtabPage({
 
   if (feature === "finances" && subtab === "revenue") {
     return (
-      <FinancesRevenuePage
-        organizationId={org.id}
-        slug={slug}
-        branding={org.branding}
-      />
+      <Suspense fallback={<AdminGardenRouteSkeleton label="Loading revenue" layout="table" />}>
+        <FinancesRevenuePage
+          organizationId={org.id}
+          slug={slug}
+          branding={org.branding}
+          schoolName={org.name}
+          transactionsEnabled={isAdminNavPathEnabled(org.features, "finances", "transactions")}
+        />
+      </Suspense>
     );
   }
 
   if (feature === "finances" && subtab === "transactions") {
     return (
-      <FinancesTransactionsPage
-        organizationId={org.id}
-        slug={slug}
-        branding={org.branding}
-      />
+      <Suspense fallback={<AdminGardenRouteSkeleton label="Loading transactions" layout="table" />}>
+        <FinancesTransactionsPage
+          organizationId={org.id}
+          slug={slug}
+          branding={org.branding}
+          schoolName={org.name}
+          revenueEnabled={isAdminNavPathEnabled(org.features, "finances", "revenue")}
+        />
+      </Suspense>
     );
   }
 
@@ -374,7 +383,7 @@ export default async function SchoolAdminSubtabPage({
   if (feature === "my_school" && subtab === "attendance") {
     return (
       <Suspense>
-        <AttendancePage
+        <GardenAttendancePage
           organizationId={org.id}
           branding={org.branding}
           slug={slug}

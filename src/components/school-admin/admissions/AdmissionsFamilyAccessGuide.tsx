@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DetailButton } from "@/components/school-admin/admissions/detail-garden";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
@@ -1014,14 +1015,15 @@ export function AdmissionsFamilyAccessGuideModal({
             >
               <div className="flex items-center gap-2">
                 {!isFirst ? (
-                  <button
+                  <DetailButton
+ kind="neutral"
+ C={C}
                     type="button"
                     onClick={goBack}
-                    className="rounded-sm px-3 py-2 text-xs font-semibold"
-                    style={getAdminButtonStyle(C, "neutral")}
+                    storyClassName="rounded-sm px-3 py-2 text-xs font-semibold"
                   >
                     Back
-                  </button>
+                  </DetailButton>
                 ) : null}
               </div>
 
@@ -1029,15 +1031,16 @@ export function AdmissionsFamilyAccessGuideModal({
                 <span className="text-xs" style={{ color: C.textTertiary }}>
                   Step {stepIndex + 1} of {steps.length}
                 </span>
-                <button
+                <DetailButton
+ kind="primary"
+ C={C}
                   type="button"
                   onClick={goNext}
-                  className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-                  style={getAdminButtonStyle(C, "primary")}
+                  storyClassName="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
                 >
                   {isLast ? "Done" : "Next"}
                   {!isLast ? <ArrowRight className="h-3.5 w-3.5" /> : null}
-                </button>
+                </DetailButton>
               </div>
             </div>
           </motion.div>
@@ -1060,18 +1063,19 @@ export function AdmissionsFamilyAccessGuideButton({
 
   return (
     <>
-      <button
+      <DetailButton
+ kind="info"
+ C={C}
         type="button"
         onClick={() => {
           setSessionKey((key) => key + 1);
           setOpen(true);
         }}
-        className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-        style={getAdminButtonStyle(C, "info")}
+        storyClassName="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
       >
         <CircleHelp className="h-3.5 w-3.5" />
         {meta.buttonLabel}
-      </button>
+      </DetailButton>
 
       <AdmissionsFamilyAccessGuideModal
         key={sessionKey}

@@ -1,15 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Camera } from "lucide-react";
+import GSidePanel from "@/components/school-parent/garden/GSidePanel";
+import { GChip, GSkeleton, gLinkSm } from "@/components/school-parent/garden/ui";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
-import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import AdminChip from "@/components/school-admin/ui/story/AdminChip";
-import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
-import { SchoolAdminTableSkeleton } from "@/components/school-admin/skeletons";
+import { GardenFilterChips, GardenLoadError, GardenNotice } from "@/components/school-admin/garden/kit";
+import { GardenAvatar, GardenSearchInput } from "@/components/school-admin/garden/blocks";
 import type { OrgPhotoMediaConsentRosterRow } from "@/lib/students/load-org-photo-media-consent-roster";
 import { photoMediaConsentAdminChipTone } from "@/lib/students/photo-media-consent";
+import { formatActionError } from "@/lib/school-admin/admin-toast";
 
 type PhotoMediaPermissionsSidebarProps = {
   organizationId: string;
@@ -17,26 +17,39 @@ type PhotoMediaPermissionsSidebarProps = {
   onClose: () => void;
 };
 
+type ConsentFilter = "all" | "full" | "limited" | "none" | "unknown";
+
+const FILTER_LABELS: Record<ConsentFilter, string> = {
+  all: "Everyone",
+  full: "OK to share",
+  limited: "Limited",
+  none: "No photos",
+  unknown: "Not answered",
+};
+
+function consentKey(row: OrgPhotoMediaConsentRosterRow): Exclude<ConsentFilter, "all"> {
+  return row.consent ?? "unknown";
+}
+
 function formatUpdatedAt(value: string | null): string {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
+/** Garden drawer: stored photo/media consent for enrolled students (read-only). */
 export default function PhotoMediaPermissionsSidebar({
   organizationId,
   open,
   onClose,
 }: PhotoMediaPermissionsSidebarProps) {
-  const { theme, C } = useSchoolAdminStoryTheme();
+  const { theme } = useSchoolAdminStoryTheme();
   const [students, setStudents] = useState<OrgPhotoMediaConsentRosterRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<ConsentFilter>("all");
+  const [query, setQuery] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -44,7 +57,7 @@ export default function PhotoMediaPermissionsSidebar({
     try {
       const params = new URLSearchParams({ organizationId });
       const response = await fetch(`/api/school-admin/photo-media-consents?${params}`);
-      const payload = (await response.json()) as {
+      const payload = (await response.json().catch(() => ({}))) as {
         students?: OrgPhotoMediaConsentRosterRow[];
         error?: string;
       };
@@ -53,7 +66,7 @@ export default function PhotoMediaPermissionsSidebar({
       }
       setStudents(payload.students ?? []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load photo permissions.");
+      setError(formatActionError(err, "Could not load photo permissions."));
       setStudents([]);
     } finally {
       setLoading(false);
@@ -67,135 +80,102 @@ export default function PhotoMediaPermissionsSidebar({
     });
   }, [open, load]);
 
-  useEffect(() => {
-    if (!open) return;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, open]);
+  const counts = useMemo(() => {
+    const result: Record<ConsentFilter, number> = { all: students.length, full: 0, limited: 0, none: 0, unknown: 0 };
+    for (const row of students) result[consentKey(row)] += 1;
+    return result;
+  }, [students]);
+
+  const visible = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return students.filter((row) => {
+      if (filter !== "all" && consentKey(row) !== filter) return false;
+      if (!needle) return true;
+      return `${row.firstName} ${row.lastName} ${row.familyName ?? ""} ${row.programLabel}`.toLowerCase().includes(needle);
+    });
+  }, [filter, query, students]);
+
+  const restricted = counts.limited + counts.none;
+  const options = (["all", "full", "limited", "none", "unknown"] as ConsentFilter[])
+    .filter((key) => key === "all" || counts[key] > 0)
+    .map((key) => ({ key, label: FILTER_LABELS[key], count: counts[key] }));
 
   return (
-    <AnimatePresence>
-      {open ? (
-        <motion.div
-          className="fixed inset-0 z-[100]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          <div
-            className="absolute inset-0"
-            style={{ backgroundColor: "rgba(41, 57, 67, 0.35)" }}
-            onClick={onClose}
-            aria-hidden="true"
+    <GSidePanel
+      theme={theme}
+      open={open}
+      onClose={onClose}
+      title="Photo permissions"
+      kicker="Before you share"
+      subtitle="Stored consent for enrolled students (from enrollment and parent updates)."
+      testId="admin-photo-media-permissions-sidebar"
+      panelId="admin-photo-media-permissions"
+      headerAside={!loading && !error && students.length > 0 ? <GChip tone="neutral">{students.length} students</GChip> : null}
+    >
+      {loading ? (
+        <div className="flex flex-col gap-2" aria-busy="true" aria-label="Loading photo permissions">
+          {Array.from({ length: 7 }, (_, index) => (
+            <GSkeleton key={index} className="h-[52px] rounded-[14px]" />
+          ))}
+        </div>
+      ) : error ? (
+        <GardenLoadError title="Couldn't load photo permissions." description={error} onRetry={() => void load()} />
+      ) : students.length === 0 ? (
+        <GardenNotice tone="info" icon={Camera}>
+          No enrolled students yet.
+        </GardenNotice>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {restricted > 0 ? (
+            <GardenNotice tone="warning" title={`${restricted} ${restricted === 1 ? "student has" : "students have"} limited or no photo permission.`}>
+              Check this list before sharing photos where they appear.
+            </GardenNotice>
+          ) : null}
+          <GardenSearchInput value={query} onChange={setQuery} placeholder="Search students or programs" label="Search students" />
+          <GardenFilterChips
+            options={options}
+            value={filter}
+            onChange={(key) => setFilter(key as ConsentFilter)}
+            ariaLabel="Filter by photo permission"
           />
-          <motion.aside
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", damping: 28, stiffness: 300 }}
-            className="absolute inset-y-0 right-0 flex w-[min(100%,28rem)] max-w-full flex-col overflow-hidden"
-            style={{
-              backgroundColor: theme.paper,
-              borderLeft: `1px solid ${theme.line}`,
-              boxShadow: theme.shadowCard,
-            }}
-            onClick={(event) => event.stopPropagation()}
-            data-testid="admin-photo-media-permissions-sidebar"
-            aria-label="Photo permissions"
-          >
-            <div
-              className="flex h-16 flex-shrink-0 items-center justify-between gap-2 px-4"
-              style={{ borderBottom: `1px solid ${theme.line}` }}
-            >
-              <AdminDisplayHeading theme={theme} as="h2" size="section" className="text-lg">
-                Photo permissions
-              </AdminDisplayHeading>
+          {visible.length === 0 ? (
+            <div className="rounded-[16px] border-[1.5px] border-dashed border-[var(--sf-ink)]/15 bg-[var(--sf-paper)] px-4 py-6 text-center">
+              <p className="m-0 text-[14px] font-extrabold text-[var(--sf-ink)]">No students match this filter.</p>
               <button
                 type="button"
-                onClick={onClose}
-                className="rounded-lg p-1.5"
-                style={{ color: theme.muted }}
-                aria-label="Close"
+                className={`${gLinkSm} mt-1`}
+                onClick={() => {
+                  setFilter("all");
+                  setQuery("");
+                }}
               >
-                <X className="h-4 w-4" />
+                Show everyone
               </button>
             </div>
-
-            <div className="flex-1 overflow-y-auto px-4 py-4">
-              <p className="mb-4 text-sm" style={{ color: theme.muted }}>
-                Stored consent for enrolled students (from enrollment and parent updates).
-              </p>
-
-              {loading ? (
-                <SchoolAdminTableSkeleton
-                  C={C}
-                  showFilters={false}
-                  columns={4}
-                  compact
-                  rows={8}
-                  label="Loading photo permissions"
-                />
-              ) : error ? (
-                <div className="flex flex-col items-start gap-2">
-                  <p className="text-sm" style={{ color: theme.alert }}>{error}</p>
-                  <AdminButton theme={theme} variant="outline" onClick={() => void load()}>
-                    Try again
-                  </AdminButton>
-                </div>
-              ) : students.length === 0 ? (
-                <p className="text-sm" style={{ color: theme.muted }}>
-                  No enrolled students yet.
-                </p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[400px] border-collapse text-left text-sm">
-                    <thead>
-                      <tr style={{ color: theme.muted }}>
-                        <th className="pb-2 pr-3 font-semibold">Student</th>
-                        <th className="pb-2 pr-3 font-semibold">Program</th>
-                        <th className="pb-2 pr-3 font-semibold">Permission</th>
-                        <th className="pb-2 font-semibold">Updated</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {students.map((row) => (
-                        <tr
-                          key={row.studentId}
-                          className="border-t"
-                          style={{ borderColor: theme.line, color: theme.ink }}
-                        >
-                          <td className="py-2.5 pr-3 font-medium">
-                            {row.firstName} {row.lastName}
-                          </td>
-                          <td className="py-2.5 pr-3" style={{ color: theme.muted }}>
-                            {row.programLabel}
-                          </td>
-                          <td className="py-2.5 pr-3">
-                            <AdminChip
-                              theme={theme}
-                              tone={photoMediaConsentAdminChipTone(row.consent)}
-                              className="normal-case font-semibold !text-[11px]"
-                            >
-                              {row.consentLabel}
-                            </AdminChip>
-                          </td>
-                          <td className="py-2.5" style={{ color: theme.muted }}>
-                            {formatUpdatedAt(row.updatedAt)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </motion.aside>
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
+          ) : (
+            <ul className="m-0 flex list-none flex-col gap-1 p-0" aria-label="Students">
+              {visible.map((row) => {
+                const name = `${row.firstName} ${row.lastName}`.trim();
+                return (
+                  <li
+                    key={row.studentId}
+                    className="flex items-center gap-3 rounded-[14px] border-[1.5px] border-[var(--sf-ink)]/[0.07] bg-white px-3 py-2.5"
+                  >
+                    <GardenAvatar name={name} size="sm" />
+                    <div className="min-w-0 flex-1">
+                      <p className="m-0 truncate text-[14px] font-extrabold text-[var(--sf-ink)]">{name}</p>
+                      <p className="m-0 truncate text-[12.5px] font-semibold text-[var(--sf-soft)]">
+                        {row.programLabel} · updated {formatUpdatedAt(row.updatedAt)}
+                      </p>
+                    </div>
+                    <GChip tone={photoMediaConsentAdminChipTone(row.consent)}>{row.consentLabel}</GChip>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      )}
+    </GSidePanel>
   );
 }

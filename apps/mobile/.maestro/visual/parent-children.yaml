@@ -1,0 +1,16 @@
+appId: com.mudkitchen.schoolstack.mobile
+---
+- runFlow: ../parent-logged-in.yaml
+- tapOn: 'More'
+- tapOn: 'My children'
+- extendedWaitUntil:
+    visible:
+      id: parent-children-screen
+    timeout: 30000
+- takeScreenshot: visual-capture
+- scrollUntilVisible:
+    element:
+      id: parent-child-record-workspace
+    direction: DOWN
+    optional: true
+- takeScreenshot: visual-capture-record

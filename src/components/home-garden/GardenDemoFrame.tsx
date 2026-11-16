@@ -31,6 +31,7 @@ export default function GardenDemoFrame({
   style,
   designHeight = 680,
   minScale = 0.3,
+  deferUntilIdle = false,
   children,
 }: {
   active: DemoStageKey;
@@ -43,6 +44,8 @@ export default function GardenDemoFrame({
   style?: CSSProperties;
   designHeight?: number;
   minScale?: number;
+  /** Above-the-fold frames: mount the live demo after page load + idle, or on first pointer/focus. */
+  deferUntilIdle?: boolean;
   /** Extra overlays (sticker notes, doodles) positioned against the frame. */
   children?: ReactNode;
 }) {
@@ -60,6 +63,7 @@ export default function GardenDemoFrame({
           interactive={interactive}
           designHeight={designHeight}
           minScale={minScale}
+          deferUntilIdle={deferUntilIdle}
           header={
             <div className="flex items-center gap-3 border-b-2 border-[var(--sf-ink)] bg-[var(--sf-paper)] px-4 py-2.5">
               <div className="flex gap-1.5" aria-hidden="true">

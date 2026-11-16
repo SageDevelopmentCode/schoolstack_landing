@@ -1,47 +1,58 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
+import { useMemo, type ReactNode } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
-  AlertCircle,
   ArrowRight,
   Building2,
   CheckCircle2,
-  Circle,
-  CircleDot,
   CreditCard,
   ExternalLink,
   FileText,
   History,
   Link2,
   Loader2,
+  ShieldCheck,
   Wallet,
+  X,
   type LucideIcon,
 } from "lucide-react";
+import { PORTAL_EASE, useCelebrate } from "@/components/school-parent/garden/motion";
 import {
-  BUILDER_CARD_TONES,
-  BuilderSectionIntro,
-  type BuilderCardTone,
-} from "@/components/school-admin/admissions/builder-question-card";
-import { SkeletonBlock } from "@/components/school-admin/skeletons";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+  GCard,
+  GChip,
+  GSkeleton,
+  gBtnOutlineSm,
+  gBtnPopSm,
+  gLinkSm,
+} from "@/components/school-parent/garden/ui";
 import {
-  buildAdminThemeTokens,
-  type AdminThemeTokens,
-} from "@/lib/organization-settings/theme";
+  AdminGardenPage,
+  AdminGardenPageHeader,
+  BusyLabel,
+  GardenLoadError,
+  GardenNotice,
+  GardenSteps,
+  LiveDot,
+  ROW_INTERACTIVE,
+  gIconBtn,
+  useRelativeTime,
+  type GardenStep,
+} from "@/components/school-admin/garden/kit";
+import { buildParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
-import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
-import type {
-  ConnectStatusChecklist,
-  ConnectStatusNextStep,
-  ConnectStatusResult,
-} from "@/lib/stripe/connect-status";
+import type { ConnectStatusNextStep } from "@/lib/stripe/connect-status";
 import { STRIPE_DASHBOARD_LINK_SENTINEL } from "@/lib/stripe/connect-status";
-import { openStripeConnectDashboard } from "@/lib/stripe/open-stripe-dashboard";
-import PaymentsHistoryPanel from "./PaymentsHistoryPanel";
+import GardenPaymentsHistory from "./payments/GardenPaymentsHistory";
+import { usePaymentsHistoryModel } from "./payments/usePaymentsHistoryModel";
+import {
+  PAYMENTS_SETUP_STEPS,
+  READY_NOTICE,
+  usePaymentsSetupModel,
+  type PaymentsSetupModel,
+  type PaymentsTab,
+} from "./payments/usePaymentsSetupModel";
 
 type PaymentsSetupPageProps = {
   organizationId: string;
@@ -50,460 +61,64 @@ type PaymentsSetupPageProps = {
   schoolName: string;
 };
 
-type SetupPhase = "loading" | "not_started" | "in_progress" | "ready";
-
-const POLL_INTERVAL_MS = 60_000;
-const MAX_POLLS = 20;
-
-const SETUP_STEPS: Array<{
-  key: keyof ConnectStatusChecklist;
-  label: string;
-  hint?: string;
-}> = [
-  { key: "accountCreated", label: "Account connected" },
-  { key: "detailsSubmitted", label: "Details submitted" },
-  { key: "chargesEnabled", label: "Charges enabled", hint: "Required to collect fees" },
-  { key: "payoutsEnabled", label: "Payouts enabled", hint: "Funds go to your Stripe account" },
-];
-
-const HOW_IT_WORKS = [
+const HOW_IT_WORKS: Array<{ icon: LucideIcon; title: string; description: string; tint: string }> = [
   {
     icon: Link2,
     title: "Connect Stripe",
     description: "Complete secure onboarding with identity and payout details.",
-    tone: "accent" as BuilderCardTone,
+    tint: "bg-[var(--sf-peach)]",
   },
   {
     icon: CreditCard,
     title: "Families pay at checkout",
     description: "Application and enrollment fees are collected when families apply.",
-    tone: "info" as BuilderCardTone,
+    tint: "bg-[var(--sf-sky)]",
   },
   {
     icon: Building2,
     title: "Funds to your school",
     description: "Payments land directly in your school's Stripe account.",
-    tone: "success" as BuilderCardTone,
+    tint: "bg-[var(--sf-mint)]",
   },
 ];
 
-function formatRelativeTime(isoTimestamp: string): string {
-  const syncedAt = new Date(isoTimestamp).getTime();
-  if (Number.isNaN(syncedAt)) return "just now";
-
-  const diffMs = Date.now() - syncedAt;
-  if (diffMs < 60_000) return "just now";
-
-  const diffMinutes = Math.floor(diffMs / 60_000);
-  if (diffMinutes < 60) {
-    return `${diffMinutes} min ago`;
-  }
-
-  const diffHours = Math.floor(diffMinutes / 60);
-  return `${diffHours} hr ago`;
-}
-
-function getSetupPhase(loading: boolean, isReady: boolean, hasAccount: boolean): SetupPhase {
-  if (loading) return "loading";
-  if (isReady) return "ready";
-  if (hasAccount) return "in_progress";
-  return "not_started";
-}
-
-function getHeroCopy(phase: SetupPhase, schoolName: string) {
-  switch (phase) {
-    case "ready":
-      return {
-        title: "You're ready to collect fees",
-        subtitle: `${schoolName} can accept application and enrollment fees online. Funds go to your school's Stripe account.`,
-        pill: { label: "Active", tone: "success" as const },
-      };
-    case "in_progress":
-      return {
-        title: "Finish Stripe setup",
-        subtitle: `A few more steps and ${schoolName} can start collecting fees from families.`,
-        pill: { label: "In progress", tone: "warning" as const },
-      };
-    case "not_started":
-      return {
-        title: "Connect payments",
-        subtitle: `Set up Stripe so ${schoolName} can collect application and enrollment fees online.`,
-        pill: { label: "Not connected", tone: "neutral" as const },
-      };
-    default:
-      return {
-        title: "Checking payment status",
-        subtitle: "Syncing with Stripe…",
-        pill: { label: "Loading", tone: "neutral" as const },
-      };
-  }
-}
-
-function StatusPill({
-  label,
-  tone,
-  C,
-}: {
-  label: string;
-  tone: "success" | "warning" | "neutral";
-  C: AdminThemeTokens;
-}) {
-  const style =
-    tone === "success"
-      ? { backgroundColor: C.successBg, color: C.success, border: `1px solid ${C.successBorder}` }
-      : tone === "warning"
-        ? { backgroundColor: C.warningBg, color: C.warning, border: `1px solid ${C.warningBorder}` }
-        : { backgroundColor: C.elevated, color: C.textSecondary, border: `1px solid ${C.border}` };
-
-  return (
-    <span className="shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium" style={style}>
-      {label}
-    </span>
-  );
-}
-
-function HowItWorksExplainer({ C }: { C: AdminThemeTokens }) {
-  return (
-    <div className="space-y-3">
-      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: C.accentDark }}>
-        How it works
-      </p>
-      <div className="grid gap-3 sm:grid-cols-3">
-        {HOW_IT_WORKS.map((item) => {
-          const tone = BUILDER_CARD_TONES[item.tone](C);
-          const Icon = item.icon;
-          return (
-            <div
-              key={item.title}
-              className="rounded-lg border p-4"
-              style={{ backgroundColor: tone.bg, borderColor: tone.border }}
-            >
-              <div
-                className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg"
-                style={{ backgroundColor: C.surface, color: C.accent }}
-              >
-                <Icon className="h-4 w-4" aria-hidden />
-              </div>
-              <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-                {item.title}
-              </p>
-              <p className="mt-1 text-xs leading-relaxed" style={{ color: C.textTertiary }}>
-                {item.description}
-              </p>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function ChecklistRow({
-  done,
-  label,
-  hint,
-  isActive,
-  C,
-}: {
-  done: boolean;
-  label: string;
-  hint?: string;
-  isActive?: boolean;
-  C: AdminThemeTokens;
-}) {
-  const statusLabel = done ? "Done" : isActive ? "In progress" : "Pending";
-  const statusColor = done ? C.success : isActive ? C.info : C.textTertiary;
-
-  return (
-    <li
-      className="flex items-start gap-3 border-b px-4 py-3 last:border-b-0"
-      style={{ borderColor: C.border }}
-    >
-      {done ? (
-        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" style={{ color: C.success }} aria-hidden />
-      ) : isActive ? (
-        <CircleDot className="mt-0.5 h-4 w-4 shrink-0" style={{ color: C.info }} aria-hidden />
-      ) : (
-        <Circle className="mt-0.5 h-4 w-4 shrink-0" style={{ color: C.textTertiary }} aria-hidden />
-      )}
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-          {label}
-        </p>
-        {hint ? (
-          <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
-            {hint}
-          </p>
-        ) : null}
-      </div>
-      <span className="text-xs font-medium" style={{ color: statusColor }}>
-        {statusLabel}
-      </span>
-    </li>
-  );
-}
+const GOOD_TO_KNOW = [
+  "Fees from enrollment flows are collected at checkout.",
+  "Identity and payout details are handled securely by Stripe.",
+  "Publishing a fee-enabled form requires payments to be ready.",
+];
 
 function getNextStepMeta(step: ConnectStatusNextStep): {
   icon: LucideIcon;
   description: string;
-  isFootnote: boolean;
   isDashboard: boolean;
 } {
   const isDashboard = step.href === STRIPE_DASHBOARD_LINK_SENTINEL;
-  const isFootnote =
-    !isDashboard &&
-    (step.label.length > 55 ||
-      step.label.toLowerCase().includes("managed in") ||
-      step.label.toLowerCase().includes("payouts are"));
-
-  if (isDashboard && step.label.toLowerCase().includes("open your stripe")) {
-    return {
-      icon: Wallet,
-      description: "View balance, payouts, and bank account settings.",
-      isFootnote: false,
-      isDashboard: true,
-    };
+  const label = step.label.toLowerCase();
+  if (isDashboard && label.includes("open your stripe")) {
+    return { icon: Wallet, description: "View balance, payouts, and bank account settings.", isDashboard: true };
   }
-
-  if (step.label.toLowerCase().includes("publish")) {
-    return {
-      icon: FileText,
-      description: "Make your form live so families can apply and pay.",
-      isFootnote,
-      isDashboard: false,
-    };
+  if (label.includes("publish")) {
+    return { icon: FileText, description: "Make your form live so families can apply and pay.", isDashboard: false };
   }
-  if (step.label.toLowerCase().includes("test")) {
-    return {
-      icon: ExternalLink,
-      description: "Walk through the apply flow as a family would.",
-      isFootnote,
-      isDashboard: false,
-    };
+  if (label.includes("test")) {
+    return { icon: ExternalLink, description: "Walk through the apply flow as a family would.", isDashboard: false };
   }
   if (step.href.startsWith("http")) {
-    return {
-      icon: Wallet,
-      description: "View payouts and account settings in Stripe.",
-      isFootnote,
-      isDashboard: false,
-    };
+    return { icon: Wallet, description: "View payouts and account settings in Stripe.", isDashboard: false };
   }
-  return {
-    icon: ArrowRight,
-    description: step.label,
-    isFootnote,
-    isDashboard: false,
-  };
+  return { icon: ArrowRight, description: step.label, isDashboard };
 }
 
-function RequirementsPanel({
-  requirements,
-  C,
-  onContinue,
-  connecting,
-}: {
-  requirements: string[];
-  C: AdminThemeTokens;
-  onContinue: () => void;
-  connecting: boolean;
-}) {
-  if (requirements.length === 0) return null;
-
-  return (
-    <div
-      className="mt-4 rounded-lg border px-4 py-3"
-      style={{
-        borderColor: C.infoBorder ?? C.border,
-        backgroundColor: C.infoBg ?? C.elevated,
-      }}
-    >
-      <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-        Stripe needs a few more details
-      </p>
-      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm" style={{ color: C.textSecondary }}>
-        {requirements.map((requirement) => (
-          <li key={requirement}>{requirement}</li>
-        ))}
-      </ul>
-      <button
-        type="button"
-        onClick={onContinue}
-        disabled={connecting}
-        className="mt-3 inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-        style={getAdminButtonStyle(C, "primary")}
-      >
-        {connecting ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Opening Stripe…
-          </>
-        ) : (
-          "Continue in Stripe"
-        )}
-      </button>
-    </div>
-  );
-}
-
-function TestModeBanner({ C }: { C: AdminThemeTokens }) {
-  return (
-    <div
-      className="rounded-lg border px-4 py-3 text-sm"
-      style={{
-        borderColor: C.border,
-        backgroundColor: C.elevated,
-        color: C.textSecondary,
-      }}
-    >
-      You&apos;re in Stripe test mode. Verification can take a few minutes. Use{" "}
-      <a
-        href="https://docs.stripe.com/testing"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="font-medium underline underline-offset-2"
-        style={{ color: C.accent }}
-      >
-        Stripe test cards
-      </a>{" "}
-      when testing checkout.
-    </div>
-  );
-}
-
-function NextStepTile({
-  step,
-  C,
-  organizationId,
-  onOpenDashboard,
-  openingDashboard,
-}: {
-  step: ConnectStatusNextStep;
-  C: AdminThemeTokens;
-  organizationId: string;
-  onOpenDashboard: (organizationId: string) => void;
-  openingDashboard: boolean;
-}) {
-  const meta = getNextStepMeta(step);
-  const Icon = meta.icon;
-  const isExternal = step.href.startsWith("http");
-
-  const content = (
-    <>
-      <div
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
-        style={{ backgroundColor: C.accentLight, color: C.accent }}
-      >
-        {meta.isDashboard && openingDashboard ? (
-          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-        ) : (
-          <Icon className="h-4 w-4" aria-hidden />
-        )}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-          {step.label}
-        </p>
-        <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
-          {meta.description}
-        </p>
-      </div>
-      <ArrowRight
-        className="h-4 w-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-        style={{ color: C.accent }}
-        aria-hidden
-      />
-    </>
-  );
-
-  const className =
-    "group flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-colors hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60";
-
-  if (meta.isDashboard) {
-    return (
-      <button
-        type="button"
-        onClick={() => onOpenDashboard(organizationId)}
-        disabled={openingDashboard}
-        className={className}
-        style={{ backgroundColor: C.elevated, borderColor: C.border }}
-      >
-        {content}
-      </button>
-    );
+function statusLine(model: PaymentsSetupModel): string {
+  if (model.loading) return "Checking your Stripe status…";
+  if (model.loadFailed) return "We couldn't check your Stripe status just now.";
+  if (model.isReady) return "Stripe connected · families can pay fees when they apply";
+  if (model.hasAccount) {
+    const left = PAYMENTS_SETUP_STEPS.length - model.completedSteps;
+    return `${model.completedSteps} of ${PAYMENTS_SETUP_STEPS.length} Stripe steps done · ${left} to go before you can collect fees`;
   }
-
-  if (isExternal) {
-    return (
-      <a
-        href={step.href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={className}
-        style={{ backgroundColor: C.elevated, borderColor: C.border }}
-      >
-        {content}
-      </a>
-    );
-  }
-
-  return (
-    <Link
-      href={step.href}
-      className={className}
-      style={{ backgroundColor: C.elevated, borderColor: C.border }}
-    >
-      {content}
-    </Link>
-  );
-}
-
-function PaymentsTabBar({
-  activeTab,
-  onChange,
-  C,
-}: {
-  activeTab: "setup" | "history";
-  onChange: (tab: "setup" | "history") => void;
-  C: AdminThemeTokens;
-}) {
-  const tabs = [
-    { id: "setup" as const, label: "Setup", icon: CreditCard },
-    { id: "history" as const, label: "History", icon: History },
-  ];
-
-  return (
-    <div className="flex flex-shrink-0 px-4 py-3 sm:px-5" style={{ borderBottom: `1px solid ${C.border}` }}>
-      <div
-        className="inline-flex rounded-lg p-1"
-        style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
-        role="tablist"
-        aria-label="Payments sections"
-      >
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              onClick={() => onChange(tab.id)}
-              className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-              style={{
-                backgroundColor: isActive ? C.accentLight : "transparent",
-                color: isActive ? C.accent : C.textSecondary,
-              }}
-            >
-              <Icon className="h-3.5 w-3.5" aria-hidden />
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
+  return "Not connected yet · connect Stripe to collect application and enrollment fees";
 }
 
 export default function PaymentsSetupPage({
@@ -512,564 +127,467 @@ export default function PaymentsSetupPage({
   branding,
   schoolName,
 }: PaymentsSetupPageProps) {
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const theme = useMemo(() => buildParentThemeTokens(branding), [branding]);
+  const model = usePaymentsSetupModel({ organizationId, orgSlug });
+  const history = usePaymentsHistoryModel({ organizationId, mode: "admissions" });
+  const reduce = useReducedMotion() === true;
 
-  const [status, setStatus] = useState<ConnectStatusResult | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [connecting, setConnecting] = useState(false);
-  const [openingDashboard, setOpeningDashboard] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [pollExhausted, setPollExhausted] = useState(false);
-  const returnHandledRef = useRef(false);
-  const refreshHandledRef = useRef(false);
-  const wasReadyRef = useRef(false);
-  const pollCountRef = useRef(0);
-  const [activeTab, setActiveTab] = useState<"setup" | "history">("setup");
+  useCelebrate(model.justConnected && model.isReady, theme, "admin-payments-stripe-connected");
 
-  const loadStatus = useCallback(
-    async (options?: {
-      silent?: boolean;
-      handleReturn?: boolean;
-      connected?: string | null;
-      refresh?: string | null;
-    }) => {
-      if (options?.silent) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
-      if (!options?.silent) {
-        setError(null);
-      }
-
-      try {
-        const response = await fetch(
-          `/api/stripe/connect/status?organizationId=${encodeURIComponent(organizationId)}`,
-        );
-        const payload = (await response.json()) as ConnectStatusResult & {
-          error?: string;
-        };
-
-        if (!response.ok) {
-          throw new Error(
-            payload.error ?? "Failed to load payment setup status.",
-          );
-        }
-
-        if (options?.silent && !wasReadyRef.current && payload.isReady) {
-          setNotice(
-            "Stripe is connected. You're ready to collect application fees.",
-          );
-        }
-
-        wasReadyRef.current = payload.isReady;
-        setStatus(payload);
-
-        if (options?.handleReturn) {
-          const connected = options.connected ?? null;
-          const refresh = options.refresh ?? null;
-          if (connected === "1") {
-            if (payload.isReady) {
-              setNotice(
-                "Stripe is connected. You're ready to collect application fees.",
-              );
-            } else if (payload.pendingMessage) {
-              setNotice(payload.pendingMessage);
-            } else {
-              setNotice(
-                "Stripe setup updated. Finish any remaining steps below.",
-              );
-            }
-          } else if (connected === "0") {
-            setError("We could not confirm your Stripe setup. Please try again.");
-          } else if (refresh === "1") {
-            setNotice("Continue setup in Stripe to finish connecting payments.");
-          }
-        }
-
-        return payload;
-      } catch (loadError) {
-        void reportPortalOperationalError("school_admin", {
-          organizationId,
-          operation: "payments.setup.load",
-          error: "",
-        }, loadError);
-        if (!options?.silent) {
-          setError(
-            loadError instanceof Error
-              ? loadError.message
-              : "Failed to load payment setup status.",
-          );
-          setStatus(null);
-        }
-        return null;
-      } finally {
-        if (options?.silent) {
-          setRefreshing(false);
-        } else {
-          setLoading(false);
-        }
-      }
-    },
-    [organizationId],
-  );
-
-  const connected = searchParams.get("connected");
-  const refresh = searchParams.get("refresh");
-
-  useEffect(() => {
-    if (
-      (connected === "1" || connected === "0") &&
-      !returnHandledRef.current
-    ) {
-      returnHandledRef.current = true;
-      void loadStatus({
-        handleReturn: true,
-        connected,
-        refresh,
-      }).then(() => {
-        router.replace(`/school/${orgSlug}/admin/admissions/payments`, {
-          scroll: false,
-        });
-      });
-      return;
-    }
-
-    if (refresh === "1" && !refreshHandledRef.current) {
-      refreshHandledRef.current = true;
-      void loadStatus({
-        handleReturn: true,
-        connected,
-        refresh,
-      }).then(() => {
-        router.replace(`/school/${orgSlug}/admin/admissions/payments`, {
-          scroll: false,
-        });
-      });
-      return;
-    }
-
-    void loadStatus();
-  }, [connected, loadStatus, orgSlug, refresh, router]);
-
-  const isReady = Boolean(status?.isReady);
-  const hasAccount = Boolean(status?.checklist.accountCreated);
-  const phase = getSetupPhase(loading, isReady, hasAccount);
-  const isPolling = phase === "in_progress" && !isReady;
-
-  useEffect(() => {
-    if (!isPolling) return;
-
-    pollCountRef.current = 0;
-    let intervalId = 0;
-
-    const poll = () => {
-      if (document.visibilityState !== "visible") return;
-
-      pollCountRef.current += 1;
-      if (pollCountRef.current > MAX_POLLS) {
-        setPollExhausted(true);
-        window.clearInterval(intervalId);
-        return;
-      }
-
-      void loadStatus({ silent: true });
-    };
-
-    intervalId = window.setInterval(poll, POLL_INTERVAL_MS);
-
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible" && isPolling) {
-        void loadStatus({ silent: true });
-      }
-    };
-
-    document.addEventListener("visibilitychange", onVisibilityChange);
-
-    return () => {
-      window.clearInterval(intervalId);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-      pollCountRef.current = 0;
-    };
-  }, [isPolling, loadStatus]);
-  const hero = getHeroCopy(phase, schoolName);
-
-  const activeChecklistIndex = status
-    ? SETUP_STEPS.findIndex((step) => !status.checklist[step.key])
-    : -1;
-
-  const actionableSteps =
-    status?.nextSteps.filter((step) => !getNextStepMeta(step).isFootnote) ?? [];
-  const footnoteSteps =
-    status?.nextSteps.filter((step) => getNextStepMeta(step).isFootnote) ?? [];
-
-  const handleOpenDashboard = async (orgId: string) => {
-    setOpeningDashboard(true);
-    setError(null);
-
-    try {
-      await openStripeConnectDashboard(orgId);
-      adminToast.success("Stripe dashboard opened");
-    } catch (err) {
-      void reportPortalOperationalError("school_admin", {
-        organizationId: orgId,
-        operation: "payments.setup.open_dashboard",
-        error: "",
-      }, err);
-      const message = formatActionError(err, "Failed to open Stripe dashboard.");
-      setError(message);
-      adminToast.error(message);
-    } finally {
-      setOpeningDashboard(false);
-    }
-  };
-
-  const handleConnect = async () => {
-    setConnecting(true);
-    setError(null);
-    setNotice(null);
-
-    try {
-      const response = await fetch("/api/stripe/connect/onboard", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ organizationId, orgSlug }),
-      });
-
-      const payload = (await response.json()) as { url?: string; error?: string };
-
-      if (!response.ok || !payload.url) {
-        throw new Error(payload.error ?? "Failed to start Stripe onboarding.");
-      }
-
-      window.location.href = payload.url;
-    } catch (err) {
-      void reportPortalOperationalError("school_admin", {
-        organizationId,
-        operation: "payments.setup.start_onboarding",
-        error: "",
-      }, err);
-      const message = formatActionError(err, "Failed to start Stripe onboarding.");
-      setError(message);
-      adminToast.error(message);
-      setConnecting(false);
-    }
-  };
+  const phaseChip =
+    model.phase === "ready" ? (
+      <GChip tone="success">● Active</GChip>
+    ) : model.phase === "in_progress" ? (
+      <GChip tone="warning">● In progress</GChip>
+    ) : model.phase === "not_started" ? (
+      <GChip tone="neutral">Not connected</GChip>
+    ) : null;
 
   return (
-    <div
-      className="relative flex h-full min-h-0 flex-col"
-      style={{ backgroundColor: C.surface }}
-    >
-      <PaymentsTabBar activeTab={activeTab} onChange={setActiveTab} C={C} />
+    <AdminGardenPage theme={theme} data-testid="admin-payments-page">
+      <AdminGardenPageHeader
+        kicker={
+          <>
+            Admissions<span className="hidden sm:inline"> · {schoolName}</span>
+          </>
+        }
+        title={
+          <>
+            <span className="text-[var(--sf-clay)]">Payments</span>{" "}
+            &amp; fees
+          </>
+        }
+        subtitle={
+          <span className="inline-flex flex-wrap items-center gap-2">
+            {phaseChip}
+            <span>{statusLine(model)}</span>
+          </span>
+        }
+        refresh={
+          model.activeTab === "setup" && !model.loading && !model.loadFailed
+            ? {
+                onRefresh: () => void model.checkStatusNow(),
+                refreshing: model.refreshing,
+                lastUpdatedAt: model.lastCheckedAt,
+                label: "Check Stripe status",
+              }
+            : undefined
+        }
+        tabs={{
+          items: [
+            { key: "setup", label: "Setup", icon: <CreditCard className="h-3.5 w-3.5" aria-hidden /> },
+            {
+              key: "history",
+              label: "History",
+              icon: <History className="h-3.5 w-3.5" aria-hidden />,
+              suffix:
+                !history.loading && history.rows.length > 0 ? (
+                  <span className="rounded-full bg-[var(--sf-ink)]/10 px-1.5 text-[11px] tabular-nums">
+                    {history.rows.length}
+                  </span>
+                ) : undefined,
+            },
+          ],
+          activeKey: model.activeTab,
+          onChange: (key) => model.setActiveTab(key as PaymentsTab),
+          ariaLabel: "Payments sections",
+          "data-testid": "payments-tab-bar",
+        }}
+      />
 
-      {activeTab === "history" ? (
-        <div className="min-h-0 flex-1 overflow-hidden">
-          <PaymentsHistoryPanel
-            organizationId={organizationId}
-            orgSlug={orgSlug}
-            branding={branding}
-            isReady={isReady}
-            onSwitchToSetup={() => setActiveTab("setup")}
-          />
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={model.activeTab}
+          role="tabpanel"
+          aria-label={model.activeTab === "setup" ? "Setup" : "History"}
+          initial={reduce ? false : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reduce ? undefined : { opacity: 0, y: -4 }}
+          transition={{ duration: 0.24, ease: PORTAL_EASE }}
+        >
+          {model.activeTab === "history" ? (
+            <GardenPaymentsHistory
+              model={history}
+              orgSlug={orgSlug}
+              isReady={model.isReady}
+              onSwitchToSetup={() => model.setActiveTab("setup")}
+            />
+          ) : (
+            <SetupPanel model={model} schoolName={schoolName} />
+          )}
+        </motion.div>
+      </AnimatePresence>
+    </AdminGardenPage>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Setup tab                                                           */
+/* ------------------------------------------------------------------ */
+
+function SetupPanel({ model, schoolName }: { model: PaymentsSetupModel; schoolName: string }) {
+  if (model.loadFailed && !model.status) {
+    return (
+      <GardenLoadError
+        title="Payment setup didn't load"
+        description={model.error ?? "Check your connection and try again."}
+        onRetry={model.retryLoad}
+        retrying={model.loading}
+      />
+    );
+  }
+
+  return (
+    <div className="grid items-start gap-5 lg:grid-cols-[1.55fr_1fr]">
+      <div className="flex min-w-0 flex-col gap-5">
+        <Banners model={model} />
+        <StripeConnectCard model={model} schoolName={schoolName} />
+        {model.isReady && model.actionableSteps.length > 0 ? <WhatsNextCard model={model} /> : null}
+      </div>
+      <div className="flex min-w-0 flex-col gap-5">
+        <HowItWorksCard done={model.isReady} />
+        {!model.isReady && !model.loading ? (
+          <GCard index={3} tone="paper" kicker="Good to know" headingLevel="h2" title="Before families pay">
+            <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+              {GOOD_TO_KNOW.map((line) => (
+                <li key={line} className="flex items-start gap-2.5 text-[13.5px] font-semibold leading-snug text-[var(--sf-ink)]/80">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[var(--sf-forest)]" aria-hidden />
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </GCard>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function Banners({ model }: { model: PaymentsSetupModel }) {
+  const reduce = useReducedMotion() === true;
+  const motionProps = {
+    initial: reduce ? false : { opacity: 0, y: -6 },
+    animate: { opacity: 1, y: 0 },
+    exit: reduce ? undefined : { opacity: 0, y: -6 },
+    transition: { duration: 0.22, ease: PORTAL_EASE },
+  } as const;
+  return (
+    <AnimatePresence initial={false}>
+      {model.notice ? (
+        <motion.div key="notice" {...motionProps}>
+          <GardenNotice
+            tone={model.notice === READY_NOTICE ? "success" : "info"}
+            title="Setup updated"
+            role="status"
+            action={
+              <button type="button" onClick={model.dismissNotice} className={gIconBtn} aria-label="Dismiss">
+                <X className="h-4 w-4" aria-hidden />
+              </button>
+            }
+          >
+            {model.notice}
+          </GardenNotice>
+        </motion.div>
+      ) : null}
+      {model.error && model.status ? (
+        <motion.div key="error" {...motionProps}>
+          <GardenNotice
+            tone="alert"
+            title="Something went wrong"
+            role="alert"
+            action={
+              <>
+                <button
+                  type="button"
+                  onClick={() => void model.handleConnect()}
+                  disabled={model.connecting}
+                  className={gBtnOutlineSm}
+                >
+                  <BusyLabel busy={model.connecting} busyLabel="Opening Stripe…">
+                    Try again in Stripe
+                  </BusyLabel>
+                </button>
+                <button type="button" onClick={model.dismissError} className={gIconBtn} aria-label="Dismiss">
+                  <X className="h-4 w-4" aria-hidden />
+                </button>
+              </>
+            }
+          >
+            {model.error}
+          </GardenNotice>
+        </motion.div>
+      ) : null}
+      {!model.loading && model.status?.isTestMode && !model.isReady ? (
+        <motion.div key="test-mode" {...motionProps}>
+          <GardenNotice tone="warning" title="Stripe test mode">
+            Verification can take a few minutes. Use{" "}
+            <a
+              href="https://docs.stripe.com/testing"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${gLinkSm} !text-[13.5px]`}
+            >
+              Stripe test cards
+            </a>{" "}
+            when testing checkout.
+          </GardenNotice>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
+  );
+}
+
+function StripeConnectCard({ model, schoolName }: { model: PaymentsSetupModel; schoolName: string }) {
+  const lastChecked = useRelativeTime(model.lastCheckedAt);
+  const { status, phase } = model;
+
+  const title =
+    phase === "ready"
+      ? "Payments are live"
+      : phase === "in_progress"
+        ? "Finish Stripe setup"
+        : phase === "not_started"
+          ? "Connect your school account"
+          : "Checking payment status";
+
+  const intro =
+    phase === "ready"
+      ? `${schoolName} can accept application and enrollment fees online. Funds go to your school's Stripe account.`
+      : phase === "in_progress"
+        ? status?.pendingMessage ?? `A few more steps and ${schoolName} can start collecting fees from families.`
+        : phase === "not_started"
+          ? "Secure onboarding takes a few minutes. You'll verify identity and payout details in Stripe."
+          : "Syncing with Stripe…";
+
+  const primaryCta = (
+    <button
+      type="button"
+      onClick={() => void model.handleConnect()}
+      disabled={model.connecting}
+      aria-busy={model.connecting || undefined}
+      className={gBtnPopSm}
+      data-testid="payments-connect-stripe"
+    >
+      <BusyLabel busy={model.connecting} busyLabel="Opening Stripe…" icon={<ExternalLink className="h-4 w-4" aria-hidden />}>
+        {model.hasAccount ? "Continue in Stripe" : "Connect Stripe"}
+      </BusyLabel>
+    </button>
+  );
+
+  const steps: GardenStep[] = PAYMENTS_SETUP_STEPS.map((step, index) => {
+    const done = Boolean(status?.checklist[step.key]);
+    const current = !model.isReady && index === (model.activeChecklistIndex < 0 ? 0 : model.activeChecklistIndex);
+    let detail: ReactNode = null;
+    if (current && !model.loading) {
+      detail = (
+        <span className="flex flex-col gap-3">
+          {model.hasAccount && status && status.requirementsDue.length > 0 ? (
+            <span className="block rounded-[14px] border-[1.5px] border-[var(--sf-ink)]/10 bg-white px-3.5 py-3">
+              <span className="block text-[13px] font-extrabold text-[var(--sf-ink)]">
+                Stripe needs a few more details
+              </span>
+              <span className="mt-1.5 flex flex-wrap gap-1.5">
+                {status.requirementsDue.map((requirement) => (
+                  <GChip key={requirement} tone="warning">
+                    {requirement}
+                  </GChip>
+                ))}
+              </span>
+            </span>
+          ) : null}
+          <span className="flex flex-wrap items-center gap-2.5">{primaryCta}</span>
+        </span>
+      );
+    }
+    return {
+      id: step.key,
+      title: step.label,
+      description: step.hint,
+      status: done ? "done" : current ? "current" : "todo",
+      detail,
+    };
+  });
+
+  return (
+    <GCard
+      index={1}
+      kicker="Stripe Connect"
+      title={title}
+      action={
+        model.hasAccount && !model.loading ? (
+          <button
+            type="button"
+            onClick={() => void model.checkStatusNow()}
+            disabled={model.refreshing}
+            aria-busy={model.refreshing || undefined}
+            className={gLinkSm}
+          >
+            {model.refreshing ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                Checking…
+              </>
+            ) : (
+              "Check status"
+            )}
+          </button>
+        ) : null
+      }
+      data-testid="payments-stripe-card"
+    >
+      <div className="mb-4 flex items-start gap-3">
+        <span
+          aria-hidden
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border-[1.5px] border-[var(--sf-ink)]/15 ${
+            model.isReady ? "bg-[var(--sf-mint)]" : "bg-[var(--sf-peach)]"
+          }`}
+        >
+          {model.isReady ? (
+            <CheckCircle2 className="h-5 w-5 text-[var(--sf-forest)]" />
+          ) : (
+            <CreditCard className="h-5 w-5 text-[var(--sf-clay-deep)]" />
+          )}
+        </span>
+        <p className="m-0 text-[14px] font-semibold leading-relaxed text-[var(--sf-ink)]/80">{intro}</p>
+      </div>
+
+      {model.loading ? (
+        <div className="flex flex-col gap-2" role="status" aria-label="Loading payment status">
+          {[0, 1, 2, 3].map((i) => (
+            <GSkeleton key={i} className="h-11 !rounded-[14px]" />
+          ))}
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-5">
-          <div className="mx-auto max-w-3xl space-y-6">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <BuilderSectionIntro
-                C={C}
-                eyebrow="Payments"
-                title={hero.title}
-                subtitle={hero.subtitle}
-              />
-              <StatusPill label={hero.pill.label} tone={hero.pill.tone} C={C} />
-            </div>
-
-            <AnimatePresence mode="wait">
-              {notice ? (
-                <motion.div
-                  key="notice"
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  className="flex items-start gap-3 rounded-lg border px-4 py-3"
-                  style={{
-                    borderColor: C.successBorder,
-                    backgroundColor: C.successBg,
-                  }}
-                >
-                  <CheckCircle2
-                    className="mt-0.5 h-4 w-4 shrink-0"
-                    style={{ color: C.success }}
-                  />
-                  <div className="text-sm" style={{ color: C.textPrimary }}>
-                    <p className="font-semibold">Setup updated</p>
-                    <p className="mt-0.5" style={{ color: C.textSecondary }}>
-                      {notice}
-                    </p>
-                  </div>
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
-
-            <AnimatePresence mode="wait">
-              {error ? (
-                <motion.div
-                  key="error"
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  className="flex items-start gap-3 rounded-lg border px-4 py-3"
-                  style={{
-                    borderColor: C.errorBorder,
-                    backgroundColor: C.errorBg,
-                    color: C.error,
-                  }}
-                  role="alert"
-                >
-                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                  <div className="text-sm">
-                    <p className="font-semibold">Something went wrong</p>
-                    <p className="mt-0.5">{error}</p>
-                  </div>
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
-
-            {!loading && status?.isTestMode && !isReady ? (
-              <TestModeBanner C={C} />
-            ) : null}
-
-            {!loading && phase === "not_started" ? (
-              <HowItWorksExplainer C={C} />
-            ) : null}
-
-            <motion.div
-              initial={phase === "ready" ? { opacity: 0, y: 8 } : false}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="overflow-hidden rounded-lg border"
-              style={{
-                borderColor: C.border,
-                backgroundColor: C.surface,
-              }}
-            >
-              <div className="p-5">
-                <div className="flex items-start gap-3">
-                  <div
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
-                    style={{
-                      backgroundColor: phase === "ready" ? C.successBg : C.accentGlow,
-                      color: phase === "ready" ? C.success : C.accent,
-                    }}
-                  >
-                    {phase === "ready" ? (
-                      <CheckCircle2 className="h-5 w-5" aria-hidden />
-                    ) : (
-                      <CreditCard className="h-5 w-5" aria-hidden />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium uppercase tracking-wide" style={{ color: C.textTertiary }}>
-                      Stripe Connect
-                    </p>
-                    <p className="mt-0.5 text-base font-semibold" style={{ color: C.textPrimary }}>
-                      {phase === "ready"
-                        ? "Payments are live"
-                        : phase === "in_progress"
-                          ? "Complete your setup"
-                          : "Connect your school account"}
-                    </p>
-                    <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
-                      {loading
-                        ? "Syncing with Stripe…"
-                        : isReady
-                          ? "Families can pay application fees when they apply."
-                          : hasAccount
-                            ? status?.pendingMessage ??
-                              "Complete the remaining steps to start accepting payments."
-                            : "Secure onboarding takes a few minutes. You'll verify identity and payout details in Stripe."}
-                    </p>
-                  </div>
-                </div>
-
-                {loading ? (
-                  <div
-                    className="mt-5 overflow-hidden rounded-lg border"
-                    style={{ borderColor: C.border, backgroundColor: C.surface }}
-                    aria-busy="true"
-                    aria-label="Loading payment status"
-                  >
-                    {Array.from({ length: 4 }).map((_, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-3 border-b px-4 py-3 last:border-b-0"
-                        style={{ borderColor: C.border }}
-                      >
-                        <SkeletonBlock C={C} className="h-5 w-5 rounded-full" />
-                        <SkeletonBlock C={C} className="h-4 w-48" />
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-
-                {!loading && hasAccount && status ? (
-                  <ul
-                    className="mt-5 overflow-hidden rounded-lg border"
-                    style={{ borderColor: C.border, backgroundColor: C.surface }}
-                  >
-                    <ChecklistRow
-                      done={status.checklist.accountCreated}
-                      label="Stripe account connected"
-                      isActive={activeChecklistIndex === 0}
-                      C={C}
-                    />
-                    <ChecklistRow
-                      done={status.checklist.detailsSubmitted}
-                      label="Identity and business details submitted"
-                      isActive={activeChecklistIndex === 1}
-                      C={C}
-                    />
-                    <ChecklistRow
-                      done={status.checklist.chargesEnabled}
-                      label="Charges enabled"
-                      hint="Required to collect application fees"
-                      isActive={activeChecklistIndex === 2}
-                      C={C}
-                    />
-                    <ChecklistRow
-                      done={status.checklist.payoutsEnabled}
-                      label="Payouts enabled"
-                      hint="Informational — payouts go to your Stripe account"
-                      isActive={activeChecklistIndex === 3}
-                      C={C}
-                    />
-                  </ul>
-                ) : null}
-
-                {!loading && hasAccount && status?.syncedAt ? (
-                  <p className="mt-2 text-xs" style={{ color: C.textTertiary }}>
-                    Last checked: {formatRelativeTime(status.syncedAt)}
-                    {refreshing ? " · checking…" : ""}
-                  </p>
-                ) : null}
-
-                {!loading &&
-                hasAccount &&
-                status &&
-                !isReady &&
-                status.requirementsDue.length > 0 ? (
-                  <RequirementsPanel
-                    requirements={status.requirementsDue}
-                    C={C}
-                    onContinue={handleConnect}
-                    connecting={connecting}
-                  />
-                ) : null}
-
-                {!loading && hasAccount && !isReady && isPolling && pollExhausted ? (
-                  <p className="mt-3 text-sm" style={{ color: C.textSecondary }}>
-                    Still verifying? Continue in Stripe or contact support if this
-                    takes longer than expected.
-                  </p>
-                ) : null}
-
-                {!loading && !hasAccount ? (
-                  <ul className="mt-4 space-y-2 text-sm" style={{ color: C.textSecondary }}>
-                    <li className="flex items-start gap-2">
-                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: C.accent }} aria-hidden />
-                      Fees from enrollment flows are collected at checkout.
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: C.accent }} aria-hidden />
-                      Identity and payout details are handled securely by Stripe.
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: C.accent }} aria-hidden />
-                      Publishing a fee-enabled form requires payments to be ready.
-                    </li>
-                  </ul>
-                ) : null}
-
-                {!isReady && !loading ? (
-                  <div className="mt-5 flex flex-wrap items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={handleConnect}
-                      disabled={connecting}
-                      className="inline-flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                      style={getAdminButtonStyle(C, "primary")}
-                    >
-                      {connecting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Opening Stripe…
-                        </>
-                      ) : hasAccount ? (
-                        "Continue in Stripe"
-                      ) : (
-                        "Connect Stripe"
-                      )}
-                    </button>
-                    {hasAccount ? (
-                      <button
-                        type="button"
-                        onClick={() => void loadStatus({ silent: true })}
-                        disabled={refreshing}
-                        className="inline-flex items-center gap-2 rounded-md border px-4 py-2.5 text-sm font-medium transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                        style={{
-                          borderColor: C.border,
-                          color: C.textSecondary,
-                          backgroundColor: C.elevated,
-                        }}
-                      >
-                        {refreshing ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Checking…
-                          </>
-                        ) : (
-                          "Check status"
-                        )}
-                      </button>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-            </motion.div>
-
-            {isReady && !loading && status && actionableSteps.length > 0 ? (
-              <div className="space-y-3">
-                <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-                  What&apos;s next
-                </p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {actionableSteps.map((step) => (
-                    <NextStepTile
-                      key={`${step.label}-${step.href}`}
-                      step={step}
-                      C={C}
-                      organizationId={organizationId}
-                      onOpenDashboard={handleOpenDashboard}
-                      openingDashboard={openingDashboard}
-                    />
-                  ))}
-                </div>
-                {footnoteSteps.map((step) => (
-                  <p key={step.label} className="text-xs" style={{ color: C.textTertiary }}>
-                    {step.label}
-                  </p>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </div>
+        <GardenSteps
+          steps={steps}
+          progressLabel="Stripe setup progress"
+          data-testid="payments-setup-steps"
+        />
       )}
-    </div>
+
+      {!model.loading && model.hasAccount ? (
+        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t-[1.5px] border-dashed border-[var(--sf-ink)]/12 pt-3 text-[12.5px] font-semibold text-[var(--sf-soft)]">
+          <span aria-live="polite">
+            Last checked {lastChecked}
+            {model.refreshing ? " · checking…" : ""}
+          </span>
+          {model.isPolling && !model.pollExhausted ? (
+            <span className="inline-flex items-center gap-1.5">
+              <LiveDot />
+              Watching for updates from Stripe
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+
+      {!model.loading && model.hasAccount && !model.isReady && model.isPolling && model.pollExhausted ? (
+        <p className="m-0 mt-3 text-[13px] font-semibold text-[var(--sf-soft)]">
+          Still verifying? Continue in Stripe or contact support if this takes longer than expected.
+        </p>
+      ) : null}
+    </GCard>
+  );
+}
+
+function WhatsNextCard({ model }: { model: PaymentsSetupModel }) {
+  return (
+    <GCard index={2} kicker="What's next" title="Put payments to work">
+      <ul className="m-0 flex list-none flex-col gap-1 p-0">
+        {model.actionableSteps.map((step) => {
+          const meta = getNextStepMeta(step);
+          const Icon = meta.icon;
+          const busy = meta.isDashboard && model.openingDashboard;
+          const inner = (
+            <>
+              <span
+                aria-hidden
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] border-[1.5px] border-[var(--sf-ink)]/12 bg-[var(--sf-sky)]"
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4 text-[var(--sf-ink)]/75" />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[14px] font-extrabold text-[var(--sf-ink)]">
+                  {busy ? "Opening Stripe…" : step.label}
+                </span>
+                <span className="block text-[12.5px] font-semibold text-[var(--sf-soft)]">{meta.description}</span>
+              </span>
+              <ArrowRight
+                className="h-4 w-4 shrink-0 text-[var(--sf-ink)]/40 transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--sf-clay-deep)]"
+                aria-hidden
+              />
+            </>
+          );
+          return (
+            <li key={`${step.label}-${step.href}`}>
+              {meta.isDashboard ? (
+                <button
+                  type="button"
+                  onClick={() => void model.handleOpenDashboard()}
+                  disabled={model.openingDashboard}
+                  aria-busy={busy || undefined}
+                  className={`${ROW_INTERACTIVE} disabled:cursor-wait`}
+                >
+                  {inner}
+                </button>
+              ) : step.href.startsWith("http") ? (
+                <a href={step.href} target="_blank" rel="noopener noreferrer" className={`${ROW_INTERACTIVE} no-underline`}>
+                  {inner}
+                </a>
+              ) : (
+                <Link href={step.href} className={`${ROW_INTERACTIVE} no-underline`}>
+                  {inner}
+                </Link>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {model.footnoteSteps.length > 0 ? (
+        <div className="mt-3 flex flex-col gap-1 border-t-[1.5px] border-dashed border-[var(--sf-ink)]/12 pt-3">
+          {model.footnoteSteps.map((step) => (
+            <p key={step.label} className="m-0 text-[12.5px] font-semibold text-[var(--sf-soft)]">
+              {step.label}
+            </p>
+          ))}
+        </div>
+      ) : null}
+    </GCard>
+  );
+}
+
+function HowItWorksCard({ done }: { done: boolean }) {
+  return (
+    <GCard index={2} kicker="How it works" title="Three steps to online fees">
+      <ol className="m-0 flex list-none flex-col gap-2 p-0">
+        {HOW_IT_WORKS.map((item, index) => {
+          const Icon = item.icon;
+          const active = !done && index === 0;
+          return (
+            <li
+              key={item.title}
+              className={`flex items-start gap-3 rounded-[14px] px-3 py-2.5 ${
+                active ? "bg-[var(--sf-accent-wash)] ring-[1.5px] ring-[var(--sf-clay)]/25" : ""
+              }`}
+            >
+              <span
+                aria-hidden
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] border-[1.5px] border-[var(--sf-ink)]/12 ${item.tint}`}
+              >
+                <Icon className="h-4 w-4 text-[var(--sf-ink)]/75" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[14px] font-extrabold text-[var(--sf-ink)]">
+                  <span className="mr-1 tabular-nums text-[var(--sf-soft)]">{index + 1}.</span>
+                  {item.title}
+                </span>
+                <span className="block text-[12.5px] font-semibold leading-snug text-[var(--sf-soft)]">
+                  {item.description}
+                </span>
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </GCard>
   );
 }

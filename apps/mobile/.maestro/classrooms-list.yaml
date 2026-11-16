@@ -6,5 +6,6 @@ appId: com.mudkitchen.schoolstack.mobile
 - extendedWaitUntil:
     visible: 'Classrooms'
     timeout: 30000
-- assertVisible: 'My School workspace'
+- assertVisible:
+    id: 'classrooms-status-line'
 - assertVisible: 'Search classrooms'

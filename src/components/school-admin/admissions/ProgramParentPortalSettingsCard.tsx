@@ -1,6 +1,7 @@
 "use client";
 
 import { createElement, useMemo, useState } from "react";
+import { DetailButton } from "@/components/school-admin/admissions/detail-garden";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { Eye } from "lucide-react";
@@ -14,7 +15,6 @@ import {
 import { mergePortalFeatureNav, resolveFeatureNavItem } from "@/lib/organization-settings/feature-nav";
 import { getFeatureIcon } from "@/lib/organization-settings/icon-registry";
 import { getParentFeatureIconStyle } from "@/lib/organization-settings/parent-feature-icon-styles";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type {
   OrganizationBranding,
@@ -409,15 +409,16 @@ export default function ProgramParentPortalSettingsCard({
             ) : null}
           </div>
           {showIsolatedPortal ? (
-            <button
+            <DetailButton
+ kind="warning"
+ C={C}
               type="button"
               onClick={() => setPreviewOpen(true)}
-              className="flex shrink-0 items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-              style={getAdminButtonStyle(C, "warning")}
+              storyClassName="flex shrink-0 items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
             >
               <Eye className="h-3.5 w-3.5" />
               Preview
-            </button>
+            </DetailButton>
           ) : null}
         </div>
       ) : null}
@@ -517,7 +518,7 @@ export default function ProgramParentPortalSettingsCard({
 
       {supportOpen ? (
         <AdminSupportRequestModal
-          C={C}
+          theme={theme}
           open={supportOpen}
           onClose={() => setSupportOpen(false)}
           organizationId={organizationId}

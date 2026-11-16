@@ -1,15 +1,23 @@
 "use client";
 
 import { createContext, useContext, useMemo, type ReactNode } from "react";
-import { fraunces, dmSans } from "@/lib/fonts/local";
+import ParentGardenFrame from "@/components/school-parent/garden/ParentGardenFrame";
+import { AdminGardenSkin } from "@/components/school-admin/garden/skin";
 import {
   buildParentThemeTokens,
-  parentThemeCssVars,
   parentThemeToAdminCompat,
   type ParentThemeTokens,
 } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+
+/*
+ * Full-height Garden shell for Admissions → Enrollment Flows (overview, apply
+ * form builder, enrollment checklist builder). It is the page's
+ * ParentGardenFrame plus the admin Garden skin, so the builders' shared
+ * primitives (AdminCard, AdminButton, BuilderQuestionCard, ConfirmDialog, …)
+ * render in Garden. Name kept for import stability.
+ */
 
 type EnrollmentFlowsThemeContextValue = {
   theme: ParentThemeTokens;
@@ -43,18 +51,19 @@ export default function EnrollmentFlowsStoryShell({
 
   return (
     <EnrollmentFlowsThemeContext.Provider value={{ theme, C }}>
-      <div
-        className={`flex h-full min-h-0 flex-col overflow-hidden ${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)] ${className}`}
-        data-admin-workspace-story
-        style={{
-          ...parentThemeCssVars(theme),
-          fontFamily: theme.fontBody,
-          color: theme.ink,
-          backgroundColor: "#F7F9F7",
-        }}
+      <ParentGardenFrame
+        theme={theme}
+        className={`flex !h-full !min-h-0 flex-col overflow-hidden bg-[var(--sf-cream)] ${className}`}
       >
-        {children}
-      </div>
+        <AdminGardenSkin theme={theme}>
+          <div
+            className="sf-admin-garden-skin flex h-full min-h-0 flex-col overflow-hidden"
+            data-admin-workspace-garden
+          >
+            {children}
+          </div>
+        </AdminGardenSkin>
+      </ParentGardenFrame>
     </EnrollmentFlowsThemeContext.Provider>
   );
 }

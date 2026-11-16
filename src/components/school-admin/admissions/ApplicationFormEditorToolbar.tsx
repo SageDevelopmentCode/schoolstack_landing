@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { DetailButton } from "@/components/school-admin/admissions/detail-garden";
 import {
   ChevronDown,
   CircleHelp,
@@ -14,8 +15,10 @@ import {
   Send,
 } from "lucide-react";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import { useAdminGardenSkin } from "@/components/school-admin/garden/skin";
+import GardenFlowActions, { type FlowMenuItem } from "./flows/GardenFlowActions";
+import type { FlowReadiness, ReadinessItem } from "./flows/flowReadiness";
 import { AdmissionsFamilyAccessGuideModal } from "./AdmissionsFamilyAccessGuide";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
@@ -37,6 +40,9 @@ type ApplicationFormEditorToolbarProps = {
   onCopyPublicLink: () => void;
   onPreview: () => void;
   onDuplicate: () => void;
+  /** Garden builder: publish checklist + where its rows lead. */
+  readiness?: FlowReadiness;
+  onSelectReadinessItem?: (item: ReadinessItem) => void;
 };
 
 function useClickOutside(
@@ -76,7 +82,10 @@ export default function ApplicationFormEditorToolbar({
   onCopyPublicLink,
   onPreview,
   onDuplicate,
+  readiness,
+  onSelectReadinessItem,
 }: ApplicationFormEditorToolbarProps) {
+  const skin = useAdminGardenSkin();
   const [shareOpen, setShareOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
@@ -119,18 +128,19 @@ export default function ApplicationFormEditorToolbar({
           <ChevronDown className="h-3 w-3 opacity-70" />
         </AdminButton>
       ) : (
-        <button
+        <DetailButton
+ kind="info"
+ C={C}
           type="button"
           onClick={() => setShareOpen((open) => !open)}
           aria-expanded={shareOpen}
           aria-haspopup="menu"
-          className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-          style={getAdminButtonStyle(C, "info")}
+          storyClassName="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
         >
           <Link2 className="h-3.5 w-3.5" />
           Share
           <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-70" />
-        </button>
+        </DetailButton>
       )}
 
       {shareOpen ? (
@@ -180,15 +190,16 @@ export default function ApplicationFormEditorToolbar({
         Preview
       </AdminButton>
     ) : (
-      <button
+      <DetailButton
+ kind="warning"
+ C={C}
         type="button"
         onClick={onPreview}
-        className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-        style={getAdminButtonStyle(C, "warning")}
+        storyClassName="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
       >
         <Eye className="h-3.5 w-3.5" />
         Preview
-      </button>
+      </DetailButton>
     );
 
   const moreMenu = showDuplicate ? (
@@ -247,16 +258,17 @@ export default function ApplicationFormEditorToolbar({
         {isPublished ? "Save" : "Save draft"}
       </AdminButton>
     ) : (
-      <button
+      <DetailButton
+ kind="primary"
+ C={C}
         type="button"
         onClick={onSave}
         disabled={saving || !isApplyDirty}
-        className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-        style={getAdminButtonStyle(C, "primary")}
+        storyClassName="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
       >
         {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
         {isPublished ? "Save" : "Save draft"}
-      </button>
+      </DetailButton>
     );
 
   const publishButton =
@@ -266,16 +278,17 @@ export default function ApplicationFormEditorToolbar({
         {isPublished ? "Publish changes" : "Publish"}
       </AdminButton>
     ) : (
-      <button
+      <DetailButton
+ kind="accentMid"
+ C={C}
         type="button"
         onClick={onPublish}
         disabled={publishing}
-        className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-        style={getAdminButtonStyle(C, "accentMid")}
+        storyClassName="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
       >
         {publishing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
         Publish
-      </button>
+      </DetailButton>
     );
 
   const unpublishButton =
@@ -285,16 +298,94 @@ export default function ApplicationFormEditorToolbar({
         Unpublish
       </AdminButton>
     ) : (
-      <button
+      <DetailButton
+ kind="danger"
+ C={C}
         type="button"
         onClick={onUnpublish}
-        className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-        style={getAdminButtonStyle(C, "danger")}
+        storyClassName="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
       >
         <EyeOff className="h-3.5 w-3.5" />
         Unpublish
-      </button>
+      </DetailButton>
     );
+
+  const guideModal = (
+    <AdmissionsFamilyAccessGuideModal
+      key={guideSessionKey}
+      open={guideOpen}
+      onClose={() => setGuideOpen(false)}
+      variant="apply"
+      C={C}
+      schoolSlug={schoolSlug}
+      publicPath={publishedPublicUrl}
+      isPublished={isPublished}
+    />
+  );
+
+  if (skin && readiness) {
+    const menuItems: FlowMenuItem[] = [
+      {
+        key: "copy",
+        label: "Copy apply link",
+        hint: canCopyLink ? undefined : "Publish first",
+        icon: <Link2 className="h-4 w-4" />,
+        disabled: !canCopyLink,
+        onSelect: onCopyPublicLink,
+      },
+      {
+        key: "guide",
+        label: "How families apply",
+        icon: <CircleHelp className="h-4 w-4" />,
+        onSelect: openGuide,
+      },
+      ...(showDuplicate
+        ? [
+            {
+              key: "duplicate",
+              label: "Duplicate",
+              hint: "Make an editable draft copy",
+              icon: <Copy className="h-4 w-4" />,
+              disabled: creating,
+              onSelect: onDuplicate,
+            },
+          ]
+        : []),
+      ...(isPublished && !readOnly
+        ? [
+            {
+              key: "unpublish",
+              label: "Unpublish",
+              hint: "Families can no longer start this form",
+              icon: <EyeOff className="h-4 w-4" />,
+              destructive: true,
+              onSelect: onUnpublish,
+            },
+          ]
+        : []),
+    ];
+    return (
+      <>
+        <GardenFlowActions
+          readOnly={readOnly}
+          isPublished={isPublished}
+          dirty={isApplyDirty}
+          saving={saving}
+          publishing={publishing}
+          readiness={readiness}
+          kindLabel="form"
+          publicUrl={publishedPublicUrl}
+          onSave={onSave}
+          onPublish={onPublish}
+          onPreview={onPreview}
+          onCopyLink={onCopyPublicLink}
+          onSelectReadinessItem={onSelectReadinessItem}
+          menuItems={menuItems}
+        />
+        {guideModal}
+      </>
+    );
+  }
 
   return (
     <>

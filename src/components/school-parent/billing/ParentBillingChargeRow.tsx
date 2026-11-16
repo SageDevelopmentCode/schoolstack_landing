@@ -1,10 +1,12 @@
 "use client";
 
+import { Tick } from "@/components/garden/ui";
+import { chargeToneToGChip } from "@/components/school-parent/billing/garden/billing-garden-tones";
+import { GChip, G_FOCUS } from "@/components/school-parent/garden/ui";
 import {
   formatParentChargeAmountLabel,
   formatParentChargeDueLine,
   formatParentChargeStatusBadge,
-  type ChargeStatusBadgeTone,
 } from "@/lib/tuition/charge-status-display";
 import { buildChargeAdjustmentBreakdown, formatCents } from "@/lib/tuition/pricing";
 import { chargeRemainingCents } from "@/lib/tuition/billing-splits";
@@ -18,7 +20,8 @@ import type { PaymentRecord } from "@/lib/stripe/application-payments";
 import type { TuitionAdjustment, TuitionCharge } from "@/lib/tuition/types";
 
 type ParentBillingChargeRowProps = {
-  C: AdminThemeTokens;
+  /** Kept for call-site compatibility; the row uses Garden tokens. */
+  C?: AdminThemeTokens;
   charge: TuitionCharge;
   adjustmentsForAssignment: TuitionAdjustment[];
   payingChargeId: string | null;
@@ -38,25 +41,33 @@ function formatBreakdownAmount(amountCents: number): string {
   return formatCents(amountCents);
 }
 
-function badgeStyles(C: AdminThemeTokens, tone: ChargeStatusBadgeTone) {
-  switch (tone) {
-    case "success":
-      return { backgroundColor: C.successBg, color: C.success };
-    case "info":
-      return { backgroundColor: C.infoBg, color: C.info };
-    case "accent":
-      return { backgroundColor: C.accentLight, color: C.accent };
-    case "warning":
-      return { backgroundColor: C.warningBg, color: C.warning };
-    case "danger":
-      return { backgroundColor: C.errorBg, color: C.error };
-    default:
-      return { backgroundColor: C.elevated, color: C.textSecondary };
+/** Timeline marker: tick when paid, peach dot when overdue, ring otherwise. */
+function ChargeMarker({ charge, processing }: { charge: TuitionCharge; processing: boolean }) {
+  if (charge.status === "paid") {
+    return <Tick className="h-6 w-6" color="var(--sf-forest)" fill="var(--sf-mint)" />;
   }
+  if (charge.status === "overdue") {
+    return (
+      <span
+        aria-hidden="true"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-[var(--sf-clay-deep)] bg-[var(--sf-peach)]"
+      >
+        <span className="h-2 w-2 rounded-full bg-[var(--sf-clay-deep)]" />
+      </span>
+    );
+  }
+  return (
+    <span
+      aria-hidden="true"
+      className={`h-6 w-6 shrink-0 rounded-full border-2 bg-white ${
+        processing ? "border-dashed border-[#24507a]" : "border-[var(--sf-ink)]/45"
+      }`}
+    />
+  );
 }
 
+/** One installment / fee in the payment schedule (notebook row). */
 export default function ParentBillingChargeRow({
-  C,
   charge,
   adjustmentsForAssignment,
   payingChargeId,
@@ -93,29 +104,31 @@ export default function ParentBillingChargeRow({
     UNPAID_CHARGE_STATUSES.has(charge.status) &&
     remainingCents > 0 &&
     !pendingCheckoutPayment;
+  const isPaying = payingChargeId === charge.id;
 
   return (
     <div
       data-testid="parent-billing-charge-row"
       data-charge-id={charge.id}
-      className="grid grid-cols-1 gap-3 rounded-[15px] border px-4 py-4 text-sm transition-shadow lg:grid-cols-[1.2fr_0.8fr_0.6fr_auto] lg:items-center lg:gap-3"
-      style={{
-        backgroundColor: C.surface,
-        border: `1px solid ${highlighted ? C.accent : C.border}`,
-        boxShadow: highlighted ? `0 0 0 2px ${C.accentLight}` : C.shadowCard,
-      }}
+      className={`@container rounded-[16px] border-[1.5px] px-4 py-3.5 transition-[box-shadow,border-color,background-color] duration-300 ${
+        highlighted
+          ? "border-[var(--sf-clay)] bg-[var(--sf-accent-wash)] shadow-[0_0_0_4px_color-mix(in_srgb,var(--sf-clay)_18%,transparent)]"
+          : "border-[var(--sf-ink)]/10 bg-white"
+      }`}
     >
+     <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-3 @3xl:grid-cols-[auto_1.2fr_0.9fr_0.7fr_auto] @3xl:items-center">
+      <div className="row-span-3 pt-0.5 @3xl:row-span-1 @3xl:pt-0">
+        <ChargeMarker charge={charge} processing={Boolean(pendingCheckoutPayment)} />
+      </div>
+
       <div className="min-w-0">
-        <p className="text-[13px] font-semibold" style={{ color: C.textPrimary }}>
+        <p className="m-0 text-[15px] font-extrabold leading-snug text-[var(--sf-ink)]">
           {charge.label}
         </p>
-        <p className="mt-0.5 text-[11px]" style={{ color: C.textTertiary }}>
-          {dueLine}
-        </p>
+        <p className="m-0 mt-0.5 text-[13px] font-semibold text-[var(--sf-soft)]">{dueLine}</p>
         {showAutopayHint ? (
           <p
-            className="mt-1 text-[11px]"
-            style={{ color: C.textSecondary }}
+            className="m-0 mt-1 text-xs font-semibold text-[var(--sf-ink)]/65"
             data-testid="parent-billing-charge-autopay-hint"
           >
             Autopay on due date
@@ -123,8 +136,7 @@ export default function ParentBillingChargeRow({
         ) : null}
         {pendingCheckoutPayment ? (
           <p
-            className="mt-1 text-[11px]"
-            style={{ color: C.textSecondary }}
+            className="m-0 mt-1 text-xs font-semibold text-[#24507a]"
             data-testid="parent-billing-charge-processing-hint"
           >
             {pendingCheckoutPaymentHint(pendingCheckoutPayment) ??
@@ -133,20 +145,22 @@ export default function ParentBillingChargeRow({
         ) : null}
       </div>
 
-      <div className="min-w-0 text-[11px] leading-relaxed" style={{ color: C.textSecondary }}>
+      <div className="col-start-2 min-w-0 text-xs leading-relaxed text-[var(--sf-ink)]/65 @3xl:col-start-auto">
         {showBreakdown ? (
-          <div data-testid="parent-billing-charge-breakdown">
+          <div
+            data-testid="parent-billing-charge-breakdown"
+            className="rounded-xl bg-[var(--sf-paper)] px-3 py-2"
+          >
             {breakdown
               .filter((line) => line.kind !== "total")
               .map((line, index) => (
-                <div key={`${line.kind}-${line.label}-${index}`}>
+                <div key={`${line.kind}-${line.label}-${index}`} className="tabular-nums">
                   {line.label} {formatBreakdownAmount(line.amountCents)}
                 </div>
               ))}
             {hasPayAheadReduction ? (
               <p
-                className="mt-1 text-[10px] leading-snug"
-                style={{ color: C.textTertiary }}
+                className="m-0 mt-1 text-[11px] leading-snug text-[var(--sf-soft)]"
                 data-testid="parent-billing-charge-pay-ahead-hint"
               >
                 {PAY_AHEAD_REDUCTION_HINT}
@@ -154,26 +168,24 @@ export default function ParentBillingChargeRow({
             ) : null}
           </div>
         ) : (
-          <span style={{ color: C.textTertiary }}>—</span>
+          <span className="hidden text-[var(--sf-soft)] @3xl:inline" aria-hidden="true">
+            —
+          </span>
         )}
       </div>
 
-      <div className="min-w-0">
-        <p className="text-[13px] font-bold" style={{ color: C.textPrimary }}>
+      <div className="col-start-2 flex min-w-0 items-center gap-2 @3xl:col-start-auto @3xl:flex-col @3xl:items-start @3xl:gap-1">
+        <p className="m-0 text-[15px] font-extrabold tabular-nums text-[var(--sf-ink)]">
           {showBreakdown && totalLine
             ? formatCents(totalLine.amountCents)
             : amountDisplay.text}
         </p>
-        <span
-          className="mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-extrabold"
-          style={badgeStyles(C, statusBadge.tone)}
-          data-testid="parent-billing-charge-status-badge"
-        >
-          {statusBadge.label}
+        <span data-testid="parent-billing-charge-status-badge" className="inline-flex">
+          <GChip tone={chargeToneToGChip(statusBadge.tone)}>{statusBadge.label}</GChip>
         </span>
       </div>
 
-      <div className="flex w-full items-center justify-end lg:w-auto lg:justify-end">
+      <div className="col-span-2 flex w-full items-center justify-end @3xl:col-span-1 @3xl:w-auto">
         {canPay ? (
           <button
             type="button"
@@ -181,15 +193,16 @@ export default function ParentBillingChargeRow({
               if (readOnly) return;
               onPay(charge.id);
             }}
-            disabled={readOnly || payingChargeId === charge.id}
+            disabled={readOnly || isPaying}
+            aria-busy={isPaying || undefined}
             aria-label={showAutopayHint ? "Pay early" : "Pay charge"}
-            className="w-full rounded-lg px-2.5 py-1.5 text-[11px] font-bold disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-            style={{ backgroundColor: C.accent, color: "#fff" }}
+            className={`inline-flex w-full items-center justify-center rounded-full border-[1.5px] border-[var(--sf-ink)]/25 bg-white px-4 py-2 text-[13px] font-extrabold text-[var(--sf-clay-deep)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--sf-clay)] hover:bg-[var(--sf-accent-wash)] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto ${G_FOCUS}`}
           >
-            {payingChargeId === charge.id ? "…" : readOnly ? "Pay (preview)" : "Pay"}
+            {isPaying ? "…" : readOnly ? "Pay (preview)" : "Pay"}
           </button>
         ) : null}
       </div>
+     </div>
     </div>
   );
 }

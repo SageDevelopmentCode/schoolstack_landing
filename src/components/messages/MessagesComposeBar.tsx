@@ -1,21 +1,19 @@
 "use client";
 
 import { Paperclip, Send, X } from "lucide-react";
-import { useEffect, useRef } from "react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import {
-  MAX_MESSAGE_ATTACHMENTS,
-  MAX_MESSAGE_ATTACHMENT_BYTES,
-} from "@/lib/messages/message-attachment-storage";
+import { MAX_MESSAGE_ATTACHMENTS } from "@/lib/messages/message-attachment-storage";
 import type { MessagesLayoutVariant } from "./MessagesAvatar";
 import {
   isSplitPaneMessagesVariant,
   isStoryMessagesVariant,
 } from "@/lib/messages/messages-layout-variant";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
-
-const TEXTAREA_MAX_ROWS = 5;
-const TEXTAREA_LINE_HEIGHT = 22;
+import {
+  MESSAGE_ATTACHMENT_ACCEPT,
+  useMessageComposer,
+  type MessageFileRejection,
+} from "./useMessageComposer";
 
 export default function MessagesComposeBar({
   value,
@@ -30,6 +28,7 @@ export default function MessagesComposeBar({
   variant = "card",
   hideAttachments = false,
   placeholder,
+  onFilesRejected,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -43,31 +42,20 @@ export default function MessagesComposeBar({
   variant?: MessagesLayoutVariant;
   hideAttachments?: boolean;
   placeholder?: string;
+  onFilesRejected?: (rejection: MessageFileRejection) => void;
 }) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const splitPane = isSplitPaneMessagesVariant(variant);
   const parentStory = isStoryMessagesVariant(variant);
-
-  const addFiles = (incoming: FileList | File[]) => {
-    const next = [...files];
-    for (const file of incoming) {
-      if (next.length >= MAX_MESSAGE_ATTACHMENTS) break;
-      if (file.size > MAX_MESSAGE_ATTACHMENT_BYTES) continue;
-      next.push(file);
-    }
-    onFilesChange(next);
-  };
-
-  const canSend = Boolean(value.trim() || (!hideAttachments && files.length > 0));
-
-  useEffect(() => {
-    if (!splitPane || !textareaRef.current) return;
-    const textarea = textareaRef.current;
-    textarea.style.height = "auto";
-    const maxHeight = TEXTAREA_LINE_HEIGHT * TEXTAREA_MAX_ROWS;
-    textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
-  }, [splitPane, value]);
+  const { fileInputRef, textareaRef, addFiles, canSend, handleKeyDown } =
+    useMessageComposer({
+      value,
+      files,
+      onFilesChange,
+      onSend,
+      hideAttachments,
+      autoGrow: splitPane,
+      onFilesRejected,
+    });
 
   if (splitPane) {
     const surfaceColor = parentStory ? theme?.white ?? C.surface : C.surface;
@@ -130,7 +118,7 @@ export default function MessagesComposeBar({
                 type="file"
                 className="hidden"
                 multiple
-                accept="application/pdf,image/jpeg,image/png,image/webp,image/gif"
+                accept={MESSAGE_ATTACHMENT_ACCEPT}
                 onChange={(event) => {
                   if (event.target.files?.length) {
                     addFiles(event.target.files);
@@ -145,12 +133,7 @@ export default function MessagesComposeBar({
             value={value}
             rows={1}
             onChange={(e) => onChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                if (canSend) onSend();
-              }
-            }}
+            onKeyDown={handleKeyDown}
             placeholder={
               placeholder ??
               (disabled
@@ -221,7 +204,7 @@ export default function MessagesComposeBar({
           type="file"
           className="hidden"
           multiple
-          accept="application/pdf,image/jpeg,image/png,image/webp,image/gif"
+          accept={MESSAGE_ATTACHMENT_ACCEPT}
           onChange={(event) => {
             if (event.target.files?.length) {
               addFiles(event.target.files);
@@ -232,12 +215,7 @@ export default function MessagesComposeBar({
         <input
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              if (canSend) onSend();
-            }
-          }}
+          onKeyDown={handleKeyDown}
           placeholder={disabled ? "Preview mode — sending disabled" : "Write a message…"}
           disabled={disabled || sending}
           className="flex-1 px-3 py-2 text-sm rounded-lg border disabled:opacity-60"

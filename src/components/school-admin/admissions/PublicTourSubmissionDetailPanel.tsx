@@ -2,6 +2,10 @@
 
 import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import GSidePanel from "@/components/school-parent/garden/GSidePanel";
+import { GChip } from "@/components/school-parent/garden/ui";
+import { useAdminGardenSkin } from "@/components/school-admin/garden/skin";
+import { GardenFacts } from "@/components/school-admin/garden/blocks";
 import { X } from "lucide-react";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import {
@@ -103,6 +107,42 @@ export default function PublicTourSubmissionDetailPanel({
 
   const registrant = visit ? registrantFromVisit(visit) : null;
   const contactName = visit ? labelFromPublicRegistrant(visit.registrant) : null;
+  const skin = useAdminGardenSkin();
+
+  if (skin) {
+    const open = Boolean(visit && registrant);
+    return (
+      <GSidePanel
+        theme={skin}
+        open={open}
+        onClose={onClose}
+        kicker="Tour submission"
+        title={visit ? contactName ?? visit.whenLabel : "Tour submission"}
+        subtitle={visit?.whenLabel}
+        testId="public-tour-submission-panel"
+        panelId="public-tour-submission"
+        headerAside={
+          visit ? (
+            <GChip tone={visit.timing === "happening" ? "success" : visit.timing === "past" ? "neutral" : "info"}>
+              {timingLabel(visit.timing)}
+            </GChip>
+          ) : null
+        }
+      >
+        {visit && registrant ? (
+          <GardenFacts
+            className="!grid-cols-1"
+            items={[
+              { label: "Email", value: registrant.contactEmail },
+              ...Object.entries(registrant.answers)
+                .filter(([key, value]) => !shouldSkipAnswerField(key, value, registrant.contactEmail))
+                .map(([key, value]) => ({ label: humanizeFieldId(key), value: formatAnswerValue(value) })),
+            ]}
+          />
+        ) : null}
+      </GSidePanel>
+    );
+  }
 
   return (
     <AnimatePresence>

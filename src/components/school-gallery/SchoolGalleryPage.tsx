@@ -15,6 +15,7 @@ import {
   type GalleryPhotosFeedInitial,
 } from "@/components/school-gallery/useGalleryPhotosFeed";
 import { canManageGalleryPhoto } from "@/lib/school-gallery/gallery-access";
+import { buildGalleryListUrl } from "@/lib/school-gallery/gallery-list-url";
 import { formatGalleryDateLabel } from "@/lib/school-gallery/format-gallery-date";
 import { groupGalleryPhotosByDate } from "@/lib/school-gallery/group-gallery-photos";
 import type { GalleryPhoto } from "@/lib/school-gallery/types";
@@ -50,24 +51,17 @@ export default function SchoolGalleryPage({
   const [uploadOpen, setUploadOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
 
-  const listUrl = useMemo(() => {
-    if (!slug) return null;
-    if (previewFamilyId) {
-      const params = new URLSearchParams({
-        familyId: previewFamilyId,
+  const listUrl = useMemo(
+    () =>
+      buildGalleryListUrl({
+        organizationId,
         slug,
-      });
-      if (programId) params.set("programId", programId);
-      return `/api/admin/organizations/${encodeURIComponent(organizationId)}/gallery?${params.toString()}`;
-    }
-    const params = new URLSearchParams({ organizationId, slug });
-    if (programId) params.set("programId", programId);
-    const base =
-      portal === "parent"
-        ? "/api/parent-portal/gallery"
-        : "/api/teacher-portal/gallery";
-    return `${base}?${params.toString()}`;
-  }, [organizationId, portal, previewFamilyId, programId, slug]);
+        programId,
+        portal,
+        previewFamilyId,
+      }),
+    [organizationId, portal, previewFamilyId, programId, slug],
+  );
 
   const {
     photos,

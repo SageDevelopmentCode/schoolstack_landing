@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { SubmissionsListScreen } from '@/components/school-admin/submissions-list-screen';
+import { AdmissionsListScreen } from '@/components/school-admin/admissions/garden/admissions-list-screen';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function SchoolAdminSubmissionsPage() {
@@ -12,6 +12,6 @@ export default function SchoolAdminSubmissionsPage() {
   }
 
   return (
-    <SubmissionsListScreen organizationId={selectedSchool.id} slug={selectedSchool.slug} />
+    <AdmissionsListScreen organizationId={selectedSchool.id} slug={selectedSchool.slug} />
   );
 }

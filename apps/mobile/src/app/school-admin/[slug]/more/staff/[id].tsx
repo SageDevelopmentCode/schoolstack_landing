@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { StaffDetailScreen } from '@/components/school-admin/staff/staff-detail-screen';
+import { StaffDetailScreen } from '@/components/school-admin/staff/garden/staff-detail-screen';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function SchoolAdminStaffDetailPage() {
@@ -15,6 +15,7 @@ export default function SchoolAdminStaffDetailPage() {
     <StaffDetailScreen
       slug={selectedSchool.slug}
       staffMemberId={id}
+      organizationId={selectedSchool.id}
     />
   );
 }

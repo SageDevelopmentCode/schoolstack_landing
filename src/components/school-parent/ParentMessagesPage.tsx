@@ -6,6 +6,8 @@ import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { MessagesInboxData } from "@/lib/messages/types";
 import MessagesInboxLayout from "@/components/messages/MessagesInboxLayout";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
+import ParentGardenFrame from "@/components/school-parent/garden/ParentGardenFrame";
+import { useParentMessagesFeedback } from "@/components/school-parent/messages/useParentMessagesFeedback";
 import { PARENT_FAMILY_PREVIEW_MESSAGES_BASE } from "@/lib/admin/mobile-preview/parent-portal-preview-api";
 
 type ParentMessagesPageProps = {
@@ -44,9 +46,13 @@ function ParentMessagesPageContent({
 }: Omit<ParentMessagesPageProps, "branding">) {
   const { theme, adminCompat: C } = useParentTheme();
   const useFamilyPreviewApi = previewMode && Boolean(familyId);
+  const onFeedback = useParentMessagesFeedback();
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <ParentGardenFrame
+      theme={theme}
+      className="flex h-full min-h-0 flex-1 flex-col overflow-hidden"
+    >
       <MessagesInboxLayout
         api={{
           basePath: useFamilyPreviewApi
@@ -69,9 +75,10 @@ function ParentMessagesPageContent({
         readOnlyFetchThreads={useFamilyPreviewApi}
         C={C}
         theme={theme}
-        variant="parent-story"
+        variant="parent-garden"
+        onFeedback={onFeedback}
       />
-    </div>
+    </ParentGardenFrame>
   );
 }
 

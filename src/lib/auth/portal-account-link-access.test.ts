@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { userIsOrgAdmin } from "@/lib/admissions/application-auth";
-import { getStaffUserProfile } from "@/lib/staff/teacher-portal-access";
+import {
+  getStaffMemberIdForUser,
+  getStaffUserProfile,
+  getTeacherPortalStaffMemberIdForUser,
+} from "@/lib/staff/teacher-portal-access";
 import { userCanAccessSchoolAdmin } from "@/lib/school-admin/access";
 
 const ORG_ID = "org-1111-1111-1111-111111111111";
@@ -172,5 +176,140 @@ describe("portal account link staff/admin access", () => {
     );
 
     assert.equal(allowed, true);
+  });
+});
+
+const ADMIN_USER_ID = "admin-5555-5555-5555-555555555555";
+const TEACHER_USER_ID = "teacher-6666-6666-6666-666666666666";
+const ADMIN_TEACHER_GROUP_ID = "group-7777-7777-7777-777777777777";
+
+/**
+ * School admin login (primary, owner role, auto-created "School admin" staff record) linked to
+ * the same person's teacher login (teacher role, their real staff record).
+ */
+function createAdminPrimaryLinkedTeacherSupabase(
+  options: { linked?: boolean } = {},
+): SupabaseClient {
+  const linked = options.linked ?? true;
+  const staffRows: Record<string, Record<string, unknown>> = {
+    [ADMIN_USER_ID]: {
+      id: "staff-admin",
+      status: "active",
+      first_name: "School",
+      last_name: "Admin",
+      email: "admin@school.test",
+      profile_photo_url: null,
+      role_title: "School admin",
+    },
+    [TEACHER_USER_ID]: {
+      id: "staff-teacher",
+      status: "active",
+      first_name: "Rachael",
+      last_name: "Sparhawk",
+      email: "teacher@school.test",
+      profile_photo_url: "https://example.test/rachael.jpg",
+      role_title: "Main Lesson Teacher",
+    },
+  };
+
+  const from = createTableHandler({
+    organization_portal_account_link_members: async (filters) => {
+      if (!linked) {
+        return { data: filters.group_id ? [] : null, error: null };
+      }
+      if (filters.group_id === ADMIN_TEACHER_GROUP_ID) {
+        return {
+          data: [{ user_id: ADMIN_USER_ID }, { user_id: TEACHER_USER_ID }],
+          error: null,
+        };
+      }
+      if (filters.user_id === ADMIN_USER_ID || filters.user_id === TEACHER_USER_ID) {
+        return {
+          data: { id: `link-${String(filters.user_id)}`, group_id: ADMIN_TEACHER_GROUP_ID },
+          error: null,
+        };
+      }
+      return { data: null, error: null };
+    },
+    organization_portal_account_link_groups: async (filters) => {
+      if (linked && filters.id === ADMIN_TEACHER_GROUP_ID) {
+        return {
+          data: { id: ADMIN_TEACHER_GROUP_ID, primary_user_id: ADMIN_USER_ID },
+          error: null,
+        };
+      }
+      return { data: null, error: null };
+    },
+    organization_memberships: async (filters) => {
+      // Teacher-first ordering query: active teacher/staff memberships among link members.
+      if (Array.isArray(filters.user_id)) {
+        const ids = filters.user_id as string[];
+        return {
+          data: ids.includes(TEACHER_USER_ID) ? [{ user_id: TEACHER_USER_ID }] : [],
+          error: null,
+        };
+      }
+      return { data: null, error: null };
+    },
+    staff_members: async (filters) => {
+      if (filters.organization_id !== ORG_ID) {
+        return { data: null, error: null };
+      }
+      return { data: staffRows[String(filters.user_id)] ?? null, error: null };
+    },
+  });
+
+  return { from } as unknown as SupabaseClient;
+}
+
+describe("teacher portal staff record for a school admin linked to a teacher login", () => {
+  it("getTeacherPortalStaffMemberIdForUser picks the linked teacher's staff record", async () => {
+    const supabase = createAdminPrimaryLinkedTeacherSupabase();
+
+    const staffMemberId = await getTeacherPortalStaffMemberIdForUser(
+      supabase,
+      ADMIN_USER_ID,
+      ORG_ID,
+    );
+
+    assert.equal(staffMemberId, "staff-teacher");
+  });
+
+  it("getStaffMemberIdForUser stays primary-first for admin-side callers", async () => {
+    const supabase = createAdminPrimaryLinkedTeacherSupabase();
+
+    const staffMemberId = await getStaffMemberIdForUser(
+      supabase,
+      ADMIN_USER_ID,
+      ORG_ID,
+    );
+
+    assert.equal(staffMemberId, "staff-admin");
+  });
+
+  it("getStaffUserProfile shows the teacher's name and photo", async () => {
+    const supabase = createAdminPrimaryLinkedTeacherSupabase();
+    const user = {
+      id: ADMIN_USER_ID,
+      email: "admin@school.test",
+      user_metadata: {},
+    } as User;
+
+    const profile = await getStaffUserProfile(supabase, ADMIN_USER_ID, ORG_ID, user);
+
+    assert.equal(profile.displayName, "Rachael Sparhawk");
+    assert.equal(profile.profilePhotoUrl, "https://example.test/rachael.jpg");
+  });
+
+  it("a single unlinked login resolves the same as before", async () => {
+    const supabase = createAdminPrimaryLinkedTeacherSupabase({ linked: false });
+
+    const [teacherPortalId, primaryFirstId] = await Promise.all([
+      getTeacherPortalStaffMemberIdForUser(supabase, ADMIN_USER_ID, ORG_ID),
+      getStaffMemberIdForUser(supabase, ADMIN_USER_ID, ORG_ID),
+    ]);
+
+    assert.equal(teacherPortalId, "staff-admin");
+    assert.equal(primaryFirstId, "staff-admin");
   });
 });

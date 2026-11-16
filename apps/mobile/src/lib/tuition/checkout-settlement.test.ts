@@ -2,6 +2,7 @@ import type { ParentBillingData, ParentTuitionPaymentRecord } from '@/lib/parent
 import {
   captureCheckoutSettlementBaseline,
   hasCheckoutSettled,
+  runCheckoutSettlement,
 } from '@/lib/tuition/checkout-settlement';
 
 function payment(id: string, status: string): ParentTuitionPaymentRecord {
@@ -74,5 +75,32 @@ describe('hasCheckoutSettled', () => {
     expect(hasCheckoutSettled('cancelled', baseline, billing({}))).toBe(true);
     expect(hasCheckoutSettled('dismissed', baseline, billing({}))).toBe(true);
     expect(hasCheckoutSettled('paid', baseline, null)).toBe(false);
+  });
+});
+
+describe('runCheckoutSettlement', () => {
+  it('returns settled without polling for cancel outcomes', async () => {
+    const refresh = jest.fn(async () => billing({}));
+    const result = await runCheckoutSettlement({
+      refresh,
+      outcome: 'cancelled',
+      baseline: captureCheckoutSettlementBaseline(null),
+    });
+    expect(result).toEqual({ outcome: 'cancelled', settled: true });
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports a paid checkout as settled once the new payment lands', async () => {
+    const before = billing({ payments: [payment('p1', 'succeeded')] });
+    const refresh = jest.fn(async () =>
+      billing({ payments: [payment('p1', 'succeeded'), payment('p2', 'succeeded')] }),
+    );
+    const result = await runCheckoutSettlement({
+      refresh,
+      outcome: 'paid',
+      baseline: captureCheckoutSettlementBaseline(before),
+    });
+    expect(result).toEqual({ outcome: 'paid', settled: true });
+    expect(refresh).toHaveBeenCalledTimes(1);
   });
 });

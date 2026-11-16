@@ -1,26 +1,18 @@
 "use client";
 
-import { Suspense, useCallback, useMemo, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { motion, useReducedMotion } from "framer-motion";
-import { Loader2 } from "lucide-react";
-import ParentCard from "@/components/school-parent/ui/ParentCard";
+import { Suspense, useCallback } from "react";
+import ParentGardenFrame from "@/components/school-parent/garden/ParentGardenFrame";
+import ParentGardenPageHeader from "@/components/school-parent/garden/ParentGardenPageHeader";
+import { useCelebrate } from "@/components/school-parent/garden/motion";
+import { GSkeleton } from "@/components/school-parent/garden/ui";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
-import ParentFormDetailModal from "./ParentFormDetailModal";
-import ParentFormListCard from "./ParentFormListCard";
-import ParentFormsDocumentsStoryHeader from "./ParentFormsDocumentsStoryHeader";
-import {
-  classifyParentFormListStatus,
-  countParentFormsByStatus,
-  filterParentFormsByStatus,
-} from "@/lib/school-parent/forms-documents/utils";
-import type {
-  ParentFormDetail,
-  ParentFormFilterStatus,
-  ParentFormListItem,
-  ParentFormsDocumentsPageBundle,
-} from "@/lib/school-parent/forms-documents/types";
-import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import type { ParentFormsDocumentsPageBundle } from "@/lib/school-parent/forms-documents/types";
+import { PORTAL_HOME_CONTAINER_CLASS } from "@/lib/portal-home/layout";
+import FormsListCard from "./garden/FormsListCard";
+import FormsNextUpCard from "./garden/FormsNextUpCard";
+import { FormsProgressCard } from "./garden/FormsRailCards";
+import GardenFormDetailDialog from "./garden/GardenFormDetailDialog";
+import { useParentFormsDocumentsModel } from "./useParentFormsDocumentsModel";
 
 type ParentFormsDocumentsPageProps = {
   organizationId: string;
@@ -31,103 +23,35 @@ type ParentFormsDocumentsPageProps = {
   uploadPreviewUrlsByFormId?: Record<string, string>;
 };
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 12 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      delay: i * 0.05,
-      duration: 0.35,
-      ease: [0.16, 1, 0.3, 1] as const,
-    },
-  }),
-};
-
-function StoryFilterPill({
-  active,
-  label,
-  count,
-  onClick,
-  theme,
-}: {
-  active: boolean;
-  label: string;
-  count?: number;
-  onClick: () => void;
-  theme: ParentThemeTokens;
-}) {
-  const displayLabel = count != null ? `${label} · ${count}` : label;
-
+function FormsPageSkeleton() {
+  const { theme } = useParentTheme();
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium transition-colors"
-      style={
-        active
-          ? {
-              backgroundColor: theme.primarySoft,
-              color: theme.primary,
-              borderColor: "#BCD4C1",
-            }
-          : {
-              backgroundColor: theme.white,
-              color: theme.muted,
-              borderColor: theme.line,
-            }
-      }
-    >
-      {displayLabel}
-    </button>
-  );
-}
-
-function FormListCard({
-  item,
-  theme,
-  index,
-  reducedMotion,
-  onOpen,
-}: {
-  item: ParentFormListItem;
-  theme: ParentThemeTokens;
-  index: number;
-  reducedMotion: boolean;
-  onOpen: () => void;
-}) {
-  return (
-    <motion.div
-      custom={index}
-      variants={fadeUp}
-      initial={reducedMotion ? false : "hidden"}
-      animate="visible"
-    >
-      <ParentFormListCard item={item} theme={theme} onOpen={onOpen} />
-    </motion.div>
+    <ParentGardenFrame theme={theme}>
+      <div className={PORTAL_HOME_CONTAINER_CLASS} aria-busy="true" aria-label="Loading forms">
+        <GSkeleton className="h-20 w-2/3 max-w-md" />
+        <div className="grid items-start gap-5 lg:grid-cols-[1.55fr_1fr]">
+          <GSkeleton className="h-72" />
+          <GSkeleton className="h-48" />
+        </div>
+      </div>
+    </ParentGardenFrame>
   );
 }
 
 export default function ParentFormsDocumentsPage(props: ParentFormsDocumentsPageProps) {
-  const { theme } = useParentTheme();
-
   return (
-    <Suspense
-      fallback={
-        <div
-          className="flex items-center justify-center gap-2 py-12 text-sm"
-          style={{ color: theme.muted }}
-        >
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Loading forms…
-        </div>
-      }
-    >
+    <Suspense fallback={<FormsPageSkeleton />}>
       <ParentFormsDocumentsPageContent {...props} />
     </Suspense>
   );
 }
 
+/**
+ * Parent Forms & Documents (Garden): what's waiting (most urgent first) and
+ * every form in the main column, progress in the rail.
+ * Forms open in the Garden signing dialog via `?form=`. Preview (readOnly)
+ * shows everything with signing disabled.
+ */
 function ParentFormsDocumentsPageContent({
   organizationId,
   initialBundle,
@@ -136,129 +60,90 @@ function ParentFormsDocumentsPageContent({
   uploadPreviewUrlsByFormId,
 }: ParentFormsDocumentsPageProps) {
   const { theme } = useParentTheme();
-  const reducedMotion = useReducedMotion();
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const model = useParentFormsDocumentsModel({
+    initialItems: initialBundle.items,
+    initialFormId,
+  });
+  const { setFilter } = model;
 
-  const [items, setItems] = useState(initialBundle.items);
-  const [filter, setFilter] = useState<ParentFormFilterStatus>("all");
+  useCelebrate(model.justCompletedAll, theme, "parent-forms-all-signed");
 
-  const formParam = searchParams.get("form") ?? initialFormId ?? null;
-
-  const selectedFormId = useMemo(() => {
-    if (!formParam) return null;
-    return items.some((item) => item.form.id === formParam) ? formParam : null;
-  }, [formParam, items]);
-
-  const setFormParam = useCallback(
-    (formId: string | null) => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (formId) params.set("form", formId);
-      else params.delete("form");
-      const qs = params.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname);
-    },
-    [pathname, router, searchParams],
-  );
-
-  const openSidebar = useCallback(
-    (formId: string) => {
-      setFormParam(formId);
-    },
-    [setFormParam],
-  );
-
-  const closeSidebar = useCallback(() => {
-    setFormParam(null);
-  }, [setFormParam]);
-
-  const selectedItem = useMemo(
-    () => items.find((item) => item.form.id === selectedFormId) ?? null,
-    [items, selectedFormId],
-  );
-
-  const statusCounts = useMemo(() => countParentFormsByStatus(items), [items]);
-
-  const filteredItems = useMemo(
-    () => filterParentFormsByStatus(items, filter),
-    [items, filter],
-  );
-
-  const handleSubmitted = useCallback((detail: ParentFormDetail) => {
-    setItems((current) =>
-      current.map((item) => {
-        if (item.form.id !== detail.form.id) return item;
-        return {
-          form: detail.form,
-          response: detail.response,
-          listStatus: classifyParentFormListStatus(detail.response.status),
-        };
-      }),
-    );
-  }, []);
+  const showWaiting = useCallback(() => {
+    setFilter("needs_action");
+    document.getElementById("parent-forms-list")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [setFilter]);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6" data-testid="parent-forms-documents-page">
-      <ParentFormsDocumentsStoryHeader theme={theme} />
-
-      <div className="mb-6 flex flex-wrap gap-2">
-        {(
-          [
-            ["all", "All"],
-            ["needs_action", "Needs action"],
-            ["signed", "Signed"],
-          ] as const
-        ).map(([key, label]) => (
-          <StoryFilterPill
-            key={key}
-            active={filter === key}
-            label={label}
-            count={statusCounts[key]}
-            onClick={() => setFilter(key)}
-            theme={theme}
+    <>
+      <ParentGardenFrame theme={theme}>
+        <div className={PORTAL_HOME_CONTAINER_CLASS} data-testid="parent-forms-documents-page">
+          <ParentGardenPageHeader
+            kicker="Your family"
+            title={
+              <>
+                Forms &amp; <span className="text-[var(--sf-clay)]">Documents</span>
+              </>
+            }
+            subtitle="Review and sign forms from your child's teachers."
+            data-testid="parent-forms-documents-header"
           />
-        ))}
-      </div>
 
-      {filteredItems.length === 0 ? (
-        <ParentCard theme={theme}>
-          <p className="text-sm" style={{ color: theme.muted }}>
-            {filter === "all"
-              ? "No forms have been assigned to your family yet."
-              : "No forms match this filter."}
-          </p>
-        </ParentCard>
-      ) : (
-        <div className="space-y-3">
-          {filteredItems.map((item, index) => (
-            <FormListCard
-              key={item.form.id}
-              item={item}
-              theme={theme}
-              index={index}
-              reducedMotion={reducedMotion ?? false}
-              onOpen={() => openSidebar(item.form.id)}
-            />
-          ))}
+          {readOnly ? (
+            <p className="m-0 -mt-3 w-fit rounded-[12px] bg-[var(--sf-sky)] px-3 py-2 text-[12px] font-extrabold text-[#24507a]">
+              Preview mode — forms can be opened but not signed here.
+            </p>
+          ) : null}
+
+          <div className="grid items-start gap-5 lg:grid-cols-[1.55fr_1fr]">
+            <div className="flex min-w-0 flex-col gap-5">
+              <FormsNextUpCard
+                index={1}
+                items={model.items}
+                queue={model.queue}
+                signedCount={model.statusCounts.signed}
+                onOpen={model.openForm}
+                onShowWaiting={showWaiting}
+              />
+              <FormsListCard
+                index={3}
+                filter={model.filter}
+                onFilterChange={model.setFilter}
+                counts={model.statusCounts}
+                items={model.filteredItems}
+                totalCount={model.items.length}
+                recentlySignedId={model.recentlySignedId}
+                onOpen={model.openForm}
+              />
+            </div>
+            <div className="flex min-w-0 flex-col gap-5">
+              <FormsProgressCard
+                index={2}
+                total={model.statusCounts.all}
+                signed={model.statusCounts.signed}
+                overdueCount={model.overdueCount}
+                nextDue={model.nextDue}
+                onOpen={model.openForm}
+              />
+            </div>
+          </div>
         </div>
-      )}
+      </ParentGardenFrame>
 
-      <ParentFormDetailModal
+      <GardenFormDetailDialog
         theme={theme}
-        open={Boolean(selectedFormId)}
+        open={Boolean(model.selectedFormId)}
         organizationId={organizationId}
-        formId={selectedFormId}
-        initialItem={selectedItem}
+        formId={model.selectedFormId}
+        initialItem={model.selectedItem}
         readOnly={readOnly}
         uploadPreviewUrl={
-          selectedFormId
-            ? (uploadPreviewUrlsByFormId?.[selectedFormId] ?? null)
-            : null
+          model.selectedFormId ? (uploadPreviewUrlsByFormId?.[model.selectedFormId] ?? null) : null
         }
-        onClose={closeSidebar}
-        onSubmitted={handleSubmitted}
+        onClose={model.closeForm}
+        onSubmitted={model.handleSubmitted}
+        queueRemaining={readOnly ? undefined : model.queueAfterSelected.length}
+        onOpenNext={readOnly ? undefined : model.openNext}
       />
-    </div>
+    </>
   );
 }

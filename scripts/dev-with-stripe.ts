@@ -1,4 +1,7 @@
 import { type ChildProcess, spawn } from "node:child_process";
+import type { Dirent } from "node:fs";
+import { readdir, rm, stat } from "node:fs/promises";
+import path from "node:path";
 import { createInterface } from "node:readline";
 
 const WEBHOOK_FORWARD_TO = "localhost:3000/api/stripe/webhook";
@@ -155,8 +158,54 @@ async function runWithStripeListen() {
   runNextDev({ STRIPE_WEBHOOK_SECRET: secret });
 }
 
+const TURBOPACK_DEV_CACHE_DIR = path.join(process.cwd(), ".next", "dev", "cache", "turbopack");
+const DEFAULT_DEV_CACHE_MAX_GB = 15;
+
+async function directorySizeBytes(dir: string): Promise<number> {
+  let total = 0;
+  let entries: Dirent[];
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return 0;
+  }
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      total += await directorySizeBytes(full);
+    } else if (entry.isFile()) {
+      try {
+        total += (await stat(full)).size;
+      } catch {
+        // File vanished mid-scan; ignore.
+      }
+    }
+  }
+  return total;
+}
+
+/**
+ * Turbopack's persistent dev cache can grow without bound (it reached 136 GB here), which makes
+ * every startup and recompile crawl. Clear it before starting `next dev` once it passes a limit.
+ */
+async function checkDevCacheSize() {
+  const maxGb = Number(process.env.NEXT_DEV_CACHE_MAX_GB) || DEFAULT_DEV_CACHE_MAX_GB;
+  const sizeGb = (await directorySizeBytes(TURBOPACK_DEV_CACHE_DIR)) / 1024 ** 3;
+  if (sizeGb <= maxGb) return;
+
+  await rm(TURBOPACK_DEV_CACHE_DIR, { recursive: true, force: true });
+  log("dev", `Turbopack dev cache was ${sizeGb.toFixed(1)} GB (limit ${maxGb} GB), cleared.`);
+}
+
 async function main() {
   registerShutdownHandlers();
+
+  try {
+    await checkDevCacheSize();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    log("dev", `Could not check Turbopack dev cache size: ${message}`, process.stderr);
+  }
 
   if (process.env.SKIP_STRIPE_LISTEN === "1") {
     runNextDev();

@@ -1,6 +1,8 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Check, Loader2, RotateCw } from "lucide-react";
+import { adminToast } from "@/lib/school-admin/admin-toast";
+import { GChip, G_FOCUS } from "@/components/school-parent/garden/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
@@ -88,7 +90,6 @@ export default function NewsletterWorkspace({
   const [editorTab, setEditorTab] = useState<NewsletterEditorTab>("story");
   const [device, setDevice] = useState<PreviewDevice>("desktop");
   const [modal, setModal] = useState<NewsletterModalState | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
   const [galleryPickerOpen, setGalleryPickerOpen] = useState(false);
   const [coverGalleryPickerOpen, setCoverGalleryPickerOpen] = useState(false);
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
@@ -260,10 +261,20 @@ export default function NewsletterWorkspace({
     [editionId, onWorkspaceChange, workspace],
   );
 
-  const showToast = useCallback((message: string) => {
-    setToast(message);
-    window.setTimeout(() => setToast(null), 3500);
-  }, []);
+  /**
+   * Editor messages go through the admin toaster (Garden on this page). Ids
+   * come from the message text, so unrelated messages don't replace each other
+   * and errors never share an id with a success.
+   */
+  const showToast = useCallback(
+    (message: string, tone: "success" | "error" | "info" = "info", options?: { description?: string }) => {
+      const key = message.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40);
+      if (tone === "success") adminToast.success(message, { id: `newsletter-${key}`, description: options?.description });
+      else if (tone === "error") adminToast.error(message, { id: `newsletter-${key}-error`, description: options?.description });
+      else adminToast.info(message, { id: `newsletter-${key}-info`, description: options?.description });
+    },
+    [],
+  );
 
   const showPreview = useCallback(() => {
     setPreviewVisible(true);
@@ -282,7 +293,9 @@ export default function NewsletterWorkspace({
       const slotsLeft = MAX_NEWSLETTER_PHOTOS - activeEdition.photos.length;
       const files = [...(event.target.files ?? [])].slice(0, slotsLeft);
       if (!files.length) {
-        showToast(`Up to ${MAX_NEWSLETTER_PHOTOS} photos.`);
+        showToast(`Up to ${MAX_NEWSLETTER_PHOTOS} photos.`, "info", {
+          description: "Remove a photo to add another.",
+        });
         event.target.value = "";
         return;
       }
@@ -293,7 +306,9 @@ export default function NewsletterWorkspace({
           const src = await prepareNewsletterImageFileForUpload(file);
           newPhotos.push({ id: createNewsletterId(), src, caption: "" });
         } catch {
-          showToast("Could not load an image. Try JPG or PNG.");
+          showToast("Couldn't add a photo.", "error", {
+            description: `“${file.name}” couldn't be loaded. Try a JPG or PNG.`,
+          });
         }
       }
       updateActiveEdition({ ...activeEdition, photos: newPhotos });
@@ -326,11 +341,32 @@ export default function NewsletterWorkspace({
     const text = await plainTextFromHtml(html);
     try {
       await navigator.clipboard.writeText(text);
-      showToast("Text copied.");
+      showToast("Text copied.", "success", { description: "Paste it into an email or document." });
+      return true;
     } catch {
-      showToast("Copy failed — try Download text.");
+      showToast("Couldn't copy the text.", "error", { description: "Use Download text instead — nothing was copied." });
+      return false;
     }
   }, [activeEdition, workspace.school, renderOptions, showToast]);
+
+  /** Publish checklist "Fix": close the dialog and put the cursor in that field. */
+  const focusEditorField = useCallback(
+    (field: "title" | "week" | "content") => {
+      setModal(null);
+      const id =
+        field === "title"
+          ? `newsletter-title-${activeEdition.id}`
+          : field === "week"
+            ? `newsletter-week-begin-${activeEdition.id}`
+            : null;
+      window.requestAnimationFrame(() => {
+        const el = id ? document.getElementById(id) : document.querySelector<HTMLElement>("[data-newsletter-editor] textarea");
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        (el as HTMLElement | null)?.focus({ preventScroll: true });
+      });
+    },
+    [activeEdition.id],
+  );
 
   const openPublish = useCallback(() => {
     if (locked) {
@@ -403,9 +439,31 @@ export default function NewsletterWorkspace({
               <AdminChip theme={theme} tone={locked ? "success" : "warning"}>
                 {locked ? "Published" : "Draft"}
               </AdminChip>
-              <span style={saveState === "error" ? { color: C.textSecondary } : undefined}>
-                {saveStatusLabel}
-              </span>
+              <GChip tone={saveState === "error" ? "alert" : saveState === "saving" || isDirty ? "warning" : "success"}>
+                <span className="inline-flex items-center gap-1" aria-live="polite">
+                  {saveState === "saving" ? (
+                    <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                  ) : saveState === "error" ? (
+                    <AlertTriangle className="h-3 w-3" aria-hidden />
+                  ) : isDirty ? null : (
+                    <Check className="h-3 w-3" aria-hidden />
+                  )}
+                  {saveState === "error" ? "Couldn't save" : saveStatusLabel}
+                </span>
+              </GChip>
+              {saveState === "error" ? (
+                <>
+                  {saveError ? <span className="text-[12px] font-semibold text-[#9a3422]">{saveError}</span> : null}
+                  <button
+                    type="button"
+                    onClick={() => void onSaveNow()}
+                    className={`inline-flex items-center gap-1 rounded-full border-[1.5px] border-[var(--sf-ink)]/20 bg-white px-2.5 py-1 text-[12px] font-extrabold text-[var(--sf-ink)] hover:border-[var(--sf-ink)]/45 ${G_FOCUS}`}
+                  >
+                    <RotateCw className="h-3 w-3" aria-hidden />
+                    Retry save
+                  </button>
+                </>
+              ) : null}
             </div>
           </div>
           <NewsletterPreviewToolbar
@@ -446,7 +504,7 @@ export default function NewsletterWorkspace({
           <div
             className={`${styles.builder} ${previewVisible ? "" : styles.builderPreviewHidden}`.trim()}
           >
-              <div className={styles.editorColumn}>
+              <div className={styles.editorColumn} data-newsletter-editor>
                 <NewsletterEditorPanel
                   edition={activeEdition}
                   template={workspace.template}
@@ -540,7 +598,8 @@ export default function NewsletterWorkspace({
         onShowPreview={showPreview}
         onExportHtml={exportHtml}
         onExportText={() => void exportText()}
-        onCopyText={() => void copyText()}
+        onCopyText={copyText}
+        onFocusField={focusEditorField}
         onPublish={handlePublish}
       />
 
@@ -589,11 +648,7 @@ export default function NewsletterWorkspace({
         onToast={showToast}
       />
 
-      {toast ? (
-        <div className={styles.toast} role="status">
-          {toast}
-        </div>
-      ) : null}
+
     </main>
   );
 }

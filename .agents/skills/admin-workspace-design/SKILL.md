@@ -9,6 +9,8 @@ description: >-
 
 # Admin Workspace — School Day Story Design
 
+> **Admin is moving to Garden.** The admin Dashboard now uses Garden (`src/components/school-admin/dashboard/garden/`). When you migrate or redesign an admin tab, use `.agents/skills/admin-portal-garden-design/`. This skill covers admin pages not yet migrated, and the story primitives that the marketing demos and the teacher portal still use.
+
 > MudKitchen-owned surfaces inside the admin (upgrade prompts, onboarding, empty states, celebrations) and the shared focus-ring standard: see `.agents/skills/mudkitchen-garden-design/in-app.md`.
 
 ## When to use
@@ -244,4 +246,4 @@ Roster metrics: [`admin-student-roster-metrics.ts`](src/lib/school-admin/admin-s
 - Tuition: [`TuitionDashboard.tsx`](src/components/school-admin/tuition/TuitionDashboard.tsx), [`TuitionStoryHeader.tsx`](src/components/school-admin/tuition/TuitionStoryHeader.tsx), [`TuitionFamilyListSidebar.tsx`](src/components/school-admin/tuition/TuitionFamilyListSidebar.tsx)
 - Alerts: [`NotificationsSettingsPage.tsx`](src/components/school-admin/notifications/NotificationsSettingsPage.tsx), [`AlertsStoryHeader.tsx`](src/components/school-admin/notifications/AlertsStoryHeader.tsx), [`AlertsChannelTabBar.tsx`](src/components/school-admin/notifications/AlertsChannelTabBar.tsx), [`NotificationChannelCard.tsx`](src/components/school-admin/notifications/NotificationChannelCard.tsx)
 - Committees: [`CommitteesPage.tsx`](src/components/school-admin/committees/CommitteesPage.tsx), [`CommitteesStoryHeader.tsx`](src/components/school-admin/committees/CommitteesStoryHeader.tsx), [`CommitteeWorkspaceStoryHeader.tsx`](src/components/school-admin/committees/CommitteeWorkspaceStoryHeader.tsx)
-- Parent portal parallel: [`.agents/skills/parent-portal-story-design/SKILL.md`](../parent-portal-story-design/SKILL.md)
+- Parent portal: it now uses its own Garden dashboard system, so don't copy it into admin. See [`.agents/skills/parent-portal-garden-design/SKILL.md`](../parent-portal-garden-design/SKILL.md).

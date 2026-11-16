@@ -16,7 +16,7 @@ export type PortalActivityNotificationItem = {
   category: string;
 };
 
-function categoryIcon(category: string): keyof typeof Ionicons.glyphMap {
+export function categoryIcon(category: string): keyof typeof Ionicons.glyphMap {
   switch (category) {
     case 'messages':
       return 'chatbubble-outline';

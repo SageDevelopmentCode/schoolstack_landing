@@ -127,6 +127,8 @@ function SchoolParentBaselineInner({
   const { theme, adminCompat: C } = useParentTheme();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationsMounted, setNotificationsMounted] = useState(false);
+  /** Bell count when the drawer opened, so the newest rows can be marked "New". */
+  const [unreadAtOpen, setUnreadAtOpen] = useState(0);
   const [committeeWorkspaceOpen, setCommitteeWorkspaceOpen] = useState(false);
   const [activityUnreadCount, setActivityUnreadCount] = useState(
     initialActivityUnreadCount ?? 0,
@@ -241,9 +243,10 @@ function SchoolParentBaselineInner({
   }, [fetchActivityUnreadCount, previewMode]);
 
   const openNotifications = useCallback(() => {
+    setUnreadAtOpen(activityUnreadCount);
     setNotificationsMounted(true);
     setNotificationsOpen(true);
-  }, []);
+  }, [activityUnreadCount]);
 
   const shell = (
     <ParentPortalContextProvider
@@ -310,6 +313,7 @@ function SchoolParentBaselineInner({
 
         <PortalHelpFab
           C={C}
+          theme={theme}
           organizationId={organizationId}
           userEmail={userProfile.email}
           currentPath={pathname}
@@ -320,7 +324,12 @@ function SchoolParentBaselineInner({
           iconOnly={isParentCurriculumPath(pathname)}
         />
 
-        <ParentToaster C={C} helpButtonVisible={showHelpButton} />
+        <ParentToaster
+          C={C}
+          theme={theme}
+          appearance="garden"
+          helpButtonVisible={showHelpButton}
+        />
 
         <Suspense fallback={null}>
           <CommitteeWorkspaceSearchParamSync
@@ -341,6 +350,8 @@ function SchoolParentBaselineInner({
             previewMode={previewMode}
             previewFamilyId={previewFamilyId}
             onMarkedRead={() => setActivityUnreadCount(0)}
+            unreadCountAtOpen={unreadAtOpen}
+            notificationSettingsHref={`${previewParentBasePath ?? `/school/${slug}/parent`}/notifications`}
             onNavigate={embeddedPreview?.onNavigate}
           />
         ) : null}

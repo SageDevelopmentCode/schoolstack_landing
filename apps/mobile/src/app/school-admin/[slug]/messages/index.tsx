@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { MessagesListScreen } from '@/components/school-admin/messages/messages-list-screen';
+import { AdminMessagesInboxScreen } from '@/components/school-admin/messages/garden/admin-messages-inbox-screen';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function SchoolAdminMessagesPage() {
@@ -12,7 +12,7 @@ export default function SchoolAdminMessagesPage() {
   }
 
   return (
-    <MessagesListScreen
+    <AdminMessagesInboxScreen
       organizationId={selectedSchool.id}
       organizationSlug={selectedSchool.slug}
       schoolName={selectedSchool.name}

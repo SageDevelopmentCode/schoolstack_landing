@@ -12,10 +12,13 @@ The school admin, parent and teacher portals (web and mobile) are **white-labell
 - **Tokens:** `buildParentThemeTokens(branding)` (`src/lib/organization-settings/parent-theme.ts`) takes each school's `branding.colors.accent*` as `primary*` and its `typography.bodyFont`.
 - **Shell:** `SchoolAdminStoryShell` (`src/components/school-admin/SchoolAdminStoryShell.tsx`) and `ParentThemeContext` (`src/components/school-parent/ParentThemeContext.tsx`) hand those tokens to the primitives as JS values. They're applied mostly as inline `style={{}}`.
 - **Fonts:** Fraunces (display) and DM Sans (body).
-- **Rules:** that system is **School Day Story**, documented in `.agents/skills/admin-workspace-design` and `.agents/skills/parent-portal-story-design`. Those skills stay authoritative for portal content.
+- **Rules:** the admin and teacher portals (web and mobile) use **School Day Story**, documented in `.agents/skills/admin-workspace-design`. The **parent portal** has moved to **Garden**: on web, the Garden dashboard (`.agents/skills/parent-portal-garden-design`); in the Expo app, the mobile Garden kit (`.agents/skills/parent-mobile-garden-design`). Those skills stay authoritative for portal content.
 
 So:
-- **Never put Garden colours on school-branded content.** No clay buttons, butter notes, Bricolage headings or tilted cards inside a school's parent home, billing, roster or messages. A family at "Rooted Meadows" sees Rooted Meadows' purple, not MudKitchen clay.
+- **Never put MudKitchen clay on school-branded content.** A family at "Rooted Meadows" sees Rooted Meadows' purple, not MudKitchen clay.
+  - **Parent portal (web):** Garden type and materials are allowed, but only inside `ParentGardenFrame`, which maps the school accent onto `--sf-clay*`. Follow `parent-portal-garden-design`: portal density, no tilt on data, one toy button per view.
+  - **Parent portal (mobile):** the same rules through `apps/mobile/src/components/parent/garden/*`, with the school accent from `useGardenAccent()`. Follow `parent-mobile-garden-design`.
+  - **Admin and teacher portals (web and mobile):** no butter notes, Bricolage headings or tilted cards; use School Day Story.
 - **MudKitchen-owned surfaces** (where MudKitchen, not the school, is speaking) use **Calm Garden**.
 - **Portal changes ripple into marketing.** The marketing demos (`src/components/demo/shared/*`, `demo-story-theme.ts`, `DemoStage`) render the *real* portal components. Restyle a portal primitive and every demo on the home page changes too. Re-check `/` and `/demo/*` after any portal change.
 
@@ -29,10 +32,12 @@ So:
 | First-run onboarding, product tours, "what's new" | Calm Garden | `AdminFeatureAnnouncementsCard`, `AdminDashboardHowToGuidesCard` (`src/components/school-admin/ui/story/`) |
 | Empty states | School Day Story layout, plus the Garden empty-state treatment below | `src/components/school-admin/SchoolAdminEmptyState.tsx`, parent and teacher equivalents |
 | Success moments (enrollment complete, first payment, setup finished) | School Day Story, plus a Garden celebration | inline in features |
-| Dashboards, lists, tables, forms, billing, messages, calendars | **School Day Story only** | `Admin*` primitives (`src/components/school-admin/ui/story/`), `Parent*` primitives (`src/components/school-parent/ui/`) |
+| Parent portal pages (web): home, billing, messages, calendars, forms | **Garden dashboard** (`parent-portal-garden-design`) | `src/components/school-parent/garden/*`. Tabs not yet migrated still use the `Parent*` primitives in `src/components/school-parent/ui/`. |
+| Admin and teacher dashboards, lists, tables, forms, billing, messages, calendars | **School Day Story only** | `Admin*` primitives (`src/components/school-admin/ui/story/`) |
 | Internal superadmin | `.admin-app` slate | `src/components/admin/AdminShell.tsx`; don't restyle |
 | Mobile: auth, onboarding, MudKitchen account and upgrade screens | Calm Garden (mobile) | `apps/mobile/src/app/*` |
-| Mobile: parent, teacher and admin portal screens | School Day Story (mobile `Story` / `MobileParentTheme`) | `apps/mobile/src/components/story/*` |
+| Mobile: parent portal screens | **Garden** (`parent-mobile-garden-design`); the Home Hub is the reference, and unmigrated tabs still use Story | `apps/mobile/src/components/parent/garden/*`, `apps/mobile/src/components/parent/home/*` |
+| Mobile: teacher and admin portal screens | School Day Story (mobile `Story` / `MobileParentTheme`) | `apps/mobile/src/components/story/*` |
 
 ## Token mapping
 
@@ -50,7 +55,7 @@ Garden, web portal and mobile already share most of their neutrals. Use the mapp
 | `mint` | `#DDEBD5` | `theme.sage` `#CFE4D6` (close) | `Brand.badgeGreen` `#E2EDD9` (close) |
 | `butter`, `sky`, `lav` | `#FFE58A`, `#E3EDFB`, `#ECE2F3` | `childAccentBg` rotation (`#F3EAD6`, `#DCEBF2`, `#E8E4F0`) are softer cousins | not defined |
 
-- **Missing pastels on mobile:** when a Calm Garden mobile screen needs the pastels, add them once as `GardenPastels` in `apps/mobile/src/constants/theme.ts`, with the exact Garden hexes. Don't inline them per screen.
+- **Pastels on mobile:** the exact Garden hexes live in `Garden` (`apps/mobile/src/components/parent/garden/tokens.ts`). Import them from there; don't inline them per screen.
 - **Calm Garden on web, outside `.sf-garden`:** wrap the surface in `GardenRoot` if it's a whole page. For a dialog inside a portal, use the hexes through a small local constant object and keep the portal's fonts. Don't mount `.sf-garden` inside a portal shell, because its `revert-layer` type reset will change the portal's headings.
 
 ## Calm Garden rules (MudKitchen-owned app surfaces)
@@ -86,7 +91,7 @@ Calm Garden is the home page's materials without the theatre.
 - **Portal timing** (keep it): easing `[0.16, 1, 0.3, 1]`, 220–350ms fades and slides, `AnimatePresence mode="wait"` for tab and panel swaps.
 - **Springs** (`stiffness ~380, damping ~18–24`) only for celebration chips, sticker pops and pill indicators (`layoutId`).
 - **Web reduced motion:** framer `useReducedMotion()`. Pass `initial={reduce ? false : …}` and skip exit animations. `globals.css` also clamps CSS animations globally.
-- **Mobile reduced motion:** currently **missing**. New animated mobile UI must read `AccessibilityInfo.isReduceMotionEnabled()` (or Reanimated's `ReduceMotion.System`) and skip non-essential motion.
+- **Mobile reduced motion:** new animated mobile UI must read Reanimated's `useReducedMotion()` (or `ReduceMotion.System`) and skip non-essential motion. The parent Garden kit already does.
 
 ## Focus and accessibility standard
 
@@ -102,7 +107,7 @@ focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-offset-2 focu
 ## Mobile specifics (`apps/mobile`)
 
 - **Styling:** plain `StyleSheet.create`; there's no nativewind. Story primitives are in `apps/mobile/src/components/story/` (`story-button`, `story-card`, `story-chip`, `story-bottom-sheet`, …), with tokens in `apps/mobile/src/constants/story-theme.ts` and per-school theming in `apps/mobile/src/contexts/parent-theme-context.tsx`.
-- **Fonts:** loaded in `apps/mobile/src/constants/app-fonts.ts`; currently Fraunces, DM Sans, Lora and Poppins. Bricolage, Nunito and Gochi Hand are **not** loaded. Add them through `@expo-google-fonts/bricolage-grotesque`, `@expo-google-fonts/nunito` and `@expo-google-fonts/gochi-hand` **only** when a MudKitchen-owned screen needs them, and register them in `APP_FONTS`.
+- **Fonts:** loaded in `apps/mobile/src/constants/app-fonts.ts` (`APP_FONTS`): Fraunces, DM Sans, Lora and Poppins, plus the Garden faces (Bricolage 800, Nunito 400/600/700/800, Gochi Hand), imported from per-weight subpaths so only those weights are bundled. Use them through `GardenFonts` (`apps/mobile/src/components/parent/garden/tokens.ts`).
 - **Dark mode:** not supported (`Colors.dark` equals `Colors.light`). Don't add half-dark styles.
 - **Keyboard and sheet layouts:** follow `apps/mobile/AGENTS.md`.
 

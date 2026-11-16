@@ -10,6 +10,8 @@ import AdminTextLink from "@/components/school-admin/ui/story/AdminTextLink";
 import CommitteeActivityFeed from "@/components/school-admin/committees/CommitteeActivityFeed";
 import CommitteeActivityFeedSkeleton from "@/components/school-admin/committees/CommitteeActivityFeedSkeleton";
 import CommitteeWorkspaceSectionFrame from "@/components/school-admin/committees/CommitteeWorkspaceSectionFrame";
+import { useIsGardenCommittee } from "@/components/school-admin/committees/committee-surface";
+import GardenCommitteeHome from "@/components/school-admin/committees/sections/garden/GardenCommitteeHome";
 import type { CommitteeActivityItem } from "@/lib/committees/activity-feed";
 import type { Committee, CommitteeWorkspaceSection } from "@/lib/committees/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
@@ -45,6 +47,9 @@ export default function CommitteeHomeSection({
     initialActivityItems ?? [],
   );
   const [loadingActivity, setLoadingActivity] = useState(false);
+  const [activityFailed, setActivityFailed] = useState(false);
+  const [activityNonce, setActivityNonce] = useState(0);
+  const garden = useIsGardenCommittee();
 
   const quickLinks = QUICK_LINKS.map(({ section, label, icon, accent }) => ({
     section,
@@ -74,6 +79,7 @@ export default function CommitteeHomeSection({
 
     (async () => {
       setLoadingActivity(true);
+      setActivityFailed(false);
       try {
         const params = new URLSearchParams({
           organizationId,
@@ -108,7 +114,10 @@ export default function CommitteeHomeSection({
           },
           err,
         );
-        if (!cancelled) setActivityItems([]);
+        if (!cancelled) {
+          setActivityItems([]);
+          setActivityFailed(true);
+        }
       } finally {
         if (!cancelled) setLoadingActivity(false);
       }
@@ -117,7 +126,28 @@ export default function CommitteeHomeSection({
     return () => {
       cancelled = true;
     };
-  }, [activitySurface, committee.id, initialActivityItems, organizationId, schoolSlug]);
+  }, [activitySurface, activityNonce, committee.id, initialActivityItems, organizationId, schoolSlug]);
+
+  if (garden) {
+    return (
+      <CommitteeWorkspaceSectionFrame width="wide">
+        <GardenCommitteeHome
+          committee={committee}
+          theme={theme}
+          upcomingEvents={upcomingEvents}
+          urgentTasks={urgentTasks}
+          leaders={leaders}
+          quickLinks={quickLinks}
+          activityItems={activityItems}
+          loadingActivity={loadingActivity}
+          activityFailed={activityFailed}
+          onRetryActivity={() => setActivityNonce((n) => n + 1)}
+          showActivity={Boolean(organizationId)}
+          onNavigate={onNavigate}
+        />
+      </CommitteeWorkspaceSectionFrame>
+    );
+  }
 
   return (
     <CommitteeWorkspaceSectionFrame width="wide">

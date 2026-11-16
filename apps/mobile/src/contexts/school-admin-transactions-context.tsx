@@ -34,7 +34,8 @@ type SchoolAdminTransactionsContextValue = {
   hasLoaded: boolean;
   setStatusFilter: (status: '' | PaymentStatus) => void;
   setTypeFilter: (type: '' | PaymentType) => void;
-  refresh: (options?: { silent?: boolean }) => Promise<void>;
+  /** `refreshMeta` also reloads the summary and filter counts (pull to refresh). */
+  refresh: (options?: { silent?: boolean; refreshMeta?: boolean }) => Promise<void>;
   loadMore: () => Promise<void>;
 };
 
@@ -116,6 +117,7 @@ export function SchoolAdminTransactionsProvider({
     async (options?: {
       refresh?: boolean;
       silent?: boolean;
+      refreshMeta?: boolean;
       status?: '' | PaymentStatus;
       paymentType?: '' | PaymentType;
     }) => {
@@ -143,7 +145,7 @@ export function SchoolAdminTransactionsProvider({
         try {
           const body = await fetchPage({
             offset: 0,
-            includeMeta: !metaRef.current,
+            includeMeta: !metaRef.current || Boolean(options?.refreshMeta),
             status,
             paymentType,
           });
@@ -179,8 +181,8 @@ export function SchoolAdminTransactionsProvider({
   );
 
   const refresh = useCallback(
-    async (options?: { silent?: boolean }) => {
-      await load({ refresh: true, silent: options?.silent });
+    async (options?: { silent?: boolean; refreshMeta?: boolean }) => {
+      await load({ refresh: true, silent: options?.silent, refreshMeta: options?.refreshMeta });
     },
     [load],
   );

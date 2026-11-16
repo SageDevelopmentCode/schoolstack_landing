@@ -6,4 +6,5 @@ appId: com.mudkitchen.schoolstack.mobile
     visible: 'Students'
     timeout: 30000
 - assertVisible: 'Search students'
-- assertVisible: 'My School workspace'
+- assertVisible:
+    id: 'school-admin-students-ready'

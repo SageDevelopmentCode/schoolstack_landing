@@ -1,5 +1,9 @@
 "use client";
 
+import { GDialog } from "@/components/school-parent/garden/GDialog";
+import { PortalIsland } from "@/components/school-parent/garden/ParentGardenFrame";
+import { GChip, type GChipTone } from "@/components/school-parent/garden/ui";
+import { useSubmissionDetailStory } from "./SubmissionDetailStoryContext";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import EnrollmentChecklistItemReadOnlyPanel from "@/components/admissions/EnrollmentChecklistItemReadOnlyPanel";
@@ -23,6 +27,13 @@ type EnrollmentChecklistStepDetailModalProps = {
   onClose: () => void;
 };
 
+function gardenStepTone(status: string): GChipTone {
+  if (/complete|approved|paid|signed|waived|not_required/.test(status)) return "success";
+  if (/progress|submitted|review|pending/.test(status)) return "info";
+  if (/reject|fail|declin/.test(status)) return "alert";
+  return "neutral";
+}
+
 export default function EnrollmentChecklistStepDetailModal({
   C,
   organizationId,
@@ -32,6 +43,44 @@ export default function EnrollmentChecklistStepDetailModal({
   onClose,
 }: EnrollmentChecklistStepDetailModalProps) {
   const status = instance?.status ?? "not_started";
+  const { variant, theme } = useSubmissionDetailStory();
+
+  if (variant === "garden" && theme) {
+    return (
+      <GDialog
+        theme={theme}
+        open={open && item != null}
+        onClose={onClose}
+        size="lg"
+        title={
+          <span className="inline-flex flex-wrap items-center gap-2">
+            {item?.label}
+            <GChip tone={gardenStepTone(status)}>{checklistItemStatusLabel(status)}</GChip>
+          </span>
+        }
+        description={
+          item ? (
+            <>
+              {CHECKLIST_ITEM_TYPE_LABELS[item.type]}
+              {!item.required ? " · Optional" : ""}
+            </>
+          ) : undefined
+        }
+        data-testid="checklist-step-dialog"
+      >
+        {item ? (
+          <PortalIsland>
+            <EnrollmentChecklistItemReadOnlyPanel
+              C={C}
+              organizationId={organizationId}
+              item={item}
+              instance={instance ?? undefined}
+            />
+          </PortalIsland>
+        ) : null}
+      </GDialog>
+    );
+  }
 
   return (
     <AnimatePresence>

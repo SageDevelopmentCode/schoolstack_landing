@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-export type PaymentStatus = 'pending' | 'succeeded' | 'failed' | 'refunded';
+/** `canceled`: abandoned Checkout. Filtered out of lists below. */
+export type PaymentStatus = 'pending' | 'succeeded' | 'failed' | 'refunded' | 'canceled';
 export type PaymentType = 'application_fee' | 'enrollment_checklist' | 'tuition';
 export type PaymentMethodType = 'card' | 'us_bank_account';
 
@@ -44,6 +45,7 @@ export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   succeeded: 'Succeeded',
   failed: 'Failed',
   refunded: 'Refunded',
+  canceled: 'Canceled',
 };
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethodType, string> = {
@@ -270,6 +272,7 @@ export async function listOrganizationPayments(
     .from('application_payments')
     .select(PAYMENT_SELECT)
     .eq('organization_id', organizationId)
+    .neq('status', 'canceled')
     .order('created_at', { ascending: false })
     .limit(ORGANIZATION_PAYMENTS_LIMIT);
 
@@ -287,6 +290,7 @@ export async function listApplicationPayments(
     .from('application_payments')
     .select(PAYMENT_SELECT)
     .eq('application_id', applicationId)
+    .neq('status', 'canceled')
     .order('created_at', { ascending: false });
 
   if (error) throw error;

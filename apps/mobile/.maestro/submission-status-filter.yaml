@@ -6,8 +6,9 @@ appId: com.mudkitchen.schoolstack.mobile
     visible: 'Alpha Child'
     timeout: 30000
 - assertVisible: 'Beta Child'
+# The "Ready to review" KPI tile filters to submitted applications (Beta Child is under review).
 - tapOn:
-    text: 'Submitted'
+    id: 'admissions-kpi-submitted'
 - extendedWaitUntil:
     visible: 'Alpha Child'
     timeout: 30000

@@ -4,19 +4,50 @@
 
 jest.mock('react-native-reanimated', () => {
   const { View } = require('react-native');
-  return {
+  // Layout animation builders chain (`FadeInDown.delay(40).duration(320).easing(…)`).
+  const builder = (): Record<string, unknown> => {
+    const chain: Record<string, unknown> = {};
+    for (const key of ['delay', 'duration', 'easing', 'springify', 'reduceMotion']) {
+      chain[key] = () => chain;
+    }
+    return chain;
+  };
+  const identity = (value: unknown) => value;
+  const base: Record<string | symbol, unknown> = {
     __esModule: true,
     default: {
       View,
       createAnimatedComponent: (Component: typeof View) => Component,
     },
-    FadeInDown: { duration: () => ({}) },
+    FadeIn: builder(),
+    FadeOut: builder(),
+    FadeInDown: builder(),
+    FadeInUp: builder(),
+    Easing: {
+      bezier: () => identity,
+      in: identity,
+      out: identity,
+      inOut: identity,
+      cubic: identity,
+      linear: identity,
+    },
+    ReduceMotion: { System: 'system', Always: 'always', Never: 'never' },
+    useReducedMotion: () => false,
     useSharedValue: (initial: number) => ({ value: initial }),
     useAnimatedStyle: (factory: () => Record<string, unknown>) => factory(),
-    withRepeat: (value: unknown) => value,
-    withTiming: (value: unknown) => value,
-    withSpring: (value: unknown) => value,
+    useAnimatedScrollHandler: () => () => undefined,
+    runOnJS: identity,
+    withRepeat: identity,
+    withTiming: identity,
+    withSpring: identity,
+    withDelay: (_delay: number, value: unknown) => value,
+    withSequence: (...values: unknown[]) => values[0],
   };
+  // Any other layout animation (`FadeOutUp`, `SlideInRight`, …) gets a chainable builder.
+  return new Proxy(base, {
+    get: (target, key) =>
+      key in target ? target[key] : typeof key === 'string' && /^[A-Z]/.test(key) ? builder() : undefined,
+  });
 });
 
 // Matches TestFlight binaries built before expo-image-manipulator was added.
@@ -25,6 +56,8 @@ jest.mock('expo-image-manipulator', () => {
 });
 
 jest.mock('expo-router', () => ({
+  useRouter: () => ({ back: jest.fn(), canGoBack: () => true, replace: jest.fn(), push: jest.fn() }),
+  useLocalSearchParams: () => ({}),
   useFocusEffect: (callback: () => void | (() => void)) => {
     const cleanup = callback();
     return cleanup;
@@ -50,10 +83,12 @@ jest.mock('@/contexts/auth-context', () => ({
 }));
 
 describe('gallery photos module imports', () => {
-  it('loads parent read-only gallery screen', () => {
-    expect(() => require('@/components/gallery/gallery-photos-readonly-screen')).not.toThrow();
-    const mod = require('@/components/gallery/gallery-photos-readonly-screen');
-    expect(mod.GalleryPhotosReadonlyScreen).toBeDefined();
+  it('loads the parent Garden photos screen without upload modules', () => {
+    expect(() =>
+      require('@/components/parent/photos/garden/parent-photos-garden-screen'),
+    ).not.toThrow();
+    const mod = require('@/components/parent/photos/garden/parent-photos-garden-screen');
+    expect(mod.ParentPhotosGardenScreen).toBeDefined();
   });
 
   it('loads admin gallery photos screen', () => {
@@ -74,10 +109,15 @@ describe('gallery photos module imports', () => {
     expect(mod.TeacherPhotosScreen).toBeDefined();
   });
 
-  it('loads school admin photos screen wrapper', () => {
-    expect(() => require('@/components/school-admin/gallery/photos-screen')).not.toThrow();
-    const mod = require('@/components/school-admin/gallery/photos-screen');
+  it('loads school admin Garden photos screen', () => {
+    expect(() => require('@/components/school-admin/gallery/garden/admin-photos-screen')).not.toThrow();
+    const mod = require('@/components/school-admin/gallery/garden/admin-photos-screen');
     expect(mod.PhotosScreen).toBeDefined();
+  });
+
+  it('loads school admin Garden upload sheet and shared upload hook', () => {
+    expect(() => require('@/components/school-admin/gallery/garden/admin-photo-upload-sheet')).not.toThrow();
+    expect(typeof require('@/lib/school-gallery/use-gallery-upload').useGalleryUpload).toBe('function');
   });
 
   it('loads school admin photos route when expo-image-manipulator native module is missing', () => {

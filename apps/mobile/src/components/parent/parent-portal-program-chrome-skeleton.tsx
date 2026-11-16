@@ -8,12 +8,12 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { StoryCard } from '@/components/story/story-card';
-import { StoryMoreMenuItemsCard } from '@/components/story/more/story-more-menu-items-card';
+import { GSkeleton } from '@/components/parent/garden/ui';
 import {
   PARENT_COOP_TAB_BAR_BANNER_HEIGHT,
 } from '@/components/parent/parent-portal-coop-tab-bar-banner';
 import { useParentTheme } from '@/contexts/parent-theme-context';
-import { Story, StoryCardPadding, StoryRadius } from '@/constants/story-theme';
+import { StoryCardPadding, StoryRadius } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 
 function SkeletonBlock({
@@ -37,24 +37,14 @@ function SkeletonBlock({
 }
 
 export function ParentPortalCoopTabBarBannerSkeleton() {
-  const theme = useParentTheme();
-
   return (
     <View
       accessible
       accessibilityRole="progressbar"
       accessibilityLabel="Loading program portal"
-      style={[
-        styles.tabBarBanner,
-        {
-          backgroundColor: theme.primarySoft,
-          borderColor: theme.line,
-        },
-      ]}>
-      <SkeletonBlock
-        style={styles.tabBarBannerLine}
-        backgroundColor={theme.line}
-      />
+      pointerEvents="none"
+      style={styles.tabBarBanner}>
+      <GSkeleton style={styles.tabBarBannerChip} />
     </View>
   );
 }
@@ -71,29 +61,6 @@ export function ParentPortalProgramSwitcherCardSkeleton() {
   );
 }
 
-export function ParentPortalMoreMenuItemsSkeleton({ rowCount = 4 }: { rowCount?: number }) {
-  const theme = useParentTheme();
-
-  return (
-    <StoryMoreMenuItemsCard>
-      {Array.from({ length: rowCount }, (_, index) => (
-        <View
-          key={index}
-          style={[
-            styles.menuRow,
-            index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Story.line },
-          ]}>
-          <SkeletonBlock style={styles.menuIcon} backgroundColor={theme.line} />
-          <View style={styles.menuTextColumn}>
-            <SkeletonBlock style={styles.menuTitle} backgroundColor={theme.line} />
-            <SkeletonBlock style={styles.menuSubtitle} backgroundColor={theme.line} />
-          </View>
-        </View>
-      ))}
-    </StoryMoreMenuItemsCard>
-  );
-}
-
 const styles = StyleSheet.create({
   tabBarBanner: {
     alignSelf: 'stretch',
@@ -101,13 +68,11 @@ const styles = StyleSheet.create({
     height: PARENT_COOP_TAB_BAR_BANNER_HEIGHT,
     justifyContent: 'center',
     alignItems: 'center',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: Spacing.four,
   },
-  tabBarBannerLine: {
-    height: 12,
-    width: '55%',
-    borderRadius: StoryRadius.button,
+  tabBarBannerChip: {
+    height: 26,
+    width: 180,
+    borderRadius: 13,
   },
   programCard: {
     padding: StoryCardPadding,
@@ -122,31 +87,5 @@ const styles = StyleSheet.create({
   programRow: {
     height: 36,
     borderRadius: 8,
-  },
-  menuRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingVertical: Spacing.three,
-    paddingHorizontal: Spacing.three,
-  },
-  menuIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-  },
-  menuTextColumn: {
-    flex: 1,
-    gap: Spacing.one,
-  },
-  menuTitle: {
-    height: 14,
-    width: '50%',
-    borderRadius: StoryRadius.button,
-  },
-  menuSubtitle: {
-    height: 12,
-    width: '70%',
-    borderRadius: StoryRadius.button,
   },
 });

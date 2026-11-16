@@ -1,12 +1,13 @@
 "use client";
 
+import { SkinPortalScope } from "@/components/school-admin/garden/skin";
 import { createPortal } from "react-dom";
+import { DetailButton } from "@/components/school-admin/admissions/detail-garden";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { EnrollmentChecklistPreviewContent } from "./EnrollmentChecklistPreviewContent";
 import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
 type EnrollmentChecklistPreviewProps = {
@@ -41,6 +42,7 @@ export default function EnrollmentChecklistPreview({
   }
 
   return createPortal(
+<SkinPortalScope>
     <AnimatePresence>
       {open && (
         <motion.div
@@ -60,20 +62,21 @@ export default function EnrollmentChecklistPreview({
             allItems={allItems}
             initialItemId={initialItemId}
             headerAction={
-              <button
+              <DetailButton
+ kind="neutral"
+ C={C}
                 type="button"
                 onClick={onClose}
-                className="flex shrink-0 items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium"
-                style={getAdminButtonStyle(C, "neutral")}
+                storyClassName="flex shrink-0 items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium"
               >
                 <X className="h-4 w-4" />
                 Close
-              </button>
+              </DetailButton>
             }
           />
         </motion.div>
       )}
-    </AnimatePresence>,
+    </AnimatePresence></SkinPortalScope>,
     document.body,
   );
 }

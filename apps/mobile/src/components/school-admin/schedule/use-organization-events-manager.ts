@@ -20,12 +20,25 @@ import { getDefaultColorKeyForType } from '@/lib/school-events/event-labels';
 import type { OrganizationEvent } from '@/lib/school-events/types';
 import type { MobileErrorReporter } from '@/lib/mobile-error-reporter';
 
+/**
+ * Optional feedback hooks (Garden screens). When a hook is given it replaces
+ * the default `Alert`; without them behaviour is unchanged (teacher calendar).
+ */
+export type OrganizationEventsManagerFeedback = {
+  onValidationError?: (title: string, message: string) => void;
+  onSaved?: (info: { mode: 'create' | 'edit'; title: string; date: string }) => void;
+  onSaveError?: (error: unknown) => void;
+  onDeleted?: (info: { title: string; date: string }) => void;
+  onDeleteError?: (error: unknown) => void;
+};
+
 type UseOrganizationEventsManagerOptions = {
   organizationId: string;
   events: OrganizationEvent[];
   onAfterMutate: () => Promise<void>;
   reportError: MobileErrorReporter;
   reportErrorPrefix: string;
+  feedback?: OrganizationEventsManagerFeedback;
 };
 
 export function useOrganizationEventsManager({
@@ -34,6 +47,7 @@ export function useOrganizationEventsManager({
   onAfterMutate,
   reportError,
   reportErrorPrefix,
+  feedback,
 }: UseOrganizationEventsManagerOptions) {
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
@@ -84,11 +98,16 @@ export function useOrganizationEventsManager({
     setFormOpen(true);
   }, []);
 
-  const handleSave = useCallback(async () => {
-    if (!form.title.trim() || !form.date) return;
+  /** Resolves `true` when the event was saved. */
+  const handleSave = useCallback(async (): Promise<boolean> => {
+    if (!form.title.trim() || !form.date) return false;
     if (!form.isAllDay && !form.time) {
-      Alert.alert('Missing time', 'Add a start time or mark the event as all day.');
-      return;
+      if (feedback?.onValidationError) {
+        feedback.onValidationError('Missing time', 'Add a start time or mark the event as all day.');
+      } else {
+        Alert.alert('Missing time', 'Add a start time or mark the event as all day.');
+      }
+      return false;
     }
 
     setSaving(true);
@@ -126,18 +145,23 @@ export function useOrganizationEventsManager({
 
       setFormOpen(false);
       await onAfterMutate();
+      feedback?.onSaved?.({ mode: formMode, title: form.title.trim(), date: form.date });
+      return true;
     } catch (error) {
       reportError(`${reportErrorPrefix}_event_save`, error, {
         entityType: 'organization_event',
         entityId: editingEventId ?? undefined,
         metadata: { mode: formMode },
       });
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to save event.');
+      if (feedback?.onSaveError) feedback.onSaveError(error);
+      else Alert.alert('Error', error instanceof Error ? error.message : 'Failed to save event.');
+      return false;
     } finally {
       setSaving(false);
     }
   }, [
     editingEventId,
+    feedback,
     form,
     formMode,
     onAfterMutate,
@@ -146,23 +170,29 @@ export function useOrganizationEventsManager({
     reportErrorPrefix,
   ]);
 
-  const handleDelete = useCallback(async () => {
-    if (!selectedEvent) return;
+  /** Resolves `true` when the event was deleted. */
+  const handleDelete = useCallback(async (): Promise<boolean> => {
+    if (!selectedEvent) return false;
+    const deleted = { title: selectedEvent.title, date: selectedEvent.date };
     setDeleting(true);
     try {
       await deleteOrganizationEventViaApi(organizationId, selectedEvent.id);
       setSelectedEventId(null);
       await onAfterMutate();
+      feedback?.onDeleted?.(deleted);
+      return true;
     } catch (error) {
       reportError(`${reportErrorPrefix}_event_delete`, error, {
         entityType: 'organization_event',
         entityId: selectedEvent.id,
       });
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to delete event.');
+      if (feedback?.onDeleteError) feedback.onDeleteError(error);
+      else Alert.alert('Error', error instanceof Error ? error.message : 'Failed to delete event.');
+      return false;
     } finally {
       setDeleting(false);
     }
-  }, [onAfterMutate, organizationId, reportError, reportErrorPrefix, selectedEvent]);
+  }, [feedback, onAfterMutate, organizationId, reportError, reportErrorPrefix, selectedEvent]);
 
   return {
     formOpen,

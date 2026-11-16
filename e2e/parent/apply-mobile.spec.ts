@@ -59,7 +59,12 @@ test.describe("mobile apply flows", () => {
 
   test("application detail uses shared navbar on mobile", async ({ page }) => {
     await page.goto(`/school/${TEST_ORG_SLUG}/apply`);
-    await page.getByTestId("apply-application-card-link").first().click();
+    // Drafts open the application form (its own header), so open a submitted application's detail page.
+    await page
+      .getByTestId("apply-application-card-link")
+      .and(page.getByRole("link", { name: "View application", exact: true }))
+      .first()
+      .click();
 
     await expect(page.getByRole("button", { name: /E2E Parent/i })).toBeVisible();
   });

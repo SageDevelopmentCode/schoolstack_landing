@@ -1,20 +1,16 @@
 import { Stack } from 'expo-router';
 
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { Garden } from '@/components/parent/garden/tokens';
 import { detailStackAnimation } from '@/lib/motion/portal-motion';
 
 export default function StudentsLayout() {
-  const theme = useAdminTheme();
-
   return (
     <Stack
       screenOptions={{
         headerShown: false,
         animation: detailStackAnimation(),
-        contentStyle: { backgroundColor: theme.bg },
-        headerStyle: { backgroundColor: theme.surface },
-        headerTintColor: theme.accent,
-        headerTitleStyle: { color: theme.textPrimary },
+        // Garden screens: cream behind push transitions.
+        contentStyle: { backgroundColor: Garden.cream },
       }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="[id]" options={{ headerShown: false }} />

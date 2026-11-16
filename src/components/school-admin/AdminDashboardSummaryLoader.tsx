@@ -1,5 +1,5 @@
 import type { User } from "@supabase/supabase-js";
-import AdminDashboardContent from "@/components/school-admin/AdminDashboardContent";
+import AdminGardenDashboard from "@/components/school-admin/dashboard/garden/AdminGardenDashboard";
 import { fetchAdminDashboardToday } from "@/lib/school-admin/dashboard-summary";
 import type { OrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -36,7 +36,7 @@ export default async function AdminDashboardSummaryLoader({
   );
 
   return (
-    <AdminDashboardContent
+    <AdminGardenDashboard
       organizationId={org.id}
       slug={slug}
       plan={org.plan}

@@ -18,53 +18,6 @@ function AttentionRowSkeleton({ theme }: SkeletonThemeProps) {
   );
 }
 
-export function ParentHomeStartHereSkeleton({ theme }: SkeletonThemeProps) {
-  return (
-    <div aria-busy="true" aria-label="Loading start here">
-      <ParentSkeletonBlock theme={theme} className="mb-4 h-5 w-40" />
-      <div className="space-y-3">
-        <AttentionRowSkeleton theme={theme} />
-        <AttentionRowSkeleton theme={theme} />
-        <AttentionRowSkeleton theme={theme} />
-      </div>
-    </div>
-  );
-}
-
-function ChildCardSkeleton({ theme }: SkeletonThemeProps) {
-  return (
-    <ParentCard theme={theme} className="relative flex h-full flex-col !p-6">
-      <div className="mb-4 flex items-start gap-3">
-        <ParentSkeletonBlock theme={theme} className="h-[88px] w-[88px] shrink-0 rounded-[18px]" />
-        <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex items-start justify-between gap-2">
-            <ParentSkeletonBlock theme={theme} className="h-5 w-28" />
-            <ParentSkeletonBlock theme={theme} className="h-5 w-20 rounded-full" />
-          </div>
-          <ParentSkeletonBlock theme={theme} className="h-3 w-full max-w-[180px]" />
-        </div>
-      </div>
-      <div className="mt-auto flex flex-col gap-2 pt-2">
-        <ParentSkeletonBlock theme={theme} className="h-10 w-full rounded-lg" />
-        <ParentSkeletonBlock theme={theme} className="h-4 w-36" />
-      </div>
-    </ParentCard>
-  );
-}
-
-export function ParentHomeChildCardsSkeleton({ theme }: SkeletonThemeProps) {
-  return (
-    <div
-      className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3"
-      aria-busy="true"
-      aria-label="Loading children"
-    >
-      <ChildCardSkeleton theme={theme} />
-      <ChildCardSkeleton theme={theme} />
-    </div>
-  );
-}
-
 function CoopFamilyCardSkeleton({ theme }: SkeletonThemeProps) {
   return (
     <ParentCard theme={theme}>
@@ -100,23 +53,6 @@ export function ParentHomeCoopFamiliesSkeleton({ theme }: SkeletonThemeProps) {
   );
 }
 
-function FormRowSkeleton({ theme }: SkeletonThemeProps) {
-  return (
-    <ParentCard theme={theme} className="!p-3">
-      <div className="flex items-start gap-3">
-        <ParentSkeletonBlock theme={theme} className="h-9 w-9 shrink-0 rounded-xl" />
-        <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <ParentSkeletonBlock theme={theme} className="h-3.5 w-[45%]" />
-            <ParentSkeletonBlock theme={theme} className="h-5 w-20 rounded-full" />
-          </div>
-          <ParentSkeletonBlock theme={theme} className="h-3 w-[60%]" />
-        </div>
-      </div>
-    </ParentCard>
-  );
-}
-
 export function ParentHomeFridayBranchSkeleton({ theme }: SkeletonThemeProps) {
   return (
     <ParentCard theme={theme} className="p-5 sm:p-6" aria-busy="true" aria-label="Loading Friday Branch">
@@ -132,19 +68,3 @@ export function ParentHomeFridayBranchSkeleton({ theme }: SkeletonThemeProps) {
   );
 }
 
-export function ParentHomeFormsSnapshotSkeleton({ theme }: SkeletonThemeProps) {
-  return (
-    <ParentCard theme={theme} className="p-5 sm:p-6" aria-busy="true" aria-label="Loading forms">
-      <ParentSkeletonBlock theme={theme} className="h-3 w-28" />
-      <ParentSkeletonBlock theme={theme} className="mt-2 h-5 w-44" />
-      <div className="mt-3 flex gap-2">
-        <ParentSkeletonBlock theme={theme} className="h-6 w-28 rounded-full" />
-        <ParentSkeletonBlock theme={theme} className="h-6 w-20 rounded-full" />
-      </div>
-      <div className="mt-4 space-y-2">
-        <FormRowSkeleton theme={theme} />
-        <FormRowSkeleton theme={theme} />
-      </div>
-    </ParentCard>
-  );
-}

@@ -1,7 +1,6 @@
 "use client";
 
-import AdminCard from "@/components/school-admin/ui/story/AdminCard";
-import AdminChip from "@/components/school-admin/ui/story/AdminChip";
+import { CommitteeCard, CommitteeChip } from "@/components/school-admin/committees/committee-ui";
 import type { CommitteeProject } from "@/lib/committees/committee-project-mappers";
 import { committeeProjectDisplayName } from "@/lib/committees/committee-projects-mock";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
@@ -42,7 +41,7 @@ export default function CommitteeProjectStoryCard({
   const showActions = !readOnly && onEditDetails && onDelete;
 
   return (
-    <AdminCard
+    <CommitteeCard
       theme={theme}
       padding="default"
       className="h-full transition-transform hover:-translate-y-px"
@@ -61,9 +60,9 @@ export default function CommitteeProjectStoryCard({
             >
               {committeeProjectDisplayName(project)}
             </h3>
-            <AdminChip theme={theme} tone={projectStatusTone(project.status)}>
+            <CommitteeChip theme={theme} tone={projectStatusTone(project.status)}>
               {projectStatusLabel(project.status)}
-            </AdminChip>
+            </CommitteeChip>
           </div>
           {description ? (
             <p className="line-clamp-2 text-xs leading-relaxed" style={{ color: theme.muted }}>
@@ -75,9 +74,9 @@ export default function CommitteeProjectStoryCard({
             </p>
           )}
           <div className="mt-3 flex flex-wrap gap-1.5">
-            <AdminChip theme={theme} tone="purple">
+            <CommitteeChip theme={theme} tone="purple">
               {itemCount} supply item{itemCount === 1 ? "" : "s"}
-            </AdminChip>
+            </CommitteeChip>
           </div>
         </button>
         {showActions ? (
@@ -89,6 +88,6 @@ export default function CommitteeProjectStoryCard({
           />
         ) : null}
       </div>
-    </AdminCard>
+    </CommitteeCard>
   );
 }

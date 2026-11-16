@@ -2,16 +2,15 @@
 
 import { useMemo, type FormEvent, type ReactNode } from "react";
 import { CalendarDays } from "lucide-react";
-import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import {
+  CommitteeButton,
+  CommitteeDateField,
+  useCommitteeInput,
+} from "@/components/school-admin/committees/committee-ui";
 import PopupTimePicker from "@/components/school-events/PopupTimePicker";
-import SchoolAdminDatePicker from "@/components/school-admin/ui/SchoolAdminDatePicker";
 import CommitteeFormSidePanel, {
   CommitteeFormSection,
 } from "@/components/school-admin/committees/sections/CommitteeFormSidePanel";
-import {
-  committeeStoryInputClassName,
-  committeeStoryInputStyle,
-} from "@/components/school-admin/committees/committee-story-input-style";
 import type { CommitteeEventType } from "@/lib/committees/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
@@ -70,8 +69,9 @@ export default function CommitteeAddEventPanel({
   formId = "committee-add-event-form",
 }: CommitteeAddEventPanelProps) {
   const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
-  const inputStyle = useMemo(() => committeeStoryInputStyle(theme), [theme]);
-  const inputClassName = committeeStoryInputClassName;
+  const input = useCommitteeInput(theme);
+  const inputStyle = input.style;
+  const inputClassName = input.className;
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -91,10 +91,10 @@ export default function CommitteeAddEventPanel({
       onSubmit={handleSubmit}
       footer={
         <div className="flex justify-end gap-2">
-          <AdminButton theme={theme} variant="soft" onClick={onClose} disabled={saving}>
+          <CommitteeButton theme={theme} variant="soft" onClick={onClose} disabled={saving}>
             Cancel
-          </AdminButton>
-          <AdminButton
+          </CommitteeButton>
+          <CommitteeButton
             theme={theme}
             variant="primary"
             type="submit"
@@ -102,7 +102,7 @@ export default function CommitteeAddEventPanel({
             disabled={saving || !form.title.trim() || !form.date}
           >
             {saving ? "Saving…" : submitLabel ?? title}
-          </AdminButton>
+          </CommitteeButton>
         </div>
       }
     >
@@ -123,7 +123,7 @@ export default function CommitteeAddEventPanel({
 
         <div className="space-y-2">
           <FieldLabel theme={theme}>Date</FieldLabel>
-          <SchoolAdminDatePicker
+          <CommitteeDateField
             id="committee-event-date"
             C={C}
             value={form.date}

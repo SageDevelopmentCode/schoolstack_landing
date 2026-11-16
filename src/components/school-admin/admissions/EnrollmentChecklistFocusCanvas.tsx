@@ -1,5 +1,9 @@
 "use client";
 
+import { useAdminGardenSkin } from "@/components/school-admin/garden/skin";
+import { GardenEmptyState } from "@/components/school-admin/garden/kit";
+import { gBtnPopSm } from "@/components/school-parent/garden/ui";
+import { ListChecks, Plus } from "lucide-react";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { ApplicationField } from "@/lib/admissions/application-form-schema";
@@ -143,7 +147,42 @@ function ItemView({
   );
 }
 
-function EmptyCanvasView({ C }: { C: AdminThemeTokens }) {
+function EmptyCanvasView({
+  C,
+  hasItems,
+  readOnly,
+  onOpenPicker,
+}: {
+  C: AdminThemeTokens;
+  hasItems?: boolean;
+  readOnly?: boolean;
+  onOpenPicker?: () => void;
+}) {
+  const skin = useAdminGardenSkin();
+  if (skin) {
+    return hasItems ? (
+      <GardenEmptyState
+        icon={ListChecks}
+        title="Pick an item to edit"
+        description="Choose a checklist item on the left to change what families complete."
+      />
+    ) : (
+      <GardenEmptyState
+        icon={ListChecks}
+        tint="bg-[var(--sf-mint)]"
+        title="Add your first checklist item"
+        description="Checklist items are what accepted families complete to enroll: agreements to sign, forms, uploads and payments."
+        action={
+          !readOnly && onOpenPicker ? (
+            <button type="button" onClick={onOpenPicker} className={gBtnPopSm}>
+              <Plus className="h-4 w-4" aria-hidden />
+              Add item
+            </button>
+          ) : null
+        }
+      />
+    );
+  }
   return (
     <p className="text-sm" style={{ color: C.textSecondary }}>
       Select a checklist item to edit.
@@ -244,7 +283,7 @@ export default function EnrollmentChecklistFocusCanvas({
 
   const canvasContent = (
     <AnimatePresence mode="wait">
-      <motion.div key={key} className="w-full" {...canvasTransition}>
+      <motion.div key={key} className="mx-auto w-full max-w-[880px]" {...canvasTransition}>
         {(focus?.kind === "item" || focus?.kind === "field") &&
           item &&
           itemIdx >= 0 && (
@@ -272,7 +311,7 @@ export default function EnrollmentChecklistFocusCanvas({
             />
           )}
 
-        {!focus && <EmptyCanvasView C={C} />}
+        {!focus && <EmptyCanvasView C={C} hasItems={items.length > 0} readOnly={readOnly} onOpenPicker={onOpenPicker} />}
       </motion.div>
     </AnimatePresence>
   );
@@ -305,6 +344,7 @@ export default function EnrollmentChecklistFocusCanvas({
         <div
           className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
           style={{ backgroundColor: BUILDER_CANVAS_BG }}
+          data-flows-canvas
         >
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6">
             {canvasContent}
