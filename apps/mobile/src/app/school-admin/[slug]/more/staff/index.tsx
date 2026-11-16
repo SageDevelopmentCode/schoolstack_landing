@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { StaffListScreen } from '@/components/school-admin/staff/staff-list-screen';
+import { StaffListScreen } from '@/components/school-admin/staff/garden/staff-list-screen';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function SchoolAdminStaffListPage() {
@@ -11,5 +11,5 @@ export default function SchoolAdminStaffListPage() {
     return null;
   }
 
-  return <StaffListScreen slug={selectedSchool.slug} />;
+  return <StaffListScreen slug={selectedSchool.slug} organizationId={selectedSchool.id} />;
 }

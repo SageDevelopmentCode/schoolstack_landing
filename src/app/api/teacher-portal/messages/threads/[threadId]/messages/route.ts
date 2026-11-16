@@ -3,7 +3,7 @@ import { apiError } from "@/lib/api/route-errors";
 import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import {
   assertTeacherCanAccessThread,
-  getStaffMemberIdForUser,
+  getTeacherPortalStaffMemberIdForUser,
   requireTeacherPortalUser,
 } from "@/lib/messages/api-helpers";
 import { sendMessageForViewer } from "@/lib/messages/api-helpers-server";
@@ -50,7 +50,7 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     const user = await requireTeacherPortalUser(supabase, organizationId, request);
-    const staffMemberId = await getStaffMemberIdForUser(
+    const staffMemberId = await getTeacherPortalStaffMemberIdForUser(
       supabase,
       user.id,
       organizationId,

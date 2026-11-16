@@ -9,7 +9,7 @@ import {
   requireTeacherMyHoursAccess,
   TeacherPortalAuthError,
 } from "@/lib/school-teacher/my-hours/require-teacher-my-hours-access";
-import { getStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access";
+import { getTeacherPortalStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
 
   try {
     const user = await requireTeacherMyHoursAccess(supabase, organizationId);
-    const staffMemberId = await getStaffMemberIdForUser(
+    const staffMemberId = await getTeacherPortalStaffMemberIdForUser(
       supabase,
       user.id,
       organizationId,

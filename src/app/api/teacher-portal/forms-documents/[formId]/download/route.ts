@@ -3,7 +3,7 @@ import { apiError } from "@/lib/api/route-errors";
 import { getTeacherParentFormById } from "@/lib/school-teacher/forms-documents/load-teacher-forms";
 import { createTeacherFormSignedUrl } from "@/lib/school-teacher/forms-documents/teacher-form-file-storage";
 import type { TeacherFormConfig } from "@/lib/school-teacher/forms-documents/types";
-import { getStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access";
+import { getTeacherPortalStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access";
 import { createAdminClient } from "@/utils/supabase/admin";
 import {
   createClientFromRequest,
@@ -45,7 +45,7 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   try {
-    const staffMemberId = await getStaffMemberIdForUser(
+    const staffMemberId = await getTeacherPortalStaffMemberIdForUser(
       supabase,
       user.id,
       organizationId,

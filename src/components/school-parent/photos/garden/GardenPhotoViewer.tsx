@@ -31,6 +31,8 @@ export default function GardenPhotoViewer({
   onClose,
   hasMore = false,
   onRequestMore,
+  showStaffDetails = false,
+  testId = "parent-photo-viewer",
 }: {
   theme: ParentThemeTokens;
   items: GalleryPhotoViewerItem[];
@@ -38,6 +40,9 @@ export default function GardenPhotoViewer({
   onClose: () => void;
   hasMore?: boolean;
   onRequestMore?: () => void | Promise<void>;
+  /** Staff surfaces (admin Photos) also show who posted the photo. */
+  showStaffDetails?: boolean;
+  testId?: string;
 }) {
   const reduce = useReducedMotion() === true;
   const {
@@ -96,6 +101,7 @@ export default function GardenPhotoViewer({
   const total = items.length;
   const position = `${index + 1} of ${total}${hasMore ? "+" : ""}`;
   const dateLabel = current.photoDate ? formatGalleryDateLabel(current.photoDate) : null;
+  const postedBy = showStaffDetails ? current.uploadedByName?.trim() || null : null;
 
   const onTouchStart = (event: TouchEvent) => {
     touchStartX.current = event.touches[0]?.clientX ?? null;
@@ -118,7 +124,7 @@ export default function GardenPhotoViewer({
         role="dialog"
         aria-modal="true"
         aria-label={dateLabel ? `Photo ${position}, ${dateLabel}` : `Photo ${position}`}
-        data-testid="parent-photo-viewer"
+        data-testid={testId}
         className="fixed inset-0 z-[120] flex flex-col bg-[rgba(24,20,16,0.92)] backdrop-blur-[2px]"
         initial={reduce ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -134,6 +140,11 @@ export default function GardenPhotoViewer({
             </p>
             {dateLabel ? (
               <p className="m-0 mt-0.5 truncate text-[15px] font-extrabold">{dateLabel}</p>
+            ) : null}
+            {postedBy ? (
+              <p className="m-0 mt-0.5 truncate text-[13px] font-semibold text-white/75">
+                Posted by {postedBy}
+              </p>
             ) : null}
           </div>
           <button

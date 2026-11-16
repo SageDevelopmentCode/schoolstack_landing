@@ -4,8 +4,8 @@ description: >-
   "Garden" design system for the school-branded SCHOOL ADMIN portal (web).
   Use whenever building, redesigning or restyling an admin page or tab under
   src/app/school/[slug]/admin/ or src/components/school-admin/ in the Garden
-  look (Dashboard, Admissions and every My School tab are done; Schedule,
-  Messages, Finances, Committees, etc. are next), or when asked to "make this admin tab
+  look (Dashboard, Admissions, every My School tab and Communication — Newsletters,
+  Committees, Messages — and Finances (Transactions, Revenue) are done; Schedule etc. are next), or when asked to "make this admin tab
   match the new Dashboard", "use the admin Garden design", or migrate an admin
   page off School Day Story. Covers the admin frame and theme, admin density
   rules, the feedback contract (toasts, saving, errors, retry), the view-model
@@ -51,7 +51,9 @@ Related skills:
 | `src/components/school-admin/garden/blocks.tsx` | My School blocks: `GardenRecordList` + `GARDEN_LIST_DETAIL_GRID` (list + detail; search, filter chips, no-match reset, mint flash, scroll-to-detail on phones), `GardenPickerSheet` (single/multi picker drawer that only closes when `onSave` returns `true`), `GardenLeadStrip`, `GardenSearchInput`, `G_TABLE` / `G_TH` / `G_TD` / `gRowClass` / `GardenRefetchVeil`, `GardenFacts`, `GardenGroupHeading`, `GardenAvatar`, `GardenCopyRow`, `GardenOverlayScope` (portal into the Garden scope + skin) |
 | `src/components/school-admin/garden/useAdminConfirm.tsx` | Promise confirm (`await confirm({ title, confirmLabel })`) that replaces `window.confirm`; renders `ConfirmDialog` → `GConfirmDialog` under the skin |
 | `src/components/school-admin/garden/AdminGardenRouteSkeleton.tsx` | `"use client"` route skeleton for `next/dynamic` `loading` in `[subtab]/page.tsx` |
-| My School references | Staff + Classrooms (`staff/*`, `classrooms/*`: list + detail, pickers, Undo), My Students (`students/*`: table + drawer), Staff Hours (`staff-hours/*`), Attendance (`attendance/GardenAttendancePage` on `GardenAttendanceBoard variant="page"`), Forms & Documents (`forms-documents/*`), Friday Branch (`friday-branch/*`), School Profile, Tuition (`TuitionDashboard` shell; panels via the skin), Newsletters |
+| My School references | Staff + Classrooms (`staff/*`, `classrooms/*`: list + detail, pickers, Undo), My Students (`students/*`: table + drawer), Staff Hours (`staff-hours/*`), Attendance (`attendance/GardenAttendancePage` on `GardenAttendanceBoard variant="page"`), Forms & Documents (`forms-documents/*`), Friday Branch (`friday-branch/*`), School Profile, Tuition (`TuitionDashboard` shell; panels via the skin), Newsletters (publish checklist = `GardenSteps` with "Fix" links) |
+| Communication references | Messages: `variant="admin-garden"` renders the parent Garden inbox (`school-parent/messages/garden/*`) with `model.admin` (section rows, compose banner, Bulk message); `onFeedback` → `useAdminMessagesFeedback` (`lib/messages/admin-messages-feedback.ts`, events carry `retry`); `AdminMessagesBroadcastModal` = 3-step `GDialog`. Committees: `useCommitteesModel` + `garden/CommitteesGardenOverview`, workspace on the shared `GardenCommitteeWorkspaceLayout` with `CommitteeSurfaceProvider value="admin-garden"` (Garden sections + admin toasts), `garden/GardenCreateCommitteeDialog` (shares `useCommitteeCreateWizard` with the demo's story wizard) |
+| Finances references | Transactions: `finances/useFinancesTransactionsModel` (server-paginated ledger, meta, attention dismiss, filters in the URL via `writeFilterParams`) + `FinancesTransactionsPage`. Revenue: `FinancesRevenuePage` on `usePaymentsHistoryModel` (`initialStatusFilter` / `initialTypeFilter`). Shared: `finances/garden/GardenPaymentsLedger` (table + phone cards, row opens drawer), `PaymentDetailDrawer` (read-only `GSidePanel`, status next step, Stripe ID `GardenCopyRow`), `FinancesStatusGuide`, `ledger-parts` |
 | `src/lib/school-admin/admin-toast.ts` | `adminToast` with `{ description, action, id }` |
 
 ## 2. Frame and theme
@@ -68,7 +70,7 @@ return (
 );
 ```
 
-- The admin shell stays as it is: the sidebar (`SchoolAdminStorySidebar`), `SchoolAdminBaseline`, and the notifications and support panels. Only page content goes inside the frame.
+- The admin shell stays as it is: the sidebar (`SchoolAdminStorySidebar`) and `SchoolAdminBaseline`. Only page content goes inside the frame. The shell's two overlays are already Garden and take `theme` from the Baseline: the Activity drawer (`AdminActivityNotificationsPanel` on `GSidePanel`, logic in `activity/useActivityNotifications`) and Get help (`AdminSupportRequestModal` on `GDialog`, logic in `support/useSupportRequestForm`). Get help is shared with the parent portal and the public apply/enrollment pages through `PortalHelpFab`, which needs `theme` too (`buildParentThemeTokens(branding)` where no parent theme exists).
 - The admin attendance sheets (`AttendanceStudentDetailSheet`, `AttendancePickupSheet`) and `AdminDocumentationGuidePanel` are **not portalled**. Render them after the frame, or the Garden type reset restyles them.
 - Unmigrated blocks go inside a card wrapped in `<PortalIsland>`. This is a temporary bridge; the Dashboard no longer has any.
 - The page owns its padding through `ADMIN_GARDEN_CONTAINER_CLASS` (`max-w-[1320px]`, `gap-5`, `px-4 sm:px-8 lg:px-10`). Don't wrap it in the old `max-w-[1350px] px-[clamp(…)]` div in `[feature]/page.tsx`.
@@ -84,7 +86,7 @@ Big tabs have deep story editors (form builders, checklists, co-op panels) share
 - Raw `<button style={getAdminButtonStyle(C, kind)}>` in admissions files became `DetailButton` (`admissions/detail-garden.tsx`); it reads the skin or the `SubmissionDetailStoryContext` "garden" variant.
 - `garden.css` skin rules restyle raw inputs/textareas/selects, hand-rolled `[role=dialog][aria-modal]` panels, 9–11px story type and the Flows outline/canvas (`data-flows-*`). Opt out with `data-garden-skip`; `.sf-demo` is never touched.
 - Anything that `createPortal`s to `<body>` must wrap its content in `SkinPortalScope`, or skinned buttons lose the Garden tokens.
-- Outside the skin (Schedule, Finances, Teacher, Committees, the dashboard's attendance sheets) everything stays School Day Story. Shared components that need a different shell take `appearance="garden"` (`ApplicationSubmissionDetailPanel`, `StartEnrollmentModal`) or read the detail variant.
+- Outside the skin (Schedule, Teacher, the dashboard's attendance sheets) everything stays School Day Story. Shared components that need a different shell take `appearance="garden"` (`ApplicationSubmissionDetailPanel`, `StartEnrollmentModal`) or read the detail variant.
 
 ## 3. Admin feel rules (on top of the parent rules)
 
@@ -159,6 +161,13 @@ Big tabs have deep story editors (form builders, checklists, co-op panels) share
 | **Undo instead of a confirm**: removals whose inverse API exists pass `successAction: { label: "Undo", … }` to `run` (toast stays 8s) | Staff unassign, Classroom remove staff/student, Friday Branch local deletes | Reversible removals |
 | **Data-loss guard**: a failed load shows `GardenLoadError` and renders no editable form, so defaults can't be saved over real data | `friday-branch/useFridayBranchModel`, `tuition/TuitionLateFeeSettingsPanel`, School Profile | Any page that saves a whole document |
 | **Two save modes made visible**: autosaving edits toast immediately; batched edits show `GardenSaveBar` with "N changed" + Discard | Friday Branch | Mixed immediate + batched editors |
+| **Activity drawer**: `GSidePanel` with "N new" chip + Refresh + "Updated N min ago" in `headerAside`, category `GardenFilterChips` in `headerBelow` (no counts on a paginated list), day groups (`GardenGroupHeading`), `ROW_INTERACTIVE` rows with a pastel icon chip and an accent bar + "New" chip on the first N unread (count snapshotted on mount), inline load-more spinner / "Couldn't load older activity · Try again" that keeps the list, end-of-list note | `AdminActivityNotificationsPanel` | Feeds, inboxes, audit logs |
+| **Server filters that roll back**: the model's `applyFilters` returns `"ok" \| "error" \| "stale"` (request-id ref, newest wins); on error with rows on screen the previous filters (and URL) come back and the page toasts "Couldn't filter payments · You're still seeing the previous list" + Retry. Load-more and Refresh return the same result; their error toasts say what stayed on screen | `useFinancesTransactionsModel` + `FinancesTransactionsPage` | Any paginated, server-filtered list |
+| **Filters in the URL without a navigation**: `writeFilterParams({ status, type })` (`history.replaceState`, no server refetch, no history entry); read once on mount. Don't `router.replace` for filter chips on force-dynamic routes: it re-renders the server page, and comparing `useSearchParams` to state during render races the replace | `useFinancesTransactionsModel` | Filter chips, sort, view toggles |
+| **Ledger + read-only drawer**: Garden table whose rows (and a title button for keyboard) open a `GSidePanel` with the amount, a `GardenNotice` saying what the status means now, `GardenFacts`, copyable references, and a link out | `GardenPaymentsLedger`, `PaymentDetailDrawer` | Payments, invoices, audit rows |
+| **Mix card**: stacked share bar (`role="img"` with an `aria-label` of the shares) + one `ROW_INTERACTIVE` row per part (icon chip, amount, share bar, %) that filters the ledger below; rail card of outstanding counts that filter in place, with a link to the page that works them | `FinancesRevenuePage` | Breakdown of a total by category |
+| **Long money values in tiles**: `GardenStatTiles valueClassName="text-[1.45rem] min-[420px]:text-[1.7rem] sm:text-[2rem] xl:text-[2.2rem]"`; put "count · amount" pairs as count value + amount `hint` so tiles fit at 375 | Finances tabs | Money KPIs |
+| **Guided form dialog**: `GDialog` with a step strip in `headerExtra` (numbers turn into checks), numbered `StepSection`s, `G_TOGGLE` radiogroup with arrow keys instead of a select, dropzone with a drag-over state + paste-to-attach + thumbnail tiles, "We'll include" facts, footer status line + toy submit with `BusyLabel`, inline "Discard this request?" guard when dirty, in-dialog success with a recap and "Send another" | `AdminSupportRequestModal` | Support, feedback and report-a-problem forms |
 
 ## 7. Migrating an admin tab (checklist)
 

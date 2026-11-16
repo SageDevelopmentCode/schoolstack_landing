@@ -107,7 +107,7 @@ The data context already reports the load error. The toast is only for the paren
 ```
 
 Each `Widget` is a `GPressable` with `pressedScale={0.96}`, `flexBasis: '45%'`, `minHeight: 150`, `borderRadius: 22`, a 1.5 `ink12` border and a 3px soft shadow:
-- **Top row:** an 11px uppercase kicker and a 28pt white icon circle with an ink ring.
+- **Top row:** an 11px uppercase tile label and a 28pt white icon circle with an ink ring. (A tile label is the tile's only name, so it is not an eyebrow.)
 - **Body:** bottom-aligned (`justifyContent: 'flex-end'`).
 - **Number:** Bricolage 44.
 - **Empty widgets:** still tappable, with a calm caption such as "No upcoming events right now.".
@@ -115,17 +115,14 @@ Each `Widget` is a `GPressable` with `pressedScale={0.96}`, `flexBasis: '45%'`, 
 ## Urgent strip (`sections/urgent-strip.tsx`)
 
 ```tsx
-<GPressable
-  accessibilityLabel={`${item.title}. ${item.subtitle}. Open`}
-  haptic="press"
-  onPress={() => openAttentionItem(ctx, item)}
-  style={{ flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, padding: 16, backgroundColor: accent.clay }}>
-  <View style={{ flex: 1 }}>
-    <Text style={{ fontFamily: GardenFonts.bodyExtra, fontSize: 17, color: Garden.white }}>{item.title}</Text>
-    <Text style={{ fontFamily: GardenFonts.bodySemi, fontSize: 14, color: 'rgba(255,255,255,0.85)' }}>{item.subtitle}</Text>
-  </View>
-  <OpenPill /> {/* visual-only white toy pill: ink underlay + 2px ink border */}
-</GPressable>
+// Kit version: garden/accent-strip.tsx
+<GAccentStrip
+  title="Set photo permissions"
+  subtitle="Choose how the school may use photos of Maya and Leo."
+  pillLabel="Start"
+  onPress={openSheet}>
+  <GSegmentDots done={1} total={2} onDark /> {/* optional extra content */}
+</GAccentStrip>
 ```
 
 The strip itself is the one button. Don't nest a real `GToyButton` inside another pressable.
@@ -210,7 +207,7 @@ Mount it once at the screen root, as an absolute overlay. It fires once per app 
 
 ```tsx
 // Card feed: the shell scrolls for you.
-<GSheet visible={open} onClose={close} kicker="From school" title="School bulletin" subtitle="3 posts">
+<GSheet visible={open} onClose={close} title="School bulletin" subtitle="3 posts">
   {posts.map((post) => <PostCard key={post.id} post={post} />)}
 </GSheet>
 
@@ -219,7 +216,6 @@ Mount it once at the screen root, as an absolute overlay. It fires once per app 
   visible={open}
   onClose={close}
   list
-  kicker="Notifications"
   title="Recent school activity"
   headerAside={markedRead ? <GChip label="Marked as read" tone="success" icon="checkmark" /> : <GChip label="3 new" tone="info" />}
   footer={<GLink label="Notification settings" icon="settings-outline" onPress={openSettings} />}>
@@ -232,3 +228,50 @@ Day groups for feeds (`home/sheets/notification-groups.ts`):
 ```ts
 notificationGroupLabel(createdAt) // 'Today' | 'Yesterday' | 'Earlier this week' | 'Earlier'
 ```
+
+## No eyebrows (skill §3.14)
+
+```tsx
+// ✗ Repeats the tab and the title
+<GBackHeader kicker="Account & preferences" title="Notification settings" … />
+<GCard kicker="Family notifications" title="Notification emails">
+
+// ✓ The title says it
+<GBackHeader title="Notification settings" accentWord="Notification" subtitle="…" … />
+<GCard title="Notification emails" action={<GChip label="2 of 3" />}>
+
+// ✓ A label that carried data moves into the title, subtitle or a chip
+<GCard title={isToday ? `Today · ${heading}` : heading}>
+<GSheet title={resource.title} headerAside={<GChip tone="neutral" label={typeLabel} />}>
+```
+
+## Photo day grid (`photos/garden/photo-day-grid.tsx`)
+
+- The screen is a `FlatList` of day groups (`groupGalleryPhotosByDate`), not a `ScrollView` with a hand-rolled scroll threshold: `onEndReached` loads more, `ListHeaderComponent` holds the header and cards, `ListFooterComponent` holds a 3-tile skeleton, a load-more `GInlineBanner` with "Try again", or a dashed "That's every photo for now" line.
+- Day row: Nunito 800 16 label ("Today", "Yesterday", or the full date), a "Latest" success chip on the newest day, and a count chip pushed right.
+- Tiles: `photoTileSize(contentWidth)` with a 6pt gap, radius 14, 1pt `ink10` border. Each tile is a `GPressable` (press and long-press open the viewer) labelled "Photo 2 of 6 from Friday, November 14, 2026". A `GSkeleton` sits under the image until `onLoad`; a failed image shows a placeholder and calls `reportMobileMediaLoadFailure`.
+- The viewer gets the photos in grid order, so swiping matches what the parent sees.
+
+## Choice sheet (`photos/garden/photo-permissions-sheet.tsx`)
+
+```tsx
+<GSheet
+  visible={open}
+  onClose={requestClose}                 // dirty → confirmDestructive('Discard your changes?')
+  enableDragToDismiss={!dirty && !saving}
+  title="Photo permissions"
+  subtitle="… Nothing changes until you save."
+  headerAside={<GChip tone={allChosen ? 'success' : 'info'} label={`${chosen} of ${total}`} />}
+  footer={
+    <>
+      <Text accessibilityLiveRegion="polite">{statusText}</Text>   {/* "2 changes ready to save." */}
+      <GToyButton label="Save permissions" size="md" fullWidth loading={saving} disabled={!canSave} … />
+    </>
+  }>
+  {/* per person: name + "Saved: Full consent", then radio option cards (accessibilityRole="radio", haptic="select") */}
+</GSheet>
+```
+
+- Drafts reset each time the sheet opens. Only changed rows are saved (`Promise.allSettled`), rows that saved stay saved, and failures stay selected with a "Not saved" chip and a `GInlineBanner` naming them.
+- All saved: `closeThen(close, () => toast.success('Photo permissions saved', { description: 'Maya: Full consent · Leo: Limited consent' }))`. Saved rows on the screen get a mint wash and a "Saved" chip for 2.6s; the first time everything is set, `GCelebrate` fires.
+- Gate the button that opens the sheet with `useGardenReadOnlyGate().guard` so a preview toasts instead.

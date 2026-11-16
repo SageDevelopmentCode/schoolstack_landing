@@ -15,7 +15,6 @@ import { GBackHeader } from '@/components/parent/garden/back-header';
 import { useGardenPullRefresh } from '@/components/parent/garden/feedback';
 import { Garden, useGardenAccent } from '@/components/parent/garden/tokens';
 import { GCard, GErrorCard, GHand, gText } from '@/components/parent/garden/ui';
-import { formatChildrenPageDate } from '@/lib/parent/parent-children-utils';
 
 /**
  * Parent Attendance in Garden (read-only history). Header + child switcher,
@@ -65,7 +64,6 @@ export function ParentAttendanceGardenScreen({
           backLabel="More"
           backAccessibilityLabel="Back"
           onBack={controller.onBack}
-          kicker={`Attendance · ${formatChildrenPageDate()}`}
           title={hasChildren && firstName ? `${firstName}'s attendance` : 'Attendance'}
           accentWord={hasChildren ? firstName : null}
           subtitle="Check-in history and absences at a glance."
@@ -81,7 +79,6 @@ export function ParentAttendanceGardenScreen({
 
         {controller.childrenError ? (
           <GErrorCard
-            kicker="Attendance"
             title="We couldn't load your learners"
             message={`${controller.childrenError} Check your connection, then try again.`}
             onRetry={controller.retryChildren}
@@ -89,7 +86,7 @@ export function ParentAttendanceGardenScreen({
         ) : null}
 
         {!hasChildren && !controller.childrenError ? (
-          <GCard kicker="Attendance" title="Nothing to show yet" index={1}>
+          <GCard title="Nothing to show yet" index={1}>
             <Text style={gText.body}>No enrolled learners with attendance tracking yet.</Text>
             <View style={styles.hand}>
               <GHand>Check back once school starts.</GHand>

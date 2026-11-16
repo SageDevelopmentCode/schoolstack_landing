@@ -7,13 +7,14 @@ import { parentToast } from "@/lib/school-parent/parent-toast";
 
 /*
  * Committee workspace "surface": which look the shared committee sections
- * render in. The admin portal never sets it, so it stays "story" and renders
- * exactly as before. The parent/teacher workspace (ParentCommitteeWorkspaceShell)
- * provides "garden" to get the parent Garden dashboard look.
- * Skill: parent-portal-garden-design.
+ * render in. Default "story" (School Day Story, unchanged). The parent/teacher
+ * workspace (ParentCommitteeWorkspaceShell) provides "garden"; the admin
+ * Committees tab provides "admin-garden": the same Garden sections, with
+ * admin toasts (adminToast, "Retry", error-specific ids).
+ * Skills: parent-portal-garden-design, admin-portal-garden-design.
  */
 
-export type CommitteeSurface = "story" | "garden";
+export type CommitteeSurface = "story" | "garden" | "admin-garden";
 
 const CommitteeSurfaceContext = createContext<CommitteeSurface>("story");
 
@@ -32,7 +33,13 @@ export function useCommitteeSurface(): CommitteeSurface {
 }
 
 export function useIsGardenCommittee(): boolean {
-  return useContext(CommitteeSurfaceContext) === "garden";
+  const surface = useContext(CommitteeSurfaceContext);
+  return surface === "garden" || surface === "admin-garden";
+}
+
+/** Admin Committees tab on Garden (admin-only affordances and copy). */
+export function useIsAdminGardenCommittee(): boolean {
+  return useContext(CommitteeSurfaceContext) === "admin-garden";
 }
 
 /**
@@ -116,12 +123,49 @@ const GARDEN_NOTIFY: CommitteeNotify = {
   },
 };
 
+/** Admin Garden: the admin feedback contract (title + description, Retry, -error ids). */
+const ADMIN_GARDEN_NOTIFY: CommitteeNotify = {
+  success: (message, options) => {
+    if (options?.id) adminToast.dismiss(`${options.id}-error`);
+    adminToast.success(message, {
+      description: options?.description,
+      id: options?.id ? `${options.id}-ok` : undefined,
+    });
+  },
+  error: (message, options) => {
+    const id = options?.id ? `${options.id}-error` : undefined;
+    const retry = options?.retry;
+    adminToast.error(options?.title ?? message, {
+      description: options?.title ? message : undefined,
+      id,
+      action: retry
+        ? {
+            label: "Retry",
+            onClick: () => {
+              if (id) adminToast.dismiss(id);
+              retry();
+            },
+          }
+        : undefined,
+    });
+  },
+  info: (message, options) => {
+    adminToast.info(message, { description: options?.description, id: options?.id });
+  },
+  clearError: (id) => {
+    adminToast.dismiss(`${id}-error`);
+  },
+};
+
 /**
- * Toasts for committee actions. Story (admin) calls `adminToast` with the same
- * single message as before and ignores the options; Garden adds a title,
- * description and "Try again".
+ * Toasts for committee actions. Story calls `adminToast` with the same single
+ * message as before and ignores the options; Garden (parent) and admin Garden
+ * add a title, description and a retry action.
  */
 export function useCommitteeNotify(): CommitteeNotify {
   const surface = useCommitteeSurface();
-  return useMemo(() => (surface === "garden" ? GARDEN_NOTIFY : STORY_NOTIFY), [surface]);
+  return useMemo(
+    () => (surface === "garden" ? GARDEN_NOTIFY : surface === "admin-garden" ? ADMIN_GARDEN_NOTIFY : STORY_NOTIFY),
+    [surface],
+  );
 }

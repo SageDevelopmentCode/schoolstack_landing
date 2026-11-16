@@ -1,27 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { SchoolAdminTableSkeleton } from "@/components/school-admin/skeletons";
-import AdminCard from "@/components/school-admin/ui/story/AdminCard";
-import AdminChip from "@/components/school-admin/ui/story/AdminChip";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CalendarClock, ChevronRight } from "lucide-react";
+import { GardenEmptyState, GardenFilterChips } from "@/components/school-admin/garden/kit";
+import { G_TABLE, G_TD, G_TH, gRowClass } from "@/components/school-admin/garden/blocks";
+import { GCard, GChip, GSkeleton, gLinkSm, type GChipTone } from "@/components/school-parent/garden/ui";
+import { VISIT_TYPE_STYLE } from "@/components/school-admin/schedule/ScheduleOverviewTab";
 import { useScheduleVisitsContext } from "@/components/school-admin/schedule/schedule-visits-context";
-import {
-  type AdminScheduledVisit,
-  type ScheduledVisitTiming,
-} from "@/lib/admissions/admin-scheduled-visits";
+import { type AdminScheduledVisit, type ScheduledVisitTiming } from "@/lib/admissions/admin-scheduled-visits";
 import { formatGradeValuesLabel } from "@/lib/admissions/admissions-observation-slots";
 import type { PostSubmitActionType } from "@/lib/admissions/application-form-schema";
-import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type ScheduledVisitsSectionProps = {
-  theme: ParentThemeTokens;
-  C: AdminThemeTokens;
-  organizationId: string;
   selectedApplicationId: string | null;
   loadingSubmission: boolean;
   onVisitClick: (visit: AdminScheduledVisit) => void;
-  showHeader?: boolean;
   onLoadingChange?: (loading: boolean) => void;
   visitsDeferred?: boolean;
 };
@@ -49,105 +42,35 @@ const TIMING_LABELS: Record<ScheduledVisitTiming, string> = {
   past: "Past",
 };
 
-const EMPTY_MESSAGES: Record<TimingFilter, string> = {
-  all: "No visits have been booked yet. Families schedule tours and interviews from their application dashboard after submitting.",
-  upcoming: "No upcoming visits booked yet.",
-  happening: "No visits happening right now.",
-  past: "No past visits to show.",
+const TIMING_TONES: Record<ScheduledVisitTiming, GChipTone> = {
+  upcoming: "info",
+  happening: "success",
+  past: "neutral",
 };
 
+const EMPTY_ALL =
+  "No visits have been booked yet. Families schedule tours and interviews from their application dashboard after submitting.";
+
 function shadowVisitDetailLabel(visit: AdminScheduledVisit): string | null {
-  if (
-    visit.actionType !== "schedule_observation_day" ||
-    !visit.observationSlots?.length
-  ) {
-    return null;
-  }
-
-  const hasTimedSlots = visit.observationSlots.some(
-    (slot) => slot.startTime !== "ALL_DAY",
-  );
-  const hasGrades = visit.observationSlots.some(
-    (slot) => slot.gradeValues.length > 0,
-  );
-
+  if (visit.actionType !== "schedule_observation_day" || !visit.observationSlots?.length) return null;
+  const hasTimedSlots = visit.observationSlots.some((slot) => slot.startTime !== "ALL_DAY");
+  const hasGrades = visit.observationSlots.some((slot) => slot.gradeValues.length > 0);
   if (!hasTimedSlots && !hasGrades) return null;
-
   return visit.observationSlots
     .map((slot) => {
       const parts: string[] = [];
-      if (slot.gradeValues.length > 0) {
-        parts.push(formatGradeValuesLabel(slot.gradeValues));
-      }
-      if (slot.startTime !== "ALL_DAY") {
-        parts.push(
-          slot.endTime ? `${slot.startTime} – ${slot.endTime}` : slot.startTime,
-        );
-      }
+      if (slot.gradeValues.length > 0) parts.push(formatGradeValuesLabel(slot.gradeValues));
+      if (slot.startTime !== "ALL_DAY") parts.push(slot.endTime ? `${slot.startTime} – ${slot.endTime}` : slot.startTime);
       return parts.join(" · ");
     })
     .join("; ");
 }
 
-function StoryFilterPill({
-  active,
-  label,
-  count,
-  onClick,
-  theme,
-}: {
-  active: boolean;
-  label: string;
-  count?: number;
-  onClick: () => void;
-  theme: ParentThemeTokens;
-}) {
-  const displayLabel = count != null ? `${label} · ${count}` : label;
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="cursor-pointer rounded-[9px] border px-2.5 py-2 text-[11px] font-medium transition-colors"
-      style={
-        active
-          ? {
-              backgroundColor: "#E9F2EA",
-              color: theme.primary,
-              borderColor: "#BCD4C1",
-              fontWeight: 700,
-            }
-          : {
-              backgroundColor: theme.white,
-              color: "#5D6D73",
-              borderColor: "#DCE4DC",
-            }
-      }
-    >
-      {displayLabel}
-    </button>
-  );
-}
-
-function visitChipTone(timing: ScheduledVisitTiming): "info" | "success" | "purple" {
-  switch (timing) {
-    case "happening":
-      return "success";
-    case "past":
-      return "purple";
-    default:
-      return "info";
-  }
-}
-
+/** All visits (admin Garden): type + timing filters with counts, a table from md, cards on phones. */
 export default function ScheduledVisitsSection({
-  theme,
-  C,
-  organizationId,
   selectedApplicationId,
   loadingSubmission,
   onVisitClick,
-  showHeader = true,
   onLoadingChange,
   visitsDeferred = false,
 }: ScheduledVisitsSectionProps) {
@@ -155,20 +78,18 @@ export default function ScheduledVisitsSection({
   const loading = visitsDeferred || !visitsReady;
   const [timingFilter, setTimingFilter] = useState<TimingFilter>("all");
   const [visitTypeFilter, setVisitTypeFilter] = useState<VisitTypeFilter>("all");
+  const onLoadingRef = useRef(onLoadingChange);
+  useEffect(() => {
+    onLoadingRef.current = onLoadingChange;
+  });
 
   useEffect(() => {
-    onLoadingChange?.(loading);
-  }, [loading, onLoadingChange]);
+    onLoadingRef.current?.(loading);
+  }, [loading]);
 
   const timingCounts = useMemo(() => {
-    const counts: Record<ScheduledVisitTiming, number> = {
-      upcoming: 0,
-      happening: 0,
-      past: 0,
-    };
-    for (const visit of visits) {
-      counts[visit.timing] += 1;
-    }
+    const counts: Record<TimingFilter, number> = { all: visits.length, upcoming: 0, happening: 0, past: 0 };
+    for (const visit of visits) counts[visit.timing] += 1;
     return counts;
   }, [visits]);
 
@@ -179,98 +100,75 @@ export default function ScheduledVisitsSection({
       schedule_family_interview: 0,
       schedule_observation_day: 0,
     };
-    for (const visit of visits) {
-      counts[visit.actionType] += 1;
-    }
+    for (const visit of visits) counts[visit.actionType] += 1;
     return counts;
   }, [visits]);
 
-  const filteredVisits = useMemo(() => {
-    return visits.filter((visit) => {
-      const matchesTiming = timingFilter === "all" || visit.timing === timingFilter;
-      const matchesType =
-        visitTypeFilter === "all" || visit.actionType === visitTypeFilter;
-      return matchesTiming && matchesType;
-    });
-  }, [timingFilter, visitTypeFilter, visits]);
+  const filteredVisits = useMemo(
+    () =>
+      visits.filter(
+        (visit) =>
+          (timingFilter === "all" || visit.timing === timingFilter) &&
+          (visitTypeFilter === "all" || visit.actionType === visitTypeFilter),
+      ),
+    [timingFilter, visitTypeFilter, visits],
+  );
+
+  const typeOptions = VISIT_TYPE_FILTERS.filter(
+    (f) => f.value === "all" || visitTypeCounts[f.value] > 0 || visitTypeFilter === f.value,
+  ).map((f) => ({ key: f.value, label: f.label, count: visitTypeCounts[f.value] }));
+  const timingOptions = TIMING_FILTERS.filter(
+    (f) => f.value === "all" || timingCounts[f.value] > 0 || timingFilter === f.value,
+  ).map((f) => ({ key: f.value, label: f.label, count: timingCounts[f.value] }));
+
+  const resetFilters = () => {
+    setTimingFilter("all");
+    setVisitTypeFilter("all");
+  };
 
   return (
-    <div>
-      {showHeader ? (
-        <div className="mb-4">
-          <h2
-            className="font-heading text-lg font-semibold"
-            style={{ fontFamily: theme.fontDisplay, color: theme.ink }}
-          >
-            Scheduled visits
-          </h2>
-          <p className="mt-1 text-xs" style={{ color: theme.muted }}>
-            Tours, interviews, and observation days booked by families
-          </p>
+    <GCard index={1} kicker="All visits" title="Booked visits" data-testid="schedule-visits">
+      {!loading && visits.length > 0 ? (
+        <div className="mb-4 flex flex-col gap-2">
+          <GardenFilterChips
+            options={typeOptions}
+            value={visitTypeFilter}
+            onChange={(key) => setVisitTypeFilter(key as VisitTypeFilter)}
+            ariaLabel="Filter by visit type"
+          />
+          <GardenFilterChips
+            options={timingOptions}
+            value={timingFilter}
+            onChange={(key) => setTimingFilter(key as TimingFilter)}
+            ariaLabel="Filter by when"
+          />
         </div>
       ) : null}
 
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        {VISIT_TYPE_FILTERS.map((filter) => (
-          <StoryFilterPill
-            key={filter.value}
-            active={visitTypeFilter === filter.value}
-            label={filter.label}
-            count={visitTypeCounts[filter.value]}
-            onClick={() => setVisitTypeFilter(filter.value)}
-            theme={theme}
-          />
-        ))}
-      </div>
-
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        {TIMING_FILTERS.map((filter) => (
-          <StoryFilterPill
-            key={filter.value}
-            active={timingFilter === filter.value}
-            label={filter.label}
-            count={
-              filter.value === "all" ? visits.length : timingCounts[filter.value]
-            }
-            onClick={() => setTimingFilter(filter.value)}
-            theme={theme}
-          />
-        ))}
-      </div>
-
       {loading ? (
-        <SchoolAdminTableSkeleton
-          C={C}
-          rows={5}
-          columns={5}
-          showFilters={false}
-          compact
-          label="Loading scheduled visits"
-        />
+        <div className="flex flex-col gap-2" aria-busy="true" aria-label="Loading scheduled visits">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <GSkeleton key={i} className="h-[52px] rounded-[14px]" />
+          ))}
+        </div>
       ) : visits.length === 0 ? (
-        <AdminCard theme={theme} padding="canvas">
-          <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
-            {EMPTY_MESSAGES.all}
-          </p>
-        </AdminCard>
+        <GardenEmptyState icon={CalendarClock} tint="bg-[var(--sf-sky)]" title="No visits yet" description={EMPTY_ALL} />
       ) : filteredVisits.length === 0 ? (
-        <AdminCard theme={theme} padding="canvas">
-          <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
-            {EMPTY_MESSAGES[timingFilter]}
-          </p>
-        </AdminCard>
+        <div className="rounded-[16px] border-[1.5px] border-dashed border-[var(--sf-ink)]/15 bg-[var(--sf-paper)] px-4 py-6 text-center">
+          <p className="m-0 text-[14px] font-extrabold text-[var(--sf-ink)]">No visits match these filters.</p>
+          <button type="button" className={`${gLinkSm} mt-1`} onClick={resetFilters}>
+            Show all visits
+          </button>
+        </div>
       ) : (
-        <AdminCard theme={theme} padding="none">
-          <div className="overflow-auto">
-            <table className="w-full min-w-[760px] border-collapse text-left text-sm">
-              <thead style={{ backgroundColor: "#FBFCFB", borderBottom: "1px solid #EDF1ED" }}>
+        <>
+          {/* md+: table */}
+          <div className="-mx-2 hidden overflow-x-auto md:block">
+            <table className={`${G_TABLE} min-w-[720px]`}>
+              <thead>
                 <tr>
                   {["When", "Visit", "Student", "Form", "Status"].map((heading) => (
-                    <th
-                      key={heading}
-                      className="px-4 py-3 text-[10px] font-extrabold uppercase tracking-[0.08em] first:pl-5 last:pr-5"
-                      style={{ color: "#8B9699" }}
-                    >
+                    <th key={heading} className={G_TH} scope="col">
                       {heading}
                     </th>
                   ))}
@@ -278,50 +176,48 @@ export default function ScheduledVisitsSection({
               </thead>
               <tbody>
                 {filteredVisits.map((visit) => {
-                  const isSelected = visit.applicationId === selectedApplicationId;
+                  const interactive = Boolean(visit.applicationId);
+                  const selected = interactive && visit.applicationId === selectedApplicationId;
                   const slotDetail = shadowVisitDetailLabel(visit);
-
+                  const type = VISIT_TYPE_STYLE[visit.actionType];
                   return (
                     <tr
                       key={visit.id}
-                      onClick={() => {
-                        if (visit.applicationId) {
+                      tabIndex={interactive ? 0 : undefined}
+                      aria-selected={selected || undefined}
+                      onClick={() => interactive && onVisitClick(visit)}
+                      onKeyDown={(event) => {
+                        if (interactive && (event.key === "Enter" || event.key === " ")) {
+                          event.preventDefault();
                           onVisitClick(visit);
                         }
                       }}
-                      className={
-                        visit.applicationId
-                          ? "cursor-pointer transition-colors hover:bg-[#FAFCFA]"
-                          : ""
-                      }
-                      style={{
-                        backgroundColor: isSelected ? "#E9F2EA" : "transparent",
-                        borderBottom: "1px solid #EDF1ED",
-                        boxShadow: isSelected ? `inset 3px 0 0 ${theme.primary}` : undefined,
-                        opacity: loadingSubmission && isSelected ? 0.7 : 1,
-                      }}
+                      className={`${gRowClass({ selected, interactive })} ${selected && loadingSubmission ? "opacity-70" : ""}`}
                     >
-                      <td className="px-4 py-3 first:pl-5" style={{ color: theme.ink }}>
-                        <div className="text-xs font-medium">{visit.whenLabel}</div>
+                      <td className={G_TD}>
+                        <span className="block text-[13.5px] font-extrabold text-[var(--sf-ink)]">{visit.whenLabel}</span>
                         {slotDetail ? (
-                          <div className="mt-0.5 text-[11px]" style={{ color: theme.muted }}>
-                            {slotDetail}
-                          </div>
+                          <span className="block text-[12px] font-semibold text-[var(--sf-soft)]">{slotDetail}</span>
                         ) : null}
                       </td>
-                      <td className="px-4 py-3 text-xs" style={{ color: theme.ink }}>
-                        {visit.stepTitle}
+                      <td className={G_TD}>
+                        <span className="flex items-center gap-2">
+                          <span aria-hidden className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-[9px] ${type.tint}`}>
+                            <type.icon className="h-3.5 w-3.5 text-[var(--sf-ink)]/70" />
+                          </span>
+                          <span className="text-[13.5px] font-bold text-[var(--sf-ink)]">{visit.stepTitle}</span>
+                        </span>
                       </td>
-                      <td className="px-4 py-3 text-xs" style={{ color: theme.muted }}>
-                        {visit.studentLabel ?? "—"}
-                      </td>
-                      <td className="px-4 py-3 text-xs" style={{ color: theme.muted }}>
+                      <td className={`${G_TD} text-[13px] font-semibold text-[var(--sf-soft)]`}>{visit.studentLabel ?? "—"}</td>
+                      <td className={`${G_TD} text-[13px] font-semibold text-[var(--sf-soft)]`}>
                         {visit.formTitle}
+                        {!interactive ? <span className="block text-[11.5px] font-bold">No application to open</span> : null}
                       </td>
-                      <td className="px-4 py-3 last:pr-5">
-                        <AdminChip theme={theme} tone={visitChipTone(visit.timing)}>
-                          {TIMING_LABELS[visit.timing]}
-                        </AdminChip>
+                      <td className={G_TD}>
+                        <span className="flex items-center justify-between gap-2">
+                          <GChip tone={TIMING_TONES[visit.timing]}>{TIMING_LABELS[visit.timing]}</GChip>
+                          {interactive ? <ChevronRight className="h-4 w-4 text-[var(--sf-ink)]/30" aria-hidden /> : null}
+                        </span>
                       </td>
                     </tr>
                   );
@@ -329,8 +225,50 @@ export default function ScheduledVisitsSection({
               </tbody>
             </table>
           </div>
-        </AdminCard>
+
+          {/* phones: stacked cards */}
+          <ul className="m-0 flex list-none flex-col gap-2 p-0 md:hidden">
+            {filteredVisits.map((visit) => {
+              const interactive = Boolean(visit.applicationId);
+              const selected = interactive && visit.applicationId === selectedApplicationId;
+              const type = VISIT_TYPE_STYLE[visit.actionType];
+              const body = (
+                <>
+                  <span aria-hidden className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] ${type.tint}`}>
+                    <type.icon className="h-4 w-4 text-[var(--sf-ink)]/70" />
+                  </span>
+                  <span className="min-w-0 flex-1 text-left">
+                    <span className="block truncate text-[14px] font-extrabold text-[var(--sf-ink)]">{visit.stepTitle}</span>
+                    <span className="block text-[12.5px] font-semibold text-[var(--sf-soft)]">{visit.whenLabel}</span>
+                    <span className="block truncate text-[12.5px] font-semibold text-[var(--sf-soft)]">
+                      {visit.studentLabel ?? "—"} · {visit.formTitle}
+                    </span>
+                  </span>
+                  <GChip tone={TIMING_TONES[visit.timing]}>{TIMING_LABELS[visit.timing]}</GChip>
+                </>
+              );
+              return (
+                <li key={visit.id}>
+                  {interactive ? (
+                    <button
+                      type="button"
+                      onClick={() => onVisitClick(visit)}
+                      aria-current={selected ? "true" : undefined}
+                      className={`flex w-full items-center gap-3 rounded-[16px] border-[1.5px] border-[var(--sf-ink)]/10 px-3 py-3 ${gRowClass({ selected, interactive: true })}`}
+                    >
+                      {body}
+                    </button>
+                  ) : (
+                    <div className="flex w-full items-center gap-3 rounded-[16px] border-[1.5px] border-[var(--sf-ink)]/10 px-3 py-3">
+                      {body}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </>
       )}
-    </div>
+    </GCard>
   );
 }

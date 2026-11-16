@@ -31,6 +31,8 @@ export default function GardenCommitteeHome({
   quickLinks,
   activityItems,
   loadingActivity,
+  activityFailed = false,
+  onRetryActivity,
   showActivity,
   onNavigate,
 }: {
@@ -42,6 +44,9 @@ export default function GardenCommitteeHome({
   quickLinks: { section: "resources" | "calendar" | "messages"; label: string; sub: string }[];
   activityItems: CommitteeActivityItem[];
   loadingActivity: boolean;
+  /** The activity feed failed to load (shown inline with "Try again"). */
+  activityFailed?: boolean;
+  onRetryActivity?: () => void;
   showActivity: boolean;
   onNavigate: (section: CommitteeWorkspaceSection) => void;
 }) {
@@ -199,6 +204,13 @@ export default function GardenCommitteeHome({
         <GCard index={4}>
           {loadingActivity ? (
             <CommitteeActivityFeedSkeleton theme={theme} compact />
+          ) : activityFailed && onRetryActivity ? (
+            <div role="alert" className="flex flex-wrap items-center justify-between gap-3">
+              <p className="m-0 text-[14px] font-extrabold text-[var(--sf-ink)]">Couldn&apos;t load recent activity.</p>
+              <button type="button" className={gLinkSm} onClick={onRetryActivity}>
+                Try again
+              </button>
+            </div>
           ) : (
             <CommitteeActivityFeed theme={theme} items={activityItems} compact />
           )}

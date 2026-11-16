@@ -7,7 +7,7 @@ import CommitteeCreateWizard, {
   type CommitteeTemplateOption,
 } from "@/components/school-admin/committees/CommitteeCreateWizard";
 
-function buildTemplateOptions(dbTemplates: CommitteeTemplate[]): CommitteeTemplateOption[] {
+export function buildTemplateOptions(dbTemplates: CommitteeTemplate[]): CommitteeTemplateOption[] {
   const dbSlugs = new Set(dbTemplates.map((template) => template.slug));
   const platformOptions: CommitteeTemplateOption[] = PLATFORM_COMMITTEE_TEMPLATES.filter(
     (template) => !dbSlugs.has(template.slug),

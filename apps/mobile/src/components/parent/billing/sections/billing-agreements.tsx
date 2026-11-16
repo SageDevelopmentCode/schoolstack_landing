@@ -23,7 +23,7 @@ export function BillingAgreements({
 
   if (agreements.length === 0) {
     return (
-      <GCard index={index} kicker="Tuition agreements" title="Nothing to sign">
+      <GCard index={index} title="Nothing to sign">
         <Text style={styles.body}>No tuition agreements assigned to your family right now.</Text>
       </GCard>
     );
@@ -32,7 +32,6 @@ export function BillingAgreements({
   return (
     <GCard
       index={index}
-      kicker="Tuition agreements"
       title={pending.length > 0 ? `${pending.length} to sign` : 'All agreements signed'}>
       <Text style={styles.body}>Review and sign agreements assigned to your family.</Text>
       <View style={styles.chips}>

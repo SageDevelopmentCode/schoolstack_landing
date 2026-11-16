@@ -50,10 +50,16 @@ export default function PublicTourSchoolSettingsPanel({
     try {
       await navigator.clipboard.writeText(absoluteUrl);
       setUrlCopied(true);
-      adminToast.success("Link copied");
-      window.setTimeout(() => setUrlCopied(false), 1500);
+      adminToast.success("Tour link copied.", {
+        id: "public-tour-link",
+        description: "Paste it into an email, newsletter or your website.",
+      });
+      window.setTimeout(() => setUrlCopied(false), 2000);
     } catch {
-      adminToast.error("Could not copy link to clipboard.");
+      adminToast.error("Couldn't copy the link.", {
+        id: "public-tour-link-error",
+        description: `Copy it by hand: ${absoluteUrl}`,
+      });
     }
   }, [tourPath]);
 
@@ -179,6 +185,11 @@ export default function PublicTourSchoolSettingsPanel({
                     <Copy className="h-3.5 w-3.5" aria-hidden />
                   )}
                 </button>
+                {urlCopied ? (
+                  <span className="shrink-0 text-[11px] font-bold" style={{ color: "#2D6B47" }} aria-live="polite">
+                    Link copied
+                  </span>
+                ) : null}
               </div>
             </div>
           </div>

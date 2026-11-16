@@ -64,9 +64,13 @@ export function useGalleryPhotosFeed(options: {
       }
 
       const pagePhotos = data.photos ?? [];
-      setPhotos((current) =>
-        append ? [...current, ...pagePhotos] : pagePhotos,
-      );
+      setPhotos((current) => {
+        if (!append) return pagePhotos;
+        // Offset paging can repeat a photo whose date changed since the
+        // last page (it moves in the server's order); keep the first copy.
+        const seen = new Set(current.map((photo) => photo.id));
+        return [...current, ...pagePhotos.filter((photo) => !seen.has(photo.id))];
+      });
       setHasMore(Boolean(data.hasMore));
       setNextOffset(
         typeof data.nextOffset === "number"

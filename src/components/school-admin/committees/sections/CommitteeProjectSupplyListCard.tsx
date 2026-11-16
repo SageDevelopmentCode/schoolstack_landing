@@ -188,15 +188,23 @@ export default function CommitteeProjectSupplyListCard({
     }
   };
 
+  // Called fire-and-forget from the panel: report here, never rethrow.
   const removeItem = async (item: CoopSupplyListItem) => {
     try {
       await onRemoveItem(item);
       onItemsChange(items.filter((row) => row.id !== item.id));
       setSelectedId((current) => (current === item.id ? null : current));
       setPanelDirty(false);
+      notify.success(`${item.name || "Item"} removed.`, {
+        id: "committee-supply-remove",
+        description: "It's off the supply list for everyone.",
+      });
     } catch (err) {
-      notify.error(formatActionError(err, "Failed to remove supply item."));
-      throw err;
+      notify.error(formatActionError(err, "Failed to remove supply item."), {
+        title: "Couldn't remove the item",
+        id: "committee-supply-remove",
+        retry: () => void removeItem(item),
+      });
     }
   };
 
@@ -278,8 +286,19 @@ export default function CommitteeProjectSupplyListCard({
     requestSidebarAction({ type: "openNewDraft" });
   };
 
+  // The legend panel shows its own success toast and stays open on failure.
   const saveLegend = async (legend: CoopSupplyColorLegendEntry[]) => {
-    await onLegendChange(legend);
+    try {
+      await onLegendChange(legend);
+      notify.clearError("committee-supply-legend");
+    } catch (err) {
+      notify.error(formatActionError(err, "Failed to save color categories."), {
+        title: "Couldn't save color categories",
+        id: "committee-supply-legend",
+        retry: () => void saveLegend(legend).catch(() => undefined),
+      });
+      throw err;
+    }
   };
 
   const handleRowSelect = (id: string) => {

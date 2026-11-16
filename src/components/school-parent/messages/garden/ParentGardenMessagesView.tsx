@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { AlertCircle, Paperclip, RotateCw, Trash2, X } from "lucide-react";
+import { AlertCircle, Loader2, Paperclip, RotateCw, Trash2, Users, X } from "lucide-react";
 import { GConfirmDialog } from "@/components/school-parent/garden/GDialog";
 import { PORTAL_EASE } from "@/components/school-parent/garden/motion";
-import { G_FOCUS, gLinkSm } from "@/components/school-parent/garden/ui";
+import { GKicker, G_FOCUS, gBtnOutlineSm, gLinkSm } from "@/components/school-parent/garden/ui";
 import type { MessagesInboxViewModel } from "@/components/messages/messages-inbox-view-model";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -16,7 +16,9 @@ import GardenThreadDetails from "./GardenThreadDetails";
 import GardenThreadPane from "./GardenThreadPane";
 
 /*
- * Parent Messages in the Garden dashboard look (variant="parent-garden").
+ * Messages in the Garden dashboard look: parents (variant="parent-garden")
+ * and school admins (variant="admin-garden", `model.admin` set: sectioned
+ * list, compose banner, Bulk message, admin copy and `admin-messages-*` ids).
  * Presentation only: `MessagesInboxLayout` owns every bit of state, fetching
  * and handlers and hands them over as `model`.
  *
@@ -41,15 +43,29 @@ export default function ParentGardenMessagesView({
   const focusComposerFor = useRef<string | null>(null);
   const chatOpen = model.mobileView === "chat";
 
+  const admin = model.admin ?? null;
+  const tid = admin ? "admin-messages" : "parent-messages";
+  // Admin lists hide MudKitchen support; count only the rows they can see.
+  const adminThreadIds = useMemo(
+    () =>
+      admin
+        ? new Set(
+            admin.listItems.flatMap((item) => (item.type === "thread" ? [item.thread.id] : [])),
+          )
+        : null,
+    [admin],
+  );
+
   const unreadThreads = useMemo(
     () =>
       model.allThreads
+        .filter((thread) => !adminThreadIds || adminThreadIds.has(thread.id))
         .filter((thread) => thread.unreadCount > 0)
         .sort(
           (a, b) =>
             new Date(b.lastMessageAt ?? 0).getTime() - new Date(a.lastMessageAt ?? 0).getTime(),
         ),
-    [model.allThreads],
+    [adminThreadIds, model.allThreads],
   );
 
   const visibleThreads = useMemo(
@@ -86,14 +102,25 @@ export default function ParentGardenMessagesView({
 
   return (
     <motion.div
-      data-testid="parent-messages-inbox-layout"
+      data-testid={`${tid}-inbox-layout`}
       className="flex h-full min-h-0 w-full flex-1 flex-col bg-white"
       initial={reduce ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3, ease: PORTAL_EASE }}
     >
-      {/* The inbox is the page: no visible page header, so the h1 is for screen readers. */}
-      <h1 className="sr-only">Messages</h1>
+      {admin ? (
+        <AdminInboxHeader
+          unreadCount={unreadTotal}
+          conversationCount={adminThreadIds?.size ?? 0}
+          loading={model.loadingInbox}
+          onBroadcast={admin.openBroadcast}
+          broadcastDisabled={admin.broadcastDisabled}
+          broadcastBusy={model.loadingContacts}
+        />
+      ) : (
+        /* The inbox is the page: no visible page header, so the h1 is for screen readers. */
+        <h1 className="sr-only">Messages</h1>
+      )}
 
       <AnimatePresence initial={false}>
         {model.error ? (
@@ -118,7 +145,7 @@ export default function ParentGardenMessagesView({
                 onClick={actions.retry}
               >
                 <RotateCw className="h-3.5 w-3.5" aria-hidden />
-                Refresh
+                {admin ? "Try again" : "Refresh"}
               </button>
               <button
                 type="button"
@@ -139,6 +166,8 @@ export default function ParentGardenMessagesView({
         >
           <GardenConversationList
             threads={visibleThreads}
+            sections={admin?.listItems}
+            testIdPrefix={tid}
             filter={filter}
             onFilterChange={setFilter}
             unreadCount={unreadTotal}
@@ -192,6 +221,7 @@ export default function ParentGardenMessagesView({
         contacts={model.contacts}
         loadingContacts={model.loadingContacts}
         contactKeysWithThreads={model.contactKeysWithThreads}
+        audience={admin ? "admin" : "parent"}
         onClose={actions.closeNewConversation}
         onSelect={handleContactSelect}
       />
@@ -237,5 +267,62 @@ export default function ParentGardenMessagesView({
         onClose={actions.cancelRouteLeave}
       />
     </motion.div>
+  );
+}
+
+/** Admin only: a compact page header that leaves the inbox most of the height. */
+function AdminInboxHeader({
+  unreadCount,
+  conversationCount,
+  loading,
+  onBroadcast,
+  broadcastDisabled,
+  broadcastBusy,
+}: {
+  unreadCount: number;
+  conversationCount: number;
+  loading: boolean;
+  onBroadcast: () => void;
+  broadcastDisabled: boolean;
+  broadcastBusy: boolean;
+}) {
+  const status = loading
+    ? "Loading your inbox…"
+    : conversationCount === 0
+      ? "No conversations yet"
+      : [
+          unreadCount > 0 ? `${unreadCount} unread` : "All caught up",
+          `${conversationCount} conversation${conversationCount === 1 ? "" : "s"}`,
+        ].join(" · ");
+  return (
+    <header
+      data-testid="admin-messages-inbox-header"
+      className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b-[1.5px] border-[var(--sf-ink)]/10 bg-[var(--sf-cream)] px-4 py-3 sm:px-6"
+    >
+      <div className="min-w-0">
+        <GKicker>Communication</GKicker>
+        <h1 className="sf-display m-0 mt-0.5 text-[1.45rem] leading-tight text-[var(--sf-ink)] sm:text-[1.6rem]">
+          <span className="text-[var(--sf-clay)]">Messages</span>
+        </h1>
+        <p className="m-0 mt-0.5 text-[13px] font-semibold tabular-nums text-[var(--sf-soft)]" aria-live="polite">
+          {status}
+        </p>
+      </div>
+      <button
+        type="button"
+        className={`${gBtnOutlineSm} shrink-0`}
+        onClick={onBroadcast}
+        disabled={broadcastDisabled}
+        aria-busy={broadcastBusy || undefined}
+        data-testid="admin-messages-broadcast-button"
+      >
+        {broadcastBusy ? (
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+        ) : (
+          <Users className="h-4 w-4" aria-hidden />
+        )}
+        Bulk message
+      </button>
+    </header>
   );
 }

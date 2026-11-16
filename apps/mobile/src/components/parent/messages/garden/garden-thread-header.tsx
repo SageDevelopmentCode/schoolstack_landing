@@ -57,7 +57,6 @@ function DetailsSheet({
     <GSheet
       visible={visible}
       onClose={onClose}
-      kicker="Conversation details"
       title={thread.title}
       subtitle={thread.subtitle}>
       <View style={styles.detailCard}>

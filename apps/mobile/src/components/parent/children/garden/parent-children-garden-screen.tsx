@@ -66,7 +66,6 @@ export function ParentChildrenGardenScreen({
         <StatusBar style="dark" />
         <ScrollView contentContainerStyle={styles.content}>
           <GErrorCard
-            kicker="My children"
             title="We couldn't load your children"
             message={`${controller.loadError} Check your connection, then try again.`}
             onRetry={() => void controller.refresh()}
@@ -92,7 +91,7 @@ export function ParentChildrenGardenScreen({
           />
         }>
         {children.length === 0 ? (
-          <GCard kicker="My children" title="No student records yet" index={0}>
+          <GCard title="No student records yet" index={0}>
             {controller.emptyMessage ? (
               <Text style={gText.body}>{controller.emptyMessage}</Text>
             ) : (
@@ -126,7 +125,6 @@ export function ParentChildrenGardenScreen({
 
             {controller.profileError && !selectedProfile ? (
               <GErrorCard
-                kicker="School record"
                 title="We couldn't load this record"
                 message={`${controller.profileError} Check your connection, then try again.`}
                 onRetry={controller.retryProfile}

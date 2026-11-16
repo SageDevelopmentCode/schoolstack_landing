@@ -10,7 +10,7 @@ import { listTeacherClassroomSignups } from "@/lib/classroom-signups/load-teache
 import { publishClassroomSignup } from "@/lib/classroom-signups/mutations";
 import type { ClassroomSignupDraft } from "@/lib/classroom-signups/types";
 import {
-  getStaffMemberIdForUser,
+  getTeacherPortalStaffMemberIdForUser,
   getStaffUserProfile,
   TeacherPortalAuthError,
 } from "@/lib/staff/teacher-portal-access";
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const staffMemberId = await getStaffMemberIdForUser(
+    const staffMemberId = await getTeacherPortalStaffMemberIdForUser(
       supabase,
       user.id,
       organizationId,
@@ -152,7 +152,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const staffMemberId = await getStaffMemberIdForUser(
+    const staffMemberId = await getTeacherPortalStaffMemberIdForUser(
       supabase,
       user.id,
       organizationId,

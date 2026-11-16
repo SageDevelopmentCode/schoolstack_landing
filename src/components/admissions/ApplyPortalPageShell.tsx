@@ -94,6 +94,7 @@ function ApplyPortalPageShellInner({
       {organizationId ? (
         <PortalHelpFab
           C={C}
+          theme={theme}
           organizationId={organizationId}
           userEmail={userEmail}
           currentPath={pathname}

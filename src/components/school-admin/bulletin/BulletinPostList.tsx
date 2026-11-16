@@ -1,125 +1,105 @@
 "use client";
 
-import AdminChip from "@/components/school-admin/ui/story/AdminChip";
-import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
+import { ChevronRight, Megaphone, Paperclip } from "lucide-react";
+import { ROW_INTERACTIVE } from "@/components/school-admin/garden/kit";
+import { BulletinStatusChip } from "@/components/school-admin/bulletin/bulletin-status";
+import { formatBulletinDate } from "@/components/school-admin/bulletin/BulletinPostEditor";
 import {
   formatBulletinAudiencesLabel,
   resolveBulletinDisplayStatus,
 } from "@/lib/school-bulletin/bulletin-audience";
-import type { BulletinPost, ProgramOption } from "@/lib/school-bulletin/types";
+import type { BulletinPost, BulletinPostDisplayStatus, ProgramOption } from "@/lib/school-bulletin/types";
 
 type BulletinPostListProps = {
   posts: BulletinPost[];
   programs: ProgramOption[];
   selectedPostId?: string | null;
+  flashPostId?: string | null;
   onSelect: (postId: string) => void;
 };
 
-function displayStatusChip(
-  theme: ReturnType<typeof useSchoolAdminStoryTheme>["theme"],
-  status: ReturnType<typeof resolveBulletinDisplayStatus>,
-) {
-  switch (status) {
-    case "active":
-      return (
-        <AdminChip theme={theme} tone="success">
-          Active
-        </AdminChip>
-      );
-    case "scheduled":
-      return (
-        <AdminChip theme={theme} tone="info">
-          Scheduled
-        </AdminChip>
-      );
-    case "expired":
-      return (
-        <AdminChip theme={theme} tone="warning">
-          Expired
-        </AdminChip>
-      );
-    case "archived":
-      return (
-        <AdminChip theme={theme} tone="purple">
-          Archived
-        </AdminChip>
-      );
-    default:
-      return (
-        <AdminChip theme={theme} tone="info">
-          Draft
-        </AdminChip>
-      );
-  }
+const ICON_TINTS: Record<BulletinPostDisplayStatus, string> = {
+  active: "bg-[var(--sf-mint)]",
+  scheduled: "bg-[var(--sf-sky)]",
+  draft: "bg-[var(--sf-butter)]",
+  expired: "bg-[var(--sf-peach)]",
+  archived: "bg-[var(--sf-ink)]/[0.06]",
+};
+
+function whenLabel(post: BulletinPost, status: BulletinPostDisplayStatus): string {
+  if (status === "scheduled") return `Publishes ${formatBulletinDate(post.publishedAt)}`;
+  if (status === "expired") return `Expired ${formatBulletinDate(post.expiresAt)}`;
+  if (status === "active" && post.expiresAt) return `Live until ${formatBulletinDate(post.expiresAt)}`;
+  return `Updated ${formatBulletinDate(post.updatedAt)}`;
 }
 
-function formatPostDate(value?: string): string {
-  if (!value) return "Not scheduled";
-  return new Date(value).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
+/** Garden rows: icon chip, title, audience · when · files, status chip, chevron. */
 export default function BulletinPostList({
   posts,
   programs,
   selectedPostId,
+  flashPostId,
   onSelect,
 }: BulletinPostListProps) {
-  const { theme } = useSchoolAdminStoryTheme();
   const programNameById = new Map(programs.map((program) => [program.id, program.name]));
 
-  if (posts.length === 0) {
-    return (
-      <div className="rounded-2xl border border-dashed border-[#DCE4DC] bg-[#FAFBFA] px-4 py-8 text-center">
-        <p className="text-sm font-medium text-[#1E2A24]">No bulletin posts yet</p>
-        <p className="mt-1 text-sm text-[#65747A]">
-          Create your first announcement for families and staff.
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-2">
+    <ul className="m-0 -mx-2 flex list-none flex-col gap-0.5 p-0" aria-label="Bulletin posts" data-testid="bulletin-post-list">
       {posts.map((post) => {
-        const displayStatus = resolveBulletinDisplayStatus(post);
+        const status = resolveBulletinDisplayStatus(post);
         const selected = selectedPostId === post.id;
-
+        const flashed = flashPostId === post.id;
+        const audience = formatBulletinAudiencesLabel(post.audiences, programNameById, post.programIds);
         return (
-          <button
-            key={post.id}
-            type="button"
-            onClick={() => onSelect(post.id)}
-            className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
-              selected
-                ? "border-[#4A6741] bg-[#F3F7F3] shadow-sm"
-                : "border-[#DCE4DC] bg-white hover:border-[#B8C7B8]"
-            }`}
-          >
-            <div className="mb-2 flex items-start justify-between gap-3">
-              <strong className="block text-sm text-[#1E2A24]">{post.title}</strong>
-              {displayStatusChip(theme, displayStatus)}
-            </div>
-            <p className="text-xs text-[#65747A]">
-              {formatBulletinAudiencesLabel(
-                post.audiences,
-                programNameById,
-                post.programIds,
-              )}
-            </p>
-            <p className="mt-1 text-xs text-[#78858A]">
-              {displayStatus === "scheduled"
-                ? `Publishes ${formatPostDate(post.publishedAt)}`
-                : `Updated ${formatPostDate(post.updatedAt)}`}
-            </p>
-          </button>
+          <li key={post.id}>
+            <button
+              type="button"
+              onClick={() => onSelect(post.id)}
+              aria-current={selected ? "true" : undefined}
+              className={`${ROW_INTERACTIVE} duration-300 ${
+                flashed
+                  ? "!bg-[var(--sf-mint)]"
+                  : selected
+                    ? "bg-[var(--sf-accent-wash)] ring-[1.5px] ring-inset ring-[var(--sf-clay)]/35"
+                    : ""
+              }`}
+              data-testid={`bulletin-row-${post.id}`}
+            >
+              <span
+                aria-hidden
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border-[1.5px] border-[var(--sf-ink)]/12 ${ICON_TINTS[status]}`}
+              >
+                <Megaphone className="h-4 w-4 text-[var(--sf-ink)]/70" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[15px] font-extrabold text-[var(--sf-ink)]">
+                  {post.title || "Untitled post"}
+                </span>
+                <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[12.5px] font-semibold text-[var(--sf-soft)]">
+                  <span className="truncate">{audience}</span>
+                  <span aria-hidden>·</span>
+                  <span>{whenLabel(post, status)}</span>
+                  {post.attachments.length > 0 ? (
+                    <>
+                      <span aria-hidden>·</span>
+                      <span className="inline-flex items-center gap-0.5 tabular-nums">
+                        <Paperclip className="h-3 w-3" aria-hidden />
+                        {post.attachments.length}
+                        <span className="sr-only"> {post.attachments.length === 1 ? "attachment" : "attachments"}</span>
+                      </span>
+                    </>
+                  ) : null}
+                </span>
+              </span>
+              <BulletinStatusChip status={status} />
+              <ChevronRight
+                aria-hidden
+                className="h-4 w-4 shrink-0 text-[var(--sf-ink)]/30 transition-transform group-hover:translate-x-0.5"
+              />
+            </button>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }

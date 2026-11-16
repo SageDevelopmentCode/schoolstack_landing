@@ -279,7 +279,6 @@ export function ChildHealthSection({
   if (error) {
     return (
       <GErrorCard
-        kicker="Health"
         title="We couldn't load the health profile"
         message={`${error} Check your connection, then try again.`}
         onRetry={() => void load()}

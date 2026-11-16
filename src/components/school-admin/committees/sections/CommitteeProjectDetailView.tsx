@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowLeft, ClipboardList, FileText, Trash2 } from "lucide-react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { SettingToggleRow } from "@/components/school-admin/notifications/NotificationChannelCard";
 import { CommitteeButton, CommitteeHeading, G_COMMITTEE_INPUT } from "@/components/school-admin/committees/committee-ui";
 import { useIsGardenCommittee } from "@/components/school-admin/committees/committee-surface";
@@ -40,6 +40,8 @@ type CommitteeProjectDetailViewProps = {
   onCreateSupplyItem: (item: CoopSupplyListItem) => Promise<CoopSupplyListItem>;
   onRemoveSupplyItem: (item: CoopSupplyListItem) => Promise<void>;
   onDeleteProject?: () => void;
+  /** Garden: autosave state chip shown beside the project name. */
+  saveStatus?: ReactNode;
 };
 
 function controlStyle(C: AdminThemeTokens): CSSProperties {
@@ -69,6 +71,7 @@ export default function CommitteeProjectDetailView({
   onCreateSupplyItem,
   onRemoveSupplyItem,
   onDeleteProject,
+  saveStatus,
 }: CommitteeProjectDetailViewProps) {
   const garden = useIsGardenCommittee();
   return (
@@ -79,7 +82,10 @@ export default function CommitteeProjectDetailView({
             <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
             All projects
           </button>
-          <GKicker className="mt-4">Project</GKicker>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+            <GKicker>Project</GKicker>
+            {saveStatus}
+          </div>
           <h2 className="sf-display m-0 mt-1 text-[1.75rem] leading-[1.02] text-[var(--sf-ink)]">
             {committeeProjectDisplayName(project)}
           </h2>

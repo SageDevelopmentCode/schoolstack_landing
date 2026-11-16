@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Loader2 } from "lucide-react";
+import { Check, Loader2, RotateCw } from "lucide-react";
+import { GChip } from "@/components/school-parent/garden/ui";
 import CreateCommitteeProjectModal, {
   type CreateCommitteeProjectFormInput,
 } from "@/components/school-admin/committees/modals/CreateCommitteeProjectModal";
@@ -213,8 +214,16 @@ export default function CommitteeProjectsSection({
       setProjects((current) => [...current, created]);
       setCreateModalOpen(false);
       handleOpenProject(created.id);
+      notify.success(`${created.name || "Project"} created.`, {
+        id: "committee-project-create",
+        description: "It's open now — add supplies or fill in the details. Changes save as you type.",
+      });
     } catch (err) {
-      notify.error(formatActionError(err, "Failed to create project."), { title: "Couldn't create the project" });
+      notify.error(formatActionError(err, "Failed to create project."), {
+        title: "Couldn't create the project",
+        id: "committee-project-create",
+        retry: () => void handleCreateProjectSubmit(input),
+      });
       void reportPortalOperationalError("school_admin", {
         organizationId,
         operation: "committees.projects.create",
@@ -225,20 +234,53 @@ export default function CommitteeProjectsSection({
     }
   };
 
+  /** Autosave state for the open project (shown as a chip in Garden). */
+  const [projectSave, setProjectSave] = useState<
+    | { state: "idle" | "saving" | "saved" }
+    | { state: "error"; retry: () => void }
+  >({ state: "idle" });
+  const projectSaveSeq = useRef(0);
+  /** Latest saver, so "Retry" re-sends the same patch without a self-reference. */
+  const persistRef = useRef<((projectId: string, patch: Parameters<typeof updateCommitteeProject>[2]) => void) | null>(null);
+
   const persistProjectPatch = useCallback(
     (projectId: string, patch: Parameters<typeof updateCommitteeProject>[2]) => {
       if (readOnly) return;
-      void updateCommitteeProject(supabase, projectId, patch).catch((err) => {
-        notify.error(formatActionError(err, "Failed to save project."));
-        void reportPortalOperationalError("school_admin", {
-          organizationId,
-          operation: "committees.projects.update",
-          error: "",
-        }, err);
-      });
+      const seq = ++projectSaveSeq.current;
+      setProjectSave({ state: "saving" });
+      const retry = () => persistRef.current?.(projectId, patch);
+      void updateCommitteeProject(supabase, projectId, patch)
+        .then(() => {
+          if (seq !== projectSaveSeq.current) return;
+          notify.clearError("committee-project-save");
+          setProjectSave({ state: "saved" });
+        })
+        .catch((err) => {
+          if (seq === projectSaveSeq.current) setProjectSave({ state: "error", retry });
+          notify.error(formatActionError(err, "Failed to save project."), {
+            title: "Couldn't save the project",
+            id: "committee-project-save",
+            retry,
+          });
+          void reportPortalOperationalError("school_admin", {
+            organizationId,
+            operation: "committees.projects.update",
+            error: "",
+          }, err);
+        });
     },
     [notify, organizationId, readOnly, supabase],
   );
+
+  useEffect(() => {
+    persistRef.current = persistProjectPatch;
+  }, [persistProjectPatch]);
+
+  useEffect(() => {
+    if (projectSave.state !== "saved") return undefined;
+    const timer = window.setTimeout(() => setProjectSave({ state: "idle" }), 2500);
+    return () => window.clearTimeout(timer);
+  }, [projectSave]);
 
   const flushPendingProjectSave = useCallback(() => {
     if (saveProjectTimeoutRef.current) {
@@ -359,7 +401,16 @@ export default function CommitteeProjectsSection({
   const handleRemoveSupplyItem = async (projectId: string, item: CoopSupplyListItem) => {
     if (readOnly) return;
     const ctx = supplyContext(projectId);
-    await deleteCommitteeProjectSupplyItem(supabase, ctx, item.id, item.name);
+    try {
+      await deleteCommitteeProjectSupplyItem(supabase, ctx, item.id, item.name);
+    } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.projects.supply_remove",
+        error: "",
+      }, err);
+      throw err;
+    }
     setProjects((current) =>
       current.map((project) =>
         project.id === projectId
@@ -379,7 +430,17 @@ export default function CommitteeProjectsSection({
   ) => {
     if (readOnly) return;
     const ctx = supplyContext(projectId);
-    const persisted = await replaceCommitteeProjectSupplyColorLegend(supabase, ctx, legend);
+    let persisted: CoopSupplyColorLegendEntry[];
+    try {
+      persisted = await replaceCommitteeProjectSupplyColorLegend(supabase, ctx, legend);
+    } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.projects.supply_legend",
+        error: "",
+      }, err);
+      throw err;
+    }
     setProjects((current) =>
       current.map((project) =>
         project.id === projectId ? { ...project, colorLegend: persisted } : project,
@@ -473,6 +534,26 @@ export default function CommitteeProjectsSection({
           onRemoveSupplyItem={(item) => handleRemoveSupplyItem(selectedProject.id, item)}
           onLegendChange={(legend) => handleLegendChange(selectedProject.id, legend)}
           onItemsChange={(items) => void handleItemsChange(selectedProject.id, items)}
+          saveStatus={
+            projectSave.state === "saving" ? (
+              <GChip tone="info" className="inline-flex items-center gap-1">
+                <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                Saving…
+              </GChip>
+            ) : projectSave.state === "saved" ? (
+              <GChip tone="success">
+                <Check className="h-3 w-3" aria-hidden />
+                Saved
+              </GChip>
+            ) : projectSave.state === "error" ? (
+              <button type="button" onClick={projectSave.retry} className="rounded-full">
+                <GChip tone="alert">
+                  <RotateCw className="h-3 w-3" aria-hidden />
+                  Couldn&apos;t save · Retry
+                </GChip>
+              </button>
+            ) : null
+          }
           onDeleteProject={
             readOnly ? undefined : () => requestDeleteProject(selectedProject)
           }

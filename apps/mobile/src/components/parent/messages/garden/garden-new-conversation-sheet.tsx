@@ -110,7 +110,6 @@ export function GardenNewConversationSheet({
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <View style={styles.headerCopy}>
-              <GKicker>New message</GKicker>
               <Text accessibilityRole="header" style={styles.title}>
                 Start a conversation
               </Text>

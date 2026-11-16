@@ -130,7 +130,6 @@ export function ParentChildDetailScreen({
           backLabel="My children"
           backAccessibilityLabel="Back to My children"
           onBack={() => router.back()}
-          kicker="School record"
           title={firstName ? `${firstName}'s record` : 'School record'}
           accentWord={firstName}
         />
@@ -138,7 +137,6 @@ export function ParentChildDetailScreen({
           <ChildRecordSkeleton />
         ) : profileError && !profile ? (
           <GErrorCard
-            kicker="School record"
             title="We couldn't load this record"
             message={`${profileError} Check your connection, then try again.`}
             onRetry={() => void loadProfile()}

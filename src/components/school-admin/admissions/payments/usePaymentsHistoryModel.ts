@@ -31,17 +31,22 @@ export const PAYMENT_TYPE_FILTERS: Array<{ value: "" | PaymentType; label: strin
 ];
 
 /**
- * Payment history state shared by the story panel (Finances → Revenue) and
- * the Garden Admissions → Payments history. Logic lives here only.
+ * Payment history state shared by Finances → Revenue and the Garden
+ * Admissions → Payments history. Logic lives here only.
  */
 export function usePaymentsHistoryModel({
   organizationId,
   applicationId,
   mode = "admissions",
+  initialStatusFilter,
+  initialTypeFilter,
 }: {
   organizationId?: string;
   applicationId?: string;
   mode?: PaymentsHistoryPanelMode;
+  /** Start filters (e.g. from the URL). Defaults: Succeeded on Revenue, All elsewhere. */
+  initialStatusFilter?: "" | PaymentStatus;
+  initialTypeFilter?: "" | PaymentType;
 }) {
   const supabase = useMemo(() => createClient(), []);
   const [rows, setRows] = useState<PaymentRecordDisplayRow[]>([]);
@@ -50,9 +55,9 @@ export function usePaymentsHistoryModel({
   const [error, setError] = useState<string | null>(null);
   const [loadedAt, setLoadedAt] = useState(() => Date.now());
   const [statusFilter, setStatusFilter] = useState<"" | PaymentStatus>(() =>
-    mode === "revenue" ? "succeeded" : "",
+    initialStatusFilter ?? (mode === "revenue" ? "succeeded" : ""),
   );
-  const [typeFilter, setTypeFilter] = useState<"" | PaymentType>("");
+  const [typeFilter, setTypeFilter] = useState<"" | PaymentType>(initialTypeFilter ?? "");
   const requestRef = useRef(0);
 
   const loadRows = useCallback(

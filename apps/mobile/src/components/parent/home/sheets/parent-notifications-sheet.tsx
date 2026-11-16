@@ -343,7 +343,6 @@ export function ParentNotificationsSheet({
       visible={visible}
       onClose={onClose}
       list
-      kicker="Notifications"
       title="Recent school activity"
       subtitle="Important updates for your family."
       headerAside={headerAside}

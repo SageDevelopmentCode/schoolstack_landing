@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAdminAction } from "@/components/school-admin/garden/useAdminAction";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { useAdminNavCounts } from "@/lib/school-admin/admin-nav-counts-context";
 import {
   parseOperationalError,
   reportClientOperationalError,
@@ -165,6 +166,14 @@ export function useAdminStaffHoursModel({
   const requests = useMemo(() => pageData.adjustmentRequests ?? [], [pageData.adjustmentRequests]);
   const pendingRequests = useMemo(() => requests.filter((r) => r.status === "pending"), [requests]);
   const historyRequests = useMemo(() => requests.filter((r) => r.status !== "pending"), [requests]);
+
+  // Keep the sidebar's Staff hours badge in step with this page: approving or
+  // denying a request drops it at once, and every reload syncs it.
+  const { report: reportNavCount } = useAdminNavCounts();
+  const pendingCount = pendingRequests.length;
+  useEffect(() => {
+    reportNavCount("staffHoursPending", pendingCount);
+  }, [pendingCount, reportNavCount]);
 
   const review = useCallback(
     async (request: AdminStaffHoursAdjustmentRequest, decision: "approved" | "denied") => {

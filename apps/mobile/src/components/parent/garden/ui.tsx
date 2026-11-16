@@ -83,6 +83,11 @@ export function GPressable({
 /* Type                                                                */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Small uppercase label for a FIELD inside a card ("Date", "Login email") or a
+ * GROUP in a list ("Today", "Earlier editions"). Never an eyebrow above a
+ * screen, card or sheet title (skill §3 "No eyebrows").
+ */
 export function GKicker({
   children,
   light = false,
@@ -118,7 +123,7 @@ export function GHand({ children, color = Garden.forest }: { children: string; c
 export type GCardTone = 'white' | 'paper' | 'dark';
 
 export type GCardProps = {
-  kicker?: string;
+  /** The card's heading. No eyebrow above it: the title says what the card is. */
   title?: ReactNode;
   action?: ReactNode;
   tone?: GCardTone;
@@ -131,7 +136,6 @@ export type GCardProps = {
 };
 
 export function GCard({
-  kicker,
   title,
   action,
   tone = 'white',
@@ -158,10 +162,9 @@ export function GCard({
         { backgroundColor: bg, borderColor: dark ? 'transparent' : Garden.ink12 },
         style,
       ]}>
-      {kicker || title || action ? (
+      {title || action ? (
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderCopy}>
-            {kicker ? <GKicker light={dark}>{kicker}</GKicker> : null}
             {title ? (
               <Text
                 accessibilityRole="header"
@@ -770,16 +773,14 @@ export function GSkeleton({ style }: { style?: StyleProp<ViewStyle> }) {
 export function GErrorCard({
   message,
   onRetry,
-  kicker = 'Something went wrong',
   title = "We couldn't load your Home",
 }: {
   message: string;
   onRetry: () => void;
-  kicker?: string;
   title?: string;
 }) {
   return (
-    <GCard kicker={kicker} title={title}>
+    <GCard title={title}>
       <Text style={styles.errorCopy}>{message}</Text>
       <GToyButton label="Try again" icon="refresh" onPress={onRetry} style={styles.errorRetry} />
     </GCard>

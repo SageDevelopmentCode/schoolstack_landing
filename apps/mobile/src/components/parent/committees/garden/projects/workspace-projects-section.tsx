@@ -171,13 +171,13 @@ export function WorkspaceProjectsSection({
 
   if (loadError) {
     return (
-      <GErrorCard kicker="Projects" title="We couldn't load projects" message={`${loadError} Check your connection, then try again.`} onRetry={() => void load()} />
+      <GErrorCard title="We couldn't load projects" message={`${loadError} Check your connection, then try again.`} onRetry={() => void load()} />
     );
   }
 
   return (
     <>
-      <GCard kicker="Projects" title="Committee projects" index={0}>
+      <GCard title="Committee projects" index={0}>
         <View style={styles.body}>
           <Text style={gText.meta}>Track committee projects and supply lists.</Text>
           {!readOnly ? (

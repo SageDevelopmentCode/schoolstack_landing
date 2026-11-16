@@ -59,7 +59,6 @@ export function ParentBillingGardenScreen({
     return (
       <View style={[styles.root, styles.centered]}>
         <GErrorCard
-          kicker="Billing"
           title="We couldn't load your billing"
           message={controller.error}
           onRetry={controller.refresh}

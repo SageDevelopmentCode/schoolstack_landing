@@ -4,6 +4,7 @@ import {
   userOwnsApplication,
 } from "@/lib/admissions/application-auth";
 import { requireAuthenticatedUser } from "@/lib/admissions/application-auth-server";
+import { expirePendingCheckoutSessionsForChecklistItems } from "@/lib/admissions/expire-checklist-item-checkout-sessions";
 import { EnrollmentMaterializationError } from "@/lib/admissions/enrollment-checklist-materialization";
 import { reportEnrollmentChecklistItemApiFailure } from "@/lib/admissions/enrollment-checklist-operational-errors";
 import {
@@ -17,7 +18,7 @@ import {
 } from "@/lib/stripe/application-payments";
 import { createAdmissionsCheckoutSession } from "@/lib/stripe/checkout-session";
 import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
-import { getSiteUrl } from "@/lib/stripe/client";
+import { getSiteUrl, getStripeClient } from "@/lib/stripe/client";
 import { isCheckoutPaymentMethod, quoteProcessingFee } from "@/lib/stripe/processing-fee";
 import {
   getOrganizationPaymentAccount,
@@ -193,6 +194,12 @@ export async function POST(request: Request, context: RouteContext) {
       userId: user.id,
       email: user.email,
     });
+
+    await expirePendingCheckoutSessionsForChecklistItems(
+      admin,
+      getStripeClient(),
+      [instanceId],
+    );
 
     const payment = await createPaymentRecord(admin, {
       organizationId,

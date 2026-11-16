@@ -283,3 +283,18 @@ html:has(.lenis) {
 .sf-admin-garden-skin [data-flows-outline-row="idle"]:hover {
   background-color: var(--sf-accent-wash) !important;
 }
+
+/* Admin sidebar (src/components/school-admin/sidebar): collapsed flyouts and
+   count badges ease in. Skill: .claude/skills/admin-portal-garden-design */
+@keyframes sf-admin-flyout-in {
+  from { opacity: 0; transform: translateX(-4px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes sf-admin-badge-in {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes sf-admin-drawer-in {
+  from { transform: translateX(-100%); }
+  to { transform: none; }
+}

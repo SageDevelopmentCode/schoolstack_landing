@@ -3,7 +3,11 @@
 import { useMemo, useRef, useState } from "react";
 import { ArrowRight, MessageSquarePlus, Search } from "lucide-react";
 import { GDialog } from "@/components/school-parent/garden/GDialog";
-import { GChip, GSkeleton, G_FOCUS } from "@/components/school-parent/garden/ui";
+import { GChip, GSkeleton, GTabBar, G_FOCUS, gLinkSm } from "@/components/school-parent/garden/ui";
+import {
+  filterContactsByAudience,
+  type MessageContactAudienceFilter,
+} from "@/lib/messages/contact-filters";
 import type { MessageContact, MessageContactKind } from "@/lib/messages/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { GardenAvatar } from "./garden-messages-shared";
@@ -20,6 +24,12 @@ const GROUP_LABEL: Record<MessageContactKind, string> = {
   staff_member: "Teachers",
   guardian: "Families",
   platform_support: "MudKitchen",
+};
+
+/** Admin sees parents and staff together; the tabs narrow a long list. */
+const ADMIN_GROUP_LABEL: Partial<Record<MessageContactKind, string>> = {
+  staff_member: "Staff",
+  guardian: "Parents",
 };
 
 const SEARCH_THRESHOLD = 6;
@@ -62,7 +72,9 @@ export default function GardenNewConversationDialog({
   contactKeysWithThreads,
   onClose,
   onSelect,
+  audience = "parent",
 }: {
+  audience?: "parent" | "admin";
   theme: ParentThemeTokens;
   open: boolean;
   contacts: MessageContact[];
@@ -72,27 +84,40 @@ export default function GardenNewConversationDialog({
   onSelect: (contact: MessageContact) => void;
 }) {
   const [query, setQuery] = useState("");
+  const [tab, setTab] = useState<MessageContactAudienceFilter>("all");
   const searchRef = useRef<HTMLInputElement>(null);
+  const isAdmin = audience === "admin";
   const showSearch = contacts.length > SEARCH_THRESHOLD;
+  const tabCounts = useMemo(
+    () => ({
+      all: contacts.length,
+      parents: filterContactsByAudience(contacts, "parents").length,
+      staff: filterContactsByAudience(contacts, "staff").length,
+    }),
+    [contacts],
+  );
+  const showTabs = isAdmin && tabCounts.parents > 0 && tabCounts.staff > 0;
 
   const groups = useMemo(() => {
     const needle = query.trim().toLowerCase();
+    const pool = isAdmin ? filterContactsByAudience(contacts, tab) : contacts;
     const filtered = needle
-      ? contacts.filter(
+      ? pool.filter(
           (contact) =>
             contact.name.toLowerCase().includes(needle) ||
             (contact.subtitle?.toLowerCase().includes(needle) ?? false),
         )
-      : contacts;
+      : pool;
     return GROUP_ORDER.map((kind) => ({
       kind,
-      label: GROUP_LABEL[kind],
+      label: (isAdmin ? ADMIN_GROUP_LABEL[kind] : undefined) ?? GROUP_LABEL[kind],
       contacts: filtered.filter((contact) => contact.kind === kind),
     })).filter((group) => group.contacts.length > 0);
-  }, [contacts, query]);
+  }, [contacts, isAdmin, query, tab]);
 
   const close = () => {
     setQuery("");
+    setTab("all");
     onClose();
   };
 
@@ -106,14 +131,32 @@ export default function GardenNewConversationDialog({
       icon={<MessageSquarePlus />}
       size="lg"
       initialFocusRef={showSearch ? searchRef : undefined}
-      data-testid="parent-messages-new-conversation-dialog"
+      data-testid={`${isAdmin ? "admin" : "parent"}-messages-new-conversation-dialog`}
       description={
         <>
-          <span className="block">Choose who you&apos;d like to message.</span>
+          <span className="block">
+            {isAdmin
+              ? "Choose a parent or staff member. You'll reply as the school office."
+              : "Choose who you'd like to message."}
+          </span>
           <StepPills />
         </>
       }
     >
+      {showTabs ? (
+        <GTabBar
+          ariaLabel="Who to show"
+          activeKey={tab}
+          onChange={(key) => setTab(key as MessageContactAudienceFilter)}
+          items={[
+            { key: "all", label: `All · ${tabCounts.all}` },
+            { key: "parents", label: `Parents · ${tabCounts.parents}` },
+            { key: "staff", label: `Staff · ${tabCounts.staff}` },
+          ]}
+          className="mb-3 !shadow-none [&_button]:!px-3 [&_button]:!py-1.5"
+        />
+      ) : null}
+
       {showSearch ? (
         <div className="relative mb-4">
           <Search
@@ -149,9 +192,21 @@ export default function GardenNewConversationDialog({
           No contacts available to message right now.
         </p>
       ) : groups.length === 0 ? (
-        <p className="m-0 py-6 text-center text-sm font-semibold text-[var(--sf-soft)]">
-          No one matches “{query.trim()}”.
-        </p>
+        <div className="py-6 text-center">
+          <p className="m-0 text-sm font-semibold text-[var(--sf-soft)]">
+            {query.trim() ? <>No one matches “{query.trim()}”.</> : "No one to show here."}
+          </p>
+          <button
+            type="button"
+            className={`${gLinkSm} mt-2`}
+            onClick={() => {
+              setQuery("");
+              setTab("all");
+            }}
+          >
+            Show everyone
+          </button>
+        </div>
       ) : (
         <div className="space-y-5">
           {groups.map((group) => (

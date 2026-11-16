@@ -235,7 +235,6 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
     <GardenMoreSheet
       visible={visible}
       onClose={onClose}
-      kicker="School workspace"
       subtitle="Finances, scheduling, and school operations">
       {useSectionTabs ? (
         <GardenMoreSectionTabs

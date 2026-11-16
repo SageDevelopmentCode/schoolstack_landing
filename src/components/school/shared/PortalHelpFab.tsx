@@ -4,6 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 const AdminSupportRequestModal = dynamic(
   () => import("@/components/school-admin/AdminSupportRequestModal"),
@@ -12,6 +13,8 @@ const AdminSupportRequestModal = dynamic(
 
 type PortalHelpFabProps = {
   C: AdminThemeTokens;
+  /** Garden tokens (school accent + fonts) for the help dialog. */
+  theme: ParentThemeTokens;
   organizationId: string;
   userEmail?: string | null;
   currentPath?: string;
@@ -26,6 +29,7 @@ type PortalHelpFabProps = {
 
 export default function PortalHelpFab({
   C,
+  theme,
   organizationId,
   userEmail,
   currentPath,
@@ -74,7 +78,7 @@ export default function PortalHelpFab({
 
       {supportOpen ? (
         <AdminSupportRequestModal
-          C={C}
+          theme={theme}
           open={supportOpen}
           onClose={() => setSupportOpen(false)}
           organizationId={organizationId}

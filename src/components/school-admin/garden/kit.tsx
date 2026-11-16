@@ -771,11 +771,14 @@ export function GardenStatTiles({
   ariaLabel = "Key numbers",
   layout = "tiles",
   index = 1,
+  valueClassName,
 }: {
   stats: GardenStat[];
   ariaLabel?: string;
   layout?: "tiles" | "strip";
   index?: number;
+  /** Override the tile value size (long money figures on phones). */
+  valueClassName?: string;
 }) {
   const reduce = useReducedMotion() === true;
   if (stats.length === 0) return null;
@@ -809,7 +812,7 @@ export function GardenStatTiles({
             className={`h-full rounded-[22px] border-[1.5px] bg-white px-4 py-4 shadow-[0_3px_0_0_rgba(43,36,29,0.08)] hover:-translate-y-0.5 sm:px-5 ${
               stat.active ? "border-[var(--sf-clay)] ring-2 ring-[var(--sf-clay)]/20" : "border-[var(--sf-ink)]/12"
             }`}
-            valueClass="text-[2rem] sm:text-[2.3rem]"
+            valueClass={valueClassName ?? "text-[2rem] sm:text-[2.3rem]"}
             showBar
           />
         </motion.div>
@@ -1023,6 +1026,65 @@ export function GardenSection({
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
       {children}
+    </section>
+  );
+}
+
+/**
+ * Numbered step inside a form or panel ("1 Write", "2 Attach"…): an ink
+ * number badge that turns into a forest check once the step is `done`, an h3,
+ * a one-line description and the step's controls. Use for guided editors so
+ * the admin always sees where they are and what's left.
+ */
+export function GardenNumberedSection({
+  step,
+  title,
+  description,
+  done = false,
+  action,
+  children,
+  className = "",
+  id,
+  "data-testid": testId,
+}: {
+  step: number;
+  title: ReactNode;
+  description?: ReactNode;
+  done?: boolean;
+  action?: ReactNode;
+  children?: ReactNode;
+  className?: string;
+  id?: string;
+  "data-testid"?: string;
+}) {
+  const headingId = id ? `${id}-title` : undefined;
+  return (
+    <section className={`min-w-0 ${className}`} aria-labelledby={headingId} data-testid={testId}>
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-2.5">
+          <span
+            aria-hidden
+            className={`mt-px flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-[1.5px] text-[12px] font-extrabold tabular-nums transition-colors ${
+              done
+                ? "border-[var(--sf-forest)] bg-[var(--sf-mint)] text-[var(--sf-forest)]"
+                : "border-[var(--sf-ink)] bg-white text-[var(--sf-ink)]"
+            }`}
+          >
+            {done ? <Check className="h-3.5 w-3.5" /> : step}
+          </span>
+          <div className="min-w-0">
+            <h3 id={headingId} className="m-0 text-[15px] font-extrabold text-[var(--sf-ink)]">
+              <span className="sr-only">{`Step ${step}${done ? ", done" : ""}: `}</span>
+              {title}
+            </h3>
+            {description ? (
+              <p className="m-0 mt-0.5 text-[12.5px] font-semibold leading-snug text-[var(--sf-soft)]">{description}</p>
+            ) : null}
+          </div>
+        </div>
+        {action ? <div className="shrink-0">{action}</div> : null}
+      </div>
+      <div className="pl-0 sm:pl-[34px]">{children}</div>
     </section>
   );
 }

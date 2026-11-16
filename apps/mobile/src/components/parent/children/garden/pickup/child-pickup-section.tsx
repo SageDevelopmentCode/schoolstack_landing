@@ -12,7 +12,6 @@ import {
   ChildThumb,
   GErrorCard,
   GHand,
-  GKicker,
   GOutlineButton,
   GPressable,
   GSkeleton,
@@ -172,7 +171,6 @@ export function ChildPickupSection({
   return (
     <View style={styles.container} testID="parent-child-pickup-tab">
       <View style={styles.hero}>
-        <GKicker>Authorized pickup</GKicker>
         <Text accessibilityRole="header" style={styles.heroTitle}>
           Who can pick up {studentFirstName}?
         </Text>
@@ -190,7 +188,6 @@ export function ChildPickupSection({
         </View>
       ) : loadError ? (
         <GErrorCard
-          kicker="Authorized pickup"
           title="We couldn't load the pickup list"
           message={`${loadError} Check your connection, then try again.`}
           onRetry={() => void loadContacts()}

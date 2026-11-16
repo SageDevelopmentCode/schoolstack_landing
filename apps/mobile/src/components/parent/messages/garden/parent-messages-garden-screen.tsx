@@ -336,7 +336,6 @@ export function ParentMessagesGardenScreen({ controller }: { controller: ParentM
       ) : showLoadError ? (
         <View style={styles.errorWrap}>
           <GErrorCard
-            kicker="Messages"
             title="We couldn’t load your messages"
             message={`${error} Check your connection, then try again.`}
             onRetry={() => void onPullRefresh()}

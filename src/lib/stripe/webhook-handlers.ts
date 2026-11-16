@@ -35,6 +35,7 @@ import {
   getApplicationPaymentByCheckoutSession,
   getPaymentById,
   listPaymentsByCheckoutSession,
+  markPaymentCanceled,
   markPaymentFailed,
   markPaymentSucceeded,
   syncPaymentCheckoutDetailsFromMetadata,
@@ -1123,6 +1124,22 @@ export async function handlePaymentIntentPaymentFailed(
   paymentIntent: Stripe.PaymentIntent,
 ): Promise<void> {
   await handleTuitionPaymentIntentTerminalFailure(admin, paymentIntent);
+}
+
+/**
+ * The payer left Checkout without paying and the session timed out (or a newer
+ * checkout expired it). Close its pending rows so they leave the ledger.
+ * Rows with a PaymentIntent are left to the payment_intent.* events.
+ */
+export async function handleCheckoutSessionExpired(
+  admin: SupabaseClient,
+  session: Stripe.Checkout.Session,
+): Promise<void> {
+  const payments = await listPaymentsByCheckoutSession(admin, session.id);
+  for (const payment of payments) {
+    if (payment.status !== "pending" || payment.stripePaymentIntentId) continue;
+    await markPaymentCanceled(admin, payment.id);
+  }
 }
 
 export async function handlePaymentIntentCanceled(

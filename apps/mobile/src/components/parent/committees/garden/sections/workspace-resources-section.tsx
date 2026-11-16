@@ -148,7 +148,7 @@ export function WorkspaceResourcesSection({
   if (visible.length === 0) {
     const roleLimited = !isAdmin && committee.resources.length > 0;
     return (
-      <GCard kicker="Resources" title={roleLimited ? 'Nothing shared with you yet' : 'No resources yet'} index={0}>
+      <GCard title={roleLimited ? 'Nothing shared with you yet' : 'No resources yet'} index={0}>
         <Text style={gText.body}>
           {roleLimited
             ? 'No resources shared with your committee role yet. Ask a committee lead if you need access.'
@@ -163,7 +163,7 @@ export function WorkspaceResourcesSection({
 
   return (
     <>
-      <GCard kicker="Resources" title={`${visible.length} guide${visible.length === 1 ? '' : 's'} & link${visible.length === 1 ? '' : 's'}`} index={0}>
+      <GCard title={`${visible.length} guide${visible.length === 1 ? '' : 's'} & link${visible.length === 1 ? '' : 's'}`} index={0}>
         <View style={styles.notebook}>
           {visible.map((resource, i) => {
             const openable = Boolean(resource.url || resource.storagePath);
@@ -209,9 +209,11 @@ export function WorkspaceResourcesSection({
         visible={selected !== null}
         onClose={() => setSelected(null)}
         accessibilityLabel="Close resource"
-        kicker={selected ? COMMITTEE_RESOURCE_TYPE_LABELS[selected.type] : undefined}
         title={selected?.title ?? ''}
-        subtitle={selected?.description}>
+        subtitle={selected?.description}
+        headerAside={
+          selected ? <GChip tone="neutral" label={COMMITTEE_RESOURCE_TYPE_LABELS[selected.type]} /> : null
+        }>
         {selected ? <ResourceViewer organizationId={organizationId} supabase={supabase} resource={selected} /> : null}
       </GSheet>
     </>

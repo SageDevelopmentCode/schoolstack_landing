@@ -3,10 +3,10 @@
 import { ImageIcon, Newspaper, PenLine, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { AdminGardenPageHeader, GardenEmptyState, GardenFilterChips } from "@/components/school-admin/garden/kit";
+import { AdminGardenPageHeader, GardenEmptyState, GardenStatTiles } from "@/components/school-admin/garden/kit";
 import { GardenLeadStrip } from "@/components/school-admin/garden/blocks";
 import { gFade } from "@/components/school-parent/garden/motion";
-import { GCard, GChip, G_FOCUS, gBtnOutlineSm, gBtnPopSm } from "@/components/school-parent/garden/ui";
+import { GCard, GChip, G_FOCUS, gBtnOutlineSm, gBtnPopSm, gLinkSm } from "@/components/school-parent/garden/ui";
 import { weekLabel } from "@/lib/school-admin/newsletter/newsletter-dates";
 import {
   createNewsletterEditionApi,
@@ -106,7 +106,7 @@ export default function NewsletterOverviewPage({
   return (
     <>
       <AdminGardenPageHeader
-        kicker="My school"
+        kicker="Communication"
         title={
           <>
             <span className="text-[var(--sf-clay)]">Newsletters</span>
@@ -156,17 +156,45 @@ export default function NewsletterOverviewPage({
         </GCard>
       ) : (
         <>
-          {published > 0 && drafts.length > 0 ? (
-            <GardenFilterChips
-              ariaLabel="Filter newsletters"
-              value={filter}
-              onChange={(key) => setFilter(key as StatusFilter)}
-              options={[
-                { key: "all", label: "All", count: editions.length },
-                { key: "draft", label: "Drafts", count: drafts.length },
-                { key: "published", label: "Published", count: published },
-              ]}
-            />
+          <GardenStatTiles
+            layout="strip"
+            ariaLabel="Newsletter numbers"
+            stats={[
+              {
+                id: "all",
+                label: "All newsletters",
+                value: editions.length,
+                accent: "sky",
+                active: filter === "all",
+                onClick: () => setFilter("all"),
+              },
+              {
+                id: "draft",
+                label: "Drafts",
+                value: drafts.length,
+                accent: "gold",
+                active: filter === "draft",
+                onClick: () => setFilter(filter === "draft" ? "all" : "draft"),
+              },
+              {
+                id: "published",
+                label: "Published",
+                value: published,
+                accent: "forest",
+                active: filter === "published",
+                onClick: () => setFilter(filter === "published" ? "all" : "published"),
+              },
+            ]}
+          />
+          {visible.length === 0 ? (
+            <div className="sf-paper rounded-2xl px-4 py-5 text-center">
+              <p className="m-0 text-[14px] font-extrabold text-[var(--sf-ink)]">
+                No newsletters match this filter.
+              </p>
+              <button type="button" className={`${gLinkSm} mt-1.5`} onClick={() => setFilter("all")}>
+                Show all newsletters
+              </button>
+            </div>
           ) : null}
           <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
             {visible.map((edition, i) => {

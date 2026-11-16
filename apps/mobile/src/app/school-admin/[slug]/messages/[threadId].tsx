@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { MessageThreadScreen } from '@/components/school-admin/messages/message-thread-screen';
+import { AdminMessageThreadScreen } from '@/components/school-admin/messages/garden/admin-message-thread-screen';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function SchoolAdminMessageThreadPage() {
@@ -12,7 +12,7 @@ export default function SchoolAdminMessageThreadPage() {
   }
 
   return (
-    <MessageThreadScreen
+    <AdminMessageThreadScreen
       threadId={threadId}
       organizationId={selectedSchool.id}
       organizationSlug={selectedSchool.slug}

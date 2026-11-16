@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { PhotosScreen } from '@/components/school-admin/gallery/photos-screen';
+import { PhotosScreen } from '@/components/school-admin/gallery/garden/admin-photos-screen';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function SchoolAdminPhotosPage() {

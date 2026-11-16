@@ -214,13 +214,24 @@ export default function CommitteeTasksSection({
       closePanel();
       await refresh();
       if (savedTaskId) {
-        void notifyTaskAssignment({
+        const notifyInput = {
           taskId: savedTaskId,
           organizationId,
           previousAssigneeMemberId:
             panelState?.mode === "edit" ? previousAssigneeMemberId : null,
           portalApiNamespace: isAdmin ? "school-admin" : portalApiNamespace,
-        }).catch((err) => {
+        } as const;
+        const sendAssignmentNotice = (): Promise<void> =>
+          notifyTaskAssignment(notifyInput).then(() => notify.clearError("committee-task-notify"));
+        void sendAssignmentNotice().catch((err) => {
+          // The task itself saved; say so, and offer to resend the heads-up.
+          if (data.assigneeMemberId) {
+            notify.error(formatActionError(err, "Failed to notify task assignee."), {
+              title: "Task saved, but the assignee wasn't notified",
+              id: "committee-task-notify",
+              retry: () => void sendAssignmentNotice().catch(() => undefined),
+            });
+          }
           void reportPortalOperationalError(
             committeeOperationalSurface(isAdmin),
             {

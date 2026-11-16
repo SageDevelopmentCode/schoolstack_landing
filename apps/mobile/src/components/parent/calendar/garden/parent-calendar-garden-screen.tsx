@@ -87,7 +87,6 @@ export function ParentCalendarGardenScreen({
         <StatusBar style="dark" />
         <ScrollView contentContainerStyle={styles.errorContent}>
           <GErrorCard
-            kicker="Calendar"
             title="We couldn't load the calendar"
             message={`${controller.error} Check your connection, then try again.`}
             onRetry={() => void controller.refresh()}

@@ -261,12 +261,20 @@ export default function NewsletterWorkspace({
     [editionId, onWorkspaceChange, workspace],
   );
 
-  /** Editor messages go through the admin toaster (Garden on this page). */
-  const showToast = useCallback((message: string, tone: "success" | "error" | "info" = "info") => {
-    if (tone === "success") adminToast.success(message, { id: "newsletter-editor" });
-    else if (tone === "error") adminToast.error(message, { id: "newsletter-editor-error" });
-    else adminToast.info(message, { id: "newsletter-editor-info" });
-  }, []);
+  /**
+   * Editor messages go through the admin toaster (Garden on this page). Ids
+   * come from the message text, so unrelated messages don't replace each other
+   * and errors never share an id with a success.
+   */
+  const showToast = useCallback(
+    (message: string, tone: "success" | "error" | "info" = "info", options?: { description?: string }) => {
+      const key = message.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40);
+      if (tone === "success") adminToast.success(message, { id: `newsletter-${key}`, description: options?.description });
+      else if (tone === "error") adminToast.error(message, { id: `newsletter-${key}-error`, description: options?.description });
+      else adminToast.info(message, { id: `newsletter-${key}-info`, description: options?.description });
+    },
+    [],
+  );
 
   const showPreview = useCallback(() => {
     setPreviewVisible(true);
@@ -285,7 +293,9 @@ export default function NewsletterWorkspace({
       const slotsLeft = MAX_NEWSLETTER_PHOTOS - activeEdition.photos.length;
       const files = [...(event.target.files ?? [])].slice(0, slotsLeft);
       if (!files.length) {
-        showToast(`Up to ${MAX_NEWSLETTER_PHOTOS} photos.`);
+        showToast(`Up to ${MAX_NEWSLETTER_PHOTOS} photos.`, "info", {
+          description: "Remove a photo to add another.",
+        });
         event.target.value = "";
         return;
       }
@@ -296,7 +306,9 @@ export default function NewsletterWorkspace({
           const src = await prepareNewsletterImageFileForUpload(file);
           newPhotos.push({ id: createNewsletterId(), src, caption: "" });
         } catch {
-          showToast("Could not load an image. Try JPG or PNG.", "error");
+          showToast("Couldn't add a photo.", "error", {
+            description: `“${file.name}” couldn't be loaded. Try a JPG or PNG.`,
+          });
         }
       }
       updateActiveEdition({ ...activeEdition, photos: newPhotos });
@@ -329,11 +341,32 @@ export default function NewsletterWorkspace({
     const text = await plainTextFromHtml(html);
     try {
       await navigator.clipboard.writeText(text);
-      showToast("Text copied.", "success");
+      showToast("Text copied.", "success", { description: "Paste it into an email or document." });
+      return true;
     } catch {
-      showToast("Copy failed — try Download text.", "error");
+      showToast("Couldn't copy the text.", "error", { description: "Use Download text instead — nothing was copied." });
+      return false;
     }
   }, [activeEdition, workspace.school, renderOptions, showToast]);
+
+  /** Publish checklist "Fix": close the dialog and put the cursor in that field. */
+  const focusEditorField = useCallback(
+    (field: "title" | "week" | "content") => {
+      setModal(null);
+      const id =
+        field === "title"
+          ? `newsletter-title-${activeEdition.id}`
+          : field === "week"
+            ? `newsletter-week-begin-${activeEdition.id}`
+            : null;
+      window.requestAnimationFrame(() => {
+        const el = id ? document.getElementById(id) : document.querySelector<HTMLElement>("[data-newsletter-editor] textarea");
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        (el as HTMLElement | null)?.focus({ preventScroll: true });
+      });
+    },
+    [activeEdition.id],
+  );
 
   const openPublish = useCallback(() => {
     if (locked) {
@@ -471,7 +504,7 @@ export default function NewsletterWorkspace({
           <div
             className={`${styles.builder} ${previewVisible ? "" : styles.builderPreviewHidden}`.trim()}
           >
-              <div className={styles.editorColumn}>
+              <div className={styles.editorColumn} data-newsletter-editor>
                 <NewsletterEditorPanel
                   edition={activeEdition}
                   template={workspace.template}
@@ -565,7 +598,8 @@ export default function NewsletterWorkspace({
         onShowPreview={showPreview}
         onExportHtml={exportHtml}
         onExportText={() => void exportText()}
-        onCopyText={() => void copyText()}
+        onCopyText={copyText}
+        onFocusField={focusEditorField}
         onPublish={handlePublish}
       />
 

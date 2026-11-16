@@ -5,7 +5,10 @@ import { useSearchParams } from "next/navigation";
 import { ChevronLeft, Loader2, Plus } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import { buildAdminSectionedListItems } from "@/lib/messages/admin-thread-sections";
+import {
+  buildAdminSectionedListItems,
+  type AdminConversationListItem,
+} from "@/lib/messages/admin-thread-sections";
 import { contactKeyForThread } from "@/lib/messages/participants-from-contact";
 import {
   threadDetailFromContact,
@@ -41,7 +44,9 @@ import AdminMessagesInboxHeader from "@/components/school-admin/messages/AdminMe
 import AdminMessagesBroadcastModal from "@/components/school-admin/messages/AdminMessagesBroadcastModal";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
+  isAdminGardenMessagesVariant,
   isAdminStoryMessagesVariant,
+  isGardenMessagesVariant,
   isSplitPaneMessagesVariant,
   isStoryMessagesVariant,
 } from "@/lib/messages/messages-layout-variant";
@@ -253,6 +258,17 @@ export default function MessagesInboxLayout({
   const emitFeedback = useCallback((event: MessagesFeedbackEvent) => {
     onFeedbackRef.current?.(event);
   }, []);
+  /**
+   * Latest handlers, so a "Retry" offered in a feedback event repeats the
+   * failed step with current state (restored draft, still-open delete…).
+   */
+  const retryActionsRef = useRef<{
+    loadContacts: () => void;
+    loadThread: (threadId: string) => void;
+    openContact: (contact: MessageContact) => void;
+    send: () => void;
+    confirmDelete: () => void;
+  } | null>(null);
   const [threads, setThreads] = useState<MessageThreadSummary[]>(initialInbox?.threads ?? []);
   const [contacts, setContacts] = useState<MessageContact[]>(initialInbox?.contacts ?? []);
   const [viewerContext, setViewerContext] = useState(initialInbox?.viewerContext);
@@ -400,7 +416,12 @@ export default function MessagesInboxLayout({
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to load contacts.";
       setError(message);
-      emitFeedback({ type: "load_failed", scope: "contacts", message });
+      emitFeedback({
+        type: "load_failed",
+        scope: "contacts",
+        message,
+        retry: () => retryActionsRef.current?.loadContacts(),
+      });
       reportMessagesError("messages.load_contacts", err);
     } finally {
       setLoadingContacts(false);
@@ -469,7 +490,12 @@ export default function MessagesInboxLayout({
         const message = err instanceof Error ? err.message : "Failed to load conversation.";
         setError(message);
         if (!options?.silent) {
-          emitFeedback({ type: "load_failed", scope: "thread", message });
+          emitFeedback({
+            type: "load_failed",
+            scope: "thread",
+            message,
+            retry: () => retryActionsRef.current?.loadThread(threadId),
+          });
         }
         reportMessagesError("messages.load_thread", err);
       } finally {
@@ -567,7 +593,12 @@ export default function MessagesInboxLayout({
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to start conversation.";
         setError(message);
-        emitFeedback({ type: "load_failed", scope: "start_conversation", message });
+        emitFeedback({
+          type: "load_failed",
+          scope: "start_conversation",
+          message,
+          retry: () => retryActionsRef.current?.openContact(contact),
+        });
         reportMessagesError("messages.start_conversation", err);
         setActiveThread(null);
         setActiveThreadId(null);
@@ -860,7 +891,12 @@ export default function MessagesInboxLayout({
           setStagedFiles((current) => (current.length > 0 ? current : filesToSend));
         }
         setError(message);
-        emitFeedback({ type: "send_failed", message, restored: stillOnThread });
+        emitFeedback({
+          type: "send_failed",
+          message,
+          restored: stillOnThread,
+          retry: stillOnThread ? () => retryActionsRef.current?.send() : undefined,
+        });
         reportMessagesError("messages.send", err, responseStatus);
       }
     } finally {
@@ -977,7 +1013,11 @@ export default function MessagesInboxLayout({
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to delete message.";
       setError(message);
-      emitFeedback({ type: "delete_failed", message });
+      emitFeedback({
+        type: "delete_failed",
+        message,
+        retry: () => retryActionsRef.current?.confirmDelete(),
+      });
       reportMessagesError("messages.delete", err);
     } finally {
       setDeletingMessage(false);
@@ -992,6 +1032,26 @@ export default function MessagesInboxLayout({
     readOnly,
     reportMessagesError,
   ]);
+
+  useEffect(() => {
+    retryActionsRef.current = {
+      loadContacts: () => {
+        void loadContacts();
+      },
+      loadThread: (threadId) => {
+        void loadThread(threadId);
+      },
+      openContact: (contact) => {
+        void openContact(contact);
+      },
+      send: () => {
+        void handleSend();
+      },
+      confirmDelete: () => {
+        void handleConfirmDelete();
+      },
+    };
+  }, [handleConfirmDelete, handleSend, loadContacts, loadThread, openContact]);
 
   const onThreadMessage = useCallback(
     (threadId: string) => {
@@ -1110,6 +1170,7 @@ export default function MessagesInboxLayout({
   const embedded = variant === "embedded";
   const storyVariant = isStoryMessagesVariant(variant);
   const adminStory = isAdminStoryMessagesVariant(variant);
+  const adminGarden = isAdminGardenMessagesVariant(variant) && api.viewer === "admin";
   const splitPane = isSplitPaneMessagesVariant(variant);
 
   const threadsForList = useMemo(() => {
@@ -1171,7 +1232,7 @@ export default function MessagesInboxLayout({
   );
 
   const listItems = useMemo(() => {
-    if (adminStory && api.viewer === "admin") {
+    if ((adminStory || adminGarden) && api.viewer === "admin") {
       return buildAdminSectionedListItems(threadsForList);
     }
 
@@ -1185,7 +1246,7 @@ export default function MessagesInboxLayout({
         .filter((contact) => !contactKeysWithThreads.has(contact.key))
         .map((contact) => ({ type: "contact" as const, contact })),
     ];
-  }, [adminStory, api.viewer, contactKeysWithThreads, contacts, splitPane, threadsForList]);
+  }, [adminGarden, adminStory, api.viewer, contactKeysWithThreads, contacts, splitPane, threadsForList]);
 
   const activeKey = activeThreadId;
   const reducedMotion = useReducedMotion() ?? false;
@@ -1201,7 +1262,8 @@ export default function MessagesInboxLayout({
 
   const newMessageDisabled = deferContactsLoad ? loadingContacts : contacts.length === 0;
 
-  if (variant === "parent-garden" && theme) {
+  if (isGardenMessagesVariant(variant) && theme) {
+    const contactsBusyOrEmpty = deferContactsLoad ? loadingContacts : contacts.length === 0;
     const gardenModel: MessagesInboxViewModel = {
       viewer: api.viewer,
       schoolName: api.schoolName,
@@ -1229,6 +1291,19 @@ export default function MessagesInboxLayout({
       deletingMessage,
       attachmentDiscardDialogOpen,
       attachmentRouteLeaveDialogOpen,
+      admin: adminGarden
+        ? {
+            listItems: listItems.flatMap((item): AdminConversationListItem[] =>
+              item.type === "section" || item.type === "thread" ? [item] : [],
+            ),
+            composeBanner: adminComposeState.banner,
+            composeDisabled: adminComposeState.disabled && !readOnly,
+            openBroadcast: () => {
+              void handleOpenBroadcast();
+            },
+            broadcastDisabled: readOnly || contactsBusyOrEmpty,
+          }
+        : undefined,
       actions: {
         selectThread: handleSelect,
         setSearch: setInboxSearch,
@@ -1272,7 +1347,27 @@ export default function MessagesInboxLayout({
       },
     };
 
-    return <ParentGardenMessagesView model={gardenModel} theme={theme} C={C} />;
+    return (
+      <>
+        <ParentGardenMessagesView model={gardenModel} theme={theme} C={C} />
+        {adminGarden ? (
+          <AdminMessagesBroadcastModal
+            open={broadcastOpen}
+            onClose={() => setBroadcastOpen(false)}
+            onSent={() => {
+              void loadInbox({ silent: true });
+            }}
+            organizationId={api.organizationId}
+            organizationSlug={api.organizationSlug}
+            schoolName={api.schoolName}
+            contacts={contacts}
+            loadingContacts={loadingContacts}
+            C={C}
+            theme={theme}
+          />
+        ) : null}
+      </>
+    );
   }
 
   if (loadingInbox) {

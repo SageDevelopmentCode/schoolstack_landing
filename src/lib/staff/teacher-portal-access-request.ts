@@ -7,7 +7,7 @@ import { getRequestUser } from "@/lib/auth/session";
 import { createClient } from "@/utils/supabase/server";
 import {
   TeacherPortalAuthError,
-  getStaffMemberIdForUser,
+  getTeacherPortalStaffMemberIdForUser,
   getStaffUserProfile,
   userHasTeacherPortalAccess,
 } from "@/lib/staff/teacher-portal-access";
@@ -24,7 +24,7 @@ export const getCachedStaffMemberIdForUser = cache(
   async (userId: string, organizationId: string): Promise<string | null> => {
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
-    return getStaffMemberIdForUser(supabase, userId, organizationId);
+    return getTeacherPortalStaffMemberIdForUser(supabase, userId, organizationId);
   },
 );
 

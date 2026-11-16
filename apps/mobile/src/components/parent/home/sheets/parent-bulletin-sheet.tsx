@@ -63,7 +63,6 @@ export function ParentBulletinSheet({ visible, posts, onClose, onOpenPost }: Par
     <GSheet
       visible={visible}
       onClose={onClose}
-      kicker="From school"
       title="School bulletin"
       subtitle={posts.length > 0 ? `${posts.length} post${posts.length === 1 ? '' : 's'}` : undefined}
       accessibilityLabel="Close school bulletin">

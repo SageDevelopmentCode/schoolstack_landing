@@ -47,7 +47,6 @@ export function GardenMessagesHelpSheet({
     <GSheet
       visible={visible}
       onClose={onClose}
-      kicker="Messages"
       title="How messaging works"
       subtitle="Three steps to reach your school office, teachers and families.">
       <MessagesStepsList />

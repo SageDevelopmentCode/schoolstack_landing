@@ -160,7 +160,6 @@ export function GardenEventSheet({
     <GSheet
       visible={Boolean(event)}
       onClose={onClose}
-      kicker="School event"
       title={current.title}
       accessibilityLabel={`Close ${current.title}`}
       headerAside={statusChip}

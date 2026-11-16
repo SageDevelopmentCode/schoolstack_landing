@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useAdminGardenSkin } from "@/components/school-admin/garden/skin";
+import { createContext, useContext } from "react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
@@ -17,6 +18,45 @@ export const BUILDER_CARD_TONES = {
 } as const;
 
 export type BuilderCardTone = keyof typeof BUILDER_CARD_TONES;
+
+const BuilderGroupContext = createContext(false);
+
+/**
+ * Garden builders: groups several BuilderQuestionCards into one card with a
+ * heading; the questions inside render as flat, divided sections. Outside the
+ * admin Garden skin it just renders its children (story look unchanged).
+ */
+export function BuilderQuestionGroup({
+  title,
+  description,
+  children,
+  id,
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+  id?: string;
+}) {
+  const skin = useAdminGardenSkin();
+  if (!skin) return <>{children}</>;
+  return (
+    <section
+      id={id}
+      aria-label={title}
+      className="rounded-[22px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white px-5 py-4 shadow-[0_3px_0_0_rgba(43,36,29,0.06)] sm:px-6"
+    >
+      <div className="mb-1">
+        <h3 className="m-0 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[var(--sf-soft)]">{title}</h3>
+        {description ? (
+          <p className="m-0 mt-1 text-[13px] font-semibold leading-snug text-[var(--sf-soft)]">{description}</p>
+        ) : null}
+      </div>
+      <BuilderGroupContext.Provider value>
+        <div className="divide-y-[1.5px] divide-dashed divide-[var(--sf-ink)]/10">{children}</div>
+      </BuilderGroupContext.Provider>
+    </section>
+  );
+}
 
 export function BuilderSectionIntro({
   C,
@@ -110,7 +150,25 @@ export function BuilderQuestionCard({
   children?: ReactNode;
 }) {
   const skin = useAdminGardenSkin();
+  const grouped = useContext(BuilderGroupContext);
   const cardTone = BUILDER_CARD_TONES[tone](C);
+
+  if (skin && grouped) {
+    return (
+      <div className={`py-4 ${highlightError ? "-mx-3 rounded-[14px] bg-[#fdf0ec] px-3" : ""} space-y-2.5`}>
+        <div className={helper ? "space-y-1" : undefined}>
+          <div className="flex items-center justify-between gap-3">
+            <p className="m-0 min-w-0 flex-1 text-[14px] font-extrabold text-[var(--sf-ink)]">{question}</p>
+            {action}
+          </div>
+          {helper ? (
+            <p className="m-0 text-[12.5px] font-semibold leading-snug text-[var(--sf-soft)]">{helper}</p>
+          ) : null}
+        </div>
+        {children ? <div>{children}</div> : null}
+      </div>
+    );
+  }
 
   if (skin) {
     return (

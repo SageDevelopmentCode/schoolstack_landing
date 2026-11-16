@@ -8,7 +8,8 @@ export type ScheduleVisitsContextValue = {
   visits: AdminScheduledVisit[];
   visitsReady: boolean;
   hydrateVisits: (data: ScheduleVisitsData) => void;
-  refetchVisits: () => Promise<void>;
+  /** Resolves false when the refetch failed (the old list stays). */
+  refetchVisits: () => Promise<boolean>;
 };
 
 export const ScheduleVisitsContext = createContext<ScheduleVisitsContextValue | null>(

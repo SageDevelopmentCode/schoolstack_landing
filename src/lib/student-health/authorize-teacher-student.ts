@@ -5,7 +5,7 @@ import {
   loadTeacherSchoolStudentDetail,
 } from "@/lib/school-admin/enrolled-students";
 import {
-  getStaffMemberIdForUser,
+  getTeacherPortalStaffMemberIdForUser,
   getStaffUserProfile,
   type StaffUserProfile,
 } from "@/lib/staff/teacher-portal-access";
@@ -22,7 +22,7 @@ export async function authorizeTeacherStudentHealthAccess(
 > {
   await requireTeacherPortalUser(supabase, organizationId);
 
-  const staffMemberId = await getStaffMemberIdForUser(
+  const staffMemberId = await getTeacherPortalStaffMemberIdForUser(
     supabase,
     user.id,
     organizationId,

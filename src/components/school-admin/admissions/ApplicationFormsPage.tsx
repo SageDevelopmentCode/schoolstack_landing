@@ -104,6 +104,9 @@ import EnrollmentChecklistResignConfirmDialog from "./EnrollmentChecklistResignC
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import { GardenCanvasSkeleton } from "./flows/GardenCanvasSkeleton";
+import { applyFormReadiness, checklistReadiness, type ReadinessItem } from "./flows/flowReadiness";
+import { FlowReadinessRail, FlowStatusPill } from "./flows/FlowReadinessRail";
+import GardenFlowActions from "./flows/GardenFlowActions";
 import {
   DEFAULT_BUILDER_FOCUS,
   type BuilderFocus,
@@ -379,6 +382,11 @@ function EnrollmentChecklistProgramGate({
   );
 }
 
+/** Wall-clock time for "Saved just now" (called from event handlers only). */
+function nowMs(): number {
+  return Date.now();
+}
+
 export default function ApplicationFormsPage({
   organizationId,
   branding,
@@ -461,6 +469,11 @@ export default function ApplicationFormsPage({
   const [setupHighlight, setSetupHighlight] = useState<"publicSlug" | null>(null);
   const [unpublishOpen, setUnpublishOpen] = useState(false);
   const [checklistUnpublishOpen, setChecklistUnpublishOpen] = useState(false);
+  const [lastSaved, setLastSaved] = useState<{ id: string; at: number } | null>(null);
+  const [checklistFocusRequest, setChecklistFocusRequest] = useState<{
+    itemId: string;
+    nonce: number;
+  } | null>(null);
   const [unpublishing, setUnpublishing] = useState(false);
   const [stripePaymentsReady, setStripePaymentsReady] = useState(
     initialListData?.stripePaymentsReady ?? true,
@@ -615,6 +628,33 @@ export default function ApplicationFormsPage({
       serializeChecklistEditableState(checklistEditable) !== checklistSavedSnapshot
     );
   }, [checklistEditable, checklistSavedSnapshot]);
+
+  const applyReadiness = useMemo(
+    () =>
+      editable
+        ? applyFormReadiness(editable, {
+            isApplyForm: isApplyFormSelected,
+            stripePaymentsReady,
+          })
+        : null,
+    [editable, isApplyFormSelected, stripePaymentsReady],
+  );
+  const applyIssueStepIds = useMemo(
+    () =>
+      new Set(
+        (applyReadiness?.items ?? [])
+          .filter((item) => item.status === "todo" && item.stepId)
+          .map((item) => item.stepId as string),
+      ),
+    [applyReadiness],
+  );
+  const checklistReadinessState = useMemo(
+    () =>
+      checklistEditable
+        ? checklistReadiness(checklistEditable, { stripePaymentsReady })
+        : null,
+    [checklistEditable, stripePaymentsReady],
+  );
 
   const isDirty =
     selection?.kind === "apply"
@@ -1234,6 +1274,7 @@ export default function ApplicationFormsPage({
       setEditable(nextEditable);
       setApplySavedSnapshot(serializeEditableFormState(nextEditable));
       adminToast.dismiss("flows-save-form-error");
+      setLastSaved({ id: selectedForm.id, at: nowMs() });
       adminToast.success(isPublished ? "Form saved" : "Draft saved", {
         id: "flows-save-form",
         description: isPublished
@@ -1337,6 +1378,7 @@ export default function ApplicationFormsPage({
       enterEditor({ kind: "apply", id: published.id });
       setSetupHighlight(null);
       adminToast.dismiss("flows-publish-form-error");
+      setLastSaved({ id: published.id, at: nowMs() });
       adminToast.success("Form published", {
         id: "flows-publish-form",
         description: "Families can apply now. Use Share to copy your apply link.",
@@ -1466,6 +1508,7 @@ export default function ApplicationFormsPage({
       setChecklistEditable(nextChecklist);
       setChecklistSavedSnapshot(serializeChecklistEditableState(nextChecklist));
       adminToast.dismiss("flows-save-checklist-error");
+      setLastSaved({ id: selectedChecklist.id, at: nowMs() });
       adminToast.success(
         options?.requireResign
           ? "Checklist saved and families notified to re-sign"
@@ -1612,6 +1655,7 @@ export default function ApplicationFormsPage({
       await loadForms();
       enterEditor({ kind: "checklist", id: published.id });
       adminToast.dismiss("flows-publish-checklist-error");
+      setLastSaved({ id: published.id, at: nowMs() });
       adminToast.success(
         options?.requireResign
           ? "Checklist published and families notified to re-sign"
@@ -1844,6 +1888,18 @@ export default function ApplicationFormsPage({
     />
   );
 
+  const handleSelectApplyReadinessItem = (item: ReadinessItem) => {
+    if (item.target) setFocus(item.target);
+  };
+
+  const handleSelectChecklistReadinessItem = (item: ReadinessItem) => {
+    if (!item.checklistItemId) return;
+    setChecklistFocusRequest((prev) => ({
+      itemId: item.checklistItemId!,
+      nonce: (prev?.nonce ?? 0) + 1,
+    }));
+  };
+
   const allFlowsBackControl = (
     <AdminButton theme={theme} variant="soft" size="compact" onClick={handleGoToOverview}>
       <ArrowLeft className="h-3.5 w-3.5" />
@@ -1906,6 +1962,7 @@ export default function ApplicationFormsPage({
           <EnrollmentFlowsStoryHeader
             theme={theme}
             flowTitle={
+              <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
               <input
                 type="text"
                 value={checklistEditable.name}
@@ -1913,90 +1970,82 @@ export default function ApplicationFormsPage({
                   handleChecklistEditableChange({ name: e.target.value })
                 }
                 disabled={checklistReadOnly}
-                className="min-w-[12rem] flex-1 truncate bg-transparent font-heading text-[15px] font-semibold outline-none"
-                style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
+                className="sf-display min-w-[12rem] flex-1 truncate rounded-[10px] border-0 bg-transparent px-1 text-[1.15rem] text-[var(--sf-ink)] outline-none hover:bg-[var(--sf-accent-wash)] focus:bg-white focus:ring-2 focus:ring-[var(--sf-clay)]/25"
                 placeholder="Enrollment checklist"
+                aria-label="Checklist name"
+                data-garden-skip
               />
+                <FlowStatusPill
+                  isPublished={checklistIsPublished}
+                  dirty={isChecklistDirty}
+                  saving={saving || publishing}
+                  savedAt={lastSaved?.id === selectedChecklist.id ? lastSaved.at : null}
+                />
+              </span>
             }
-            status={selectedChecklist.status}
             flowSwitcher={allFlowsBackControl}
             actions={
-              <>
-                <AdmissionsFamilyAccessGuideButton
-                  variant="checklist"
-                  C={C}
-                  schoolSlug={slug}
-                />
-                <ChecklistPreviewMenuButton
-                  C={C}
-                  orgSlug={slug}
-                  checklistId={selectedChecklist.id}
-                  disabled={!checklistEditable.items.length}
-                  isDirty={isChecklistDirty}
-                  onPreviewHere={() => openChecklistPreview()}
-                />
-                <ChecklistProgramDropdown
-                  C={C}
-                  programs={programs}
-                  programId={checklistEditable.programId}
+              checklistReadinessState ? (
+                <GardenFlowActions
                   readOnly={checklistReadOnly}
-                  onChange={(programId) =>
-                    handleChecklistEditableChange({ programId })
+                  isPublished={checklistIsPublished}
+                  dirty={isChecklistDirty}
+                  saving={saving}
+                  publishing={publishing}
+                  readiness={checklistReadinessState}
+                  kindLabel="checklist"
+                  onSave={handleChecklistSave}
+                  onPublish={handleChecklistPublish}
+                  onSelectReadinessItem={handleSelectChecklistReadinessItem}
+                  extra={
+                    <>
+                      <ChecklistProgramDropdown
+                        C={C}
+                        programs={programs}
+                        programId={checklistEditable.programId}
+                        readOnly={checklistReadOnly}
+                        onChange={(programId) =>
+                          handleChecklistEditableChange({ programId })
+                        }
+                      />
+                      <ChecklistPreviewMenuButton
+                        C={C}
+                        orgSlug={slug}
+                        checklistId={selectedChecklist.id}
+                        disabled={!checklistEditable.items.length}
+                        isDirty={isChecklistDirty}
+                        onPreviewHere={() => openChecklistPreview()}
+                      />
+                      <AdmissionsFamilyAccessGuideButton
+                        variant="checklist"
+                        C={C}
+                        schoolSlug={slug}
+                      />
+                    </>
+                  }
+                  menuItems={
+                    checklistIsPublished && !checklistReadOnly
+                      ? [
+                          {
+                            key: "unpublish",
+                            label: "Unpublish",
+                            hint: "New enrollments won't use it",
+                            icon: <EyeOff className="h-4 w-4" />,
+                            destructive: true,
+                            onSelect: () => setChecklistUnpublishOpen(true),
+                          },
+                        ]
+                      : []
                   }
                 />
-                {checklistReadOnly ? null : (
-                  <>
-                    <AdminButton
-                      theme={theme}
-                      variant="soft"
-                      onClick={handleChecklistSave}
-                      disabled={saving || !isChecklistDirty}
-                    >
-                      {saving ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Save className="h-3.5 w-3.5" />
-                      )}
-                      {checklistIsPublished ? "Save" : "Save draft"}
-                    </AdminButton>
-                    {checklistIsPublished ? (
-                      <AdminButton
-                        theme={theme}
-                        variant="danger"
-                        onClick={() => setChecklistUnpublishOpen(true)}
-                      >
-                        <EyeOff className="h-3.5 w-3.5" />
-                        Unpublish
-                      </AdminButton>
-                    ) : (
-                      <AdminButton
-                        theme={theme}
-                        variant="primary"
-                        onClick={handleChecklistPublish}
-                        disabled={publishing}
-                      >
-                        {publishing ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Send className="h-3.5 w-3.5" />
-                        )}
-                        Publish
-                      </AdminButton>
-                    )}
-                  </>
-                )}
-              </>
+              ) : null
             }
           />
 
           {error && selection?.kind === "checklist" ? (
             <div
-              className="mx-4 mb-3 rounded-xl px-3 py-2 text-xs sm:mx-6 lg:mx-8"
-              style={{
-                backgroundColor: C.errorBg,
-                color: C.error,
-                border: `1px solid ${C.errorBorder}`,
-              }}
+              role="alert"
+              className="mx-4 mt-3 rounded-[14px] border-[1.5px] border-[#b4412f]/30 bg-[#fdf0ec] px-4 py-2.5 text-[13px] font-semibold text-[#9a3422] sm:mx-5"
             >
               <PaymentsSetupErrorMessage message={error} orgSlug={slug} C={C} />
             </div>
@@ -2017,6 +2066,20 @@ export default function ApplicationFormsPage({
                 onItemsChange={handleChecklistItemsChange}
                 onPreviewItem={openChecklistPreview}
                 readOnly={checklistReadOnly}
+                requestFocusItem={checklistFocusRequest}
+                aside={
+                  checklistReadinessState ? (
+                    <FlowReadinessRail
+                      readiness={checklistReadinessState}
+                      isPublished={checklistIsPublished}
+                      kindLabel="checklist"
+                      onSelect={handleSelectChecklistReadinessItem}
+                      onPreview={
+                        checklistEditable.items.length ? () => openChecklistPreview() : undefined
+                      }
+                    />
+                  ) : null
+                }
               />
             ) : (
               <EnrollmentChecklistProgramGate
@@ -2038,16 +2101,23 @@ export default function ApplicationFormsPage({
           <EnrollmentFlowsStoryHeader
             theme={theme}
             flowTitle={
-              <AdminDisplayHeading
-                theme={theme}
-                as="h1"
-                size="section"
-                className="text-[15px] leading-tight tracking-[-0.02em]"
-              >
-                {editable.title || "Untitled form"}
-              </AdminDisplayHeading>
+              <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                <AdminDisplayHeading
+                  theme={theme}
+                  as="h1"
+                  size="section"
+                  className="min-w-0 truncate !text-[1.15rem] leading-tight"
+                >
+                  {editable.title || "Untitled form"}
+                </AdminDisplayHeading>
+                <FlowStatusPill
+                  isPublished={isPublished}
+                  dirty={isApplyDirty}
+                  saving={saving || publishing}
+                  savedAt={lastSaved?.id === selectedForm.id ? lastSaved.at : null}
+                />
+              </span>
             }
-            status={selectedForm.status}
             flowSwitcher={allFlowsBackControl}
             actions={
               <ApplicationFormEditorToolbar
@@ -2068,18 +2138,16 @@ export default function ApplicationFormsPage({
                 onCopyPublicLink={handleCopyPublicLink}
                 onPreview={() => setPreviewOpen(true)}
                 onDuplicate={handleDuplicate}
+                readiness={applyReadiness ?? undefined}
+                onSelectReadinessItem={handleSelectApplyReadinessItem}
               />
             }
           />
 
           {error && (
             <div
-              className="mx-4 mb-3 rounded-xl px-3 py-2 text-xs sm:mx-6 lg:mx-8"
-              style={{
-                backgroundColor: C.errorBg,
-                color: C.error,
-                border: `1px solid ${C.errorBorder}`,
-              }}
+              role="alert"
+              className="mx-4 mt-3 rounded-[14px] border-[1.5px] border-[#b4412f]/30 bg-[#fdf0ec] px-4 py-2.5 text-[13px] font-semibold text-[#9a3422] sm:mx-5"
             >
               <PaymentsSetupErrorMessage message={error} orgSlug={slug} C={C} />
             </div>
@@ -2098,6 +2166,7 @@ export default function ApplicationFormsPage({
               onReorderSteps={reorderSteps}
               onAddStep={addStep}
               onPreview={() => setPreviewOpen(true)}
+              issueStepIds={applyIssueStepIds}
             />
 
             <ApplicationFormFocusCanvas
@@ -2129,6 +2198,17 @@ export default function ApplicationFormsPage({
                 setFocus(DEFAULT_BUILDER_FOCUS);
               }}
             />
+            {applyReadiness ? (
+              <FlowReadinessRail
+                readiness={applyReadiness}
+                isPublished={isPublished}
+                kindLabel="form"
+                publicUrl={publishedPublicUrl}
+                onSelect={handleSelectApplyReadinessItem}
+                onPreview={() => setPreviewOpen(true)}
+                onCopyLink={handleCopyPublicLink}
+              />
+            ) : null}
           </div>
         </div>
       ) : (

@@ -15,7 +15,6 @@ export function ParentAttendanceGardenSkeleton({ onBack }: { onBack: () => void 
         backLabel="More"
         backAccessibilityLabel="Back"
         onBack={onBack}
-        kicker="Attendance"
         title="Attendance"
       />
       <GSkeleton style={{ height: 44, borderRadius: 999 }} />

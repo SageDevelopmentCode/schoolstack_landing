@@ -7,7 +7,8 @@ export type MessagesLayoutVariant =
   | "embedded"
   | "parent-story"
   | "parent-garden"
-  | "admin-story";
+  | "admin-story"
+  | "admin-garden";
 
 export default function MessagesAvatar({
   name,

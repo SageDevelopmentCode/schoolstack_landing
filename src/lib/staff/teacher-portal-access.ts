@@ -89,17 +89,54 @@ async function getStaffMemberIdForAuthUser(
   return data?.id ? String(data.id) : null;
 }
 
-export async function getStaffMemberIdForUser(
+/**
+ * Link-group user ids for the teacher portal: logins with an active teacher/staff
+ * membership first, then the rest (primary-first order kept in each bucket).
+ *
+ * A school admin is often the primary login and has its own auto-created "School admin"
+ * staff record, so primary-first would open the teacher portal as that record instead of
+ * the linked teacher login's own record (classes, name, photo). Single logins are unchanged.
+ */
+export async function getTeacherPortalOrderedUserIds(
   supabase: SupabaseClient,
-  userId: string,
   organizationId: string,
-): Promise<string | null> {
+  userId: string,
+): Promise<string[]> {
   const orderedUserIds = await getOrderedPortalAccountUserIds(
     supabase,
     organizationId,
     userId,
   );
 
+  if (orderedUserIds.length < 2) {
+    return orderedUserIds;
+  }
+
+  const { data, error } = await supabase
+    .from("organization_memberships")
+    .select("user_id")
+    .eq("organization_id", organizationId)
+    .eq("status", "active")
+    .in("role", ["teacher", "staff"])
+    .in("user_id", orderedUserIds);
+
+  if (error) throw error;
+
+  const teacherUserIds = new Set(
+    (Array.isArray(data) ? data : []).map((row) => String(row.user_id)),
+  );
+
+  return [
+    ...orderedUserIds.filter((memberUserId) => teacherUserIds.has(memberUserId)),
+    ...orderedUserIds.filter((memberUserId) => !teacherUserIds.has(memberUserId)),
+  ];
+}
+
+async function findStaffMemberIdInOrder(
+  supabase: SupabaseClient,
+  orderedUserIds: string[],
+  organizationId: string,
+): Promise<string | null> {
   for (const memberUserId of orderedUserIds) {
     const staffMemberId = await getStaffMemberIdForAuthUser(
       supabase,
@@ -112,6 +149,37 @@ export async function getStaffMemberIdForUser(
   }
 
   return null;
+}
+
+/**
+ * Staff record the teacher portal acts as. Prefers a linked login that is a teacher/staff
+ * member (see `getTeacherPortalOrderedUserIds`). Admin-side callers (admin messages, form
+ * publishing) keep using `getStaffMemberIdForUser`, which is primary-first.
+ */
+export async function getTeacherPortalStaffMemberIdForUser(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+): Promise<string | null> {
+  return findStaffMemberIdInOrder(
+    supabase,
+    await getTeacherPortalOrderedUserIds(supabase, organizationId, userId),
+    organizationId,
+  );
+}
+
+export async function getStaffMemberIdForUser(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+): Promise<string | null> {
+  const orderedUserIds = await getOrderedPortalAccountUserIds(
+    supabase,
+    organizationId,
+    userId,
+  );
+
+  return findStaffMemberIdInOrder(supabase, orderedUserIds, organizationId);
 }
 
 async function getStaffMemberRowForAuthUser(
@@ -166,7 +234,8 @@ export async function getStaffUserProfile(
   organizationId: string,
   user: User,
 ): Promise<StaffUserProfile> {
-  const orderedUserIds = await getOrderedPortalAccountUserIds(
+  // Teacher-portal only: show the linked teacher login's name/photo, not the admin record.
+  const orderedUserIds = await getTeacherPortalOrderedUserIds(
     supabase,
     organizationId,
     userId,

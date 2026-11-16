@@ -14,6 +14,7 @@ import type { ParentPortalAccess } from "@/lib/parent-portal/parent-portal-acces
 import type { MessageContactInput, MessageParticipantInput } from "@/lib/messages/types";
 import {
   getStaffMemberIdForUser,
+  getTeacherPortalStaffMemberIdForUser,
 } from "@/lib/staff/teacher-portal-access";
 import { requireTeacherPortalUser } from "@/lib/staff/teacher-portal-access-server";
 import { requireSchoolAdminUser } from "@/lib/school-admin/access";
@@ -204,6 +205,7 @@ export {
   requireSchoolAdminUser,
   requireTeacherPortalUser,
   getStaffMemberIdForUser,
+  getTeacherPortalStaffMemberIdForUser,
   getFamilyIdsForUser,
   userHasEnrolledAccess,
 };

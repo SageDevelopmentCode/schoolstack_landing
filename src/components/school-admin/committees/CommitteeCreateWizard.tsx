@@ -13,21 +13,13 @@ import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme
 import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { CUSTOM_COMMITTEE_SLUG } from "@/lib/committees/templates";
+import {
+  COMMITTEE_CREATE_STEPS as STEPS,
+  useCommitteeCreateWizard,
+  type CommitteeTemplateOption,
+} from "./useCommitteeCreateWizard";
 
-export type CommitteeTemplateOption = {
-  id: string | null;
-  slug: string;
-  name: string;
-  description: string;
-  defaultTermLabel: string;
-};
-
-const STEPS = [
-  { id: "template", title: "Choose a template", shortLabel: "Template" },
-  { id: "name", title: "Name your committee", shortLabel: "Name" },
-  { id: "term", title: "Set the term", shortLabel: "Term" },
-  { id: "review", title: "Review and create", shortLabel: "Review" },
-] as const;
+export type { CommitteeTemplateOption };
 
 const canvasTransition = {
   initial: { opacity: 0, x: 8 },
@@ -154,61 +146,32 @@ export default function CommitteeCreateWizard({
   showCreateWorkspaceHint = false,
 }: CommitteeCreateWizardProps) {
   const C = parentThemeToAdminCompat(theme);
-  const initialSlug = initialSelectedSlug ?? options[0]?.slug ?? "";
-  const initialOption = options.find((o) => o.slug === initialSlug) ?? options[0];
-
-  const [stepIndex, setStepIndex] = useState(0);
-  const [maxReachedStep, setMaxReachedStep] = useState(0);
-  const [selectedSlug, setSelectedSlug] = useState(initialSlug);
-  const [name, setName] = useState(
-    initialOption?.slug === CUSTOM_COMMITTEE_SLUG ? "" : (initialOption?.name ?? ""),
-  );
-  const [description, setDescription] = useState(
-    initialOption?.slug === CUSTOM_COMMITTEE_SLUG ? "" : (initialOption?.description ?? ""),
-  );
-  const [termLabel, setTermLabel] = useState(initialOption?.defaultTermLabel ?? "");
+  const wizard = useCommitteeCreateWizard(options, initialSelectedSlug);
+  const {
+    stepIndex,
+    maxReachedStep,
+    selectedSlug,
+    selected,
+    name,
+    setName,
+    description,
+    setDescription,
+    termLabel,
+    setTermLabel,
+    goToStep,
+    goBack,
+    goNext,
+    canContinue,
+    isFinalStep,
+  } = wizard;
+  const handleSelect = wizard.selectTemplate;
   const [saving, setSaving] = useState(false);
   const [hintDismissed, setHintDismissed] = useState(false);
 
   const nameInputRef = useRef<HTMLInputElement>(null);
   const termInputRef = useRef<HTMLInputElement>(null);
 
-  const selected = options.find((o) => o.slug === selectedSlug);
   const showHint = showCreateWorkspaceHint && !hintDismissed && stepIndex === STEPS.length - 1;
-
-  const goToStep = (index: number) => {
-    setStepIndex(index);
-    setMaxReachedStep((prev) => Math.max(prev, index));
-  };
-
-  const goBack = () => {
-    if (stepIndex > 0) goToStep(stepIndex - 1);
-  };
-
-  const validateStep = (index: number): boolean => {
-    if (index === 0) return Boolean(selected);
-    if (index === 1) return Boolean(name.trim());
-    return true;
-  };
-
-  const goNext = () => {
-    if (!validateStep(stepIndex)) return;
-    if (stepIndex < STEPS.length - 1) {
-      goToStep(stepIndex + 1);
-    }
-  };
-
-  const handleSelect = (option: CommitteeTemplateOption) => {
-    setSelectedSlug(option.slug);
-    if (option.slug === CUSTOM_COMMITTEE_SLUG) {
-      setName("");
-      setDescription("");
-    } else {
-      setName(option.name);
-      setDescription(option.description);
-    }
-    setTermLabel(option.defaultTermLabel);
-  };
 
   const handleCreate = async () => {
     if (!selected || !name.trim()) return;
@@ -224,6 +187,8 @@ export default function CommitteeCreateWizard({
         termLabel: termLabel.trim(),
       });
       onClose();
+    } catch {
+      // The caller already showed the error toast; keep the wizard open with its answers.
     } finally {
       setSaving(false);
     }
@@ -237,8 +202,6 @@ export default function CommitteeCreateWizard({
     }
   }, [stepIndex]);
 
-  const canContinue = validateStep(stepIndex);
-  const isFinalStep = stepIndex === STEPS.length - 1;
 
   const createButton = (
     <motion.button

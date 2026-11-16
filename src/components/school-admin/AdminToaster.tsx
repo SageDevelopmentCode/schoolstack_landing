@@ -34,6 +34,14 @@ const GARDEN_ADMIN_ROUTES = [
   "my_school/friday_branch",
   "my_school/tuition",
   "my_school/newsletters",
+  "finances/revenue",
+  "finances/transactions",
+  "messages",
+  "committees",
+  "schedule",
+  "bulletin",
+  "photos",
+  "notifications",
 ] as const;
 
 function usesGardenToasts(pathname: string | null): boolean {

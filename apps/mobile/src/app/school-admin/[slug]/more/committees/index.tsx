@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { SchoolAdminCommitteesScreen } from '@/components/school-admin/committees/school-admin-committees-screen';
+import { SchoolAdminCommitteesScreen } from '@/components/school-admin/committees/garden/committees-list-screen';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function SchoolAdminCommitteesRoute() {

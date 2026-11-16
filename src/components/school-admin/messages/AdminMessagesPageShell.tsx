@@ -9,7 +9,10 @@ import type {
 } from "@/lib/messages/types";
 import MessagesInboxLayout from "@/components/messages/MessagesInboxLayout";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
+import ParentGardenFrame from "@/components/school-parent/garden/ParentGardenFrame";
+import { AdminGardenSkin } from "@/components/school-admin/garden/skin";
 import { AdminMessagesPageContext } from "./admin-messages-page-context";
+import { useAdminMessagesFeedback } from "./useAdminMessagesFeedback";
 
 type AdminMessagesPageShellProps = {
   organizationId: string;
@@ -46,6 +49,8 @@ export default function AdminMessagesPageShell({
     [threads, threadsHydrated, viewerContext],
   );
 
+  const onFeedback = useAdminMessagesFeedback();
+
   const contextValue = useMemo(
     () => ({
       hydrateThreads,
@@ -55,22 +60,34 @@ export default function AdminMessagesPageShell({
 
   return (
     <AdminMessagesPageContext.Provider value={contextValue}>
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <MessagesInboxLayout
-          api={{
-            basePath: "/api/school-admin/messages",
-            organizationId,
-            organizationSlug,
-            schoolName,
-            viewer: "admin",
-          }}
-          initialInbox={initialInbox}
-          deferContactsLoad
-          C={C}
-          theme={theme}
-          variant="admin-story"
-        />
-      </div>
+      {/*
+        Full-height Garden inbox (admin Garden skill): the frame + skin fill the
+        no-scroll admin pane; the inbox owns its own scrolling columns.
+      */}
+      <ParentGardenFrame
+        theme={theme}
+        className="flex !h-full !min-h-0 flex-1 flex-col overflow-hidden bg-[var(--sf-cream)]"
+      >
+        <AdminGardenSkin theme={theme}>
+          <div className="sf-admin-garden-skin flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+            <MessagesInboxLayout
+              api={{
+                basePath: "/api/school-admin/messages",
+                organizationId,
+                organizationSlug,
+                schoolName,
+                viewer: "admin",
+              }}
+              initialInbox={initialInbox}
+              deferContactsLoad
+              C={C}
+              theme={theme}
+              variant="admin-garden"
+              onFeedback={onFeedback}
+            />
+          </div>
+        </AdminGardenSkin>
+      </ParentGardenFrame>
       {children}
     </AdminMessagesPageContext.Provider>
   );

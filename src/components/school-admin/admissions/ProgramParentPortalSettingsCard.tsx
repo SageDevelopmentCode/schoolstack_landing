@@ -518,7 +518,7 @@ export default function ProgramParentPortalSettingsCard({
 
       {supportOpen ? (
         <AdminSupportRequestModal
-          C={C}
+          theme={theme}
           open={supportOpen}
           onClose={() => setSupportOpen(false)}
           organizationId={organizationId}

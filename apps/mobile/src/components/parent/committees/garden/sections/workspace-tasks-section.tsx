@@ -218,7 +218,6 @@ export function WorkspaceTasksSection({
   return (
     <View style={styles.container}>
       <GCard
-        kicker="Tasks"
         title={myOpen > 0 ? `${myOpen} on your plate` : 'Committee tasks'}
         index={0}
         action={myOpen > 0 ? <GChip label="Assigned to you" tone="info" /> : null}>

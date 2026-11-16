@@ -34,6 +34,7 @@ const STATUS_TONES: Record<PaymentStatus, GChipTone> = {
   pending: "warning",
   failed: "alert",
   refunded: "neutral",
+  canceled: "neutral",
 };
 
 function formatDateTime(iso: string | null) {
@@ -47,7 +48,7 @@ function applicationHref(orgSlug: string, row: PaymentRecordDisplayRow) {
 
 /**
  * Garden payment history for Admissions → Payments. Reads the same
- * usePaymentsHistoryModel as the story panel on Finances → Revenue.
+ * usePaymentsHistoryModel as Finances → Revenue.
  */
 export default function GardenPaymentsHistory({
   model,

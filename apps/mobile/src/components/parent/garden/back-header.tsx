@@ -2,18 +2,17 @@ import { type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Garden, GardenFonts, useGardenAccent } from '@/components/parent/garden/tokens';
-import { GKicker, GLink } from '@/components/parent/garden/ui';
+import { GLink } from '@/components/parent/garden/ui';
 
 /**
- * Header for screens pushed inside the More stack: a back link, then kicker,
- * a display title with one accent word, and a muted subtitle.
+ * Header for screens pushed inside the More stack: a back link, a display
+ * title with one accent word, and a muted subtitle. No eyebrow above the title.
  */
 export function GBackHeader({
   backLabel,
   backAccessibilityLabel,
   onBack,
   backTestID,
-  kicker,
   title,
   accentWord,
   subtitle,
@@ -25,7 +24,6 @@ export function GBackHeader({
   backAccessibilityLabel?: string;
   onBack: () => void;
   backTestID?: string;
-  kicker?: string;
   title: string;
   /** A word inside `title` to colour with the school accent. */
   accentWord?: string | null;
@@ -50,7 +48,6 @@ export function GBackHeader({
       />
       <View style={styles.titleRow}>
         <View style={styles.copy}>
-          {kicker ? <GKicker>{kicker}</GKicker> : null}
           <Text accessibilityRole="header" style={styles.title}>
             {at >= 0 && accentWord ? (
               <>

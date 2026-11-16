@@ -260,7 +260,7 @@ export function WorkspaceCalendarSection({
       </GCard>
 
       {selectedLabel ? (
-        <GCard kicker="Selected day" title={selectedLabel} tone="paper" index={1}>
+        <GCard title={selectedLabel} tone="paper" index={1}>
           {dayEvents.length === 0 ? (
             <Text style={gText.meta}>Nothing on this day.</Text>
           ) : (
@@ -273,7 +273,7 @@ export function WorkspaceCalendarSection({
         </GCard>
       ) : null}
 
-      <GCard kicker="Agenda" title="Coming up" index={2}>
+      <GCard title="Coming up" index={2}>
         {upcoming.length === 0 ? (
           <View style={styles.list}>
             <Text style={gText.meta}>No upcoming dates.</Text>

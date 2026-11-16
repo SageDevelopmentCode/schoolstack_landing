@@ -27,6 +27,8 @@ type GardenMessageComposerProps = {
   inputRef: RefObject<TextInput | null>;
   /** Tapped send / attach while previewing (actions are off). */
   onReadOnlyPress: () => void;
+  /** Compose is off for this thread (e.g. admin compose gating); editing still works. */
+  disabled?: boolean;
 };
 
 /**
@@ -44,20 +46,22 @@ export function GardenMessageComposer({
   onCancelEdit,
   inputRef,
   onReadOnlyPress,
+  disabled = false,
 }: GardenMessageComposerProps) {
   const accent = useGardenAccent();
   const readOnly = usePortalReadOnly();
   const canSend = editMode ? Boolean(value.trim()) : Boolean(value.trim() || files.length > 0);
   const full = files.length >= MAX_MESSAGE_ATTACHMENTS;
-  const attachDisabled = sending || full || editMode;
-  const sendActive = canSend && !sending && !readOnly;
+  const composeOff = disabled && !editMode;
+  const attachDisabled = sending || full || editMode || composeOff;
+  const sendActive = canSend && !sending && !readOnly && !composeOff;
 
   const handlePickAttachment = () => {
     if (readOnly) {
       onReadOnlyPress();
       return;
     }
-    if (sending || full) return;
+    if (sending || full || composeOff) return;
     haptic.tap();
     promptMessageAttachmentSource(async (source) => {
       const slots = remainingAttachmentSlots(files.length);
@@ -167,10 +171,10 @@ export function GardenMessageComposer({
           ref={inputRef}
           value={value}
           onChangeText={onChange}
-          placeholder={editMode ? 'Edit message…' : 'Write a message...'}
+          placeholder={editMode ? 'Edit message…' : composeOff ? 'Replies are off in this conversation' : 'Write a message...'}
           placeholderTextColor={Garden.ink60}
           multiline
-          editable={!readOnly && !sending}
+          editable={!readOnly && !sending && !composeOff}
           accessibilityLabel={editMode ? 'Edit message' : 'Message'}
           style={styles.input}
         />

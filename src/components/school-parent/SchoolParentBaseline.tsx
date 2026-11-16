@@ -313,6 +313,7 @@ function SchoolParentBaselineInner({
 
         <PortalHelpFab
           C={C}
+          theme={theme}
           organizationId={organizationId}
           userEmail={userProfile.email}
           currentPath={pathname}

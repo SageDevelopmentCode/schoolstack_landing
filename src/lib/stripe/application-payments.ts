@@ -1,6 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type PaymentStatus = "pending" | "succeeded" | "failed" | "refunded";
+/** `canceled`: the payer abandoned Checkout (session expired or replaced by a newer checkout). */
+export type PaymentStatus =
+  | "pending"
+  | "succeeded"
+  | "failed"
+  | "refunded"
+  | "canceled";
 
 export type PaymentType = "application_fee" | "enrollment_checklist" | "tuition";
 
@@ -268,6 +274,9 @@ export async function listPaymentRecordsPaginated(
   }
   if (filters.status) {
     query = query.eq("status", filters.status);
+  } else {
+    // Abandoned checkouts never moved money; keep them out of the ledger.
+    query = query.neq("status", "canceled");
   }
 
   const { data, error, count } = await query;
@@ -308,6 +317,8 @@ export async function listPaymentRecords(
   }
   if (filters.status) {
     query = query.eq("status", filters.status);
+  } else {
+    query = query.neq("status", "canceled");
   }
 
   const { data, error } = await query;
@@ -446,6 +457,30 @@ export async function markPaymentFailed(
 
   if (currentError) throw currentError;
   return current ? rowToPayment(current as Record<string, unknown>) : null;
+}
+
+/**
+ * Close a pending row whose Checkout session was abandoned (expired or replaced
+ * by a newer checkout). Only `pending` rows move; anything else is returned as is.
+ */
+export async function markPaymentCanceled(
+  supabase: SupabaseClient,
+  paymentId: string,
+): Promise<PaymentRecord | null> {
+  const { data, error } = await supabase
+    .from("application_payments")
+    .update({ status: "canceled" })
+    .eq("id", paymentId)
+    .eq("status", "pending")
+    .select("*")
+    .maybeSingle();
+
+  if (error) throw error;
+  if (data) {
+    return rowToPayment(data as Record<string, unknown>);
+  }
+
+  return getPaymentById(supabase, paymentId);
 }
 
 export type RevertSucceededPaymentToFailedResult = {
@@ -626,6 +661,25 @@ export async function attachStripeCheckoutToPayment(
     .eq("id", paymentId);
 
   if (error) throw error;
+}
+
+export async function listPendingPaymentsForChecklistItem(
+  supabase: SupabaseClient,
+  checklistItemId: string,
+): Promise<PaymentRecord[]> {
+  const { data, error } = await supabase
+    .from("application_payments")
+    .select("*")
+    .eq("enrollment_checklist_item_id", checklistItemId)
+    .eq("payment_type", "enrollment_checklist")
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  return (data ?? []).map((row) =>
+    rowToPayment(row as Record<string, unknown>),
+  );
 }
 
 export async function listPendingPaymentsForTuitionCharge(

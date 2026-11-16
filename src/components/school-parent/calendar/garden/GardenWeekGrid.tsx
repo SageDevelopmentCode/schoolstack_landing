@@ -30,12 +30,14 @@ type WeekProps = {
   selectedEventId: string | null;
   onDayClick: (date: string) => void;
   onEventClick: (event: OrganizationEvent) => void;
+  /** Test-id namespace; admin surfaces pass their own. */
+  testIdPrefix?: string;
 };
 
 /** Week view, edge to edge: a time grid from `sm` (scrolls inside the pane), a stacked day list on phones. */
 export default function GardenWeekGrid(props: WeekProps) {
   return (
-    <div data-testid="parent-calendar-week-grid" className="flex min-h-0 flex-1 flex-col">
+    <div data-testid={`${props.testIdPrefix ?? "parent-calendar"}-week-grid`} className="flex min-h-0 flex-1 flex-col">
       <div className="hidden min-h-0 flex-1 flex-col sm:flex">
         <WeekTimeGrid {...props} />
       </div>
@@ -85,7 +87,7 @@ function TimedBlock({
   );
 }
 
-function WeekTimeGrid({ weekDates, eventsByDate, selectedDate, selectedEventId, onDayClick, onEventClick }: WeekProps) {
+function WeekTimeGrid({ weekDates, eventsByDate, selectedDate, selectedEventId, onDayClick, onEventClick, testIdPrefix = "parent-calendar" }: WeekProps) {
   const hasToday = weekDates.some((d) => isToday(d));
   const nowTop = hasToday ? getCurrentTimeTop() : -1;
   const columns = `${GUTTER}px repeat(7, minmax(0, 1fr))`;
@@ -133,7 +135,7 @@ function WeekTimeGrid({ weekDates, eventsByDate, selectedDate, selectedEventId, 
                     aria-label={dayAriaLabel(day, count)}
                     aria-pressed={selected}
                     aria-current={today ? "date" : undefined}
-                    data-testid={`parent-calendar-day-${key}`}
+                    data-testid={`${testIdPrefix}-day-${key}`}
                     className={`flex cursor-pointer flex-col items-center gap-1 py-2.5 transition-colors hover:bg-[var(--sf-accent-wash)] ${G_FOCUS} focus-visible:ring-inset focus-visible:ring-offset-0 ${
                       selected ? "bg-[var(--sf-accent-wash)] shadow-[inset_0_-3px_0_0_var(--sf-clay)]" : ""
                     }`}

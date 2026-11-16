@@ -4,7 +4,7 @@ import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch
 import { fetchTeacherDashboardSummary } from "@/lib/school-teacher/teacher-dashboard-summary";
 import { buildTeacherDocumentationGuides } from "@/lib/school-teacher/teacher-documentation";
 import {
-  getStaffMemberIdForUser,
+  getTeacherPortalStaffMemberIdForUser,
   getStaffPortalRoleForUser,
   getStaffUserProfile,
   userHasTeacherPortalAccess,
@@ -70,7 +70,7 @@ export async function GET(request: Request) {
 
     const admin = createAdminClient();
 
-    const staffMemberId = await getStaffMemberIdForUser(
+    const staffMemberId = await getTeacherPortalStaffMemberIdForUser(
       supabase,
       user.id,
       organizationId,

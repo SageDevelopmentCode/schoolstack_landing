@@ -90,7 +90,7 @@ function WorkspaceSkeleton({ onBack }: { onBack: () => void }) {
     <View style={styles.root} accessibilityLabel="Loading committee" accessibilityState={{ busy: true }}>
       <StatusBar style="dark" />
       <View style={styles.headerWrap}>
-        <GBackHeader backLabel="My committees" backAccessibilityLabel="Back to My committees" onBack={onBack} kicker="Committee" title="Loading…" />
+        <GBackHeader backLabel="My committees" backAccessibilityLabel="Back to My committees" onBack={onBack} title="Loading…" />
         <GSkeleton style={{ height: 44, borderRadius: 999 }} />
       </View>
       <View style={styles.content}>
@@ -230,9 +230,8 @@ function CommitteeWorkspaceScreen({
       <View style={styles.root}>
         <StatusBar style="dark" />
         <ScrollView contentContainerStyle={styles.content}>
-          <GBackHeader backLabel="My committees" backAccessibilityLabel="Back to My committees" onBack={() => router.back()} kicker="Committee" title="Committee" />
+          <GBackHeader backLabel="My committees" backAccessibilityLabel="Back to My committees" onBack={() => router.back()} title="Committee" />
           <GErrorCard
-            kicker="Committee"
             title="We couldn't open this committee"
             message={error ?? 'Committee not found.'}
             onRetry={() => void loadWorkspace()}
@@ -268,7 +267,6 @@ function CommitteeWorkspaceScreen({
         backLabel="My committees"
         backAccessibilityLabel="Back to My committees"
         onBack={() => router.back()}
-        kicker="Committee workspace"
         title={committee.name}
         subtitle={leaderLine}>
         <View style={styles.metaRow}>
@@ -347,7 +345,6 @@ function CommitteeWorkspaceScreen({
         visible={descriptionOpen}
         onClose={() => setDescriptionOpen(false)}
         accessibilityLabel="Close description"
-        kicker="Committee description"
         title={committee.name}
         subtitle={leaderLine ?? undefined}>
         <Text style={gText.body}>{committee.description}</Text>

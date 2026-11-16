@@ -48,7 +48,6 @@ export function EventDetailSheet({
       visible={visible && event !== null}
       onClose={onClose}
       accessibilityLabel="Close event"
-      kicker="Committee event"
       title={event?.title ?? ''}
       headerAside={event ? <GChip label={EVENT_TYPE_LABELS[event.type] ?? event.type} tone="info" /> : null}
       footer={

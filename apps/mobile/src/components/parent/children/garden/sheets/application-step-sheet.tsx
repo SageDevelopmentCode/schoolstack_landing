@@ -78,7 +78,6 @@ export function ApplicationStepSheet({
       visible={step !== null}
       onClose={onClose}
       accessibilityLabel="Close step details"
-      kicker="Application"
       title={step?.label ?? ''}
       subtitle="What you submitted"
       headerAside={chip ? <GChip label={chip.label} tone={chip.tone} /> : null}>

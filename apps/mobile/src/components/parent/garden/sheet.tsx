@@ -4,13 +4,11 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
 import { Garden, GardenFonts } from '@/components/parent/garden/tokens';
-import { GKicker } from '@/components/parent/garden/ui';
 import { haptic } from '@/lib/haptics';
 
 export type GSheetProps = {
   visible: boolean;
   onClose: () => void;
-  kicker?: string;
   title: string;
   subtitle?: string;
   /** Right side of the header, e.g. a status `GChip`. */
@@ -26,13 +24,16 @@ export type GSheetProps = {
   accessibilityLabel?: string;
   /** Space below the content. Defaults to the shell's safe-area inset. */
   bottomInset?: number;
+  /** Turn off swipe-down while there is unsaved work (close then asks first). */
+  enableDragToDismiss?: boolean;
+  /** Runs once the close animation has finished (open the next sheet from here). */
+  onDismissed?: () => void;
 };
 
-/** Garden bottom sheet: cream surface, kicker + Bricolage title, 44pt close button. */
+/** Garden bottom sheet: cream surface, Bricolage title (no eyebrow), 44pt close button. */
 export function GSheet({
   visible,
   onClose,
-  kicker,
   title,
   subtitle,
   headerAside,
@@ -41,6 +42,8 @@ export function GSheet({
   children,
   accessibilityLabel,
   bottomInset,
+  enableDragToDismiss = true,
+  onDismissed,
 }: GSheetProps) {
   return (
     <BottomSheetShell
@@ -52,12 +55,13 @@ export function GSheet({
       handleColor={Garden.ink25}
       maxHeight="88%"
       bottomInset={bottomInset}
+      enableDragToDismiss={enableDragToDismiss}
+      onDismissed={onDismissed}
       scrollable={!list}
       scrollContentStyle={list ? styles.listBody : styles.scrollBody}
       header={
         <View style={styles.header}>
           <View style={styles.headerCopy}>
-            {kicker ? <GKicker>{kicker}</GKicker> : null}
             <Text accessibilityRole="header" style={styles.title}>
               {title}
             </Text>

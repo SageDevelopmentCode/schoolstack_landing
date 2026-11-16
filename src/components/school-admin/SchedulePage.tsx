@@ -1,8 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
+import { Globe2, Loader2 } from "lucide-react";
 import ToursInterviewsTabContent from "@/components/school-admin/schedule/ToursInterviewsTabContent";
 import AdmissionsObservationDayAvailabilityEditor from "@/components/school-admin/admissions/AdmissionsObservationDayAvailabilityEditor";
 import ApplicationSubmissionDetailPanel from "@/components/school-admin/admissions/ApplicationSubmissionDetailPanel";
@@ -10,25 +8,14 @@ import ScheduledVisitsSection from "@/components/school-admin/ScheduledVisitsSec
 import ScheduleOverviewTab from "@/components/school-admin/schedule/ScheduleOverviewTab";
 import ScheduleEventPermissionsTab from "@/components/school-admin/schedule/ScheduleEventPermissionsTab";
 import SchoolEventsTab from "@/components/school-admin/schedule/SchoolEventsTab";
-import ScheduleStoryHeader from "@/components/school-admin/schedule/ScheduleStoryHeader";
 import ScheduleVisitLoadingPanel from "@/components/school-admin/schedule/ScheduleVisitLoadingPanel";
-import { parseScheduleTab, SCHEDULE_TABS, type ScheduleTabId } from "@/components/school-admin/schedule/schedule-tabs";
+import { SCHEDULE_TABS, type ScheduleTabId } from "@/components/school-admin/schedule/schedule-tabs";
+import { useScheduleModel } from "@/components/school-admin/schedule/useScheduleModel";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
-import AdminCard from "@/components/school-admin/ui/story/AdminCard";
-import type { AdminScheduledVisit } from "@/lib/admissions/admin-scheduled-visits";
-import {
-  formatOrganizationTimezoneLabel,
-} from "@/lib/admissions/admissions-availability";
-import {
-  getOrgApplicationSubmissionById,
-  type AdminApplicationSubmission,
-} from "@/lib/admissions/application-submissions";
+import { AdminGardenPage, AdminGardenPageHeader } from "@/components/school-admin/garden/kit";
+import { GCard, GChip } from "@/components/school-parent/garden/ui";
 import type { SchedulePageMeta } from "@/lib/school-admin/schedule-page-meta";
-import { upcomingVisitCountFromVisits } from "@/lib/school-admin/schedule-page-meta";
-import { useScheduleVisitsContext } from "@/components/school-admin/schedule/schedule-visits-context";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import { createClient } from "@/utils/supabase/client";
-import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type SchedulePageProps = {
   organizationId: string;
@@ -39,6 +26,7 @@ type SchedulePageProps = {
   visitsDeferred?: boolean;
 };
 
+/** Schedule (admin Garden): overview, events, permissions, tours, shadow days, visits. */
 export default function SchedulePage({
   organizationId,
   branding,
@@ -48,287 +36,170 @@ export default function SchedulePage({
   visitsDeferred = false,
 }: SchedulePageProps) {
   const { theme, C } = useSchoolAdminStoryTheme();
-  const supabase = useMemo(() => createClient(), []);
-  const { visits, visitsReady } = useScheduleVisitsContext();
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const model = useScheduleModel({ organizationId, initialMeta });
+  const { activeTab, visitedTabs, refreshToken } = model;
 
-  const activeTab = parseScheduleTab(searchParams.get("tab"));
+  const tabItems = SCHEDULE_TABS.map((tab) => {
+    const loading = model.pendingTabKey === tab.id || model.loadingTabKey === tab.id;
+    return {
+      key: tab.id,
+      label: tab.label,
+      ariaBusy: loading,
+      testId: `schedule-tab-${tab.id}`,
+      suffix: loading ? (
+        <Loader2 className="h-3 w-3 animate-spin" data-testid="schedule-tab-loading" aria-hidden />
+      ) : undefined,
+    };
+  });
 
-  const [timezone] = useState(initialMeta.timezone);
-  const [monthSlotCount, setMonthSlotCount] = useState<number | null>(
-    initialMeta.monthSlotCount,
+  const panel = (id: ScheduleTabId, children: React.ReactNode) =>
+    visitedTabs.has(id) ? (
+      <div
+        hidden={activeTab !== id}
+        id={`schedule-panel-${id}`}
+        role="tabpanel"
+        aria-label={SCHEDULE_TABS.find((tab) => tab.id === id)?.panelLabel}
+      >
+        {children}
+      </div>
+    ) : null;
+
+  const overlays = (
+    <>
+      {model.selectedApplicationId && (model.loadingSubmission || model.submissionError) ? (
+        <ScheduleVisitLoadingPanel
+          theme={theme}
+          error={model.submissionError}
+          onRetry={model.retrySubmission}
+          onClose={model.handleClosePanel}
+        />
+      ) : null}
+      {model.selectedSubmission ? (
+        <ApplicationSubmissionDetailPanel
+          key={model.selectedSubmission.id}
+          submission={model.selectedSubmission}
+          organizationId={organizationId}
+          branding={branding}
+          schoolName={schoolName}
+          schoolSlug={slug}
+          onClose={model.handleClosePanel}
+          appearance="garden"
+        />
+      ) : null}
+    </>
   );
-  const [monthObservationDayCount, setMonthObservationDayCount] = useState<number | null>(
-    initialMeta.monthObservationDayCount,
-  );
-  const [overviewCount, setOverviewCount] = useState<number | null>(null);
-  const visitsCount = visitsReady ? upcomingVisitCountFromVisits(visits) : null;
-  const upcomingVisitCount =
-    visitsCount ?? overviewCount ?? initialMeta.upcomingVisitCount;
-  const [visitedTabs, setVisitedTabs] = useState<Set<ScheduleTabId>>(
-    () => new Set([activeTab]),
-  );
-  const [permittedStaffCount, setPermittedStaffCount] = useState<number | null>(null);
-  const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(
-    null,
-  );
-  const [selectedSubmission, setSelectedSubmission] =
-    useState<AdminApplicationSubmission | null>(null);
-  const [loadingSubmission, setLoadingSubmission] = useState(false);
-  const [pendingTabKey, setPendingTabKey] = useState<ScheduleTabId | null>(null);
-  const [loadingTabKey, setLoadingTabKey] = useState<ScheduleTabId | null>(null);
-
-  const timezoneLabel = formatOrganizationTimezoneLabel(timezone);
-  const activePanel = SCHEDULE_TABS.find((tab) => tab.id === activeTab);
-
-  const setActiveTab = useCallback(
-    (tab: ScheduleTabId) => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (tab === "overview") {
-        params.delete("tab");
-        params.delete("toursSubtab");
-      } else {
-        params.set("tab", tab);
-        if (tab !== "tours") {
-          params.delete("toursSubtab");
-        }
-      }
-      const query = params.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname);
-    },
-    [pathname, router, searchParams],
-  );
-
-  const handleTabChange = useCallback(
-    (tab: ScheduleTabId) => {
-      setVisitedTabs((current) => {
-        if (current.has(tab)) return current;
-        const next = new Set(current);
-        next.add(tab);
-        return next;
-      });
-      if (tab !== activeTab) {
-        setPendingTabKey(tab);
-      }
-      setActiveTab(tab);
-    },
-    [activeTab, setActiveTab],
-  );
-
-  const reportTabLoading = useCallback((tab: ScheduleTabId, loading: boolean) => {
-    if (loading) {
-      setLoadingTabKey(tab);
-      return;
-    }
-    setLoadingTabKey((current) => (current === tab ? null : current));
-    setPendingTabKey((current) => (current === tab ? null : current));
-  }, []);
-
-  const handleVisitClick = useCallback(
-    async (visit: AdminScheduledVisit) => {
-      if (!visit.applicationId) {
-        return;
-      }
-
-      if (selectedApplicationId === visit.applicationId) {
-        setSelectedApplicationId(null);
-        setSelectedSubmission(null);
-        return;
-      }
-
-      setSelectedApplicationId(visit.applicationId);
-      setLoadingSubmission(true);
-      setSelectedSubmission(null);
-
-      try {
-        const submission = await getOrgApplicationSubmissionById(
-          supabase,
-          organizationId,
-          visit.applicationId,
-        );
-        setSelectedSubmission(submission);
-      } catch (err) {
-        void reportPortalOperationalError(
-          "school_admin",
-          {
-            organizationId,
-            operation: "schedule.visit_submission.load",
-            error: "",
-            entityType: "application",
-            entityId: visit.applicationId,
-          },
-          err,
-        );
-        setSelectedApplicationId(null);
-      } finally {
-        setLoadingSubmission(false);
-      }
-    },
-    [organizationId, selectedApplicationId, supabase],
-  );
-
-  const handleClosePanel = useCallback(() => {
-    setSelectedApplicationId(null);
-    setSelectedSubmission(null);
-  }, []);
-
-  const handleMonthSlotCountChange = useCallback((count: number) => {
-    setMonthSlotCount(count);
-  }, []);
-
-  const handleMonthDayCountChange = useCallback((count: number) => {
-    setMonthObservationDayCount(count);
-  }, []);
-
-  const handleUpcomingCountChange = useCallback((count: number) => {
-    setOverviewCount(count);
-  }, []);
-
-  const handlePermittedStaffCountChange = useCallback((count: number) => {
-    setPermittedStaffCount(count);
-  }, []);
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col">
-      <div className="min-h-0 flex-1 overflow-auto">
-        <div className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14">
-          <ScheduleStoryHeader
-            theme={theme}
-            activeTab={activeTab}
-            timezoneLabel={timezoneLabel}
-            monthSlotCount={monthSlotCount}
-            monthObservationDayCount={monthObservationDayCount}
-            upcomingVisitCount={upcomingVisitCount}
-            permittedStaffCount={permittedStaffCount}
-            pendingTabKey={pendingTabKey}
-            loadingTabKey={loadingTabKey}
-            onTabChange={handleTabChange}
-          />
+    <AdminGardenPage theme={theme} skinOverlays overlays={overlays} data-testid="admin-schedule-page">
+      <AdminGardenPageHeader
+        kicker="School calendar"
+        title={<span className="text-[var(--sf-clay)]">Schedule</span>}
+        subtitle={model.statusLine}
+        refresh={{
+          onRefresh: () => void model.refresh(),
+          refreshing: model.refreshing,
+          lastUpdatedAt: model.lastUpdatedAt,
+          label: "Refresh schedule",
+        }}
+        actions={
+          <GChip tone="neutral" className="!normal-case">
+            <Globe2 className="mr-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden />
+            {model.timezoneLabel}
+          </GChip>
+        }
+        tabs={{
+          items: tabItems,
+          activeKey: activeTab,
+          onChange: (key) => model.handleTabChange(key as ScheduleTabId),
+          ariaLabel: "Schedule sections",
+          "data-testid": "schedule-tab-nav",
+        }}
+      />
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              id={`schedule-panel-${activeTab}`}
-              role="tabpanel"
-              aria-labelledby={`schedule-tab-${activeTab}`}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.18 }}
-            >
-              {visitedTabs.has("overview") ? (
-                <div hidden={activeTab !== "overview"}>
-                  <ScheduleOverviewTab
-                    theme={theme}
-                    C={C}
-                    organizationId={organizationId}
-                    monthSlotCount={monthSlotCount}
-                    monthObservationDayCount={monthObservationDayCount}
-                    selectedApplicationId={selectedApplicationId}
-                    loadingSubmission={loadingSubmission}
-                    onVisitClick={handleVisitClick}
-                    onTabChange={handleTabChange}
-                    onUpcomingCountChange={handleUpcomingCountChange}
-                    onLoadingChange={(loading) => reportTabLoading("overview", loading)}
-                    visitsDeferred={visitsDeferred && !visitsReady}
-                  />
-                </div>
-              ) : null}
+      {panel(
+        "overview",
+        <ScheduleOverviewTab
+          organizationId={organizationId}
+          monthSlotCount={model.monthSlotCount}
+          monthObservationDayCount={model.monthObservationDayCount}
+          selectedApplicationId={model.selectedApplicationId}
+          loadingSubmission={model.loadingSubmission}
+          onVisitClick={model.handleVisitClick}
+          onTabChange={model.handleTabChange}
+          onUpcomingCountChange={model.setOverviewCount}
+          onLoadingChange={(loading) => model.reportTabLoading("overview", loading)}
+          visitsDeferred={visitsDeferred}
+          timezone={model.timezone}
+          refreshToken={refreshToken}
+        />,
+      )}
 
-              {visitedTabs.has("events") ? (
-                <div hidden={activeTab !== "events"}>
-                  <SchoolEventsTab
-                    theme={theme}
-                    C={C}
-                    organizationId={organizationId}
-                    onLoadingChange={(loading) => reportTabLoading("events", loading)}
-                  />
-                </div>
-              ) : null}
+      {panel(
+        "events",
+        <SchoolEventsTab
+          key={`events-${refreshToken}`}
+          theme={theme}
+          C={C}
+          organizationId={organizationId}
+          onLoadingChange={(loading) => model.reportTabLoading("events", loading)}
+        />,
+      )}
 
-              {visitedTabs.has("permissions") ? (
-                <div hidden={activeTab !== "permissions"}>
-                  <ScheduleEventPermissionsTab
-                    organizationId={organizationId}
-                    slug={slug}
-                    onLoadingChange={(loading) =>
-                      reportTabLoading("permissions", loading)
-                    }
-                    onPermittedStaffCountChange={handlePermittedStaffCountChange}
-                  />
-                </div>
-              ) : null}
+      {panel(
+        "permissions",
+        <ScheduleEventPermissionsTab
+          key={`permissions-${refreshToken}`}
+          organizationId={organizationId}
+          slug={slug}
+          onLoadingChange={(loading) => model.reportTabLoading("permissions", loading)}
+          onPermittedStaffCountChange={model.setPermittedStaffCount}
+        />,
+      )}
 
-              {visitedTabs.has("tours") ? (
-                <div hidden={activeTab !== "tours"}>
-                  <AdminCard theme={theme}>
-                    <ToursInterviewsTabContent
-                      C={C}
-                      organizationId={organizationId}
-                      schoolSlug={slug}
-                      onMonthSlotCountChange={handleMonthSlotCountChange}
-                      onLoadingChange={(loading) => reportTabLoading("tours", loading)}
-                      visitsDeferred={visitsDeferred}
-                    />
-                  </AdminCard>
-                </div>
-              ) : null}
-
-              {visitedTabs.has("shadow") ? (
-                <div hidden={activeTab !== "shadow"}>
-                  <AdminCard theme={theme}>
-                    <AdmissionsObservationDayAvailabilityEditor
-                      C={C}
-                      organizationId={organizationId}
-                      onMonthDayCountChange={handleMonthDayCountChange}
-                      compactLayout
-                      storySurface
-                      onLoadingChange={(loading) => reportTabLoading("shadow", loading)}
-                    />
-                  </AdminCard>
-                </div>
-              ) : null}
-
-              {visitedTabs.has("visits") ? (
-                <div hidden={activeTab !== "visits"}>
-                  <ScheduledVisitsSection
-                    theme={theme}
-                    C={C}
-                    organizationId={organizationId}
-                    selectedApplicationId={selectedApplicationId}
-                    loadingSubmission={loadingSubmission}
-                    onVisitClick={handleVisitClick}
-                    showHeader={false}
-                    onLoadingChange={(loading) => reportTabLoading("visits", loading)}
-                    visitsDeferred={visitsDeferred && !visitsReady}
-                  />
-                </div>
-              ) : null}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </div>
-
-      <AnimatePresence>
-        {loadingSubmission && selectedApplicationId ? (
-          <ScheduleVisitLoadingPanel C={C} onClose={handleClosePanel} />
-        ) : null}
-        {selectedSubmission ? (
-          <ApplicationSubmissionDetailPanel
-            key={selectedSubmission.id}
-            submission={selectedSubmission}
+      {panel(
+        "tours",
+        <GCard index={1}>
+          <ToursInterviewsTabContent
+            key={`tours-${refreshToken}`}
+            C={C}
             organizationId={organizationId}
-            branding={branding}
-            schoolName={schoolName}
             schoolSlug={slug}
-            onClose={handleClosePanel}
+            onMonthSlotCountChange={model.setMonthSlotCount}
+            onLoadingChange={(loading) => model.reportTabLoading("tours", loading)}
+            visitsDeferred={visitsDeferred}
           />
-        ) : null}
-      </AnimatePresence>
+        </GCard>,
+      )}
 
-      <span className="sr-only">{activePanel?.panelLabel}</span>
-    </div>
+      {panel(
+        "shadow",
+        <GCard index={1}>
+          <AdmissionsObservationDayAvailabilityEditor
+            key={`shadow-${refreshToken}`}
+            C={C}
+            organizationId={organizationId}
+            onMonthDayCountChange={model.setMonthObservationDayCount}
+            compactLayout
+            storySurface
+            onLoadingChange={(loading) => model.reportTabLoading("shadow", loading)}
+          />
+        </GCard>,
+      )}
+
+      {panel(
+        "visits",
+        <ScheduledVisitsSection
+          selectedApplicationId={model.selectedApplicationId}
+          loadingSubmission={model.loadingSubmission}
+          onVisitClick={model.handleVisitClick}
+          onLoadingChange={(loading) => model.reportTabLoading("visits", loading)}
+          visitsDeferred={visitsDeferred}
+        />,
+      )}
+
+      <span className="sr-only" aria-live="polite">
+        {model.activePanel?.panelLabel}
+      </span>
+    </AdminGardenPage>
   );
 }

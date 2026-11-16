@@ -320,6 +320,7 @@ function StoryTab({
       <AdminCard theme={theme} padding="compact">
         <Field label="Newsletter title">
           <input
+            id={`newsletter-title-${edition.id}`}
             className={styles.input}
             value={edition.title}
             maxLength={160}

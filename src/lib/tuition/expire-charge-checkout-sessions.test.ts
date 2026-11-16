@@ -31,7 +31,8 @@ function pendingPaymentRow(overrides?: Partial<Record<string, unknown>>) {
 }
 
 function createPaymentsSupabaseMock() {
-  const failedPaymentIds: string[] = [];
+  const canceledPaymentIds: string[] = [];
+  const statusPatches: unknown[] = [];
 
   const supabase = {
     from(table: string) {
@@ -64,7 +65,8 @@ function createPaymentsSupabaseMock() {
               if (table !== "application_payments" || updateFilters.id !== "payment-1") {
                 return { data: null, error: null };
               }
-              failedPaymentIds.push(String(updateFilters.id));
+              canceledPaymentIds.push(String(updateFilters.id));
+              statusPatches.push(patch.status);
               return {
                 data: { ...pendingPaymentRow(), status: patch.status },
                 error: null,
@@ -101,14 +103,15 @@ function createPaymentsSupabaseMock() {
 
       return builder;
     },
-    failedPaymentIds,
+    canceledPaymentIds,
+    statusPatches,
   };
 
   return supabase;
 }
 
 describe("expirePendingCheckoutSessionsForCharge", () => {
-  it("expires open checkout sessions and marks payments failed", async () => {
+  it("expires open checkout sessions and marks payments canceled", async () => {
     const expiredSessionIds: string[] = [];
     const supabase = createPaymentsSupabaseMock();
 
@@ -132,10 +135,11 @@ describe("expirePendingCheckoutSessionsForCharge", () => {
     );
 
     assert.deepEqual(expiredSessionIds, ["cs_test_open"]);
-    assert.deepEqual(supabase.failedPaymentIds, ["payment-1"]);
+    assert.deepEqual(supabase.canceledPaymentIds, ["payment-1"]);
+    assert.deepEqual(supabase.statusPatches, ["canceled"]);
   });
 
-  it("marks expired sessions failed without calling expire", async () => {
+  it("marks expired sessions canceled without calling expire", async () => {
     const expiredSessionIds: string[] = [];
     const supabase = createPaymentsSupabaseMock();
 
@@ -159,6 +163,7 @@ describe("expirePendingCheckoutSessionsForCharge", () => {
     );
 
     assert.deepEqual(expiredSessionIds, []);
-    assert.deepEqual(supabase.failedPaymentIds, ["payment-1"]);
+    assert.deepEqual(supabase.canceledPaymentIds, ["payment-1"]);
+    assert.deepEqual(supabase.statusPatches, ["canceled"]);
   });
 });

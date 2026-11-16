@@ -96,7 +96,7 @@ export function AttendanceLatestDayCard({
   const relative = attendanceRelativeDayLabel(entry.date);
   const timeline = attendanceDayTimeline(entry);
   return (
-    <GCard kicker="Latest day" title={relative} index={1} testID="parent-attendance-latest-day">
+    <GCard title={relative} index={1} testID="parent-attendance-latest-day">
       <GPressable
         accessibilityLabel={`${firstName}'s latest day, ${relative}, ${attendanceStatusLabel(
           entry.status,
@@ -138,7 +138,7 @@ export function AttendanceRecentWeeksCard({
 }) {
   const accent = useGardenAccent();
   return (
-    <GCard kicker="Recent weeks" title={weeks.rangeLabel} index={2}>
+    <GCard title={weeks.rangeLabel} index={2}>
       <View style={styles.legend} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         {(['present', 'picked_up', 'absent'] as const).map((status) => (
           <View key={status} style={styles.legendItem}>
@@ -296,7 +296,6 @@ export function AttendanceHistoryCard({
   if (error) {
     return (
       <GErrorCard
-        kicker="History"
         title={`We couldn't load ${firstName}'s history`}
         message={`${error} Check your connection, then try again.`}
         onRetry={onRetry}
@@ -313,7 +312,6 @@ export function AttendanceHistoryCard({
 
   return (
     <GCard
-      kicker="History"
       title={`${firstName}'s history`}
       index={3}
       testID="parent-attendance-history-panel"

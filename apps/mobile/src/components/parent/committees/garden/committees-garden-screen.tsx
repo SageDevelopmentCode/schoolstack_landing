@@ -143,7 +143,7 @@ function BrowseCard({ committee, onPress }: { committee: ParentCommitteeBrowseIt
 function EmptyState({ tab }: { tab: ParentCommitteesTab }) {
   const explore = tab === 'explore';
   return (
-    <GCard kicker="Committees" title={explore ? 'No committees available' : 'No committees yet'}>
+    <GCard title={explore ? 'No committees available' : 'No committees yet'}>
       <Text style={gText.body}>
         {explore
           ? 'When the school opens volunteer committees, they will appear here for you to explore.'
@@ -238,7 +238,6 @@ export function CommitteesGardenScreen({
         backLabel="More"
         backAccessibilityLabel="Back"
         onBack={() => router.back()}
-        kicker="Volunteer & committees"
         title={committeesTitle(activeTab)}
         accentWord={activeTab === 'explore' ? 'Explore' : 'committees'}
         subtitle={committeesSubtitle(activeTab, browseCommittees.length, myCommittees.length)}
@@ -260,7 +259,6 @@ export function CommitteesGardenScreen({
       />
       {error && hasLoaded ? (
         <GErrorCard
-          kicker="Committees"
           title="Some committees may be out of date"
           message={`${error} Pull down or try again.`}
           onRetry={() => void onPullRefresh()}
@@ -287,7 +285,6 @@ export function CommitteesGardenScreen({
         <StatusBar style="dark" />
         <View style={styles.content}>
           <GErrorCard
-            kicker="Committees"
             title="We couldn't load committees"
             message={`${error} Check your connection, then try again.`}
             onRetry={() => void refreshAll()}

@@ -48,9 +48,12 @@ export function AttendanceDaySheet({
       visible={entry !== null}
       onClose={onClose}
       accessibilityLabel="Close attendance details"
-      kicker={entry ? attendanceRelativeDayLabel(entry.date) : undefined}
       title={entry ? formatAttendanceHistoryFullDateLabel(entry.date) : ''}
-      subtitle={`${firstName}'s attendance`}
+      subtitle={
+        entry
+          ? `${attendanceRelativeDayLabel(entry.date)} · ${firstName}'s attendance`
+          : `${firstName}'s attendance`
+      }
       headerAside={entry ? <AttendanceStatusChip status={entry.status} /> : null}
       footer={
         newer || older ? (

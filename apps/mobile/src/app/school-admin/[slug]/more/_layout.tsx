@@ -1,26 +1,28 @@
 import { Stack } from 'expo-router';
 
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { Garden } from '@/components/parent/garden/tokens';
 import { Story } from '@/constants/story-theme';
 import { detailStackAnimation } from '@/lib/motion/portal-motion';
 
-export default function MoreLayout() {
-  const theme = useAdminTheme();
+/** Garden screens get cream behind push transitions; Bulletin and Friday Branch keep paper. */
+const GARDEN = { contentStyle: { backgroundColor: Garden.cream } } as const;
 
+export default function MoreLayout() {
   return (
     <Stack
       screenOptions={{
         headerShown: false,
         animation: detailStackAnimation(),
         contentStyle: { backgroundColor: Story.paper },
-        headerStyle: { backgroundColor: theme.surface },
-        headerTintColor: theme.accent,
-        headerTitleStyle: { color: theme.textPrimary },
       }}>
-      <Stack.Screen name="transactions" />
-      <Stack.Screen name="schedule" />
-      <Stack.Screen name="attendance" />
-      <Stack.Screen name="staff-hours" />
+      <Stack.Screen name="transactions" options={GARDEN} />
+      <Stack.Screen name="schedule" options={GARDEN} />
+      <Stack.Screen name="attendance" options={GARDEN} />
+      <Stack.Screen name="staff-hours" options={GARDEN} />
+      <Stack.Screen name="photos" options={GARDEN} />
+      <Stack.Screen name="staff" options={GARDEN} />
+      <Stack.Screen name="classrooms" options={GARDEN} />
+      <Stack.Screen name="committees" options={GARDEN} />
     </Stack>
   );
 }

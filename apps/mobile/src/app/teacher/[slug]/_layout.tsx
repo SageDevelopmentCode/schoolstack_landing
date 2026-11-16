@@ -2,10 +2,12 @@ import { useObserve } from '@/lib/mobile-observe';
 import { Slot, useIsFocused, useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { AnimatedTabContent } from '@/components/animated-tab-content';
+import { GardenToastProvider } from '@/components/parent/garden/toast';
 import { PortalPreviewBanner } from '@/components/platform-admin/portal-preview-banner';
 import { TeacherMoreMenuSheet } from '@/components/teacher/teacher-more-menu-sheet';
 import { TeacherCalendarProvider } from '@/contexts/teacher-calendar-context';
@@ -209,30 +211,35 @@ function TeacherLayoutContent() {
       testID={showTabBar ? 'teacher-portal-ready' : undefined}
       style={[styles.container, { backgroundColor: Story.paper }]}>
       <StatusBar style="dark" />
-      {isPreview ? <PortalPreviewBanner onExit={() => void exitPreview()} /> : null}
-      <View
-        style={[
-          styles.content,
-          showTabBar ? { paddingBottom: TEACHER_FLOATING_TAB_BAR_HEIGHT } : null,
-        ]}>
-        <AnimatedTabContent transitionKey={showTabBar ? pathTab : null}>
-          <Slot />
-        </AnimatedTabContent>
-      </View>
-      {showTabBar && activeTab ? (
-        <TeacherFloatingTabBar
-          activeTab={activeTab}
-          moreSheetOpen={moreSheetOpen}
-          onChange={handleTabChange}
-          messagesUnreadCount={unreadCount}
-        />
-      ) : null}
-      <TeacherMoreMenuSheet
-        visible={moreSheetOpen}
-        onClose={() => setMoreSheetOpen(false)}
-        onSelect={handleSelectMoreItem}
-        onSelectAccount={handleSelectAccount}
-      />
+      {/* Garden toasts for shared Garden surfaces (the attendance roster). */}
+      <GestureHandlerRootView style={styles.content}>
+        <GardenToastProvider bottomOffset={showTabBar ? TEACHER_FLOATING_TAB_BAR_HEIGHT + 10 : 12}>
+          {isPreview ? <PortalPreviewBanner onExit={() => void exitPreview()} /> : null}
+          <View
+            style={[
+              styles.content,
+              showTabBar ? { paddingBottom: TEACHER_FLOATING_TAB_BAR_HEIGHT } : null,
+            ]}>
+            <AnimatedTabContent transitionKey={showTabBar ? pathTab : null}>
+              <Slot />
+            </AnimatedTabContent>
+          </View>
+          {showTabBar && activeTab ? (
+            <TeacherFloatingTabBar
+              activeTab={activeTab}
+              moreSheetOpen={moreSheetOpen}
+              onChange={handleTabChange}
+              messagesUnreadCount={unreadCount}
+            />
+          ) : null}
+          <TeacherMoreMenuSheet
+            visible={moreSheetOpen}
+            onClose={() => setMoreSheetOpen(false)}
+            onSelect={handleSelectMoreItem}
+            onSelectAccount={handleSelectAccount}
+          />
+        </GardenToastProvider>
+      </GestureHandlerRootView>
     </SafeAreaView>
   );
 }

@@ -87,7 +87,7 @@ export function BillingChildren({
   const cardWidth = Math.min(300, windowWidth - 32 - 36 - 28);
 
   return (
-    <GCard index={index} kicker="Each student" title="By student">
+    <GCard index={index} title="By student">
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}

@@ -145,7 +145,6 @@ export function ChildrenSection({
   return (
     <GCard
       index={index}
-      kicker="Your family"
       title="Your children"
       onLayout={onLayout}
       testID="parent-home-children">

@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, type RefObject } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, ChevronLeft, Mail, Plus } from "lucide-react";
+import { ArrowRight, ChevronLeft, Mail, Plus, Users } from "lucide-react";
 import { Tick } from "@/components/garden/ui";
-import { GKicker, GSkeleton, G_FOCUS, gBtnPopSm } from "@/components/school-parent/garden/ui";
+import { GKicker, GSkeleton, G_FOCUS, gBtnOutlineSm, gBtnPopSm } from "@/components/school-parent/garden/ui";
 import MessageBubbleRow from "@/components/messages/MessageBubbleRow";
 import MessagesAvatar from "@/components/messages/MessagesAvatar";
 import type { MessagesInboxViewModel } from "@/components/messages/messages-inbox-view-model";
@@ -45,6 +45,19 @@ const START_STEPS = [
   },
 ] as const;
 
+/** Admin wording: the office reaches families and staff, and can bulk message. */
+const ADMIN_START_STEPS = [
+  {
+    title: "Choose a family or staff member",
+    detail: "Open a conversation from your inbox, or start a new one with New message.",
+  },
+  START_STEPS[1],
+  {
+    title: "Send it",
+    detail: "Press Enter or the send button. Families read it in their parent portal.",
+  },
+] as const;
+
 function StartHere({
   onStart,
   startDisabled,
@@ -52,6 +65,8 @@ function StartHere({
   latestUnread,
   unreadCount,
   onOpenThread,
+  onBroadcast,
+  broadcastDisabled = false,
 }: {
   onStart: () => void;
   startDisabled: boolean;
@@ -59,7 +74,11 @@ function StartHere({
   latestUnread: MessageThreadSummary | null;
   unreadCount: number;
   onOpenThread: (threadId: string) => void;
+  /** Admin only: the Bulk message shortcut under the steps. */
+  onBroadcast?: () => void;
+  broadcastDisabled?: boolean;
 }) {
+  const steps = onBroadcast ? ADMIN_START_STEPS : START_STEPS;
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[var(--sf-paper)]">
       <div className="m-auto w-full max-w-[460px] px-6 py-10">
@@ -97,7 +116,7 @@ function StartHere({
         ) : null}
 
         <ol className="m-0 mt-5 list-none space-y-2.5 p-0" aria-label="Steps">
-          {START_STEPS.map((step, index) => (
+          {steps.map((step, index) => (
             <li
               key={step.title}
               aria-current={index === 0 ? "step" : undefined}
@@ -139,6 +158,35 @@ function StartHere({
             </span>
           ) : null}
         </div>
+
+        {onBroadcast ? (
+          <div className="mt-6 flex items-start gap-3 rounded-[16px] border-[1.5px] border-dashed border-[var(--sf-ink)]/15 bg-white p-3.5">
+            <span
+              aria-hidden="true"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--sf-sky)] text-[#24507a]"
+            >
+              <Users className="h-4 w-4" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[14.5px] font-extrabold text-[var(--sf-ink)]">
+                Need to reach many families?
+              </span>
+              <span className="mt-0.5 block text-[13px] font-semibold text-[var(--sf-soft)]">
+                Bulk message sends one message to whole programs, classrooms or grades. Each
+                parent gets it privately in their school office conversation.
+              </span>
+              <button
+                type="button"
+                className={`${gBtnOutlineSm} mt-2.5 !px-3.5 !py-2`}
+                onClick={onBroadcast}
+                disabled={broadcastDisabled || readOnly}
+              >
+                <Users className="h-4 w-4" aria-hidden />
+                Bulk message
+              </button>
+            </span>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -191,6 +239,8 @@ export default function GardenThreadPane({
         latestUnread={unreadThreads[0] ?? null}
         unreadCount={unreadThreads.length}
         onOpenThread={actions.selectThread}
+        onBroadcast={model.admin?.openBroadcast}
+        broadcastDisabled={model.admin?.broadcastDisabled}
       />
     );
   }
@@ -345,7 +395,11 @@ export default function GardenThreadPane({
         onFilesChange={actions.setStagedFiles}
         onSend={actions.send}
         sending={model.sending}
-        readOnly={model.readOnly}
+        readOnly={model.readOnly || Boolean(model.admin?.composeDisabled)}
+        disabledReason={model.admin?.composeDisabled ? "Replies are off for this conversation" : undefined}
+        banner={model.admin?.composeBanner ?? null}
+        idPrefix={model.admin ? "admin-garden-composer" : undefined}
+        replyPlaceholder={model.admin ? "Write a reply…" : undefined}
         recipientName={thread.title}
         hasMessages={thread.messages.length > 0}
         notify={actions.notify}

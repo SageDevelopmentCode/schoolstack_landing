@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { CommitteeProjectDetailLoader } from '@/components/committees/projects/committee-project-detail-loader';
+import { GardenCommitteeProjectDetailLoader } from '@/components/parent/committees/garden/projects/project-detail';
 import { useAuth } from '@/contexts/auth-context';
 import { firstSearchParam } from '@/lib/expo-router/search-param';
 
@@ -22,7 +22,7 @@ export default function SchoolAdminCommitteeProjectRoute() {
   }
 
   return (
-    <CommitteeProjectDetailLoader
+    <GardenCommitteeProjectDetailLoader
       organizationId={selectedSchool.id}
       committeeId={committeeId}
       projectId={projectId}

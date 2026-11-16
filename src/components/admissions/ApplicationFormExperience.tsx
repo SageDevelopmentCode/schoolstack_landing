@@ -27,6 +27,7 @@ import {
   type ApplicationSection,
 } from "@/lib/admissions/application-form-schema";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import { buildParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { CheckoutPaymentMethod } from "@/lib/stripe/processing-fee";
@@ -186,6 +187,7 @@ export default function ApplicationFormExperience({
   const isLive = mode === "live";
   const canPersist = isLive && Boolean(applicationId && onSaveDraft);
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  const gardenTheme = useMemo(() => buildParentThemeTokens(branding), [branding]);
   const supabase = useMemo(
     () => (canPersist ? createClient() : null),
     [canPersist],
@@ -641,6 +643,7 @@ export default function ApplicationFormExperience({
                 {helpButton ? (
                   <PortalHelpFab
                     C={C}
+                    theme={gardenTheme}
                     organizationId={helpButton.organizationId}
                     userEmail={helpButton.userEmail}
                     currentPath={helpButton.currentPath}

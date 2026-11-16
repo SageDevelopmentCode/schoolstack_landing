@@ -1,21 +1,12 @@
-import { Ionicons } from '@expo/vector-icons';
 import { type Href, useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, SectionList, StyleSheet, Text, View } from 'react-native';
 
-import { AdminActivityFeedRow } from '@/components/school-admin/dashboard/admin-activity-feed-row';
-import { AdminActivityNotificationsSkeleton } from '@/components/school-admin/dashboard/admin-activity-notifications-skeleton';
-import { PrimaryButton } from '@/components/primary-button';
-import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Radius, Spacing } from '@/constants/theme';
+import { notificationGroupLabel } from '@/components/parent/home/sheets/notification-groups';
+import { GSheet } from '@/components/parent/garden/sheet';
+import { Garden, GardenFonts, useGardenAccent } from '@/components/parent/garden/tokens';
+import { GChip, GDashedRule, GKicker, GSkeleton, GToyButton } from '@/components/parent/garden/ui';
+import { ActivityRow } from '@/components/school-admin/dashboard/garden/sections/activity';
 import type { SchoolAdminActivityNotification } from '@/lib/school-admin/dashboard-summary-types';
 import {
   fetchSchoolAdminActivityNotifications,
@@ -33,17 +24,44 @@ type AdminActivityNotificationsSheetProps = {
   organizationId: string;
   slug: string;
   onMarkedRead?: () => void;
+  /** Unread count when the sheet opened: the newest N rows get a "New" chip. */
+  unreadCount?: number;
 };
 
+type Section = { title: string; data: SchoolAdminActivityNotification[] };
+
+function ActivitySkeleton() {
+  return (
+    <View style={styles.skeleton} accessibilityLabel="Loading activity">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <View key={i} style={styles.skeletonRow}>
+          <GSkeleton style={styles.skeletonIcon} />
+          <View style={styles.skeletonCopy}>
+            <GSkeleton style={styles.skeletonChip} />
+            <GSkeleton style={styles.skeletonLine} />
+            <GSkeleton style={styles.skeletonLineShort} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/**
+ * Recent school activity (bell): Garden feed sheet grouped Today / Yesterday /
+ * Earlier, paged on scroll. Opening it marks activity as read (same API calls
+ * and error reporting as before).
+ */
 export function AdminActivityNotificationsSheet({
   visible,
   onClose,
   organizationId,
   slug,
   onMarkedRead,
+  unreadCount = 0,
 }: AdminActivityNotificationsSheetProps) {
-  const theme = useAdminTheme();
   const router = useRouter();
+  const accent = useGardenAccent();
   const { reportError } = useMobileErrorReporter(organizationId);
 
   const [notifications, setNotifications] = useState<SchoolAdminActivityNotification[]>([]);
@@ -52,16 +70,24 @@ export function AdminActivityNotificationsSheet({
   const [error, setError] = useState<string | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
+  const [markedRead, setMarkedRead] = useState(false);
+  const [newCount, setNewCount] = useState(0);
   const loadMorePromiseRef = useRef<Promise<void> | null>(null);
 
-  useEffect(() => {
-    if (!visible) {
+  // Freeze the unread count at open so the "New" chips survive mark-read.
+  const [prevVisible, setPrevVisible] = useState(visible);
+  if (prevVisible !== visible) {
+    setPrevVisible(visible);
+    if (visible) {
+      setNewCount(unreadCount);
+    } else {
       setNotifications([]);
       setNextCursor(null);
       setHasMore(false);
       setError(null);
+      setMarkedRead(false);
     }
-  }, [visible]);
+  }
 
   const fetchPage = useCallback(
     async (cursor: string | null, append: boolean) => {
@@ -84,9 +110,7 @@ export function AdminActivityNotificationsSheet({
         setHasMore(page.hasMore);
       } catch (loadError) {
         reportError('school_admin_activity_notifications_load', loadError);
-        setError(
-          loadError instanceof Error ? loadError.message : 'Failed to load activity.',
-        );
+        setError(loadError instanceof Error ? loadError.message : 'Failed to load activity.');
         if (!append) {
           setNotifications([]);
           setNextCursor(null);
@@ -124,6 +148,7 @@ export function AdminActivityNotificationsSheet({
       await fetchPage(null, false);
       try {
         await markActivityNotificationsRead(organizationId);
+        setMarkedRead(true);
         onMarkedRead?.();
       } catch (markReadError) {
         reportError('school_admin_activity_notifications_mark_read', markReadError);
@@ -142,130 +167,143 @@ export function AdminActivityNotificationsSheet({
     [onClose, router, slug],
   );
 
-  const listHeader = (
-    <View style={[styles.header, { borderBottomColor: theme.border }]}>
-      <ThemedText type="title" style={{ color: theme.textPrimary }}>
-        Recent school activity
-      </ThemedText>
-      <ThemedText type="small" style={{ color: theme.textSecondary, marginTop: 4 }}>
-        Important changes across families and operations.
-      </ThemedText>
+  const sections = useMemo<Section[]>(() => {
+    const now = new Date();
+    const groups: Section[] = [];
+    for (const item of notifications) {
+      const title = notificationGroupLabel(item.createdAt, now);
+      const last = groups[groups.length - 1];
+      if (last && last.title === title) {
+        last.data.push(item);
+      } else {
+        groups.push({ title, data: [item] });
+      }
+    }
+    return groups;
+  }, [notifications]);
+
+  const newIds = useMemo(
+    () => new Set(notifications.slice(0, newCount).map((item) => item.id)),
+    [newCount, notifications],
+  );
+
+  const headerAside =
+    markedRead && newCount > 0 ? (
+      <GChip label="Marked as read" tone="success" icon="checkmark" />
+    ) : newCount > 0 ? (
+      <GChip label={`${newCount} new`} tone="alert" />
+    ) : null;
+
+  const empty = loading ? (
+    <ActivitySkeleton />
+  ) : error ? (
+    <View style={styles.centered}>
+      <Text style={styles.emptyTitle}>{"We couldn't load activity"}</Text>
+      <Text style={styles.emptyBody}>{error}</Text>
+      <GToyButton label="Try again" icon="refresh" onPress={() => void fetchPage(null, false)} />
+    </View>
+  ) : (
+    <View style={[styles.centered, styles.caughtUp]}>
+      <Text style={styles.emptyTitle}>No recent activity yet.</Text>
+      <Text style={styles.emptyBody}>Applications, payments and messages show up here as they happen.</Text>
     </View>
   );
 
-  const listEmpty = loading
-    ? <AdminActivityNotificationsSkeleton />
-    : error
-      ? (
-          <View style={styles.centered}>
-            <ThemedText type="small" style={{ color: theme.textSecondary, textAlign: 'center' }}>
-              {error}
-            </ThemedText>
-            <PrimaryButton
-              label="Try again"
-              onPress={() => void fetchPage(null, false)}
-              style={styles.retry}
-            />
-          </View>
-        )
-      : (
-          <View style={styles.centered}>
-            <ThemedText type="small" style={{ color: theme.textSecondary }}>
-              No recent activity yet.
-            </ThemedText>
-          </View>
-        );
-
   return (
-    <BottomSheetShell
+    <GSheet
       visible={visible}
       onClose={onClose}
-      scrollable={false}
-      accessibilityLabel="Close activity notifications"
-      backgroundColor={theme.surface}
-      borderColor={theme.border}
-      handleColor={theme.borderStrong}
-      maxHeight="85%"
-      sheetStyle={styles.sheet}
-      header={
-        <View style={styles.closeRow}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Close"
-            onPress={onClose}
-            style={[styles.closeButton, { backgroundColor: theme.bg, borderColor: theme.border }]}>
-            <Ionicons name="close" size={18} color={theme.textSecondary} />
-          </Pressable>
-        </View>
-      }>
-      <FlatList
-        data={notifications}
+      list
+      title="Recent school activity"
+      subtitle="Important changes across families and operations."
+      headerAside={headerAside}
+      accessibilityLabel="Close activity notifications">
+      <SectionList
+        sections={sections}
         keyExtractor={(item) => item.id}
-        ListHeaderComponent={listHeader}
-        ListEmptyComponent={listEmpty}
-        renderItem={({ item, index }) => (
-          <AdminActivityFeedRow
-            item={item}
-            showDivider={index > 0}
-            onPress={() => handlePressItem(item)}
-          />
+        stickySectionHeadersEnabled
+        renderSectionHeader={({ section }) => (
+          <View style={styles.groupHeader}>
+            <GKicker>{section.title}</GKicker>
+          </View>
         )}
+        renderItem={({ item, index }) => (
+          <View style={styles.rowWrap}>
+            <ActivityRow
+              item={item}
+              divider={index > 0}
+              isNew={newIds.has(item.id)}
+              onPress={() => handlePressItem(item)}
+            />
+          </View>
+        )}
+        ListEmptyComponent={empty}
         onEndReached={() => {
           if (hasMore) void loadMore();
         }}
         onEndReachedThreshold={0.4}
         ListFooterComponent={
           loadingMore ? (
-            <View style={styles.footerSpinner}>
-              <ActivityIndicator color={theme.accent} />
+            <View style={styles.footer}>
+              <ActivityIndicator color={accent.clay} />
+            </View>
+          ) : notifications.length > 0 && !hasMore ? (
+            <View style={styles.footer}>
+              <GDashedRule />
+              <Text style={styles.endLine}>{"That's everything for now"}</Text>
             </View>
           ) : null
         }
         showsVerticalScrollIndicator={false}
         style={styles.list}
+        contentContainerStyle={styles.listContent}
       />
-    </BottomSheetShell>
+    </GSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    minHeight: '50%',
+  // Inside a list sheet the list must fill; flexGrow: 0 renders it 0pt tall.
+  list: { flex: 1 },
+  listContent: { paddingBottom: 24 },
+  groupHeader: {
+    backgroundColor: Garden.cream,
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 6,
   },
-  closeRow: {
-    alignItems: 'flex-end',
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.one,
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: Radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  header: {
-    paddingHorizontal: Spacing.five,
-    paddingTop: Spacing.two,
-    paddingBottom: Spacing.four,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  list: {
-    // Inside a scrollable={false} sheet the list must fill; flexGrow: 0 rendered it 0pt tall.
-    flex: 1,
-  },
+  rowWrap: { paddingHorizontal: 20 },
   centered: {
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.six,
-    paddingHorizontal: Spacing.five,
-    gap: Spacing.three,
+    gap: 10,
+    paddingHorizontal: 24,
+    paddingVertical: 32,
   },
-  retry: {
-    alignSelf: 'center',
+  caughtUp: {
+    margin: 20,
+    borderRadius: 18,
+    backgroundColor: Garden.mint,
   },
-  footerSpinner: {
-    paddingVertical: Spacing.four,
+  emptyTitle: {
+    fontFamily: GardenFonts.bodyExtra,
+    fontSize: 16,
+    color: Garden.ink,
+    textAlign: 'center',
   },
+  emptyBody: {
+    fontFamily: GardenFonts.bodySemi,
+    fontSize: 14,
+    lineHeight: 20,
+    color: Garden.soft,
+    textAlign: 'center',
+  },
+  footer: { paddingHorizontal: 20, paddingVertical: 18, gap: 10, alignItems: 'center' },
+  endLine: { fontFamily: GardenFonts.bodySemi, fontSize: 13, color: Garden.soft },
+  skeleton: { padding: 20, gap: 18 },
+  skeletonRow: { flexDirection: 'row', gap: 12 },
+  skeletonIcon: { width: 36, height: 36, borderRadius: 12 },
+  skeletonCopy: { flex: 1, gap: 8 },
+  skeletonChip: { width: 90, height: 18, borderRadius: 9 },
+  skeletonLine: { width: '90%', height: 14, borderRadius: 7 },
+  skeletonLineShort: { width: '60%', height: 12, borderRadius: 6 },
 });

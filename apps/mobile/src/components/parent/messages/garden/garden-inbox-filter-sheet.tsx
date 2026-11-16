@@ -48,7 +48,7 @@ export function GardenInboxFilterSheet({
   ];
 
   return (
-    <GSheet visible={visible} onClose={onClose} kicker="Messages" title="Show">
+    <GSheet visible={visible} onClose={onClose} title="Show">
       <View accessibilityRole="radiogroup" style={styles.list}>
         {options.map((option) => {
           const checked = option.id === activeTab;

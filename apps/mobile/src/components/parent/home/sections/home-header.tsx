@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { GBadge, GKicker, GPressable } from '@/components/parent/garden/ui';
+import { GBadge, GPressable } from '@/components/parent/garden/ui';
 import { Garden, GardenFonts, useGardenAccent } from '@/components/parent/garden/tokens';
 import type { ParentHomeCtx } from '@/components/parent/home/parent-home-ctx';
 
@@ -55,7 +55,7 @@ export function HomeToolbar({ ctx }: { ctx: ParentHomeCtx }) {
   );
 }
 
-/** Garden page header: kicker, greeting h1 (name in the school colour), date subtitle. */
+/** Garden page header: toolbar, greeting h1 (name in the school colour), date subtitle. No eyebrow. */
 export function HomeHeader({
   ctx,
   compact = false,
@@ -67,16 +67,10 @@ export function HomeHeader({
 }) {
   const accent = useGardenAccent();
   const { greeting } = ctx.model;
-  const { programPortalLabel, coopModeEnabled } = ctx.props;
-  const kicker =
-    coopModeEnabled && programPortalLabel
-      ? `${greeting.familyLabel} · Co-op mode · ${programPortalLabel}`
-      : greeting.familyLabel;
 
   return (
     <View style={styles.header}>
       <View style={styles.headerTop}>
-        <GKicker style={styles.headerKicker}>{kicker}</GKicker>
         <HomeToolbar ctx={ctx} />
       </View>
       <Text
@@ -101,12 +95,9 @@ const styles = StyleSheet.create({
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     gap: 12,
     minHeight: 44,
-  },
-  headerKicker: {
-    flex: 1,
   },
   title: {
     fontFamily: GardenFonts.display,

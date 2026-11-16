@@ -4,7 +4,7 @@ import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import { createCommitteeJoinRequest } from "@/lib/committees/join-requests";
 import { resolveTeacherStaffForOrg } from "@/lib/committees/teacher-committees";
 import {
-  getStaffMemberIdForUser,
+  getTeacherPortalStaffMemberIdForUser,
   getStaffUserProfile,
   TeacherPortalAuthError,
 } from "@/lib/staff/teacher-portal-access";
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
       organizationId,
       profile.email || user.email || "",
     );
-    const staffMemberId = await getStaffMemberIdForUser(admin, user.id, organizationId);
+    const staffMemberId = await getTeacherPortalStaffMemberIdForUser(admin, user.id, organizationId);
 
     const joinRequest = await createCommitteeJoinRequest(admin, {
       organizationId,

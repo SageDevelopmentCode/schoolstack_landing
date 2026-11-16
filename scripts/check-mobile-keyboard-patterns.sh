@@ -33,13 +33,10 @@ if [[ -f "$STORY_SHEET" ]] && rg -q 'useBottomSheetKeyboardScrollStyle' "$STORY_
 fi
 
 # Nested vertical ScrollView inside StoryBottomSheet consumers (outer shell already scrolls).
-CREATE_COMMITTEE_SHEET="$MOBILE_SRC/components/school-admin/committees/school-admin-create-committee-sheet.tsx"
-
 while IFS= read -r file; do
   [[ -z "$file" ]] && continue
   [[ "$file" == *".test."* ]] && continue
   [[ "$file" == *"story-bottom-sheet.tsx" ]] && continue
-  [[ "$file" == "$CREATE_COMMITTEE_SHEET" ]] && continue
   if rg -q 'keyboard: nested horizontal ScrollView ok' "$file" 2>/dev/null; then
     continue
   fi

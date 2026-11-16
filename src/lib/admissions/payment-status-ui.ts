@@ -12,6 +12,7 @@ export function paymentStatusChipTone(status: PaymentStatus): AdminChipTone {
     case "failed":
       return "alert";
     case "refunded":
+    case "canceled":
       return "info";
   }
 }
@@ -27,6 +28,7 @@ export function paymentStatusStoryChipTone(
     case "failed":
       return "alert";
     case "refunded":
+    case "canceled":
       return "info";
   }
 }

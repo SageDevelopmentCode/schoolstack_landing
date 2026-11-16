@@ -22,7 +22,7 @@ export function WorkspaceMembersSection({ committee }: { committee: Committee })
   const members = committee.members.filter((member) => member.status === 'active');
   return (
     <View style={styles.container}>
-      <GCard kicker="Members" title={`Members (${members.length})`} index={0}>
+      <GCard title={`Members (${members.length})`} index={0}>
         {members.length === 0 ? (
           <Text style={gText.meta}>No members yet.</Text>
         ) : (
@@ -53,7 +53,7 @@ export function WorkspaceMembersSection({ committee }: { committee: Committee })
       </GCard>
 
       {committee.dutyRoles.length > 0 ? (
-        <GCard kicker="Duty roles" title="Who does what" tone="paper" index={1}>
+        <GCard title="Who does what" tone="paper" index={1}>
           <View style={styles.list}>
             {committee.dutyRoles.map((dutyRole) => {
               const assignee = committee.members.find((member) => member.id === dutyRole.assigneeId);

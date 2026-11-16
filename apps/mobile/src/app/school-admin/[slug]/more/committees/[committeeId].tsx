@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { SchoolAdminCommitteeWorkspaceScreen } from '@/components/school-admin/committees/school-admin-committee-workspace-screen';
+import { SchoolAdminCommitteeWorkspaceScreen } from '@/components/school-admin/committees/garden/committee-workspace-screen';
 import { useAuth } from '@/contexts/auth-context';
 import { firstSearchParam } from '@/lib/expo-router/search-param';
 import { isCommitteeWorkspaceSection } from '@/lib/parent/parent-committees-types';

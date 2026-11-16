@@ -34,12 +34,17 @@ export default function SchedulePageShell({
   }, []);
 
   const refetchVisits = useCallback(async () => {
-    const response = await fetch(
-      `/api/school-admin/schedule/visits?organizationId=${encodeURIComponent(organizationId)}`,
-    );
-    if (!response.ok) return;
-    const body = (await response.json()) as ScheduleVisitsData;
-    hydrateVisits(body);
+    try {
+      const response = await fetch(
+        `/api/school-admin/schedule/visits?organizationId=${encodeURIComponent(organizationId)}`,
+      );
+      if (!response.ok) return false;
+      const body = (await response.json()) as ScheduleVisitsData;
+      hydrateVisits(body);
+      return true;
+    } catch {
+      return false;
+    }
   }, [hydrateVisits, organizationId]);
 
   const contextValue = useMemo(

@@ -31,6 +31,9 @@ export default function GardenCommitteeWorkspaceLayout({
   navTestId,
   fillContent,
   children,
+  roleChip,
+  kicker = "Committee workspace",
+  statusLine,
 }: {
   theme: ParentThemeTokens;
   committee: Committee;
@@ -43,6 +46,11 @@ export default function GardenCommitteeWorkspaceLayout({
   navTestId: string;
   fillContent: boolean;
   children: ReactNode;
+  /** The viewer's role chip (default "Member"; the admin portal passes "School admin"). */
+  roleChip?: ReactNode;
+  kicker?: string;
+  /** One data-built line under the chips (admin: members · open tasks · next event). */
+  statusLine?: ReactNode;
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
@@ -60,7 +68,7 @@ export default function GardenCommitteeWorkspaceLayout({
   const chips = (
     <>
       <GChip tone="info">{committee.termLabel}</GChip>
-      <GChip tone="success">Member</GChip>
+      {roleChip ?? <GChip tone="success">Member</GChip>}
       {committee.status === "archived" ? <GChip tone="neutral">Archived</GChip> : null}
     </>
   );
@@ -122,9 +130,12 @@ export default function GardenCommitteeWorkspaceLayout({
             ) : null}
 
             <div className="min-w-0 px-1">
-              <GKicker className="mb-1.5">Committee workspace</GKicker>
+              <GKicker className="mb-1.5">{kicker}</GKicker>
               <h1 className="sf-display m-0 text-[1.6rem] leading-[1.05] text-[var(--sf-ink)]">{committee.name}</h1>
               <div className="mt-2.5 flex flex-wrap items-center gap-1.5">{chips}</div>
+              {statusLine ? (
+                <p className="m-0 mt-2 text-[12.5px] font-semibold tabular-nums text-[var(--sf-soft)]">{statusLine}</p>
+              ) : null}
               <div className="mt-3">{description}</div>
             </div>
 
@@ -165,7 +176,7 @@ export default function GardenCommitteeWorkspaceLayout({
         theme={theme}
         open={mobileMenuOpen}
         title={committee.name}
-        kicker="Committee workspace"
+        kicker={kicker}
         chips={chips}
         description={description}
         onClose={closeMobileMenu}

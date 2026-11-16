@@ -125,7 +125,7 @@ function JumpToCard({ ctx }: { ctx: ParentHomeCtx }) {
   );
 
   return (
-    <GCard index={3} kicker="Jump to">
+    <GCard index={3} title="Jump to">
       <View style={styles.jumpGrid}>
         {links.map(({ key, label, route, icon }, i) => (
           <GPressable

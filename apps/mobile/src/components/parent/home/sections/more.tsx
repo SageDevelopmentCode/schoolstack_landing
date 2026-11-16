@@ -20,7 +20,7 @@ export function WhatsNewSection({ ctx, index = 5 }: { ctx: ParentHomeCtx; index?
   const announcements = ctx.props.featureAnnouncements ?? [];
   if (announcements.length === 0) return null;
   return (
-    <GCard index={index} kicker="What's new" title="New features for you">
+    <GCard index={index} title="New features for you">
       <View style={styles.stack}>
         {announcements.map((announcement, i) => (
           <GNoteTile
@@ -73,7 +73,7 @@ export function GuidesSection({
 
   return (
     <>
-      <GCard index={index} kicker="How-to guides" title="Step-by-step help" onLayout={onLayout}>
+      <GCard index={index} title="Step-by-step help" onLayout={onLayout}>
         <View style={styles.guides}>
           {grouped.map((group) => (
             <View key={group.category} style={styles.group}>
@@ -118,7 +118,7 @@ export function GuidesSection({
 
 export function HelpSection({ ctx, index = 7 }: { ctx: ParentHomeCtx; index?: number }) {
   return (
-    <GCard index={index} kicker="Need help">
+    <GCard index={index} title="Need help">
       <View style={styles.stack}>
         <ParentPortalMudKitchenSupportMessagesCard
           slug={ctx.props.slug}

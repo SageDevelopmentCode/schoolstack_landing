@@ -1,69 +1,51 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { X } from "lucide-react";
-import { SchoolAdminDetailPanelSkeleton } from "@/components/school-admin/skeletons";
-import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import GSidePanel from "@/components/school-parent/garden/GSidePanel";
+import { GSkeleton } from "@/components/school-parent/garden/ui";
+import { GardenLoadError } from "@/components/school-admin/garden/kit";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
-type ScheduleVisitLoadingPanelProps = {
-  C: AdminThemeTokens;
-  onClose: () => void;
-};
-
+/**
+ * Placeholder drawer while a visit's application loads (same size as the
+ * Garden review drawer that replaces it), or the inline error with Try again
+ * when it couldn't load.
+ */
 export default function ScheduleVisitLoadingPanel({
-  C,
+  theme,
+  error = null,
+  onRetry,
   onClose,
-}: ScheduleVisitLoadingPanelProps) {
+}: {
+  theme: ParentThemeTokens;
+  error?: string | null;
+  onRetry?: () => void;
+  onClose: () => void;
+}) {
   return (
-    <motion.div
-      className="fixed inset-0 z-[100]"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
+    <GSidePanel
+      theme={theme}
+      open
+      size="xl"
+      onClose={onClose}
+      kicker="Application review"
+      title={error ? "Couldn't open this application" : "Loading application"}
+      testId="schedule-visit-loading-panel"
+      panelId="schedule-visit-loading"
     >
-      <div
-        className="absolute inset-0"
-        style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <motion.div
-        initial={{ x: "100%", opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        exit={{ x: "100%", opacity: 0 }}
-        transition={{ type: "spring", damping: 28, stiffness: 300 }}
-        className="absolute inset-y-0 right-0 z-[15] flex w-[min(100%,44rem)] max-w-full flex-col overflow-hidden"
-        style={{
-          backgroundColor: C.surface,
-          borderLeft: `1px solid ${C.border}`,
-          boxShadow: C.shadowMedium,
-        }}
-        onClick={(event) => event.stopPropagation()}
-        aria-busy="true"
-        aria-label="Loading application"
-      >
-        <div
-          className="flex flex-shrink-0 items-center justify-between gap-3 px-4 py-3 sm:px-5"
-          style={{ borderBottom: `1px solid ${C.border}` }}
-        >
-          <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-            Loading application
-          </p>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-shrink-0 rounded p-1"
-            style={{ color: C.textTertiary }}
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </button>
+      {error ? (
+        <GardenLoadError
+          title="Couldn't load the application for this visit."
+          description={`${error} The visit itself is unchanged.`}
+          onRetry={() => onRetry?.()}
+        />
+      ) : (
+        <div className="flex flex-col gap-4" aria-busy="true" aria-label="Loading application">
+          <GSkeleton className="h-10 w-2/3 rounded-full" />
+          <GSkeleton className="h-28 rounded-[18px]" />
+          <GSkeleton className="h-44 rounded-[18px]" />
+          <GSkeleton className="h-24 rounded-[18px]" />
         </div>
-        <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-5">
-          <SchoolAdminDetailPanelSkeleton C={C} label="Loading application" />
-        </div>
-      </motion.div>
-    </motion.div>
+      )}
+    </GSidePanel>
   );
 }

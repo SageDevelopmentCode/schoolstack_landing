@@ -83,14 +83,12 @@ export function isMoreItemPathActive(pathname: string, id: string): boolean {
 export function GardenMoreSheet({
   visible,
   onClose,
-  kicker,
   title = 'More',
   subtitle,
   children,
 }: {
   visible: boolean;
   onClose: () => void;
-  kicker: string;
   title?: string;
   subtitle?: string;
   children: ReactNode;
@@ -99,7 +97,6 @@ export function GardenMoreSheet({
     <GSheet
       visible={visible}
       onClose={onClose}
-      kicker={kicker}
       title={title}
       subtitle={subtitle}
       accessibilityLabel="Close more menu">

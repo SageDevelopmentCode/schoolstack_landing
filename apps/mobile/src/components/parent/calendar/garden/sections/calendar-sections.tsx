@@ -151,8 +151,7 @@ export function SelectedDayCard({
     <GCard
       index={index}
       testID="parent-calendar-selected-day"
-      kicker={date === today ? 'Today' : 'Selected day'}
-      title={formatDayHeading(date)}
+      title={date === today ? `Today · ${formatDayHeading(date)}` : formatDayHeading(date)}
       action={events.length > 0 ? <GChip tone="neutral" label={pluralEvents(events.length)} /> : null}>
       <DayEventList events={events} selectedEventId={selectedEventId} onPress={onPress} />
     </GCard>
@@ -221,7 +220,6 @@ export function AgendaCard({
     <GCard
       index={index}
       testID="parent-calendar-agenda"
-      kicker="Next up"
       title={title}
       onLayout={onLayout}
       action={events.length > 0 ? <GChip tone="info" label={pluralEvents(events.length)} /> : null}>

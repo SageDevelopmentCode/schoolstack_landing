@@ -1,12 +1,13 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import {
-  AttendanceConfirmButtonSkeleton,
-  AttendanceContactRowSkeleton,
-} from '@/components/attendance/attendance-skeleton-blocks';
-import { StoryBottomSheet } from '@/components/story/story-bottom-sheet';
-import { StoryButton } from '@/components/story/story-button';
+import type { AttendanceSave } from '@/components/attendance/use-attendance-save';
+import { closeThen } from '@/components/parent/garden/feedback';
+import { GInlineBanner } from '@/components/parent/garden/fields';
+import { GSheet } from '@/components/parent/garden/sheet';
+import { Garden, GardenFonts, PANEL_TINTS, useGardenAccent } from '@/components/parent/garden/tokens';
+import { GChip, GPressable, GSkeleton, GToyButton } from '@/components/parent/garden/ui';
 import { useAttendance } from '@/contexts/attendance-context';
 import type {
   AttendancePickupContact,
@@ -14,15 +15,13 @@ import type {
   AttendanceRosterStudent,
 } from '@/lib/attendance/attendance-types';
 import { formatEnrolledStudentName } from '@/lib/teacher/teacher-home-utils';
-import { useParentTheme } from '@/contexts/parent-theme-context';
-import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
-import { Story, StoryFonts } from '@/constants/story-theme';
-import { Spacing } from '@/constants/theme';
 
 type AttendancePickupSheetProps = {
   visible: boolean;
   student: AttendanceRosterStudent | null;
   onClose: () => void;
+  save: AttendanceSave['save'];
+  announce: AttendanceSave['announce'];
 };
 
 function contactName(contact: AttendancePickupContact): string {
@@ -41,28 +40,38 @@ function selectionKey(selection: AttendancePickupSelection): string {
   return `${selection.source}:${selection.contactId}`;
 }
 
-export function AttendancePickupSheet({ visible, student, onClose }: AttendancePickupSheetProps) {
-  const theme = useParentTheme();
-  const { organizationId, api, savingStudentId, saveAction } = useAttendance();
+function initialsOf(contact: AttendancePickupContact) {
+  return `${contact.firstName[0] ?? ''}${contact.lastName[0] ?? ''}`.toUpperCase();
+}
+
+/** Record pickup: choose who picked the student up, then one toy "Confirm pickup". */
+export function AttendancePickupSheet({ visible, student, onClose, save, announce }: AttendancePickupSheetProps) {
+  const accent = useGardenAccent();
+  const { organizationId, api, savingStudentId } = useAttendance();
   const [contacts, setContacts] = useState<AttendancePickupContact[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedSelection, setSelectedSelection] = useState<AttendancePickupSelection | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<AttendancePickupSelection | null>(null);
+  const studentId = student?.id ?? null;
+  const familyId = student?.familyId ?? null;
 
   useEffect(() => {
-    if (!visible || !student) return;
+    if (!visible || !studentId || !familyId) return;
 
     let cancelled = false;
-    setLoading(true);
-    setError(null);
-    setSelectedSelection(null);
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setLoading(true);
+      setError(null);
+      setSaveError(null);
+      setSelected(null);
+    });
 
     void api
-      .fetchPickupContacts(organizationId, student.familyId, student.id)
+      .fetchPickupContacts(organizationId, familyId, studentId)
       .then((response) => {
-        if (!cancelled) {
-          setContacts(response.contacts);
-        }
+        if (!cancelled) setContacts(response.contacts);
       })
       .catch((err) => {
         if (!cancelled) {
@@ -71,134 +80,148 @@ export function AttendancePickupSheet({ visible, student, onClose }: AttendanceP
         }
       })
       .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [api, organizationId, student, visible]);
+  }, [api, familyId, organizationId, studentId, visible]);
 
   if (!student) return null;
 
   const saving = savingStudentId === student.id;
   const studentName = formatEnrolledStudentName(student);
+  const selectedContact = selected
+    ? contacts.find((contact) => selectionKey({ source: contact.source, contactId: contact.id }) === selectionKey(selected))
+    : null;
 
   const handleConfirm = async () => {
-    if (!selectedSelection) return;
-    const success = await saveAction(student, 'pickup', selectedSelection);
-    if (success) {
-      onClose();
+    if (!selected) return;
+    setSaveError(null);
+    const pickupName = selectedContact ? contactName(selectedContact) : null;
+    const ok = await save(student, 'pickup', { selection: selected, pickupName, silent: true });
+    if (ok) {
+      closeThen(onClose, () => announce(student, 'pickup', pickupName));
+    } else {
+      setSaveError("The pickup wasn't recorded. Check your connection, then try again.");
     }
   };
 
   return (
-    <StoryBottomSheet visible={visible} onClose={onClose} accessibilityLabel="Record pickup">
-      <View style={styles.content}>
-        <Text style={[styles.title, { color: theme.ink }]}>Record pickup</Text>
-        <Text style={[styles.subtitle, { color: theme.muted }]}>
-          Who picked up {studentName}?
-        </Text>
-
-        {loading ? (
-          <View style={styles.list}>
-            {Array.from({ length: 3 }, (_, index) => (
-              <AttendanceContactRowSkeleton key={index} />
-            ))}
-            <AttendanceConfirmButtonSkeleton />
+    <GSheet
+      visible={visible}
+      onClose={onClose}
+      title="Record pickup"
+      subtitle={`Who picked up ${studentName}?`}
+      accessibilityLabel="Record pickup"
+      footer={
+        !loading && contacts.length > 0 ? (
+          <View style={styles.footer}>
+            <Text style={styles.footerStatus} numberOfLines={1}>
+              {selectedContact ? `Picked up by ${contactName(selectedContact)}` : 'Choose a contact'}
+            </Text>
+            <GToyButton
+              label="Confirm pickup"
+              icon="checkmark"
+              loading={saving}
+              disabled={!selected || saving}
+              onPress={() => void handleConfirm()}
+            />
           </View>
-        ) : error ? (
-          <Text style={[styles.error, { color: theme.alert }]}>{error}</Text>
-        ) : contacts.length === 0 ? (
-          <Text style={[styles.subtitle, { color: theme.muted }]}>
-            No pickup contacts are available for this family.
-          </Text>
-        ) : (
-          <View style={styles.list}>
-            {contacts.map((contact) => {
-              const selection: AttendancePickupSelection = {
-                source: contact.source,
-                contactId: contact.id,
-              };
-              const key = selectionKey(selection);
-              const selected =
-                selectedSelection != null && selectionKey(selectedSelection) === key;
-              const secondary = contactSecondaryLine(contact);
+        ) : undefined
+      }>
+      {saveError ? <GInlineBanner tone="error" title="Couldn't record pickup" description={saveError} /> : null}
 
-              return (
-                <Pressable
-                  key={key}
-                  accessibilityRole="button"
-                  onPress={() => setSelectedSelection(selection)}
+      {loading ? (
+        <View style={styles.list}>
+          {Array.from({ length: 3 }, (_, index) => (
+            <GSkeleton key={index} style={styles.skeleton} />
+          ))}
+        </View>
+      ) : error ? (
+        <GInlineBanner tone="error" title="Pickup contacts didn't load" description={error} />
+      ) : contacts.length === 0 ? (
+        <GInlineBanner tone="info" title="No pickup contacts are available for this family." />
+      ) : (
+        <View style={styles.list} accessibilityRole="radiogroup">
+          {contacts.map((contact, index) => {
+            const selection: AttendancePickupSelection = { source: contact.source, contactId: contact.id };
+            const key = selectionKey(selection);
+            const isSelected = selected != null && selectionKey(selected) === key;
+            const secondary = contactSecondaryLine(contact);
+            const name = contactName(contact);
+
+            return (
+              <GPressable
+                key={key}
+                accessibilityRole="radio"
+                accessibilityLabel={`${name}${secondary ? `, ${secondary}` : ''}`}
+                accessibilityState={{ selected: isSelected }}
+                haptic="select"
+                pressedScale={0.98}
+                onPress={() => setSelected(selection)}
+                style={[
+                  styles.contact,
+                  isSelected
+                    ? { borderColor: accent.clay, backgroundColor: accent.wash }
+                    : { borderColor: Garden.ink12, backgroundColor: Garden.white },
+                ]}>
+                <View style={[styles.avatar, { backgroundColor: PANEL_TINTS[index % PANEL_TINTS.length] }]}>
+                  <Text style={styles.avatarText}>{initialsOf(contact)}</Text>
+                </View>
+                <View style={styles.contactCopy}>
+                  <Text style={styles.contactName}>{name}</Text>
+                  {secondary ? <Text style={styles.contactMeta}>{secondary}</Text> : null}
+                  <GChip
+                    label={contact.source === 'guardian' ? 'Guardian' : 'Authorized pickup'}
+                    tone={contact.source === 'guardian' ? 'info' : 'neutral'}
+                    style={styles.contactChip}
+                  />
+                </View>
+                <View
                   style={[
-                    styles.contactRow,
-                    {
-                      borderColor: selected ? theme.primary : Story.line,
-                      backgroundColor: selected ? theme.successBg : Story.white,
-                    },
+                    styles.radio,
+                    isSelected ? { borderColor: accent.clay, backgroundColor: accent.clay } : null,
                   ]}>
-                  <Text style={[styles.contactName, { color: theme.ink }]}>{contactName(contact)}</Text>
-                  {secondary ? (
-                    <Text style={[styles.contactMeta, { color: theme.muted }]}>{secondary}</Text>
-                  ) : null}
-                </Pressable>
-              );
-            })}
-          </View>
-        )}
-
-        {!loading ? (
-          <StoryButton
-            label="Confirm pickup"
-            variant="primary"
-            disabled={!selectedSelection || saving}
-            accessibilityState={{ disabled: !selectedSelection || saving }}
-            onPress={() => void handleConfirm()}
-          />
-        ) : null}
-      </View>
-    </StoryBottomSheet>
+                  {isSelected ? <Ionicons name="checkmark" size={14} color={Garden.white} /> : null}
+                </View>
+              </GPressable>
+            );
+          })}
+        </View>
+      )}
+    </GSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    gap: Spacing.three,
-    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-    paddingBottom: Spacing.four,
+  list: { gap: 10, paddingBottom: 12 },
+  skeleton: { height: 72, borderRadius: 18 },
+  contact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 64,
+    borderRadius: 18,
+    borderWidth: 2,
+    padding: 12,
   },
-  title: {
-    fontFamily: StoryFonts.bodySemiBold,
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  subtitle: {
-    fontFamily: StoryFonts.body,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  error: {
-    fontFamily: StoryFonts.body,
-    fontSize: 13,
-  },
-  list: {
-    gap: Spacing.two,
-  },
-  contactRow: {
+  avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontFamily: GardenFonts.bodyExtra, fontSize: 14, color: Garden.ink },
+  contactCopy: { flex: 1, gap: 2 },
+  contactName: { fontFamily: GardenFonts.bodyExtra, fontSize: 15.5, color: Garden.ink },
+  contactMeta: { fontFamily: GardenFonts.bodySemi, fontSize: 13, color: Garden.soft },
+  contactChip: { alignSelf: 'flex-start', marginTop: 4 },
+  radio: {
+    width: 24,
+    height: 24,
     borderRadius: 12,
-    borderWidth: 1,
-    padding: Spacing.three,
-    gap: 4,
+    borderWidth: 2,
+    borderColor: Garden.ink25,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  contactName: {
-    fontFamily: StoryFonts.bodySemiBold,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  contactMeta: {
-    fontFamily: StoryFonts.body,
-    fontSize: 12,
-  },
+  footer: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: 4 },
+  footerStatus: { flex: 1, fontFamily: GardenFonts.bodyBold, fontSize: 13.5, color: Garden.soft },
 });

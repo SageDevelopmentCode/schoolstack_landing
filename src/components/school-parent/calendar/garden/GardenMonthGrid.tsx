@@ -23,6 +23,7 @@ export default function GardenMonthGrid({
   selectedEventId,
   onDayClick,
   onEventClick,
+  testIdPrefix = "parent-calendar",
 }: {
   year: number;
   month: number;
@@ -31,11 +32,13 @@ export default function GardenMonthGrid({
   selectedEventId: string | null;
   onDayClick: (date: string) => void;
   onEventClick: (event: OrganizationEvent) => void;
+  /** Test-id namespace; admin surfaces pass their own. */
+  testIdPrefix?: string;
 }) {
   const cells = getExtendedMonthGrid(year, month);
 
   return (
-    <div className="flex flex-1 flex-col bg-white" data-testid="parent-calendar-month-grid">
+    <div className="flex flex-1 flex-col bg-white" data-testid={`${testIdPrefix}-month-grid`}>
       <div
         className="sticky top-0 z-10 grid shrink-0 grid-cols-7 border-b-[1.5px] border-[var(--sf-ink)]/10 bg-[var(--sf-paper)]"
         aria-hidden="true"
@@ -74,7 +77,7 @@ export default function GardenMonthGrid({
                 aria-label={dayAriaLabel(cell.date, dayEvents.length)}
                 aria-pressed={selected}
                 aria-current={today ? "date" : undefined}
-                data-testid={`parent-calendar-day-${key}`}
+                data-testid={`${testIdPrefix}-day-${key}`}
                 className={`absolute inset-0 z-0 cursor-pointer transition-colors hover:bg-[var(--sf-accent-wash)] ${G_FOCUS} focus-visible:ring-inset focus-visible:ring-offset-0 ${
                   selected ? "ring-2 ring-inset ring-[var(--sf-clay)]" : ""
                 }`}

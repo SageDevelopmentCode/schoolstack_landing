@@ -98,7 +98,6 @@ export function ParentMessageThreadGardenScreen(
           style={styles.errorBack}
         />
         <GErrorCard
-          kicker="Messages"
           title="We couldn’t open this conversation"
           message={
             controller.loadError

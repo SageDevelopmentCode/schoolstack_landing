@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { SubmissionDetailScreen } from '@/components/school-admin/submission-detail-screen';
+import { SubmissionDetailScreen } from '@/components/school-admin/admissions/garden/submission-detail-screen';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function SchoolAdminSubmissionDetailPage() {

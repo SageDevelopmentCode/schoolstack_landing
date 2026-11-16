@@ -108,7 +108,6 @@ export function BillingScheduleSetup({
   return (
     <GCard
       index={index}
-      kicker="Pick a plan · preview it · confirm"
       title={heading}
       testID="parent-tuition-plan-selector"
       onLayout={onLayout}

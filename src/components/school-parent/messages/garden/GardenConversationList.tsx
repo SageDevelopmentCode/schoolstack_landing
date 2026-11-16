@@ -1,8 +1,10 @@
 "use client";
 
+import { useMemo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Inbox, Loader2, Pin, Plus, Search, X } from "lucide-react";
 import { GChip, GSkeleton, GTabBar, G_FOCUS, gBtnOutlineSm, gLinkSm } from "@/components/school-parent/garden/ui";
+import type { AdminConversationListItem } from "@/lib/messages/admin-thread-sections";
 import type { MessageThreadSummary } from "@/lib/messages/types";
 import { GardenAvatar, isMudKitchenSupportListThread } from "./garden-messages-shared";
 
@@ -30,6 +32,8 @@ export default function GardenConversationList({
   newMessageDisabled,
   newMessageBusy,
   readOnly,
+  sections,
+  testIdPrefix = "parent-messages",
 }: {
   threads: MessageThreadSummary[];
   filter: GardenInboxFilter;
@@ -48,14 +52,40 @@ export default function GardenConversationList({
   newMessageDisabled: boolean;
   newMessageBusy: boolean;
   readOnly: boolean;
+  /** Admin: section rows ("Parent & teacher conversations") in display order. */
+  sections?: AdminConversationListItem[];
+  testIdPrefix?: string;
 }) {
   const reduce = useReducedMotion() === true;
   const searching = search.trim().length > 0;
 
+  // Without sections: one unlabeled group. With sections: keep their order and
+  // labels, showing only threads that pass the current search/filter.
+  const groups = useMemo(() => {
+    if (!sections) {
+      return [{ key: "all", label: null as string | null, description: null as string | null, threads }];
+    }
+    const byId = new Map(threads.map((thread) => [thread.id, thread]));
+    const out: { key: string; label: string | null; description: string | null; threads: MessageThreadSummary[] }[] = [];
+    let current: (typeof out)[number] = { key: "inbox", label: null, description: null, threads: [] };
+    for (const item of sections) {
+      if (item.type === "section") {
+        if (current.threads.length) out.push(current);
+        current = { key: item.key, label: item.label, description: item.description ?? null, threads: [] };
+      } else {
+        const thread = byId.get(item.thread.id);
+        if (thread) current.threads.push(thread);
+      }
+    }
+    if (current.threads.length) out.push(current);
+    return out;
+  }, [sections, threads]);
+  const visibleCount = groups.reduce((sum, group) => sum + group.threads.length, 0);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div
-        data-testid="parent-messages-inbox-header"
+        data-testid={`${testIdPrefix}-${sections ? "list" : "inbox"}-header`}
         className="shrink-0 space-y-3 border-b-[1.5px] border-[var(--sf-ink)]/10 px-4 pb-3 pt-4"
       >
         <div className="relative">
@@ -119,7 +149,7 @@ export default function GardenConversationList({
             onClick={onNewMessage}
             disabled={newMessageDisabled}
             aria-busy={newMessageBusy || undefined}
-            data-testid="parent-messages-new-button"
+            data-testid={`${testIdPrefix}-new-button`}
             className={`${gBtnOutlineSm} shrink-0 !px-3.5 !py-2`}
           >
             {newMessageBusy ? (
@@ -158,7 +188,7 @@ export default function GardenConversationList({
               </div>
             ))}
           </div>
-        ) : threads.length === 0 ? (
+        ) : visibleCount === 0 ? (
           <div className="flex flex-col items-center px-6 py-10 text-center">
             <span
               aria-hidden="true"
@@ -209,8 +239,30 @@ export default function GardenConversationList({
             )}
           </div>
         ) : (
-          <ul aria-label="Conversations" className="m-0 list-none space-y-1 p-2">
-            {threads.map((thread) => {
+          <div className="p-2">
+            {groups.map((group) => (
+              <section
+                key={group.key}
+                aria-label={group.label ?? "Conversations"}
+                className={group.label ? "mt-3 first:mt-0" : undefined}
+              >
+                {group.label ? (
+                  <div className="px-3 pb-1.5 pt-1">
+                    <h3 className="m-0 text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--sf-soft)]">
+                      {group.label}
+                      <span className="ml-1.5 whitespace-nowrap tabular-nums text-[var(--sf-ink)]/40">
+                        · {group.threads.length}
+                      </span>
+                    </h3>
+                    {group.description ? (
+                      <p className="m-0 mt-0.5 text-[12px] font-semibold leading-snug text-[var(--sf-soft)]">
+                        {group.description}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+                <ul aria-label={group.label ?? "Conversations"} className="m-0 list-none space-y-1 p-0">
+                  {group.threads.map((thread) => {
               const active = thread.id === activeThreadId;
               const unread = thread.unreadCount > 0;
               const pinned = isMudKitchenSupportListThread(thread);
@@ -296,8 +348,11 @@ export default function GardenConversationList({
                   </button>
                 </li>
               );
-            })}
-          </ul>
+                  })}
+                </ul>
+              </section>
+            ))}
+          </div>
         )}
       </div>
     </div>

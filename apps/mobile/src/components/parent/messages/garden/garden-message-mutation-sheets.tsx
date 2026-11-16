@@ -48,7 +48,6 @@ export function GardenMessageMutationSheets({
       <GSheet
         visible={actionTarget !== null}
         onClose={closeActionSheet}
-        kicker="Your message"
         title="What would you like to do?">
         {actionPreview ? (
           <View style={[styles.quote, { borderLeftColor: accent.clay }]}>
@@ -99,7 +98,6 @@ export function GardenMessageMutationSheets({
         visible={deleteTarget !== null}
         onClose={closeDeleteConfirm}
         accessibilityLabel="Close delete confirmation"
-        kicker="Please confirm"
         title="Delete message?"
         subtitle="This can’t be undone. Everyone in the conversation will see “Message deleted”."
         headerAside={deleteError ? <GChip label="Not deleted" tone="alert" icon="alert-circle" /> : undefined}>

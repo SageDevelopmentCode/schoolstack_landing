@@ -23,7 +23,7 @@ The parent **Home Hub** is the reference build. Every parent mobile tab should e
 **The look in one line:** the web parent Garden dashboard (Bricolage display type, Nunito body, cream paper, pastel note tiles, tape, toy buttons) in the **school's own accent colour**, rebuilt for a thumb: big tap targets, everything one tap away, and feedback on every action.
 
 It must feel like a calm everyday app, not a marketing page:
-- Short header.
+- Short header, with no eyebrow above the title.
 - The important things above the fold. On the Home that is a 2×2 widget grid.
 - Everything in cards.
 - Details open in sheets or pushed screens, not long inline lists.
@@ -33,7 +33,7 @@ Related skills:
 - `.agents/skills/mudkitchen-garden-design` (`in-app.md`): Garden tokens and the portal/brand split.
 - `apps/mobile/AGENTS.md`: keyboard layouts, operational error reporting, WebViews and links. All of it still applies.
 - `.agents/skills/mobile-ui-visual-verify`, `.agents/skills/mobile-e2e-local`: verification.
-- Admin and teacher mobile screens stay on **School Day Story** (`apps/mobile/src/components/story/*`). Don't use this kit there unless asked.
+- School admin mobile screens use this kit through `.agents/skills/admin-mobile-garden-design` (admin density, work queue, linked KPIs, save/retry contract). The shared attendance roster (`components/attendance/*`) is Garden in every portal. Other teacher mobile screens stay on **School Day Story** (`apps/mobile/src/components/story/*`) unless asked.
 
 Detailed snippets for each recipe are in **`recipes.md`**.
 
@@ -50,7 +50,9 @@ All paths are under `apps/mobile/src/`.
 | `components/parent/garden/segmented.tsx` | `GSegmented` (tab bar with a gliding accent pill) |
 | `components/parent/garden/toast.tsx` | `GardenToastProvider`, `useGardenToast()` |
 | `components/parent/garden/celebrate.tsx` | `GCelebrate` (confetti + success haptic, once per session per key) |
-| `components/parent/garden/sheet.tsx` | `GSheet`: Garden bottom sheet (cream, kicker + Bricolage title, 44pt close, optional status chip and footer) |
+| `components/parent/garden/sheet.tsx` | `GSheet`: Garden bottom sheet (cream, Bricolage title + subtitle, 44pt close, optional status chip and footer, `enableDragToDismiss={false}` while there is unsaved work) |
+| `components/parent/garden/accent-strip.tsx` | `GAccentStrip`: the urgent strip (solid accent, white Open pill, optional `children` such as progress pills) |
+| `components/parent/garden/back-header.tsx` | `GBackHeader`: header for screens pushed inside the More stack (back link, title with one accent word, subtitle) |
 | `lib/haptics.ts` | `haptic.tap / select / press / success / warning / error`. A safe no-op without the native module and under E2E. |
 | `components/parent/parent-portal-shell.tsx` | Mounts `GestureHandlerRootView` and `GardenToastProvider` around the whole parent shell (screens, tab bar and More sheet) |
 | `components/garden-nav/garden-tab-bar.tsx` | `GardenTabBar`: the bottom tab bar shared by **every** portal (parent, teacher, school admin, platform admin). Attached to the screen bottom (paper, hairline top rule, fills the home-indicator area by sitting at `bottom: -insets.bottom` inside the layout `SafeAreaView`); an accent pill glides to the active tab. Short labels ("Billing / tuition" → "Billing") with the full label as the a11y label, so Maestro text taps keep matching. `sheetOpen` turns the More icon into a chevron; `header` adds a row inside the bar (parent co-op chip). `GARDEN_TAB_BAR_HEIGHT` is the part above the safe-area edge: layouts pad content by it. |
@@ -88,7 +90,7 @@ const accent = useGardenAccent();
   | Role | Font | Sizes |
   |---|---|---|
   | `display` | Bricolage 800 | Greeting (32 / 26 compact), card titles (22), big numbers (44), child names (21) |
-  | `bodyExtra` | Nunito 800 | Item titles (15–17), buttons (14–16), kickers (11, uppercase, letterSpacing 2) |
+  | `bodyExtra` | Nunito 800 | Item titles (15–17), buttons (14–16), field and group labels (`GKicker`: 11, uppercase, letterSpacing 2) |
   | `bodySemi` / `bodyBold` | Nunito 600 / 700 | Meta (12–13), body copy (14) |
   | `hand` | Gochi Hand | One decorative line, only in empty or celebration states, via `GHand`, which is hidden from screen readers |
 
@@ -118,14 +120,18 @@ const accent = useGardenAccent();
     - `RefreshControl`'s `progressViewOffset` is Android-only.
 12. **Status bar:** `<StatusBar style="dark" />` on cream screens.
 13. **Copy:** factual strings come from data or existing web/mobile copy. Don't invent claims or numbers.
+14. **No eyebrows.** Never put a small uppercase label above a screen, card or sheet title ("Account & preferences" over "Notification settings", "Family notifications" over "Notification emails"). It repeats the tab or the title and adds noise. `GBackHeader`, `GCard`, `GErrorCard` and `GSheet` have no `kicker` prop for this reason.
+    - A card with only a label: make that label its `title`.
+    - A label that carries data moves rather than disappears: a date goes in the subtitle or a meta line ("Today · Friday, Nov 14"), a type, term or status goes in a `GChip` (`action` on a card, `headerAside` on a sheet).
+    - `GKicker` is still right for a **field label** inside a card ("Date", "Location", "Login email"), a **group label** in a list ("Today", "Earlier editions"), and the small label on a Home widget tile.
 
 ## 4. Kit reference (`components/parent/garden/ui.tsx` unless noted)
 
 | Export | Use / key props |
 |---|---|
 | `GPressable` | Every tappable: `accessibilityLabel` (required), `haptic`, `pressedScale`, `hitSlop` |
-| `GCard` | Every section: `kicker`, `title`, `action`, `tone` (`white` \| `paper` \| `dark`), `index` (entrance stagger), `onLayout(y)`, `testID` |
-| `GKicker` | Uppercase label (`light` on dark) |
+| `GCard` | Every section: `title`, `action`, `tone` (`white` \| `paper` \| `dark`), `index` (entrance stagger), `onLayout(y)`, `testID`. No eyebrow (§3.14). |
+| `GKicker` | Uppercase **field or group label** only (`light` on dark). Never above a title. |
 | `GHand` | The one decorative handwritten line |
 | `GChip` | Status/count chip: `tone` `success` \| `warning` \| `alert` \| `info` \| `neutral`, optional `icon` |
 | `GIcon` | Ionicon in a white circle with an ink ring (`sm` 32 / `md` 44 / `lg` 56) |
@@ -142,13 +148,16 @@ const accent = useGardenAccent();
 | `GOutlineButton` | Secondary pill (`onDark` = butter) |
 | `GLink` | Text action in `clayDeep` with an arrow (`light` on dark) |
 | `GSkeleton` | Pulsing placeholder |
-| `GErrorCard` | Load failure with a "Try again" toy button |
+| `GErrorCard` | Load failure with a "Try again" toy button: `title`, `message`, `onRetry` |
 | `GCountUp` | Number that counts up (instant under reduced motion) |
 | `gText` | `display`, `itemTitle`, `meta`, `body` text styles |
 | `GSegmented` (`segmented.tsx`) | `role=tablist` with a gliding accent pill: `items` `{id,label,icon?,badge?}`, `activeId`, `onChange`, `compact` |
 | `GCelebrate` (`celebrate.tsx`) | `active` + `celebrationKey`. Only for real success moments. |
 | `useGardenToast` (`toast.tsx`) | `success / error / info / warning(title, { description, action, id, durationMs })`, `dismiss(id)` |
-| `GSheet` (`sheet.tsx`) | `visible`, `onClose`, `kicker`, `title`, `subtitle`, `headerAside` (status chip), `footer`, `list` (child is its own virtualized list) |
+| `GSheet` (`sheet.tsx`) | `visible`, `onClose`, `title`, `subtitle`, `headerAside` (status chip), `footer`, `list` (child is its own virtualized list), `enableDragToDismiss` |
+| `GAccentStrip` (`accent-strip.tsx`) | `title`, `subtitle`, `pillLabel`, `onPress`, `accessibilityHint`, `children` |
+| `GInlineBanner` (`fields.tsx`) | Status inside a sheet or a non-blocking load failure: `tone`, `title`, `description`, `action` |
+| `closeThen`, `confirmDestructive`, `useGardenReadOnlyGate`, `useGardenPullRefresh` (`feedback.ts`) | Close a sheet then act; native discard/delete confirm; read-only toast gate; pull-to-refresh with toast |
 
 Sheets: use `GSheet` for read-only sheets (feeds, details, lists). Use `ParentBottomSheet` (`components/parent/parent-bottom-sheet.tsx`) when the sheet has text fields: it handles the keyboard per `AGENTS.md`. Put sheets **outside** the `ScrollView`, as siblings at the screen root.
 
@@ -166,8 +175,8 @@ Sheets: use `GSheet` for read-only sheets (feeds, details, lists). Use `ParentBo
       <XSheets model …/>               every sheet the screen owns
 ```
 
-- **Header** (`sections/home-header.tsx`):
-  - A kicker: the family name.
+- **Header** (`sections/home-header.tsx`, or `GBackHeader` on More-stack screens):
+  - No eyebrow (§3.14).
   - A Bricolage greeting or title with one accent word.
   - A muted subtitle.
   - A toolbar of 42pt icon buttons (bulletin, bell with `GBadge`, avatar). Their labels match the old header ("Open notifications, N unread", "Account for {name}").
@@ -195,22 +204,25 @@ Sheets: use `GSheet` for read-only sheets (feeds, details, lists). Use `ParentBo
 
 | Recipe | Source | Reuse it for |
 |---|---|---|
-| **Widget grid**: 2×2 pastel tiles (`flexBasis 45%`), kicker + icon circle on top, `GCountUp` number or content at the bottom, each tile opens a sheet | `parent-home-hub.tsx` › `Widget` | Billing summary, attendance, committee overview |
+| **Widget grid**: 2×2 pastel tiles (`flexBasis 45%`), tile label + icon circle on top, `GCountUp` number or content at the bottom, each tile opens a sheet | `parent-home-hub.tsx` › `Widget` | Billing summary, attendance, committee overview |
 | **Urgent strip**: solid `accent.clay` row; the whole strip is one `GPressable` with a white "Open" pill | `sections/urgent-strip.tsx` | The one thing that needs doing now |
 | **Ticket row**: paper ticket with notches, `DateStamp`, vertical `GDashedRule`, title + `eventWhen` | `sections/event-ticket.tsx` | Events, due dates, pickups, sessions |
 | **Notebook list**: `GTick` / `GRing`, title + meta, chevron, hairline rows on `Garden.notebook`, with `GChip` counts above | `sections/family.tsx` › `FormsNotebookList`, `FormsCounts` | Forms, documents, receipts, sign-ups |
 | **Polaroid carousel**: horizontal snap `ScrollView` of paper mini-cards with `ChildThumb` (±3°), status `GChip`, `GProgress`, outline + link actions; bleeds to the card edge with a peek | `sections/family.tsx` › `ChildrenSection` | Children, family members, committee members |
 | **Jump-to grid**: 3-column tiles with pastel icon circles; tab routes `replace`, others `push` | `parent-home-hub.tsx` › `JumpToCard` | Feature shortcuts |
 | **Detail sheet**: `ParentBottomSheet` + list + full-width `GToyButton`; close, then navigate | `parent-home-hub.tsx` (events and forms sheets) | Any "see all" for a widget |
-| **Index of help**: category kickers, rows with a step-count chip, opening `ParentDocumentationGuideSheet` | `sections/more.tsx` › `GuidesSection` | Guides, FAQs |
-| **Feed sheet**: `GSheet list` + `SectionList` (`flex: 1`) grouped Today / Yesterday / Earlier this week / Earlier with sticky kickers; rows with a pastel category icon, title, 2-line detail, relative time, `{ctaLabel} →`; newest N rows get a "New" dot + chip and accent wash; skeleton rows, mint caught-up panel, error + "Try again" toy button, dashed "That's everything for now" end line, settings link in the footer, pull to refresh | `home/sheets/parent-notifications-sheet.tsx`, `home/sheets/notification-groups.ts` | Notifications, activity logs, history |
+| **Index of help**: category group labels, rows with a step-count chip, opening `ParentDocumentationGuideSheet` | `sections/more.tsx` › `GuidesSection` | Guides, FAQs |
+| **Feed sheet**: `GSheet list` + `SectionList` (`flex: 1`) grouped Today / Yesterday / Earlier this week / Earlier with sticky group labels; rows with a pastel category icon, title, 2-line detail, relative time, `{ctaLabel} →`; newest N rows get a "New" dot + chip and accent wash; skeleton rows, mint caught-up panel, error + "Try again" toy button, dashed "That's everything for now" end line, settings link in the footer, pull to refresh | `home/sheets/parent-notifications-sheet.tsx`, `home/sheets/notification-groups.ts` | Notifications, activity logs, history |
 | **Card feed sheet**: `GSheet` with white post cards (icon, date chip, title, excerpt, attachments, "Read more →" label; the whole card is the button); the newest card is butter with tape and a "Latest" chip | `home/sheets/parent-bulletin-sheet.tsx` | Bulletin, newsletters, announcements |
 | **Legacy island**: an unmigrated Story component dropped into the flow as-is | `sections/more.tsx` › `FridayBranchIsland`, `CoopFamiliesIsland` | Anything not migrated yet |
 | **Segmented tabs**: `GSegmented` with badges | `garden/segmented.tsx` | Sub-views within a tab (All / Unread, Upcoming / Past) |
+| **Photo day grid**: per-day label row ("Today" / full date + count chip, "Latest" on the newest), 3-column rounded tiles with a `GSkeleton` per tile, `FlatList` of days with `onEndReached`, dashed end line | `photos/garden/photo-day-grid.tsx`, `parent-photos-garden-screen.tsx` | Galleries, attachments, any media list |
+| **Choice sheet**: `GSheet` with radio option cards per person (pastel icon, label, description), Changed / Not saved chips, "apply to everyone", status line + one toy Save in the footer, discard confirm, `closeThen` → success toast, partial failures in a `GInlineBanner` | `photos/garden/photo-permissions-sheet.tsx` | Permissions, preferences, per-child choices |
+| **Garden media viewer**: dark full-screen modal, 44pt round buttons, counter chip, swipe paging with `select` haptic, in-viewer status pill and error banner (toasts sit behind modals) | `photos/garden/parent-photo-viewer.tsx` | Photo and document previews |
 
 ## 8. Migrating a parent mobile tab (checklist)
 
-One tab per PR. Suggested order: Billing → Messages → Calendar → Children → Forms & documents → Committees → the rest.
+One tab per PR. Suggested order: Billing → Messages → Calendar → Children → Forms & documents → Committees → the rest. Migrated so far include Home, Billing, Messages, Calendar, Children, Attendance, Forms & documents, Committees, Classroom signups, Newsletters, Notification settings and Photos.
 
 1. Split the screen into **controller hook** (data + callbacks) → **Garden screen** (skeleton / error / view) → **model hook** (sheet state + derived data) → **feedback hook**. Reuse the Home files as templates.
 2. Map the primitives:
@@ -218,7 +230,7 @@ One tab per PR. Suggested order: Billing → Messages → Calendar → Children 
    | Story | Garden |
    |---|---|
    | `StoryCard` | `GCard` |
-   | `StorySectionKicker` / `StoryDisplayHeading` | `GCard` `kicker` / `title` (or `GKicker`) |
+   | `StorySectionKicker` / `StoryDisplayHeading` | `GCard` `title` (drop the eyebrow, §3.14) |
    | `StoryButton` primary | `GToyButton` (one per view) |
    | `StoryButton` soft / outline | `GOutlineButton` |
    | `StoryTextLink` | `GLink` |
@@ -281,4 +293,5 @@ Finally, `npm run mobile:visual:capture -- parent-home` (or the tab's slug) per 
 - `progressViewOffset` for iOS.
 - Single-side dashed borders.
 - Sheets inside the `ScrollView`.
-- Using this kit on admin or teacher mobile screens.
+- Using this kit on admin mobile screens without the admin rules (`admin-mobile-garden-design`), or on teacher screens (other than the shared roster) unless asked.
+- Eyebrow text above a screen, card or sheet title (§3.14).

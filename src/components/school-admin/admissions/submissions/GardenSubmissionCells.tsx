@@ -83,11 +83,14 @@ export function GardenContactCell({
       <div className="min-w-0">
         <div className="flex items-center gap-1.5">
           <span className="truncate text-[14px] font-extrabold text-[var(--sf-ink)]">{name}</span>
-          <ParentPortalLoginIcon
-            status={loginStatus}
-            loading={loginStatusLoading && submission.primaryGuardianId != null}
-            theme={theme}
-          />
+          {/* Above the card's stretched open-button on phones (see SubmissionsTable). */}
+          <span className="pointer-events-auto relative z-10 inline-flex">
+            <ParentPortalLoginIcon
+              status={loginStatus}
+              loading={loginStatusLoading && submission.primaryGuardianId != null}
+              theme={theme}
+            />
+          </span>
         </div>
         {submission.contactEmail ? (
           <div className="max-w-[14rem] truncate text-[12px] font-semibold text-[var(--sf-soft)]">

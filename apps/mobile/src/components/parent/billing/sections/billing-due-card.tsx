@@ -89,7 +89,7 @@ export function BillingDueCard({
     : '';
 
   return (
-    <GCard index={index} kicker="Next payment" title={title} testID={testID}>
+    <GCard index={index} title={title} testID={testID}>
       <View style={styles.body}>
         {justPaid ? (
           <Animated.View entering={FadeIn.duration(260)} style={styles.paidLine}>

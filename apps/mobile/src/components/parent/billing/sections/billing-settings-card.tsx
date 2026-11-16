@@ -28,7 +28,6 @@ export function BillingSettingsCard({
     <GCard
       index={index}
       tone="dark"
-      kicker="Payment settings"
       title={autopayEnabled ? 'Autopay is on' : 'Autopay is off'}
       action={
         <View style={[styles.state, autopayEnabled ? styles.stateOn : styles.stateOff]}>

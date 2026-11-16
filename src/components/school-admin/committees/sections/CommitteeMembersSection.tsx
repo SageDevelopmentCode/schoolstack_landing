@@ -10,7 +10,10 @@ import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
 import type { Committee, CommitteeDutyRole, CommitteeRole } from "@/lib/committees/types";
 import { COMMITTEE_ASSIGNABLE_ROLE_OPTIONS, COMMITTEE_ROLE_LABELS } from "@/lib/committees/committee-role-labels";
-import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import {
+  parentThemeToAdminCompat,
+  type ParentThemeTokens,
+} from "@/lib/organization-settings/parent-theme";
 import { inviteCommitteeMember, removeCommitteeMember } from "@/lib/committees/members";
 import { getCommittee } from "@/lib/committees/committees";
 import { memberInitials } from "@/lib/committees/task-utils";
@@ -20,7 +23,11 @@ import CommitteeModalShell from "@/components/school-admin/committees/CommitteeM
 import CommitteeSectionEmptyState from "@/components/school-admin/committees/CommitteeSectionEmptyState";
 import CommitteeWorkspaceSectionFrame from "@/components/school-admin/committees/CommitteeWorkspaceSectionFrame";
 import { committeeStoryInputStyle } from "@/components/school-admin/committees/committee-story-input-style";
-import { CommitteeButton, G_COMMITTEE_INPUT } from "@/components/school-admin/committees/committee-ui";
+import {
+  CommitteeButton,
+  CommitteeConfirmDialog,
+  G_COMMITTEE_INPUT,
+} from "@/components/school-admin/committees/committee-ui";
 import { useCommitteeNotify, useIsGardenCommittee } from "@/components/school-admin/committees/committee-surface";
 import GardenCommitteeMembers from "@/components/school-admin/committees/sections/garden/GardenCommitteeMembers";
 
@@ -97,7 +104,11 @@ export default function CommitteeMembersSection({
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<CommitteeRole>("member");
   const [saving, setSaving] = useState(false);
+  /** Garden: member waiting for the remove confirmation. */
+  const [removeTargetId, setRemoveTargetId] = useState<string | null>(null);
+  const [removing, setRemoving] = useState(false);
   const inputStyle = useMemo(() => committeeStoryInputStyle(theme), [theme]);
+  const confirmTokens = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
   const garden = useIsGardenCommittee();
   const notify = useCommitteeNotify();
   const inviteInputClass = garden ? G_COMMITTEE_INPUT : "w-full px-3 py-2 text-sm rounded-lg border";
@@ -140,19 +151,33 @@ export default function CommitteeMembersSection({
   };
 
   const handleRemove = async (memberId: string) => {
+    const memberName = committee.members.find((member) => member.id === memberId)?.name;
+    setRemoving(true);
     try {
       await removeCommitteeMember(supabase, memberId);
       await refresh();
-      notify.success("Member removed");
+      setRemoveTargetId(null);
+      notify.success(memberName ? `${memberName} removed.` : "Member removed", {
+        id: "committee-member-remove",
+        description: memberName ? `They're no longer a member of ${committee.name}.` : undefined,
+      });
     } catch (err) {
-      notify.error(formatActionError(err, "Failed to remove member."), { title: "Couldn't remove member" });
+      notify.error(formatActionError(err, "Failed to remove member."), {
+        title: "Couldn't remove member",
+        id: "committee-member-remove",
+        retry: () => void handleRemove(memberId),
+      });
       void reportPortalOperationalError("school_admin", {
         organizationId,
         operation: "committees.members.remove",
         error: "",
       }, err);
+    } finally {
+      setRemoving(false);
     }
   };
+
+  const removeTarget = committee.members.find((member) => member.id === removeTargetId) ?? null;
 
   const inviteModal = (
     <AnimatePresence>
@@ -219,9 +244,26 @@ export default function CommitteeMembersSection({
           readOnly={readOnly}
           showGrade={Boolean(showGrade)}
           onInvite={() => setShowInvite(true)}
-          onRemove={(memberId) => void handleRemove(memberId)}
+          onRemove={(memberId) => setRemoveTargetId(memberId)}
         />
         {inviteModal}
+        <CommitteeConfirmDialog
+          theme={theme}
+          C={confirmTokens}
+          open={removeTarget !== null}
+          title={removeTarget ? `Remove ${removeTarget.name}?` : "Remove member?"}
+          description={`They'll lose access to ${committee.name}'s workspace. You can invite them again later.`}
+          confirmLabel="Remove"
+          cancelLabel="Keep"
+          variant="destructive"
+          loading={removing}
+          onConfirm={() => {
+            if (removeTargetId) void handleRemove(removeTargetId);
+          }}
+          onClose={() => {
+            if (!removing) setRemoveTargetId(null);
+          }}
+        />
       </>
     );
     if (skipFrame) return gardenContent;

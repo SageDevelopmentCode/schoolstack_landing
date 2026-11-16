@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import {
   assertTeacherCanAccessThread,
-  getStaffMemberIdForUser,
+  getTeacherPortalStaffMemberIdForUser,
   markThreadRead,
   requireTeacherPortalUser,
 } from "@/lib/messages/api-helpers";
@@ -32,7 +32,7 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     const user = await requireTeacherPortalUser(supabase, organizationId, request);
-    const staffMemberId = await getStaffMemberIdForUser(
+    const staffMemberId = await getTeacherPortalStaffMemberIdForUser(
       supabase,
       user.id,
       organizationId,

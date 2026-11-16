@@ -70,7 +70,6 @@ export function BillingChargesSection({ ctx, index = 0 }: { ctx: BillingCtx; ind
   return (
     <GCard
       index={index}
-      kicker="Upcoming"
       title={title}
       action={charges.length > 0 ? <GChip label={`${charges.length} open`} /> : undefined}>
       {charges.length === 0 ? (
@@ -107,7 +106,6 @@ export function BillingPaymentsSection({ ctx, index = 0 }: { ctx: BillingCtx; in
   return (
     <GCard
       index={index}
-      kicker="History"
       title={title}
       action={payments.length > 0 ? <GChip tone="success" label={`${payments.length} on file`} /> : undefined}>
       {payments.length === 0 ? (

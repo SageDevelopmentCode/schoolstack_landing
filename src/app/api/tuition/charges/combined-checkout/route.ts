@@ -8,7 +8,7 @@ import {
   attachCheckoutSessionToPayments,
   listInFlightTuitionPaymentsForCharge,
   listPendingPaymentsForTuitionCharge,
-  markPaymentFailed,
+  markPaymentCanceled,
 } from "@/lib/stripe/application-payments";
 import {
   expireOpenCheckoutSession,
@@ -231,16 +231,12 @@ export async function POST(request: Request) {
             expiredCheckoutSessionIds.add(checkoutSessionId);
           }
 
-          await markPaymentFailed(admin, pendingPayment.id, {
-            stripeCheckoutSessionId: checkoutSessionId,
-          });
+          await markPaymentCanceled(admin, pendingPayment.id);
           continue;
         }
 
         if (existingSession.status === "expired") {
-          await markPaymentFailed(admin, pendingPayment.id, {
-            stripeCheckoutSessionId: checkoutSessionId,
-          });
+          await markPaymentCanceled(admin, pendingPayment.id);
         }
       }
     }

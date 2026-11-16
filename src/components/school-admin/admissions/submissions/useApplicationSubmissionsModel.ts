@@ -16,6 +16,7 @@ import type { ApplicationSubmissionsTableData } from "@/lib/school-admin/load-su
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { adminToast } from "@/lib/school-admin/admin-toast";
+import { useAdminNavCounts } from "@/lib/school-admin/admin-nav-counts-context";
 
 /*
  * Submissions view-model: table hydrate, refetch, load more, enrichment,
@@ -359,9 +360,13 @@ export function useApplicationSubmissionsModel({
     [],
   );
 
+  const { report: reportNavCount, refresh: refreshNavCounts } = useAdminNavCounts();
+
   const handleSubmissionUpdated = useCallback(
     (update?: { status: AdminApplicationSubmission["status"] }) => {
       flashRow(selectedId);
+      // A decision changes how many applications wait for review: recount the sidebar badge.
+      void refreshNavCounts();
       if (update && selectedId) {
         setLoadedSubmissions((prev) =>
           prev.map((row) =>
@@ -372,7 +377,7 @@ export function useApplicationSubmissionsModel({
       }
       void loadSubmissions();
     },
-    [flashRow, loadSubmissions, selectedId],
+    [flashRow, loadSubmissions, refreshNavCounts, selectedId],
   );
 
   /** Manual refresh: toasts its result (background refetches stay quiet). */
@@ -430,6 +435,12 @@ export function useApplicationSubmissionsModel({
 
   const draftCount = statusCounts.draft ?? 0;
   const submittedCount = statusCounts.submitted ?? 0;
+  const hasStatusCounts = Object.keys(statusCounts).length > 0;
+
+  // Keep the sidebar's Submissions badge in step with this page's "Ready to review".
+  useEffect(() => {
+    if (hasStatusCounts) reportNavCount("applicationsToReview", submittedCount);
+  }, [hasStatusCounts, reportNavCount, submittedCount]);
   const enrolledCount = statusCounts.enrolled ?? 0;
 
   const selectedSubmission =

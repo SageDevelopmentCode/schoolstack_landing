@@ -411,11 +411,10 @@ function SubmissionsTable({ model, theme }: { model: ApplicationSubmissionsModel
             const flashed = submission.id === model.flashId;
             return (
               <li key={submission.id}>
-                <button
-                  type="button"
-                  onClick={() => toggle(submission.id)}
-                  aria-label={`Open ${rowName(submission) || "application"}`}
-                  className={`flex w-full flex-col gap-2.5 rounded-[16px] border-[1.5px] px-3.5 py-3 text-left transition-colors ${
+                {/* Stretched-button card: the overlay button opens the record, the
+                    login-status tooltip (its own button) stays clickable above it. */}
+                <div
+                  className={`relative flex w-full flex-col gap-2.5 rounded-[16px] border-[1.5px] px-3.5 py-3 text-left transition-colors ${
                     flashed
                       ? "border-[var(--sf-forest)]/40 bg-[var(--sf-mint)]"
                       : selected
@@ -423,7 +422,14 @@ function SubmissionsTable({ model, theme }: { model: ApplicationSubmissionsModel
                         : "border-[var(--sf-ink)]/10 bg-white"
                   }`}
                 >
-                  <span className="flex w-full items-start justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => toggle(submission.id)}
+                    aria-label={`Open ${rowName(submission) || "application"}`}
+                    aria-expanded={selected}
+                    className="absolute inset-0 rounded-[16px] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/35"
+                  />
+                  <div className="pointer-events-none flex w-full items-start justify-between gap-2">
                     <GardenContactCell
                       submission={submission}
                       loginStatusByGuardianId={model.loginStatusByGuardianId}
@@ -433,16 +439,18 @@ function SubmissionsTable({ model, theme }: { model: ApplicationSubmissionsModel
                     <GChip tone={applicationStatusChipTone(submission.status)}>
                       {adminApplicationStatusLabel(submission.status)}
                     </GChip>
-                  </span>
-                  <span className="flex w-full items-end justify-between gap-2">
+                  </div>
+                  <div className="pointer-events-none flex w-full items-end justify-between gap-2">
                     <span className="min-w-0 text-[13px] font-semibold text-[var(--sf-soft)]">
                       {submission.studentLabel ?? "—"}
                       {model.showFormColumn ? ` · ${submission.formTitle}` : ""}
                     </span>
                     <ChevronRight className="h-4 w-4 shrink-0 text-[var(--sf-ink)]/40" aria-hidden />
-                  </span>
-                  <GardenNextStepCell submission={submission} />
-                </button>
+                  </div>
+                  <div className="pointer-events-none">
+                    <GardenNextStepCell submission={submission} />
+                  </div>
+                </div>
               </li>
             );
           })}

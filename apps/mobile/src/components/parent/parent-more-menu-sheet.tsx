@@ -276,7 +276,6 @@ export function ParentMoreMenuSheet({
     <GardenMoreSheet
       visible={visible}
       onClose={onClose}
-      kicker={activePortalFeatures?.coopMode ? 'Co-op program portal' : 'Family portal'}
       subtitle="Children and account settings">
       {useSectionTabs ? (
         <GardenMoreSectionTabs

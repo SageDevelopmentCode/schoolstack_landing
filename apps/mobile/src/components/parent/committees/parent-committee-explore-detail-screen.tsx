@@ -164,7 +164,6 @@ function CommitteeExploreDetailScreen({
       backLabel="Explore"
       backAccessibilityLabel="Back to explore"
       onBack={() => router.back()}
-      kicker="Volunteer & committees"
       title={committee?.name ?? 'Committee'}
     />
   );
@@ -194,7 +193,6 @@ function CommitteeExploreDetailScreen({
           backLabel="Explore"
           backAccessibilityLabel="Back to explore"
           onBack={() => router.back()}
-          kicker="Volunteer & committees"
           title={committee.name}>
           <View style={styles.chips}>
             <GChip label={committee.termLabel} tone="info" />
@@ -206,7 +204,7 @@ function CommitteeExploreDetailScreen({
         {committee.description ? <Text style={gText.body}>{committee.description}</Text> : null}
 
         {committee.isMember ? (
-          <GCard kicker="You're a member" title="Your workspace is ready" index={1}>
+          <GCard title="Your workspace is ready" index={1}>
             <GToyButton
               label="Open workspace"
               size="md"
@@ -214,13 +212,13 @@ function CommitteeExploreDetailScreen({
             />
           </GCard>
         ) : (
-          <GCard kicker="How joining works" index={1}>
+          <GCard title="How joining works" index={1}>
             <GStepList steps={buildJoinSteps(committee)} accessibilityLabel="How joining works" />
           </GCard>
         )}
 
         {committee.dutyRoles.length > 0 && !showForm ? (
-          <GCard kicker="Duty roles" title={`${committee.dutyRoles.length} ways to help`} tone="paper" index={2}>
+          <GCard title={`${committee.dutyRoles.length} ways to help`} tone="paper" index={2}>
             <View style={styles.roles}>
               {committee.dutyRoles.map((role) => (
                 <View key={role.id} style={styles.role}>
@@ -233,7 +231,7 @@ function CommitteeExploreDetailScreen({
         ) : null}
 
         {showForm ? (
-          <GCard kicker="Request to join" title="Tell the school you'd like to help" index={2}>
+          <GCard title="Tell the school you'd like to help" index={2}>
             <View style={styles.form}>
               <Text style={gText.meta}>
                 Your request will be reviewed by the school. You will get read-only access to the
@@ -290,7 +288,7 @@ function CommitteeExploreDetailScreen({
         ) : null}
 
         {showWithdraw ? (
-          <GCard kicker="Request pending" index={3}>
+          <GCard title="Request pending" index={3}>
             <View style={styles.form}>
               <Text style={gText.body}>Your request is waiting for school review.</Text>
               {error ? <GInlineBanner tone="error" title="That didn't go through" description={error} /> : null}

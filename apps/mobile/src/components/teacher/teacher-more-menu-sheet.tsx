@@ -163,7 +163,6 @@ export function TeacherMoreMenuSheet({
     <GardenMoreSheet
       visible={visible}
       onClose={onClose}
-      kicker="Staff portal"
       subtitle="Classroom tools and account">
       {useSectionTabs ? (
         <GardenMoreSectionTabs

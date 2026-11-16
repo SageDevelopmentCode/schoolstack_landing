@@ -2,7 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DetailButton } from "@/components/school-admin/admissions/detail-garden";
-import { CalendarPlus } from "lucide-react";
+import { CalendarPlus, Loader2 } from "lucide-react";
+import { useAdminGardenSkin } from "@/components/school-admin/garden/skin";
+import { GardenNotice } from "@/components/school-admin/garden/kit";
+import { gBtnOutlineSm, gBtnPopSm } from "@/components/school-parent/garden/ui";
+import {
+  GARDEN_AVAILABILITY_PANEL,
+  GardenAvailabilityEmpty,
+  GardenAvailabilityFooter,
+  GardenAvailabilityHeader,
+} from "@/components/school-admin/schedule/garden/availability-garden";
 import { SchoolAdminCalendarSkeleton } from "@/components/school-admin/skeletons";
 import ScheduleCalendarShell from "@/components/school-admin/schedule/ScheduleCalendarShell";
 import ScheduleAvailabilityLegend from "@/components/school-admin/schedule/ScheduleAvailabilityLegend";
@@ -30,6 +39,7 @@ import {
   createObservationSlot,
   deleteObservationSlot,
   listObservationSlotsForDateRange,
+  formatObservationSlotLabel,
   listOccupiedObservationSlotIds,
   type ObservationSlot,
 } from "@/lib/admissions/admissions-observation-slots";
@@ -85,11 +95,15 @@ export default function AdmissionsObservationDayAvailabilityEditor({
   onLoadingChange,
 }: AdmissionsObservationDayAvailabilityEditorProps) {
   const supabase = useMemo(() => createClient(), []);
+  const skin = useAdminGardenSkin();
   const [schedulingMode, setSchedulingMode] = useState<ShadowDaySchedulingMode>("whole_day");
   const [modeLoading, setModeLoading] = useState(true);
   const [openDays, setOpenDays] = useState<Set<string>>(new Set());
   const [bookedDays, setBookedDays] = useState<Set<string>>(new Set());
   const [monthSlots, setMonthSlots] = useState<ObservationSlot[]>([]);
+  const [removingSlotId, setRemovingSlotId] = useState<string | null>(null);
+  /** Direction of the in-flight day toggle, so the button label doesn't flip mid-save. */
+  const [togglingTo, setTogglingTo] = useState<"open" | "close" | null>(null);
   const [occupiedSlotIds, setOccupiedSlotIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -281,6 +295,7 @@ export default function AdmissionsObservationDayAvailabilityEditor({
     }
 
     setTogglingDate(selectedDate);
+    setTogglingTo(isOpen ? "close" : "open");
     setError(null);
 
     try {
@@ -300,7 +315,20 @@ export default function AdmissionsObservationDayAvailabilityEditor({
         viewMonth,
       );
       onMonthDayCountChangeRef.current?.(count);
-      adminToast.success(isOpen ? "Observation day closed" : "Observation day opened");
+      if (skin) {
+        adminToast.dismiss("observation-day-error");
+        adminToast.success(
+          isOpen ? `${formatDateOnlyLabel(selectedDate)} closed.` : `${formatDateOnlyLabel(selectedDate)} is open for shadow visits.`,
+          {
+            id: "observation-day",
+            description: `${isOpen ? "Families can't pick this day anymore" : "Families can pick it when they book"}. ${count} open ${
+              count === 1 ? "day" : "days"
+            } this month.`,
+          },
+        );
+      } else {
+        adminToast.success(isOpen ? "Observation day closed" : "Observation day opened");
+      }
     } catch (err) {
       const message = formatActionError(err, "Failed to update day.");
       void reportPortalOperationalError("school_admin", {
@@ -309,9 +337,18 @@ export default function AdmissionsObservationDayAvailabilityEditor({
         error: "",
       }, err);
       setError(message);
-      adminToast.error(message);
+      if (skin) {
+        adminToast.error(isOpen ? "Couldn't close this day." : "Couldn't open this day.", {
+          id: "observation-day-error",
+          description: `${message} It's still ${isOpen ? "open" : "closed"}.`,
+          action: { label: "Retry", onClick: () => void actionsRef.current.toggleDay() },
+        });
+      } else {
+        adminToast.error(message);
+      }
     } finally {
       setTogglingDate(null);
+      setTogglingTo(null);
     }
   }
 
@@ -331,7 +368,15 @@ export default function AdmissionsObservationDayAvailabilityEditor({
       });
       setSlotDraft(createDefaultObservationSlotDraft(includeTime));
       await loadMonthDays();
-      adminToast.success("Shadow slot added");
+      if (skin) {
+        adminToast.dismiss("observation-slot-add-error");
+        adminToast.success("Shadow slot added.", {
+          id: "observation-slot-add",
+          description: `${formatDateOnlyLabel(selectedDate)} · families in those grades can book it now.`,
+        });
+      } else {
+        adminToast.success("Shadow slot added");
+      }
     } catch (err) {
       const message = formatActionError(err, "Failed to add slot.");
       void reportPortalOperationalError("school_admin", {
@@ -340,22 +385,65 @@ export default function AdmissionsObservationDayAvailabilityEditor({
         error: "",
       }, err);
       setError(message);
-      adminToast.error(message);
+      if (skin) {
+        adminToast.error("Couldn't add the shadow slot.", {
+          id: "observation-slot-add-error",
+          description: `${message} Your choices are still in the form.`,
+          action: { label: "Retry", onClick: () => void actionsRef.current.addSlot() },
+        });
+      } else {
+        adminToast.error(message);
+      }
     } finally {
       setSlotSaving(false);
     }
   }
 
+  async function restoreSlot(slot: ObservationSlot) {
+    try {
+      await createObservationSlot(supabase, organizationId, {
+        date: slot.date,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        label: slot.label,
+        gradeValues: slot.gradeValues,
+      });
+      await loadMonthDays();
+      adminToast.dismiss("observation-slot-remove");
+      adminToast.success("Shadow slot restored.", {
+        id: "observation-slot-restore",
+        description: `${formatObservationSlotLabel(slot)} is open for booking again.`,
+      });
+    } catch (err) {
+      adminToast.error("Couldn't restore the shadow slot.", {
+        id: "observation-slot-restore-error",
+        description: `${formatActionError(err, "Failed to add slot.")} Add it again from the form.`,
+      });
+    }
+  }
+
   async function handleDeleteSlot(slotId: string) {
     if (readOnly || slotSaving) return;
+    const removed = monthSlots.find((slot) => slot.id === slotId) ?? null;
 
     setSlotSaving(true);
+    setRemovingSlotId(slotId);
     setError(null);
 
     try {
       await deleteObservationSlot(supabase, organizationId, slotId);
       await loadMonthDays();
-      adminToast.success("Shadow slot removed");
+      if (skin) {
+        adminToast.dismiss("observation-slot-remove-error");
+        adminToast.success("Shadow slot removed.", {
+          id: "observation-slot-remove",
+          description: removed ? `${formatObservationSlotLabel(removed)} · families can't book it anymore.` : undefined,
+          action: removed ? { label: "Undo", onClick: () => void restoreSlot(removed) } : undefined,
+          duration: 8000,
+        });
+      } else {
+        adminToast.success("Shadow slot removed");
+      }
     } catch (err) {
       const message = formatActionError(err, "Failed to remove slot.");
       void reportPortalOperationalError("school_admin", {
@@ -364,11 +452,29 @@ export default function AdmissionsObservationDayAvailabilityEditor({
         error: "",
       }, err);
       setError(message);
-      adminToast.error(message);
+      if (skin) {
+        adminToast.error("Couldn't remove the shadow slot.", {
+          id: "observation-slot-remove-error",
+          description: `${message} It's still open for booking.`,
+          action: { label: "Retry", onClick: () => void actionsRef.current.deleteSlot(slotId) },
+        });
+      } else {
+        adminToast.error(message);
+      }
     } finally {
       setSlotSaving(false);
+      setRemovingSlotId(null);
     }
   }
+
+  const actionsRef = useRef({
+    toggleDay: handleToggleDay,
+    addSlot: handleAddSlot,
+    deleteSlot: handleDeleteSlot,
+  });
+  useEffect(() => {
+    actionsRef.current = { toggleDay: handleToggleDay, addSlot: handleAddSlot, deleteSlot: handleDeleteSlot };
+  });
 
   const displayError = error ?? timezoneError;
 
@@ -390,14 +496,20 @@ export default function AdmissionsObservationDayAvailabilityEditor({
   return (
     <div className="space-y-4">
       {displayError ? (
-        <p
-          className="rounded-sm px-3 py-2 text-xs"
-          style={{ backgroundColor: C.errorBg, color: C.error }}
-          role="alert"
-          aria-live="polite"
-        >
-          {displayError}
-        </p>
+        skin ? (
+          <GardenNotice tone="alert" role="alert">
+            {displayError}
+          </GardenNotice>
+        ) : (
+          <p
+            className="rounded-sm px-3 py-2 text-xs"
+            style={{ backgroundColor: C.errorBg, color: C.error }}
+            role="alert"
+            aria-live="polite"
+          >
+            {displayError}
+          </p>
+        )
       ) : null}
 
       {!readOnly ? (
@@ -444,15 +556,28 @@ export default function AdmissionsObservationDayAvailabilityEditor({
 
         <div
           className={
-            storySurface
-              ? "flex min-h-[280px] flex-col overflow-hidden rounded-[16px] border bg-white"
-              : "flex min-h-[280px] flex-col rounded-sm border"
+            skin
+              ? GARDEN_AVAILABILITY_PANEL
+              : storySurface
+                ? "flex min-h-[280px] flex-col overflow-hidden rounded-[16px] border bg-white"
+                : "flex min-h-[280px] flex-col rounded-sm border"
           }
-          style={{
-            borderColor: storySurface ? "#E0E7E0" : C.border,
-            backgroundColor: storySurface ? "#FFFFFF" : C.surface,
-          }}
+          style={
+            skin
+              ? undefined
+              : {
+                  borderColor: storySurface ? "#E0E7E0" : C.border,
+                  backgroundColor: storySurface ? "#FFFFFF" : C.surface,
+                }
+          }
         >
+          {skin ? (
+            <GardenAvailabilityHeader
+              kicker="Shadow / observation days"
+              title={selectedDate ? formatDateOnlyLabel(selectedDate) : "Pick a day"}
+              meta={selectedDate ? timezoneLabel : "Select a date to manage availability"}
+            />
+          ) : (
           <div className="border-b px-4 py-3" style={{ borderColor: C.border }}>
             <p
               className="text-[10px] font-semibold uppercase tracking-wider"
@@ -475,16 +600,65 @@ export default function AdmissionsObservationDayAvailabilityEditor({
               </p>
             )}
           </div>
+          )}
 
           <div className="flex-1 overflow-y-auto p-4">
             {!selectedDate ? (
+              skin ? (
+                <GardenAvailabilityEmpty>Select a future day on the calendar</GardenAvailabilityEmpty>
+              ) : (
               <p className="py-6 text-center text-xs" style={{ color: C.textTertiary }}>
                 Select a future day on the calendar
               </p>
+              )
             ) : selectedDate < today ? (
+              skin ? (
+                <GardenAvailabilityEmpty>Past dates can&apos;t be edited</GardenAvailabilityEmpty>
+              ) : (
               <p className="py-6 text-center text-xs" style={{ color: C.textTertiary }}>
                 Past dates can&apos;t be edited
               </p>
+              )
+            ) : schedulingMode === "whole_day" && skin ? (
+              bookedDays.has(selectedDate) ? (
+                <GardenNotice tone="warning" title="A family has booked this day.">
+                  It can&apos;t be closed until the visit is cancelled.
+                </GardenNotice>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <div
+                    className={`rounded-[16px] border-[1.5px] p-3.5 text-[13.5px] font-semibold leading-snug ${
+                      openDays.has(selectedDate)
+                        ? "border-[var(--sf-clay)]/40 bg-[var(--sf-accent-wash)] text-[var(--sf-ink)]"
+                        : "border-[var(--sf-ink)]/10 bg-[var(--sf-paper)] text-[var(--sf-soft)]"
+                    }`}
+                    role="status"
+                  >
+                    {openDays.has(selectedDate)
+                      ? "This day is open. Families can book shadow visits that include it."
+                      : "This day is closed. Open it to let families book shadow visits."}
+                  </div>
+                  {!readOnly ? (
+                    <button
+                      type="button"
+                      disabled={togglingDate === selectedDate}
+                      aria-busy={togglingDate === selectedDate || undefined}
+                      onClick={() => void handleToggleDay()}
+                      className={`${openDays.has(selectedDate) ? gBtnOutlineSm : gBtnPopSm} w-full`}
+                      data-testid="observation-day-toggle"
+                    >
+                      {togglingDate === selectedDate ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+                      {togglingDate === selectedDate
+                        ? togglingTo === "close"
+                          ? "Closing…"
+                          : "Opening…"
+                        : openDays.has(selectedDate)
+                          ? "Close this day"
+                          : "Open this day"}
+                    </button>
+                  ) : null}
+                </div>
+              )
             ) : schedulingMode === "whole_day" ? (
               bookedDays.has(selectedDate) ? (
                 <p className="text-xs leading-relaxed" style={{ color: C.warning }}>
@@ -525,10 +699,15 @@ export default function AdmissionsObservationDayAvailabilityEditor({
                         slot={slot}
                         booked={occupiedSlotIds.has(slot.id)}
                         readOnly={readOnly}
+                        removing={removingSlotId === slot.id}
                         onDelete={() => void handleDeleteSlot(slot.id)}
                       />
                     ))}
                   </div>
+                ) : skin ? (
+                  <p className="m-0 text-[13px] font-semibold leading-snug text-[var(--sf-soft)]">
+                    {emptyDayPromptForMode(schedulingMode)}
+                  </p>
                 ) : (
                   <p className="text-xs leading-relaxed" style={{ color: C.textTertiary }}>
                     {emptyDayPromptForMode(schedulingMode)}
@@ -550,12 +729,16 @@ export default function AdmissionsObservationDayAvailabilityEditor({
           </div>
 
           {!readOnly ? (
+            skin ? (
+              <GardenAvailabilityFooter>{footerTextForMode(schedulingMode)}</GardenAvailabilityFooter>
+            ) : (
             <div
               className="border-t px-4 py-2 text-[11px]"
               style={{ borderColor: C.border, color: C.textTertiary }}
             >
               {footerTextForMode(schedulingMode)}
             </div>
+            )
           ) : null}
         </div>
       </div>

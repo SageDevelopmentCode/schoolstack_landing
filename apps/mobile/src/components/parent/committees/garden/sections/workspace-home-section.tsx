@@ -126,7 +126,8 @@ export function WorkspaceHomeSection({
 
   return (
     <View style={styles.container}>
-      <GCard tone="dark" kicker={committee.termLabel} title={`Welcome to ${committee.name}`} index={0}>
+      <GCard tone="dark" title={`Welcome to ${committee.name}`} index={0}>
+        {committee.termLabel ? <Text style={styles.darkMeta}>{committee.termLabel}</Text> : null}
         {committee.description ? <Text style={styles.darkCopy}>{committee.description}</Text> : null}
         {leaders.length > 0 ? (
           <Text style={styles.darkMeta}>Led by {leaders.map((leader) => leader.name).join(', ')}</Text>
@@ -173,7 +174,6 @@ export function WorkspaceHomeSection({
       </View>
 
       <GCard
-        kicker="Calendar"
         title="Upcoming dates"
         index={2}
         action={<GLink label="View all" onPress={() => onNavigate('calendar')} />}>
@@ -205,7 +205,6 @@ export function WorkspaceHomeSection({
       </GCard>
 
       <GCard
-        kicker="Tasks"
         title="Action items"
         index={3}
         action={<GLink label="View tasks" onPress={() => onNavigate('tasks')} />}>
@@ -237,7 +236,7 @@ export function WorkspaceHomeSection({
         )}
       </GCard>
 
-      <GCard kicker="Activity" title="Recent activity" tone="paper" index={4}>
+      <GCard title="Recent activity" tone="paper" index={4}>
         {loadingActivity ? (
           <View style={styles.activity}>
             {[0, 1, 2].map((i) => (

@@ -1,0 +1,19 @@
+appId: com.mudkitchen.schoolstack.mobile
+---
+- runFlow: ../parent-logged-in.yaml
+- tapOn: 'More'
+- tapOn: 'Newsletters'
+- extendedWaitUntil:
+    visible:
+      id: parent-newsletters-screen
+    timeout: 30000
+- takeScreenshot: visual-capture
+- tapOn:
+    text: '.*Open newsletter'
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: parent-newsletter-detail-screen
+    timeout: 30000
+    optional: true
+- takeScreenshot: visual-capture-detail

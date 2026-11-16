@@ -14,7 +14,7 @@ export default function SchoolAdminAttendanceRoute() {
 
   return (
     <AttendanceProvider organizationId={selectedSchool.id} portal="school_admin">
-      <AttendanceScreen title="Attendance" />
+      <AttendanceScreen title="Attendance" headerVariant="admin" />
     </AttendanceProvider>
   );
 }

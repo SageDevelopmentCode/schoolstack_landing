@@ -4,7 +4,6 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { BillingCtx } from '@/components/parent/billing/billing-ctx';
 import { GSegmented, type GSegmentedItem } from '@/components/parent/garden/segmented';
 import { Garden, GardenFonts, useGardenAccent } from '@/components/parent/garden/tokens';
-import { GKicker } from '@/components/parent/garden/ui';
 import {
   childFirstNameFromFullName,
   PARENT_BILLING_AGREEMENTS_TAB,
@@ -91,7 +90,6 @@ export function BillingHeader({ ctx }: { ctx: BillingCtx }) {
 
   return (
     <View style={styles.header} testID="parent-billing-story-header">
-      <GKicker>Tuition & payments</GKicker>
       <Text accessibilityRole="header" style={styles.title} numberOfLines={2}>
         {title}
       </Text>

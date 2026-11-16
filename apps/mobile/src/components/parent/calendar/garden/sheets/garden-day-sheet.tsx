@@ -38,13 +38,11 @@ export function GardenDaySheet({
 
   if (!shownDate) return null;
 
-  const kicker = shownDate === today ? 'Today' : 'Selected day';
   return (
     <GSheet
       visible={visible}
       onClose={onClose}
-      kicker={kicker}
-      title={formatDayHeading(shownDate)}
+      title={shownDate === today ? `Today · ${formatDayHeading(shownDate)}` : formatDayHeading(shownDate)}
       subtitle={shownEvents.length > 0 ? `${pluralEvents(shownEvents.length)} · tap one for details` : undefined}>
       <DayEventList
         events={shownEvents}

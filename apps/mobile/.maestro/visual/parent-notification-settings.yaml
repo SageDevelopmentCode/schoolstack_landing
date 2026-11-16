@@ -1,0 +1,16 @@
+appId: com.mudkitchen.schoolstack.mobile
+---
+- runFlow: ../parent-logged-in.yaml
+- tapOn: 'More'
+- tapOn: 'Notification settings'
+- extendedWaitUntil:
+    visible:
+      id: parent-notification-settings-screen
+    timeout: 30000
+- takeScreenshot: visual-capture
+- scrollUntilVisible:
+    element:
+      text: 'Notification emails'
+    direction: DOWN
+    optional: true
+- takeScreenshot: visual-capture-editor

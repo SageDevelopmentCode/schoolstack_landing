@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { ClassroomsListScreen } from '@/components/school-admin/classrooms/classrooms-list-screen';
+import { ClassroomsListScreen } from '@/components/school-admin/classrooms/garden/classrooms-list-screen';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function SchoolAdminClassroomsListPage() {
@@ -11,5 +11,5 @@ export default function SchoolAdminClassroomsListPage() {
     return null;
   }
 
-  return <ClassroomsListScreen slug={selectedSchool.slug} />;
+  return <ClassroomsListScreen slug={selectedSchool.slug} organizationId={selectedSchool.id} />;
 }

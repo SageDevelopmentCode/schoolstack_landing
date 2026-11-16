@@ -8,6 +8,8 @@ import CommitteeWorkspaceSectionFrame from "@/components/school-admin/committees
 import type { CommitteeActivityItem } from "@/lib/committees/activity-feed";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
+import { formatActionError } from "@/lib/school-admin/admin-toast";
+import { GardenLoadError } from "@/components/school-admin/dashboard/garden/shared";
 
 export default function CommitteeActivitySection({
   organizationId,
@@ -22,12 +24,15 @@ export default function CommitteeActivitySection({
 }) {
   const [items, setItems] = useState<CommitteeActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [nonce, setNonce] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
 
-    (async () => {
+    queueMicrotask(() => void (async () => {
       setLoading(true);
+      setError(null);
       try {
         const params = new URLSearchParams({
           organizationId,
@@ -51,22 +56,31 @@ export default function CommitteeActivitySection({
           },
           err,
         );
-        if (!cancelled) setItems([]);
+        if (!cancelled) {
+          setItems([]);
+          setError(formatActionError(err, "Failed to load activity."));
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
-    })();
+    })());
 
     return () => {
       cancelled = true;
     };
-  }, [organizationId, committeeId, slug]);
+  }, [organizationId, committeeId, slug, nonce]);
 
   return (
     <CommitteeWorkspaceSectionFrame width="wide">
       <AdminCard theme={theme} padding="default">
         {loading ? (
           <CommitteeActivityFeedSkeleton theme={theme} rowCount={8} />
+        ) : error ? (
+          <GardenLoadError
+            title="Couldn't load activity."
+            description={error}
+            onRetry={() => setNonce((n) => n + 1)}
+          />
         ) : (
           <CommitteeActivityFeed
             theme={theme}

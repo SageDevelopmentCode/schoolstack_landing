@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { EnrollmentChecklistTemplate } from "@/lib/admissions/enrollment-checklist-templates";
 import {
   createBlankChecklistItem,
@@ -42,6 +42,10 @@ type EnrollmentChecklistBuilderProps = {
   onItemsChange: (items: EnrollmentChecklistItem[]) => void;
   onPreviewItem: (itemId?: string) => void;
   readOnly?: boolean;
+  /** Select an item from outside (publish checklist rows). Bump `nonce` to re-trigger. */
+  requestFocusItem?: { itemId: string; nonce: number } | null;
+  /** Right-hand rail (Garden publish checklist). */
+  aside?: ReactNode;
 };
 
 function resolveFocusAfterDelete(
@@ -89,12 +93,21 @@ export default function EnrollmentChecklistBuilder({
   onItemsChange,
   onPreviewItem,
   readOnly = false,
+  requestFocusItem = null,
+  aside,
 }: EnrollmentChecklistBuilderProps) {
   const theme = themeProp ?? buildParentThemeTokens(branding);
   const C = themeProp ? parentThemeToAdminCompat(theme) : buildAdminThemeTokens(branding);
   const [focus, setFocus] = useState<ChecklistBuilderFocus | null>(() =>
     initialChecklistFocus(items),
   );
+  const [handledFocusNonce, setHandledFocusNonce] = useState(requestFocusItem?.nonce ?? 0);
+  if (requestFocusItem && requestFocusItem.nonce !== handledFocusNonce) {
+    setHandledFocusNonce(requestFocusItem.nonce);
+    if (items.some((item) => item.id === requestFocusItem.itemId)) {
+      setFocus({ kind: "item", itemId: requestFocusItem.itemId });
+    }
+  }
   const [pickerOpen, setPickerOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const addFromTemplate = (templateId: ChecklistItemTemplateId) => {
@@ -222,7 +235,8 @@ export default function EnrollmentChecklistBuilder({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div className="flex min-h-0 flex-1 overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <EnrollmentChecklistFocusCanvas
         C={C}
         theme={themeProp}
@@ -242,6 +256,8 @@ export default function EnrollmentChecklistBuilder({
         onAddVariant={addVariantSibling}
         onSetDefaultVariant={setDefaultVariantOption}
       />
+      </div>
+      {aside}
 
       <EnrollmentChecklistTemplatePicker
         C={C}

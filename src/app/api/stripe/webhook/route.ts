@@ -5,6 +5,7 @@
  * - checkout.session.completed
  * - checkout.session.async_payment_succeeded
  * - checkout.session.async_payment_failed
+ * - checkout.session.expired
  * - payment_intent.requires_action
  * - payment_intent.succeeded
  * - payment_intent.payment_failed
@@ -30,6 +31,7 @@ import {
   handleCheckoutSessionAsyncPaymentFailed,
   handleCheckoutSessionAsyncPaymentSucceeded,
   handleCheckoutSessionCompleted,
+  handleCheckoutSessionExpired,
   handlePaymentIntentCanceled,
   handlePaymentIntentPaymentFailed,
   handlePaymentIntentRequiresAction,
@@ -138,6 +140,12 @@ export async function POST(request: Request) {
         break;
       case "checkout.session.async_payment_failed":
         await handleCheckoutSessionAsyncPaymentFailed(
+          admin,
+          event.data.object as Stripe.Checkout.Session,
+        );
+        break;
+      case "checkout.session.expired":
+        await handleCheckoutSessionExpired(
           admin,
           event.data.object as Stripe.Checkout.Session,
         );

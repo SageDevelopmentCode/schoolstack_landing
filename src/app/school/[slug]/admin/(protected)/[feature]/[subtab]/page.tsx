@@ -49,11 +49,11 @@ const PaymentsSetupPage = nextDynamic(
 );
 const FinancesRevenuePage = nextDynamic(
   () => import("@/components/school-admin/finances/FinancesRevenuePage"),
-  { loading: () => <AdminPageSkeleton label="Loading revenue" /> },
+  { loading: () => <AdminGardenRouteSkeleton label="Loading revenue" layout="table" /> },
 );
 const FinancesTransactionsPage = nextDynamic(
   () => import("@/components/school-admin/finances/FinancesTransactionsPage"),
-  { loading: () => <AdminPageSkeleton label="Loading transactions" /> },
+  { loading: () => <AdminGardenRouteSkeleton label="Loading transactions" layout="table" /> },
 );
 import TuitionPageShell from "@/components/school-admin/tuition/TuitionPageShell";
 import TuitionDashboardLoader from "@/components/school-admin/tuition/TuitionDashboardLoader";
@@ -245,21 +245,29 @@ export default async function SchoolAdminSubtabPage({
 
   if (feature === "finances" && subtab === "revenue") {
     return (
-      <FinancesRevenuePage
-        organizationId={org.id}
-        slug={slug}
-        branding={org.branding}
-      />
+      <Suspense fallback={<AdminGardenRouteSkeleton label="Loading revenue" layout="table" />}>
+        <FinancesRevenuePage
+          organizationId={org.id}
+          slug={slug}
+          branding={org.branding}
+          schoolName={org.name}
+          transactionsEnabled={isAdminNavPathEnabled(org.features, "finances", "transactions")}
+        />
+      </Suspense>
     );
   }
 
   if (feature === "finances" && subtab === "transactions") {
     return (
-      <FinancesTransactionsPage
-        organizationId={org.id}
-        slug={slug}
-        branding={org.branding}
-      />
+      <Suspense fallback={<AdminGardenRouteSkeleton label="Loading transactions" layout="table" />}>
+        <FinancesTransactionsPage
+          organizationId={org.id}
+          slug={slug}
+          branding={org.branding}
+          schoolName={org.name}
+          revenueEnabled={isAdminNavPathEnabled(org.features, "finances", "revenue")}
+        />
+      </Suspense>
     );
   }
 

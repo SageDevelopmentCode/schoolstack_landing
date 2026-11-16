@@ -1,7 +1,7 @@
 "use client";
 
-import { Check, Info } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, Copy, Eye, Loader2, Send } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { weekLabel } from "@/lib/school-admin/newsletter/newsletter-dates";
 import { MAX_NEWSLETTER_EVENTS } from "@/lib/school-admin/newsletter/newsletter-limits";
 import { editionHasContent } from "@/lib/school-admin/newsletter/newsletter-render";
@@ -14,7 +14,9 @@ import {
 } from "@/lib/school-admin/newsletter/newsletter-types";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import { SettingToggleRow } from "@/components/school-admin/notifications/NotificationChannelCard";
+import { GardenSteps, GardenSwitch } from "@/components/school-admin/garden/kit";
+import { gBtnOutlineSm, gBtnPopSm, gLinkSm } from "@/components/school-parent/garden/ui";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import NewsletterSectionsSheet from "./NewsletterSectionsSheet";
 import styles from "./newsletter-workspace.module.css";
 
@@ -43,8 +45,11 @@ type NewsletterModalsProps = {
   onShowPreview: () => void;
   onExportHtml: () => void;
   onExportText: () => void;
-  onCopyText: () => void;
+  /** Resolves true when the text reached the clipboard. */
+  onCopyText: () => Promise<boolean>;
   onPublish: (notifyFamilies: boolean) => Promise<void>;
+  /** Close the dialog and put the cursor in an editor field (publish checklist "Fix"). */
+  onFocusField?: (field: "title" | "week" | "content") => void;
 };
 
 export default function NewsletterModals(props: NewsletterModalsProps) {
@@ -245,122 +250,181 @@ function EventBody({
   );
 }
 
+const PUBLISH_ERROR_ID = "newsletter-publish-error";
+
 function PublishBody({
   activeEdition,
   onClose,
   onShowPreview,
-  onToast,
   onPublish,
+  onFocusField,
 }: NewsletterModalsProps) {
-  const { theme, C } = useSchoolAdminStoryTheme();
-  const checks = useMemo(
-    () => [
-      {
-        ok: Boolean(activeEdition.title.trim()),
-        label: activeEdition.title.trim() ? "Title ready" : "Add a title",
-      },
-      {
-        ok: Boolean(activeEdition.week),
-        label: activeEdition.week ? weekLabel(activeEdition) : "Choose a week",
-      },
-      {
-        ok: editionHasContent(activeEdition),
-        label: editionHasContent(activeEdition)
-          ? "Content ready"
-          : "Add a story, note, date, reminder, or photo",
-      },
-    ],
-    [activeEdition],
-  );
-  const ready = checks.every((c) => c.ok);
+  const hasTitle = Boolean(activeEdition.title.trim());
+  const hasWeek = Boolean(activeEdition.week);
+  const hasContent = editionHasContent(activeEdition);
+  const ready = hasTitle && hasWeek && hasContent;
   const [notifyFamilies, setNotifyFamilies] = useState(true);
   const [publishing, setPublishing] = useState(false);
 
+  const fix = (field: "title" | "week" | "content") =>
+    onFocusField ? (
+      <button type="button" className={`${gLinkSm} !text-[12.5px]`} onClick={() => onFocusField(field)}>
+        Fix
+      </button>
+    ) : undefined;
+
+  const steps = [
+    {
+      id: "title",
+      title: hasTitle ? "Title ready" : "Add a title",
+      description: hasTitle ? activeEdition.title.trim() : "Families see it at the top of the newsletter.",
+      status: hasTitle ? ("done" as const) : ("blocked" as const),
+      aside: hasTitle ? undefined : fix("title"),
+    },
+    {
+      id: "week",
+      title: hasWeek ? weekLabel(activeEdition) : "Choose a week",
+      description: hasWeek ? undefined : "Pick the week this edition covers.",
+      status: hasWeek ? ("done" as const) : ("blocked" as const),
+      aside: hasWeek ? undefined : fix("week"),
+    },
+    {
+      id: "content",
+      title: hasContent ? "Content ready" : "Add a story, note, date, reminder, or photo",
+      status: hasContent ? ("done" as const) : ("blocked" as const),
+      aside: hasContent ? undefined : fix("content"),
+    },
+  ];
+
+  const publish = () => {
+    setPublishing(true);
+    void onPublish(notifyFamilies)
+      .then(() => {
+        onClose();
+        onShowPreview();
+        adminToast.dismiss(PUBLISH_ERROR_ID);
+        adminToast.success("Published.", {
+          id: "newsletter-publish",
+          description: notifyFamilies
+            ? "Families can read it in the parent portal and were notified by email and push."
+            : "Families can read it in the parent portal. No notification was sent.",
+        });
+      })
+      .catch((err: unknown) => {
+        adminToast.error("Couldn't publish.", {
+          id: PUBLISH_ERROR_ID,
+          description: `${formatActionError(err, "Could not publish this newsletter.")} It's still a draft — families can't see it yet.`,
+          action: { label: "Retry", onClick: publish },
+        });
+      })
+      .finally(() => {
+        setPublishing(false);
+      });
+  };
+
   return (
     <>
-      {checks.map((check) => (
-        <div
-          key={check.label}
-          className={`${styles.reviewRow} ${check.ok ? "" : styles.reviewRowWarn}`}
-        >
-          {check.ok ? (
-            <Check size={13} strokeWidth={1.65} aria-hidden />
-          ) : (
-            <Info size={13} strokeWidth={1.65} aria-hidden />
-          )}
-          <span>{check.label}</span>
-        </div>
-      ))}
-      <div className="mt-[18px]">
-        <SettingToggleRow
-          C={C}
+      <GardenSteps
+        steps={steps}
+        progressLabel="Ready to publish"
+        compactDone={false}
+        data-testid="newsletter-publish-checklist"
+      />
+      <div className="mt-[18px] rounded-[16px] border-[1.5px] border-[var(--sf-ink)]/10 bg-white p-3.5">
+        <GardenSwitch
+          checked={notifyFamilies}
+          onChange={setNotifyFamilies}
+          disabled={publishing}
           label="Notify families by email and mobile push"
           description="Families can read this newsletter in the parent portal either way."
-          checked={notifyFamilies}
-          disabled={publishing}
-          onChange={setNotifyFamilies}
         />
       </div>
+      {!ready ? (
+        <p className="m-0 mt-3 text-[13px] font-semibold text-[var(--sf-soft)]" role="status">
+          Finish the steps above to publish.
+        </p>
+      ) : null}
       <div className={styles.modalActions}>
-        <AdminButton
-          theme={theme}
-          variant="outline"
+        <button
+          type="button"
+          className={gBtnOutlineSm}
+          disabled={publishing}
           onClick={() => {
             onClose();
             onShowPreview();
           }}
         >
+          <Eye className="h-4 w-4" aria-hidden />
           Preview
-        </AdminButton>
-        <AdminButton
-          theme={theme}
-          variant="primary"
+        </button>
+        <button
+          type="button"
+          className={gBtnPopSm}
           disabled={!ready || publishing}
-          onClick={() => {
-            setPublishing(true);
-            void onPublish(notifyFamilies)
-              .then(() => {
-                onClose();
-                onShowPreview();
-                onToast(
-                  notifyFamilies
-                    ? "Published — families can read it in the parent portal and were notified."
-                    : "Published — families can read it in the parent portal.",
-                  "success",
-                );
-              })
-              .catch((err: unknown) => {
-                onToast(
-                  err instanceof Error ? err.message : "Could not publish this newsletter.",
-                  "error",
-                );
-              })
-              .finally(() => {
-                setPublishing(false);
-              });
-          }}
+          aria-busy={publishing || undefined}
+          onClick={publish}
+          data-testid="newsletter-publish-confirm"
         >
-          {publishing ? "Publishing…" : "Publish"}
-        </AdminButton>
+          {publishing ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              Publishing…
+            </>
+          ) : (
+            <>
+              <Send className="h-4 w-4" aria-hidden />
+              Publish
+            </>
+          )}
+        </button>
       </div>
     </>
   );
 }
 
 function ExportBody({ onExportHtml, onExportText, onCopyText }: NewsletterModalsProps) {
-  const { theme } = useSchoolAdminStoryTheme();
+  const [copied, setCopied] = useState(false);
+  const [copying, setCopying] = useState(false);
+
+  useEffect(() => {
+    if (!copied) return undefined;
+    const timer = window.setTimeout(() => setCopied(false), 2000);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
+
   return (
     <>
       <div className={styles.exportOptions}>
-        <AdminButton theme={theme} variant="primary" onClick={onExportHtml}>
+        <button type="button" className={gBtnPopSm} onClick={onExportHtml}>
           Download HTML
-        </AdminButton>
-        <AdminButton theme={theme} variant="outline" onClick={onExportText}>
+        </button>
+        <button type="button" className={gBtnOutlineSm} onClick={onExportText}>
           Download text
-        </AdminButton>
-        <AdminButton theme={theme} variant="outline" onClick={onCopyText}>
-          Copy text
-        </AdminButton>
+        </button>
+        <button
+          type="button"
+          className={gBtnOutlineSm}
+          disabled={copying}
+          aria-live="polite"
+          onClick={() => {
+            setCopying(true);
+            void onCopyText()
+              .then((ok) => setCopied(ok))
+              .finally(() => setCopying(false));
+          }}
+        >
+          {copied ? (
+            <>
+              <Check className="h-4 w-4 text-[var(--sf-forest)]" aria-hidden />
+              Copied
+            </>
+          ) : (
+            <>
+              <Copy className="h-4 w-4" aria-hidden />
+              Copy text
+            </>
+          )}
+        </button>
       </div>
       <p className={styles.helper}>
         HTML exports a standalone page, not an email-delivery template. Nothing is sent.

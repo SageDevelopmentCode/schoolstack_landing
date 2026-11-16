@@ -6,7 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MessageDeleteConfirmSheet } from '@/components/messages/message-delete-confirm-sheet';
 import { GardenNewConversationSheet } from '@/components/parent/messages/garden/garden-new-conversation-sheet';
 import { ParentBottomSheet } from '@/components/parent/parent-bottom-sheet';
-import { AdminMessagesComposeMenuSheet } from '@/components/school-admin/messages/admin-messages-compose-menu-sheet';
+import { AdminComposeMenuSheet } from '@/components/school-admin/messages/garden/admin-compose-menu-sheet';
+import { AdminNewConversationSheet } from '@/components/school-admin/messages/garden/admin-new-conversation-sheet';
 import { NewConversationSheet } from '@/components/school-admin/messages/new-conversation-sheet';
 import { StudentTeacherAssignPicker } from '@/components/school-admin/student-teacher-assign-picker';
 import { StoryBottomSheet } from '@/components/story/story-bottom-sheet';
@@ -29,6 +30,7 @@ export const SHEET_GALLERY_CASES = [
   'new-conversation-admin',
   'new-conversation-parent',
   'new-conversation-parent-garden',
+  'new-conversation-admin-garden',
   'compose-menu',
   'story-form',
   'parent-form',
@@ -124,7 +126,16 @@ export function SheetGalleryScreen({ initialCase }: SheetGalleryScreenProps) {
             onClose={close}
             onSelect={close}
           />
-          <AdminMessagesComposeMenuSheet
+          <AdminNewConversationSheet
+            visible={isOpen('new-conversation-admin-garden')}
+            contacts={FIXTURE_CONTACTS}
+            existingContactKeys={FIXTURE_EXISTING_CONTACT_KEYS}
+            startingContactKey={null}
+            notice={null}
+            onClose={close}
+            onSelect={close}
+          />
+          <AdminComposeMenuSheet
             visible={isOpen('compose-menu')}
             onClose={close}
             onNewConversation={close}

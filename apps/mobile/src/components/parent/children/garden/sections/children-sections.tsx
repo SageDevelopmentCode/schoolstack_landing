@@ -6,7 +6,6 @@ import {
   ChildThumb,
   GCard,
   GChip,
-  GKicker,
   GLink,
   GPressable,
   GRing,
@@ -18,7 +17,6 @@ import {
   childFirstName,
   childLearnerSubtitleLine,
   familyChildrenSubtitle,
-  formatChildrenPageDate,
   type ChildProfileData,
   type ParentChildRecordSection,
 } from '@/lib/parent/parent-children-utils';
@@ -39,7 +37,6 @@ export function ChildrenHeader({
   const firstName = selectedChild ? childFirstName(selectedChild.studentName) : null;
   return (
     <View style={styles.header} testID="parent-children-story-header">
-      <GKicker>My children · {formatChildrenPageDate()}</GKicker>
       <Text accessibilityRole="header" style={styles.title}>
         {firstName ? (
           <>
@@ -139,7 +136,7 @@ export function ChildNextStepsCard({
 
   if (steps.length === 0) {
     return (
-      <GCard kicker="Needs your attention" title="Everything is in good shape" index={1} testID="parent-children-overview">
+      <GCard title="Everything is in good shape" index={1} testID="parent-children-overview">
         <View style={styles.goodShape}>
           <Ionicons name="checkmark-circle" size={20} color={Garden.forest} />
           <Text style={[gText.body, styles.flex]}>
@@ -153,7 +150,6 @@ export function ChildNextStepsCard({
   const [first, ...rest] = steps;
   return (
     <GCard
-      kicker="Needs your attention"
       title="Next steps"
       index={1}
       testID="parent-children-overview"
@@ -241,7 +237,6 @@ export function ChildGuidesCard({
 }) {
   return (
     <GCard
-      kicker="Guides at school"
       title={teachers.length === 0 ? 'Teachers coming soon' : `${firstName}'s team`}
       tone="paper"
       index={2}>

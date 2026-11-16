@@ -9,6 +9,8 @@ import {
   Plus,
   Settings2,
   ShieldCheck,
+  Check,
+  ArrowUpDown,
 } from "lucide-react";
 import type { ApplicationSection } from "@/lib/admissions/application-form-schema";
 import { isSystemSection } from "@/lib/admissions/apply-system-fields";
@@ -38,6 +40,8 @@ type ApplicationFormOutlineProps = {
   onReorderSteps: (sections: ApplicationSection[]) => void;
   onAddStep: () => void;
   onPreview: () => void;
+  /** Steps with publish-checklist problems (amber dot). */
+  issueStepIds?: ReadonlySet<string>;
 };
 
 function StepOutlineRow({
@@ -48,7 +52,9 @@ function StepOutlineRow({
   active,
   lockSystemStep,
   onSelect,
+  hasIssue = false,
 }: {
+  hasIssue?: boolean;
   C: AdminThemeTokens;
   theme?: ParentThemeTokens;
   step: ApplicationSection;
@@ -83,18 +89,27 @@ function StepOutlineRow({
             className="flex items-center gap-1.5 text-xs font-semibold"
             style={{ color: active ? (theme?.primary ?? C.accent) : C.textPrimary }}
           >
-            <span className="truncate">{step.title || `Step ${stepIdx + 1}`}</span>
+            <span className="line-clamp-2 break-words">{step.title || `Step ${stepIdx + 1}`}</span>
             {isLocked ? (
               <span
-                className="inline-flex shrink-0 items-center gap-0.5 rounded px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
+                className="inline-flex shrink-0 items-center"
                 style={{ color: C.textTertiary }}
+                title="System step: required for every apply form"
+                aria-label="System step"
               >
-                <Lock className="h-2.5 w-2.5" />
-                System
+                <Lock className="h-3 w-3" aria-hidden />
               </span>
             ) : null}
           </span>
-          <span className="mt-0.5 block text-[10px]" style={{ color: C.textTertiary }}>
+          <span className="mt-0.5 flex items-center gap-1.5 text-[10px]" style={{ color: C.textTertiary }}>
+            {hasIssue ? (
+              <span className="inline-flex items-center gap-1 font-bold text-[#9a6a00]">
+                <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[#d9a400]" />
+                Needs a fix ·
+              </span>
+            ) : questionCount > 0 ? (
+              <Check className="h-3 w-3 text-[var(--sf-forest,#2f6b45)]" aria-label="Has questions" />
+            ) : null}
             {questionCount} question{questionCount === 1 ? "" : "s"}
           </span>
         </span>
@@ -153,6 +168,7 @@ export default function ApplicationFormOutline({
   onReorderSteps,
   onAddStep,
   onPreview,
+  issueStepIds,
 }: ApplicationFormOutlineProps) {
   const [reorderOpen, setReorderOpen] = useState(false);
   const activeKey = focusKey(focus);
@@ -167,7 +183,7 @@ export default function ApplicationFormOutline({
 
   return (
     <div
-      className="flex h-full w-[240px] shrink-0 flex-col overflow-hidden border-r bg-white"
+      className="flex h-full w-[240px] shrink-0 flex-col overflow-hidden border-r bg-white lg:w-[264px]"
       style={{ borderColor: "#EDF1ED" }}
       data-flows-outline
     >
@@ -200,7 +216,7 @@ export default function ApplicationFormOutline({
           active={activeKey === "setup"}
           onClick={() => onFocusChange({ kind: "setup" })}
           icon={Settings2}
-          label="Setup"
+          label="Title, link & program"
         />
 
         <div className="flex items-center justify-between px-2 pt-3 pb-1">
@@ -211,8 +227,11 @@ export default function ApplicationFormOutline({
             Steps
           </p>
           {!readOnly && sections.length >= 2 ? (
-            <AdminTextLink theme={theme} onClick={() => setReorderOpen(true)}>
-              Reorder
+            <AdminTextLink theme={theme} onClick={() => setReorderOpen(true)} aria-label="Reorder steps">
+              <span className="inline-flex items-center gap-1">
+                <ArrowUpDown className="h-3.5 w-3.5" aria-hidden />
+                Reorder
+              </span>
             </AdminTextLink>
           ) : null}
         </div>
@@ -231,6 +250,7 @@ export default function ApplicationFormOutline({
               stepIdx={stepIdx}
               active={isStepActive(step.id)}
               lockSystemStep={lockSystemStep}
+              hasIssue={issueStepIds?.has(step.id) ?? false}
               onSelect={() => onFocusChange({ kind: "step", stepId: step.id })}
             />
           ))

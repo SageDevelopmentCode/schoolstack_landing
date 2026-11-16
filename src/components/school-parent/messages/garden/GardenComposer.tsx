@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type DragEvent, type RefObject } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Eye, Loader2, Paperclip, SendHorizontal, Upload, X } from "lucide-react";
+import { AlertTriangle, Eye, Info, Loader2, Paperclip, SendHorizontal, Upload, X } from "lucide-react";
 import { G_FOCUS, gBtnPopSm } from "@/components/school-parent/garden/ui";
 import {
   MESSAGE_ATTACHMENT_ACCEPT,
@@ -34,6 +34,10 @@ export default function GardenComposer({
   hasMessages,
   notify,
   textareaRef,
+  disabledReason,
+  banner = null,
+  idPrefix = "parent-garden-composer",
+  replyPlaceholder = "Write a warm reply…",
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -46,7 +50,14 @@ export default function GardenComposer({
   hasMessages: boolean;
   notify: MessagesFeedbackHandler;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
+  /** Why sending is off (defaults to the preview-mode line). */
+  disabledReason?: string;
+  /** Admin: context about this thread, shown above the box. */
+  banner?: { variant: "info" | "warning"; message: string } | null;
+  idPrefix?: string;
+  replyPlaceholder?: string;
 }) {
+  const offReason = disabledReason ?? "Preview mode — sending disabled";
   const reduce = useReducedMotion() === true;
   const [dragActive, setDragActive] = useState(false);
   const dragDepth = useRef(0);
@@ -109,9 +120,9 @@ export default function GardenComposer({
   };
 
   const placeholder = readOnly
-    ? "Preview mode — sending disabled"
+    ? offReason
     : hasMessages
-      ? "Write a warm reply…"
+      ? replyPlaceholder
       : `Say hello to ${recipientName}…`;
 
   return (
@@ -119,10 +130,26 @@ export default function GardenComposer({
       className="relative shrink-0 border-t-[1.5px] border-[var(--sf-ink)]/10 bg-white px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-4 [&>*]:mx-auto [&>*]:max-w-[760px]"
       {...dropHandlers}
     >
-      {readOnly ? (
+      {banner ? (
+        <p
+          role={banner.variant === "warning" ? "alert" : "note"}
+          className={`m-0 mb-2.5 flex items-start gap-2 rounded-2xl border-[1.5px] px-3.5 py-2 text-[13px] font-semibold leading-snug ${
+            banner.variant === "warning"
+              ? "border-[#b45309]/25 bg-[var(--sf-butter)] text-[var(--sf-ink)]/85"
+              : "border-[var(--sf-ink)]/10 bg-[var(--sf-sky)] text-[var(--sf-ink)]/80"
+          }`}
+        >
+          {banner.variant === "warning" ? (
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#9a3412]" aria-hidden />
+          ) : (
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#24507a]" aria-hidden />
+          )}
+          <span>{banner.message}</span>
+        </p>
+      ) : readOnly ? (
         <p className="sf-paper m-0 mb-2.5 flex items-center gap-2 rounded-2xl px-3.5 py-2 text-[13px] font-semibold text-[var(--sf-soft)]">
           <Eye className="h-4 w-4 shrink-0 text-[var(--sf-clay-deep)]" aria-hidden />
-          Preview mode — sending disabled
+          {offReason}
         </p>
       ) : null}
 
@@ -196,11 +223,11 @@ export default function GardenComposer({
             }
           }}
         />
-        <label htmlFor="parent-garden-composer" className="sr-only">
+        <label htmlFor={idPrefix} className="sr-only">
           Message {recipientName}
         </label>
         <textarea
-          id="parent-garden-composer"
+          id={idPrefix}
           ref={textareaRef}
           value={value}
           rows={1}
@@ -214,7 +241,7 @@ export default function GardenComposer({
           }}
           placeholder={placeholder}
           disabled={readOnly || sending}
-          aria-describedby="parent-garden-composer-hint"
+          aria-describedby={`${idPrefix}-hint`}
           className="max-h-[110px] min-h-[38px] flex-1 resize-none self-center bg-transparent py-2 text-[16px] font-semibold leading-[22px] text-[var(--sf-ink)] outline-none placeholder:font-semibold placeholder:text-[var(--sf-ink)]/40 disabled:cursor-not-allowed sm:text-[15px]"
         />
         <button
@@ -251,7 +278,7 @@ export default function GardenComposer({
       </div>
 
       <div
-        id="parent-garden-composer-hint"
+        id={`${idPrefix}-hint`}
         className="mt-1.5 flex items-center justify-between gap-3 px-2 text-[11.5px] font-semibold text-[var(--sf-soft)]"
       >
         <span className="hidden [@media(hover:hover)]:inline">

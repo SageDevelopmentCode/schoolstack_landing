@@ -87,7 +87,7 @@ export function ChildRecordCard({
     : checklistProgress;
 
   return (
-    <GCard kicker="School record" index={3} testID="parent-child-record-workspace">
+    <GCard title="School record" index={3} testID="parent-child-record-workspace">
       <View style={styles.hero}>
         <GardenChildPhoto
           name={snapshot.fullName}

@@ -16,7 +16,7 @@ import {
   sendTeacherParentFormPublishedNotifications,
 } from "@/lib/school-teacher/forms-documents/teacher-parent-form-notifications";
 import {
-  getStaffMemberIdForUser,
+  getTeacherPortalStaffMemberIdForUser,
   getStaffUserProfile,
 } from "@/lib/staff/teacher-portal-access";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -60,7 +60,7 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   try {
-    const staffMemberId = await getStaffMemberIdForUser(
+    const staffMemberId = await getTeacherPortalStaffMemberIdForUser(
       supabase,
       user.id,
       organizationId,
@@ -164,7 +164,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   try {
-    const staffMemberId = await getStaffMemberIdForUser(
+    const staffMemberId = await getTeacherPortalStaffMemberIdForUser(
       supabase,
       user.id,
       organizationId,

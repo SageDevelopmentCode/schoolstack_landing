@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { StudentDetailScreen } from '@/components/school-admin/student-detail-screen';
+import { StudentDetailScreen } from '@/components/school-admin/students/garden/student-detail-screen';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function SchoolAdminStudentDetailPage() {

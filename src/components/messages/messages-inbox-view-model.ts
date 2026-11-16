@@ -1,3 +1,4 @@
+import type { AdminConversationListItem } from "@/lib/messages/admin-thread-sections";
 import type {
   MessageContact,
   MessageThreadDetail,
@@ -7,20 +8,39 @@ import type {
 /**
  * Optional, opt-in feedback events emitted by `MessagesInboxLayout`.
  * The layout still sets its inline `error` exactly as before; a host (the
- * parent Garden page) can turn these into toasts. Teacher/admin pass nothing.
+ * parent and admin Garden pages) can turn these into toasts. Teacher passes nothing.
+ * `retry`, when present, repeats the failed step (admin toasts offer it as "Retry").
  */
 export type MessagesFeedbackEvent =
   | { type: "conversation_started"; name: string }
-  | { type: "send_failed"; message: string; restored: boolean }
+  | { type: "send_failed"; message: string; restored: boolean; retry?: () => void }
   | { type: "edited" }
   | { type: "deleted" }
-  | { type: "delete_failed"; message: string }
+  | { type: "delete_failed"; message: string; retry?: () => void }
   | {
       type: "load_failed";
       scope: "contacts" | "thread" | "start_conversation";
       message: string;
+      retry?: () => void;
     }
   | { type: "files_rejected"; tooLarge: string[]; overLimit: string[] };
+
+/** Banner above the composer (admin reviewing a parent ↔ teacher thread). */
+export type MessagesInboxComposeBanner = { variant: "info" | "warning"; message: string };
+
+/**
+ * Admin-only extras for the Garden inbox (variant="admin-garden"). Absent for
+ * parents, so the parent view renders exactly as before.
+ */
+export type MessagesInboxAdminModel = {
+  /** Section rows (office inbox first, then "Parent & teacher conversations"). */
+  listItems: AdminConversationListItem[];
+  composeBanner: MessagesInboxComposeBanner | null;
+  /** Replying is blocked for this thread (banner says why). */
+  composeDisabled: boolean;
+  openBroadcast: () => void;
+  broadcastDisabled: boolean;
+};
 
 export type MessagesFeedbackHandler = (event: MessagesFeedbackEvent) => void;
 
@@ -64,6 +84,8 @@ export type MessagesInboxViewModel = {
   deletingMessage: boolean;
   attachmentDiscardDialogOpen: boolean;
   attachmentRouteLeaveDialogOpen: boolean;
+
+  admin?: MessagesInboxAdminModel;
 
   actions: {
     selectThread: (key: string) => void;

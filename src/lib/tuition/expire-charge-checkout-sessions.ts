@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
 import {
   listPendingPaymentsForTuitionCharge,
-  markPaymentFailed,
+  markPaymentCanceled,
 } from "@/lib/stripe/application-payments";
 import { expireOpenCheckoutSession } from "@/lib/stripe/pending-checkout-session";
 
@@ -28,16 +28,12 @@ export async function expirePendingCheckoutSessionsForCharge(
         stripe,
         pendingPayment.stripeCheckoutSessionId,
       );
-      await markPaymentFailed(supabase, pendingPayment.id, {
-        stripeCheckoutSessionId: pendingPayment.stripeCheckoutSessionId,
-      });
+      await markPaymentCanceled(supabase, pendingPayment.id);
       continue;
     }
 
     if (existingSession.status === "expired") {
-      await markPaymentFailed(supabase, pendingPayment.id, {
-        stripeCheckoutSessionId: pendingPayment.stripeCheckoutSessionId,
-      });
+      await markPaymentCanceled(supabase, pendingPayment.id);
     }
   }
 }

@@ -293,7 +293,6 @@ function SupplyListTab({
   return (
     <>
       <GCard
-        kicker="Supply list"
         title={items.length > 0 ? `${items.length} item${items.length === 1 ? '' : 's'}` : 'What you need'}
         index={0}>
         <View style={styles.body}>
@@ -316,7 +315,7 @@ function SupplyListTab({
               ))}
             </View>
           ) : loadError ? (
-            <GErrorCard kicker="Supply list" title="We couldn't load the supply list" message={`${loadError} Try again.`} onRetry={() => void load()} />
+            <GErrorCard title="We couldn't load the supply list" message={`${loadError} Try again.`} onRetry={() => void load()} />
           ) : items.length === 0 ? (
             <View style={styles.list}>
               <Text style={gText.meta}>No supply items yet.</Text>
@@ -472,7 +471,6 @@ function DetailsTab({
 
   return (
     <GCard
-      kicker="Project details"
       title={readOnly ? 'About this project' : 'Edit project'}
       index={0}
       action={chip ? <GChip label={chip.label} tone={chip.tone} icon={saveState === 'saved' ? 'checkmark' : undefined} /> : null}>
@@ -579,7 +577,6 @@ function ProjectDetailScreen({
       backLabel="Projects"
       backAccessibilityLabel="Back to projects"
       onBack={() => router.back()}
-      kicker="Committee project"
       title={project ? committeeProjectDisplayName(project) : 'Project'}
       aside={project ? <GChip label={project.status === 'active' ? 'Active' : 'Draft'} tone={project.status === 'active' ? 'success' : 'warning'} /> : null}>
       {project ? (
@@ -604,7 +601,7 @@ function ProjectDetailScreen({
         <StatusBar style="dark" />
         <ScrollView contentContainerStyle={styles.content}>
           {header}
-          <GErrorCard kicker="Project" title="Project not found." message="It may have been deleted, or the connection dropped." onRetry={() => void load()} />
+          <GErrorCard title="Project not found." message="It may have been deleted, or the connection dropped." onRetry={() => void load()} />
         </ScrollView>
       </View>
     );

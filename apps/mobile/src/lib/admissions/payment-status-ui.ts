@@ -10,6 +10,7 @@ export function paymentStatusStoryChipTone(status: PaymentStatus): StoryChipTone
     case 'failed':
       return 'alert';
     case 'refunded':
+    case 'canceled':
       return 'info';
   }
 }

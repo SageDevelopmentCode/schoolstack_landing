@@ -15,6 +15,9 @@ import {
   Send,
 } from "lucide-react";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import { useAdminGardenSkin } from "@/components/school-admin/garden/skin";
+import GardenFlowActions, { type FlowMenuItem } from "./flows/GardenFlowActions";
+import type { FlowReadiness, ReadinessItem } from "./flows/flowReadiness";
 import { AdmissionsFamilyAccessGuideModal } from "./AdmissionsFamilyAccessGuide";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -37,6 +40,9 @@ type ApplicationFormEditorToolbarProps = {
   onCopyPublicLink: () => void;
   onPreview: () => void;
   onDuplicate: () => void;
+  /** Garden builder: publish checklist + where its rows lead. */
+  readiness?: FlowReadiness;
+  onSelectReadinessItem?: (item: ReadinessItem) => void;
 };
 
 function useClickOutside(
@@ -76,7 +82,10 @@ export default function ApplicationFormEditorToolbar({
   onCopyPublicLink,
   onPreview,
   onDuplicate,
+  readiness,
+  onSelectReadinessItem,
 }: ApplicationFormEditorToolbarProps) {
+  const skin = useAdminGardenSkin();
   const [shareOpen, setShareOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
@@ -300,6 +309,83 @@ export default function ApplicationFormEditorToolbar({
         Unpublish
       </DetailButton>
     );
+
+  const guideModal = (
+    <AdmissionsFamilyAccessGuideModal
+      key={guideSessionKey}
+      open={guideOpen}
+      onClose={() => setGuideOpen(false)}
+      variant="apply"
+      C={C}
+      schoolSlug={schoolSlug}
+      publicPath={publishedPublicUrl}
+      isPublished={isPublished}
+    />
+  );
+
+  if (skin && readiness) {
+    const menuItems: FlowMenuItem[] = [
+      {
+        key: "copy",
+        label: "Copy apply link",
+        hint: canCopyLink ? undefined : "Publish first",
+        icon: <Link2 className="h-4 w-4" />,
+        disabled: !canCopyLink,
+        onSelect: onCopyPublicLink,
+      },
+      {
+        key: "guide",
+        label: "How families apply",
+        icon: <CircleHelp className="h-4 w-4" />,
+        onSelect: openGuide,
+      },
+      ...(showDuplicate
+        ? [
+            {
+              key: "duplicate",
+              label: "Duplicate",
+              hint: "Make an editable draft copy",
+              icon: <Copy className="h-4 w-4" />,
+              disabled: creating,
+              onSelect: onDuplicate,
+            },
+          ]
+        : []),
+      ...(isPublished && !readOnly
+        ? [
+            {
+              key: "unpublish",
+              label: "Unpublish",
+              hint: "Families can no longer start this form",
+              icon: <EyeOff className="h-4 w-4" />,
+              destructive: true,
+              onSelect: onUnpublish,
+            },
+          ]
+        : []),
+    ];
+    return (
+      <>
+        <GardenFlowActions
+          readOnly={readOnly}
+          isPublished={isPublished}
+          dirty={isApplyDirty}
+          saving={saving}
+          publishing={publishing}
+          readiness={readiness}
+          kindLabel="form"
+          publicUrl={publishedPublicUrl}
+          onSave={onSave}
+          onPublish={onPublish}
+          onPreview={onPreview}
+          onCopyLink={onCopyPublicLink}
+          onSelectReadinessItem={onSelectReadinessItem}
+          menuItems={menuItems}
+        />
+        {guideModal}
+      </>
+    );
+  }
 
   return (
     <>

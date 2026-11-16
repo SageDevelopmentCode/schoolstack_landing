@@ -49,7 +49,7 @@ export function BillingSetupCard({
 
   if (progress.allDone) {
     return (
-      <GCard index={index} kicker="Tuition setup" tone="paper">
+      <GCard index={index} title="Tuition setup" tone="paper">
         <View style={styles.allDone}>
           <GTick size={36} />
           <View style={styles.allDoneCopy}>
@@ -67,7 +67,6 @@ export function BillingSetupCard({
   return (
     <GCard
       index={index}
-      kicker="Tuition setup"
       title={`${progress.doneCount} of ${progress.totalCount} steps done`}>
       <GProgress
         value={progress.doneCount / progress.totalCount}
