@@ -9,6 +9,7 @@ import { loadTeacherClassroomOptions } from "@/lib/classroom-signups/load-teache
 import { listTeacherClassroomSignups } from "@/lib/classroom-signups/load-teacher-signups";
 import { publishClassroomSignup } from "@/lib/classroom-signups/mutations";
 import type { ClassroomSignupDraft } from "@/lib/classroom-signups/types";
+import { classroomAudienceRequiresSelection } from "@/lib/classroom-signups/validate-signup-audience";
 import {
   getTeacherPortalStaffMemberIdForUser,
   getStaffUserProfile,
@@ -132,6 +133,7 @@ export async function POST(request: Request) {
   const organizationId = body.organizationId?.trim() ?? "";
   const audience = body.audience ?? "classrooms";
   const classroomIds = body.classroomIds ?? [];
+  const status = body.status ?? "open";
 
   if (!organizationId || !body.title?.trim()) {
     return apiError(ROUTE, {
@@ -142,7 +144,7 @@ export async function POST(request: Request) {
     });
   }
 
-  if (audience === "classrooms" && classroomIds.length === 0) {
+  if (classroomAudienceRequiresSelection(audience, classroomIds, status)) {
     return apiError(ROUTE, {
       request,
       status: 400,
@@ -168,7 +170,6 @@ export async function POST(request: Request) {
 
     const profile = await getStaffUserProfile(supabase, user.id, organizationId, user);
     const admin = createAdminClient();
-    const status = body.status ?? "open";
 
     const signup = await publishClassroomSignup(admin, organizationId, staffMemberId, {
       title: body.title,

@@ -1,7 +1,10 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { logSettledNotificationFailures } from "@/lib/admissions/notification-logging";
+import {
+  logOutboundEmailSettledFailures,
+  logSettledNotificationFailures,
+} from "@/lib/admissions/notification-logging";
 import { ACTIVITY_ACTIONS, logActivityEvent } from "@/lib/activity-log";
 import { buildEmailNotificationContext, sendClassroomSignupReminderEmail } from "@/lib/emails";
 import { sendExpoPushToUsers } from "@/lib/notifications/expo-push";
@@ -13,6 +16,7 @@ import { resolveAudienceFamilyIds } from "./audience";
 import {
   familiesToRemind,
   reminderCooldownRemainingMs,
+  SIGNUP_REMINDER_COOLDOWN_MS,
   validateReminderMessage,
 } from "./signup-reminder-rules";
 import type { ClassroomSignup, ClassroomSignupResponse } from "./types";
@@ -47,12 +51,29 @@ export type ClassroomSignupReminderResult =
     }
   | { status: "nobody_to_remind" }
   | { status: "cooldown"; retryAfterMs: number }
-  | { status: "invalid_message"; error: string };
+  | { status: "invalid_message"; error: string }
+  | { status: "delivery_failed"; error: string };
 
 type OrganizationContext = { name: string; slug: string };
 
+export type ClassroomSignupReminderClaimResult =
+  | { claimed: true; previousLastSentAt: string | null; claimedAt: string }
+  | { claimed: false; retryAfterMs: number };
+
 export type ClassroomSignupReminderDeps = {
-  findLastReminderAt?: (admin: SupabaseClient, organizationId: string, signupId: string) => Promise<string | null>;
+  claimReminderWindow?: (
+    admin: SupabaseClient,
+    organizationId: string,
+    signupId: string,
+    now: Date,
+  ) => Promise<ClassroomSignupReminderClaimResult>;
+  revertReminderClaim?: (
+    admin: SupabaseClient,
+    organizationId: string,
+    signupId: string,
+    claimedAt: string,
+    previousLastSentAt: string | null,
+  ) => Promise<void>;
   resolveAudienceFamilyIds?: typeof resolveAudienceFamilyIds;
   loadOrganization?: (admin: SupabaseClient, organizationId: string) => Promise<OrganizationContext | null>;
   loadFamilyNotificationEmails?: typeof loadFamilyNotificationEmails;
@@ -61,24 +82,65 @@ export type ClassroomSignupReminderDeps = {
   sendPush?: typeof sendExpoPushToUsers;
   logActivity?: typeof logActivityEvent;
   logSettledNotificationFailures?: typeof logSettledNotificationFailures;
+  logOutboundEmailSettledFailures?: typeof logOutboundEmailSettledFailures;
 };
 
-async function findLastReminderAtDefault(
+async function readSignupLastReminderSentAt(
   admin: SupabaseClient,
   organizationId: string,
   signupId: string,
 ): Promise<string | null> {
   const { data, error } = await admin
-    .from("activity_events")
-    .select("created_at")
+    .from("classroom_signups")
+    .select("last_reminder_sent_at")
+    .eq("id", signupId)
     .eq("organization_id", organizationId)
-    .eq("action", ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_REMINDER_SENT)
-    .eq("entity_id", signupId)
-    .order("created_at", { ascending: false })
-    .limit(1)
     .maybeSingle();
   if (error) throw error;
-  return data?.created_at ? String(data.created_at) : null;
+  return data?.last_reminder_sent_at ? String(data.last_reminder_sent_at) : null;
+}
+
+async function claimClassroomSignupReminderWindowDefault(
+  admin: SupabaseClient,
+  organizationId: string,
+  signupId: string,
+  now: Date,
+): Promise<ClassroomSignupReminderClaimResult> {
+  const claimedAt = now.toISOString();
+  const cooldownCutoff = new Date(now.getTime() - SIGNUP_REMINDER_COOLDOWN_MS).toISOString();
+  const previousLastSentAt = await readSignupLastReminderSentAt(admin, organizationId, signupId);
+
+  const { data: claimedRows, error: claimError } = await admin
+    .from("classroom_signups")
+    .update({ last_reminder_sent_at: claimedAt })
+    .eq("id", signupId)
+    .eq("organization_id", organizationId)
+    .or(`last_reminder_sent_at.is.null,last_reminder_sent_at.lt.${cooldownCutoff}`)
+    .select("id");
+
+  if (claimError) throw claimError;
+  if (!claimedRows?.length) {
+    const lastSentAt = await readSignupLastReminderSentAt(admin, organizationId, signupId);
+    return { claimed: false, retryAfterMs: reminderCooldownRemainingMs(lastSentAt, now) };
+  }
+
+  return { claimed: true, previousLastSentAt, claimedAt };
+}
+
+async function revertClassroomSignupReminderClaimDefault(
+  admin: SupabaseClient,
+  organizationId: string,
+  signupId: string,
+  claimedAt: string,
+  previousLastSentAt: string | null,
+): Promise<void> {
+  const { error } = await admin
+    .from("classroom_signups")
+    .update({ last_reminder_sent_at: previousLastSentAt })
+    .eq("id", signupId)
+    .eq("organization_id", organizationId)
+    .eq("last_reminder_sent_at", claimedAt);
+  if (error) throw error;
 }
 
 async function loadOrganizationDefault(
@@ -107,7 +169,8 @@ export async function sendClassroomSignupReminder(
   input: SendClassroomSignupReminderInput,
   deps: ClassroomSignupReminderDeps = {},
 ): Promise<ClassroomSignupReminderResult> {
-  const findLastReminderAt = deps.findLastReminderAt ?? findLastReminderAtDefault;
+  const claimReminderWindow = deps.claimReminderWindow ?? claimClassroomSignupReminderWindowDefault;
+  const revertReminderClaim = deps.revertReminderClaim ?? revertClassroomSignupReminderClaimDefault;
   const resolveAudience = deps.resolveAudienceFamilyIds ?? resolveAudienceFamilyIds;
   const loadOrganization = deps.loadOrganization ?? loadOrganizationDefault;
   const loadEmails = deps.loadFamilyNotificationEmails ?? loadFamilyNotificationEmails;
@@ -115,20 +178,20 @@ export async function sendClassroomSignupReminder(
   const resolvePushRecipients = deps.resolvePushRecipients ?? resolveGuardianPushRecipientsForFamilies;
   const sendPush = deps.sendPush ?? sendExpoPushToUsers;
   const logActivity = deps.logActivity ?? logActivityEvent;
-  const logFailures = deps.logSettledNotificationFailures ?? logSettledNotificationFailures;
+  const logPushFailures = deps.logSettledNotificationFailures ?? logSettledNotificationFailures;
+  const logEmailFailures = deps.logOutboundEmailSettledFailures ?? logOutboundEmailSettledFailures;
   const now = input.now ?? new Date();
   const { signup, organizationId } = input;
 
   const validated = validateReminderMessage(input.message);
   if (!validated.ok) return { status: "invalid_message", error: validated.error };
 
-  const lastSentAt = await findLastReminderAt(admin, organizationId, signup.id);
-  const retryAfterMs = reminderCooldownRemainingMs(lastSentAt, now);
-  if (retryAfterMs > 0) return { status: "cooldown", retryAfterMs };
-
   const audienceFamilyIds = await resolveAudience(admin, signup);
   const familyIds = familiesToRemind(audienceFamilyIds, input.responses);
   if (familyIds.length === 0) return { status: "nobody_to_remind" };
+
+  const claim = await claimReminderWindow(admin, organizationId, signup.id, now);
+  if (!claim.claimed) return { status: "cooldown", retryAfterMs: claim.retryAfterMs };
 
   const org = (await loadOrganization(admin, organizationId)) ?? { name: "Your school", slug: "" };
   const signupUrl = org.slug
@@ -186,12 +249,17 @@ export async function sendClassroomSignupReminder(
 
   const [emailResults, pushResults] = await Promise.all([Promise.allSettled(emailSends), Promise.allSettled(pushSends)]);
   await Promise.all([
-    logFailures(
+    logEmailFailures(
       admin,
-      { organizationId, operation: "classroom_signup_reminder_email", entityType: "classroom_signup", entityId: signup.id },
+      {
+        organizationId,
+        operation: "classroom_signup_reminder_email",
+        entityType: "classroom_signup",
+        entityId: signup.id,
+      },
       emailResults,
     ),
-    logFailures(
+    logPushFailures(
       admin,
       {
         organizationId,
@@ -205,6 +273,18 @@ export async function sendClassroomSignupReminder(
   ]);
 
   const emailsSent = emailResults.filter((r) => r.status === "fulfilled" && r.value.ok).length;
+  const pushSent = pushResults.reduce((total, result) => {
+    if (result.status !== "fulfilled") return total;
+    return total + result.value.sentCount;
+  }, 0);
+
+  if (emailsSent === 0 && pushSent === 0) {
+    await revertReminderClaim(admin, organizationId, signup.id, claim.claimedAt, claim.previousLastSentAt);
+    return {
+      status: "delivery_failed",
+      error: "We couldn't deliver the reminder to any families. Try again in a moment.",
+    };
+  }
 
   await logActivity(admin, {
     organizationId,

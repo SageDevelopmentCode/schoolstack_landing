@@ -13,6 +13,7 @@ import {
   updateClassroomSignup,
   type UpdateClassroomSignupInput,
 } from "@/lib/classroom-signups/mutations";
+import { classroomAudienceRequiresSelection } from "@/lib/classroom-signups/validate-signup-audience";
 import {
   getTeacherPortalStaffMemberIdForUser,
   getStaffUserProfile,
@@ -247,12 +248,26 @@ export async function PATCH(request: Request, context: RouteContext) {
     const safeFieldsOnly =
       existing.status === "open" && confirmedCount > 0;
 
+    const update = body.update ?? {};
+    const nextStatus = update.status ?? existing.status;
+    const nextAudience = update.audience ?? existing.audience;
+    const nextClassroomIds = update.classroomIds ?? existing.classroomIds;
+
+    if (classroomAudienceRequiresSelection(nextAudience, nextClassroomIds, nextStatus)) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: "Select at least one classroom for this signup.",
+        code: "missing_classrooms",
+      });
+    }
+
     const signup = await updateClassroomSignup(
       admin,
       organizationId,
       staffMemberId,
       signupId,
-      body.update ?? {},
+      update,
       { safeFieldsOnly },
     );
 

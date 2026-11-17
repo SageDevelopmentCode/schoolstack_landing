@@ -1,4 +1,3 @@
-// @ts-nocheck
 /* eslint-disable */
 /**
  * MudKitchen Crew · storybook mascot renderer (12 characters × 26 views).

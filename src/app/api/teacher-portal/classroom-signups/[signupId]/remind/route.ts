@@ -113,6 +113,13 @@ export async function POST(request: Request, context: RouteContext) {
         });
       case "nobody_to_remind":
         return NextResponse.json({ familiesNotified: 0, emailsSent: 0, emailsAttempted: 0, pushRecipients: 0 });
+      case "delivery_failed":
+        return apiError(ROUTE, {
+          request,
+          status: 500,
+          error: result.error,
+          code: "delivery_failed",
+        });
       case "sent":
         return NextResponse.json({
           familiesNotified: result.familiesNotified,

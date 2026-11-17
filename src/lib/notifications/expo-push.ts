@@ -203,11 +203,15 @@ function resolveFailureOperation(payload: ExpoPushPayload): string {
   }
 }
 
+export type ExpoPushSendSummary = {
+  sentCount: number;
+};
+
 export async function sendExpoPushToUsers(
   admin: SupabaseClient,
   payload: ExpoPushPayload,
-): Promise<void> {
-  if (payload.userIds.length === 0) return;
+): Promise<ExpoPushSendSummary> {
+  if (payload.userIds.length === 0) return { sentCount: 0 };
 
   const channelId = resolveChannelId(payload);
 
@@ -235,7 +239,7 @@ export async function sendExpoPushToUsers(
     }),
   );
 
-  if (tokenRows.length === 0) return;
+  if (tokenRows.length === 0) return { sentCount: 0 };
 
   const messages: ExpoPushMessage[] = tokenRows.map((row) => ({
     to: String(row.push_token),
@@ -333,4 +337,7 @@ export async function sendExpoPushToUsers(
     },
     results,
   );
+
+  const sentCount = ticketList.filter((ticket) => ticket.status === "ok").length;
+  return { sentCount };
 }

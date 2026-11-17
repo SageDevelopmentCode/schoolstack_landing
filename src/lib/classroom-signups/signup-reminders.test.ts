@@ -41,6 +41,15 @@ function response(familyId: string, status: "confirmed" | "cancelled" = "confirm
   return { familyId, status } as unknown as ClassroomSignupResponse;
 }
 
+const claimOk = (previousLastSentAt: string | null = null, claimedAt = "2026-11-16T12:00:00.000Z") =>
+  ({
+    claimReminderWindow: async () => ({
+      claimed: true as const,
+      previousLastSentAt,
+      claimedAt,
+    }),
+  }) as const;
+
 test("only families that haven't confirmed are reminded", () => {
   assert.deepEqual(
     familiesToRemind(["a", "b", "c", "b"], [response("a"), response("c", "cancelled")]),
@@ -81,7 +90,7 @@ test("sends email + push to unresponded families and logs the activity", async (
     admin,
     { ...baseInput, responses: [response("fam-a")] },
     {
-      findLastReminderAt: async () => null,
+      ...claimOk(),
       resolveAudienceFamilyIds: async () => ["fam-a", "fam-b", "fam-c"],
       loadOrganization: async () => ({ name: "Rooted Meadows", slug: "rooted" }),
       loadFamilyNotificationEmails: async (_admin, familyId) =>
@@ -98,12 +107,14 @@ test("sends email + push to unresponded families and logs the activity", async (
         pushed.push(payload.userIds[0]);
         assert.equal(payload.notificationKind, "classroom_signup.reminder");
         assert.deepEqual(payload.data, { kind: "classroom_signup", portal: "parent", organizationSlug: "rooted", signupId: "signup-1" });
+        return { sentCount: 1 };
       },
       logActivity: async (_admin, event) => {
         logged.push(event.action);
         return null;
       },
       logSettledNotificationFailures: async () => {},
+      logOutboundEmailSettledFailures: async () => {},
     },
   );
 
@@ -114,31 +125,104 @@ test("sends email + push to unresponded families and logs the activity", async (
 });
 
 test("refuses while the cooldown is running and sends nothing", async () => {
-  let sent = false;
+  let claimed = false;
   const result = await sendClassroomSignupReminder(
     admin,
     { ...baseInput, responses: [] },
     {
-      findLastReminderAt: async () => "2026-11-16T11:45:00Z",
-      resolveAudienceFamilyIds: async () => {
-        sent = true;
-        return [];
+      claimReminderWindow: async () => {
+        claimed = true;
+        return { claimed: false, retryAfterMs: 45 * 60 * 1000 };
+      },
+      resolveAudienceFamilyIds: async () => ["fam-b"],
+      loadOrganization: async () => {
+        throw new Error("should not load org on cooldown");
+      },
+      sendEmail: async () => {
+        throw new Error("should not send email on cooldown");
       },
     },
   );
   assert.equal(result.status, "cooldown");
   assert.equal(result.status === "cooldown" ? result.retryAfterMs : 0, 45 * 60 * 1000);
-  assert.equal(sent, false);
+  assert.equal(claimed, true);
 });
 
-test("nobody to remind when every family already signed up", async () => {
+test("logs outbound email failures when sendEmail returns ok:false", async () => {
+  let emailFailuresLogged = false;
+  await sendClassroomSignupReminder(
+    admin,
+    { ...baseInput, responses: [response("fam-a")] },
+    {
+      ...claimOk(),
+      revertReminderClaim: async () => {},
+      resolveAudienceFamilyIds: async () => ["fam-b"],
+      loadOrganization: async () => ({ name: "Rooted Meadows", slug: "rooted" }),
+      loadFamilyNotificationEmails: async () => ["fail@example.com"],
+      sendEmail: async () => ({ ok: false }),
+      resolvePushRecipients: async () => [],
+      sendPush: async () => ({ sentCount: 0 }),
+      logActivity: async () => null,
+      logSettledNotificationFailures: async () => {},
+      logOutboundEmailSettledFailures: async () => {
+        emailFailuresLogged = true;
+      },
+    },
+  );
+
+  assert.equal(emailFailuresLogged, true);
+});
+
+test("delivery_failed when no email or push delivered", async () => {
+  const logged: unknown[] = [];
+  let reverted: { claimedAt: string; previousLastSentAt: string | null } | null = null;
   const result = await sendClassroomSignupReminder(
     admin,
     { ...baseInput, responses: [response("fam-a")] },
     {
-      findLastReminderAt: async () => null,
+      ...claimOk("2026-11-16T10:00:00.000Z", "2026-11-16T12:00:00.000Z"),
+      revertReminderClaim: async (_admin, _orgId, _signupId, claimedAt, previousLastSentAt) => {
+        reverted = { claimedAt, previousLastSentAt };
+      },
+      resolveAudienceFamilyIds: async () => ["fam-b"],
+      loadOrganization: async () => ({ name: "Rooted Meadows", slug: "rooted" }),
+      loadFamilyNotificationEmails: async () => ["fail@example.com"],
+      sendEmail: async () => ({ ok: false }),
+      resolvePushRecipients: async () => [{ userId: "guardian-b", portal: "parent", email: null }],
+      sendPush: async () => ({ sentCount: 0 }),
+      logActivity: async (_admin, event) => {
+        logged.push(event.action);
+        return null;
+      },
+      logSettledNotificationFailures: async () => {},
+      logOutboundEmailSettledFailures: async () => {},
+    },
+  );
+
+  assert.deepEqual(result, {
+    status: "delivery_failed",
+    error: "We couldn't deliver the reminder to any families. Try again in a moment.",
+  });
+  assert.deepEqual(logged, []);
+  assert.deepEqual(reverted, {
+    claimedAt: "2026-11-16T12:00:00.000Z",
+    previousLastSentAt: "2026-11-16T10:00:00.000Z",
+  });
+});
+
+test("nobody to remind when every family already signed up", async () => {
+  let claimed = false;
+  const result = await sendClassroomSignupReminder(
+    admin,
+    { ...baseInput, responses: [response("fam-a")] },
+    {
+      claimReminderWindow: async () => {
+        claimed = true;
+        return { claimed: true, previousLastSentAt: null, claimedAt: "2026-11-16T12:00:00.000Z" };
+      },
       resolveAudienceFamilyIds: async () => ["fam-a"],
     },
   );
   assert.deepEqual(result, { status: "nobody_to_remind" });
+  assert.equal(claimed, false);
 });
