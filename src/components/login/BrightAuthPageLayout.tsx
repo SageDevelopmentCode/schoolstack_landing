@@ -5,14 +5,23 @@ import {
   AuthGatePromoPanel,
   AuthHelpButton,
 } from "@/components/admissions/AuthGatePromoPanel";
+import { gardenFontVariables } from "@/components/garden/fonts";
+import { gardenScopeStyle } from "@/components/school-parent/garden/ParentGardenFrame";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { AUTH_GATE_PROMO } from "@/lib/site";
+import "@/components/garden/garden.css";
 
 type BrightAuthPageLayoutProps = {
   children: ReactNode;
+  /**
+   * The school's theme when a school is known. Its accent replaces Garden clay
+   * on the form side only; the MudKitchen promo panel keeps MudKitchen clay.
+   */
+  theme?: ParentThemeTokens | null;
 };
 
-/** Shared bright split layout for `/login` and school portal auth gates. */
-export default function BrightAuthPageLayout({ children }: BrightAuthPageLayoutProps) {
+/** Calm Garden split layout for `/login` and school portal auth gates. */
+export default function BrightAuthPageLayout({ children, theme }: BrightAuthPageLayoutProps) {
   const [activeSlide, setActiveSlide] = useState(0);
 
   useEffect(() => {
@@ -23,20 +32,21 @@ export default function BrightAuthPageLayout({ children }: BrightAuthPageLayoutP
   }, []);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-white lg:flex-row">
+    <div
+      className={`${gardenFontVariables} sf-garden flex min-h-dvh flex-col bg-[var(--sf-cream)] text-[var(--sf-ink)] lg:flex-row`}
+    >
       <AuthGatePromoPanel activeSlide={activeSlide} variant="bright" />
 
-      <div className="relative flex min-h-0 flex-1 flex-col text-[#1d1a16] lg:min-h-dvh">
+      <div
+        className="relative flex min-h-0 flex-1 flex-col lg:min-h-dvh"
+        style={theme ? gardenScopeStyle(theme) : undefined}
+      >
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-[min(420px,55vh)] opacity-90 lg:hidden"
+          className="sf-grid pointer-events-none absolute inset-x-0 top-0 h-[min(420px,55vh)] opacity-70 [mask-image:linear-gradient(to_bottom,black,transparent)] lg:hidden"
           aria-hidden
-          style={{
-            background:
-              "radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in srgb, #A6B89A 35%, transparent), transparent 70%), radial-gradient(ellipse 60% 40% at 90% 20%, color-mix(in srgb, #A05C45 12%, transparent), transparent 65%)",
-          }}
         />
 
-        <div className="relative z-[1] min-h-0 flex-1 overflow-y-auto px-4 py-6 pb-20 sm:px-6 sm:py-8 sm:pb-24 lg:flex lg:items-center lg:justify-center lg:py-12">
+        <div className="relative z-[1] min-h-0 flex-1 overflow-y-auto px-4 py-8 pb-24 sm:px-6 sm:py-10 sm:pb-28 lg:flex lg:items-center lg:justify-center lg:px-10 lg:py-12">
           <div className="mx-auto w-full max-w-md">{children}</div>
         </div>
       </div>

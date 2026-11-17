@@ -14,7 +14,6 @@ import {
   MascotSlide,
   NotificationCard,
   PlacedMascot,
-  RealCopyNote,
   SpeechBubble,
   StickyNote,
   SwipeHint,
@@ -43,7 +42,7 @@ function HookSlide() {
   return (
     <MascotSlide background="#FDEBDD">
       <div style={{ position: "absolute", left: 72, right: 72, top: 128, zIndex: 5 }}>
-        <Kicker bg={G.paper}>Every school owner, the day tuition is late</Kicker>
+        <Kicker bg={G.paper}>Meet Nutmeg, who handles tuition</Kicker>
         <Headline size={78} style={{ marginTop: 22 }}>
           Nutmeg rehearsing <Accent>the reminder</Accent> in the mirror
         </Headline>
@@ -111,7 +110,7 @@ function TurnSlide() {
       </div>
       <PlacedMascot name="nutmeg" view="surprised" width={620} x={230} y={620} z={4} />
       <Hand size={38} color={G.forest} rotate={-3} style={{ position: "absolute", left: 76, top: 470, zIndex: 6 }}>
-        (the cap pops off when nutmeg gets ideas. it does that.)
+        (no more chasing. no more scripts.)
       </Hand>
       <SwipeHint text="here's how →" />
     </MascotSlide>
@@ -124,15 +123,11 @@ function DashboardSlide() {
   return (
     <MascotProductSlide
       kicker="Tuition & Billing"
-      title={
-        <>
-          What families see. <Accent>Nutmeg&rsquo;s new favorite screen.</Accent>
-        </>
-      }
-      note="Families view invoices, make payments, and track tuition history in one place."
+      title="Families see every bill in one place."
+          aside="nutmeg’s new favorite screen."
+      note="Invoices, payments, and tuition history, all on one page."
       noteAt={{ x: 620, y: 930, rotate: 3, width: 400 }}
       mascot={{ name: "nutmeg", view: "point", width: 380, x: -30, y: 880 }}
-      windowTop={340}
       contentHeight={DEMO_HEIGHT}
       crop={{ zoom: 1.15, originX: 0, originY: 0 }}
     >
@@ -145,17 +140,14 @@ function PhonesSlide() {
   return (
     <MascotProductSlide
       kicker="Autopay"
-      title={
-        <>
-          Set it once. <Accent>Nutmeg cried a little.</Accent>
-        </>
-      }
-      note="See balances, pay tuition, and manage autopay in one place."
+      title="Families set up autopay once."
+          aside="nutmeg cried a little. happy tears."
+      note="Tuition gets paid on time, every month, without a reminder."
       background="#F3EEF8"
       noteAt={{ x: 60, y: 990, rotate: -3, width: 390 }}
       mascot={{ name: "nutmeg", view: "tears", width: 330, x: 720, y: 960 }}
       contentHeight={DEMO_HEIGHT}
-      crop={{ zoom: 1.45, originX: 1, originY: 0.08 }}
+      crop={{ zoom: 1.4, originX: 0.28, originY: 0.12 }}
     >
       <GardenParentBillingWindow contentHeight={DEMO_HEIGHT} />
     </MascotProductSlide>
@@ -170,7 +162,7 @@ function LoveSlide() {
           autopay is my <Accent>love language</Accent>
         </Headline>
         <Hand size={40} color={G.soft} rotate={-2} style={{ marginTop: 18 }}>
-          &mdash; nutmeg, probably on a mug soon
+          &mdash; nutmeg, after autopay
         </Hand>
       </div>
       <PlacedMascot name="nutmeg" view="love" width={520} x={30} y={620} z={4} />
@@ -188,5 +180,5 @@ function LoveSlide() {
 }
 
 function OutroSlide() {
-  return <MascotOutroSlide name="nutmeg" view="wink" lead="Nutmeg retired" accent="the script." aside="draft 8 was never needed" />;
+  return <MascotOutroSlide name="nutmeg" view="wink" lead="No more" accent="chasing tuition." aside="nutmeg retired the reminder script" />;
 }

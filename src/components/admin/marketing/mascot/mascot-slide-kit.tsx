@@ -401,66 +401,492 @@ export function At({ children, ...pos }: { children: ReactNode } & Placed) {
 
 // ---------------------------------------------------------------- product slide
 
+/** Width of the column kept clear for the character in lane layouts. */
+export const LANE_WIDTH = 290;
+const LANE_MASCOT_WIDTH = 320;
+/** The art box has ~22/260 of empty space under the feet; sink it so the ground patch meets the slide edge. */
+const groundedTop = (width: number) => SLIDE_HEIGHT - Math.round((width * 260) / 240) + Math.round((width * 20) / 260);
+
+type LaneSide = "left" | "right";
+type SlideMascot = { name: MascotName; view: MascotView; width?: number; flip?: boolean } & Partial<Placed>;
+
+/** Character standing at the bottom of a lane, with an optional speech-bubble tip above it. */
+function LaneGuide({ side, mascot, tip, laneWidth = LANE_WIDTH }: { side: LaneSide; mascot: SlideMascot; tip?: ReactNode; laneWidth?: number }) {
+  const width = mascot.width ?? LANE_MASCOT_WIDTH;
+  const top = groundedTop(width);
+  const laneLeft = side === "left" ? 0 : SLIDE_WIDTH - laneWidth;
+  const x = laneLeft + Math.round((laneWidth - width) / 2);
+  return (
+    <>
+      {tip ? (
+        <div style={{ position: "absolute", left: laneLeft + 18, width: laneWidth - 36, bottom: SLIDE_HEIGHT - top + 34, zIndex: 7 }}>
+          <SpeechBubble size={30} tail={side === "left" ? "bottom-left" : "bottom-right"} style={{ padding: "20px 22px", borderRadius: 28 }}>
+            {tip}
+          </SpeechBubble>
+        </div>
+      ) : null}
+      <PlacedMascot name={mascot.name} view={mascot.view} flip={mascot.flip} width={width} x={mascot.x ?? x} y={mascot.y ?? top} z={8} />
+    </>
+  );
+}
+
+/** Kicker + headline + plain body + optional hand-written aside. */
+function CopyBlock({ kicker, title, body, aside, size = 64, maxWidth = 900 }: { kicker?: string; title: ReactNode; body?: string; aside?: ReactNode; size?: number; maxWidth?: number }) {
+  return (
+    <>
+      {kicker ? <Kicker style={{ alignSelf: "flex-start" }}>{kicker}</Kicker> : null}
+      <Headline size={size} style={{ marginTop: kicker ? 22 : 0, maxWidth }}>
+        {title}
+      </Headline>
+      {body ? (
+        <p style={{ margin: "18px 0 0", maxWidth, fontFamily: FONT.body, fontWeight: 600, fontSize: 32, lineHeight: 1.3, color: G.soft, textWrap: "pretty" }}>{body}</p>
+      ) : null}
+      {aside ? (
+        <Hand size={34} color={G.forest} rotate={-2} style={{ marginTop: 14, maxWidth }}>
+          {aside}
+        </Hand>
+      ) : null}
+    </>
+  );
+}
+
 /**
- * Real product slide: joke headline on top, the real demo app in a laptop window,
- * the character interacting with it, and a sticky note carrying real site copy.
+ * Real product slide: headline on top, the real demo app in a laptop window, the character and a sticky note.
+ * With `lane`, a column on that side is kept clear for the character (and an optional `tip` bubble),
+ * so it never covers the app; the window bleeds off the other edge.
  */
 export function MascotProductSlide({
   kicker,
   title,
+  body,
+  aside,
   note,
   noteLabel,
   mascot,
   noteAt = { x: 610, y: 330 },
+  lane,
+  tip,
   background = G.cream,
-  windowTop = 420,
+  windowTop,
   contentHeight = 920,
   crop,
+  overlay,
   children,
 }: {
   kicker: string;
   title: ReactNode;
-  note: string;
+  body?: string;
+  aside?: ReactNode;
+  /** Extra slide-positioned content above the window (e.g. a callout card). */
+  overlay?: ReactNode;
+  note?: string;
   noteLabel?: string;
-  mascot: { name: MascotName; view: MascotView; width: number; flip?: boolean } & Placed;
+  mascot: SlideMascot;
   noteAt?: Placed & { width?: number };
+  lane?: LaneSide;
+  tip?: ReactNode;
   background?: string;
   windowTop?: number;
   contentHeight?: number;
   crop?: CarouselDemoCrop;
   children: ReactNode;
 }) {
-  const left = 48;
-  const right = -100;
+  // Lane slides flow: the window starts right under the copy, whatever its length.
+  const flow = Boolean(lane) && windowTop === undefined;
+  const top = windowTop ?? 420;
+  const left = lane === "left" ? LANE_WIDTH : lane === "right" ? 44 : 48;
+  const right = lane === "right" ? LANE_WIDTH : -100;
   const bodyWidth = SLIDE_WIDTH - left - right;
+  const laptop = (
+    <CarouselLaptopWindow
+      contentHeight={contentHeight}
+      cropFocus="top"
+      crop={crop}
+      defaultBodyWidth={bodyWidth}
+      defaultBodyHeight={SLIDE_HEIGHT - (flow ? 560 : top)}
+    >
+      {children}
+    </CarouselLaptopWindow>
+  );
   return (
     <MascotSlide background={background}>
-      <div style={{ position: "absolute", left: 72, right: 72, top: 120, zIndex: 4 }}>
-        <Kicker>{kicker}</Kicker>
-        <Headline size={64} style={{ marginTop: 22, maxWidth: 900 }}>
+      {flow ? (
+        <div style={{ position: "absolute", left: 0, right: 0, top: 120, bottom: -72, display: "flex", flexDirection: "column" }}>
+          <div style={{ padding: "0 72px", flexShrink: 0, zIndex: 4 }}>
+            <CopyBlock kicker={kicker} title={title} body={body} aside={aside} />
+          </div>
+          <div style={{ position: "relative", flex: 1, minHeight: 0, marginTop: 44, marginLeft: left, marginRight: right, zIndex: 2 }}>{laptop}</div>
+        </div>
+      ) : (
+        <>
+          <div style={{ position: "absolute", left: 72, right: 72, top: 120, zIndex: 4 }}>
+            <CopyBlock kicker={kicker} title={title} body={body} aside={aside} />
+          </div>
+          <div style={{ position: "absolute", left, right, top, bottom: -72, zIndex: 2 }}>{laptop}</div>
+        </>
+      )}
+      {overlay}
+      {note ? (
+        <At {...noteAt} z={7}>
+          <RealCopyNote label={noteLabel} width={noteAt.width ?? 400} rotate={noteAt.rotate ?? 3}>
+            {note}
+          </RealCopyNote>
+        </At>
+      ) : null}
+      {lane ? (
+        <LaneGuide side={lane} mascot={mascot} tip={tip} />
+      ) : (
+        <PlacedMascot name={mascot.name} view={mascot.view} flip={mascot.flip} width={mascot.width ?? 380} x={mascot.x ?? 0} y={mascot.y ?? 900} z={8} />
+      )}
+    </MascotSlide>
+  );
+}
+
+export type ListRow = { label: ReactNode; detail?: ReactNode };
+const LIST_LANE_WIDTH = 340;
+
+/**
+ * Checklist / steps slide: copy and numbered rows on one side, the character standing in the
+ * other lane with an optional tip bubble. Pass `children` instead of `rows` for a custom card.
+ */
+export function MascotListSlide({
+  kicker,
+  title,
+  body,
+  aside,
+  rows,
+  mascot,
+  tip,
+  lane = "right",
+  background = G.cream,
+  headlineSize = 64,
+  children,
+}: {
+  kicker?: string;
+  title: ReactNode;
+  body?: string;
+  aside?: ReactNode;
+  rows?: ListRow[];
+  mascot: SlideMascot;
+  tip?: ReactNode;
+  lane?: LaneSide;
+  background?: string;
+  headlineSize?: number;
+  children?: ReactNode;
+}) {
+  const columnWidth = SLIDE_WIDTH - 72 - LIST_LANE_WIDTH;
+  return (
+    <MascotSlide background={background}>
+      <div
+        style={{
+          position: "absolute",
+          top: 120,
+          bottom: 64,
+          left: lane === "right" ? 72 : LIST_LANE_WIDTH,
+          right: lane === "right" ? 72 : 72,
+          display: "flex",
+          flexDirection: "column",
+          zIndex: 4,
+        }}
+      >
+        <CopyBlock kicker={kicker} title={title} body={body} aside={aside} size={headlineSize} maxWidth={lane === "right" ? 936 : 668} />
+        <div style={{ marginTop: 34, width: columnWidth, flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 16 }}>
+          {children ??
+            rows?.map((row, i) => (
+              <div
+                key={i}
+                style={{
+                  flex: 1,
+                  maxHeight: (rows?.length ?? 0) <= 3 ? 210 : 150,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 22,
+                  boxSizing: "border-box",
+                  padding: "18px 26px",
+                  background: G.paper,
+                  border: "2px solid #E6DACB",
+                  borderRadius: 26,
+                  boxShadow: "0 8px 16px rgba(43,36,29,.07)",
+                }}
+              >
+                <span
+                  style={{
+                    width: 52,
+                    height: 52,
+                    flexShrink: 0,
+                    borderRadius: 999,
+                    background: ROW_TINTS[i % ROW_TINTS.length],
+                    border: `3px solid ${G.ink}`,
+                    display: "grid",
+                    placeItems: "center",
+                    fontFamily: FONT.display,
+                    fontWeight: 800,
+                    fontSize: 26,
+                    color: G.ink,
+                  }}
+                >
+                  {i + 1}
+                </span>
+                <span style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+                  <span style={{ fontFamily: FONT.display, fontWeight: 800, fontSize: 38, lineHeight: 1.1, letterSpacing: "-0.015em", color: G.ink }}>{row.label}</span>
+                  {row.detail ? <span style={{ fontFamily: FONT.body, fontWeight: 600, fontSize: 27, lineHeight: 1.3, color: G.soft }}>{row.detail}</span> : null}
+                </span>
+              </div>
+            ))}
+        </div>
+      </div>
+      <LaneGuide side={lane} mascot={{ width: 340, ...mascot }} tip={tip} laneWidth={LIST_LANE_WIDTH} />
+    </MascotSlide>
+  );
+}
+
+/**
+ * Closing promo: forest slide, centred headline + CTA, a narrower laptop window in the middle,
+ * and one or two characters standing in the corner lanes beside it.
+ */
+export function MascotPromoSlide({
+  title,
+  body,
+  cast,
+  contentHeight = 920,
+  crop,
+  children,
+}: {
+  title: ReactNode;
+  body?: string;
+  cast: [SlideMascot] | [SlideMascot, SlideMascot];
+  contentHeight?: number;
+  crop?: CarouselDemoCrop;
+  children: ReactNode;
+}) {
+  const windowTop = 640;
+  const side = 230;
+  const [first, second] = cast;
+  const castWidth = 240;
+  return (
+    <MascotSlide background={G.forest}>
+      <div style={{ position: "absolute", left: 80, right: 80, top: 130, zIndex: 4, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <Headline size={76} color={G.cream} style={{ maxWidth: 900 }}>
           {title}
         </Headline>
+        {body ? (
+          <p style={{ margin: "20px 0 0", maxWidth: 820, fontFamily: FONT.body, fontWeight: 600, fontSize: 32, lineHeight: 1.3, color: "rgba(247,241,231,.82)", textWrap: "pretty" }}>{body}</p>
+        ) : null}
+        <div style={{ marginTop: 30, display: "flex", alignItems: "center", gap: 28 }}>
+          <CtaButton bg={G.butter} color={G.forestDeep} shadow="#1A2C22" />
+          <span style={{ fontFamily: FONT.body, fontWeight: 800, fontSize: 28, color: G.mint }}>{SITE_LABEL}</span>
+        </div>
       </div>
-      <div style={{ position: "absolute", left, right, top: windowTop, bottom: -72, zIndex: 2 }}>
+      <div style={{ position: "absolute", left: side, right: side, top: windowTop, bottom: -72, zIndex: 2 }}>
         <CarouselLaptopWindow
           contentHeight={contentHeight}
           cropFocus="top"
           crop={crop}
-          defaultBodyWidth={bodyWidth}
+          defaultBodyWidth={SLIDE_WIDTH - side * 2}
           defaultBodyHeight={SLIDE_HEIGHT - windowTop}
         >
           {children}
         </CarouselLaptopWindow>
       </div>
-      <At {...noteAt} z={7}>
-        <RealCopyNote label={noteLabel} width={noteAt.width ?? 400} rotate={noteAt.rotate ?? 3}>
-          {note}
-        </RealCopyNote>
-      </At>
-      <PlacedMascot {...mascot} z={8} />
+      <LaneGuide side="left" mascot={{ width: castWidth, ...first }} laneWidth={side + 20} />
+      {second ? <LaneGuide side="right" mascot={{ width: castWidth, ...second }} laneWidth={side + 20} /> : null}
     </MascotSlide>
   );
 }
+
+// ---------------------------------------------------------------- reusable story slides
+
+/** Slide 1: kicker + big joke headline, scene props (children), the character, an aside and "swipe →". */
+export function MascotHookSlide({
+  kicker,
+  headline,
+  name,
+  view,
+  background = G.cream,
+  aside,
+  mascot = { x: 270, y: 640, width: 540 },
+  headlineSize = 78,
+  children,
+}: {
+  kicker?: string;
+  headline: ReactNode;
+  name: MascotName;
+  view: MascotView;
+  background?: string;
+  aside?: ReactNode;
+  mascot?: Placed & { width: number; flip?: boolean };
+  headlineSize?: number;
+  children?: ReactNode;
+}) {
+  return (
+    <MascotSlide background={background}>
+      <div style={{ position: "absolute", left: 72, right: 72, top: 128, zIndex: 5 }}>
+        {kicker ? <Kicker bg={G.paper}>{kicker}</Kicker> : null}
+        <Headline size={headlineSize} style={{ marginTop: kicker ? 22 : 0 }}>
+          {headline}
+        </Headline>
+      </div>
+      {children}
+      <PlacedMascot name={name} view={view} {...mascot} z={4} />
+      {aside ? (
+        <Hand size={42} color={G.clayDeep} rotate={-4} style={{ position: "absolute", left: 70, bottom: 64, right: 360, zIndex: 6 }}>
+          {aside}
+        </Hand>
+      ) : null}
+      <SwipeHint />
+    </MascotSlide>
+  );
+}
+
+export type ReactionRow = { label: ReactNode; aside?: ReactNode; view: MascotView; tag?: string };
+const ROW_TINTS = ["#FFF3CF", "#E3EDFB", "#F8DDCF", "#ECE2F3", "#DDEBD5"];
+
+/** Slide 2: meme list ("the 5 stages of…") — alternating tinted rows, one reaction face each. */
+export function ReactionListSlide({
+  title,
+  name,
+  rows,
+  background = G.cream,
+  tagPrefix,
+}: {
+  title: ReactNode;
+  name: MascotName;
+  rows: ReactionRow[];
+  background?: string;
+  tagPrefix?: string;
+}) {
+  return (
+    <MascotSlide background={background}>
+      <div style={{ position: "absolute", left: 72, right: 72, top: 110 }}>
+        <Headline size={60}>{title}</Headline>
+      </div>
+      <div style={{ position: "absolute", left: 60, right: 60, top: 290, display: "flex", flexDirection: "column", gap: 14 }}>
+        {rows.map((r, i) => (
+          <div
+            key={i}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 22,
+              height: 186,
+              padding: "0 28px 0 12px",
+              background: ROW_TINTS[i % ROW_TINTS.length],
+              borderRadius: 30,
+              transform: `rotate(${i % 2 ? 0.8 : -0.8}deg)`,
+              flexDirection: i % 2 ? "row-reverse" : "row",
+            }}
+          >
+            <Mascot name={name} view={r.view} width={164} ground={false} />
+            <div style={{ flex: 1, minWidth: 0, textAlign: i % 2 ? "right" : "left" }}>
+              {r.tag || tagPrefix ? (
+                <p style={{ margin: 0, fontFamily: FONT.display, fontWeight: 800, fontSize: 22, color: G.clayDeep, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                  {r.tag ?? `${tagPrefix} ${i + 1}`}
+                </p>
+              ) : null}
+              <Headline size={44} style={{ marginTop: 4 }}>
+                {r.label}
+              </Headline>
+              {r.aside ? (
+                <Hand size={31} color={G.soft} rotate={0} style={{ marginTop: 6 }}>
+                  {r.aside}
+                </Hand>
+              ) : null}
+            </div>
+          </div>
+        ))}
+      </div>
+    </MascotSlide>
+  );
+}
+
+/** Slide 3: the "what if…" turn — speech bubble, the character, an aside, "here's how →". */
+export function MascotTurnSlide({
+  name,
+  view,
+  bubble,
+  aside,
+  background = G.sky,
+}: {
+  name: MascotName;
+  view: MascotView;
+  bubble: ReactNode;
+  aside?: ReactNode;
+  background?: string;
+}) {
+  return (
+    <MascotSlide background={background}>
+      <At x={110} y={170} z={5}>
+        <SpeechBubble tail="bottom-right" size={64} width={860}>
+          {bubble}
+        </SpeechBubble>
+      </At>
+      <PlacedMascot name={name} view={view} width={620} x={230} y={590} z={4} />
+      {aside ? (
+        <Hand size={40} color={G.forest} rotate={5} style={{ position: "absolute", left: 76, top: 600, maxWidth: 300, zIndex: 6 }}>
+          {aside}
+        </Hand>
+      ) : null}
+      <SwipeHint text="here's how →" />
+    </MascotSlide>
+  );
+}
+
+export type Notif = { title: string; sub: string; color: string };
+
+/** Reaction slide: big line, the character, and real sample notifications from the site. */
+export function NotificationReactionSlide({
+  headline,
+  aside,
+  name,
+  view,
+  notifs,
+  background = "#FBE6E2",
+}: {
+  headline: ReactNode;
+  aside?: ReactNode;
+  name: MascotName;
+  view: MascotView;
+  notifs: Notif[];
+  background?: string;
+}) {
+  return (
+    <MascotSlide background={background}>
+      <div style={{ position: "absolute", left: 72, right: 72, top: 130, zIndex: 5 }}>
+        <Headline size={84}>{headline}</Headline>
+        {aside ? (
+          <Hand size={40} color={G.soft} rotate={-2} style={{ marginTop: 18 }}>
+            {aside}
+          </Hand>
+        ) : null}
+      </div>
+      <PlacedMascot name={name} view={view} width={520} x={30} y={640} z={4} />
+      {notifs.map((n, i) => (
+        <At key={n.title} x={i % 2 ? 540 : 560} y={680 + i * 168} rotate={i % 2 ? 2 : -3} z={6}>
+          <NotificationCard title={n.title} sub={n.sub} color={n.color} />
+        </At>
+      ))}
+    </MascotSlide>
+  );
+}
+
+/** Real sample notifications (src/components/home/FloatingStickers.tsx). */
+export const SAMPLE_NOTIFS = {
+  tuitionPaid: { title: "Tuition paid", sub: "October · autopay", color: "#059669" },
+  paymentReceived: { title: "Payment received", sub: "Paid on time", color: "#059669" },
+  invoiceSent: { title: "Invoice sent", sub: "November tuition", color: "#7C3AED" },
+  attendanceLogged: { title: "Attendance logged", sub: "14 of 15 present", color: "#10b981" },
+  pickupConfirmed: { title: "Pickup confirmed", sub: "Authorized contact", color: "#4A6B52" },
+  clockedIn: { title: "Clocked in", sub: "7:58 AM", color: "#10b981" },
+  weeklyHours: { title: "Weekly hours", sub: "Ready for review", color: "#0D9488" },
+  campaignSent: { title: "Campaign sent", sub: "Open house invite", color: "#f97316" },
+  leadNurtured: { title: "Lead nurtured", sub: "Tour scheduled", color: "#A05C45" },
+  tourBooked: { title: "Tour booked", sub: "From your website", color: "#A05C45" },
+  newInquiry: { title: "New inquiry", sub: "Kindergarten", color: "#f97316" },
+  newMessage: { title: "New message", sub: "From Ms. Rivera", color: "#0284C7" },
+  parentReplied: { title: "Parent replied", sub: "Field trip form", color: "#0284C7" },
+  packetSigned: { title: "Packet signed", sub: "Enrollment agreement", color: "#4F46E5" },
+  checklistDone: { title: "Checklist done", sub: "Health + emergency", color: "#059669" },
+} satisfies Record<string, Notif>;
 
 /** Closing slide: forest panel, character, headline, CTA and site. */
 export function MascotOutroSlide({

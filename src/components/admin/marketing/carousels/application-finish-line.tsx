@@ -1,253 +1,175 @@
 "use client";
 
-import SlideCanvas, { displayStyle, SLIDE } from "@/components/admin/marketing/slide-frame";
-import {
-  CarouselProductSlide,
-  type CarouselDemoCrop,
-} from "@/components/admin/marketing/carousels/carousel-product-slide";
 import type { MarketingCarousel, MarketingSlide } from "@/components/admin/marketing/carousels/types";
+import type { CarouselDemoCrop } from "@/components/admin/marketing/carousels/carousel-product-slide";
 import {
   MARKETING_DEMO_CHECKLIST_FLOW_SELECTION,
-  MarketingAdmissionsSubmissionsDemoWindow,
   MarketingEnrollmentFlowsDemoWindow,
-  MarketingParentEnrollmentDemoWindow,
 } from "@/components/admin/marketing/screens/marketing-demo-windows";
-import { buildDemoMarketingSlide1Leads } from "@/data/school-demos/demo-admin-admissions-fixtures";
-import { MarketingMobilePromoCluster } from "@/components/admin/marketing/screens/marketing-mobile-promo-cluster";
+import {
+  GardenAdmissionsWindow,
+  GardenEnrollmentChecklistWindow,
+  GardenParentHomeWindow,
+} from "@/components/admin/marketing/screens/marketing-garden-demo-windows";
+import {
+  Accent,
+  MascotListSlide,
+  MascotProductSlide,
+  MascotPromoSlide,
+} from "@/components/admin/marketing/mascot/mascot-slide-kit";
 
-const FOREST_RULE = "1px solid rgba(247, 241, 231, 0.28)";
-const FOREST_BODY = "rgba(247, 241, 231, 0.82)";
+// Pip (enrollment) walks a family from application to first day; Bramble (forms) takes over the checklist.
 
-const HANDOFF_STEPS = [
-  { label: "Application", detail: "Families submit their answers in one place." },
-  { label: "Decision", detail: "Staff review and decide what happens next." },
-  { label: "Enrollment checklist", detail: "Accepted families complete agreements, forms, and fees." },
+const STEPS = [
+  { label: "Apply", detail: "The family sends their answers in one place." },
+  { label: "Decide", detail: "Your team reviews and says yes, or not yet." },
+  { label: "Enroll", detail: "The family finishes forms, agreements and fees." },
 ];
 
-const DEMO_CONTENT_HEIGHT = 920;
+const DEMO_HEIGHT = 920;
 const SPOTLIGHT_LEAD_ID = "l3";
 
 const SUBMITTED_INBOX_CROP: CarouselDemoCrop = { zoom: 1.22, originX: 0, originY: 0 };
 const REVIEW_ANSWERS_CROP: CarouselDemoCrop = { zoom: 1.2, originX: 0.21, originY: 0 };
-const NEXT_STEP_CROP: CarouselDemoCrop = { zoom: 1.25, originX: 0.23, originY: 0.1 };
+const NEXT_STEP_CROP: CarouselDemoCrop = { zoom: 1.25, originX: 0.2, originY: 0.1 };
 const CHECKLIST_CROP: CarouselDemoCrop = { zoom: 1.35, originX: 0, originY: 0.05 };
 const FAMILY_PROGRESS_CROP: CarouselDemoCrop = { zoom: 1.45, originX: 0, originY: 0 };
 
 export const APPLICATION_FINISH_LINE_CAROUSEL = {
   id: "application-finish-line",
   title: "The application isn’t the finish line",
-  description: "LinkedIn carousel for the path from application to enrollment.",
+  description: "LinkedIn carousel for the path from application to enrollment, guided by Pip and Bramble.",
   fileSlug: "mudkitchen-application-finish-line",
   slides: [
-    {
-      id: "submitted",
-      fileName: "01-application-submitted-who-owns-the-next-step.png",
-      render: () => <SubmittedSlide />,
-    },
-    {
-      id: "stages",
-      fileName: "02-three-stages-one-connected-path.png",
-      render: () => <StagesSlide />,
-    },
-    {
-      id: "review",
-      fileName: "03-review-the-application-in-one-place.png",
-      render: () => <ReviewSlide />,
-    },
-    {
-      id: "next-action",
-      fileName: "04-make-the-next-action-clear.png",
-      render: () => <NextActionSlide />,
-    },
-    {
-      id: "checklist",
-      fileName: "05-accepted-give-families-one-checklist.png",
-      render: () => <ChecklistBuilderSlide />,
-    },
-    {
-      id: "family-progress",
-      fileName: "06-let-families-see-whats-left.png",
-      render: () => <FamilyProgressSlide />,
-    },
-    {
-      id: "promo",
-      fileName: "07-from-application-to-enrollment.png",
-      render: () => <PromoSlide />,
-    },
+    { id: "submitted", fileName: "01-application-submitted-who-owns-the-next-step.png", render: () => <SubmittedSlide /> },
+    { id: "stages", fileName: "02-three-stages-one-connected-path.png", render: () => <StagesSlide /> },
+    { id: "review", fileName: "03-review-the-application-in-one-place.png", render: () => <ReviewSlide /> },
+    { id: "next-action", fileName: "04-make-the-next-action-clear.png", render: () => <NextActionSlide /> },
+    { id: "checklist", fileName: "05-accepted-give-families-one-checklist.png", render: () => <ChecklistBuilderSlide /> },
+    { id: "family-progress", fileName: "06-let-families-see-whats-left.png", render: () => <FamilyProgressSlide /> },
+    { id: "promo", fileName: "07-from-application-to-enrollment.png", render: () => <PromoSlide /> },
   ] satisfies MarketingSlide[],
 } satisfies MarketingCarousel;
 
 function SubmittedSlide() {
   return (
-    <CarouselProductSlide
+    <MascotProductSlide
       kicker="Admissions"
-      tone="forest"
-      title="A family applied to your Microschool. What happens next?"
-      body="Give staff and families a clear path from application to enrollment."
-      contentHeight={DEMO_CONTENT_HEIGHT}
+      title={
+        <>
+          A family applied to your <Accent>Microschool.</Accent> Now what?
+        </>
+      }
+      body="Get them from application to first day without anyone guessing the next step."
+      lane="right"
+      mascot={{ name: "pip", view: "curious" }}
+      tip="I'm Pip. I'll walk you through it."
+      background="#FFF3CF"
+      contentHeight={DEMO_HEIGHT}
       crop={SUBMITTED_INBOX_CROP}
     >
-      <MarketingAdmissionsSubmissionsDemoWindow
-        leads={buildDemoMarketingSlide1Leads()}
-        highlightLeadId={SPOTLIGHT_LEAD_ID}
-        contentHeight={DEMO_CONTENT_HEIGHT}
-        compactForMarketing
-      />
-    </CarouselProductSlide>
+      <GardenAdmissionsWindow contentHeight={DEMO_HEIGHT} />
+    </MascotProductSlide>
   );
 }
 
 function StagesSlide() {
   return (
-    <SlideCanvas background={SLIDE.forest}>
-      <div
-        style={{
-          height: "100%",
-          boxSizing: "border-box",
-          padding: "140px 80px 72px",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <p style={{ ...displayStyle(36, SLIDE.white), letterSpacing: "0.08em", textTransform: "uppercase" }}>
-          Admissions
-        </p>
-        <h1 style={{ ...displayStyle(72, SLIDE.white), marginTop: 16, maxWidth: 900 }}>
-          Three stages. One connected path.
-        </h1>
-        <p style={{ margin: "22px 0 0", maxWidth: 860, fontSize: 32, lineHeight: 1.32, color: FOREST_BODY }}>
-          Families apply. Staff review and decide. Accepted families complete enrollment.
-        </p>
-        <div style={{ marginTop: 48, display: "flex", flexDirection: "column" }}>
-          {HANDOFF_STEPS.map((step, index) => (
-            <div
-              key={step.label}
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 20,
-                padding: "28px 0",
-                borderBottom: index === HANDOFF_STEPS.length - 1 ? "none" : FOREST_RULE,
-              }}
-            >
-              <span style={{ ...displayStyle(36, SLIDE.white), width: 48, flexShrink: 0 }}>
-                {index + 1}
-              </span>
-              <div>
-                <p style={{ ...displayStyle(40, SLIDE.white), fontWeight: 620, margin: 0 }}>{step.label}</p>
-                <p style={{ margin: "8px 0 0", fontSize: 26, lineHeight: 1.35, color: FOREST_BODY }}>
-                  {step.detail}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </SlideCanvas>
+    <MascotListSlide
+      kicker="The path"
+      title={
+        <>
+          3 steps from <Accent>“applied”</Accent> to <Accent>“enrolled”</Accent>
+        </>
+      }
+      rows={STEPS}
+      aside="the application is only step one"
+      mascot={{ name: "pip", view: "point", flip: true }}
+      tip="Each step needs a clear owner."
+    />
   );
 }
 
 function ReviewSlide() {
   return (
-    <CarouselProductSlide
-      kicker="Admissions"
-      title="Review the application in one place."
-      body="See the family’s answers, contact details, and status together."
-      contentHeight={DEMO_CONTENT_HEIGHT}
+    <MascotProductSlide
+      kicker="Step 1 · Review"
+      title="See the whole application on one screen."
+      body="Answers, contact details and status together. No digging through email."
+      lane="left"
+      mascot={{ name: "pip", view: "thinking" }}
+      tip="Everything I need, in one spot."
+      contentHeight={DEMO_HEIGHT}
       crop={REVIEW_ANSWERS_CROP}
     >
-      <MarketingAdmissionsSubmissionsDemoWindow
-        initialSelectedLeadId={SPOTLIGHT_LEAD_ID}
-        initialDetailTab="application"
-        contentHeight={DEMO_CONTENT_HEIGHT}
-      />
-    </CarouselProductSlide>
+      <GardenAdmissionsWindow selectedLeadId={SPOTLIGHT_LEAD_ID} contentHeight={DEMO_HEIGHT} />
+    </MascotProductSlide>
   );
 }
 
 function NextActionSlide() {
   return (
-    <CarouselProductSlide
-      kicker="Admissions"
-      tone="forest"
-      title="Make the next action clear."
-      body="Review this application. The next step stays visible — here, it’s with staff."
-      contentHeight={DEMO_CONTENT_HEIGHT}
+    <MascotProductSlide
+      kicker="Step 2 · Decide"
+      title="Always know whose turn it is."
+      body="Each application shows the next step, and whether it’s on your team or the family."
+      lane="right"
+      mascot={{ name: "pip", view: "point", flip: true }}
+      tip="Here, it’s on us. Got it!"
+      background="#F3EEF8"
+      contentHeight={DEMO_HEIGHT}
       crop={NEXT_STEP_CROP}
     >
-      <MarketingAdmissionsSubmissionsDemoWindow
-        initialSelectedLeadId={SPOTLIGHT_LEAD_ID}
-        initialDetailTab="overview"
-        contentHeight={DEMO_CONTENT_HEIGHT}
-      />
-    </CarouselProductSlide>
+      <GardenAdmissionsWindow selectedLeadId={SPOTLIGHT_LEAD_ID} contentHeight={DEMO_HEIGHT} />
+    </MascotProductSlide>
   );
 }
 
 function ChecklistBuilderSlide() {
   return (
-    <CarouselProductSlide
-      kicker="Enrollment"
-      title="Accepted? Give families one checklist."
-      body="Agreements, forms, uploads, and fees belong in one enrollment checklist."
-      contentHeight={DEMO_CONTENT_HEIGHT}
+    <MascotProductSlide
+      kicker="Step 3 · Enroll"
+      title="Accepted? Send one checklist."
+      body="Agreements, forms, uploads and fees, all in one list."
+      lane="left"
+      mascot={{ name: "bramble", view: "hold" }}
+      tip="Bramble here. I handle the forms."
+      background="#EEF5E9"
+      contentHeight={DEMO_HEIGHT}
       crop={CHECKLIST_CROP}
     >
-      <MarketingEnrollmentFlowsDemoWindow
-        initialFlowSelection={MARKETING_DEMO_CHECKLIST_FLOW_SELECTION}
-        wrapOutlineLabels
-        contentHeight={DEMO_CONTENT_HEIGHT}
-      />
-    </CarouselProductSlide>
+      <MarketingEnrollmentFlowsDemoWindow initialFlowSelection={MARKETING_DEMO_CHECKLIST_FLOW_SELECTION} wrapOutlineLabels contentHeight={DEMO_HEIGHT} />
+    </MascotProductSlide>
   );
 }
 
 function FamilyProgressSlide() {
   return (
-    <CarouselProductSlide
-      kicker="Enrollment"
-      tone="forest"
-      title="Let families see what’s left."
-      body="Preview their checklist before sharing it. Completed items stay marked, and what’s left stays visible."
-      contentHeight={DEMO_CONTENT_HEIGHT}
+    <MascotProductSlide
+      kicker="For families"
+      title="Families can see what’s left."
+      body="Finished items get checked off. Nothing slips through."
+      lane="right"
+      mascot={{ name: "bramble", view: "thumbs", flip: true }}
+      tip="No lost forms this year."
+      background="#EEF5E9"
+      contentHeight={DEMO_HEIGHT}
       crop={FAMILY_PROGRESS_CROP}
     >
-      <MarketingParentEnrollmentDemoWindow
-        initialActiveItem="registration-fee"
-        contentHeight={DEMO_CONTENT_HEIGHT}
-      />
-    </CarouselProductSlide>
+      <GardenEnrollmentChecklistWindow contentHeight={DEMO_HEIGHT} />
+    </MascotProductSlide>
   );
 }
 
 function PromoSlide() {
   return (
-    <CarouselProductSlide
-      variant="promo"
-      demoPresentation="phones"
-      promoDensity="compact"
-      promoSiteLabel="trymudkitchen.com"
-      title="From application to enrollment, in one place."
-      body="See how your school’s review steps and enrollment requirements fit together."
-      footer={
-        <div style={{ marginTop: 22, display: "flex", justifyContent: "center" }}>
-          <span
-            style={{
-              display: "inline-block",
-              background: SLIDE.white,
-              color: SLIDE.forest,
-              borderRadius: 999,
-              padding: "18px 40px",
-              fontSize: 28,
-              fontWeight: 750,
-            }}
-          >
-            Book a demo
-          </span>
-        </div>
-      }
+    <MascotPromoSlide
+      title="From “applied” to “enrolled”, in one place."
+      body="Applications, decisions and enrollment checklists stay connected."
+      cast={[{ name: "pip", view: "celebrate" }, { name: "bramble", view: "wave", flip: true }]}
+      contentHeight={DEMO_HEIGHT}
     >
-      <MarketingMobilePromoCluster variant="admissions" />
-    </CarouselProductSlide>
+      <GardenParentHomeWindow contentHeight={DEMO_HEIGHT} />
+    </MascotPromoSlide>
   );
 }

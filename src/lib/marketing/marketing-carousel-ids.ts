@@ -8,6 +8,14 @@ export const MARKETING_CAROUSEL_IDS = [
   "mascot-pip-enrollment",
   "mascot-nutmeg-tuition",
   "mascot-dig-admin",
+  "mascot-terra-website",
+  "mascot-fennel-attendance",
+  "mascot-clover-timeclock",
+  "mascot-marigold-marketing",
+  "mascot-loam-messages",
+  "mascot-dot-calendar",
+  "mascot-bramble-forms",
+  "mascot-crew-singles",
 ] as const;
 
 export type MarketingCarouselId = (typeof MARKETING_CAROUSEL_IDS)[number];

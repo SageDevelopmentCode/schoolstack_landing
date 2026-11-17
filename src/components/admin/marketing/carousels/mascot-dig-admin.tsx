@@ -13,6 +13,7 @@ import {
   G,
   Hand,
   Headline,
+  Kicker,
   MascotOutroSlide,
   MascotProductSlide,
   MascotSlide,
@@ -40,23 +41,24 @@ export const MASCOT_DIG_ADMIN_CAROUSEL = {
 } satisfies MarketingCarousel;
 
 const TABS: { label: string; x: number; y: number; r: number; tint?: string }[] = [
-  { label: "forms_FINAL_v3.pdf", x: 40, y: 430, r: -6, tint: "#FFF7DA" },
-  { label: "tuition (2).xlsx", x: 600, y: 410, r: 5 },
-  { label: "group chat (99+)", x: 660, y: 540, r: -4, tint: "#E3EDFB" },
-  { label: "inbox (312)", x: 40, y: 560, r: 4 },
-  { label: "permission slips", x: 760, y: 680, r: 8, tint: "#FDF0EA" },
-  { label: "Untitled spreadsheet", x: 10, y: 700, r: -9 },
-  { label: "allergies_NEW_new", x: 720, y: 830, r: -5, tint: "#F1FAEC" },
-  { label: "tour signups?", x: 30, y: 850, r: 6, tint: "#ECE2F3" },
-  { label: "calendar (old)", x: 780, y: 980, r: 4 },
-  { label: "staff hours ???", x: 20, y: 1000, r: -4, tint: "#FFF7DA" },
+  { label: "forms_FINAL_v3.pdf", x: 40, y: 500, r: -6, tint: "#FFF7DA" },
+  { label: "tuition (2).xlsx", x: 600, y: 480, r: 5 },
+  { label: "group chat (99+)", x: 660, y: 610, r: -4, tint: "#E3EDFB" },
+  { label: "inbox (312)", x: 40, y: 630, r: 4 },
+  { label: "permission slips", x: 760, y: 750, r: 8, tint: "#FDF0EA" },
+  { label: "Untitled spreadsheet", x: 10, y: 770, r: -9 },
+  { label: "allergies_NEW_new", x: 720, y: 900, r: -5, tint: "#F1FAEC" },
+  { label: "tour signups?", x: 30, y: 920, r: 6, tint: "#ECE2F3" },
+  { label: "calendar (old)", x: 780, y: 1050, r: 4 },
+  { label: "staff hours ???", x: 20, y: 1070, r: -4, tint: "#FFF7DA" },
 ];
 
 function HookSlide() {
   return (
     <MascotSlide background="#EAF1F8">
       <div style={{ position: "absolute", left: 72, right: 72, top: 120, zIndex: 5 }}>
-        <Headline size={96}>
+        <Kicker bg={G.paper}>Meet Dig, who runs the front office</Kicker>
+        <Headline size={96} style={{ marginTop: 22 }}>
           Dig has <Accent>47 tabs</Accent> open.
         </Headline>
         <Hand size={46} color={G.forest} rotate={-3} style={{ marginTop: 14 }}>
@@ -128,12 +130,9 @@ function DashboardSlide() {
   return (
     <MascotProductSlide
       kicker="Admin Portal"
-      title={
-        <>
-          Tab 47. <Accent>The only one Dig needs.</Accent>
-        </>
-      }
-      note="Enrollment, billing, and daily operations in one workspace — from first click to enrolled."
+      title="One place to run your school."
+          aside="the only tab dig needs now."
+      note="Enrollment, billing, and daily tasks in one workspace."
       noteAt={{ x: 630, y: 930, rotate: 3, width: 390 }}
       mascot={{ name: "dig", view: "point", width: 380, x: -30, y: 880 }}
       windowTop={340}
@@ -149,12 +148,9 @@ function PipelineSlide() {
   return (
     <MascotProductSlide
       kicker="Admissions"
-      title={
-        <>
-          Every application, already sorted. <Accent>No spreadsheet archaeology.</Accent>
-        </>
-      }
-      note="Pipeline views from first application through enrolled."
+      title="Applications sorted by stage, automatically."
+          aside="no more digging through spreadsheets."
+      note="See every family, from first inquiry to enrolled."
       background="#F3EEF8"
       noteAt={{ x: 60, y: 980, rotate: -3, width: 380 }}
       mascot={{ name: "dig", view: "thumbs", width: 360, x: 700, y: 900 }}
@@ -170,17 +166,14 @@ function NumbersSlide() {
   return (
     <MascotProductSlide
       kicker="At a glance"
-      title={
-        <>
-          The numbers, minus the spreadsheet. <Accent>Dig has free time now (suspicious).</Accent>
-        </>
-      }
-      note="School admins see applications, tuition, and messages together."
+      title="Your key numbers on one screen."
+          aside="dig has free time now."
+      note="Applications, tuition, and messages at a glance."
       background="#EEF5E9"
       noteAt={{ x: 630, y: 990, rotate: 4, width: 380 }}
       mascot={{ name: "dig", view: "sit", width: 340, x: 10, y: 960 }}
       contentHeight={DEMO_HEIGHT}
-      crop={{ zoom: 1.35, originX: 0.55, originY: 0.62 }}
+      crop={{ zoom: 1.35, originX: 0.12, originY: 0.25 }}
     >
       <GardenAdminDashboardWindow contentHeight={DEMO_HEIGHT} />
     </MascotProductSlide>
@@ -188,5 +181,5 @@ function NumbersSlide() {
 }
 
 function OutroSlide() {
-  return <MascotOutroSlide name="dig" view="sit" lead="47 tabs → 1." accent="Dig took a lunch break." aside="an actual one. with a sandwich." />;
+  return <MascotOutroSlide name="dig" view="sit" lead="47 tabs → 1." accent="Dig took a real lunch break." aside="with a sandwich and everything." />;
 }

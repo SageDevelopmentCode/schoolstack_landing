@@ -4,7 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { STORY_COPY } from "@/components/home/home-copy";
 import { Reveal } from "@/components/garden/motion";
+import StarRating from "@/components/garden/StarRating";
 import { Draw, Pill, Star, Tape, Tick, btnButter } from "@/components/garden/ui";
+import { PARENT_QUOTE, TUITION_RATING } from "@/lib/marketing/social-proof";
 import { SAGEFIELD_LOGO, SAGEFIELD_PHOTOS } from "../assets";
 import SectionIntro from "../SectionIntro";
 
@@ -79,6 +81,18 @@ export default function StoryTicket() {
                   <span className="block font-extrabold text-[var(--sf-ink)]">{STORY_COPY.author.name}</span>
                   <span className="block text-sm font-semibold text-[var(--sf-soft)]">{STORY_COPY.author.title}</span>
                 </span>
+              </figcaption>
+            </figure>
+            <figure
+              className="relative rounded-[24px] border-2 border-[var(--sf-ink)] bg-white px-6 py-5 shadow-[0_5px_0_0_var(--sf-ink)]"
+              style={{ rotate: "-0.8deg" }}
+            >
+              <StarRating label={TUITION_RATING.label} srLabel={TUITION_RATING.srLabel} />
+              <blockquote className="mt-3 text-[16.5px] font-bold leading-relaxed text-[var(--sf-ink)]/85">
+                &ldquo;{PARENT_QUOTE.quote}&rdquo;
+              </blockquote>
+              <figcaption className="mt-2 text-sm font-extrabold text-[var(--sf-soft)]">
+                &mdash; {PARENT_QUOTE.attribution}
               </figcaption>
             </figure>
             <div className="relative -rotate-1 rounded-md bg-[var(--sf-butter)] p-6 pt-7 shadow-[0_14px_30px_-16px_rgba(43,36,29,0.5)]">

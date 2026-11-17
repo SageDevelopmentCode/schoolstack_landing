@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -13,6 +13,12 @@ import {
   BRIGHT_AUTH_ERROR_CLASS,
   BRIGHT_AUTH_PRIMARY_BUTTON,
   BRIGHT_AUTH_THEME,
+  GARDEN_AUTH_BACK,
+  GARDEN_AUTH_CARD,
+  GARDEN_AUTH_HELPER,
+  GARDEN_AUTH_LINK,
+  GARDEN_AUTH_QUIET_LINK,
+  GARDEN_AUTH_WORDMARK_TEXT,
 } from "@/components/login/bright-auth-form-styles";
 import LoginPhaseHeader from "@/components/login/login-phase-header";
 import OrganizationSelector from "@/components/login/OrganizationSelector";
@@ -27,9 +33,12 @@ import {
   reportAuthOtpFailed,
   reportAuthOtpRequested,
 } from "@/lib/activity-auth-client";
+import { buildParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { createClient } from "@/utils/supabase/client";
 
 const RESEND_COOLDOWN_SECONDS = 30;
+
+const WORDMARK_TEXT_STYLE = { "--demo-dark": "var(--sf-ink)" } as CSSProperties;
 
 type LoginAuthMethod = "otp" | "password" | "session_restored";
 
@@ -101,6 +110,15 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
   // Only set for `?school=` deep links or after the user picks a school.
   const [selectedOrganization, setSelectedOrganization] =
     useState<LiveOrganizationOption | null>(initialOrganization);
+  // A known school's accent replaces Garden clay on the form side (not on the
+  // multi-school picker, where no single school is speaking yet).
+  const gardenTheme = useMemo(
+    () =>
+      selectedOrganization && phase !== "select_org"
+        ? buildParentThemeTokens(selectedOrganization.branding)
+        : null,
+    [selectedOrganization, phase],
+  );
   const [pickerOrganizations, setPickerOrganizations] = useState<
     LiveOrganizationOption[]
   >([]);
@@ -480,7 +498,7 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
       selectedOrganization ? (
         <>
           Enter the email you use with{" "}
-          <span className="font-semibold text-[#1d1a16]">{selectedOrganization.name}</span>
+          <span className="font-bold text-[var(--sf-ink)]">{selectedOrganization.name}</span>
           . We&apos;ll send you a one-time code.
         </>
       ) : (
@@ -491,7 +509,7 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
     ) : (
       <>
         We sent a 6-digit code to{" "}
-        <span className="font-semibold text-[#1d1a16]">{normalizedEmail}</span>. If it
+        <span className="font-bold text-[var(--sf-ink)]">{normalizedEmail}</span>. If it
         doesn&apos;t arrive within a minute, check your spam or junk folder.
       </>
     );
@@ -508,8 +526,10 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
           text: selectedOrganization.branding.logo.src
             ? undefined
             : selectedOrganization.name,
+          textClassName: GARDEN_AUTH_WORDMARK_TEXT,
         }}
-        className="mb-6 h-8 w-auto max-w-[200px] object-contain"
+        className="mb-6 block h-9 w-auto max-w-[200px] object-contain"
+        style={WORDMARK_TEXT_STYLE}
       />
     ) : null;
 
@@ -518,7 +538,7 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
   }
 
   return (
-    <BrightAuthPageLayout>
+    <BrightAuthPageLayout theme={gardenTheme}>
             {phase === "verify" || phase === "select_org" ? (
               <button
                 type="button"
@@ -526,7 +546,7 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
                   phase === "select_org" ? handleBackFromSchoolPicker : handleBackToEmail
                 }
                 disabled={isSubmitting}
-                className="mb-6 inline-flex items-center gap-1.5 font-secondary text-sm font-medium text-[#1d1a16]/70 transition hover:text-[#1d1a16] disabled:cursor-not-allowed disabled:opacity-50"
+                className={GARDEN_AUTH_BACK}
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back
@@ -542,11 +562,11 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
 
             {openingOrganizationId && openingOrganizationName ? (
               <div
-                className="-mt-4 mb-4 inline-flex w-full items-center justify-center gap-2 rounded-pill bg-[#F4F1EC] px-4 py-2 font-secondary text-sm font-medium text-[#1d1a16]/80"
+                className="-mt-2 mb-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--sf-mint)] px-4 py-2 text-sm font-bold text-[var(--sf-forest)]"
                 role="status"
                 aria-live="polite"
               >
-                <Loader2 className="h-4 w-4 animate-spin text-[#1d1a16]" aria-hidden />
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
                 Opening {openingOrganizationName}…
               </div>
             ) : null}
@@ -586,9 +606,11 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
                   transition={stepTransition}
                   className="space-y-4"
                 >
-                  <form onSubmit={handleEmailSubmit} className="space-y-4">
+                  <form onSubmit={handleEmailSubmit} className={`${GARDEN_AUTH_CARD} space-y-4`}>
                     <GetStartedStoryTextField
                       theme={BRIGHT_AUTH_THEME}
+                      variant="intro"
+                      appearance="garden"
                       id="login-email"
                       label="Email"
                       type="email"
@@ -608,24 +630,24 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
                     </button>
                   </form>
 
-                  <p className="font-secondary text-sm text-[#1d1a16]/70">
+                  <p className={GARDEN_AUTH_HELPER}>
                     Prefer a password?{" "}
                     <button
                       type="button"
                       onClick={switchToPassword}
                       disabled={isSubmitting}
-                      className="font-semibold text-clay underline-offset-2 hover:underline disabled:opacity-60"
+                      className={GARDEN_AUTH_LINK}
                     >
                       Use password instead
                     </button>
                   </p>
 
                   {selectedOrganization ? (
-                    <p className="font-secondary text-sm text-[#1d1a16]/70">
+                    <p className={GARDEN_AUTH_HELPER}>
                       New here?{" "}
                       <Link
                         href={`/school/${selectedOrganization.slug}/forms/apply`}
-                        className="font-semibold text-clay underline-offset-2 hover:underline"
+                        className={GARDEN_AUTH_LINK}
                       >
                         Start your application
                       </Link>
@@ -643,9 +665,11 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
                   transition={stepTransition}
                   className="space-y-4"
                 >
-                  <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                  <form onSubmit={handlePasswordSubmit} className={`${GARDEN_AUTH_CARD} space-y-4`}>
                     <GetStartedStoryTextField
                       theme={BRIGHT_AUTH_THEME}
+                      variant="intro"
+                      appearance="garden"
                       id="login-password-email"
                       label="Email"
                       type="email"
@@ -656,6 +680,8 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
 
                     <GetStartedStoryTextField
                       theme={BRIGHT_AUTH_THEME}
+                      variant="intro"
+                      appearance="garden"
                       id="login-password"
                       label="Password"
                       type="password"
@@ -675,13 +701,13 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
                     </button>
                   </form>
 
-                  <p className="font-secondary text-sm text-[#1d1a16]/70">
+                  <p className={GARDEN_AUTH_HELPER}>
                     Prefer a one-time code?{" "}
                     <button
                       type="button"
                       onClick={switchToOtpEmail}
                       disabled={isSubmitting}
-                      className="font-semibold text-clay underline-offset-2 hover:underline disabled:opacity-60"
+                      className={GARDEN_AUTH_LINK}
                     >
                       Use email code instead
                     </button>
@@ -698,7 +724,7 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
                   transition={stepTransition}
                   className="space-y-4"
                 >
-                  <form onSubmit={handleVerifySubmit} className="space-y-4">
+                  <form onSubmit={handleVerifySubmit} className={`${GARDEN_AUTH_CARD} space-y-4`}>
                     <VerificationCodeInput
                       id="login-code"
                       label="Verification code"
@@ -706,7 +732,7 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
                       onChange={setCode}
                       disabled={isSubmitting}
                       autoFocus
-                      variant="bright"
+                      variant="garden"
                     />
 
                     <button
@@ -720,12 +746,12 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
                     </button>
                   </form>
 
-                  <div className="flex items-center justify-between font-secondary text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
                     <button
                       type="button"
                       onClick={handleBackToEmail}
                       disabled={isSubmitting}
-                      className="text-[#1d1a16]/70 underline-offset-2 hover:underline disabled:opacity-60"
+                      className={GARDEN_AUTH_QUIET_LINK}
                     >
                       Use a different email
                     </button>
@@ -733,7 +759,7 @@ export default function LoginExperience({ initialOrganization }: LoginExperience
                       type="button"
                       onClick={handleResendCode}
                       disabled={resendCooldown > 0 || isSubmitting}
-                      className="font-semibold text-clay underline-offset-2 hover:underline disabled:opacity-60"
+                      className={GARDEN_AUTH_LINK}
                     >
                       {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
                     </button>

@@ -2,244 +2,102 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState, type CSSProperties } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { useRef } from "react";
+import HomeGardenShell from "@/components/garden/HomeGardenShell";
+import { gsap, useGSAP, MQ_MOTION } from "@/components/garden/gsap";
+import { WordsReveal } from "@/components/garden/motion";
+import { Draw, Pill, Squiggle, btnOutline, btnPop } from "@/components/garden/ui";
+import { ILLUSTRATIONS } from "@/components/home-garden/assets";
+import { GET_STARTED_PAGE_PATH } from "@/lib/marketing/book-demo";
 
-function usePointerParallax(enabled: boolean) {
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-
-  useEffect(() => {
-    if (!enabled) return;
-
-    const handleMove = (event: MouseEvent) => {
-      const x = (event.clientX / window.innerWidth - 0.5) * 2;
-      const y = (event.clientY / window.innerHeight - 0.5) * 2;
-      setOffset({ x, y });
-    };
-
-    window.addEventListener("mousemove", handleMove, { passive: true });
-    return () => window.removeEventListener("mousemove", handleMove);
-  }, [enabled]);
-
-  return enabled ? offset : { x: 0, y: 0 };
-}
-
-function FloatingIllustration({
-  src,
-  width,
-  height,
-  className,
-  floatDelay = 0,
-  parallax = { x: 0, y: 0 },
-  parallaxStrength = 1,
-  animate = true,
-}: {
-  src: string;
-  width: number;
-  height: number;
-  className?: string;
-  floatDelay?: number;
-  parallax?: { x: number; y: number };
-  parallaxStrength?: number;
-  animate?: boolean;
-}) {
-  return (
-    <motion.div
-      className={className}
-      style={{
-        x: parallax.x * parallaxStrength,
-        y: parallax.y * parallaxStrength,
-      }}
-    >
-      <motion.div
-        animate={
-          animate
-            ? {
-                y: [0, -10, 0],
-              }
-            : undefined
-        }
-        transition={
-          animate
-            ? {
-                duration: 5 + floatDelay,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: floatDelay,
-              }
-            : undefined
-        }
-      >
-        <Image
-          src={src}
-          alt=""
-          aria-hidden
-          width={width}
-          height={height}
-          loading="lazy"
-          sizes={`${width}px`}
-        />
-      </motion.div>
-    </motion.div>
-  );
-}
+/**
+ * Props scattered round the edges of the hero (desktop only). Each wrapper is
+ * positioned and tilted; GSAP only animates the inner [data-drop] element.
+ */
+const PROPS = [
+  { src: ILLUSTRATIONS.acorns, size: 132, rotate: "-8deg", className: "left-[6%] top-[22%]" },
+  { src: ILLUSTRATIONS.beads, size: 116, rotate: "9deg", className: "right-[7%] top-[20%]" },
+  { src: ILLUSTRATIONS.basket, size: 168, rotate: "7deg", className: "bottom-[10%] left-[9%]" },
+  { src: ILLUSTRATIONS.plant, size: 176, rotate: "-6deg", className: "bottom-[8%] right-[8%]" },
+] as const;
 
 export default function NotFoundExperience() {
-  const reduceMotion = useReducedMotion();
-  const [parallaxReady, setParallaxReady] = useState(false);
-  const parallax = usePointerParallax(parallaxReady);
+  const scope = useRef<HTMLElement>(null);
 
-  useEffect(() => {
-    const media = window.matchMedia("(min-width: 1024px)");
-    const update = () => setParallaxReady(!reduceMotion && media.matches);
-    update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, [reduceMotion]);
+  useGSAP(
+    () => {
+      const mm = gsap.matchMedia();
+      mm.add(MQ_MOTION, () => {
+        gsap.from("[data-drop]", {
+          y: -60,
+          autoAlpha: 0,
+          rotate: -8,
+          duration: 1.1,
+          delay: 0.2,
+          stagger: 0.1,
+          ease: "back.out(1.4)",
+        });
+      });
+      return () => mm.revert();
+    },
+    { scope },
+  );
 
   return (
-    <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-bg px-6 py-24 lg:px-16">
-      <div
-        className="pointer-events-none absolute -right-24 top-16 h-80 w-80 rounded-full bg-accent-highlight/40 blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-clay-soft/60 blur-3xl"
-        aria-hidden
-      />
-
-      <div className="hero-enter-slide-right pointer-events-none absolute top-[60px] right-[-200px] z-0 hidden select-none lg:block">
-        <FloatingIllustration
-          src="/images/illustrations/HeroRight.webp"
-          width={420}
-          height={500}
-          parallax={parallax}
-          parallaxStrength={18}
-          animate={!reduceMotion}
-        />
-      </div>
-
-      <div className="hero-enter-slide-left pointer-events-none absolute top-[60px] left-[-200px] z-0 hidden select-none lg:block">
-        <FloatingIllustration
-          src="/images/illustrations/HeroLeft.webp"
-          width={420}
-          height={500}
-          parallax={parallax}
-          parallaxStrength={-18}
-          floatDelay={0.4}
-          animate={!reduceMotion}
-        />
-      </div>
-
-      <div className="pointer-events-none absolute bottom-[120px] left-[8%] z-0 hidden select-none lg:block">
-        <FloatingIllustration
-          src="/images/illustrations/Acorns.webp"
-          width={120}
-          height={120}
-          parallax={parallax}
-          parallaxStrength={10}
-          floatDelay={0.8}
-          animate={!reduceMotion}
-        />
-      </div>
-
-      <div className="pointer-events-none absolute top-[180px] right-[12%] z-0 hidden select-none lg:block">
-        <FloatingIllustration
-          src="/images/illustrations/Beads.webp"
-          width={100}
-          height={100}
-          parallax={parallax}
-          parallaxStrength={-12}
-          floatDelay={1.2}
-          animate={!reduceMotion}
-        />
-      </div>
-
-      <div className="relative z-10 w-full max-w-[720px]">
-        <div className="text-center">
+    <HomeGardenShell>
+      <section
+        ref={scope}
+        className="sf-grid relative flex min-h-[100svh] flex-col items-center justify-center overflow-hidden px-6 pb-20 pt-32 sm:px-10 lg:px-16"
+      >
+        {PROPS.map((prop) => (
           <div
-            className="hero-enter"
-            style={{ "--hero-delay": "0ms" } as CSSProperties}
+            key={prop.src}
+            aria-hidden="true"
+            className={`pointer-events-none absolute hidden select-none lg:block ${prop.className}`}
+            style={{ rotate: prop.rotate, width: prop.size }}
           >
-            <span className="inline-flex items-center rounded-pill bg-[#E2EDD9] px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[#4A6B52]">
-              404
-            </span>
+            <div data-drop>
+              <Image src={prop.src} alt="" width={prop.size} height={prop.size} sizes={`${prop.size}px`} className="h-auto w-full object-contain" />
+            </div>
           </div>
+        ))}
 
-          <h1
-            className="hero-enter mt-5 font-display text-[clamp(2rem,4.5vw,3.25rem)] leading-[1.06] tracking-tight text-accent"
-            style={{ "--hero-delay": "80ms" } as CSSProperties}
-          >
-            This page wandered off{" "}
-            <em className="text-clay not-italic">the trail.</em>
+        <div className="relative z-10 mx-auto w-full max-w-3xl text-center">
+          <Pill tint="butter">🧭 404</Pill>
+
+          <h1 className="sf-display mt-6 text-[12vw] leading-[0.9] text-[var(--sf-ink)] sm:text-7xl lg:text-[6rem]">
+            <WordsReveal as="span" immediate text="This page wandered off" className="block" />{" "}
+            <span className="relative isolate inline-block text-[var(--sf-clay)]">
+              <Draw className="pointer-events-none absolute -bottom-2 left-0 -z-10 w-full" delay={0.5}>
+                <Squiggle className="h-4 w-full md:h-5" color="var(--sf-butter)" />
+              </Draw>
+              <WordsReveal as="span" immediate text="the trail." delay={0.25} />
+            </span>
           </h1>
 
-          <p
-            className="hero-enter mt-4 text-[16px] leading-relaxed text-text-muted"
-            style={{ "--hero-delay": "160ms" } as CSSProperties}
-          >
-            Let&apos;s get you back on track.
+          <p className="sf-hand mt-5 text-balance text-xl text-[var(--sf-forest)]" aria-hidden="true">
+            even the best explorers take a wrong turn ↺
           </p>
-        </div>
 
-        <div
-          className="hero-enter mt-10 flex flex-col items-center gap-4"
-          style={{ "--hero-delay": "240ms" } as CSSProperties}
-        >
-          <div className="flex flex-col items-center gap-3 sm:flex-row">
-            <Link
-              href="/"
-              className="inline-flex h-11 items-center gap-2 rounded-pill bg-accent px-7 text-sm font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:opacity-90"
-            >
-              Back to homepage
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 14 14"
-                fill="none"
-                aria-hidden
-              >
-                <path
-                  d="M2.5 7H11.5M11.5 7L7.5 3M11.5 7L7.5 11"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </Link>
+          <p className="mt-4 text-lg leading-relaxed text-[var(--sf-soft)]">Let&apos;s get you back on track.</p>
 
-            <Link
-              href="/get-started"
-              className="inline-flex h-11 items-center gap-2 rounded-pill bg-clay px-7 text-sm font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:opacity-90"
-            >
+          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <Link href={GET_STARTED_PAGE_PATH} className={btnPop}>
               Book a Demo
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 14 14"
-                fill="none"
-                aria-hidden
-              >
-                <path
-                  d="M2.5 7H11.5M11.5 7L7.5 3M11.5 7L7.5 11"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+            </Link>
+            <Link href="/" className={btnOutline}>
+              Back to homepage
             </Link>
           </div>
 
           <Link
             href="/#product"
-            className="text-sm text-accent/60 transition-colors duration-200 hover:text-accent"
+            className="mt-8 inline-block rounded-sm text-base font-extrabold text-[var(--sf-forest)] underline decoration-[var(--sf-moss)] decoration-2 underline-offset-4 transition-colors hover:decoration-[var(--sf-forest)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-forest)]/30"
           >
             Explore the product
           </Link>
         </div>
-      </div>
-    </section>
+      </section>
+    </HomeGardenShell>
   );
 }

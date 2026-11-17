@@ -151,7 +151,7 @@ export function GardenHoursWindow({ contentHeight = 920 }: WindowProps) {
 export function GardenTeacherFormsWindow({ contentHeight = 920 }: WindowProps) {
   return (
     <GardenCanvas contentHeight={contentHeight}>
-      <DemoTeacherFormsDocumentsPage />
+      <DemoTeacherFormsDocumentsPage openFormId={null} />
     </GardenCanvas>
   );
 }

@@ -95,12 +95,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.5,
     },
     {
-      url: `${SITE_URL}/support`,
-      lastModified: LAST_MODIFIED,
-      changeFrequency: "monthly",
-      priority: 0.4,
-    },
-    {
       url: `${SITE_URL}/account-deletion`,
       lastModified: LAST_MODIFIED,
       changeFrequency: "yearly",

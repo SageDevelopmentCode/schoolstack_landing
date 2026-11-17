@@ -57,9 +57,9 @@ function HookSlide() {
   return (
     <MascotSlide background="#FFF3CF">
       <div style={{ position: "absolute", left: 72, right: 72, top: 128, zIndex: 5 }}>
-        <Kicker bg={G.paper}>POV</Kicker>
+        <Kicker bg={G.paper}>Meet Pip, who handles enrollment</Kicker>
         <Headline size={78} style={{ marginTop: 22 }}>
-          it&rsquo;s August and 14 families <Accent>&ldquo;already sent the form&rdquo;</Accent>
+          It&rsquo;s August. 14 families say they <Accent>&ldquo;already sent the form.&rdquo;</Accent>
         </Headline>
       </div>
       {FLYING_FORMS.map((f, i) => (
@@ -137,7 +137,7 @@ function TurnSlide() {
       </At>
       <PlacedMascot name="pip" view="curious" width={640} x={230} y={560} z={4} />
       <Hand size={40} color={G.forest} rotate={6} style={{ position: "absolute", left: 80, top: 640, zIndex: 6 }}>
-        (spoiler: it doesn&rsquo;t)
+        (spoiler: it doesn&rsquo;t.)
       </Hand>
       <SwipeHint text="here's how →" />
     </MascotSlide>
@@ -150,12 +150,9 @@ function ApplySlide() {
   return (
     <MascotProductSlide
       kicker="Step 1 · Apply"
-      title={
-        <>
-          Families apply in one place. <Accent>Pip supervises.</Accent>
-        </>
-      }
-      note="Enrollment with health info, emergency contacts, uploads, and signatures."
+      title="Families apply online, in one place."
+          aside="pip supervises."
+      note="Families add health info, emergency contacts, documents, and signatures."
       noteAt={{ x: 620, y: 950, rotate: 3, width: 400 }}
       mascot={{ name: "pip", view: "point", width: 380, x: -40, y: 900 }}
       contentHeight={DEMO_HEIGHT}
@@ -170,12 +167,9 @@ function InboxSlide() {
   return (
     <MascotProductSlide
       kicker="Step 2 · Review"
-      title={
-        <>
-          One inbox. No more <Accent>&ldquo;which email was it in?&rdquo;</Accent>
-        </>
-      }
-      note="Every submission, status, and next step in one inbox."
+      title="Every application in one inbox."
+          aside="no more “which email was it in?”"
+      note="See every family’s status and next step at a glance."
       background="#F3EEF8"
       noteAt={{ x: 60, y: 980, rotate: -3, width: 380 }}
       mascot={{ name: "pip", view: "thumbs", width: 360, x: 700, y: 900 }}
@@ -191,11 +185,8 @@ function ChecklistSlide() {
   return (
     <MascotProductSlide
       kicker="Step 3 · Enroll"
-      title={
-        <>
-          Families see what&rsquo;s left. <Accent>Pip sleeps at night now.</Accent>
-        </>
-      }
+      title="Families can see what’s left to do."
+          aside="pip sleeps at night now."
       note="Families see forms, agreements, and payments still due."
       background="#EEF5E9"
       noteAt={{ x: 630, y: 960, rotate: 4, width: 390 }}
@@ -209,5 +200,5 @@ function ChecklistSlide() {
 }
 
 function OutroSlide() {
-  return <MascotOutroSlide name="pip" view="celebrate" lead="Enrollment season," accent="but make it calm." aside="pip approved this message" />;
+  return <MascotOutroSlide name="pip" view="celebrate" lead="Enrollment season," accent="without the chaos." aside="pip approved this message" />;
 }

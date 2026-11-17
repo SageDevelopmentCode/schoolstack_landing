@@ -1,11 +1,6 @@
 "use client";
 
-import SlideCanvas, { displayStyle, SLIDE } from "@/components/admin/marketing/slide-frame";
-import {
-  CarouselProductSlide,
-  DEMO_SLIDE_PAPER,
-  type CarouselDemoCrop,
-} from "@/components/admin/marketing/carousels/carousel-product-slide";
+import type { CarouselDemoCrop } from "@/components/admin/marketing/carousels/carousel-product-slide";
 import type { MarketingCarousel, MarketingSlide } from "@/components/admin/marketing/carousels/types";
 import {
   MarketingAdminBulletinDemoWindow,
@@ -14,216 +9,159 @@ import {
   MarketingTeacherFormsDemoWindow,
   MarketingTeacherMessagesDemoWindow,
 } from "@/components/admin/marketing/screens/marketing-demo-windows";
-import { MarketingMobilePromoCluster } from "@/components/admin/marketing/screens/marketing-mobile-promo-cluster";
+import { GardenParentHomeWindow } from "@/components/admin/marketing/screens/marketing-garden-demo-windows";
+import { Accent, MascotListSlide, MascotProductSlide, MascotPromoSlide } from "@/components/admin/marketing/mascot/mascot-slide-kit";
 
-const DEMO_CONTENT_HEIGHT = 920;
-const ROW_RULE = "1px solid #E7D9C6";
+// Loam (messages) hosts; each channel is shown by its own crew member: Marigold (announcements),
+// Bramble (forms) and Dot (calendar).
+
+const DEMO_HEIGHT = 920;
 
 const HOME_CROP: CarouselDemoCrop = { zoom: 1.02, originX: 0, originY: 0 };
 const BULLETIN_CROP: CarouselDemoCrop = { zoom: 1.08, originX: 0.074, originY: 0 };
-const MESSAGES_CROP: CarouselDemoCrop = { zoom: 0.91, originX: 0, originY: 0 };
-const FORMS_CROP: CarouselDemoCrop = { zoom: 1.08, originX: 0.074, originY: 0.11 };
+const MESSAGES_CROP: CarouselDemoCrop = { zoom: 1, originX: 0, originY: 0 };
+const FORMS_CROP: CarouselDemoCrop = { zoom: 1.12, originX: 0, originY: 0 };
 const CALENDAR_CROP: CarouselDemoCrop = { zoom: 1.18, originX: 0, originY: 0 };
 
-const CHECK_QUESTIONS = [
-  "What is happening?",
-  "When?",
-  "Does the family need to do anything?",
+const CHECKS = [
+  { label: "What’s happening?", detail: "Say it in the first line." },
+  { label: "When?", detail: "Date, time and place." },
+  { label: "What do families need to do?", detail: "Reply, sign, pay, or nothing at all." },
 ];
 
 export const WHERE_WAS_THAT_UPDATE_CAROUSEL = {
   id: "where-was-that-update",
   title: "Parents at your Microschool shouldn’t have to ask, “Where was that update?”",
-  description: "LinkedIn carousel for bulletin, messages, forms, and the school calendar.",
+  description: "LinkedIn carousel for bulletin, messages, forms and the school calendar, guided by Loam.",
   fileSlug: "mudkitchen-where-was-that-update",
   slides: [
-    {
-      id: "parent-home",
-      fileName: "01-parents-shouldnt-have-to-ask.png",
-      render: () => <ParentHomeSlide />,
-    },
-    {
-      id: "bulletin",
-      fileName: "02-use-an-announcement.png",
-      render: () => <BulletinSlide />,
-    },
-    {
-      id: "messages",
-      fileName: "03-use-a-message.png",
-      render: () => <MessagesSlide />,
-    },
-    {
-      id: "forms",
-      fileName: "04-use-a-form.png",
-      render: () => <FormsSlide />,
-    },
-    {
-      id: "calendar",
-      fileName: "05-put-dates-where-families-can-find-them.png",
-      render: () => <CalendarSlide />,
-    },
-    {
-      id: "before-you-send",
-      fileName: "06-before-you-send.png",
-      render: () => <BeforeYouSendSlide />,
-    },
-    {
-      id: "promo",
-      fileName: "07-give-every-update-a-clear-home.png",
-      render: () => <PromoSlide />,
-    },
+    { id: "parent-home", fileName: "01-parents-shouldnt-have-to-ask.png", render: () => <ParentHomeSlide /> },
+    { id: "bulletin", fileName: "02-use-an-announcement.png", render: () => <BulletinSlide /> },
+    { id: "messages", fileName: "03-use-a-message.png", render: () => <MessagesSlide /> },
+    { id: "forms", fileName: "04-use-a-form.png", render: () => <FormsSlide /> },
+    { id: "calendar", fileName: "05-put-dates-where-families-can-find-them.png", render: () => <CalendarSlide /> },
+    { id: "before-you-send", fileName: "06-before-you-send.png", render: () => <BeforeYouSendSlide /> },
+    { id: "promo", fileName: "07-give-every-update-a-clear-home.png", render: () => <PromoSlide /> },
   ] satisfies MarketingSlide[],
 } satisfies MarketingCarousel;
 
 function ParentHomeSlide() {
   return (
-    <CarouselProductSlide
-      kicker="Parent home"
-      tone="dusk"
-      title="Parents at your Microschool shouldn’t have to ask, “Where was that update?”"
-      body="Give each message a clear home and a clear next step."
-      contentHeight={DEMO_CONTENT_HEIGHT}
+    <MascotProductSlide
+      kicker="School updates"
+      title={
+        <>
+          Parents shouldn’t have to ask, <Accent>“Where was that update?”</Accent>
+        </>
+      }
+      body="Put each update in the right place, and families always know where to look."
+      lane="right"
+      mascot={{ name: "loam", view: "confused", flip: true }}
+      tip="I'm Loam. I deliver the school's news."
+      background="#ECE2F3"
+      contentHeight={DEMO_HEIGHT}
       crop={HOME_CROP}
     >
-      <MarketingParentCommunicationHomeDemoWindow contentHeight={DEMO_CONTENT_HEIGHT} />
-    </CarouselProductSlide>
+      <MarketingParentCommunicationHomeDemoWindow contentHeight={DEMO_HEIGHT} />
+    </MascotProductSlide>
   );
 }
 
 function BulletinSlide() {
   return (
-    <CarouselProductSlide
+    <MascotProductSlide
       kicker="Bulletin"
-      tone="forest"
-      side="copyRight"
-      title="Use an announcement for school-wide updates."
-      body="Post news or flyers for families and staff in the school bulletin."
-      contentHeight={DEMO_CONTENT_HEIGHT}
+      title="News for everyone? Post it on the bulletin."
+      body="School-wide news and flyers for families and staff."
+      lane="left"
+      mascot={{ name: "marigold", view: "hold" }}
+      tip="Marigold here. Big news goes here."
+      background="#FFF3CF"
+      contentHeight={DEMO_HEIGHT}
       crop={BULLETIN_CROP}
     >
-      <MarketingAdminBulletinDemoWindow contentHeight={DEMO_CONTENT_HEIGHT} />
-    </CarouselProductSlide>
+      <MarketingAdminBulletinDemoWindow contentHeight={DEMO_HEIGHT} />
+    </MascotProductSlide>
   );
 }
 
 function MessagesSlide() {
   return (
-    <CarouselProductSlide
+    <MascotProductSlide
       kicker="Messages"
-      title="Use a message when someone needs to reply."
-      body="Keep family, teacher, and office conversations in message threads."
-      contentHeight={DEMO_CONTENT_HEIGHT}
+      title="Need a reply? Send a message."
+      body="Family, teacher and office conversations stay in one thread."
+      lane="right"
+      mascot={{ name: "loam", view: "point", flip: true }}
+      tip="One family, one thread."
+      background="#E3EDFB"
+      contentHeight={DEMO_HEIGHT}
       crop={MESSAGES_CROP}
-      copyInsetLeft={300}
-      logoTop={96}
     >
-      <MarketingTeacherMessagesDemoWindow contentHeight={DEMO_CONTENT_HEIGHT} />
-    </CarouselProductSlide>
+      <MarketingTeacherMessagesDemoWindow contentHeight={DEMO_HEIGHT} />
+    </MascotProductSlide>
   );
 }
 
 function FormsSlide() {
   return (
-    <CarouselProductSlide
+    <MascotProductSlide
       kicker="Forms"
-      tone="forest"
-      side="copyRight"
-      title="Use a form when you need an answer or signature."
-      body="Publish a form to families or classrooms, then track who still needs to respond."
-      contentHeight={DEMO_CONTENT_HEIGHT}
+      title="Need an answer or a signature? Send a form."
+      body="See who’s done and who still needs to respond."
+      lane="left"
+      mascot={{ name: "bramble", view: "hold" }}
+      tip="Bramble here. I track who's signed."
+      background="#EEF5E9"
+      contentHeight={DEMO_HEIGHT}
       crop={FORMS_CROP}
     >
-      <MarketingTeacherFormsDemoWindow contentHeight={DEMO_CONTENT_HEIGHT} />
-    </CarouselProductSlide>
+      <MarketingTeacherFormsDemoWindow contentHeight={DEMO_HEIGHT} />
+    </MascotProductSlide>
   );
 }
 
 function CalendarSlide() {
   return (
-    <CarouselProductSlide
+    <MascotProductSlide
       kicker="Calendar"
-      title="Put dates where families can find them."
-      body="Use the school calendar for events and schedule information."
-      contentHeight={DEMO_CONTENT_HEIGHT}
+      title="Got a date? Put it on the calendar."
+      body="Events and schedule changes, where families already look."
+      lane="right"
+      mascot={{ name: "dot", view: "point", flip: true }}
+      tip="Dot here. Every date, one calendar."
+      background="#FBE6E2"
+      contentHeight={DEMO_HEIGHT}
       crop={CALENDAR_CROP}
     >
-      <MarketingParentCalendarDemoWindow contentHeight={DEMO_CONTENT_HEIGHT} />
-    </CarouselProductSlide>
+      <MarketingParentCalendarDemoWindow contentHeight={DEMO_HEIGHT} />
+    </MascotProductSlide>
   );
 }
 
 function BeforeYouSendSlide() {
   return (
-    <SlideCanvas background={DEMO_SLIDE_PAPER}>
-      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 72, background: "#E7C2C2" }} />
-      <div
-        style={{
-          height: "100%",
-          boxSizing: "border-box",
-          padding: "140px 80px 72px 120px",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <p style={{ ...displayStyle(36, SLIDE.clay), letterSpacing: "0.08em", textTransform: "uppercase" }}>
-          Before you send
-        </p>
-        <h1 style={{ ...displayStyle(72), marginTop: 16, maxWidth: 860 }}>
-          Before you send, check three things.
-        </h1>
-        <div style={{ marginTop: 40, display: "flex", flexDirection: "column" }}>
-          {CHECK_QUESTIONS.map((question, index) => (
-            <div
-              key={question}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 18,
-                height: 108,
-                borderBottom: ROW_RULE,
-              }}
-            >
-              <span style={{ ...displayStyle(36, SLIDE.forest), width: 52 }}>{index + 1}</span>
-              <span style={{ ...displayStyle(42), fontWeight: 560 }}>{question}</span>
-            </div>
-          ))}
-        </div>
-        <p style={{ margin: "auto 0 0", fontSize: 32, lineHeight: 1.3, color: SLIDE.muted }}>
-          What is happening? When? Does the family need to do anything?
-        </p>
-      </div>
-    </SlideCanvas>
+    <MascotListSlide
+      kicker="Save this"
+      title="Before you send, check 3 things."
+      rows={CHECKS}
+      aside="if a parent has to ask, it isn’t clear yet"
+      mascot={{ name: "loam", view: "thinking", flip: true }}
+      tip="Then pick the right place for it."
+      background="#ECE2F3"
+    />
   );
 }
 
 function PromoSlide() {
   return (
-    <CarouselProductSlide
-      variant="promo"
-      demoPresentation="phones"
-      promoDensity="compact"
-      promoSiteLabel="trymudkitchen.com"
-      title="Give every update a clear home."
-      body="Bulletin, messages, forms, and the calendar, so families know where to look."
-      footer={
-        <div style={{ marginTop: 22, display: "flex", justifyContent: "center" }}>
-          <span
-            style={{
-              display: "inline-block",
-              background: SLIDE.white,
-              color: SLIDE.forest,
-              borderRadius: 999,
-              padding: "18px 40px",
-              fontSize: 28,
-              fontWeight: 750,
-            }}
-          >
-            Book a demo
-          </span>
-        </div>
-      }
+    <MascotPromoSlide
+      title="Give every update a home."
+      body="Bulletin, messages, forms and the calendar, so families know where to look."
+      cast={[{ name: "loam", view: "celebrate" }, { name: "dot", view: "wave", flip: true }]}
+      contentHeight={DEMO_HEIGHT}
     >
-      <MarketingMobilePromoCluster variant="admissions" />
-    </CarouselProductSlide>
+      <GardenParentHomeWindow contentHeight={DEMO_HEIGHT} />
+    </MascotPromoSlide>
   );
 }

@@ -35,37 +35,62 @@ export const DEFAULT_CAROUSEL_AUDIENCE_BANNER = "Built for microschools";
 
 const AUDIENCE_BANNER_HEIGHT = 48;
 
+/** Last word of the banner text gets the clay accent ("Built for **microschools**"). */
+function splitAccent(text: string): [string, string] {
+  const index = text.trimEnd().lastIndexOf(" ");
+  return index === -1 ? ["", text] : [text.slice(0, index + 1), text.slice(index + 1)];
+}
+
+/** First-slide audience banner: a floating Garden pill (matches the corner badge and the mobile login badge). */
 export function CarouselAudienceBanner({ text }: { text: string }) {
+  const [lead, accent] = splitAccent(text);
   return (
     <div
       style={{
         position: "absolute",
-        top: 0,
+        top: 22,
         left: 0,
         right: 0,
-        zIndex: 4,
-        height: AUDIENCE_BANNER_HEIGHT,
+        zIndex: 6,
+        height: AUDIENCE_BANNER_HEIGHT + 16,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        boxSizing: "border-box",
-        borderBottom: `1px solid ${SLIDE.line}`,
-        background: "rgba(247, 241, 231, 0.96)",
+        pointerEvents: "none",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-        <img src="/images/Logo.png" alt="" style={{ height: 28, width: "auto", display: "block" }} />
+      <div
+        className={gardenFontVariables}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "9px 26px 9px 14px",
+          borderRadius: 999,
+          background: "rgba(255, 250, 244, 0.92)",
+          border: "2px solid rgba(43, 36, 29, 0.10)",
+          boxShadow: "0 10px 22px rgba(43, 36, 29, 0.14)",
+        }}
+      >
+        <img
+          src="/images/Logo.png"
+          alt=""
+          style={{ height: 40, width: 40, objectFit: "contain", display: "block", transform: "rotate(-6deg)" }}
+        />
         <p
           style={{
             margin: 0,
-            fontSize: 18,
-            fontWeight: 700,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            color: SLIDE.clay,
+            fontFamily: "var(--font-sf-display), 'Bricolage Grotesque', 'Avenir Next', sans-serif",
+            fontSize: 26,
+            fontWeight: 800,
+            lineHeight: 1,
+            letterSpacing: "-0.03em",
+            color: SLIDE.ink,
+            whiteSpace: "nowrap",
           }}
         >
-          {text}
+          {lead}
+          <span style={{ color: SLIDE.clay }}>{accent}</span>
         </p>
       </div>
     </div>
@@ -115,6 +140,7 @@ export default function SlideCanvas({
 
   return (
     <article
+      className={gardenFontVariables}
       style={{
         width: SLIDE_WIDTH,
         height: SLIDE_HEIGHT,
@@ -122,7 +148,7 @@ export default function SlideCanvas({
         color: SLIDE.ink,
         position: "relative",
         overflow: "hidden",
-        fontFamily: "var(--font-body), Geist, sans-serif",
+        fontFamily: "var(--font-sf-body), Nunito, 'Avenir', sans-serif",
       }}
     >
       {children}
@@ -211,11 +237,11 @@ export function PromoSlideTopRow({ siteLabel }: { siteLabel: string }) {
 export function displayStyle(size: number, color: string = SLIDE.ink): CSSProperties {
   return {
     margin: 0,
-    fontFamily: "var(--font-display), Lora, Georgia, serif",
+    fontFamily: "var(--font-sf-display), 'Bricolage Grotesque', 'Avenir Next', sans-serif",
     fontSize: size,
-    fontWeight: 650,
-    lineHeight: 1.06,
-    letterSpacing: "-0.035em",
+    fontWeight: 800,
+    lineHeight: 1.02,
+    letterSpacing: "-0.03em",
     color,
   };
 }

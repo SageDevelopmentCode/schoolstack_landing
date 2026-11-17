@@ -15,7 +15,11 @@ import {
   DEMO_FIELD_TRIP_FORM_ID,
 } from "@/data/school-demos/demo-communication-fixtures";
 
-export default function DemoTeacherFormsDocumentsPage() {
+/**
+ * `openFormId={null}` starts on the list. Marketing slides need that: the form detail panel
+ * portals to document.body, so it would escape a slide frame.
+ */
+export default function DemoTeacherFormsDocumentsPage({ openFormId = DEMO_FIELD_TRIP_FORM_ID }: { openFormId?: string | null } = {}) {
   const forms = useMemo(() => buildDemoTeacherForms(), []);
   const responses = useMemo(() => buildDemoTeacherFormResponses(), []);
   const classrooms = useMemo(() => buildDemoTeacherFormClassrooms(), []);
@@ -30,7 +34,7 @@ export default function DemoTeacherFormsDocumentsPage() {
           initialForms={forms}
           initialResponsesByFormId={responses}
           classroomOptions={classrooms}
-          initialFormId={DEMO_FIELD_TRIP_FORM_ID}
+          initialFormId={openFormId ?? undefined}
           previewMode
         />
       </div>

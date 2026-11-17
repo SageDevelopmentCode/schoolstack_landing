@@ -8,7 +8,9 @@ import { prefetchDemoStage, type DemoStageKey } from "@/components/home/DemoStag
 import { BOOK_DEMO_HASH_HREF } from "@/lib/marketing/book-demo";
 import { gsap, useGSAP, MQ_MOTION } from "@/components/garden/gsap";
 import { Magnetic, WordsReveal } from "@/components/garden/motion";
+import StarRating from "@/components/garden/StarRating";
 import { Arrow, Draw, Leaf, Squiggle, Sun, btnOutline, btnPop } from "@/components/garden/ui";
+import { TUITION_RATING } from "@/lib/marketing/social-proof";
 import GardenDemoFrame from "../GardenDemoFrame";
 import StickerNote from "../StickerNote";
 
@@ -104,9 +106,8 @@ export default function Hero() {
               {HERO_COPY.secondaryCta}
             </a>
           </div>
-          <div data-hero-in className="mt-8 hidden items-center gap-2 lg:flex" aria-hidden="true">
-            <span className="text-xl">🌿</span>
-            <span className="sf-hand text-xl text-[var(--sf-soft)]">{HERO_COPY.badge.toLowerCase()}</span>
+          <div data-hero-in className="mt-8">
+            <StarRating size="md" label={TUITION_RATING.label} srLabel={TUITION_RATING.srLabel} />
           </div>
         </div>
 

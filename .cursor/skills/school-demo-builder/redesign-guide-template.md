@@ -28,27 +28,23 @@ This document consolidates brand signals, reusable copy, and practical redesign 
 
 ### Recommended demo palette mapping
 
-Bright-layout demos (`WebsiteDashboardDemo`) map scraped colors into `SchoolWebsiteDemoConfig.theme`:
+Demo websites (`WebsiteDashboardDemo`) are school-branded **Garden**: cream paper, ink borders and Garden fonts, with two school colours taken from `SchoolWebsiteDemoConfig.theme` (see `site-garden-theme.ts`):
 
-| Demo use | Config field | Bright token / notes |
+| Demo use | Config field | Notes |
 |---|---|---|
-| Primary CTA accent / eyebrows | `theme.primary` | `DEMO_ACCENT_HIGHLIGHT`, kicker text |
-| Dark pills / stats ink band | `theme.dark` | `--demo-cta-bg`, `--demo-ink-band` |
-| CTA hover | `theme.primaryHover` | `--demo-cta-hover` |
-| Section pastel blocks | mix primary + `#EEF3EC` | `var(--demo-section-tint)` via `bright-demo-theme.ts` |
-| Body / captions | `theme.muted` | body copy |
-| Main page background | `theme.pageBg` | prefer `#FFFFFF` |
-| Cards / borders | `theme.lightBorder` | `--demo-line` |
+| Action colour: CTA buttons, heading accent words, the one dark panel | `theme.dark` | Must pass white text (a deep brand colour) |
+| Brand tint: sticky notes, washi tape, marker highlights | `theme.primary` | Mixed into paper, so bright yellows/oranges work |
+| Remaining fields (`primaryHover`, `darkHover`, `muted`, `lightBg`, `lightBorder`, `badgeBg`, `accentText`, `pageBg`) | — | Required by the type; the Garden site doesn't use them |
 
-### Typography (bright demos)
+### Typography (demo)
 
-- Shell: Poppins via `SchoolDemoWebsiteFonts` — not per-school Google font pairs on `/demo/*`.
-- Headings: `BOLD_HEADING` + optional `headlineAccentLine` for hero highlighter.
+- Garden fonts on every demo (Bricolage Grotesque display, Nunito body, a little Gochi Hand) — not per-school fonts.
+- Hero headline: set `headlineAccentLine` to pick the line drawn in the action colour with a squiggle.
 
 ## Typography signals (source school site)
 
 - Fonts loaded on live site: {e.g. Open Sans, DM Serif Display}
-- Note brand display face in the guide for copy tone; demo UI stays Poppins unless a future `typography` override is added.
+- Note the brand display face for copy tone only; the demo UI always uses the Garden fonts.
 
 ## Content themes to reuse
 

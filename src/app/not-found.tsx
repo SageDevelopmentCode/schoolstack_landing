@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import Navbar from "@/components/sections/Navbar";
-import Footer from "@/components/sections/Footer";
+import GardenRoot from "@/components/garden/GardenRoot";
 import NotFoundExperience from "@/components/pages/NotFoundExperience";
 import { pageMetadata } from "@/lib/metadata";
 
@@ -13,12 +12,8 @@ export const metadata: Metadata = pageMetadata({
 
 export default function NotFound() {
   return (
-    <>
-      <Navbar />
-      <main>
-        <NotFoundExperience />
-      </main>
-      <Footer />
-    </>
+    <GardenRoot>
+      <NotFoundExperience />
+    </GardenRoot>
   );
 }
