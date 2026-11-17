@@ -274,6 +274,76 @@ test("reverts claim when loadFamilyNotificationEmails throws before delivery", a
   });
 });
 
+test("sends no email when a later family's email lookup fails", async () => {
+  const emailed: string[] = [];
+  let reverted = false;
+  await assert.rejects(
+    () =>
+      sendClassroomSignupReminder(
+        admin,
+        { ...baseInput, responses: [] },
+        {
+          ...claimOk(),
+          revertReminderClaim: async () => {
+            reverted = true;
+          },
+          resolveAudienceFamilyIds: async () => ["fam-a", "fam-b"],
+          loadOrganization: async () => ({ name: "Rooted Meadows", slug: "rooted" }),
+          loadFamilyNotificationEmails: async (_admin, familyId) => {
+            if (familyId === "fam-b") throw new Error("load emails failed");
+            return ["a@example.com"];
+          },
+          sendEmail: async (payload) => {
+            emailed.push(payload.to);
+            return { ok: true };
+          },
+        },
+      ),
+    /load emails failed/,
+  );
+
+  assert.deepEqual(emailed, []);
+  assert.equal(reverted, true);
+});
+
+test("sends nothing when push recipient lookup fails", async () => {
+  const emailed: string[] = [];
+  let pushed = false;
+  let reverted = false;
+  await assert.rejects(
+    () =>
+      sendClassroomSignupReminder(
+        admin,
+        { ...baseInput, responses: [] },
+        {
+          ...claimOk(),
+          revertReminderClaim: async () => {
+            reverted = true;
+          },
+          resolveAudienceFamilyIds: async () => ["fam-a"],
+          loadOrganization: async () => ({ name: "Rooted Meadows", slug: "rooted" }),
+          loadFamilyNotificationEmails: async () => ["a@example.com"],
+          sendEmail: async (payload) => {
+            emailed.push(payload.to);
+            return { ok: true };
+          },
+          resolvePushRecipients: async () => {
+            throw new Error("push lookup failed");
+          },
+          sendPush: async () => {
+            pushed = true;
+            return { sentCount: 1 };
+          },
+        },
+      ),
+    /push lookup failed/,
+  );
+
+  assert.deepEqual(emailed, []);
+  assert.equal(pushed, false);
+  assert.equal(reverted, true);
+});
+
 test("nobody to remind when every family already signed up", async () => {
   let claimed = false;
   const result = await sendClassroomSignupReminder(
