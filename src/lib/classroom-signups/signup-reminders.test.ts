@@ -210,6 +210,70 @@ test("delivery_failed when no email or push delivered", async () => {
   });
 });
 
+test("reverts claim when loadOrganization throws before delivery", async () => {
+  let reverted: { claimedAt: string; previousLastSentAt: string | null } | null = null;
+  await assert.rejects(
+    () =>
+      sendClassroomSignupReminder(
+        admin,
+        { ...baseInput, responses: [response("fam-a")] },
+        {
+          ...claimOk("2026-11-16T10:00:00.000Z", "2026-11-16T12:00:00.000Z"),
+          revertReminderClaim: async (_admin, _orgId, _signupId, claimedAt, previousLastSentAt) => {
+            reverted = { claimedAt, previousLastSentAt };
+          },
+          resolveAudienceFamilyIds: async () => ["fam-b"],
+          loadOrganization: async () => {
+            throw new Error("db");
+          },
+          sendEmail: async () => {
+            throw new Error("should not send email");
+          },
+        },
+      ),
+    /db/,
+  );
+
+  assert.deepEqual(reverted, {
+    claimedAt: "2026-11-16T12:00:00.000Z",
+    previousLastSentAt: "2026-11-16T10:00:00.000Z",
+  });
+});
+
+test("reverts claim when loadFamilyNotificationEmails throws before delivery", async () => {
+  const emailed: string[] = [];
+  let reverted: { claimedAt: string; previousLastSentAt: string | null } | null = null;
+  await assert.rejects(
+    () =>
+      sendClassroomSignupReminder(
+        admin,
+        { ...baseInput, responses: [response("fam-a")] },
+        {
+          ...claimOk(null, "2026-11-16T12:00:00.000Z"),
+          revertReminderClaim: async (_admin, _orgId, _signupId, claimedAt, previousLastSentAt) => {
+            reverted = { claimedAt, previousLastSentAt };
+          },
+          resolveAudienceFamilyIds: async () => ["fam-b"],
+          loadOrganization: async () => ({ name: "Rooted Meadows", slug: "rooted" }),
+          loadFamilyNotificationEmails: async () => {
+            throw new Error("load emails failed");
+          },
+          sendEmail: async (payload) => {
+            emailed.push(payload.to);
+            return { ok: true };
+          },
+        },
+      ),
+    /load emails failed/,
+  );
+
+  assert.deepEqual(emailed, []);
+  assert.deepEqual(reverted, {
+    claimedAt: "2026-11-16T12:00:00.000Z",
+    previousLastSentAt: null,
+  });
+});
+
 test("nobody to remind when every family already signed up", async () => {
   let claimed = false;
   const result = await sendClassroomSignupReminder(

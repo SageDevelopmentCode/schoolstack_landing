@@ -193,59 +193,68 @@ export async function sendClassroomSignupReminder(
   const claim = await claimReminderWindow(admin, organizationId, signup.id, now);
   if (!claim.claimed) return { status: "cooldown", retryAfterMs: claim.retryAfterMs };
 
-  const org = (await loadOrganization(admin, organizationId)) ?? { name: "Your school", slug: "" };
-  const signupUrl = org.slug
-    ? `${getRuntimeSiteUrl()}${parentClassroomSignupPath(org.slug, signup.id)}`
-    : getRuntimeSiteUrl();
-  const deadlineLabel = formatSignupDeadline(signup.responseDeadline);
-  const notificationContext = buildEmailNotificationContext({
-    organizationId,
-    organizationSlug: org.slug,
-    surface: "web",
-    entityType: "classroom_signup",
-    entityId: signup.id,
-  });
+  let emailSends: Promise<{ ok: boolean }>[];
+  let pushSends: ReturnType<typeof sendPush>[];
+  let pushRecipients: Awaited<ReturnType<typeof resolveGuardianPushRecipientsForFamilies>>;
 
-  // Email: every notification address of every family still to sign up, once each.
-  const seen = new Set<string>();
-  const emailSends: Promise<{ ok: boolean }>[] = [];
-  for (const familyId of familyIds) {
-    const emails = await loadEmails(admin, familyId);
-    for (const email of emails) {
-      const normalized = email.trim().toLowerCase();
-      if (!normalized || seen.has(normalized)) continue;
-      seen.add(normalized);
-      emailSends.push(
-        sendEmail({
-          to: normalized,
-          schoolName: org.name,
-          teacherName: input.teacherName,
-          signupTitle: signup.title,
-          message: validated.message,
-          deadlineLabel,
-          signupUrl,
-          notificationContext,
-        }),
-      );
-    }
-  }
-
-  // Push: linked guardians of those families.
-  const pushRecipients = await resolvePushRecipients(admin, familyIds);
-  const pushSends = pushRecipients.map((recipient) =>
-    sendPush(admin, {
+  try {
+    const org = (await loadOrganization(admin, organizationId)) ?? { name: "Your school", slug: "" };
+    const signupUrl = org.slug
+      ? `${getRuntimeSiteUrl()}${parentClassroomSignupPath(org.slug, signup.id)}`
+      : getRuntimeSiteUrl();
+    const deadlineLabel = formatSignupDeadline(signup.responseDeadline);
+    const notificationContext = buildEmailNotificationContext({
       organizationId,
-      organizationName: org.name,
-      userIds: [recipient.userId],
-      title: `${org.name} — ${truncate(signup.title, 60)}`,
-      body: truncate(validated.message, 160),
-      recipientPortal: "parent",
-      recipientEmail: recipient.email,
-      notificationKind: "classroom_signup.reminder",
-      failureOperation: "classroom_signup.reminder.expo_push",
-      data: { kind: "classroom_signup", portal: "parent", organizationSlug: org.slug, signupId: signup.id },
-    }),
-  );
+      organizationSlug: org.slug,
+      surface: "web",
+      entityType: "classroom_signup",
+      entityId: signup.id,
+    });
+
+    // Email: every notification address of every family still to sign up, once each.
+    const seen = new Set<string>();
+    emailSends = [];
+    for (const familyId of familyIds) {
+      const emails = await loadEmails(admin, familyId);
+      for (const email of emails) {
+        const normalized = email.trim().toLowerCase();
+        if (!normalized || seen.has(normalized)) continue;
+        seen.add(normalized);
+        emailSends.push(
+          sendEmail({
+            to: normalized,
+            schoolName: org.name,
+            teacherName: input.teacherName,
+            signupTitle: signup.title,
+            message: validated.message,
+            deadlineLabel,
+            signupUrl,
+            notificationContext,
+          }),
+        );
+      }
+    }
+
+    // Push: linked guardians of those families.
+    pushRecipients = await resolvePushRecipients(admin, familyIds);
+    pushSends = pushRecipients.map((recipient) =>
+      sendPush(admin, {
+        organizationId,
+        organizationName: org.name,
+        userIds: [recipient.userId],
+        title: `${org.name} — ${truncate(signup.title, 60)}`,
+        body: truncate(validated.message, 160),
+        recipientPortal: "parent",
+        recipientEmail: recipient.email,
+        notificationKind: "classroom_signup.reminder",
+        failureOperation: "classroom_signup.reminder.expo_push",
+        data: { kind: "classroom_signup", portal: "parent", organizationSlug: org.slug, signupId: signup.id },
+      }),
+    );
+  } catch (error) {
+    await revertReminderClaim(admin, organizationId, signup.id, claim.claimedAt, claim.previousLastSentAt);
+    throw error;
+  }
 
   const [emailResults, pushResults] = await Promise.all([Promise.allSettled(emailSends), Promise.allSettled(pushSends)]);
   await Promise.all([
