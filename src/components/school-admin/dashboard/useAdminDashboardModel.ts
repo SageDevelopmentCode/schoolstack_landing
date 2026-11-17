@@ -9,6 +9,7 @@ import {
 import type {
   AdminDashboardActivity,
   AdminDashboardGuides,
+  AdminDashboardSummary,
   AdminDashboardToday,
 } from "@/lib/school-admin/dashboard-summary";
 import {
@@ -29,7 +30,17 @@ export type AdminDashboardModelInput = {
   slug: string;
   plan: OrganizationPlan;
   features: OrganizationFeatures;
-  initialToday: AdminDashboardToday;
+  /**
+   * Today's data. In `previewMode` this may be a full `AdminDashboardSummary`
+   * (marketing demos): Activity and Guides then come from it, not the API.
+   */
+  initialToday: AdminDashboardToday | AdminDashboardSummary;
+  /**
+   * Marketing demos: tabs switch locally (no URL change) and nothing is
+   * fetched (no lazy sections, focus refresh or Stripe polling). Real
+   * routes never pass it.
+   */
+  previewMode?: boolean;
 };
 
 export type DashboardSectionId = "today" | "activity" | "guides";
@@ -45,6 +56,21 @@ export function dashboardSectionFetch(
 
 function tabNeedsAsyncLoad(tab: DashboardTabId): boolean {
   return tab === "activity" || tab === "guides";
+}
+
+/** Activity / Guides carried on a preview summary (empty when absent). */
+function previewSections(initialToday: AdminDashboardModelInput["initialToday"]): {
+  activity: AdminDashboardActivity;
+  guides: AdminDashboardGuides;
+} {
+  const summary = initialToday as Partial<AdminDashboardSummary>;
+  return {
+    activity: {
+      recentActivity: summary.recentActivity ?? [],
+      quickActions: summary.quickActions ?? [],
+    },
+    guides: { featureAnnouncements: summary.featureAnnouncements ?? [] },
+  };
 }
 
 function isTabDataReady(
@@ -69,17 +95,24 @@ export function useAdminDashboardModel({
   plan,
   features,
   initialToday,
+  previewMode = false,
 }: AdminDashboardModelInput) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const activeTab = parseDashboardTab(searchParams.get("tab"));
+  // Preview keeps the tab in local state; live routes keep it in `?tab=`.
+  const [previewTab, setPreviewTab] = useState<DashboardTabId>("today");
+  const activeTab = previewMode ? previewTab : parseDashboardTab(searchParams.get("tab"));
 
-  const [today, setToday] = useState(initialToday);
+  const [today, setToday] = useState<AdminDashboardToday>(initialToday);
   const [prevInitialToday, setPrevInitialToday] = useState(initialToday);
-  const [activity, setActivity] = useState<AdminDashboardActivity | null>(null);
-  const [guides, setGuides] = useState<AdminDashboardGuides | null>(null);
+  const [activity, setActivity] = useState<AdminDashboardActivity | null>(() =>
+    previewMode ? previewSections(initialToday).activity : null,
+  );
+  const [guides, setGuides] = useState<AdminDashboardGuides | null>(() =>
+    previewMode ? previewSections(initialToday).guides : null,
+  );
   const [activityError, setActivityError] = useState(false);
   const [guidesError, setGuidesError] = useState(false);
   const [activeGuide, setActiveGuide] = useState<AdminDocGuide | null>(null);
@@ -93,8 +126,8 @@ export function useAdminDashboardModel({
   }, [everVisitedTabs, activeTab]);
   const [pendingTabKey, setPendingTabKey] = useState<DashboardTabId | null>(null);
   const [loadingTabKey, setLoadingTabKey] = useState<DashboardTabId | null>(null);
-  const [activityLoaded, setActivityLoaded] = useState(false);
-  const [guidesLoaded, setGuidesLoaded] = useState(false);
+  const [activityLoaded, setActivityLoaded] = useState(previewMode);
+  const [guidesLoaded, setGuidesLoaded] = useState(previewMode);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number>(() => Date.now());
   const [refreshing, setRefreshing] = useState(false);
   const activityFetchStartedRef = useRef(false);
@@ -151,10 +184,19 @@ export function useAdminDashboardModel({
   if (initialToday !== prevInitialToday) {
     setPrevInitialToday(initialToday);
     setToday(initialToday);
+    if (previewMode) {
+      const sections = previewSections(initialToday);
+      setActivity(sections.activity);
+      setGuides(sections.guides);
+    }
   }
 
   const setActiveTab = useCallback(
     (tab: DashboardTabId) => {
+      if (previewMode) {
+        setPreviewTab(tab);
+        return;
+      }
       const params = new URLSearchParams(searchParams.toString());
       if (tab === "today") {
         params.delete("tab");
@@ -164,13 +206,13 @@ export function useAdminDashboardModel({
       const query = params.toString();
       router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
     },
-    [pathname, router, searchParams],
+    [pathname, previewMode, router, searchParams],
   );
 
   const loadActivity = useCallback(async () => {
     // Defer so callers inside effects never set state synchronously.
     await Promise.resolve();
-    if (activityLoaded || activityFetchStartedRef.current) {
+    if (previewMode || activityLoaded || activityFetchStartedRef.current) {
       setLoadingTabKey((current) => (current === "activity" ? null : current));
       setPendingTabKey((current) => (current === "activity" ? null : current));
       return;
@@ -195,12 +237,12 @@ export function useAdminDashboardModel({
       setLoadingTabKey((current) => (current === "activity" ? null : current));
       setPendingTabKey((current) => (current === "activity" ? null : current));
     }
-  }, [activityLoaded, organizationId, slug]);
+  }, [activityLoaded, organizationId, previewMode, slug]);
 
   const loadGuides = useCallback(async () => {
     // Defer so callers inside effects never set state synchronously.
     await Promise.resolve();
-    if (guidesLoaded || guidesFetchStartedRef.current) {
+    if (previewMode || guidesLoaded || guidesFetchStartedRef.current) {
       setLoadingTabKey((current) => (current === "guides" ? null : current));
       setPendingTabKey((current) => (current === "guides" ? null : current));
       return;
@@ -225,7 +267,7 @@ export function useAdminDashboardModel({
       setLoadingTabKey((current) => (current === "guides" ? null : current));
       setPendingTabKey((current) => (current === "guides" ? null : current));
     }
-  }, [guidesLoaded, organizationId, slug]);
+  }, [guidesLoaded, organizationId, previewMode, slug]);
 
   /** Retry a lazy section after a failed first load. */
   const retrySection = useCallback(
@@ -257,6 +299,11 @@ export function useAdminDashboardModel({
 
   /** Returns true when fresh data arrived. */
   const refreshToday = useCallback(async (): Promise<boolean> => {
+    if (previewMode) {
+      // Nothing to fetch: the fixtures are the latest data.
+      setLastUpdatedAt(Date.now());
+      return true;
+    }
     try {
       const response = await fetch(
         dashboardSectionFetch(organizationId, slug, "today"),
@@ -270,7 +317,7 @@ export function useAdminDashboardModel({
       // Keep last known today payload. intentionally silent
       return false;
     }
-  }, [organizationId, slug]);
+  }, [organizationId, previewMode, slug]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -308,11 +355,13 @@ export function useAdminDashboardModel({
 
   useEffect(() => {
     if (!visibleTabs.includes(activeTab)) {
-      setActiveTab("today");
+      // Deferred: in preview this sets local state (never synchronously in an effect).
+      queueMicrotask(() => setActiveTab("today"));
     }
   }, [activeTab, visibleTabs, setActiveTab]);
 
   const refreshActivity = useCallback(async () => {
+    if (previewMode) return;
     try {
       const response = await fetch(
         dashboardSectionFetch(organizationId, slug, "activity"),
@@ -325,9 +374,10 @@ export function useAdminDashboardModel({
     } catch {
       // Keep last known activity payload. intentionally silent
     }
-  }, [organizationId, slug]);
+  }, [organizationId, previewMode, slug]);
 
   const refreshGuides = useCallback(async () => {
+    if (previewMode) return;
     try {
       const response = await fetch(
         dashboardSectionFetch(organizationId, slug, "guides"),
@@ -340,7 +390,7 @@ export function useAdminDashboardModel({
     } catch {
       // Keep last known guides payload. intentionally silent
     }
-  }, [organizationId, slug]);
+  }, [organizationId, previewMode, slug]);
 
   const refreshOnFocus = useCallback(async () => {
     const ok = await refreshToday();
@@ -361,12 +411,13 @@ export function useAdminDashboardModel({
   ]);
 
   useEffect(() => {
+    if (previewMode) return;
     const onFocus = () => {
       void refreshOnFocus();
     };
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
-  }, [refreshOnFocus]);
+  }, [previewMode, refreshOnFocus]);
 
   /** Manual "Refresh" button. Resolves true when today's data refreshed. */
   const refreshAll = useCallback(async (): Promise<boolean> => {
@@ -389,7 +440,7 @@ export function useAdminDashboardModel({
     }
   }, [refreshToday]);
 
-  useVisibilityPolling(pollStripe, 60_000, stripeChecking);
+  useVisibilityPolling(pollStripe, 60_000, stripeChecking && !previewMode);
 
   const openGuide = useCallback((guide: AdminDocGuide) => {
     setActiveGuide(guide);

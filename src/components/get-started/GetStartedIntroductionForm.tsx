@@ -1,6 +1,8 @@
 "use client";
 
 import { ArrowRight, Calendar, ChevronDown } from "lucide-react";
+import { Draw, Pill, Squiggle, btnPop } from "@/components/garden/ui";
+import GardenBookingSteps from "@/components/get-started/garden/GardenBookingSteps";
 import PublicFormHoneypotField from "@/components/public-forms/PublicFormHoneypotField";
 import GetStartedRoleChoices from "@/components/get-started/GetStartedRoleChoices";
 import GetStartedStoryTextField, {
@@ -33,6 +35,8 @@ type GetStartedIntroductionFormProps = {
   onCompanyWebsiteChange: (value: string) => void;
   /** Heading level for the form title. Use "h2" when the page already has an h1. */
   headingAs?: "h1" | "h2";
+  /** "garden" needs a `.sf-garden` ancestor (the notebook card is the frame). */
+  appearance?: "story" | "garden";
 };
 
 function FlowStepNav({ theme, activeStep }: { theme: ParentThemeTokens; activeStep: 0 }) {
@@ -91,11 +95,153 @@ export default function GetStartedIntroductionForm({
   companyWebsite,
   onCompanyWebsiteChange,
   headingAs: Heading = "h1",
+  appearance = "story",
 }: GetStartedIntroductionFormProps) {
   const copy = DEMO_INTRO_FORM_COPY;
   function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault();
     onSubmit();
+  }
+
+  if (appearance === "garden") {
+    return (
+      <section aria-label="Demo introduction form" className="text-[var(--sf-ink)]">
+        <GardenBookingSteps activeStep={0} />
+        <form onSubmit={handleFormSubmit} noValidate>
+          <PublicFormHoneypotField value={companyWebsite} onChange={onCompanyWebsiteChange} />
+
+          <Pill tint="clay" className="!text-xs">
+            <span aria-hidden="true">👋</span> {copy.kicker}
+          </Pill>
+          <Heading className="sf-display mt-4 text-4xl leading-[0.95] text-[var(--sf-ink)] sm:text-5xl">
+            {copy.titleLead}{" "}
+            <span className="relative isolate inline-block text-[var(--sf-clay)]">
+              <Draw className="pointer-events-none absolute -bottom-2 left-0 -z-10 w-full" delay={0.2}>
+                <Squiggle className="h-4 w-full" color="var(--sf-butter)" />
+              </Draw>
+              {copy.titleAccent}
+            </span>
+          </Heading>
+          <p className="mt-4 text-lg leading-relaxed text-[var(--sf-soft)]">{copy.subtitle}</p>
+
+          <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <GetStartedStoryTextField
+              theme={theme}
+              variant="intro"
+              appearance="garden"
+              id="intro-first-name"
+              label={copy.firstNameLabel}
+              value={form.name}
+              onChange={(v) => {
+                onFieldChange("name", v);
+                onClearError("name");
+              }}
+              placeholder={copy.firstNamePlaceholder}
+              autoComplete="given-name"
+              hasError={errors.has("name")}
+              errorText={errors.has("name") ? copy.errors.name : undefined}
+            />
+            <GetStartedStoryTextField
+              theme={theme}
+              variant="intro"
+              appearance="garden"
+              id="intro-email"
+              type="email"
+              label={copy.emailLabel}
+              value={form.email}
+              onChange={(v) => {
+                onFieldChange("email", v);
+                onClearError("email");
+              }}
+              placeholder={copy.emailPlaceholder}
+              autoComplete="email"
+              hasError={errors.has("email")}
+              errorText={errors.has("email") ? copy.errors.email : undefined}
+            />
+            <GetStartedStoryTextField
+              theme={theme}
+              variant="intro"
+              appearance="garden"
+              id="intro-school"
+              className="sm:col-span-2"
+              label={copy.schoolLabel}
+              optionalHint={copy.schoolOptional}
+              value={form.schoolName}
+              onChange={(v) => onFieldChange("schoolName", v)}
+              placeholder={copy.schoolPlaceholder}
+              autoComplete="organization"
+              helperText={copy.schoolHelper}
+            />
+          </div>
+
+          <GetStartedRoleChoices
+            theme={theme}
+            variant="intro"
+            appearance="garden"
+            value={form.role}
+            onChange={(role) => {
+              onFieldChange("role", role);
+              onClearError("role");
+            }}
+            hasError={errors.has("role")}
+          />
+
+          {form.role === "other" ? (
+            <GetStartedStoryTextField
+              theme={theme}
+              variant="intro"
+              appearance="garden"
+              id="intro-other"
+              className="mt-5"
+              label={copy.otherLabel}
+              optionalHint={copy.otherOptional}
+              value={form.otherDescription}
+              onChange={(v) => onFieldChange("otherDescription", v)}
+              placeholder={copy.otherPlaceholder}
+              maxLength={250}
+            />
+          ) : null}
+
+          <details className="group mt-7 border-t-2 border-dashed border-[var(--sf-ink)]/15 pt-5">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-xl text-sm font-extrabold text-[var(--sf-ink)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/30 [&::-webkit-details-marker]:hidden">
+              {copy.notesSummary}
+              <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-bold text-[var(--sf-soft)]">
+                {copy.notesOptional}
+                <ChevronDown
+                  size={15}
+                  strokeWidth={2.4}
+                  className="transition-transform duration-200 group-open:rotate-180"
+                  aria-hidden
+                />
+              </span>
+            </summary>
+            <div className="mt-4">
+              <GetStartedIntroTextArea
+                theme={theme}
+                appearance="garden"
+                id="intro-notes"
+                label={copy.notesFieldLabel}
+                value={form.prepNotes}
+                onChange={(v) => onFieldChange("prepNotes", v)}
+                placeholder={copy.notesPlaceholder}
+                maxLength={500}
+              />
+            </div>
+          </details>
+
+          <div className="mt-8 border-t-2 border-dashed border-[var(--sf-ink)]/15 pt-7">
+            <button type="submit" className={`${btnPop} w-full`}>
+              {copy.submit}
+              <ArrowRight size={18} strokeWidth={2.6} aria-hidden />
+            </button>
+            <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-[13px] text-[var(--sf-soft)]">
+              <Calendar size={14} className="shrink-0" aria-hidden />
+              {copy.footerNote}
+            </p>
+          </div>
+        </form>
+      </section>
+    );
   }
 
   return (

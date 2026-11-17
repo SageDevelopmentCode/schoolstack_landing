@@ -82,10 +82,13 @@ export function useGardenAttendance({
   organizationId,
   slug,
   model,
+  previewMode = false,
 }: {
   organizationId: string;
   slug: string;
   model: AdminDashboardModel;
+  /** Read-only and never fetches a roster (marketing demos). */
+  previewMode?: boolean;
 }) {
   const attendanceToday = model.today.attendanceToday;
   const { setToday, refreshToday } = model;
@@ -96,7 +99,8 @@ export function useGardenAttendance({
     summary: attendanceToday?.summary ?? EMPTY_SUMMARY,
     attendanceHref: schoolAdminPath(slug, "my_school", "attendance"),
     operationalErrorSurface: "school_admin",
-    enabled: attendanceToday != null,
+    previewMode,
+    enabled: attendanceToday != null && !previewMode,
     onSummaryChange: (nextSummary) => {
       setToday((current) =>
         current.attendanceToday

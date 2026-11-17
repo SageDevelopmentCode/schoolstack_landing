@@ -17,29 +17,12 @@ export function getMobilePdfDocumentFetchHosts(): string[] {
   return [...hosts];
 }
 
-function normalizeFileUri(uri: string): string {
-  return uri.split('?')[0] ?? uri;
-}
-
-function isLocalBundledPdfAsset(requestUrl: string, bundledAssetUris: string[]): boolean {
-  const normalizedRequest = normalizeFileUri(requestUrl);
-  return bundledAssetUris.some((assetUri) => {
-    const normalizedAsset = normalizeFileUri(assetUri);
-    return (
-      normalizedRequest === normalizedAsset ||
-      normalizedRequest.startsWith(`${normalizedAsset}/`)
-    );
-  });
-}
-
 /**
  * Navigation / subresource policy for the Android pdf.js WebView.
- * Uses exact hostname matching for remote PDFs — no substring CDN allowlists.
+ * Uses exact hostname matching for remote PDFs — no substring CDN allowlists. `file://` is never
+ * allowed: pdf.js is inlined into the viewer HTML.
  */
-export function isAllowedAndroidPdfWebViewNavigation(
-  requestUrl: string,
-  options: { bundledAssetUris?: string[] } = {},
-): boolean {
+export function isAllowedAndroidPdfWebViewNavigation(requestUrl: string): boolean {
   if (requestUrl === 'about:blank') {
     return true;
   }
@@ -57,14 +40,6 @@ export function isAllowedAndroidPdfWebViewNavigation(
     parsed = new URL(requestUrl);
   } catch {
     return false;
-  }
-
-  if (parsed.protocol === 'file:') {
-    const bundled = options.bundledAssetUris ?? [];
-    if (bundled.length === 0) {
-      return false;
-    }
-    return isLocalBundledPdfAsset(requestUrl, bundled);
   }
 
   if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {

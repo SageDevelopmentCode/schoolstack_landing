@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { apiError } from "@/lib/api/route-errors";
+import { reportOperationalError } from "@/lib/operational-errors";
 import { isValidIanaTimezone } from "@/lib/marketing/demo-timezone-options";
 import {
   enforcePublicFormSubmission,
@@ -20,15 +22,78 @@ import {
   FreeSchoolSignupError,
   reportFreeSchoolSignupFailure,
 } from "@/lib/try/create-free-school";
-import { normalizeSchoolName } from "@/lib/try/free-school-signup";
+import {
+  normalizeSchoolName,
+  normalizeSignupDetails,
+  type SignupDetails,
+} from "@/lib/try/free-school-signup";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/try/complete";
 const FORM = "free_school_signup" as const;
 
+/** Best effort: the school already exists, so failures are reported but never block the response. */
+async function saveSignupDetails(
+  admin: SupabaseClient,
+  opts: { request: Request; user: User; email: string; organizationId: string; details: SignupDetails },
+): Promise<void> {
+  const { request, user, email, organizationId, details } = opts;
+
+  const report = (operation: string, error: unknown) =>
+    reportOperationalError({
+      supabase: admin,
+      surface: "api",
+      organizationId,
+      operation,
+      error: error instanceof Error ? error.message : String(error),
+      code: "signup_details_failed",
+      notify: false,
+      severity: "warning",
+      actor: { type: "system", email },
+      cause: error,
+      api: { route: ROUTE, method: request.method, status: 200 },
+    });
+
+  const [detailsResult, metadataResult] = await Promise.allSettled([
+    admin.from("free_school_signup_details").upsert(
+      {
+        organization_id: organizationId,
+        user_id: user.id,
+        first_name: details.firstName,
+        role: details.role,
+        student_count: details.studentCount,
+      },
+      { onConflict: "organization_id" },
+    ),
+    admin.auth.admin.updateUserById(user.id, {
+      user_metadata: { ...(user.user_metadata ?? {}), first_name: details.firstName },
+    }),
+  ]);
+
+  const detailsError =
+    detailsResult.status === "rejected" ? detailsResult.reason : detailsResult.value.error;
+  if (detailsError) {
+    console.error(`[${ROUTE}] could not save signup details`, detailsError);
+    await report("free_school_signup_details_insert", detailsError);
+  }
+
+  const metadataError =
+    metadataResult.status === "rejected" ? metadataResult.reason : metadataResult.value.error;
+  if (metadataError) {
+    console.error(`[${ROUTE}] could not set first name on user`, metadataError);
+    await report("free_school_signup_first_name", metadataError);
+  }
+}
+
 export async function POST(request: Request) {
-  let body: { schoolName?: string; timezone?: string };
+  let body: {
+    schoolName?: string;
+    timezone?: string;
+    firstName?: unknown;
+    role?: unknown;
+    studentCount?: unknown;
+  };
 
   try {
     body = await request.json();
@@ -38,6 +103,16 @@ export async function POST(request: Request) {
 
   const schoolName = normalizeSchoolName(body.schoolName ?? "");
   const timezone = body.timezone?.trim() ?? "";
+
+  const signupDetails = normalizeSignupDetails(body);
+  if (!signupDetails.ok) {
+    return apiError(ROUTE, {
+      request,
+      status: 400,
+      error: "Enter your first name.",
+      code: "missing_first_name",
+    });
+  }
 
   if (!schoolName || schoolName.length < 2) {
     return apiError(ROUTE, {
@@ -120,6 +195,16 @@ export async function POST(request: Request) {
       timezone,
       userId: user.id,
       email,
+    });
+
+    await saveSignupDetails(admin, {
+      request,
+      user,
+      email,
+      organizationId: created.organizationId,
+      details: signupDetails.details,
+    }).catch((detailsError) => {
+      console.error(`[${ROUTE}] signup details failed`, detailsError);
     });
 
     await recordPublicFormSubmissionEvent({

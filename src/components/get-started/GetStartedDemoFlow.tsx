@@ -27,6 +27,7 @@ import GetStartedStoryHeader from "@/components/get-started/GetStartedStoryHeade
 import { ACCENT_HIGHLIGHT } from "@/components/home/bright-styles";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import { Draw, Squiggle } from "@/components/garden/ui";
+import GardenBookingSteps from "@/components/get-started/garden/GardenBookingSteps";
 import { demoRequestRoleLabel } from "@/lib/demo-request-roles";
 import { MUDKITCHEN_MARKETING_BRIGHT_THEME } from "@/lib/marketing/mudkitchen-bright-marketing-theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
@@ -228,6 +229,7 @@ export default function GetStartedDemoFlow({
         scalar: 1.1,
         gravity: 0.9,
         drift: 0,
+        disableForReducedMotion: true,
       });
 
     const t1 = setTimeout(() => burst({ x: 0.2, y: 0.9 }, 65), 0);
@@ -339,6 +341,7 @@ export default function GetStartedDemoFlow({
               companyWebsite={companyWebsite}
               onCompanyWebsiteChange={setCompanyWebsite}
               headingAs={introHeadingAs}
+              appearance={garden ? "garden" : "story"}
             />
           </motion.div>
         )}
@@ -362,6 +365,7 @@ export default function GetStartedDemoFlow({
               Back
             </button>
 
+            {garden ? <GardenBookingSteps activeStep={1} /> : null}
             {garden ? (
               <GardenSchedulerHeader headingAs={introHeadingAs} />
             ) : (
@@ -435,6 +439,7 @@ export default function GetStartedDemoFlow({
               roleLabel={roleLabel}
               booking={booking}
               headingAs={introHeadingAs}
+              appearance={garden ? "garden" : "story"}
             />
           </motion.div>
         )}

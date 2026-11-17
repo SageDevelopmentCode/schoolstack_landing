@@ -1,13 +1,14 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+
+import { Garden, GardenFonts } from '@/components/parent/garden/tokens';
 
 import { OrganizationSelector } from '@/components/organization-selector';
 import { PreAuthLinkRow } from '@/components/pre-auth-link-row';
 import { PreAuthScreenShell } from '@/components/pre-auth-screen-shell';
-import { StoryButton } from '@/components/story/story-button';
-import { StoryTextField } from '@/components/story/story-text-field';
-import { StoryTextLink } from '@/components/story/story-text-link';
+import { GTextField } from '@/components/parent/garden/fields';
+import { GLink, GToyButton } from '@/components/parent/garden/ui';
 import { VerificationCodeInput } from '@/components/verification-code-input';
 import {
   completeSchoolSignIn,
@@ -24,7 +25,6 @@ import type { LiveOrganization } from '@/lib/organizations';
 import { logMobileAuthSignedIn } from '@/lib/mobile-activity';
 import { goBackOrReplace } from '@/lib/navigation';
 import { getSupabaseClient } from '@/lib/supabase';
-import { Spacing } from '@/constants/theme';
 
 const RESEND_COOLDOWN_SECONDS = 30;
 
@@ -373,56 +373,70 @@ export function SchoolLoginExperience() {
 
       {phase === 'email' ? (
         <View style={styles.formSection}>
-          <StoryTextField
+          <GTextField
             label="Email"
             accessibilityLabel="Email"
             autoCapitalize="none"
             autoComplete="email"
             keyboardType="email-address"
+            textContentType="emailAddress"
+            returnKeyType="send"
             placeholder="you@example.com"
             value={email}
             onChangeText={setEmail}
-            editable={!isSubmitting}
+            onSubmitEditing={() => {
+              if (email.trim() && !isSubmitting) void handleEmailSubmit();
+            }}
+            disabled={isSubmitting}
           />
 
-          <StoryButton
+          <GToyButton
             label={isSubmitting ? 'Sending code…' : 'Send verification code'}
-            disabled={!email.trim() || isSubmitting}
-            onPress={handleEmailSubmit}
+            icon="mail-outline"
+            size="md"
+            fullWidth
+            loading={isSubmitting}
+            disabled={!email.trim()}
+            onPress={() => void handleEmailSubmit()}
           />
         </View>
       ) : null}
 
       {phase === 'password' ? (
         <View style={styles.formSection}>
-          <StoryTextField
+          <GTextField
             label="Email"
             accessibilityLabel="Email"
             autoCapitalize="none"
             autoComplete="email"
             keyboardType="email-address"
+            textContentType="emailAddress"
             placeholder="you@example.com"
             value={email}
             onChangeText={setEmail}
-            editable={!isSubmitting}
+            disabled={isSubmitting}
           />
 
-          <StoryTextField
+          <GTextField
             label="Password"
             accessibilityLabel="Password"
             secureTextEntry
             autoCapitalize="none"
             autoComplete="current-password"
+            textContentType="password"
             placeholder="Your password"
             value={password}
             onChangeText={setPassword}
-            editable={!isSubmitting}
+            disabled={isSubmitting}
           />
 
-          <StoryButton
+          <GToyButton
             label={isSubmitting ? 'Signing in…' : 'Sign in'}
-            disabled={!email.trim() || !password || isSubmitting}
-            onPress={handlePasswordSubmit}
+            size="md"
+            fullWidth
+            loading={isSubmitting}
+            disabled={!email.trim() || !password}
+            onPress={() => void handlePasswordSubmit()}
           />
         </View>
       ) : null}
@@ -435,23 +449,33 @@ export function SchoolLoginExperience() {
             disabled={isSubmitting}
           />
 
-          <StoryButton
+          <GToyButton
             label={isSubmitting ? 'Verifying…' : 'Continue'}
-            disabled={normalizedCode.length < 6 || isSubmitting}
-            onPress={handleVerifySubmit}
+            size="md"
+            fullWidth
+            loading={isSubmitting}
+            disabled={normalizedCode.length < 6}
+            onPress={() => void handleVerifySubmit()}
           />
 
           <View style={styles.verifyActions}>
-            <StoryTextLink
+            <GLink
               label="Use a different email"
-              variant="muted"
+              icon="arrow-back"
+              reverse
               onPress={handleBackToEmail}
             />
-            <StoryTextLink
-              label={resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
-              onPress={handleResendCode}
-              disabled={resendCooldown > 0 || isSubmitting}
-            />
+            {resendCooldown > 0 ? (
+              <Text style={styles.resendWait}>{`Resend in ${resendCooldown}s`}</Text>
+            ) : (
+              <GLink
+                label="Resend code"
+                icon="refresh"
+                onPress={() => {
+                  if (!isSubmitting) void handleResendCode();
+                }}
+              />
+            )}
           </View>
         </View>
       ) : null}
@@ -461,12 +485,18 @@ export function SchoolLoginExperience() {
 
 const styles = StyleSheet.create({
   formSection: {
-    gap: Spacing.three,
+    gap: 16,
   },
   verifyActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: Spacing.two,
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  resendWait: {
+    fontFamily: GardenFonts.bodyBold,
+    fontSize: 14,
+    color: Garden.soft,
   },
 });

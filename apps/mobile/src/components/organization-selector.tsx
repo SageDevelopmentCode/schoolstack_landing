@@ -1,27 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import {
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { OrganizationLogo } from '@/components/organization-logo';
-import { StoryCard } from '@/components/story/story-card';
-import { StoryTextField } from '@/components/story/story-text-field';
-import type { LiveOrganization } from '@/lib/organizations';
-import { Story, StoryFonts } from '@/constants/story-theme';
-import { Spacing } from '@/constants/theme';
 import { organizationSelectorEmptyMessage } from '@/components/organization-selector-empty-message';
-import { isMobileE2e } from '@/lib/e2e';
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+import { GTextField } from '@/components/parent/garden/fields';
+import { Garden, GardenFonts } from '@/components/parent/garden/tokens';
+import { GPressable } from '@/components/parent/garden/ui';
+import type { LiveOrganization } from '@/lib/organizations';
 
 type OrganizationSelectorProps = {
   organizations: LiveOrganization[];
@@ -39,59 +25,28 @@ function OrganizationRow({
   disabled: boolean;
   onSelect: (organization: LiveOrganization) => void;
 }) {
-  const scale = useSharedValue(1);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const handlePressIn = () => {
-    if (!disabled) {
-      scale.value = withSpring(0.98, { damping: 20, stiffness: 400 });
-    }
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 20, stiffness: 400 });
-  };
-
-  const content = (
-    <StoryCard compact style={styles.rowCard}>
-      <View style={styles.rowInner}>
+  return (
+    <GPressable
+      accessibilityLabel={item.name}
+      accessibilityHint="Opens this school"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      haptic="press"
+      onPress={() => onSelect(item)}
+      style={[styles.row, disabled && styles.rowDisabled]}>
+      <View style={styles.logoFrame}>
         <OrganizationLogo
           logoSrc={item.branding.logoSrc}
           logoAlt={item.branding.logoAlt}
           name={item.name}
           style={styles.logo}
         />
-        <Text style={styles.name}>{item.name}</Text>
-        <Ionicons name="chevron-forward" size={18} color={Story.muted} />
       </View>
-    </StoryCard>
-  );
-
-  if (isMobileE2e) {
-    return (
-      <Pressable
-        accessibilityRole="button"
-        disabled={disabled}
-        onPress={() => onSelect(item)}
-        style={({ pressed }) => [pressed && !disabled && styles.rowPressed, disabled && styles.rowDisabled]}>
-        {content}
-      </Pressable>
-    );
-  }
-
-  return (
-    <AnimatedPressable
-      accessibilityRole="button"
-      disabled={disabled}
-      onPress={() => onSelect(item)}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      style={[animatedStyle, disabled && styles.rowDisabled]}>
-      {content}
-    </AnimatedPressable>
+      <Text style={styles.name} numberOfLines={2}>
+        {item.name}
+      </Text>
+      <Ionicons name="chevron-forward" size={18} color={Garden.soft} />
+    </GPressable>
   );
 }
 
@@ -129,21 +84,23 @@ export function OrganizationSelector({
     const emptyMessage = organizationSelectorEmptyMessage(accessibleSlugs);
 
     return (
-      <StoryCard compact style={styles.emptyState}>
+      <View style={styles.emptyState}>
         <Text style={styles.emptyText}>{emptyMessage}</Text>
-      </StoryCard>
+      </View>
     );
   }
 
   return (
     <View style={styles.wrapper}>
       {showSearch ? (
-        <StoryTextField
+        <GTextField
+          label="Search schools"
           accessibilityLabel="Search schools"
           placeholder="Search schools…"
+          autoCapitalize="none"
           value={query}
           onChangeText={setQuery}
-          editable={!disabled}
+          disabled={disabled}
         />
       ) : null}
 
@@ -166,47 +123,60 @@ export function OrganizationSelector({
 
 const styles = StyleSheet.create({
   wrapper: {
-    gap: Spacing.three,
+    gap: 16,
   },
-  rowCard: {
-    padding: 0,
-  },
-  rowInner: {
+  row: {
+    minHeight: 68,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.three,
-    paddingVertical: 14,
+    gap: 14,
+    paddingVertical: 12,
     paddingHorizontal: 14,
-  },
-  rowPressed: {
-    opacity: 0.85,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: Garden.ink10,
+    backgroundColor: Garden.white,
   },
   rowDisabled: {
     opacity: 0.6,
   },
+  logoFrame: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: Garden.paper,
+    borderWidth: 1,
+    borderColor: Garden.ink10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
   logo: {
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
   },
   name: {
     flex: 1,
-    fontFamily: StoryFonts.bodySemiBold,
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '600',
-    color: Story.ink,
+    fontFamily: GardenFonts.bodyExtra,
+    fontSize: 16,
+    lineHeight: 21,
+    color: Garden.ink,
   },
   separator: {
-    height: Spacing.two,
+    height: 10,
   },
   emptyState: {
-    padding: Spacing.four,
+    padding: 24,
+    borderRadius: 22,
+    backgroundColor: Garden.paper,
+    borderWidth: 1,
+    borderColor: Garden.ink10,
   },
   emptyText: {
-    fontFamily: StoryFonts.body,
+    fontFamily: GardenFonts.bodySemi,
     fontSize: 14,
     lineHeight: 20,
-    color: Story.muted,
+    color: Garden.soft,
     textAlign: 'center',
   },
 });

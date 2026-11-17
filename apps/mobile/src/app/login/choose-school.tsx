@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 
 import { ChooseSchoolExperience } from '@/components/choose-school-experience';
 import { parseChooseSchoolSlugsParam } from '@/lib/auth/parse-choose-school-slugs-param';
-import { Story } from '@/constants/story-theme';
+import { Garden } from '@/components/parent/garden/tokens';
 
 export default function ChooseSchoolScreen() {
   const router = useRouter();
@@ -48,7 +48,7 @@ export default function ChooseSchoolScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Story.paper,
+    backgroundColor: Garden.cream,
   },
   keyboardView: {
     flex: 1,

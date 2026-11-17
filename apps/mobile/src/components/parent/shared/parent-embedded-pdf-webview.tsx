@@ -65,25 +65,24 @@ export function ParentEmbeddedPdfWebView({
 }: ParentEmbeddedPdfWebViewProps) {
   const androidPdfJs = usesAndroidPdfJsHtml(url);
   const documentUrl = useMemo(() => stripViewerFragment(url), [url]);
-  const { assetUris, assetsError, assetsFailed, assetsReady } =
-    useAndroidPdfViewerAssets(androidPdfJs);
+  const [reloadKey, setReloadKey] = useState(0);
+  const { sources, assetsError, assetsFailed, assetsReady } = useAndroidPdfViewerAssets(
+    androidPdfJs,
+    reloadKey,
+  );
   const { reportError } = useMobileErrorReporter();
   const webViewRef = useRef<WebView>(null);
   const [viewerReady, setViewerReady] = useState(false);
-  const [reloadKey, setReloadKey] = useState(0);
 
   const source = useMemo(() => {
     if (!androidPdfJs) {
       return getMobilePdfWebViewSource(url);
     }
-    if (!assetUris) {
+    if (!sources) {
       return null;
     }
-    return getAndroidPdfWebViewSource({
-      pdfModuleUri: assetUris.pdfModuleUri,
-      workerModuleUri: assetUris.workerModuleUri,
-    });
-  }, [androidPdfJs, assetUris, url]);
+    return getAndroidPdfWebViewSource(sources);
+  }, [androidPdfJs, sources, url]);
 
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading');
 
@@ -258,19 +257,14 @@ export function ParentEmbeddedPdfWebView({
     setReloadKey((key) => key + 1);
   }, []);
 
-  const bundledAssetUris = useMemo(
-    () => (assetUris ? [assetUris.pdfModuleUri, assetUris.workerModuleUri] : []),
-    [assetUris],
-  );
-
   const handleShouldStartLoadWithRequest = useCallback(
     (request: { url: string }) => {
       if (Platform.OS !== 'android' || !androidPdfJs) {
         return true;
       }
-      return isAllowedAndroidPdfWebViewNavigation(request.url, { bundledAssetUris });
+      return isAllowedAndroidPdfWebViewNavigation(request.url);
     },
-    [androidPdfJs, bundledAssetUris],
+    [androidPdfJs],
   );
 
   if (phase === 'error' || (androidPdfJs && assetsFailed)) {
@@ -300,10 +294,8 @@ export function ParentEmbeddedPdfWebView({
         style={styles.webView}
         scrollEnabled={scrollEnabled}
         pointerEvents={pointerEvents}
-        originWhitelist={['https://*', 'http://*', 'file://*', 'about:*', 'data:*']}
+        originWhitelist={['https://*', 'http://*', 'about:*', 'data:*']}
         mixedContentMode="always"
-        allowFileAccess
-        allowUniversalAccessFromFileURLs={androidPdfJs}
         setSupportMultipleWindows={false}
         allowsInlineMediaPlayback
         startInLoadingState={startInLoadingState}

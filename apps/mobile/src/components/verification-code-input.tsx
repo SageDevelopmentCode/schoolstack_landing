@@ -8,8 +8,8 @@ import {
   type TextInputKeyPressEventData,
 } from 'react-native';
 
-import { Story, StoryFonts, StoryRadius } from '@/constants/story-theme';
-import { Fonts } from '@/constants/theme';
+import { Garden, GardenFonts } from '@/components/parent/garden/tokens';
+import { Brand } from '@/constants/theme';
 
 const CODE_LENGTH = 6;
 
@@ -187,11 +187,9 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   label: {
-    fontFamily: StoryFonts.bodyMedium,
+    fontFamily: GardenFonts.bodyExtra,
     fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '500',
-    color: Story.ink,
+    color: Garden.ink,
   },
   cellsWrapper: {
     position: 'relative',
@@ -208,20 +206,22 @@ const styles = StyleSheet.create({
   },
   cell: {
     flex: 1,
-    height: 48,
-    fontFamily: Fonts.mono,
-    fontSize: 22,
+    height: 56,
+    fontFamily: GardenFonts.display,
+    fontSize: 24,
     textAlign: 'center',
-    color: Story.ink,
-    backgroundColor: Story.white,
-    borderWidth: 1,
-    borderColor: Story.line,
-    borderRadius: StoryRadius.input,
+    color: Garden.ink,
+    backgroundColor: Garden.paper,
+    borderWidth: 1.5,
+    borderColor: Garden.ink15,
+    borderRadius: 14,
     paddingHorizontal: 0,
     paddingVertical: 10,
   },
   cellFocused: {
-    borderColor: Story.primary,
+    borderColor: Brand.clay,
+    borderWidth: 2,
+    backgroundColor: Garden.white,
   },
   cellDisabled: {
     opacity: 0.6,

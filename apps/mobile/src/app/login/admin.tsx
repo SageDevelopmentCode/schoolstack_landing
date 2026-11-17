@@ -5,8 +5,9 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { StatusBar } from 'expo-status-bar';
 
 import { PreAuthScreenShell } from '@/components/pre-auth-screen-shell';
-import { StoryButton } from '@/components/story/story-button';
-import { StoryTextField } from '@/components/story/story-text-field';
+import { GTextField } from '@/components/parent/garden/fields';
+import { Garden } from '@/components/parent/garden/tokens';
+import { GToyButton } from '@/components/parent/garden/ui';
 import {
   completePlatformAdminSignIn,
   useAuth,
@@ -15,8 +16,6 @@ import { markExplicitMobileSignOut } from '@/lib/auth/mobile-explicit-sign-out';
 import { PortalAccessError } from '@/lib/auth/resolve-portal';
 import { logMobileAuthSignedIn } from '@/lib/mobile-activity';
 import { getSupabaseClient } from '@/lib/supabase';
-import { Story } from '@/constants/story-theme';
-import { Spacing } from '@/constants/theme';
 
 export default function AdminLoginScreen() {
   const router = useRouter();
@@ -89,14 +88,13 @@ export default function AdminLoginScreen() {
         keyboardVerticalOffset={insets.top}
         style={styles.keyboardView}>
         <PreAuthScreenShell
-          kicker="Internal"
           heading="Admin sign in"
           subtext="Internal tools for the MudKitchen team."
           error={error}
           onBack={handleBack}
           showMudKitchenLogo>
           <View style={styles.formSection}>
-            <StoryTextField
+            <GTextField
               label="Email"
               accessibilityLabel="Email"
               autoCapitalize="none"
@@ -105,10 +103,10 @@ export default function AdminLoginScreen() {
               placeholder="you@example.com"
               value={email}
               onChangeText={setEmail}
-              editable={!isSubmitting}
+              disabled={isSubmitting}
             />
 
-            <StoryTextField
+            <GTextField
               label="Password"
               accessibilityLabel="Password"
               autoCapitalize="none"
@@ -117,13 +115,16 @@ export default function AdminLoginScreen() {
               placeholder="Your password"
               value={password}
               onChangeText={setPassword}
-              editable={!isSubmitting}
+              disabled={isSubmitting}
             />
 
-            <StoryButton
+            <GToyButton
               label={isSubmitting ? 'Signing in…' : 'Sign in'}
-              disabled={!email.trim() || !password || isSubmitting}
-              onPress={handleSubmit}
+              size="md"
+              fullWidth
+              loading={isSubmitting}
+              disabled={!email.trim() || !password}
+              onPress={() => void handleSubmit()}
             />
           </View>
         </PreAuthScreenShell>
@@ -135,12 +136,12 @@ export default function AdminLoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Story.paper,
+    backgroundColor: Garden.cream,
   },
   keyboardView: {
     flex: 1,
   },
   formSection: {
-    gap: Spacing.three,
+    gap: 16,
   },
 });

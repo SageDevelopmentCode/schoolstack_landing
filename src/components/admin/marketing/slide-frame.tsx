@@ -3,6 +3,7 @@
 /* eslint-disable @next/next/no-img-element -- PNG export needs a plain img, not next/image. */
 import { Link2 } from "lucide-react";
 import { createContext, useContext, type CSSProperties, type ReactNode } from "react";
+import { gardenFontVariables } from "@/components/garden/fonts";
 
 type MarketingSlideChromeState = {
   hideCornerLogo: boolean;
@@ -130,26 +131,34 @@ export default function SlideCanvas({
   );
 }
 
+/** Garden logo pill, matching the mobile login badge (apps/mobile/src/components/mudkitchen-logo.tsx). */
 function CornerLogoPill() {
   return (
     <div
+      className={gardenFontVariables}
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 10,
-        padding: "10px 18px 10px 12px",
+        gap: 12,
+        padding: "10px 24px 10px 14px",
         borderRadius: 999,
-        background: "rgba(247, 241, 231, 0.94)",
-        border: `1px solid ${SLIDE.line}`,
+        background: "rgba(255, 250, 244, 0.92)",
+        border: "2px solid rgba(43, 36, 29, 0.10)",
+        boxShadow: "0 10px 22px rgba(43, 36, 29, 0.14)",
       }}
     >
-      <img src="/images/Logo.png" alt="" style={{ height: 44, width: "auto", display: "block" }} />
+      <img
+        src="/images/Logo.png"
+        alt=""
+        style={{ height: 46, width: 46, objectFit: "contain", display: "block", transform: "rotate(-6deg)" }}
+      />
       <span
         style={{
-          fontFamily: "var(--font-display), Lora, Georgia, serif",
-          fontSize: 26,
-          fontWeight: 650,
-          letterSpacing: "-0.03em",
+          fontFamily: "var(--font-sf-display), 'Bricolage Grotesque', 'Avenir Next', sans-serif",
+          fontSize: 28,
+          fontWeight: 800,
+          lineHeight: 1,
+          letterSpacing: "-0.035em",
           color: SLIDE.ink,
         }}
       >

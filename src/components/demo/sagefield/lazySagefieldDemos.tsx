@@ -4,15 +4,14 @@ import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
 import type { DemoModule } from '@/components/demo/demo-module-types'
 
-const importSagefieldAdmin = () =>
-  import('@/components/demo/sagefield/SagefieldAdminDashboardDemo') as Promise<DemoModule>
+const importSagefieldAdmin = () => import('@/components/demo/sagefield/SagefieldAdminGardenDemo')
 const importSagefieldParent = () =>
   import('@/components/demo/sagefield/SagefieldParentDashboardDemo') as Promise<DemoModule>
 const importSagefieldTeacher = () =>
   import('@/components/demo/sagefield/SagefieldTeacherDashboardDemo') as Promise<DemoModule>
 
 
-let sagefieldAdminPromise: Promise<DemoModule> | null = null
+let sagefieldAdminPromise: ReturnType<typeof importSagefieldAdmin> | null = null
 let sagefieldParentPromise: Promise<DemoModule> | null = null
 let sagefieldTeacherPromise: Promise<DemoModule> | null = null
 
@@ -59,10 +58,9 @@ const SagefieldTeacherDashboardDemo = dynamic(() => loadSagefieldTeacherCached()
   ssr: false,
 })
 
-export function LazySagefieldAdminDashboardDemo(
-  props: ComponentProps<typeof SagefieldAdminDashboardDemo>,
-) {
-  return <SagefieldAdminDashboardDemo {...props} />
+/** The Garden admin portal (Admissions → Submissions) in Sage Field branding. */
+export function LazySagefieldAdminDashboardDemo() {
+  return <SagefieldAdminDashboardDemo />
 }
 
 export function LazySagefieldParentDashboardDemo(

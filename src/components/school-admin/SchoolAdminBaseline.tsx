@@ -13,7 +13,12 @@ import {
   schoolAdminPath,
 } from "@/lib/organization-settings/admin-routes";
 import type { OrganizationPlan } from "@/lib/organization-settings/plans";
-import { FREE_PLAN_UPGRADE_QUERY } from "@/lib/school-admin/free-plan-upgrade";
+import {
+  FREE_PLAN_UPGRADE_QUERY,
+  resolveFreePlanUpgradeTarget,
+} from "@/lib/school-admin/free-plan-upgrade";
+import { getFreePlanPitch } from "@/lib/school-admin/free-plan-upgrade-pitches";
+import { FreePlanUpgradeProvider } from "@/lib/school-admin/free-plan-upgrade-context";
 import {
   schoolAdminLoginPath,
   type SchoolAdminUserProfile,
@@ -199,6 +204,14 @@ function SchoolAdminBaselineInner({
             features.feature_nav?.admin,
           ),
     [features.admin, features.feature_nav?.admin, plan],
+  );
+
+  const upgradePitch = useMemo(
+    () =>
+      getFreePlanPitch(
+        upgradeLabel ? resolveFreePlanUpgradeTarget(navGroups, upgradeLabel) : null,
+      ),
+    [navGroups, upgradeLabel],
   );
 
   const closeUpgrade = useCallback(() => {
@@ -475,6 +488,7 @@ function SchoolAdminBaselineInner({
             <FreePlanUpgradeDialog
               open={Boolean(upgradeLabel)}
               featureLabel={upgradeLabel ?? ""}
+              pitch={upgradePitch}
               schoolName={schoolName}
               slug={slug}
               userName={userProfile?.displayName ?? ""}
@@ -520,7 +534,9 @@ function SchoolAdminBaselineInner({
             >
               <AdminNavCountsProvider value={navCounts}>
                 <AdminNotificationsPanelProvider onOpenNotifications={openNotifications}>
-                  <AdminPageContentShell>{children}</AdminPageContentShell>
+                  <FreePlanUpgradeProvider value={plan === "free" ? onLockedFeature : null}>
+                    <AdminPageContentShell>{children}</AdminPageContentShell>
+                  </FreePlanUpgradeProvider>
                 </AdminNotificationsPanelProvider>
               </AdminNavCountsProvider>
             </div>

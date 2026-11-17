@@ -63,19 +63,24 @@ export function scheduleStatusLine({
   }
 }
 
+const NO_LOCKED_TABS: readonly ScheduleTabId[] = [];
+
 export function useScheduleModel({
   organizationId,
   initialMeta,
+  lockedTabs = NO_LOCKED_TABS,
 }: {
   organizationId: string;
   initialMeta: SchedulePageMeta;
+  /** Free plan: tabs that never open (the page shows the unlock popup). */
+  lockedTabs?: readonly ScheduleTabId[];
 }) {
   const supabase = useMemo(() => createClient(), []);
   const { visits, visitsReady, refetchVisits } = useScheduleVisitsContext();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const activeTab = parseScheduleTab(searchParams.get("tab"));
+  const activeTab = parseScheduleTab(searchParams.get("tab"), lockedTabs);
 
   const [timezone] = useState(initialMeta.timezone);
   const [monthSlotCount, setMonthSlotCount] = useState<number | null>(initialMeta.monthSlotCount);
@@ -119,6 +124,7 @@ export function useScheduleModel({
 
   const handleTabChange = useCallback(
     (tab: ScheduleTabId) => {
+      if (lockedTabs.includes(tab)) return;
       setVisitedTabs((current) => {
         if (current.has(tab)) return current;
         const next = new Set(current);
@@ -128,7 +134,7 @@ export function useScheduleModel({
       if (tab !== activeTab) setPendingTabKey(tab);
       setActiveTab(tab);
     },
-    [activeTab, setActiveTab],
+    [activeTab, lockedTabs, setActiveTab],
   );
 
   const reportTabLoading = useCallback((tab: ScheduleTabId, loading: boolean) => {

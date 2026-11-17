@@ -21,6 +21,7 @@ export const GARDEN_TEACHER_ROUTES = [
   "forms_documents",
   "classroom_signups",
   "attendance",
+  "my_hours",
 ] as const;
 
 export function usesGardenTeacherToasts(pathname: string | null): boolean {

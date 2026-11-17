@@ -5,11 +5,12 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Check, X } from "lucide-react";
+import { AlertCircle, PenLine, X } from "lucide-react";
 import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
 } from "@/components/ui/ButtonLoadingLabel";
 import PublicFormHoneypotField from "@/components/public-forms/PublicFormHoneypotField";
+import { Tape, Tick } from "@/components/garden/ui";
 import { PUBLIC_FORM_HONEYPOT_FIELD } from "@/lib/public-forms/honeypot";
 import { GET_STARTED_PAGE_PATH } from "@/lib/marketing/book-demo";
 import {
@@ -24,23 +25,38 @@ import {
   type QuestionChatNode,
 } from "@/components/sections/question-chat-tree";
 
+/* MudKitchen Garden styling. This widget only mounts inside HomeGardenShell
+   (under GardenRoot), so the --sf-* tokens and sf-* classes are in scope.
+   Skill: .claude/skills/mudkitchen-garden-design */
+
 const fieldClassName =
-  "w-full rounded-2xl border border-black/10 bg-white px-3 py-2.5 font-secondary text-sm font-normal text-[#1d1a16] outline-none transition placeholder:text-[#1d1a16]/40 focus:border-clay focus-visible:ring-2 focus-visible:ring-clay/30";
+  "w-full rounded-2xl border-2 border-[var(--sf-ink)]/15 bg-white px-3 py-2.5 text-[15px] font-semibold text-[var(--sf-ink)] outline-none transition placeholder:font-normal placeholder:text-[var(--sf-ink)]/40 focus:border-[var(--sf-clay)] focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/20";
 
-const chipClassName =
-  "font-secondary max-w-full rounded-pill border border-black/15 bg-white px-4 py-2 text-left text-[14px] font-semibold text-[#1d1a16] transition-colors hover:border-black/35";
+const labelClassName =
+  "flex flex-col gap-1.5 text-[13px] font-extrabold text-[var(--sf-ink)]";
 
-const followUpChipClassName =
-  "font-secondary max-w-full rounded-pill border border-dashed border-[#1d1a16]/30 bg-[#F7F5F2] px-4 py-2 text-left text-[14px] font-semibold text-[#1d1a16] transition-colors hover:border-[#1d1a16]/55";
+const chipBase =
+  "max-w-full cursor-pointer rounded-full border-2 border-[var(--sf-ink)] px-4 py-2 text-left text-[14px] font-extrabold leading-snug text-[var(--sf-ink)] shadow-[0_3px_0_0_var(--sf-ink)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_0_0_var(--sf-ink)] focus-visible:-translate-y-0.5 focus-visible:shadow-[0_4px_0_0_var(--sf-ink)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-ink)]/20 active:translate-y-0.5 active:shadow-[0_1px_0_0_var(--sf-ink)]";
+
+const chipClassName = `${chipBase} bg-white`;
+
+const followUpChipClassName = `${chipBase} bg-[var(--sf-mint)]`;
 
 const sendQuestionClassName =
-  "font-secondary inline-flex rounded-pill border border-dashed border-clay bg-clay/10 px-4 py-2 text-left text-[14px] font-semibold text-clay transition-colors hover:bg-clay/20";
+  "inline-flex cursor-pointer items-center gap-2 rounded-full border-2 border-dashed border-[var(--sf-clay-deep)] bg-[var(--sf-peach)] px-4 py-2 text-left text-[14px] font-extrabold text-[var(--sf-clay-deep)] transition-all duration-200 hover:-translate-y-0.5 hover:border-solid focus-visible:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/30";
 
 const actionPrimaryClassName =
-  "font-secondary inline-flex h-9 items-center rounded-pill bg-[#1d1a16] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-clay";
+  "inline-flex h-9 cursor-pointer items-center rounded-full bg-[var(--sf-clay)] px-4 text-[13px] font-extrabold text-white shadow-[0_3px_0_0_var(--sf-clay-deep)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_0_0_var(--sf-clay-deep)] focus-visible:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/40 active:translate-y-0.5 active:shadow-[0_1px_0_0_var(--sf-clay-deep)]";
 
 const actionSecondaryClassName =
-  "font-secondary inline-flex h-9 items-center rounded-pill border border-black/15 bg-white px-4 text-[13px] font-semibold text-[#1d1a16] transition-colors hover:border-black/35";
+  "inline-flex h-9 cursor-pointer items-center rounded-full border-2 border-[var(--sf-ink)] bg-white px-4 text-[13px] font-extrabold text-[var(--sf-ink)] shadow-[0_3px_0_0_var(--sf-ink)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_0_0_var(--sf-ink)] focus-visible:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-ink)]/20 active:translate-y-0.5 active:shadow-[0_1px_0_0_var(--sf-ink)]";
+
+const submitClassName = `inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-full bg-[var(--sf-clay)] text-[15px] font-extrabold text-white shadow-[0_5px_0_0_var(--sf-clay-deep)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_6px_0_0_var(--sf-clay-deep)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/40 active:translate-y-1 active:shadow-[0_1px_0_0_var(--sf-clay-deep)] disabled:pointer-events-none disabled:opacity-50 ${BUTTON_LOADING_LAYOUT_CLASS}`;
+
+const launcherClassName =
+  "flex cursor-pointer items-center gap-2 rounded-full bg-[var(--sf-forest)] py-2 pl-2 pr-5 text-[15px] font-extrabold text-white shadow-[0_5px_0_0_var(--sf-forest-deep)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_7px_0_0_var(--sf-forest-deep)] focus-visible:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-forest)]/40 active:translate-y-1 active:shadow-[0_2px_0_0_var(--sf-forest-deep)]";
+
+const TYPING_DOTS = ["var(--sf-clay)", "var(--sf-forest)", "var(--sf-moss)"] as const;
 
 const REPLY_PAUSE_MS = 650;
 const GET_STARTED_DEMO_HASH = "#get-started-demo";
@@ -48,15 +64,16 @@ const GET_STARTED_DEMO_HASH = "#get-started-demo";
 function TypingBubble() {
   return (
     <div
-      className="flex w-fit items-center gap-1 rounded-[20px] rounded-bl-md bg-[#F7F5F2] px-4 py-3"
+      className="flex w-fit items-center gap-1.5 rounded-[20px] rounded-bl-md border-2 border-[var(--sf-ink)] bg-white px-4 py-3.5 shadow-[0_3px_0_0_var(--sf-ink)]"
       aria-hidden
     >
-      {[0, 1, 2].map((dot) => (
+      {TYPING_DOTS.map((color, dot) => (
         <motion.span
-          key={dot}
-          className="h-1.5 w-1.5 rounded-full bg-[#1d1a16]/45"
-          animate={{ opacity: [0.25, 1, 0.25] }}
-          transition={{ duration: 0.9, repeat: Infinity, delay: dot * 0.15, ease: "easeInOut" }}
+          key={color}
+          className="h-2 w-2 rounded-full"
+          style={{ background: color }}
+          animate={{ y: [0, -4, 0] }}
+          transition={{ duration: 0.7, repeat: Infinity, delay: dot * 0.12, ease: "easeInOut" }}
         />
       ))}
     </div>
@@ -83,7 +100,7 @@ function AnswerActions({
 
   return (
     <motion.div
-      className="mt-3 flex flex-wrap gap-2"
+      className="mt-3 flex flex-wrap gap-2.5 pb-0.5"
       initial={motionOn ? { opacity: 0, y: 6 } : false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: motionOn ? 0.12 : 0, ease: "easeOut" }}
@@ -123,11 +140,12 @@ function ChatBubble({
   const isVisitor = from === "visitor";
   return (
     <div
-      className={`w-fit max-w-[92%] break-words rounded-[20px] px-4 py-2.5 font-secondary text-[14px] leading-relaxed ${
+      className={`w-fit max-w-[90%] break-words rounded-[20px] border-2 border-[var(--sf-ink)] px-4 py-2.5 text-[15px] leading-relaxed ${
         isVisitor
-          ? "ml-auto rounded-br-md bg-[#1d1a16] text-white"
-          : "rounded-bl-md bg-[#F7F5F2] text-[#1d1a16]/80"
+          ? "ml-auto rounded-br-md bg-[var(--sf-butter)] font-extrabold text-[var(--sf-ink)] shadow-[0_3px_0_0_var(--sf-ink)]"
+          : "rounded-bl-md bg-white text-[var(--sf-ink)]/85 shadow-[0_3px_0_0_var(--sf-ink)]"
       }`}
+      style={isVisitor ? { rotate: "0.6deg" } : undefined}
     >
       {children}
     </div>
@@ -356,267 +374,293 @@ export default function FloatingQuestionButton() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="questions-chat-title"
-            initial={reduceMotion ? false : { opacity: 0, y: 16, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.98 }}
-            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            className="mb-3 flex h-[min(760px,calc(100dvh-10.5rem))] w-[min(420px,calc(100vw-2rem))] flex-col overflow-hidden rounded-[28px] border border-black/10 bg-white shadow-[0_8px_40px_rgba(29,26,22,0.16)]"
+            initial={reduceMotion ? false : { opacity: 0, y: 20, scale: 0.96, rotate: -1.5 }}
+            animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.97, rotate: -1 }}
+            transition={
+              reduceMotion
+                ? { duration: 0.15 }
+                : { type: "spring", stiffness: 400, damping: 28, opacity: { duration: 0.18 } }
+            }
+            style={{ transformOrigin: "bottom right" }}
+            className="relative mb-4 h-[min(760px,calc(100dvh-11rem))] w-[min(420px,calc(100vw-2rem))]"
           >
-            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-black/10 px-4 py-3">
-              <div className="flex items-center gap-2.5">
-                <Image
-                  src="/images/Logo.webp"
-                  alt=""
-                  width={28}
-                  height={28}
-                  className="object-contain"
-                />
-                <div>
-                  <p className="font-secondary text-[11px] font-semibold uppercase tracking-widest text-clay">
-                    MudKitchen
-                  </p>
-                  <p
-                    id="questions-chat-title"
-                    className="font-secondary text-[15px] font-semibold text-[#1d1a16]"
-                  >
-                    Questions
-                  </p>
+            <Tape
+              color="var(--sf-butter)"
+              className="-top-3 left-1/2 -translate-x-1/2 -rotate-3"
+            />
+            <div className="flex h-full flex-col overflow-hidden rounded-[28px] border-2 border-[var(--sf-ink)] bg-[var(--sf-paper)] shadow-[0_8px_0_0_var(--sf-ink)]">
+              <div className="flex shrink-0 items-center justify-between gap-3 border-b-2 border-dashed border-[var(--sf-ink)]/20 bg-[var(--sf-mint)]/60 px-4 pb-3 pt-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white ring-2 ring-[var(--sf-ink)]">
+                    <Image
+                      src="/images/Logo.webp"
+                      alt=""
+                      width={24}
+                      height={24}
+                      className="object-contain"
+                    />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-[var(--sf-clay-deep)]">
+                      MudKitchen
+                    </p>
+                    <div className="flex items-baseline gap-2">
+                      <p
+                        id="questions-chat-title"
+                        className="sf-display text-2xl leading-none text-[var(--sf-ink)]"
+                      >
+                        Questions
+                      </p>
+                      <span
+                        aria-hidden
+                        className="sf-hand hidden -rotate-3 text-lg leading-none text-[var(--sf-forest)] min-[380px]:inline"
+                      >
+                        pick one ↓
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  data-questions-close
+                  onClick={closePanel}
+                  className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white text-[var(--sf-ink)] ring-2 ring-[var(--sf-ink)]/15 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:rotate-90 hover:ring-[var(--sf-ink)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-ink)]/30"
+                  aria-label="Close"
+                >
+                  <X className="h-4 w-4" strokeWidth={2.6} aria-hidden />
+                </button>
+              </div>
+
+              <div
+                ref={scrollerRef}
+                data-lenis-prevent
+                className="sf-grid min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[var(--sf-cream)]"
+              >
+                <div className="flex min-h-full flex-col justify-end gap-3.5 px-4 py-5">
+                  <ChatBubble from="bot">{QUESTION_CHAT_GREETING}</ChatBubble>
+
+                  {turns.map((turn) => {
+                    const waiting = turn.id === pendingReplyId;
+                    const isLatest = turn.id === turns[turns.length - 1]?.id;
+                    return (
+                      <div key={turn.id} className="flex flex-col gap-3">
+                        <ChatBubble from="visitor">{turn.question}</ChatBubble>
+                        {waiting ? (
+                          <TypingBubble />
+                        ) : (
+                          <motion.div
+                            initial={reduceMotion || !isLatest ? false : { opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.35, ease: "easeOut" }}
+                          >
+                            <ChatBubble from="bot">
+                              {turn.answer}
+                              {turn.actions.length > 0 ? (
+                                <AnswerActions
+                                  actions={turn.actions}
+                                  pathname={pathname}
+                                  reduceMotion={reduceMotion}
+                                  animateIn={isLatest}
+                                  onDemo={goToGetStartedDemo}
+                                  onNavigate={closeForNavigation}
+                                />
+                              ) : null}
+                            </ChatBubble>
+                          </motion.div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {covered && !submitted && !pendingReplyId ? (
+                    <motion.div
+                      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.35, ease: "easeOut" }}
+                    >
+                      <ChatBubble from="bot">
+                        {QUESTION_CHAT_COVERED}
+                        <AnswerActions
+                          actions={QUESTION_CHAT_ACTIONS}
+                          pathname={pathname}
+                          reduceMotion={reduceMotion}
+                          animateIn
+                          onDemo={goToGetStartedDemo}
+                          onNavigate={closeForNavigation}
+                        />
+                      </ChatBubble>
+                    </motion.div>
+                  ) : null}
+
+                  {showForm && !submitted ? (
+                    <form
+                      className="sf-paper relative flex flex-col gap-3.5 rounded-[22px] border-2 border-[var(--sf-ink)]/15 p-4"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        void handleSubmit();
+                      }}
+                    >
+                      <PublicFormHoneypotField
+                        value={companyWebsite}
+                        onChange={setCompanyWebsite}
+                      />
+                      <label htmlFor={messageId} className={labelClassName}>
+                        Your question
+                        <textarea
+                          id={messageId}
+                          rows={4}
+                          value={question}
+                          onChange={(event) => setQuestion(event.target.value)}
+                          placeholder="What's your question?"
+                          className={`${fieldClassName} resize-none`}
+                        />
+                      </label>
+                      <label htmlFor={nameId} className={labelClassName}>
+                        Your name
+                        <input
+                          id={nameId}
+                          type="text"
+                          autoComplete="name"
+                          value={name}
+                          onChange={(event) => setName(event.target.value)}
+                          className={fieldClassName}
+                        />
+                      </label>
+                      <label htmlFor={emailId} className={labelClassName}>
+                        Your email
+                        <input
+                          id={emailId}
+                          type="email"
+                          autoComplete="email"
+                          value={email}
+                          onChange={(event) => setEmail(event.target.value)}
+                          className={fieldClassName}
+                        />
+                      </label>
+                      {submitError ? (
+                        <p
+                          role="alert"
+                          className="flex items-start gap-1.5 text-sm font-bold text-[var(--sf-clay-deep)]"
+                        >
+                          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2.4} aria-hidden />
+                          {submitError}
+                        </p>
+                      ) : null}
+                      <button
+                        type="submit"
+                        disabled={!canSubmit || isSubmitting}
+                        className={`mt-1 ${submitClassName}`}
+                      >
+                        <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Sending...">
+                          Send Question
+                        </ButtonLoadingLabel>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowForm(false)}
+                        className="mx-auto cursor-pointer rounded-full px-2 text-[13px] font-extrabold text-[var(--sf-soft)] underline decoration-[var(--sf-moss)] decoration-2 underline-offset-4 transition-colors hover:text-[var(--sf-ink)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-ink)]/20"
+                      >
+                        Back to questions
+                      </button>
+                    </form>
+                  ) : null}
+
+                  {submitted ? (
+                    <div className="rounded-[22px] border-2 border-[var(--sf-ink)] bg-[var(--sf-mint)] px-4 py-5 text-center shadow-[0_3px_0_0_var(--sf-ink)]">
+                      <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white ring-2 ring-[var(--sf-ink)]">
+                        <Tick className="h-8 w-8" fill="#fff" />
+                      </span>
+                      <p className="sf-display text-xl text-[var(--sf-ink)]">Question received</p>
+                      <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--sf-soft)]">
+                        Thanks! We&apos;ll get back to you at the email you provided.
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
               </div>
-              <button
-                type="button"
-                data-questions-close
-                onClick={closePanel}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-[#1d1a16]/60 transition-colors hover:bg-[#F4F1EC] hover:text-[#1d1a16]"
-                aria-label="Close"
-              >
-                <X className="h-4 w-4" aria-hidden />
-              </button>
-            </div>
 
-            <div ref={scrollerRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-              <div className="flex min-h-full flex-col justify-end gap-3 px-4 py-4">
-                <ChatBubble from="bot">{QUESTION_CHAT_GREETING}</ChatBubble>
-
-                {turns.map((turn) => {
-                  const waiting = turn.id === pendingReplyId;
-                  const isLatest = turn.id === turns[turns.length - 1]?.id;
-                  return (
-                    <div key={turn.id} className="flex flex-col gap-2">
-                      <ChatBubble from="visitor">{turn.question}</ChatBubble>
-                      {waiting ? (
-                        <TypingBubble />
-                      ) : (
-                        <motion.div
-                          initial={reduceMotion || !isLatest ? false : { opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.35, ease: "easeOut" }}
-                        >
-                          <ChatBubble from="bot">
-                            {turn.answer}
-                            {turn.actions.length > 0 ? (
-                              <AnswerActions
-                                actions={turn.actions}
-                                pathname={pathname}
-                                reduceMotion={reduceMotion}
-                                animateIn={isLatest}
-                                onDemo={goToGetStartedDemo}
-                                onNavigate={closeForNavigation}
-                              />
-                            ) : null}
-                          </ChatBubble>
-                        </motion.div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {covered && !submitted && !pendingReplyId ? (
-                  <motion.div
-                    initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35, ease: "easeOut" }}
-                  >
-                    <ChatBubble from="bot">
-                      {QUESTION_CHAT_COVERED}
-                      <AnswerActions
-                        actions={QUESTION_CHAT_ACTIONS}
-                        pathname={pathname}
-                        reduceMotion={reduceMotion}
-                        animateIn
-                        onDemo={goToGetStartedDemo}
-                        onNavigate={closeForNavigation}
-                      />
-                    </ChatBubble>
-                  </motion.div>
-                ) : null}
-
-                {showForm && !submitted ? (
-                  <form
-                    className="relative flex flex-col gap-3 rounded-[20px] bg-[#F7F5F2] p-3"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      void handleSubmit();
-                    }}
-                  >
-                    <PublicFormHoneypotField
-                      value={companyWebsite}
-                      onChange={setCompanyWebsite}
-                    />
-                    <label
-                      htmlFor={messageId}
-                      className="flex flex-col gap-1.5 font-secondary text-[13px] font-semibold text-[#1d1a16]"
+              {!showForm && !submitted ? (
+                <div
+                  ref={footerRef}
+                  data-lenis-prevent
+                  className="max-h-[46%] shrink-0 overflow-y-auto border-t-2 border-dashed border-[var(--sf-ink)]/20 bg-[var(--sf-paper)] px-4 pb-4 pt-3.5"
+                >
+                  {!pendingReplyId && hasSuggestions ? (
+                    <motion.div
+                      initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: reduceMotion ? 0 : 0.12, ease: "easeOut" }}
                     >
-                      Your question
-                      <textarea
-                        id={messageId}
-                        rows={4}
-                        value={question}
-                        onChange={(event) => setQuestion(event.target.value)}
-                        placeholder="What's your question?"
-                        className={`${fieldClassName} resize-none`}
-                      />
-                    </label>
-                    <label
-                      htmlFor={nameId}
-                      className="flex flex-col gap-1.5 font-secondary text-[13px] font-semibold text-[#1d1a16]"
-                    >
-                      Your name
-                      <input
-                        id={nameId}
-                        type="text"
-                        autoComplete="name"
-                        value={name}
-                        onChange={(event) => setName(event.target.value)}
-                        className={fieldClassName}
-                      />
-                    </label>
-                    <label
-                      htmlFor={emailId}
-                      className="flex flex-col gap-1.5 font-secondary text-[13px] font-semibold text-[#1d1a16]"
-                    >
-                      Your email
-                      <input
-                        id={emailId}
-                        type="email"
-                        autoComplete="email"
-                        value={email}
-                        onChange={(event) => setEmail(event.target.value)}
-                        className={fieldClassName}
-                      />
-                    </label>
-                    {submitError ? (
-                      <p className="font-secondary text-sm text-red-600">{submitError}</p>
-                    ) : null}
-                    <button
-                      type="submit"
-                      disabled={!canSubmit || isSubmitting}
-                      className={`font-secondary h-11 w-full rounded-pill bg-[#1d1a16] text-[15px] font-semibold text-white transition-colors hover:bg-clay disabled:cursor-not-allowed disabled:opacity-50 ${BUTTON_LOADING_LAYOUT_CLASS}`}
-                    >
-                      <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Sending...">
-                        Send Question
-                      </ButtonLoadingLabel>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowForm(false)}
-                      className="font-secondary text-[13px] font-semibold text-[#1d1a16]/70 hover:text-[#1d1a16]"
-                    >
-                      Back to questions
-                    </button>
-                  </form>
-                ) : null}
-
-                {submitted ? (
-                  <div className="rounded-[20px] bg-[#F7F5F2] px-4 py-5 text-center">
-                    <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#1d1a16] text-white">
-                      <Check className="h-5 w-5" aria-hidden />
-                    </div>
-                    <p className="font-secondary text-sm font-semibold text-[#1d1a16]">
-                      Question received
-                    </p>
-                    <p className="mt-1 font-secondary text-[13px] leading-relaxed text-[#1d1a16]/70">
-                      Thanks! We&apos;ll get back to you at the email you provided.
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-
-            {!showForm && !submitted ? (
-              <div
-                ref={footerRef}
-                className="max-h-[46%] shrink-0 overflow-y-auto border-t border-black/10 px-4 py-3"
-              >
-                {!pendingReplyId && hasSuggestions ? (
-                  <motion.div
-                    initial={reduceMotion ? false : { opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: reduceMotion ? 0 : 0.12, ease: "easeOut" }}
-                  >
-                    {followUps.length > 0 ? (
-                      <div role="group" aria-label="Follow-up questions" className="flex flex-wrap gap-2">
-                        {followUps.map((node) => (
-                          <button
-                            key={node.id}
-                            type="button"
-                            onClick={() => pickQuestion(node)}
-                            className={followUpChipClassName}
-                          >
-                            {node.question}
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
-                    {followUps.length > 0 && otherQuestions.length > 0 ? (
-                      <div className="my-3 border-t border-black/10" role="separator" />
-                    ) : null}
-                    {otherQuestions.length > 0 ? (
-                      <div role="group" aria-label="Other questions" className="flex flex-wrap gap-2">
-                        {otherQuestions.map((node) => (
-                          <button
-                            key={node.id}
-                            type="button"
-                            onClick={() => pickQuestion(node)}
-                            className={chipClassName}
-                          >
-                            {node.question}
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
+                      {followUps.length > 0 ? (
+                        <div role="group" aria-label="Follow-up questions" className="flex flex-wrap gap-2.5">
+                          {followUps.map((node) => (
+                            <button
+                              key={node.id}
+                              type="button"
+                              onClick={() => pickQuestion(node)}
+                              className={followUpChipClassName}
+                            >
+                              {node.question}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                      {followUps.length > 0 && otherQuestions.length > 0 ? (
+                        <div
+                          className="my-3.5 border-t-2 border-dashed border-[var(--sf-ink)]/15"
+                          role="separator"
+                        />
+                      ) : null}
+                      {otherQuestions.length > 0 ? (
+                        <div role="group" aria-label="Other questions" className="flex flex-wrap gap-2.5">
+                          {otherQuestions.map((node) => (
+                            <button
+                              key={node.id}
+                              type="button"
+                              onClick={() => pickQuestion(node)}
+                              className={chipClassName}
+                            >
+                              {node.question}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={openDirectQuestion}
+                        className={`${sendQuestionClassName} mt-3.5`}
+                      >
+                        <PenLine className="h-4 w-4" strokeWidth={2.4} aria-hidden />
+                        Send us a question
+                      </button>
+                    </motion.div>
+                  ) : (
                     <button
                       type="button"
                       onClick={openDirectQuestion}
-                      className={`${sendQuestionClassName} mt-3`}
+                      className={sendQuestionClassName}
                     >
+                      <PenLine className="h-4 w-4" strokeWidth={2.4} aria-hidden />
                       Send us a question
                     </button>
-                  </motion.div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={openDirectQuestion}
-                    className={sendQuestionClassName}
-                  >
-                    Send us a question
-                  </button>
-                )}
-              </div>
-            ) : null}
+                  )}
+                </div>
+              ) : null}
 
-            {submitted ? (
-              <div className="shrink-0 border-t border-black/10 px-4 py-3">
-                <AnswerActions
-                  actions={QUESTION_CHAT_ACTIONS}
-                  pathname={pathname}
-                  reduceMotion
-                  animateIn={false}
-                  onDemo={goToGetStartedDemo}
-                  onNavigate={closeForNavigation}
-                />
-              </div>
-            ) : null}
+              {submitted ? (
+                <div className="shrink-0 border-t-2 border-dashed border-[var(--sf-ink)]/20 bg-[var(--sf-paper)] px-4 pb-4 pt-1">
+                  <AnswerActions
+                    actions={QUESTION_CHAT_ACTIONS}
+                    pathname={pathname}
+                    reduceMotion
+                    animateIn={false}
+                    onDemo={goToGetStartedDemo}
+                    onNavigate={closeForNavigation}
+                  />
+                </div>
+              ) : null}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -628,19 +672,21 @@ export default function FloatingQuestionButton() {
           if (open) closePanel();
           else setOpen(true);
         }}
-        className="font-secondary flex items-center gap-2 rounded-pill bg-[#1d1a16] px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-colors hover:bg-clay"
+        className={launcherClassName}
         aria-label="Questions?"
         aria-expanded={open}
       >
-        <Image
-          src="/images/Logo.webp"
-          alt=""
-          width={20}
-          height={20}
-          className="object-contain brightness-0 invert"
-          aria-hidden
-        />
-        <span className="pr-0.5">Questions?</span>
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--sf-cream)]">
+          <Image
+            src="/images/Logo.webp"
+            alt=""
+            width={18}
+            height={18}
+            className="object-contain"
+            aria-hidden
+          />
+        </span>
+        <span>Questions?</span>
       </button>
     </div>
   );

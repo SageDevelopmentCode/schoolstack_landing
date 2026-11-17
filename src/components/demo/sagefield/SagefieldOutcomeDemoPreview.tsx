@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { InViewDemoGate } from "@/components/ui/InViewDemoGate";
 import { LandingScaledDemoFrame } from "@/components/demo/LandingScaledDemoFrame";
 import {
@@ -53,17 +53,14 @@ function SagefieldOutcomeDemo({ role }: { role: Role }) {
   }
 
   return (
-    <LazySagefieldAdminDashboardDemo
-      key="admin"
-      initialPage="leads"
-      initialAdmissionsTab="submissions"
-      disableTour
-    />
+<LazySagefieldAdminDashboardDemo key="admin" />
   );
 }
 
 export default function SagefieldOutcomeDemoPreview({ role, bare = false }: Props) {
-  const outerRef = useRef<HTMLDivElement>(null);
+  // Callback ref: InViewDemoGate mounts the canvas only once it scrolls into
+  // view, so a mount-time effect would measure nothing and keep the default.
+  const [outerEl, setOuterEl] = useState<HTMLDivElement | null>(null);
   const [scale, setScale] = useState(0.35);
 
   useEffect(() => {
@@ -71,7 +68,7 @@ export default function SagefieldOutcomeDemoPreview({ role, bare = false }: Prop
   }, [role]);
 
   useEffect(() => {
-    const el = outerRef.current;
+    const el = outerEl;
     if (!el) return;
 
     const update = () => setScale(el.offsetWidth / DESIGN_WIDTH);
@@ -80,7 +77,7 @@ export default function SagefieldOutcomeDemoPreview({ role, bare = false }: Prop
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [outerEl]);
 
   return (
     <>
@@ -111,7 +108,7 @@ export default function SagefieldOutcomeDemoPreview({ role, bare = false }: Prop
           className="relative overflow-hidden"
           style={{ height: PREVIEW_HEIGHT }}
         >
-          <div ref={outerRef} className="absolute inset-0 overflow-hidden">
+          <div ref={setOuterEl} className="absolute inset-0 overflow-hidden">
             <div
               className="h-full"
               style={{

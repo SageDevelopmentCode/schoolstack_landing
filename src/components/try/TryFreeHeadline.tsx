@@ -33,6 +33,13 @@ export default function TryFreeHeadline() {
     <h1 className="sf-display mt-5 text-[2.6rem] leading-[0.95] text-[var(--sf-ink)] sm:text-6xl">
       <span className="sr-only">Try MudKitchen for free</span>
       <span aria-hidden="true" className="grid">
+        {/* Invisible sizers: the cell always takes the tallest phrase's height,
+            so the copy and form below never move as the phrase changes. */}
+        {PHRASES.map((sizer) => (
+          <span key={`sizer-${sizer}`} className="invisible col-start-1 row-start-1">
+            Try <span>{sizer}</span> <span className="whitespace-nowrap">for free</span>
+          </span>
+        ))}
         <AnimatePresence initial={false}>
           <motion.span
             key={phrase}

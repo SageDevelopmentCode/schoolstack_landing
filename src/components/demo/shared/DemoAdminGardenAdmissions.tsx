@@ -1,13 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, type ComponentProps } from "react";
 import { useReducedMotion } from "framer-motion";
-import {
-  ADMIN_DEMO_COLORS,
-  ADMIN_DEMO_COPY,
-  applyAdminDemoRuntime,
-  getAdminDemoLogo,
-} from "@/components/demo/shared/admin-demo-runtime";
+import DemoAdminGardenShell from "@/components/demo/shared/DemoAdminGardenShell";
 import {
   computeDemoSubmissionMetrics,
   getDemoFormOptions,
@@ -16,27 +11,18 @@ import {
   mapDemoLeadsToSubmissions,
   type DemoSubmissionLead,
 } from "@/components/demo/shared/demo-submissions-mapper";
-import SchoolAdminBaseline from "@/components/school-admin/SchoolAdminBaseline";
-import SchoolAdminStoryShell from "@/components/school-admin/SchoolAdminStoryShell";
 import ApplicationSubmissionsPageShell, {
   type SubmissionsPagePreview,
   type SubmissionsPreviewController,
 } from "@/components/school-admin/admissions/ApplicationSubmissionsPageShell";
-import GardenToaster from "@/components/school-parent/garden/GardenToaster";
 import { schoolAdminDemoConfigs } from "@/data/school-demos/dashboard-registry";
+import type { SchoolAdminDemoConfig } from "@/data/school-demos/demo-dashboard-types";
 import { DEMO_ADMIN_SUBMISSION_LEADS } from "@/data/school-demos/demo-admin-admissions-fixtures";
 import { buildDemoSubmissionDetail } from "@/data/school-demos/demo-admin-submission-detail-fixtures";
-import {
-  DEMO_ADMIN_FEATURES,
-  DEMO_PORTAL_ORG_ID,
-  DEMO_PORTAL_SLUG,
-} from "@/data/school-demos/demo-portal-shared";
+import { DEMO_PORTAL_ORG_ID, DEMO_PORTAL_SLUG } from "@/data/school-demos/demo-portal-shared";
 import type { AdminApplicationSubmission } from "@/lib/admissions/application-submissions";
-import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
-import { DEFAULT_BRANDING } from "@/lib/organization-settings/catalog";
-import { buildParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import type { SchoolAdminUserProfile } from "@/lib/school-admin/access";
+import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import type { ApplicationSubmissionsPageMeta } from "@/lib/school-admin/load-submissions-page-data";
 
 /*
@@ -54,44 +40,16 @@ const NEW_SUBMISSION_DELAY_MS = 700;
 const ACCEPT_DELAY_MS = 1800;
 const START_ENROLLMENT_DELAY_MS = 1500;
 
-const DEMO_ADMIN_USER: SchoolAdminUserProfile = {
-  displayName: "Morgan Ellis",
-  email: "demo@mudkitchen.app",
-};
-
 type DemoAdminGardenAdmissionsProps = {
-  demoSlug: string;
+  /** A school in `schoolAdminDemoConfigs`. Ignored when `config` is given. */
+  demoSlug?: string;
+  /** A config outside the registry (e.g. the Sage Field case study). */
+  config?: SchoolAdminDemoConfig;
   animateNewSubmission?: boolean;
   initialSelectedLeadId?: string;
   autoSendEnrollmentLink?: boolean;
   autoSendEnrollmentLinkDelayMs?: number;
 };
-
-function buildBranding(): OrganizationBranding {
-  const colors = ADMIN_DEMO_COLORS;
-  const logo = getAdminDemoLogo();
-  return {
-    ...DEFAULT_BRANDING,
-    colors: {
-      ...DEFAULT_BRANDING.colors,
-      accent: colors.accent,
-      accentDark: colors.accentDark,
-      accentBright: colors.accentBright,
-      accentLight: colors.accentLight,
-      accentGlow: colors.accentGlow,
-      secondaryBtnBorder: colors.secondaryBtnBorder,
-      clay: colors.clay,
-      clayBg: colors.clayBg,
-      clayBorder: colors.clayBorder,
-    },
-    logo: {
-      src: logo.src,
-      alt: logo.alt,
-      width: logo.width ?? 220,
-      height: logo.height ?? 52,
-    },
-  };
-}
 
 /**
  * The step's story for `l0`: in step 3 it arrives as a finished application
@@ -121,17 +79,17 @@ function buildMeta(rows: AdminApplicationSubmission[]): ApplicationSubmissionsPa
 
 export default function DemoAdminGardenAdmissions({
   demoSlug,
+  config: configProp,
   animateNewSubmission = false,
   initialSelectedLeadId,
   autoSendEnrollmentLink = false,
   autoSendEnrollmentLinkDelayMs,
 }: DemoAdminGardenAdmissionsProps) {
   const reduce = useReducedMotion() === true;
-  const config = schoolAdminDemoConfigs[demoSlug];
+  const config = configProp ?? (demoSlug ? schoolAdminDemoConfigs[demoSlug] : undefined);
 
   const setup = useMemo(() => {
     if (!config) return null;
-    applyAdminDemoRuntime(config);
     const baseLeads =
       (config.contentOverrides?.demoLeads as DemoSubmissionLead[] | undefined) ??
       DEMO_ADMIN_SUBMISSION_LEADS;
@@ -144,11 +102,7 @@ export default function DemoAdminGardenAdmissions({
     const allRows = mapDemoLeadsToSubmissions(leads);
     const newLead = animateNewSubmission ? leadById.get(NEW_SUBMISSION_LEAD_ID) : undefined;
     const initialRows = newLead ? allRows.filter((row) => row.id !== newLead.id) : allRows;
-    const branding = buildBranding();
     return {
-      branding,
-      theme: buildParentThemeTokens(branding),
-      schoolName: ADMIN_DEMO_COPY.schoolName,
       leadById,
       newRow: newLead ? mapDemoLeadToSubmission(newLead) : null,
       tableData: { submissions: initialRows, totalCount: initialRows.length, pageSize: 50 },
@@ -161,8 +115,6 @@ export default function DemoAdminGardenAdmissions({
     [],
   );
 
-  // Dialogs portal here so they stay inside the scaled 1440px canvas.
-  const [portalHost, setPortalHost] = useState<HTMLDivElement | null>(null);
   const controllerRef = useRef<SubmissionsPreviewController>(null);
 
   const leadById = setup?.leadById;
@@ -184,7 +136,7 @@ export default function DemoAdminGardenAdmissions({
     return () => window.clearTimeout(timer);
   }, [newRow, reduce]);
 
-  const preview = useMemo<SubmissionsPagePreview>(
+  const preview = useMemo<Omit<SubmissionsPagePreview, "portalContainer">>(
     () => ({
       detailFor,
       initialSelectedId: initialSelectedLeadId ?? null,
@@ -194,60 +146,63 @@ export default function DemoAdminGardenAdmissions({
             startEnrollmentAfterMs: START_ENROLLMENT_DELAY_MS,
           }
         : null,
-      portalContainer: portalHost,
       controllerRef,
     }),
-    [
-      autoSendEnrollmentLink,
-      autoSendEnrollmentLinkDelayMs,
-      detailFor,
-      initialSelectedLeadId,
-      portalHost,
-    ],
+    [autoSendEnrollmentLink, autoSendEnrollmentLinkDelayMs, detailFor, initialSelectedLeadId],
   );
 
-  if (!setup) return null;
+  if (!setup || !config) return null;
 
   return (
-    <div
-      className="relative h-full w-full overflow-hidden"
-      data-testid="demo-admin-garden-admissions"
-      // Scripted, non-interactive preview: `inert` makes the drawer's and
-      // dialog's focus() calls no-ops, so they can't scroll the walkthrough
-      // frame sideways (and keyboard users can't tab into fake rows).
+    <DemoAdminGardenShell
+      config={config}
+      previewPathname={previewPathname}
       inert
+      data-testid="demo-admin-garden-admissions"
     >
-      <SchoolAdminStoryShell branding={setup.branding} className="h-full">
-        <div className="pointer-events-none h-full select-none">
-          <SchoolAdminBaseline
-            slug={DEMO_PORTAL_SLUG}
-            organizationId={DEMO_PORTAL_ORG_ID}
-            schoolName={setup.schoolName}
-            branding={setup.branding}
-            features={DEMO_ADMIN_FEATURES}
-            userProfile={DEMO_ADMIN_USER}
-            previewMode
-            previewPathname={previewPathname}
-            initialSidebarExpanded
-            fillParentHeight
-            portalOptions={[]}
-            initialMessagesUnreadCount={0}
-            initialActivityUnreadCount={0}
-          >
-            <ApplicationSubmissionsPageShell
-              organizationId={DEMO_PORTAL_ORG_ID}
-              branding={setup.branding}
-              schoolName={setup.schoolName}
-              slug={DEMO_PORTAL_SLUG}
-              initialMeta={setup.meta}
-              initialTableData={setup.tableData}
-              preview={preview}
-            />
-          </SchoolAdminBaseline>
-        </div>
-      </SchoolAdminStoryShell>
-      <div ref={setPortalHost} className="pointer-events-none absolute inset-0 z-[130] select-none" />
-      <GardenToaster theme={setup.theme} />
-    </div>
+      {({ branding, schoolName, portalHost }) => (
+        <DemoAdmissionsPage
+          branding={branding}
+          schoolName={schoolName}
+          meta={setup.meta}
+          tableData={setup.tableData}
+          preview={preview}
+          portalHost={portalHost}
+        />
+      )}
+    </DemoAdminGardenShell>
+  );
+}
+
+/** Keeps `preview` referentially stable per portal host (the page reads it in effects). */
+function DemoAdmissionsPage({
+  branding,
+  schoolName,
+  meta,
+  tableData,
+  preview,
+  portalHost,
+}: {
+  branding: OrganizationBranding;
+  schoolName: string;
+  meta: ApplicationSubmissionsPageMeta;
+  tableData: ComponentProps<typeof ApplicationSubmissionsPageShell>["initialTableData"];
+  preview: Omit<SubmissionsPagePreview, "portalContainer">;
+  portalHost: HTMLDivElement | null;
+}) {
+  const fullPreview = useMemo<SubmissionsPagePreview>(
+    () => ({ ...preview, portalContainer: portalHost }),
+    [portalHost, preview],
+  );
+  return (
+    <ApplicationSubmissionsPageShell
+      organizationId={DEMO_PORTAL_ORG_ID}
+      branding={branding}
+      schoolName={schoolName}
+      slug={DEMO_PORTAL_SLUG}
+      initialMeta={meta}
+      initialTableData={tableData}
+      preview={fullPreview}
+    />
   );
 }

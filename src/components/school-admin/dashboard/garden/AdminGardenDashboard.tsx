@@ -15,7 +15,11 @@ import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme
 import type { OrganizationPlan } from "@/lib/organization-settings/plans";
 import type { OrganizationFeatures } from "@/lib/organization-settings/types";
 import { useAdminNotificationsPanel } from "@/lib/school-admin/admin-notifications-panel-context";
-import type { AdminDashboardToday } from "@/lib/school-admin/dashboard-summary";
+import type {
+  AdminDashboardSummary,
+  AdminDashboardToday,
+} from "@/lib/school-admin/dashboard-summary";
+import { AttendanceApiProvider } from "@/components/school-admin/attendance/AttendanceApiContext";
 import AdminGardenDashboardHeader from "./AdminGardenDashboardHeader";
 import {
   GardenAttendanceBoard,
@@ -41,8 +45,16 @@ export type AdminGardenDashboardProps = {
   features: OrganizationFeatures;
   userFirstName?: string | null;
   schoolName: string;
-  initialToday: AdminDashboardToday;
+  /** A full `AdminDashboardSummary` in `previewMode` (Activity + Guides fixtures). */
+  initialToday: AdminDashboardToday | AdminDashboardSummary;
+  /**
+   * Marketing demos only: tabs switch locally, nothing is fetched or saved,
+   * and the attendance board is view-only. Real routes never pass it.
+   */
+  previewMode?: boolean;
 };
+
+function noop() {}
 
 /** One-line status under the greeting, built only from today's data. */
 function todayStatusLine(model: AdminDashboardModel, features: OrganizationFeatures): string {
@@ -69,12 +81,31 @@ function todayStatusLine(model: AdminDashboardModel, features: OrganizationFeatu
  * Design rules: `.agents/skills/admin-portal-garden-design/SKILL.md`.
  */
 export default function AdminGardenDashboard(props: AdminGardenDashboardProps) {
-  const { organizationId, slug, plan, features, initialToday, userFirstName } = props;
+  // Preview: the attendance model is read-only (no saves) and its sheets read
+  // the preview flag, so the whole page shares one AttendanceApiProvider.
+  return props.previewMode ? (
+    <AttendanceApiProvider previewMode>
+      <AdminGardenDashboardPage {...props} />
+    </AttendanceApiProvider>
+  ) : (
+    <AdminGardenDashboardPage {...props} />
+  );
+}
+
+function AdminGardenDashboardPage(props: AdminGardenDashboardProps) {
+  const { organizationId, slug, plan, features, initialToday, userFirstName, previewMode = false } = props;
   const { theme, C } = useSchoolAdminStoryTheme();
   const { openNotifications } = useAdminNotificationsPanel();
   const reduce = useReducedMotion() === true;
-  const model = useAdminDashboardModel({ organizationId, slug, plan, features, initialToday });
-  const att = useGardenAttendance({ organizationId, slug, model });
+  const model = useAdminDashboardModel({
+    organizationId,
+    slug,
+    plan,
+    features,
+    initialToday,
+    previewMode,
+  });
+  const att = useGardenAttendance({ organizationId, slug, model, previewMode });
   const tabMeta = DASHBOARD_TABS.find((tab) => tab.id === model.activeTab);
 
   return (
@@ -105,7 +136,11 @@ export default function AdminGardenDashboard(props: AdminGardenDashboardProps) {
                 <GardenJourneyPanel sections={model.journeySections} />
               ) : null}
               {model.activeTab === "activity" ? (
-                <GardenActivityPanel model={model} onViewAll={openNotifications} />
+                <GardenActivityPanel
+                  model={model}
+                  // The notifications drawer loads from the API; previews have no feed behind it.
+                  onViewAll={previewMode ? noop : openNotifications}
+                />
               ) : null}
               {model.activeTab === "guides" ? <GardenGuidesPanel model={model} slug={slug} /> : null}
             </motion.div>
@@ -113,8 +148,11 @@ export default function AdminGardenDashboard(props: AdminGardenDashboardProps) {
         </div>
       </ParentGardenFrame>
 
-      {/* Sheets and drawers stay outside the Garden frame (story-styled). */}
-      <GardenAttendanceSheets att={att} organizationId={organizationId} theme={theme} C={C} />
+      {/* Sheets and drawers stay outside the Garden frame (story-styled). The
+          attendance sheets load history / pickup contacts, so previews skip them. */}
+      {previewMode ? null : (
+        <GardenAttendanceSheets att={att} organizationId={organizationId} theme={theme} C={C} />
+      )}
       <AdminDocumentationGuidePanel
         C={C}
         guide={model.activeGuide}
@@ -150,7 +188,16 @@ function GardenTodayPanel({
         </div>
       </div>
       <GardenMetricTiles slug={props.slug} metrics={today.metrics} />
-      {showsAttendance(props.features, model) ? <GardenAttendanceBoard att={att} layout="table" /> : null}
+      {showsAttendance(props.features, model) ? (
+        props.previewMode ? (
+          // View-only in previews: date stepping and row sheets would fetch.
+          <div inert>
+            <GardenAttendanceBoard att={att} layout="table" />
+          </div>
+        ) : (
+          <GardenAttendanceBoard att={att} layout="table" />
+        )
+      ) : null}
       <GardenStaffHoursCard slug={props.slug} today={today} />
     </>
   );

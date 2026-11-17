@@ -3,11 +3,19 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { InViewDemoGate } from "@/components/ui/InViewDemoGate";
 import {
-  LazyAdminDashboardDemo,
+  LazyDemoTeacherGardenHours,
+  prefetchDemoTeacherGardenHours,
+} from "@/components/demo/shared/lazyDemoTeacherGardenHours";
+import {
+  LazyGardenAdminDashboardDemo,
+  LazyGardenAdminMarketingDemo,
+  LazyGardenEnrollmentDemo,
   LazyParentDashboardDemo,
   LazyTeacherDashboardDemo,
   LazyWebsiteDashboardDemo,
-  prefetchAdminDemo,
+  prefetchGardenAdminDashboardDemo,
+  prefetchGardenAdminMarketingDemo,
+  prefetchGardenEnrollmentDemo,
   prefetchParentDemo,
   prefetchTeacherDemo,
   prefetchWebsiteDemo,
@@ -27,14 +35,14 @@ export type DemoStageKey =
 
 const PREFETCH: Record<DemoStageKey, () => void> = {
   parent: prefetchParentDemo,
-  enrollment: prefetchParentDemo,
+  enrollment: prefetchGardenEnrollmentDemo,
   tuition: prefetchParentDemo,
   messages: prefetchTeacherDemo,
   teacher: prefetchTeacherDemo,
   attendance: prefetchTeacherDemo,
-  timeclock: prefetchTeacherDemo,
-  admin: prefetchAdminDemo,
-  marketing: prefetchAdminDemo,
+  timeclock: prefetchDemoTeacherGardenHours,
+  admin: prefetchGardenAdminDashboardDemo,
+  marketing: prefetchGardenAdminMarketingDemo,
   website: prefetchWebsiteDemo,
 };
 
@@ -50,13 +58,11 @@ function renderDemo(key: DemoStageKey, tour: boolean): ReactNode {
     case "teacher":
       return <LazyTeacherDashboardDemo disableTour={disableTour} />;
     case "admin":
-      return <LazyAdminDashboardDemo disableTour={disableTour} />;
+      return <LazyGardenAdminDashboardDemo />;
     case "website":
       return <LazyWebsiteDashboardDemo disableTour />;
     case "enrollment":
-      return (
-        <LazyParentDashboardDemo initialTab="enrollment" disableTour hideNav />
-      );
+      return <LazyGardenEnrollmentDemo />;
     case "tuition":
       return (
         <LazyParentDashboardDemo initialTab="billing" disableTour hideNav />
@@ -66,13 +72,9 @@ function renderDemo(key: DemoStageKey, tour: boolean): ReactNode {
         <LazyTeacherDashboardDemo initialTab="attendance" disableTour hideNav />
       );
     case "timeclock":
-      return (
-        <LazyTeacherDashboardDemo initialTab="hours" disableTour hideNav />
-      );
+      return <LazyDemoTeacherGardenHours />;
     case "marketing":
-      return (
-        <LazyAdminDashboardDemo initialPage="marketing" disableTour hideNav />
-      );
+      return <LazyGardenAdminMarketingDemo />;
     case "messages":
       // The teacher inbox is a working demo; the parent Messages tab is still "Coming soon".
       return (

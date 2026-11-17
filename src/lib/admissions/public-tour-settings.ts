@@ -155,8 +155,9 @@ export function resolvePublicTourIntro(settings: PublicTourPageSettings): string
   return settings.intro?.trim() || DEFAULT_PUBLIC_TOUR_INTRO;
 }
 
+/** On by default for every school; off only when a platform admin turned it off. */
 export function isPublicTourEnabled(settings: PublicTourPageSettings): boolean {
-  return settings.enabled === true;
+  return settings.enabled !== false;
 }
 
 export type PublicTourChildEntry = {

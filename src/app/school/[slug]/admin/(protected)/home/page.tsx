@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import FreeSchoolHomeIntro from "@/components/school-admin/FreeSchoolHomeIntro";
+import FreeSchoolHome from "@/components/school-admin/FreeSchoolHome";
 import { getRequestUser } from "@/lib/auth/session";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 
@@ -44,8 +44,11 @@ export default async function FreeSchoolHomePage({ params }: PageProps) {
   );
 
   return (
-    <div className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14">
-      <FreeSchoolHomeIntro schoolName={org.name} initialName={initialName} />
-    </div>
+    <FreeSchoolHome
+      slug={slug}
+      schoolName={org.name}
+      branding={org.branding}
+      initialName={initialName}
+    />
   );
 }

@@ -655,13 +655,21 @@ export function GToyButton({
         haptic.press();
         onPress();
       }}
-      style={[{ paddingBottom: offset, alignSelf: fullWidth ? 'stretch' : 'flex-start' }, style]}>
+      style={[
+        {
+          paddingBottom: offset,
+          alignSelf: fullWidth ? 'stretch' : 'flex-start',
+          // Dim the whole button: a see-through face would show the ink underlay.
+          opacity: disabled ? 0.45 : 1,
+        },
+        style,
+      ]}>
       <View style={[styles.toyUnderlay, { top: offset }]} />
       <Animated.View
         style={[
           styles.toyFace,
           size === 'md' ? styles.toyFaceMd : styles.toyFaceSm,
-          { backgroundColor: face, opacity: disabled ? 0.55 : 1 },
+          { backgroundColor: face },
           faceStyle,
         ]}>
         {loading ? <ActivityIndicator size="small" color={fg} /> : null}

@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from "react";
 
-export function useLiveElapsed(startedAt: Date | null): number {
+/**
+ * Seconds since `startedAt`, ticking every second.
+ *
+ * `anchorNow` (marketing demos only) pins "now" to a fixed instant when the
+ * component mounts and keeps ticking from there, so a fixture clocked in at
+ * 7:44 AM reads like a morning session whatever the visitor's clock says.
+ */
+export function useLiveElapsed(startedAt: Date | null, anchorNow?: Date | null): number {
+  const [mountedAt] = useState(() => Date.now());
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -20,5 +28,6 @@ export function useLiveElapsed(startedAt: Date | null): number {
     return 0;
   }
 
-  return Math.max(0, Math.floor((now - startedAt.getTime()) / 1000));
+  const effectiveNow = anchorNow ? anchorNow.getTime() + (now - mountedAt) : now;
+  return Math.max(0, Math.floor((effectiveNow - startedAt.getTime()) / 1000));
 }

@@ -3,6 +3,7 @@ import {
   assertApiAuthenticated,
   fetchWithAuth,
   getApiAuthHeaders,
+  refreshApiAuthHeaders,
   throwUnauthorized,
 } from '@/lib/auth/auth-session';
 import {
@@ -1096,11 +1097,16 @@ export function buildParentNewsletterDocumentUrl(
 export async function getParentNewsletterDocumentWebViewSource(
   organizationId: string,
   editionId: string,
+  options: { forceRefresh?: boolean } = {},
 ): Promise<{ uri: string; headers: Record<string, string> }> {
   const apiPath = buildParentNewsletterDocumentApiPath(organizationId, editionId);
   const previewPath = resolveParentPreviewPath(apiPath);
   const requestPath = previewPath ?? apiPath;
-  const headers = await getApiAuthHeaders();
+  // The WebView sends these headers once and can't retry on 401, so callers
+  // force a refresh after a 401 or on Try again.
+  const headers = options.forceRefresh
+    ? await refreshApiAuthHeaders()
+    : await getApiAuthHeaders();
   if (previewPath) {
     const { MOBILE_PREVIEW_HEADER } = await import('@/lib/platform-admin/preview-session-store');
     headers[MOBILE_PREVIEW_HEADER] = '1';

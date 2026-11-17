@@ -252,6 +252,7 @@ function DemoContactFeedbackPanel({
           />
           <GetStartedIntroTextArea
             theme={theme}
+            appearance="garden"
             label="Questions or comments"
             value={comment}
             onChange={setComment}
@@ -405,6 +406,7 @@ function DemoContactSchedulePanel({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <GetStartedStoryTextField
               theme={theme}
+              appearance="garden"
               variant="intro"
               id="concept-demo-name"
               label={form.nameLabel}
@@ -415,6 +417,7 @@ function DemoContactSchedulePanel({
             />
             <GetStartedStoryTextField
               theme={theme}
+              appearance="garden"
               variant="intro"
               id="concept-demo-email"
               label={form.emailLabel}

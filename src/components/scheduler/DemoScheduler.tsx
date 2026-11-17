@@ -460,6 +460,7 @@ type DemoSchedulerCalendarProps = {
   onDisplayTimezoneChange: (timezone: string) => void;
   appearance: DemoSchedulerAppearance;
   titleAs: "h2" | "h3";
+  calendarHint?: string;
 };
 
 /** "garden" renders the MudKitchen Garden picker and needs a `.sf-garden` ancestor. */
@@ -478,6 +479,7 @@ function DemoSchedulerCalendar({
   onDisplayTimezoneChange,
   appearance,
   titleAs,
+  calendarHint,
 }: DemoSchedulerCalendarProps) {
   const garden = appearance === "garden";
   const initialView = initialDemoSchedulerView(
@@ -597,6 +599,7 @@ function DemoSchedulerCalendar({
         isSubmitting={isSubmitting}
         preview={preview}
         confirmDisabled={confirmDisabled}
+        calendarHint={calendarHint}
       />
     );
   }
@@ -709,7 +712,7 @@ function DemoSchedulerCalendar({
             }}
           >
             <Info size={13} className="shrink-0 mt-0.5" aria-hidden />
-            <span>{DEMO_BOOKING_STORY_COPY.calendarHint}</span>
+            <span>{calendarHint ?? DEMO_BOOKING_STORY_COPY.calendarHint}</span>
           </div>
         </>
       ) : null}
@@ -823,6 +826,7 @@ export function DemoScheduler({
   onDisplayTimezoneChange,
   appearance = "story",
   titleAs = "h2",
+  calendarHint,
 }: {
   availabilitySlots: Record<string, string[]>;
   onConfirm?: (booking: DemoSchedulerBooking) => void;
@@ -835,6 +839,8 @@ export function DemoScheduler({
   appearance?: DemoSchedulerAppearance;
   /** Heading level for the Garden picker's title. */
   titleAs?: "h2" | "h3";
+  /** Replaces the default hint under the calendar. */
+  calendarHint?: string;
 }) {
   const [internalTimezone, setInternalTimezone] = useState(() =>
     detectBrowserTimezone(SCHEDULER_TIMEZONE),
@@ -879,6 +885,7 @@ export function DemoScheduler({
       onDisplayTimezoneChange={handleDisplayTimezoneChange}
       appearance={appearance}
       titleAs={titleAs}
+      calendarHint={calendarHint}
     />
   );
 }

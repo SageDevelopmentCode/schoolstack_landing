@@ -5,7 +5,7 @@ import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SchoolLoginExperience } from '@/components/school-login-experience';
-import { Story } from '@/constants/story-theme';
+import { Garden } from '@/components/parent/garden/tokens';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -31,7 +31,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Story.paper,
+    backgroundColor: Garden.cream,
   },
   keyboardView: {
     flex: 1,

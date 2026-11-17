@@ -167,6 +167,8 @@ export type DemoSchedulerGardenViewProps = {
   isSubmitting?: boolean;
   preview?: boolean;
   confirmDisabled?: boolean;
+  /** Replaces the default "pick a date, then a time" hint under the calendar. */
+  calendarHint?: string;
 };
 
 /**
@@ -198,6 +200,7 @@ export default function DemoSchedulerGardenView({
   isSubmitting,
   preview = false,
   confirmDisabled = false,
+  calendarHint = copy.calendarHint,
 }: DemoSchedulerGardenViewProps) {
   const reduce = useReducedMotion();
   const whenLabel =
@@ -287,7 +290,7 @@ export default function DemoSchedulerGardenView({
               <Info className="h-3.5 w-3.5" strokeWidth={2.6} aria-hidden />
             </span>
             <p className="pt-0.5 text-[13px] font-bold leading-snug text-[var(--sf-ink)]">
-              {copy.calendarHint}
+              {calendarHint}
             </p>
           </div>
         </div>

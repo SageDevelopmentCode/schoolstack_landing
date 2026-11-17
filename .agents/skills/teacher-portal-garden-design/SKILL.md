@@ -4,8 +4,8 @@ description: >-
   "Garden" design system for the school-branded STAFF / TEACHER portal (web).
   Use whenever building, redesigning or restyling a teacher page or tab under
   src/app/school/[slug]/teacher/ or src/components/school-teacher/ (Dashboard,
-  My Students, Messages, Calendar, Forms & documents and Classroom signups are
-  done; Attendance and My Hours are next), the admin staff preview of those
+  My Students, Messages, Calendar, Forms & documents, Classroom signups and My
+  Hours are done; Attendance is next), the admin staff preview of those
   pages, or when asked to "match the staff Dashboard", "use the teacher Garden
   design", or migrate a teacher page off School Day Story. Covers the
   "classroom day" feel, the day rhythm, guided one-at-a-time flows (roll
@@ -120,7 +120,7 @@ This is the admin contract (`admin-portal-garden-design` §4) plus:
 
 ## 6. Migrating a teacher page (checklist)
 
-Done: Dashboard, My Students, Messages, Calendar, Forms & documents, Classroom signups. Next: Attendance (reuse `GardenAttendanceBoard variant="page"`) → My Hours (pair with the mobile time clock).
+Done: Dashboard, My Students, Messages, Calendar, Forms & documents, Classroom signups, My Hours (`my-hours/useTeacherMyHoursModel.ts` + `my-hours/garden/*`, paired with the mobile time clock). Next: Attendance (reuse `GardenAttendanceBoard variant="page"`).
 
 Gotchas found on the way:
 - A dialog that a toast's Retry can finish must close **inside** the retried action (not after `run()` returns), or a successful Retry leaves it open.
