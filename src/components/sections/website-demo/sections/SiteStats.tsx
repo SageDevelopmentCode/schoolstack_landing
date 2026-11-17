@@ -1,49 +1,31 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Compass, GraduationCap, Leaf, Sparkles, type LucideIcon } from "lucide-react";
 import type { DemoStat } from "@/data/school-demos/types";
-import { DEMO_GUTTER, STORY_EASE } from "../bright-demo-theme";
+import { SITE_GUTTER, SITE_STRAIGHTEN, SITE_TINT_BG, tiltAt } from "../site-garden-theme";
+import { SiteReveal } from "../garden/SiteKit";
 
-const STAT_ICONS: LucideIcon[] = [Sparkles, GraduationCap, Leaf, Compass];
-
-/** Ink stats band that overlaps the bottom of the hero. */
+/** Index cards pinned over the bottom of the hero, alternating tilt and tint. */
 export default function SiteStats({ stats }: { stats: DemoStat[] }) {
+  if (stats.length === 0) return null;
   return (
-    <section className={`relative z-10 -mt-20 ${DEMO_GUTTER}`}>
-      <motion.div
-        className="relative mx-auto grid max-w-[1180px] grid-cols-2 overflow-hidden rounded-[32px] bg-[var(--demo-ink-band)] px-3 py-6 shadow-[var(--demo-shadow-float)] @3xl/site:grid-cols-4 @3xl/site:px-4 @3xl/site:py-8"
-        initial={{ opacity: 0, y: 24 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.7, ease: STORY_EASE }}
-      >
-        <div
-          className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[var(--demo-glow)] blur-3xl"
-          aria-hidden
-        />
-        {stats.map((stat, i) => {
-          const Icon = STAT_ICONS[i % STAT_ICONS.length];
-          return (
+    <section className={`relative z-10 -mt-16 ${SITE_GUTTER}`}>
+      <ul className="mx-auto grid max-w-[1180px] grid-cols-2 gap-4 px-2 @3xl/site:grid-cols-4 @3xl/site:gap-5">
+        {stats.map((stat, i) => (
+          <SiteReveal key={`${stat.value}-${stat.label}`} as="li" delay={i * 0.08}>
             <div
-              key={`${stat.value}-${stat.label}`}
-              className={`relative flex flex-col gap-3 px-4 py-4 @3xl/site:px-7 ${
-                i > 0 ? "@3xl/site:border-l @3xl/site:border-white/10" : ""
-              }`}
+              className={`flex h-full flex-col gap-2 rounded-[22px] border-2 border-[var(--sf-ink)] px-5 py-5 shadow-[0_5px_0_0_var(--sf-ink)] @3xl/site:px-6 @3xl/site:py-6 ${SITE_TINT_BG[i % SITE_TINT_BG.length]} ${SITE_STRAIGHTEN}`}
+              style={{ rotate: tiltAt(i) }}
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white" aria-hidden>
-                <Icon className="h-[18px] w-[18px]" />
-              </span>
-              <span className="font-secondary block text-[clamp(1.5rem,2.6cqw,2.25rem)] font-bold leading-none tracking-[-0.04em] text-white">
+              <span className="sf-display block text-balance text-[clamp(1.5rem,2.8cqw,2.4rem)] leading-[0.95] [overflow-wrap:anywhere] text-[var(--sf-ink)]">
                 {stat.value}
               </span>
-              <span className="font-secondary block text-[12px] font-semibold uppercase tracking-wider text-white/60">
+              <span className="block text-[12px] font-extrabold uppercase tracking-[0.14em] text-[var(--sf-ink)]/70">
                 {stat.label}
               </span>
             </div>
-          );
-        })}
-      </motion.div>
+          </SiteReveal>
+        ))}
+      </ul>
     </section>
   );
 }

@@ -21,6 +21,7 @@ import { postSubmitStepDocumentationSummary } from "@/lib/admissions/post-submit
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
+import { useSubmissionDetailPreview } from "@/components/school-admin/admissions/SubmissionDetailPreviewContext";
 
 type ApplicationSubmissionPostSubmitSectionProps = {
   C: AdminThemeTokens;
@@ -52,6 +53,8 @@ export default function ApplicationSubmissionPostSubmitSection({
   steps,
   onStepUpdated,
 }: ApplicationSubmissionPostSubmitSectionProps) {
+  // Preview: step updates are disabled (no uploads or writes).
+  const { previewMode } = useSubmissionDetailPreview();
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(
     null,
   );
@@ -63,7 +66,7 @@ export default function ApplicationSubmissionPostSubmitSection({
     notes: string;
     pendingFiles: File[];
   }) {
-    if (!pendingAction || pendingAction.type !== "complete") return;
+    if (!pendingAction || pendingAction.type !== "complete" || previewMode) return;
 
     setSubmitting(true);
     let responseStatus: number | undefined;
@@ -125,7 +128,7 @@ export default function ApplicationSubmissionPostSubmitSection({
   }
 
   async function handleUndoConfirm() {
-    if (!pendingAction || pendingAction.type !== "undo") return;
+    if (!pendingAction || pendingAction.type !== "undo" || previewMode) return;
 
     setSubmitting(true);
     let responseStatus: number | undefined;
@@ -193,7 +196,7 @@ export default function ApplicationSubmissionPostSubmitSection({
     input: PostSubmitStepDocumentationSaveInput,
     helpers: PostSubmitStepDocumentationSaveHelpers,
   ) {
-    if (!documentationStep) return;
+    if (!documentationStep || previewMode) return;
 
     setSubmitting(true);
     let responseStatus: number | undefined;

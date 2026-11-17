@@ -54,6 +54,7 @@ export default function GardenBookDemo({
             introHeadingAs={introHeadingAs}
             showStepProgress={false}
             theme={MUDKITCHEN_MARKETING_GARDEN_THEME}
+            garden
           />
         </div>
       </div>

@@ -4,12 +4,14 @@ import {
   defaultApplicationFormFeeConfig,
   defaultApplicationFormNotificationConfig,
   defaultApplicationFormPostSubmitConfig,
+  type ApplicationField,
   type ApplicationFormSchema,
   type ApplicationFormVersion,
 } from "@/lib/admissions/application-form-schema";
 import {
   createBlankChecklistItem,
   type EnrollmentChecklistItem,
+  type EnrollmentChecklistItemInstance,
 } from "@/lib/admissions/enrollment-checklist-schema";
 import type { EnrollmentChecklistTemplate } from "@/lib/admissions/enrollment-checklist-templates";
 import type { FlowListSelection } from "@/components/school-admin/admissions/enrollment-flow-selection";
@@ -427,29 +429,238 @@ By signing below, you confirm that you have read this overview and understand ho
   };
 }
 
-function buildChecklistPreviewItems(): EnrollmentChecklistItem[] {
-  const schoolName = resolveDemoSchoolName();
+function demoChecklistItemId(n: number): string {
+  return `a1000001-0001-4001-8001-${String(n).padStart(12, "0")}`;
+}
+
+function demoChecklistField(
+  id: string,
+  label: string,
+  type: ApplicationField["type"],
+  extra: Partial<ApplicationField> = {},
+): ApplicationField {
+  return { id, label, type, required: true, width: "half", ...extra };
+}
+
+/**
+ * The demo enrollment checklist, in the same order and with the same labels as
+ * the parent story checklist (`DEMO_PARENT_CHECKLIST_ITEMS`), so per-child
+ * completions line up item for item. Ids are stable so demo instances can
+ * point at them.
+ */
+export function buildDemoEnrollmentChecklistItems(
+  schoolName = resolveDemoSchoolName(),
+): EnrollmentChecklistItem[] {
   const policies = createBlankChecklistItem("document_sign", "Program Description & Key Policies");
-  policies.id = DEMO_MARKETING_CHECKLIST_POLICIES_ITEM_ID;
   policies.document = buildProgramPoliciesDocument(schoolName);
+
   const agreement = createBlankChecklistItem("document_sign", "Community Agreement");
-  const health = createBlankChecklistItem("form", "Emergency Contact & Health Form");
+  agreement.document = {
+    kind: "inline_sections",
+    sections: [
+      {
+        id: "demo-section-community-agreement",
+        title: "Our community agreement",
+        body: `Families at ${schoolName} agree to treat students, staff and other families with kindness and respect, to communicate concerns directly and calmly, and to help keep our spaces safe and welcoming for every child.`,
+      },
+    ],
+  };
+
+  const health = createBlankChecklistItem("form", "Emergency Contact, Health & Immunization Form");
+  health.formSchema = {
+    id: "demo-form-emergency-health",
+    title: "Emergency Contact, Health & Immunization Form",
+    description: "Who should we call, and what should we know about your child's health?",
+    fields: [
+      demoChecklistField("emergency-name", "Emergency contact name", "text"),
+      demoChecklistField("emergency-phone", "Emergency contact phone", "tel"),
+      demoChecklistField("emergency-relationship", "Relationship to child", "text"),
+      demoChecklistField("physician", "Primary physician", "text", { required: false }),
+      demoChecklistField("allergies", "Allergies or medical conditions", "textarea", {
+        width: "full",
+        required: false,
+        rows: 3,
+      }),
+    ],
+  };
+
+  const medication = createBlankChecklistItem("form", "Emergency Medication Plan");
+  medication.required = false;
+  medication.formSchema = {
+    id: "demo-form-medication-plan",
+    title: "Emergency Medication Plan",
+    description: "Only needed if your child may need medication during the school day.",
+    fields: [
+      demoChecklistField("medication-name", "Medication", "text"),
+      demoChecklistField("medication-dose", "Dose and timing", "text"),
+      demoChecklistField("medication-notes", "Instructions for staff", "textarea", {
+        width: "full",
+        rows: 3,
+      }),
+    ],
+  };
+
   const immunizations = createBlankChecklistItem("file_upload", "Proof of Immunizations");
+  immunizations.fileUpload = {
+    accept: ".pdf,.jpg,.jpeg,.png",
+    maxFiles: 3,
+    helpText: "Upload current immunization records or a signed exemption form.",
+  };
+
+  const healthInfo = createBlankChecklistItem("form", "Health Information Form");
+  healthInfo.formSchema = {
+    id: "demo-form-health-information",
+    title: "Health Information Form",
+    fields: [
+      demoChecklistField("health-status", "General health", "select", {
+        options: [
+          { value: "good", label: "Good — no concerns" },
+          { value: "managed", label: "Ongoing condition, managed" },
+          { value: "discuss", label: "I'd like to discuss with staff" },
+        ],
+      }),
+      demoChecklistField("accommodations", "Accommodations needed", "textarea", {
+        width: "full",
+        required: false,
+        rows: 3,
+      }),
+    ],
+  };
+
+  const photoRelease = createBlankChecklistItem("acknowledgment", "Photo Release Form");
+  photoRelease.acknowledgment = {
+    body: `${schoolName} may share photos of students in family newsletters and on the school website. Choose how your child's image may be used.`,
+    options: [
+      { value: "all", label: "Photos may be shared in newsletters and online" },
+      { value: "internal", label: "Photos may be shared with school families only" },
+      { value: "none", label: "Please do not share photos of my child" },
+    ],
+  };
+
+  const risk = createBlankChecklistItem("acknowledgment", "Assumption of Risk");
+  risk.acknowledgment = {
+    body: "I understand that arts, outdoor and physical activities are part of the program, and I acknowledge the ordinary risks that come with them.",
+  };
+
+  const pickup = createBlankChecklistItem("form", "Additional Authorized Pickup");
+  pickup.required = false;
+  pickup.formSchema = {
+    id: "demo-form-authorized-pickup",
+    title: "Additional Authorized Pickup",
+    description: "List adults who are approved to pick up your child from school.",
+    allowMultiple: true,
+    fields: [
+      demoChecklistField("pickup-name", "Full name", "text"),
+      demoChecklistField("pickup-phone", "Phone", "tel"),
+    ],
+  };
+
   const fee = createBlankChecklistItem("payment", "Pay Registration Fee");
   fee.payment = {
     label: "Registration fee",
     amountCents: 15000,
   };
-  const acknowledgment = createBlankChecklistItem(
-    "acknowledgment",
-    "Photo release acknowledgment",
-  );
-  acknowledgment.required = false;
 
-  return [policies, agreement, health, immunizations, fee, acknowledgment];
+  const items = [
+    policies,
+    agreement,
+    health,
+    medication,
+    immunizations,
+    healthInfo,
+    photoRelease,
+    risk,
+    pickup,
+    fee,
+  ];
+  items.forEach((item, index) => {
+    item.id = index === 0 ? DEMO_MARKETING_CHECKLIST_POLICIES_ITEM_ID : demoChecklistItemId(index + 1);
+  });
+  return items;
 }
 
-export const DEMO_ENROLLMENT_CHECKLIST_PREVIEW_ITEMS = buildChecklistPreviewItems();
+export const DEMO_ENROLLMENT_CHECKLIST_PREVIEW_ITEMS = buildDemoEnrollmentChecklistItems();
+
+export type DemoEnrollmentChecklistChildId = "emma" | "jake" | "liam";
+
+export const DEMO_ENROLLMENT_CHECKLIST_ID = "demo-enrollment-checklist";
+
+/**
+ * Per-child checklist state, item for item with the demo checklist:
+ * Emma partly done (7 of 8 required, fee still due), Jake not started
+ * (application under review), Liam enrolled (everything done).
+ * Mirrors `DEMO_PARENT_ENROLLMENT_COMPLETIONS` in demo-parent-portal-fixtures.
+ */
+export const DEMO_ENROLLMENT_CHECKLIST_COMPLETIONS: Record<
+  DemoEnrollmentChecklistChildId,
+  readonly boolean[]
+> = {
+  emma: [true, true, true, false, true, true, true, true, false, false],
+  jake: [false, false, false, false, false, false, false, false, false, false],
+  liam: [true, true, true, true, true, true, true, true, true, true],
+};
+
+export function buildDemoEnrollmentChecklistInstances(
+  items: EnrollmentChecklistItem[],
+  completions: readonly boolean[],
+  checklistId = DEMO_ENROLLMENT_CHECKLIST_ID,
+): EnrollmentChecklistItemInstance[] {
+  return items.map((item, index) => {
+    const completed = completions[index] === true;
+    return {
+      id: `${checklistId}-instance-${index + 1}`,
+      checklistId,
+      templateItemId: item.id,
+      itemKey: item.itemKey,
+      status: completed ? "completed" : "not_started",
+      paymentStatus:
+        item.type === "payment" ? (completed ? "paid" : "pending") : "not_required",
+      responses: {},
+    };
+  });
+}
+
+export function buildDemoChildEnrollmentChecklistInstances(
+  childId: DemoEnrollmentChecklistChildId,
+  items: EnrollmentChecklistItem[] = DEMO_ENROLLMENT_CHECKLIST_PREVIEW_ITEMS,
+): EnrollmentChecklistItemInstance[] {
+  return buildDemoEnrollmentChecklistInstances(
+    items,
+    DEMO_ENROLLMENT_CHECKLIST_COMPLETIONS[childId],
+    `${DEMO_ENROLLMENT_CHECKLIST_ID}-${childId}`,
+  );
+}
+
+/**
+ * Walkthrough frames for a child's checklist: starts with the first two
+ * agreements signed, ticks off that child's completed items one at a time,
+ * then (optionally) pays the remaining required items so the checklist ends
+ * on "Enrollment Confirmed!". Each frame is a completions array.
+ */
+export function buildDemoEnrollmentChecklistTickFrames(
+  childId: DemoEnrollmentChecklistChildId,
+  items: EnrollmentChecklistItem[] = DEMO_ENROLLMENT_CHECKLIST_PREVIEW_ITEMS,
+  { finishRequired = true, startDone = 2 }: { finishRequired?: boolean; startDone?: number } = {},
+): boolean[][] {
+  const target = DEMO_ENROLLMENT_CHECKLIST_COMPLETIONS[childId];
+  const current = items.map((_, index) => index < startDone && target[index] === true);
+  const frames: boolean[][] = [[...current]];
+  items.forEach((_, index) => {
+    if (target[index] && !current[index]) {
+      current[index] = true;
+      frames.push([...current]);
+    }
+  });
+  if (finishRequired) {
+    items.forEach((item, index) => {
+      if (item.required && !current[index]) {
+        current[index] = true;
+        frames.push([...current]);
+      }
+    });
+  }
+  return frames;
+}
 
 export function buildDemoPreviewChecklistItemsByTemplateId(): Record<
   string,

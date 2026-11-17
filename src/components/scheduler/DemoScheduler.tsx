@@ -37,14 +37,16 @@ import {
 } from "@/lib/marketing/demo-timezone-options";
 import { SITE_NAME } from "@/lib/site";
 import type { DemoSchedulerBooking } from "@/components/scheduler/demo-scheduler-types";
+import DemoSchedulerGardenView, {
+  demoDisplaySlotKey,
+  type SlotPeriodFilter,
+} from "@/components/scheduler/garden/DemoSchedulerGardenView";
 
 export type { DemoSchedulerBooking } from "@/components/scheduler/demo-scheduler-types";
 
 const ease = [0.16, 1, 0.3, 1] as const;
 
-function displaySlotKey(slot: DemoDisplaySlot): string {
-  return `${slot.canonicalDate}|${slot.canonicalTime}`;
-}
+const displaySlotKey = demoDisplaySlotKey;
 
 function storyCalendarColors(theme: ParentThemeTokens): CalendarGridColors {
   return {
@@ -60,7 +62,6 @@ function storyCalendarColors(theme: ParentThemeTokens): CalendarGridColors {
   };
 }
 
-type SlotPeriodFilter = "all" | DemoSlotPeriod;
 
 function TimeSlotList({
   dateStr,
@@ -457,7 +458,12 @@ type DemoSchedulerCalendarProps = {
   minDisplayDate: string | null;
   timezoneOptions: ReturnType<typeof resolveDemoDisplayTimezoneOptions>;
   onDisplayTimezoneChange: (timezone: string) => void;
+  appearance: DemoSchedulerAppearance;
+  titleAs: "h2" | "h3";
 };
+
+/** "garden" renders the MudKitchen Garden picker and needs a `.sf-garden` ancestor. */
+export type DemoSchedulerAppearance = "story" | "garden";
 
 function DemoSchedulerCalendar({
   onConfirm,
@@ -470,7 +476,10 @@ function DemoSchedulerCalendar({
   minDisplayDate,
   timezoneOptions,
   onDisplayTimezoneChange,
+  appearance,
+  titleAs,
 }: DemoSchedulerCalendarProps) {
+  const garden = appearance === "garden";
   const initialView = initialDemoSchedulerView(
     displaySlots,
     minDisplayDate,
@@ -492,7 +501,7 @@ function DemoSchedulerCalendar({
   );
 
   const periodOptions = useMemo((): SlotPeriodFilter[] => {
-    if (!storyTheme || selectedDaySlots.length === 0) return ["all"];
+    if ((!storyTheme && !garden) || selectedDaySlots.length === 0) return ["all"];
     const periods = new Set<DemoSlotPeriod>();
     for (const slot of selectedDaySlots) {
       periods.add(classifyDemoSlotPeriod(slot, displayTimezone));
@@ -502,7 +511,7 @@ function DemoSchedulerCalendar({
     if (periods.has("afternoon")) ordered.push("afternoon");
     if (periods.has("evening")) ordered.push("evening");
     return ordered;
-  }, [storyTheme, selectedDaySlots, displayTimezone]);
+  }, [storyTheme, garden, selectedDaySlots, displayTimezone]);
 
   const filteredDaySlots = useMemo(() => {
     if (slotPeriod === "all") return selectedDaySlots;
@@ -559,6 +568,37 @@ function DemoSchedulerCalendar({
     setSelectedDate(null);
     setSelectedSlotKey(null);
     setSlotPeriod("all");
+  }
+
+  if (garden) {
+    return (
+      <DemoSchedulerGardenView
+        titleAs={titleAs}
+        displayTimezone={displayTimezone}
+        timezoneOptions={timezoneOptions}
+        onDisplayTimezoneChange={handleDisplayTimezoneChange}
+        viewYear={viewYear}
+        viewMonth={viewMonth}
+        canGoPrev={!isCurrentMonthInTimezone(viewYear, viewMonth, displayTimezone)}
+        onPrevMonth={prevMonth}
+        onNextMonth={nextMonth}
+        selectedDate={selectedDate}
+        onSelectDate={handleDateSelect}
+        availableDates={availableDates}
+        minDate={today}
+        daySlots={filteredDaySlots}
+        periodOptions={periodOptions}
+        activePeriod={slotPeriod}
+        onPeriodChange={setSlotPeriod}
+        selectedSlotKey={selectedSlotKey}
+        onSelectSlot={setSelectedSlotKey}
+        selectedBooking={selectedBooking}
+        onConfirm={onConfirm}
+        isSubmitting={isSubmitting}
+        preview={preview}
+        confirmDisabled={confirmDisabled}
+      />
+    );
   }
 
   const titleStyle = storyTheme
@@ -781,6 +821,8 @@ export function DemoScheduler({
   storyTheme,
   displayTimezone: displayTimezoneProp,
   onDisplayTimezoneChange,
+  appearance = "story",
+  titleAs = "h2",
 }: {
   availabilitySlots: Record<string, string[]>;
   onConfirm?: (booking: DemoSchedulerBooking) => void;
@@ -790,6 +832,9 @@ export function DemoScheduler({
   storyTheme?: ParentThemeTokens;
   displayTimezone?: string;
   onDisplayTimezoneChange?: (timezone: string) => void;
+  appearance?: DemoSchedulerAppearance;
+  /** Heading level for the Garden picker's title. */
+  titleAs?: "h2" | "h3";
 }) {
   const [internalTimezone, setInternalTimezone] = useState(() =>
     detectBrowserTimezone(SCHEDULER_TIMEZONE),
@@ -832,6 +877,8 @@ export function DemoScheduler({
       minDisplayDate={minDisplayDate}
       timezoneOptions={timezoneOptions}
       onDisplayTimezoneChange={handleDisplayTimezoneChange}
+      appearance={appearance}
+      titleAs={titleAs}
     />
   );
 }

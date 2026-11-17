@@ -53,6 +53,16 @@
   line-height: revert-layer;
 }
 
+/* Demo school websites (WebsiteDashboardDemo) in school-branded Garden. The
+   site renders inside the walkthrough's .sf-demo preview card, so it
+   re-applies the type reset for itself. */
+.sf-site-garden :where(h1, h2, h3, h4, p, button) {
+  font-family: revert-layer;
+  font-weight: revert-layer;
+  letter-spacing: revert-layer;
+  line-height: revert-layer;
+}
+
 @layer components {
   .sf-display {
     font-family: var(--font-sf-display), ui-sans-serif, system-ui, sans-serif;

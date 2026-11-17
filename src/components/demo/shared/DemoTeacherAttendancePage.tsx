@@ -32,6 +32,7 @@ export default function DemoTeacherAttendancePage() {
           slug={DEMO_PORTAL_SLUG}
           previewMode
           initialRoster={initialRoster}
+          syncDateToUrl={false}
         />
       </div>
     </DemoSchoolTeacherStoryProvider>

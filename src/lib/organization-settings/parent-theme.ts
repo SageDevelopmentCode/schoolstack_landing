@@ -189,3 +189,39 @@ export function parentThemeToAdminCompat(
     },
   };
 }
+
+/**
+ * Garden-flavoured bridge for shared admissions inputs that still take
+ * `AdminThemeTokens` (field inputs, signature, radio, notices). Inside a
+ * `ParentGardenFrame` these render in Garden ink / paper / forest with the
+ * school accent. `accent` stays a hex colour: some inputs append alpha to it.
+ */
+export function parentThemeToGardenCompat(
+  theme: ParentThemeTokens,
+): AdminThemeTokens {
+  const ink = "#2b241d";
+  return {
+    ...parentThemeToAdminCompat(theme),
+    bg: "#f7f1e7",
+    surface: "#ffffff",
+    elevated: "#fffaf4",
+    input: "#fffaf4",
+    inputBorder: "rgba(43, 36, 29, 0.18)",
+    border: "rgba(43, 36, 29, 0.14)",
+    borderStrong: "rgba(43, 36, 29, 0.28)",
+    secondaryBtnBorder: "rgba(43, 36, 29, 0.25)",
+    textPrimary: ink,
+    textSecondary: "#6d6257",
+    textTertiary: "rgba(43, 36, 29, 0.55)",
+    textQuaternary: "rgba(43, 36, 29, 0.4)",
+    success: "#2e4a3c",
+    successBg: "#ddebd5",
+    successBorder: "#a6b89a",
+    info: "#24507a",
+    infoBg: "#e3edfb",
+    infoBorder: "rgba(36, 80, 122, 0.25)",
+    shadowCard: "0 3px 0 0 rgba(43, 36, 29, 0.08)",
+    shadowMedium: "0 3px 0 0 rgba(43, 36, 29, 0.08)",
+    r: { sm: "10px", md: "14px", lg: "24px", xl: "24px", full: "9999px" },
+  };
+}

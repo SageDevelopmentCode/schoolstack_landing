@@ -14,7 +14,7 @@ type Props = {
   elevated?: boolean;
 };
 
-/** Floating pill navigation shared by the hero and the sticky header. */
+/** Floating paper pill (like GardenNavbar), shared by the hero and the sticky header. */
 export default function SiteNavBar({
   config,
   activeNav,
@@ -25,12 +25,17 @@ export default function SiteNavBar({
 }: Props) {
   return (
     <div
-      className={`flex items-center justify-between gap-4 rounded-pill bg-white/90 py-2 pl-4 pr-2 ring-1 ring-black/[0.07] backdrop-blur-md @3xl/site:pl-6 ${
-        elevated ? "shadow-[0_16px_40px_-18px_rgba(20,20,40,0.3)]" : "shadow-[0_8px_30px_-16px_rgba(20,20,40,0.18)]"
+      className={`flex items-center justify-between gap-3 rounded-full border-2 border-[var(--sf-ink)] bg-[var(--sf-paper)] py-2 pl-4 pr-2 @3xl/site:pl-6 ${
+        elevated ? "shadow-[0_5px_0_0_var(--sf-ink)]" : "shadow-[0_3px_0_0_var(--sf-ink)]"
       }`}
     >
-      <button type="button" onClick={onScrollToTop} className="shrink-0 cursor-pointer" aria-label={`${config.schoolName} home`}>
-        <SchoolDemoWordmark logo={config.logo} className="h-9 w-auto object-contain" />
+      <button
+        type="button"
+        onClick={onScrollToTop}
+        className="min-w-0 shrink cursor-pointer overflow-hidden rounded-xl text-left focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/30"
+        aria-label={`${config.schoolName} home`}
+      >
+        <SchoolDemoWordmark logo={config.logo} className="h-9 w-auto max-w-full object-contain" />
       </button>
       <nav className="hidden items-center gap-1 @3xl/site:flex" aria-label="Site">
         {config.hero.navLinks.map((item, i) => {
@@ -41,24 +46,20 @@ export default function SiteNavBar({
               type="button"
               onClick={() => onNavLinkClick(i)}
               aria-current={isActive ? "true" : undefined}
-              className={`font-secondary relative cursor-pointer rounded-pill px-4 py-2 text-[14px] font-semibold transition-colors duration-200 ${
-                isActive ? "text-[var(--demo-ink)]" : "text-[var(--demo-muted)] hover:text-[var(--demo-ink)]"
+              className={`relative cursor-pointer rounded-full px-4 py-2 text-[14px] font-extrabold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/30 ${
+                isActive
+                  ? "bg-[var(--sf-butter)] text-[var(--sf-ink)]"
+                  : "text-[var(--sf-soft)] hover:bg-[var(--sf-accent-wash)] hover:text-[var(--sf-ink)]"
               }`}
             >
               {item}
-              <span
-                className={`absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[var(--demo-primary)] transition-opacity duration-200 ${
-                  isActive ? "opacity-100" : "opacity-0"
-                }`}
-                aria-hidden
-              />
             </button>
           );
         })}
       </nav>
-      <DemoWebsiteButton variant="primary" className="h-10! px-5! text-[14px]!" onClick={onCtaClick}>
+      <DemoWebsiteButton variant="primary" className="shrink-0 whitespace-nowrap !h-10 !px-4 !text-[13px] !shadow-[0_3px_0_0_var(--sf-ink)] @2xl/site:!px-5 @2xl/site:!text-[14px]" onClick={onCtaClick}>
         {config.hero.navCta}
-        <ArrowRight className="hidden h-4 w-4 @2xl/site:block" aria-hidden />
+        <ArrowRight className="hidden h-4 w-4 @2xl/site:block" strokeWidth={2.6} aria-hidden />
       </DemoWebsiteButton>
     </div>
   );

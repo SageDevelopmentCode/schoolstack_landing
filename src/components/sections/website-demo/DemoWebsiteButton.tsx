@@ -1,20 +1,21 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import {
-  DEMO_GHOST_PILL_ON_DARK,
-  DEMO_OUTLINE_PILL,
-  DEMO_PRIMARY_PILL,
-  DEMO_WHITE_PILL,
-} from "./bright-demo-theme";
+  SITE_BTN_GHOST_DARK,
+  SITE_BTN_ON_DARK,
+  SITE_BTN_OUTLINE,
+  SITE_BTN_PRIMARY,
+} from "./site-garden-theme";
 
-type Variant = "primary" | "outline" | "white" | "ghostDark";
+type Variant = "primary" | "outline" | "onDark" | "ghostDark";
 
 const VARIANT_CLASS: Record<Variant, string> = {
-  primary: DEMO_PRIMARY_PILL,
-  outline: DEMO_OUTLINE_PILL,
-  white: DEMO_WHITE_PILL,
-  ghostDark: DEMO_GHOST_PILL_ON_DARK,
+  primary: SITE_BTN_PRIMARY,
+  outline: SITE_BTN_OUTLINE,
+  onDark: SITE_BTN_ON_DARK,
+  ghostDark: SITE_BTN_GHOST_DARK,
 };
 
+/** Garden "toy" buttons in the school's colours. */
 export default function DemoWebsiteButton({
   variant = "primary",
   children,
@@ -26,11 +27,7 @@ export default function DemoWebsiteButton({
   children: ReactNode;
 }) {
   return (
-    <button
-      type={type}
-      className={`${VARIANT_CLASS[variant]} cursor-pointer disabled:cursor-default disabled:opacity-60 ${className}`}
-      {...props}
-    >
+    <button type={type} className={`${VARIANT_CLASS[variant]} ${className}`} {...props}>
       {children}
     </button>
   );

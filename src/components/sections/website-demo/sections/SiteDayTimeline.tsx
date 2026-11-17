@@ -1,126 +1,140 @@
 "use client";
 
 import Image from "next/image";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Clock } from "lucide-react";
+import { Tape } from "@/components/garden/ui";
 import RotateProgressBar from "@/components/home/RotateProgressBar";
 import { useAutoRotate } from "@/components/home/useAutoRotate";
 import type { SchoolWebsiteDemoConfig } from "@/data/school-demos/types";
-import { DEMO_BLOCK, DEMO_GUTTER, DEMO_STICKER, STORY_EASE } from "../bright-demo-theme";
-import SiteSectionHeader from "./SiteSectionHeader";
+import { SITE_CONTAINER, SITE_EASE, SITE_EYEBROW, SITE_SECTION } from "../site-garden-theme";
+import { SiteSectionIntro } from "../garden/SiteKit";
 
 type Props = { timeline: SchoolWebsiteDemoConfig["timeline"] };
 
-/** Sticky crossfading photo plus an auto-advancing step rail. */
+/** "A day at school": a taped photo that changes with each step on a dashed timeline of tickets. */
 export default function SiteDayTimeline({ timeline }: Props) {
   const { index, select, running, intervalMs } = useAutoRotate(timeline.steps.length, 5500);
+  const reduce = useReducedMotion();
   const step = timeline.steps[index];
   if (!step) return null;
 
   return (
-    <section id="timeline" className={`scroll-mt-[88px] py-3 ${DEMO_GUTTER}`}>
-      <div className={`${DEMO_BLOCK} bg-[var(--demo-tint-3)]`}>
-        <div className="grid items-start gap-10 @5xl/site:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] @5xl/site:gap-16">
-          <div className="relative @5xl/site:sticky @5xl/site:top-28">
-            <div className="relative h-[320px] overflow-hidden rounded-[32px] shadow-[var(--demo-shadow-float)] @3xl/site:h-[520px]">
+    <section id="timeline" className={`scroll-mt-[88px] bg-[var(--sf-sky)]/50 ${SITE_SECTION}`}>
+      <div
+        className={`${SITE_CONTAINER} grid items-start gap-12 @5xl/site:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] @5xl/site:gap-16`}
+      >
+        <div className="relative @5xl/site:sticky @5xl/site:top-28">
+          <div
+            className="relative rounded-[30px] border-2 border-[var(--sf-ink)] bg-white p-2.5 shadow-[0_8px_0_0_var(--sf-ink)]"
+            style={{ rotate: "-1.2deg" }}
+          >
+            <Tape color="var(--sf-butter)" className="-top-3 left-1/2 h-6 w-24 -translate-x-1/2 rotate-2" />
+            <div className="relative h-[320px] overflow-hidden rounded-[22px] bg-[var(--sf-cream)] @3xl/site:h-[500px]">
               <AnimatePresence initial={false}>
                 <motion.div
                   key={step.image + index}
                   className="absolute inset-0"
-                  initial={{ opacity: 0, scale: 1.04 }}
+                  initial={reduce ? false : { opacity: 0, scale: 1.04 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.7, ease: STORY_EASE }}
+                  transition={{ duration: 0.7, ease: SITE_EASE }}
                 >
-                  <Image src={step.image} fill sizes="(min-width: 1024px) 560px, 90vw" className="object-cover" alt={step.activity} />
+                  <Image
+                    src={step.image}
+                    fill
+                    sizes="(min-width: 1024px) 560px, 90vw"
+                    className="object-cover"
+                    alt={step.activity}
+                  />
                 </motion.div>
               </AnimatePresence>
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-              <div className={`${DEMO_STICKER} absolute left-5 top-5 flex items-center gap-2`}>
-                <Clock className="h-4 w-4 text-[var(--demo-accent)]" aria-hidden />
-                <span className="font-secondary text-[14px] font-bold text-[var(--demo-ink)]">{step.time}</span>
-              </div>
-              <div className="absolute inset-x-6 bottom-6 flex items-end justify-between gap-4">
-                <p className="font-secondary text-[clamp(1.2rem,2cqw,1.6rem)] font-bold leading-tight tracking-[-0.02em] text-white">
-                  {step.activity}
-                </p>
-                <span className="font-secondary shrink-0 text-[13px] font-semibold text-white/75">
+              <div className="absolute inset-x-5 bottom-5 flex items-end justify-between gap-4">
+                <p className="sf-display text-[clamp(1.4rem,2.2cqw,1.9rem)] leading-[1.02] text-white">{step.activity}</p>
+                <span className="shrink-0 text-[13px] font-extrabold text-white/85">
                   {String(index + 1).padStart(2, "0")} / {String(timeline.steps.length).padStart(2, "0")}
                 </span>
               </div>
             </div>
           </div>
+          <div
+            className="absolute -left-2 -top-4 flex items-center gap-2 rounded-md bg-[var(--sf-butter)] px-3.5 py-2 shadow-[0_10px_20px_-12px_rgba(43,36,29,0.6)]"
+            style={{ rotate: "-5deg" }}
+          >
+            <Clock className="h-4 w-4 text-[var(--sf-ink)]" strokeWidth={2.6} aria-hidden />
+            <span className="text-[15px] font-extrabold text-[var(--sf-ink)]">{step.time}</span>
+          </div>
+        </div>
 
-          <div>
-            {/* A heading ending in a comma continues into headingSub, so show it as the accent line. */}
-            {timeline.heading.trim().endsWith(",") ? (
-              <SiteSectionHeader eyebrow={timeline.eyebrow} heading={timeline.heading} accent={timeline.headingSub} />
-            ) : (
-              <SiteSectionHeader eyebrow={timeline.eyebrow} heading={timeline.heading} subtitle={timeline.headingSub} />
-            )}
-            <ol className="mt-10 space-y-2.5">
-              {timeline.steps.map((s, i) => {
-                const isActive = i === index;
-                return (
-                  <li key={`${s.time}-${s.activity}`}>
-                    <button
-                      type="button"
-                      onClick={() => select(i)}
-                      aria-current={isActive ? "step" : undefined}
-                      className={`w-full cursor-pointer rounded-[24px] p-5 text-left transition-all duration-300 ${
-                        isActive ? "bg-white shadow-[var(--demo-shadow-card)] ring-1 ring-black/[0.05]" : "hover:bg-white/60"
-                      }`}
-                    >
-                      <span className="flex items-start gap-4">
+        <div>
+          {/* A heading ending in a comma continues into headingSub, so show it as the accent line. */}
+          {timeline.heading.trim().endsWith(",") ? (
+            <SiteSectionIntro eyebrow={timeline.eyebrow} heading={timeline.heading} accent={timeline.headingSub} />
+          ) : (
+            <SiteSectionIntro eyebrow={timeline.eyebrow} heading={timeline.heading} subtitle={timeline.headingSub} />
+          )}
+          <ol className="relative mt-10 space-y-3 before:absolute before:bottom-6 before:left-[35px] before:top-6 before:border-l-2 before:border-dashed before:border-[var(--sf-ink)]/25">
+            {timeline.steps.map((s, i) => {
+              const isActive = i === index;
+              return (
+                <li key={`${s.time}-${s.activity}`} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => select(i)}
+                    aria-current={isActive ? "step" : undefined}
+                    aria-expanded={isActive}
+                    className={`w-full cursor-pointer rounded-[22px] border-2 p-4 text-left transition-all duration-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/30 ${
+                      isActive
+                        ? "border-[var(--sf-ink)] bg-white shadow-[0_5px_0_0_var(--sf-ink)]"
+                        : "border-transparent hover:border-[var(--sf-ink)]/20 hover:bg-white/60"
+                    }`}
+                  >
+                    <span className="flex items-start gap-4">
+                      <span
+                        className={`sf-display flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-[var(--sf-ink)] text-[0.95rem] transition-colors duration-300 ${
+                          isActive ? "bg-[var(--sf-clay)] text-[var(--sf-on-clay)]" : "bg-white text-[var(--sf-ink)]"
+                        }`}
+                      >
+                        {i + 1}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className={`${SITE_EYEBROW} block`}>{s.time}</span>
                         <span
-                          className={`font-secondary flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[14px] font-bold transition-colors duration-300 ${
-                            isActive ? "bg-[var(--demo-ink)] text-white" : "bg-white text-[var(--demo-muted)] ring-1 ring-black/[0.06]"
+                          className={`mt-1 block text-[17px] font-extrabold transition-colors duration-300 ${
+                            isActive ? "text-[var(--sf-ink)]" : "text-[var(--sf-ink)]/65"
                           }`}
                         >
-                          {i + 1}
+                          {s.activity}
                         </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="font-secondary block text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--demo-accent)]">
-                            {s.time}
-                          </span>
-                          <span
-                            className={`font-secondary mt-1 block text-[17px] font-bold tracking-[-0.01em] transition-colors duration-300 ${
-                              isActive ? "text-[var(--demo-ink)]" : "text-[var(--demo-ink)]/60"
-                            }`}
-                          >
-                            {s.activity}
-                          </span>
-                          <AnimatePresence initial={false}>
-                            {isActive ? (
-                              <motion.span
-                                className="block overflow-hidden"
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: "auto", opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.35, ease: STORY_EASE }}
-                              >
-                                <span className="font-secondary block pt-2 text-[15px] leading-relaxed text-[var(--demo-muted)]">
-                                  {s.desc}
-                                </span>
-                                <span className="mt-4 block text-[var(--demo-primary)]">
-                                  <RotateProgressBar
-                                    cycleKey={index}
-                                    running={running}
-                                    durationMs={intervalMs}
-                                    color="var(--demo-primary)"
-                                  />
-                                </span>
-                              </motion.span>
-                            ) : null}
-                          </AnimatePresence>
-                        </span>
+                        <AnimatePresence initial={false}>
+                          {isActive ? (
+                            <motion.span
+                              className="block overflow-hidden"
+                              initial={reduce ? false : { height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.35, ease: SITE_EASE }}
+                            >
+                              <span className="block pt-2 text-[15px] leading-relaxed text-[var(--sf-soft)]">{s.desc}</span>
+                              <span className="mt-4 block text-[var(--sf-ink)]">
+                                <RotateProgressBar
+                                  cycleKey={index}
+                                  running={running}
+                                  durationMs={intervalMs}
+                                  color="var(--sf-clay)"
+                                />
+                              </span>
+                            </motion.span>
+                          ) : null}
+                        </AnimatePresence>
                       </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ol>
-          </div>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
         </div>
       </div>
     </section>

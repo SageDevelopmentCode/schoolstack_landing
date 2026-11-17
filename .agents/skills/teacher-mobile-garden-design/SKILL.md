@@ -4,8 +4,8 @@ description: >-
   "Garden" design system for the school-branded TEACHER / staff portal in the
   Expo app (apps/mobile). Use whenever building, redesigning or restyling any
   teacher screen under apps/mobile/src/app/teacher/** or
-  apps/mobile/src/components/teacher/** (Home, My Students, Calendar and
-  Messages are done; Bulletin, My Hours and the More screens are next), or when asked to
+  apps/mobile/src/components/teacher/** (Home, My Students, Calendar,
+  Messages, My Hours and Photos are done; Bulletin and the other More screens are next), or when asked to
   "match the teacher mobile Home", "use the teacher Garden kit", or migrate a
   teacher mobile screen off School Day Story. Covers what differs from the
   parent and admin mobile kits: the "classroom day" feel, the time clock, the
@@ -43,7 +43,8 @@ All paths are under `apps/mobile/src/`.
 | `components/school-admin/garden/admin-feedback.ts` | `notifyWebOnly(toast, { webPath, reportError, title?, description? })`, `ctaText` |
 | `components/teacher/home/garden/use-teacher-home-controller.ts` | Data, sheet state, feature flags and routes. No UI, no toasts. `openFocusHref` / `openDocumentationHref` return `false` when there is no in-app screen. |
 | `components/teacher/home/garden/use-teacher-home-feedback.ts` | Wraps controller callbacks: pull to refresh, web-only notices, profile photo toast, jump to the Attendance sub-tab |
-| `components/teacher/home/garden/use-teacher-time-clock.ts` | My Hours load + clock in/out through `useAdminAction`, read-only gate |
+| `components/teacher/home/garden/use-teacher-time-clock.ts` | Home's My Hours load + module cache (`rememberTeacherMyHoursPageData` lets My Hours refresh it) |
+| `components/teacher/home/garden/use-teacher-clock-actions.ts` | Clock in/out shared by Home and My Hours: `useAdminAction` (`my_hours.clock_in` / `my_hours.clock_out`, Retry), read-only gate, pending state |
 | `components/teacher/home/garden/teacher-home-status.ts` | `teacherStatusLine` (tested) |
 | `components/teacher/home/garden/sections/*` | `TeacherHeader`, `TimeClockCard`, `TodayListCard`, `DayTilesCard`, `ClassroomSnapshotCard`, `ClassroomsCard`, `StudentsCard`, `GuidesCard`, `SupportCard` |
 | `components/teacher/home/garden/sheets/*` | `TeacherNotificationsSheet` (feed), `ClassroomRosterSheet` (list), `TeacherGuideSheet` (walkthrough) |
@@ -52,6 +53,8 @@ All paths are under `apps/mobile/src/`.
 | `app/teacher/[slug]/_layout.tsx` | Mounts `GestureHandlerRootView` + `GardenToastProvider` above the Garden tab bar; cream (`Garden.cream`) behind every screen |
 | `components/teacher/students/garden/*` | My Students (class photo, linked number strip, scope / classroom / roster chips, programs picker) and the full-screen student page (Overview / Family with "Message family" / Health). `StudentFaceTile` is shared with Home. Health reuses the admin `StudentHealthPanel` with a teacher `StudentHealthSource`. |
 | `components/teacher/calendar/garden/*` | Calendar: the parent Garden calendar screen with `portal` (teacher testIDs, `teacher_calendar_*` operations, copy) and, for `canManageEvents`, `manage` (Add / Edit / Delete on `useOrganizationEventsManager`, admin `EventFormSheet`) |
+| `components/teacher/my-hours/garden/*` | My Hours: controller (verbatim load / adjust-week merge, `my_hours.*` ops) → feedback (clock, pull refresh, save toasts, goal celebration) → `useAdjustEditor` (sheet model) → screen. `TimeClockCard` is the hero (own testIDs, live "Today" line); Day tickets, Week notebook rows, Month calendar, Adjust guide + day rows, linked totals; `AdjustHoursSheet` on `AdminFormSheet` with `GTimeField`s and per-session errors (`adjust-validation.ts`, tested) |
+| `components/teacher/photos/garden/*` | Photos: the shared `useGalleryScreenController` (`school-admin/gallery/garden/`, also behind admin Photos) with `teacher_gallery_*` ops and own-uploads-only `canManageGalleryPhoto`; parent `PhotoDayGrid` (long-press, "You" badge) and `ParentPhotoViewer` (options button for your photos); `GalleryPhotoActionSheet` / `GalleryEditDateSheet`; `AdminPhotoUploadSheet` |
 | `components/teacher/messages/garden/*` | Messages: teacher controllers in the parent controllers' shapes, rendered by `ParentMessagesGardenScreen` / `ParentMessageThreadGardenScreen` (`useController`, `onStudentPress`); `messages/new?contactKey=` has its own Garden bootstrap screen |
 
 Reusable pieces from other portals that fit teachers as they are: `ParentBulletinSheet` (bulletin card feed), `PortalAccountSheet`, `PortalSupportRequestSheet` (form, keyboard-safe).
@@ -108,7 +111,7 @@ The same contract as admin (`admin-mobile-garden-design` §3), applied to teache
 
 ## 5. Migrating a teacher mobile screen (checklist)
 
-One screen per PR. Done: Home, My Students (+ student page), Calendar, Messages. Next, in order: Bulletin → My Hours (reuse `TimeClockCard` and `useTeacherTimeClock`) → More screens.
+One screen per PR. Done: Home, My Students (+ student page), Calendar, Messages, My Hours, Photos. Next, in order: Bulletin → the remaining More screens (Committees, Classroom signups, Attendance).
 
 Patterns from the My Students / Calendar / Messages migration:
 - **Reuse a portal screen through its controller shape.** Calendar and Messages render the parent Garden screens with a teacher controller of the same type; portal differences go in props (`portal`, `manage`, `useController`, `onStudentPress`), parent defaults unchanged.

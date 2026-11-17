@@ -26,6 +26,7 @@ import GetStartedStepProgress from "@/components/get-started/GetStartedStepProgr
 import GetStartedStoryHeader from "@/components/get-started/GetStartedStoryHeader";
 import { ACCENT_HIGHLIGHT } from "@/components/home/bright-styles";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
+import { Draw, Squiggle } from "@/components/garden/ui";
 import { demoRequestRoleLabel } from "@/lib/demo-request-roles";
 import { MUDKITCHEN_MARKETING_BRIGHT_THEME } from "@/lib/marketing/mudkitchen-bright-marketing-theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
@@ -84,7 +85,34 @@ type GetStartedDemoFlowProps = {
   theme?: ParentThemeTokens;
   /** Heading level for the introduction form title ("h2" when the page has its own h1). */
   introHeadingAs?: "h1" | "h2";
+  /** MudKitchen Garden scheduler step; needs a `.sf-garden` ancestor. */
+  garden?: boolean;
 };
+
+const SCHEDULER_STEP_COPY = {
+  lead: "Pick a time",
+  accent: "that works.",
+  subtitle: "We'll walk through the workflows that matter most to your school.",
+} as const;
+
+function GardenSchedulerHeader({ headingAs: Heading }: { headingAs: "h1" | "h2" }) {
+  return (
+    <div className="mb-8">
+      <Heading className="sf-display text-4xl leading-[0.95] text-[var(--sf-ink)] sm:text-5xl">
+        {SCHEDULER_STEP_COPY.lead}{" "}
+        <span className="relative isolate inline-block text-[var(--sf-clay)]">
+          <Draw className="pointer-events-none absolute -bottom-2 left-0 -z-10 w-full" delay={0.2}>
+            <Squiggle className="h-4 w-full" color="var(--sf-butter)" />
+          </Draw>
+          {SCHEDULER_STEP_COPY.accent}
+        </span>
+      </Heading>
+      <p className="mt-4 text-lg leading-relaxed text-[var(--sf-soft)]">
+        {SCHEDULER_STEP_COPY.subtitle}
+      </p>
+    </div>
+  );
+}
 
 export default function GetStartedDemoFlow({
   scrollOnStepChange = "window",
@@ -93,6 +121,7 @@ export default function GetStartedDemoFlow({
   showStepProgress = true,
   theme: themeProp,
   introHeadingAs = "h1",
+  garden = false,
 }: GetStartedDemoFlowProps) {
   const theme = useMemo(
     () => themeProp ?? MUDKITCHEN_MARKETING_BRIGHT_THEME,
@@ -323,39 +352,53 @@ export default function GetStartedDemoFlow({
                 goToStep(0);
                 scrollAfterStepChange();
               }}
-              className="mb-6 inline-flex items-center gap-1.5 font-secondary text-[13px] font-semibold text-clay transition-opacity hover:opacity-80"
+              className={
+                garden
+                  ? "mb-6 inline-flex cursor-pointer items-center gap-1.5 rounded-full text-sm font-extrabold text-[var(--sf-clay-deep)] transition-transform hover:-translate-x-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/30"
+                  : "mb-6 inline-flex items-center gap-1.5 font-secondary text-[13px] font-semibold text-clay transition-opacity hover:opacity-80"
+              }
             >
               <ArrowLeft size={14} />
               Back
             </button>
 
-            <GetStartedStoryHeader
-              title={
-                <>
-                  Pick a time <span className={ACCENT_HIGHLIGHT}>that works.</span>
-                </>
-              }
-              subtitle="We'll walk through the workflows that matter most to your school."
-              headingAs={introHeadingAs}
-            />
+            {garden ? (
+              <GardenSchedulerHeader headingAs={introHeadingAs} />
+            ) : (
+              <GetStartedStoryHeader
+                title={
+                  <>
+                    {SCHEDULER_STEP_COPY.lead}{" "}
+                    <span className={ACCENT_HIGHLIGHT}>{SCHEDULER_STEP_COPY.accent}</span>
+                  </>
+                }
+                subtitle={SCHEDULER_STEP_COPY.subtitle}
+                headingAs={introHeadingAs}
+              />
+            )}
 
             <ParentCard
               theme={theme}
               className="!p-0 overflow-hidden !border-0 !shadow-none bg-transparent"
             >
               {availabilityLoading ? (
-                <DemoSchedulerSkeleton storyTheme={theme} />
+                garden ? (
+                  <DemoSchedulerSkeleton appearance="garden" />
+                ) : (
+                  <DemoSchedulerSkeleton storyTheme={theme} />
+                )
               ) : availabilityError ? (
                 <div
-                  className="flex items-center justify-center py-24 text-sm"
-                  style={{ color: theme.alert, fontFamily: theme.fontBody }}
+                  className={`flex items-center justify-center py-24 text-sm ${garden ? "font-bold text-[var(--sf-clay-deep)]" : ""}`}
+                  style={garden ? undefined : { color: theme.alert, fontFamily: theme.fontBody }}
+                  role="alert"
                 >
                   {availabilityError}
                 </div>
               ) : Object.keys(availabilitySlots).length === 0 ? (
                 <div
-                  className="flex items-center justify-center py-24 text-sm"
-                  style={{ color: theme.muted, fontFamily: theme.fontBody }}
+                  className={`flex items-center justify-center py-24 text-sm ${garden ? "text-[var(--sf-soft)]" : ""}`}
+                  style={garden ? undefined : { color: theme.muted, fontFamily: theme.fontBody }}
                 >
                   No demo times are available right now. Please check back soon.
                 </div>
@@ -365,6 +408,7 @@ export default function GetStartedDemoFlow({
                   onConfirm={handleScheduled}
                   isSubmitting={isSubmitting}
                   storyTheme={theme}
+                  appearance={garden ? "garden" : "story"}
                   displayTimezone={displayTimezone}
                   onDisplayTimezoneChange={setDisplayTimezone}
                 />
@@ -373,8 +417,9 @@ export default function GetStartedDemoFlow({
 
             {submitError && (
               <p
-                className="mt-4 text-center text-[13px]"
-                style={{ color: theme.alert, fontFamily: theme.fontBody }}
+                className={`mt-4 text-center text-[13px] ${garden ? "font-bold text-[var(--sf-clay-deep)]" : ""}`}
+                style={garden ? undefined : { color: theme.alert, fontFamily: theme.fontBody }}
+                role="alert"
               >
                 {submitError} Please try again or contact us directly.
               </p>

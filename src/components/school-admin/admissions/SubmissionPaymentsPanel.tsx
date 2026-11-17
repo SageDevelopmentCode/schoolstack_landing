@@ -20,6 +20,7 @@ import {
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
+import { useSubmissionDetailPreview } from "./SubmissionDetailPreviewContext";
 
 type SubmissionPaymentsPanelProps = {
   organizationId: string;
@@ -269,11 +270,18 @@ export default function SubmissionPaymentsPanel({
 }: SubmissionPaymentsPanelProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = createClient();
-  const [rows, setRows] = useState<PaymentRecordDisplayRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { preview } = useSubmissionDetailPreview();
+  const previewRows = preview?.payments ?? null;
+  const [rows, setRows] = useState<PaymentRecordDisplayRow[]>(previewRows ?? []);
+  const [loading, setLoading] = useState(previewRows == null);
   const [error, setError] = useState<string | null>(null);
 
   const loadRows = useCallback(async () => {
+    if (previewRows) {
+      setRows(previewRows);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -294,7 +302,7 @@ export default function SubmissionPaymentsPanel({
     } finally {
       setLoading(false);
     }
-  }, [applicationId, organizationId, supabase]);
+  }, [applicationId, organizationId, previewRows, supabase]);
 
   useEffect(() => {
     queueMicrotask(() => {

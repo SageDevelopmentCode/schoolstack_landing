@@ -1,71 +1,70 @@
 "use client";
 
-import Image from "next/image";
-import { motion } from "framer-motion";
-import { Award, Quote } from "lucide-react";
 import type { SchoolWebsiteDemoConfig } from "@/data/school-demos/types";
-import { DEMO_BODY, DEMO_CHIP, DEMO_CONTAINER, DEMO_STICKER, STORY_EASE } from "../bright-demo-theme";
-import SiteSectionHeader from "./SiteSectionHeader";
+import { SITE_BODY, SITE_CONTAINER, SITE_SECTION } from "../site-garden-theme";
+import { SitePolaroid, SiteReveal, SiteSectionIntro, SiteStickyNote } from "../garden/SiteKit";
 
+/** The founder's polaroid and a letter on notebook paper. */
 export default function SiteFounder({ founder }: { founder: SchoolWebsiteDemoConfig["founder"] }) {
   return (
-    <section id="founder" className="scroll-mt-[88px] bg-white py-20 @3xl/site:py-28">
-      <div className={`${DEMO_CONTAINER} grid items-center gap-14 @5xl/site:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] @5xl/site:gap-20`}>
-        <motion.div
-          className="relative mx-auto h-[440px] w-full max-w-[460px] @3xl/site:h-[540px]"
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7, ease: STORY_EASE }}
-        >
-          <div className="absolute inset-x-6 inset-y-4 rotate-[4deg] rounded-[40px] bg-[var(--demo-tint-1)]" aria-hidden />
-          <div className="absolute inset-x-3 inset-y-0 -rotate-[2deg] overflow-hidden rounded-[36px] shadow-[var(--demo-shadow-float)] ring-1 ring-black/[0.06]">
-            <Image src={founder.image} fill sizes="460px" className="object-cover" alt={founder.name} />
+    <section id="founder" className={`scroll-mt-[88px] ${SITE_SECTION}`}>
+      <div
+        className={`${SITE_CONTAINER} grid items-center gap-14 @5xl/site:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] @5xl/site:gap-16`}
+      >
+        <SiteReveal className="relative mx-auto w-full max-w-[440px] pb-6 pt-4">
+          <SitePolaroid
+            src={founder.image}
+            alt={founder.name}
+            sizes="440px"
+            tilt={-2.5}
+            tape={1}
+            imageClassName="aspect-[4/5]"
+          />
+          <div className="absolute -right-3 top-10 max-w-[200px]">
+            <SiteStickyNote tilt={5} tape={false} className="!p-4">
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[var(--sf-ink)]/70">
+                {founder.imageBadge.label}
+              </p>
+              <p className="mt-1 text-[15px] font-extrabold leading-snug text-[var(--sf-ink)]">{founder.imageBadge.value}</p>
+            </SiteStickyNote>
           </div>
-          <div className={`${DEMO_STICKER} absolute -right-1 top-8 max-w-[200px]`}>
-            <p className="font-secondary text-[11px] font-semibold uppercase tracking-wider text-[var(--demo-muted)]">
-              {founder.imageBadge.label}
-            </p>
-            <p className="font-secondary mt-0.5 text-[15px] font-bold text-[var(--demo-ink)]">{founder.imageBadge.value}</p>
+          <div className="absolute -left-3 bottom-0 rounded-2xl border-2 border-[var(--sf-ink)] bg-white px-4 py-3 shadow-[0_4px_0_0_var(--sf-ink)]" style={{ rotate: "-3deg" }}>
+            <p className="text-[15px] font-extrabold text-[var(--sf-ink)]">{founder.name}</p>
+            <p className="text-[12px] text-[var(--sf-soft)]">{founder.title}</p>
           </div>
-          <div className={`${DEMO_STICKER} absolute -left-1 bottom-8 flex items-center gap-3`}>
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--demo-ink)] text-white" aria-hidden>
-              <Award className="h-5 w-5" />
-            </span>
-            <span>
-              <span className="font-secondary block text-[15px] font-bold text-[var(--demo-ink)]">{founder.name}</span>
-              <span className="font-secondary block text-[12px] text-[var(--demo-muted)]">{founder.title}</span>
-            </span>
-          </div>
-        </motion.div>
+        </SiteReveal>
 
         <div>
-          <SiteSectionHeader eyebrow={founder.eyebrow} heading={founder.heading} accent={founder.headingAccent} />
-          <div className="mt-6 space-y-4">
+          <SiteSectionIntro eyebrow={founder.eyebrow} heading={founder.heading} accent={founder.headingAccent} />
+          <SiteReveal className="mt-6 space-y-4" delay={0.08}>
             {founder.paragraphs.map((p) => (
-              <p key={p.slice(0, 40)} className={DEMO_BODY}>
+              <p key={p.slice(0, 40)} className={SITE_BODY}>
                 {p}
               </p>
             ))}
-          </div>
+          </SiteReveal>
           {founder.credentials.length > 0 ? (
             <ul className="mt-7 flex flex-wrap gap-2">
               {founder.credentials.map((cred) => (
-                <li key={cred} className={`${DEMO_CHIP} bg-[var(--demo-tint-3)] px-4 py-2 text-[13px] ring-0`}>
+                <li
+                  key={cred}
+                  className="rounded-full border-2 border-[var(--sf-ink)] bg-[var(--sf-mint)] px-3.5 py-1.5 text-[13px] font-extrabold text-[var(--sf-ink)]"
+                >
                   {cred}
                 </li>
               ))}
             </ul>
           ) : null}
-          <figure className="mt-8 rounded-[28px] bg-[var(--demo-tint-1)] p-7">
-            <Quote className="h-7 w-7 text-[var(--demo-primary)]" aria-hidden />
-            <blockquote className="font-secondary mt-3 text-[17px] font-semibold leading-relaxed tracking-[-0.01em] text-[var(--demo-ink)]">
-              &ldquo;{founder.quote}&rdquo;
-            </blockquote>
-            <figcaption className="font-secondary mt-4 text-[13px] italic text-[var(--demo-muted)]">
-              &mdash; {founder.quoteAttribution.replace(/^[\s—–-]+/, "")}
-            </figcaption>
-          </figure>
+          <SiteReveal delay={0.12}>
+            <figure className="sf-paper mt-8 rounded-[22px] border-2 border-[var(--sf-ink)] p-7 shadow-[0_5px_0_0_var(--sf-ink)]">
+              <blockquote className="text-[17px] font-bold leading-relaxed text-[var(--sf-ink)]">
+                &ldquo;{founder.quote}&rdquo;
+              </blockquote>
+              <figcaption className="mt-4 text-[13px] font-extrabold text-[var(--sf-clay-deep)]">
+                &mdash; {founder.quoteAttribution.replace(/^[\s—–-]+/, "")}
+              </figcaption>
+            </figure>
+          </SiteReveal>
         </div>
       </div>
     </section>

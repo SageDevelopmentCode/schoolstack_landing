@@ -25,6 +25,7 @@ import { isInlineAgreementItem, readItemVariantDraft } from "@/lib/admissions/en
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { createClient } from "@/utils/supabase/client";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
+import { useSubmissionDetailPreview } from "./SubmissionDetailPreviewContext";
 
 type EnrollmentStatusCardProps = {
   C: AdminThemeTokens;
@@ -64,9 +65,11 @@ export default function EnrollmentStatusCard({
   applicationId,
 }: EnrollmentStatusCardProps) {
   const supabase = createClient();
-  const [loading, setLoading] = useState(true);
+  const { preview } = useSubmissionDetailPreview();
+  const previewStatus = preview ? preview.enrollmentStatus : undefined;
+  const [loading, setLoading] = useState(previewStatus === undefined);
   const [error, setError] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState<LoadedState | null>(null);
+  const [loaded, setLoaded] = useState<LoadedState | null>(previewStatus ?? null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
@@ -84,6 +87,11 @@ export default function EnrollmentStatusCard({
     : null;
 
   const load = useCallback(async () => {
+    if (previewStatus !== undefined) {
+      setLoaded(previewStatus);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -143,7 +151,7 @@ export default function EnrollmentStatusCard({
     } finally {
       setLoading(false);
     }
-  }, [applicationId, organizationId, supabase]);
+  }, [applicationId, organizationId, previewStatus, supabase]);
 
   useEffect(() => {
     queueMicrotask(() => {

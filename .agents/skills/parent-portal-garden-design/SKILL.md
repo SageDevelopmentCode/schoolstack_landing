@@ -156,7 +156,7 @@ From `school-parent/garden/GDialog.tsx`:
 - `GDialog`: portalled Garden dialog (own `ParentGardenFrame`, bottom sheet on phones, Escape, focus trap + return). Safe to mount from inside a page frame.
 - `GConfirmDialog`: outline Cancel + one toy confirm (spinner + `aria-busy` while `loading`; `destructive` for deletes/discards).
 
-Toasts: the parent portal mounts `ParentToaster appearance="garden"` (`garden/GardenToaster.tsx`). Call `parentToast.success|error|info(title, { description, action, id })` from `src/lib/school-parent/parent-toast.ts`: title = what happened, description = what it means / what to do next. The teacher portal mounts `TeacherToaster`, which shows Garden toasts only on routes listed in `GARDEN_TEACHER_ROUTES`. In the apply portal, `ApplyPortalPageShell toasterAppearance="garden"` turns on Garden toasts (the apply dashboard uses it; form and enrollment pages still use story).
+Toasts: the parent portal mounts `ParentToaster appearance="garden"` (`garden/GardenToaster.tsx`). Call `parentToast.success|error|info(title, { description, action, id })` from `src/lib/school-parent/parent-toast.ts`: title = what happened, description = what it means / what to do next. The teacher portal mounts `TeacherToaster`, which shows Garden toasts only on routes listed in `GARDEN_TEACHER_ROUTES`. In the apply portal, `ApplyPortalPageShell toasterAppearance="garden"` turns on Garden toasts (the apply dashboard and the enrollment checklist use it; form pages still use story).
 
 From the shared Garden kit (`@/components/garden/ui`):
 - `Tick` for done states.

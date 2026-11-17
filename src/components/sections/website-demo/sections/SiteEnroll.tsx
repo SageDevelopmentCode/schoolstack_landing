@@ -2,21 +2,24 @@
 
 import { useState, type FormEvent, type RefObject } from "react";
 import Image from "next/image";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Check, ChevronDown } from "lucide-react";
+import { Tape } from "@/components/garden/ui";
 import type { SchoolWebsiteDemoConfig } from "@/data/school-demos/types";
 import DemoWebsiteButton from "../DemoWebsiteButton";
-import DemoWebsiteSectionKicker from "../DemoWebsiteSectionKicker";
-import { DEMO_BODY, DEMO_GUTTER, DEMO_HEADING, DEMO_INK, STORY_EASE } from "../bright-demo-theme";
+import { SITE_BODY, SITE_CONTAINER, SITE_EASE, SITE_SECTION } from "../site-garden-theme";
+import { keepHyphenated, SitePill, SiteReveal } from "../garden/SiteKit";
 
 const FIELD =
-  "font-secondary h-14 w-full rounded-pill border border-black/10 bg-[var(--demo-tint-3)] px-6 text-[15px] text-[var(--demo-ink)] placeholder:text-[var(--demo-muted)] transition focus:border-[var(--demo-primary)] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[var(--demo-tint-1)]";
+  "h-14 w-full rounded-2xl border-2 border-[var(--sf-ink)] bg-white px-5 text-[15px] font-semibold text-[var(--sf-ink)] placeholder:font-semibold placeholder:text-[var(--sf-soft)] transition focus:outline-none focus:ring-4 focus:ring-[var(--sf-clay)]/25";
 
 const NEXT_STEPS = [
   { title: "Send your inquiry", desc: "Share a little about your family and learner." },
   { title: "Hear back from the school", desc: "Someone follows up to answer your questions." },
   { title: "Find your next step", desc: "Talk through fit, timing, and how to enroll." },
 ] as const;
+
+const STEP_TINTS = ["bg-[var(--sf-butter)]", "bg-[var(--sf-mint)]", "bg-[var(--sf-sky)]"] as const;
 
 type Props = {
   form: SchoolWebsiteDemoConfig["form"];
@@ -42,7 +45,7 @@ function SelectField({
         onChange={(e) => onChange(e.target.value)}
         required
         aria-label={placeholder}
-        className={`${FIELD} cursor-pointer appearance-none pr-12`}
+        className={`${FIELD} cursor-pointer appearance-none pr-12 ${value ? "" : "text-[var(--sf-soft)]"}`}
       >
         <option value="" disabled>
           {placeholder}
@@ -53,15 +56,20 @@ function SelectField({
           </option>
         ))}
       </select>
-      <ChevronDown className="pointer-events-none absolute right-5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--demo-muted)]" aria-hidden />
+      <ChevronDown
+        className="pointer-events-none absolute right-5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--sf-ink)]"
+        strokeWidth={2.6}
+        aria-hidden
+      />
     </div>
   );
 }
 
-/** Ink sidebar with next steps beside a floating white inquiry form. */
+/** "What happens next" beside the inquiry form, written on notebook paper. Calm: no tilt on the form. */
 export default function SiteEnroll({ form, formRef, onExplorePrograms }: Props) {
   const [data, setData] = useState({ name: "", email: "", studentName: "", grade: "", program: "" });
   const [submitted, setSubmitted] = useState(false);
+  const reduce = useReducedMotion();
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -69,132 +77,147 @@ export default function SiteEnroll({ form, formRef, onExplorePrograms }: Props) 
   };
 
   return (
-    <section id="form" ref={formRef} className={`scroll-mt-[88px] py-3 ${DEMO_GUTTER}`}>
-      <div className="mx-auto grid max-w-[1400px] gap-3 rounded-[32px] bg-[var(--demo-tint-1)] p-3 @3xl/site:rounded-[40px] @5xl/site:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-        <div className="relative flex flex-col overflow-hidden rounded-[28px] bg-[var(--demo-ink)] p-7 text-white @3xl/site:rounded-[32px] @3xl/site:p-10">
-          <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-[var(--demo-glow)] blur-3xl" aria-hidden />
-          <div className="relative h-48 overflow-hidden rounded-[24px] @3xl/site:h-56">
-            <Image src={form.sidebarImage} fill sizes="520px" className="object-cover" alt="" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-            <p className="font-secondary absolute inset-x-5 bottom-5 text-[16px] font-semibold leading-snug text-white">
+    <section id="form" ref={formRef} className={`scroll-mt-[88px] bg-[var(--sf-peach)]/55 ${SITE_SECTION}`}>
+      <div className={`${SITE_CONTAINER} grid gap-10 @5xl/site:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] @5xl/site:gap-12`}>
+        <SiteReveal className="flex flex-col gap-8">
+          <div className="sf-polaroid relative mx-auto w-full max-w-[420px]" style={{ rotate: "-2deg" }}>
+            <Tape color="var(--sf-mint)" className="-top-3 left-1/2 h-5 w-16 -translate-x-1/2 rotate-3" />
+            <div className="relative aspect-[4/3] overflow-hidden rounded-[3px]">
+              <Image src={form.sidebarImage} fill sizes="420px" className="object-cover" alt="" />
+            </div>
+            <p className="px-2 pb-1 pt-3 text-[15px] font-bold leading-snug text-[var(--sf-ink)]">
               &ldquo;{form.sidebarQuote}&rdquo;
             </p>
           </div>
-          <p className="font-secondary relative mt-9 text-[12px] font-semibold uppercase tracking-[0.16em] text-white/55">
-            What happens next
-          </p>
-          <ol className="relative mt-5 space-y-5">
-            {NEXT_STEPS.map((step, i) => (
-              <li key={step.title} className="flex gap-4">
-                <span className="font-secondary flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-[14px] font-bold text-white ring-1 ring-white/15">
-                  {i + 1}
-                </span>
-                <span>
-                  <span className="font-secondary block text-[16px] font-bold text-white">{step.title}</span>
-                  <span className="font-secondary mt-0.5 block text-[14px] leading-snug text-white/65">{step.desc}</span>
-                </span>
-              </li>
-            ))}
-          </ol>
-        </div>
 
-        <div className="rounded-[28px] bg-white p-7 shadow-[var(--demo-shadow-card)] @3xl/site:rounded-[32px] @3xl/site:p-10">
-          <DemoWebsiteSectionKicker>{form.eyebrow}</DemoWebsiteSectionKicker>
-          <h2 className={`${DEMO_HEADING} ${DEMO_INK} mt-4 text-balance text-[clamp(1.75rem,3cqw,2.6rem)]`}>{form.heading}</h2>
-          <p className={`${DEMO_BODY} mt-4`}>{form.description}</p>
-
-          <AnimatePresence mode="wait">
-            {submitted ? (
-              <motion.div
-                key="success"
-                className="mt-10 rounded-[28px] bg-[var(--demo-tint-1)] px-6 py-12 text-center"
-                initial={{ opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4, ease: STORY_EASE }}
-              >
-                <motion.span
-                  className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--demo-ink)] text-white"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 220, damping: 14, delay: 0.1 }}
+          <div>
+            <p className="text-[12px] font-extrabold uppercase tracking-[0.18em] text-[var(--sf-ink)]/70">What happens next</p>
+            <ol className="mt-5 space-y-3">
+              {NEXT_STEPS.map((step, i) => (
+                <li
+                  key={step.title}
+                  className="flex gap-4 rounded-[20px] border-2 border-[var(--sf-ink)] bg-white p-4 shadow-[0_3px_0_0_var(--sf-ink)]"
                 >
-                  <Check className="h-8 w-8" strokeWidth={3} aria-hidden />
-                </motion.span>
-                <p className={`${DEMO_HEADING} ${DEMO_INK} mt-6 text-[1.6rem]`}>{form.successTitle}</p>
-                <p className={`${DEMO_BODY} mx-auto mt-3 max-w-[420px]`}>{form.successMessage}</p>
-                <DemoWebsiteButton variant="outline" className="mt-7" onClick={onExplorePrograms}>
-                  Explore our programs
-                  <ArrowRight className="h-4 w-4" aria-hidden />
-                </DemoWebsiteButton>
-              </motion.div>
-            ) : (
-              <motion.form
-                key="form"
-                className="mt-9 grid gap-3 @3xl/site:grid-cols-2"
-                onSubmit={handleSubmit}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <input
-                  type="text"
-                  placeholder="Your name"
-                  aria-label="Parent or guardian name"
-                  value={data.name}
-                  onChange={(e) => setData((p) => ({ ...p, name: e.target.value }))}
-                  required
-                  className={FIELD}
-                />
-                <input
-                  type="email"
-                  placeholder="Email address"
-                  aria-label="Email address"
-                  value={data.email}
-                  onChange={(e) => setData((p) => ({ ...p, email: e.target.value }))}
-                  required
-                  className={FIELD}
-                />
-                {form.studentFields ? (
-                  <>
-                    <input
-                      type="text"
-                      placeholder={form.studentFields.namePlaceholder}
-                      aria-label={form.studentFields.namePlaceholder}
-                      value={data.studentName}
-                      onChange={(e) => setData((p) => ({ ...p, studentName: e.target.value }))}
-                      required
-                      className={FIELD}
-                    />
-                    <SelectField
-                      value={data.grade}
-                      onChange={(v) => setData((p) => ({ ...p, grade: v }))}
-                      placeholder={form.studentFields.gradePlaceholder}
-                      options={form.studentFields.gradeOptions}
-                    />
-                  </>
-                ) : null}
-                <div className="@3xl/site:col-span-2">
-                  <SelectField
-                    value={data.program}
-                    onChange={(v) => setData((p) => ({ ...p, program: v }))}
-                    placeholder="Select a program"
-                    options={form.programOptions}
+                  <span
+                    className={`sf-display flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-[var(--sf-ink)] text-[0.95rem] text-[var(--sf-ink)] ${STEP_TINTS[i]}`}
+                  >
+                    {i + 1}
+                  </span>
+                  <span>
+                    <span className="block text-[16px] font-extrabold text-[var(--sf-ink)]">{step.title}</span>
+                    <span className="mt-0.5 block text-[14px] leading-snug text-[var(--sf-soft)]">{step.desc}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </SiteReveal>
+
+        <SiteReveal delay={0.08}>
+          <div className="sf-paper rounded-[26px] border-2 border-[var(--sf-ink)] p-7 shadow-[0_8px_0_0_var(--sf-ink)] @3xl/site:rounded-[32px] @3xl/site:p-10">
+            <SitePill>{form.eyebrow}</SitePill>
+            <h2 className="sf-display mt-5 text-balance text-[clamp(2rem,3.4cqw,3rem)] leading-[1] text-[var(--sf-ink)]">
+              {keepHyphenated(form.heading)}
+            </h2>
+            <p className={`${SITE_BODY} mt-4`}>{form.description}</p>
+
+            <AnimatePresence mode="wait">
+              {submitted ? (
+                <motion.div
+                  key="success"
+                  className="mt-10 rounded-[24px] border-2 border-[var(--sf-ink)] bg-[var(--sf-mint)] px-6 py-12 text-center"
+                  initial={reduce ? false : { opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.4, ease: SITE_EASE }}
+                >
+                  <motion.span
+                    className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border-2 border-[var(--sf-ink)] bg-[var(--sf-clay)] text-[var(--sf-on-clay)] shadow-[0_4px_0_0_var(--sf-ink)]"
+                    initial={reduce ? false : { scale: 0, rotate: -20 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 18, delay: 0.1 }}
+                  >
+                    <Check className="h-8 w-8" strokeWidth={3} aria-hidden />
+                  </motion.span>
+                  <p className="sf-display mt-6 text-[1.8rem] leading-none text-[var(--sf-ink)]">{form.successTitle}</p>
+                  <p className={`${SITE_BODY} mx-auto mt-3 max-w-[420px] !text-[var(--sf-ink)]/75`}>{form.successMessage}</p>
+                  <DemoWebsiteButton variant="outline" className="mt-7" onClick={onExplorePrograms}>
+                    Explore our programs
+                    <ArrowRight className="h-4 w-4" strokeWidth={2.6} aria-hidden />
+                  </DemoWebsiteButton>
+                </motion.div>
+              ) : (
+                <motion.form
+                  key="form"
+                  className="mt-9 grid gap-3 @3xl/site:grid-cols-2"
+                  onSubmit={handleSubmit}
+                  initial={reduce ? false : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={reduce ? undefined : { opacity: 0 }}
+                >
+                  <input
+                    type="text"
+                    placeholder="Your name"
+                    aria-label="Parent or guardian name"
+                    value={data.name}
+                    onChange={(e) => setData((p) => ({ ...p, name: e.target.value }))}
+                    required
+                    className={FIELD}
                   />
-                </div>
-                <DemoWebsiteButton type="submit" variant="primary" className="mt-2 h-14! w-full text-[16px]! @3xl/site:col-span-2">
-                  {form.submitLabel}
-                  <ArrowRight className="h-4 w-4" aria-hidden />
-                </DemoWebsiteButton>
-                <div className="space-y-1 text-center @3xl/site:col-span-2">
-                  {form.trustNote ? (
-                    <p className="font-secondary text-[13px] font-medium text-[var(--demo-ink)]/70">{form.trustNote}</p>
+                  <input
+                    type="email"
+                    placeholder="Email address"
+                    aria-label="Email address"
+                    value={data.email}
+                    onChange={(e) => setData((p) => ({ ...p, email: e.target.value }))}
+                    required
+                    className={FIELD}
+                  />
+                  {form.studentFields ? (
+                    <>
+                      <input
+                        type="text"
+                        placeholder={form.studentFields.namePlaceholder}
+                        aria-label={form.studentFields.namePlaceholder}
+                        value={data.studentName}
+                        onChange={(e) => setData((p) => ({ ...p, studentName: e.target.value }))}
+                        required
+                        className={FIELD}
+                      />
+                      <SelectField
+                        value={data.grade}
+                        onChange={(v) => setData((p) => ({ ...p, grade: v }))}
+                        placeholder={form.studentFields.gradePlaceholder}
+                        options={form.studentFields.gradeOptions}
+                      />
+                    </>
                   ) : null}
-                  <p className="font-secondary text-[12px] text-[var(--demo-muted)]">{form.disclaimer}</p>
-                </div>
-              </motion.form>
-            )}
-          </AnimatePresence>
-        </div>
+                  <div className="@3xl/site:col-span-2">
+                    <SelectField
+                      value={data.program}
+                      onChange={(v) => setData((p) => ({ ...p, program: v }))}
+                      placeholder="Select a program"
+                      options={form.programOptions}
+                    />
+                  </div>
+                  <DemoWebsiteButton
+                    type="submit"
+                    variant="primary"
+                    className="mt-3 !h-14 w-full !text-[16px] @3xl/site:col-span-2"
+                  >
+                    {form.submitLabel}
+                    <ArrowRight className="h-4 w-4" strokeWidth={2.6} aria-hidden />
+                  </DemoWebsiteButton>
+                  <div className="space-y-1 pt-1 text-center @3xl/site:col-span-2">
+                    {form.trustNote ? (
+                      <p className="text-[13px] font-bold text-[var(--sf-ink)]/75">{form.trustNote}</p>
+                    ) : null}
+                    <p className="text-[12px] text-[var(--sf-soft)]">{form.disclaimer}</p>
+                  </div>
+                </motion.form>
+              )}
+            </AnimatePresence>
+          </div>
+        </SiteReveal>
       </div>
     </section>
   );

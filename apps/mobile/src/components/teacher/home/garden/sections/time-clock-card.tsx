@@ -48,10 +48,10 @@ function WeekBar({ value, label }: { value: number; label: string }) {
 }
 
 /** White-on-dark status pill (a neutral `GChip` is dark-on-dark here). */
-function StatusPill({ clockedIn }: { clockedIn: boolean }) {
+function StatusPill({ clockedIn, testID }: { clockedIn: boolean; testID: string }) {
   return (
     <View
-      testID="teacher-home-my-hours-status"
+      testID={testID}
       accessible
       accessibilityLabel={clockedIn ? 'Clocked in' : 'Not clocked in'}
       style={[styles.pill, clockedIn && styles.pillOn]}>
@@ -63,18 +63,58 @@ function StatusPill({ clockedIn }: { clockedIn: boolean }) {
   );
 }
 
+export type TimeClockCardModel = Pick<
+  TeacherTimeClock,
+  | 'loading'
+  | 'loadFailed'
+  | 'retryLoad'
+  | 'week'
+  | 'weekProgress'
+  | 'clockedIn'
+  | 'activeSessionStartedAt'
+  | 'clockActionPending'
+  | 'clockIn'
+  | 'clockOut'
+>;
+
+export type TimeClockCardTestIDs = {
+  card: string;
+  status: string;
+  timer?: string;
+  button: string;
+};
+
+const HOME_TEST_IDS: TimeClockCardTestIDs = {
+  card: 'teacher-home-my-hours-quick-card',
+  status: 'teacher-home-my-hours-status',
+  button: 'teacher-home-clock-button',
+};
+
 /**
  * The teacher's time clock: the screen's one dark card and the Overview's one
  * toy button. Live timer while on the clock, this week's hours against the goal.
+ * Home links to My Hours; My Hours passes its own testIDs and a today line.
  */
 export function TimeClockCard({
   clock,
   onOpenMyHours,
   index = 0,
+  title = 'My hours',
+  today,
+  offCopy = 'Clock in when your day starts. Your hours save to My Hours.',
+  testIDs = HOME_TEST_IDS,
 }: {
-  clock: TeacherTimeClock;
-  onOpenMyHours: () => void;
+  clock: TimeClockCardModel;
+  onOpenMyHours?: () => void;
   index?: number;
+  title?: string;
+  /**
+   * My Hours: today's closed minutes and sessions. The card adds the live
+   * session so "Today: 3h 12m · 2 sessions" ticks with the timer.
+   */
+  today?: { closedMinutes: number; closedSessions: number; activeCountsToday: boolean } | null;
+  offCopy?: string;
+  testIDs?: TimeClockCardTestIDs;
 }) {
   const {
     loading,
@@ -91,6 +131,15 @@ export function TimeClockCard({
   // Ticks every second here only, so the rest of Home doesn't re-render with the timer.
   const elapsedSeconds = useLiveElapsed(activeSessionStartedAt);
 
+  const todayLine = today
+    ? (() => {
+        const live = today.activeCountsToday ? Math.floor(elapsedSeconds / 60) : 0;
+        const sessions = today.closedSessions + (today.activeCountsToday ? 1 : 0);
+        if (sessions === 0) return 'Today: nothing logged yet';
+        return `Today: ${formatHoursMinutes(today.closedMinutes + live)} · ${sessions} ${sessions === 1 ? 'session' : 'sessions'}`;
+      })()
+    : null;
+
   const buttonLabel =
     clockActionPending === 'in'
       ? 'Clocking in…'
@@ -104,9 +153,9 @@ export function TimeClockCard({
     <GCard
       tone="dark"
       index={index}
-      title="My hours"
-      testID="teacher-home-my-hours-quick-card"
-      action={loading || loadFailed ? null : <StatusPill clockedIn={clockedIn} />}>
+      title={title}
+      testID={testIDs.card}
+      action={loading || loadFailed ? null : <StatusPill clockedIn={clockedIn} testID={testIDs.status} />}>
       {loading ? (
         <View style={styles.skeleton} accessibilityLabel="Loading your hours">
           <GSkeleton style={styles.skTimer} />
@@ -123,6 +172,7 @@ export function TimeClockCard({
           {clockedIn && activeSessionStartedAt ? (
             <View style={styles.session}>
               <Text
+                testID={testIDs.timer}
                 style={styles.timer}
                 accessibilityLabel={`On the clock for ${formatLiveElapsed(elapsedSeconds)}`}>
                 {formatLiveElapsed(elapsedSeconds)}
@@ -132,9 +182,15 @@ export function TimeClockCard({
           ) : (
             <View style={styles.session}>
               <Text style={styles.offTitle}>Off the clock</Text>
-              <Text style={styles.copy}>Clock in when your day starts. Your hours save to My Hours.</Text>
+              <Text style={styles.copy}>{offCopy}</Text>
             </View>
           )}
+
+          {todayLine ? (
+            <Text style={styles.today} accessibilityLiveRegion="polite">
+              {todayLine}
+            </Text>
+          ) : null}
 
           {week ? (
             <View style={styles.week}>
@@ -154,7 +210,7 @@ export function TimeClockCard({
 
           <View style={styles.actions}>
             <GToyButton
-              testID="teacher-home-clock-button"
+              testID={testIDs.button}
               variant="white"
               size="md"
               label={buttonLabel}
@@ -162,7 +218,7 @@ export function TimeClockCard({
               loading={clockActionPending != null}
               onPress={() => void (clockedIn ? clockOut() : clockIn())}
             />
-            <GLink label="View all hours" light onPress={onOpenMyHours} />
+            {onOpenMyHours ? <GLink label="View all hours" light onPress={onOpenMyHours} /> : null}
           </View>
         </View>
       )}
@@ -201,6 +257,18 @@ const styles = StyleSheet.create({
     color: Garden.white,
   },
   copy: { fontFamily: GardenFonts.bodySemi, fontSize: 14, lineHeight: 20, color: 'rgba(255,255,255,0.85)' },
+  today: {
+    alignSelf: 'flex-start',
+    fontFamily: GardenFonts.bodyBold,
+    fontSize: 13,
+    color: Garden.white,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    overflow: 'hidden',
+    fontVariant: ['tabular-nums'],
+  },
   week: { gap: 8 },
   weekRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
   weekTotal: {

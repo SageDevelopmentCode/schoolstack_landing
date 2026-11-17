@@ -1,31 +1,23 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { useGardenReadOnlyGate } from '@/components/parent/garden/feedback';
-import { useAdminAction } from '@/components/school-admin/garden/use-admin-action';
-import { formatHoursMinutes, formatWallClockTime } from '@/lib/teacher/my-hours/format-duration';
-import {
-  fetchTeacherMyHoursPageData,
-  postTeacherMyHoursClockIn,
-  postTeacherMyHoursClockOut,
-} from '@/lib/teacher/my-hours/teacher-my-hours-api';
-import type { ClockActionPending, TeacherMyHoursPageData } from '@/lib/teacher/my-hours/types';
+import { useTeacherClockActions } from '@/components/teacher/home/garden/use-teacher-clock-actions';
+import { fetchTeacherMyHoursPageData } from '@/lib/teacher/my-hours/teacher-my-hours-api';
+import type { TeacherMyHoursPageData } from '@/lib/teacher/my-hours/types';
 import { registerPortalMemoryClear } from '@/lib/portal-cache';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
-
-const CLOCK_KEY = 'teacher-home-clock';
 
 /** Last My Hours payload per school, so coming back to Home doesn't flash the skeleton. */
 const lastPageData = new Map<string, TeacherMyHoursPageData>();
 registerPortalMemoryClear(() => lastPageData.clear());
 
-function errorDetail(err: unknown, fallback: string): string {
-  return err instanceof Error && err.message ? err.message : fallback;
-}
-
-function weekLine(data: TeacherMyHoursPageData): string {
-  const week = data.sidebar.week;
-  return `This week: ${formatHoursMinutes(week.loggedMinutes)} of ${formatHoursMinutes(week.goalMinutes)}.`;
+/** My Hours writes here after a clock or adjust action so Home is current on return. */
+export function rememberTeacherMyHoursPageData(
+  organizationId: string,
+  slug: string,
+  data: TeacherMyHoursPageData,
+) {
+  lastPageData.set(`${organizationId}:${slug}`, data);
 }
 
 /**
@@ -45,8 +37,6 @@ export function useTeacherTimeClock({
   enabled: boolean;
 }) {
   const { reportError } = useMobileErrorReporter(organizationId);
-  const action = useAdminAction(organizationId);
-  const { readOnly, notifyReadOnly } = useGardenReadOnlyGate();
 
   const cacheKey = `${organizationId}:${slug}`;
   const [pageData, setPageDataState] = useState<TeacherMyHoursPageData | null>(
@@ -61,7 +51,6 @@ export function useTeacherTimeClock({
   );
   const [loading, setLoading] = useState(() => !lastPageData.has(cacheKey));
   const [loadFailed, setLoadFailed] = useState(false);
-  const [clockActionPending, setClockActionPending] = useState<ClockActionPending>(null);
 
   const load = useCallback(async () => {
     if (!enabled) return;
@@ -98,66 +87,12 @@ export function useTeacherTimeClock({
   const week = pageData?.sidebar.week ?? null;
   const weekProgress = week && week.goalMinutes ? Math.min(1, week.loggedMinutes / week.goalMinutes) : 0;
 
-  const clockIn = useCallback(async () => {
-    if (readOnly) {
-      notifyReadOnly();
-      return;
-    }
-    if (clockedIn || clockActionPending) return;
-    setClockActionPending('in');
-    try {
-      await action.run(() => postTeacherMyHoursClockIn(organizationId, slug), {
-        key: CLOCK_KEY,
-        operation: 'my_hours.clock_in',
-        retry: true,
-        success: (next) => {
-          setPageData(next);
-          const clockInAt = next.activeSession?.clockInAt;
-          return {
-            title: clockInAt
-              ? `Clocked in at ${formatWallClockTime(new Date(clockInAt))}`
-              : 'Clocked in',
-            description: 'Your session is running. Clock out here when you leave.',
-          };
-        },
-        error: (err) => ({
-          title: "Couldn't clock you in",
-          description: `${errorDetail(err, 'Could not clock in.')} You are not clocked in yet.`,
-        }),
-      });
-    } finally {
-      setClockActionPending(null);
-    }
-  }, [action, clockActionPending, clockedIn, notifyReadOnly, organizationId, readOnly, setPageData, slug]);
-
-  const clockOut = useCallback(async () => {
-    if (readOnly) {
-      notifyReadOnly();
-      return;
-    }
-    if (!clockedIn || clockActionPending) return;
-    setClockActionPending('out');
-    try {
-      await action.run(() => postTeacherMyHoursClockOut(organizationId, slug), {
-        key: CLOCK_KEY,
-        operation: 'my_hours.clock_out',
-        retry: true,
-        success: ({ pageData: next, sessionMinutes }) => {
-          setPageData(next);
-          return {
-            title: `Session saved · ${formatHoursMinutes(Math.max(1, sessionMinutes))} logged`,
-            description: weekLine(next),
-          };
-        },
-        error: (err) => ({
-          title: "Couldn't clock you out",
-          description: `${errorDetail(err, 'Could not clock out.')} Your session is still running.`,
-        }),
-      });
-    } finally {
-      setClockActionPending(null);
-    }
-  }, [action, clockActionPending, clockedIn, notifyReadOnly, organizationId, readOnly, setPageData, slug]);
+  const { readOnly, clockActionPending, flash, clockIn, clockOut } = useTeacherClockActions({
+    organizationId,
+    slug,
+    clockedIn,
+    onPageData: setPageData,
+  });
 
   return {
     loading: loading && !pageData,
@@ -170,7 +105,7 @@ export function useTeacherTimeClock({
     activeSessionStartedAt,
     clockActionPending,
     readOnly,
-    flash: action.flashKey === CLOCK_KEY,
+    flash,
     clockIn,
     clockOut,
   };

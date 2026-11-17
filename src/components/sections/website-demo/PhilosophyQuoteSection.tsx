@@ -1,12 +1,12 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import type { DemoPhilosophyQuoteSection } from "@/data/school-demos/types";
 import DemoWebsiteButton from "./DemoWebsiteButton";
-import { DEMO_BLOCK, DEMO_GUTTER, STORY_EASE } from "./bright-demo-theme";
-import SiteSectionHeader from "./sections/SiteSectionHeader";
+import { SITE_CONTAINER, SITE_SECTION } from "./site-garden-theme";
+import { SiteReveal, SiteSectionIntro, SiteStickyNote } from "./garden/SiteKit";
 
+/** Philosophy copy beside the quote, written up on a big taped note. */
 export default function PhilosophyQuoteSection({
   section,
   onCtaClick,
@@ -15,46 +15,36 @@ export default function PhilosophyQuoteSection({
   onCtaClick: () => void;
 }) {
   return (
-    <section id="signature" className={`scroll-mt-[88px] py-3 ${DEMO_GUTTER}`}>
-      <div className={`${DEMO_BLOCK} bg-[var(--demo-ink)] text-white`}>
-        <div className="pointer-events-none absolute inset-0" aria-hidden>
-          <div className="absolute -left-24 top-1/3 h-80 w-80 rounded-full bg-[var(--demo-glow)] blur-3xl" />
-          <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-white/[0.06] blur-3xl" />
-        </div>
-
-        <div className="relative grid gap-10 @5xl/site:grid-cols-2 @5xl/site:items-center @5xl/site:gap-16">
-          <div>
-            <SiteSectionHeader eyebrow={section.eyebrow} heading={section.heading} subtitle={section.body} onDark />
-            <DemoWebsiteButton variant="white" className="mt-9" onClick={onCtaClick}>
+    <section id="signature" className={`scroll-mt-[88px] bg-[var(--sf-lav)]/50 ${SITE_SECTION}`}>
+      <div className={`${SITE_CONTAINER} grid items-center gap-14 @5xl/site:grid-cols-2 @5xl/site:gap-16`}>
+        <div>
+          <SiteSectionIntro eyebrow={section.eyebrow} heading={section.heading} subtitle={section.body} />
+          <SiteReveal className="mt-9" delay={0.1}>
+            <DemoWebsiteButton variant="primary" onClick={onCtaClick}>
               {section.ctaLabel}
-              <ArrowRight className="h-4 w-4" aria-hidden />
+              <ArrowRight className="h-4 w-4" strokeWidth={2.6} aria-hidden />
             </DemoWebsiteButton>
-          </div>
-
-          <motion.figure
-            className="relative rounded-[32px] bg-white p-8 text-[var(--demo-ink)] shadow-[var(--demo-shadow-float)] @3xl/site:p-12"
-            initial={{ opacity: 0, y: 24, rotate: 0 }}
-            whileInView={{ opacity: 1, y: 0, rotate: -1.5 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7, ease: STORY_EASE }}
-          >
-            <span
-              className="font-secondary pointer-events-none absolute -top-8 left-8 text-[120px] font-bold leading-none text-[var(--demo-primary)]"
-              aria-hidden
-            >
-              &ldquo;
-            </span>
-            <blockquote className="font-secondary relative pt-6 text-[clamp(1.35rem,2.3cqw,1.9rem)] font-semibold leading-snug tracking-[-0.02em]">
-              {section.quote}
-            </blockquote>
-            {section.attribution ? (
-              <figcaption className="font-secondary mt-6 flex items-center gap-3 text-[14px] font-semibold text-[var(--demo-muted)]">
-                <span className="h-px w-8 bg-[var(--demo-primary)]" aria-hidden />
-                {section.attribution}
-              </figcaption>
-            ) : null}
-          </motion.figure>
+          </SiteReveal>
         </div>
+
+        <SiteReveal delay={0.1}>
+          <SiteStickyNote tilt={-1.6} tape={0} className="!p-8 @3xl/site:!p-12">
+            <figure>
+              <span className="sf-display block text-[5rem] leading-[0.6] text-[var(--sf-clay)]" aria-hidden>
+                &ldquo;
+              </span>
+              <blockquote className="sf-display mt-2 text-[clamp(1.5rem,2.5cqw,2.1rem)] leading-[1.12] text-[var(--sf-ink)]">
+                {section.quote}
+              </blockquote>
+              {section.attribution ? (
+                <figcaption className="mt-6 flex items-center gap-3 text-[14px] font-extrabold text-[var(--sf-ink)]/75">
+                  <span className="h-0.5 w-8 rounded-full bg-[var(--sf-ink)]/40" aria-hidden />
+                  {section.attribution}
+                </figcaption>
+              ) : null}
+            </figure>
+          </SiteStickyNote>
+        </SiteReveal>
       </div>
     </section>
   );

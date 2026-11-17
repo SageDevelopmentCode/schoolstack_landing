@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, FileText, X } from "lucide-react";
 import { SchoolAdminModalListSkeleton } from "@/components/school-admin/skeletons";
@@ -13,34 +13,22 @@ import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-st
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import type { VariantResolutionMap } from "@/lib/admissions/enrollment-checklist-variants";
+import type { StartEnrollmentPreview } from "./SubmissionDetailPreviewContext";
 
-type PreviewVariant = {
-  id: string;
-  label: string;
-  isDefault: boolean;
-  variantKey: string;
-  sectionCount: number;
-};
+/** How long a preview "Start enrollment" shows its busy state. */
+const PREVIEW_SUBMIT_MS = 900;
 
-type PreviewGroup = {
-  groupId: string;
-  groupLabel: string;
-  variants: PreviewVariant[];
-};
-
-type PreviewSharedItem = {
-  id: string;
-  label: string;
-  type: string;
-};
-
-type StartEnrollmentPreview = {
-  applicationId: string;
-  status: string;
-  templateName: string;
-  groups: PreviewGroup[];
-  sharedItems: PreviewSharedItem[];
-};
+function defaultResolutions(preview: StartEnrollmentPreview): VariantResolutionMap {
+  const defaults: VariantResolutionMap = {};
+  for (const group of preview.groups) {
+    const defaultVariant =
+      group.variants.find((variant) => variant.isDefault) ?? group.variants[0];
+    if (defaultVariant) {
+      defaults[group.groupId] = defaultVariant.id;
+    }
+  }
+  return defaults;
+}
 
 type StartEnrollmentModalProps = {
   C: AdminThemeTokens;
@@ -54,6 +42,16 @@ type StartEnrollmentModalProps = {
   /** Garden dialog (Admissions) needs the school theme. */
   appearance?: "story" | "garden";
   theme?: ParentThemeTokens;
+  /**
+   * Marketing preview: no GET/POST. The options come from `previewData` and
+   * "Start enrollment" resolves locally (same callbacks and toast).
+   */
+  previewMode?: boolean;
+  previewData?: StartEnrollmentPreview | null;
+  /** Preview only: press "Start enrollment" this long after opening. */
+  autoSubmitAfterMs?: number;
+  /** Where the Garden dialog portals to (default `document.body`). */
+  portalContainer?: HTMLElement | null;
 };
 
 export default function StartEnrollmentModal({
@@ -67,15 +65,29 @@ export default function StartEnrollmentModal({
   contactEmail,
   onClose,
   onStarted,
+  previewMode = false,
+  previewData = null,
+  autoSubmitAfterMs,
+  portalContainer,
 }: StartEnrollmentModalProps) {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<StartEnrollmentPreview | null>(null);
-  const [resolutions, setResolutions] = useState<VariantResolutionMap>({});
+  const [preview, setPreview] = useState<StartEnrollmentPreview | null>(previewData);
+  const [resolutions, setResolutions] = useState<VariantResolutionMap>(() =>
+    previewData ? defaultResolutions(previewData) : {},
+  );
+
+  // Preview fixtures replace the GET (previous-props pattern, no effect).
+  const [seenPreviewData, setSeenPreviewData] = useState(previewData);
+  if (seenPreviewData !== previewData) {
+    setSeenPreviewData(previewData);
+    setPreview(previewData);
+    setResolutions(previewData ? defaultResolutions(previewData) : {});
+  }
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || previewMode) return;
 
     let cancelled = false;
     queueMicrotask(() => {
@@ -91,15 +103,7 @@ export default function StartEnrollmentModal({
         }
         if (cancelled) return;
         setPreview(body as StartEnrollmentPreview);
-        const defaults: VariantResolutionMap = {};
-        for (const group of (body as StartEnrollmentPreview).groups) {
-          const defaultVariant =
-            group.variants.find((variant) => variant.isDefault) ?? group.variants[0];
-          if (defaultVariant) {
-            defaults[group.groupId] = defaultVariant.id;
-          }
-        }
-        setResolutions(defaults);
+        setResolutions(defaultResolutions(body as StartEnrollmentPreview));
       })
       .catch((err) => {
         void reportPortalOperationalError("school_admin", {
@@ -118,7 +122,29 @@ export default function StartEnrollmentModal({
     return () => {
       cancelled = true;
     };
-  }, [applicationId, open, organizationId]);
+  }, [applicationId, open, organizationId, previewMode]);
+
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  // Preview script: press "Start enrollment" once the options are showing.
+  const handleSubmitRef = useRef<() => Promise<void>>(async () => {});
+  const autoSubmittedRef = useRef(false);
+  const canAutoSubmit =
+    previewMode && open && autoSubmitAfterMs != null && preview != null && !submitting;
+  useEffect(() => {
+    if (!canAutoSubmit || autoSubmittedRef.current) return;
+    const timer = window.setTimeout(() => {
+      autoSubmittedRef.current = true;
+      void handleSubmitRef.current();
+    }, autoSubmitAfterMs);
+    return () => window.clearTimeout(timer);
+  }, [autoSubmitAfterMs, canAutoSubmit]);
 
   const sharedSummary = useMemo(() => {
     if (!preview?.sharedItems.length) return null;
@@ -128,6 +154,19 @@ export default function StartEnrollmentModal({
   const handleSubmit = async () => {
     setSubmitting(true);
     setError(null);
+    if (previewMode) {
+      // Preview: nothing is sent; show the real busy state, then succeed.
+      await new Promise((resolve) => window.setTimeout(resolve, PREVIEW_SUBMIT_MS));
+      if (!mountedRef.current) return;
+      setSubmitting(false);
+      onStarted();
+      onClose();
+      adminToast.success("Enrollment started", {
+        id: `start-enrollment-${applicationId}`,
+        description: "The family now has an enrollment checklist to complete.",
+      });
+      return;
+    }
     try {
       const response = await fetch(
         `/api/admissions/applications/${applicationId}/start-enrollment`,
@@ -165,6 +204,10 @@ export default function StartEnrollmentModal({
     }
   };
 
+  useEffect(() => {
+    handleSubmitRef.current = handleSubmit;
+  });
+
   if (appearance === "garden" && theme) {
     const selectedCount = preview ? preview.groups.filter((group) => resolutions[group.groupId]).length : 0;
     return (
@@ -182,6 +225,7 @@ export default function StartEnrollmentModal({
           </>
         }
         data-testid="start-enrollment-dialog"
+        portalContainer={portalContainer}
         footerBordered
         footer={
           <>

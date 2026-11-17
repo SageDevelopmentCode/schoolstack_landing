@@ -15,6 +15,7 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { adminApplicationStatusLabel } from "@/lib/admissions/application-status-ui";
 import { detailButtonProps, useIsGardenDetail, type DetailButtonKind } from "./detail-garden";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
+import { useSubmissionDetailPreview } from "./SubmissionDetailPreviewContext";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 
 type ApplicationDecisionSectionProps = {
@@ -41,13 +42,14 @@ export default function ApplicationDecisionSection({
   postSubmitNotice,
 }: ApplicationDecisionSectionProps) {
   const garden = useIsGardenDetail();
+  const { previewMode } = useSubmissionDetailPreview();
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [withdrawnActions, setWithdrawnActions] = useState<
     ApplicationDecisionAction[]
   >([]);
   const [withdrawnLoading, setWithdrawnLoading] = useState(
-    currentStatus === "withdrawn",
+    currentStatus === "withdrawn" && !previewMode,
   );
 
   const staticActions = useMemo(
@@ -62,7 +64,7 @@ export default function ApplicationDecisionSection({
   const loadingActions = currentStatus === "withdrawn" && withdrawnLoading;
 
   useEffect(() => {
-    if (currentStatus !== "withdrawn") return;
+    if (currentStatus !== "withdrawn" || previewMode) return;
 
     let cancelled = false;
 
@@ -108,7 +110,7 @@ export default function ApplicationDecisionSection({
     return () => {
       cancelled = true;
     };
-  }, [applicationId, currentStatus, organizationId]);
+  }, [applicationId, currentStatus, organizationId, previewMode]);
 
   if (!loadingActions && actions.length === 0) {
     return null;
@@ -123,6 +125,8 @@ export default function ApplicationDecisionSection({
   }
 
   async function handleAction(nextStatus: string) {
+    // Preview: status changes are disabled (Accept still opens Start enrollment).
+    if (previewMode) return;
     setPendingStatus(nextStatus);
     setError(null);
 

@@ -13,7 +13,15 @@ import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme
  * here when it migrates so its toasts match the page.
  * See `.agents/skills/teacher-portal-garden-design/SKILL.md`.
  */
-export const GARDEN_TEACHER_ROUTES = ["dashboard", "my_students", "messages", "calendar", "forms_documents", "classroom_signups"] as const;
+export const GARDEN_TEACHER_ROUTES = [
+  "dashboard",
+  "my_students",
+  "messages",
+  "calendar",
+  "forms_documents",
+  "classroom_signups",
+  "attendance",
+] as const;
 
 export function usesGardenTeacherToasts(pathname: string | null): boolean {
   if (!pathname) return false;

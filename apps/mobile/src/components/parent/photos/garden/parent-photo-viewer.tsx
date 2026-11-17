@@ -44,6 +44,8 @@ export function ParentPhotoViewer({
   onClose,
   onChangeIndex,
   onRequestMore,
+  testIDPrefix = 'parent-photo-viewer',
+  onPhotoOptions,
 }: {
   organizationId: string;
   photos: GalleryPhoto[];
@@ -53,6 +55,10 @@ export function ParentPhotoViewer({
   onClose: () => void;
   onChangeIndex: (index: number) => void;
   onRequestMore: () => void;
+  /** Teacher portal: its own testIDs. */
+  testIDPrefix?: string;
+  /** Shows an options button for this photo (e.g. edit date / delete your own upload). */
+  onPhotoOptions?: ((photo: GalleryPhoto) => void) | null;
 }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -134,11 +140,11 @@ export function ParentPhotoViewer({
   return (
     <Modal visible={visible} animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <View
-        testID="parent-photo-viewer"
+        testID={testIDPrefix}
         style={[styles.root, { paddingTop: insets.top + 6, paddingBottom: insets.bottom + 12 }]}>
         <View style={styles.topBar}>
           <GPressable
-            testID="parent-photo-viewer-close"
+            testID={`${testIDPrefix}-close`}
             accessibilityLabel="Close photo"
             onPress={onClose}
             style={styles.roundButton}>
@@ -147,9 +153,20 @@ export function ParentPhotoViewer({
           <View style={styles.counter} accessible accessibilityLabel={`Photo ${counter}`}>
             <Text style={styles.counterText}>{counter}</Text>
           </View>
+          <View style={styles.rightButtons}>
+          {activePhoto && onPhotoOptions ? (
+            <GPressable
+              testID={`${testIDPrefix}-options`}
+              accessibilityLabel="Photo options"
+              accessibilityHint="Change the date or delete this photo"
+              onPress={() => onPhotoOptions(activePhoto)}
+              style={styles.roundButton}>
+              <Ionicons name="ellipsis-horizontal" size={22} color={Garden.white} />
+            </GPressable>
+          ) : null}
           {activePhoto?.imageUrl ? (
             <GPressable
-              testID="parent-photo-viewer-share"
+              testID={`${testIDPrefix}-share`}
               accessibilityLabel="Share or save photo"
               accessibilityHint="Opens the share sheet, where you can save it to Photos"
               accessibilityState={{ disabled: preparing, busy: preparing }}
@@ -166,6 +183,7 @@ export function ParentPhotoViewer({
           ) : (
             <View style={styles.roundButtonSpacer} />
           )}
+          </View>
         </View>
 
         <FlatList
@@ -287,6 +305,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.22)',
   },
   roundButtonSpacer: { width: 44, height: 44 },
+  rightButtons: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   counter: {
     paddingHorizontal: 12,
     paddingVertical: 5,

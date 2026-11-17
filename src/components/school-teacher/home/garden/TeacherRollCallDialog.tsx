@@ -12,6 +12,12 @@ import { formatAttendanceDateLabel } from "@/lib/school-admin/attendance/attenda
 import type { AttendanceRosterStudent } from "@/lib/school-admin/attendance/attendance-types";
 import { formatEnrolledStudentName, formatStudentGrade } from "@/lib/school-admin/enrolled-students";
 import type { TeacherDashboardModel } from "../useTeacherDashboardModel";
+
+/** What roll call needs from a page model (Dashboard or the Attendance page). */
+export type TeacherRollCallModel = Pick<
+  TeacherDashboardModel,
+  "att" | "theme" | "rollCallOpen" | "closeRollCall" | "attendanceFilter" | "setAttendanceFilter"
+>;
 import { StudentFace, plural } from "./parts";
 
 type Choice = "present" | "absent";
@@ -54,7 +60,7 @@ function startSession(students: AttendanceRosterStudent[], only?: string[]): Ses
  * Absent (P / A, → skip, ← back). Saves go through the shared attendance
  * model quietly (inline confirmation); one recap toast when it closes.
  */
-export default function TeacherRollCallDialog({ model }: { model: TeacherDashboardModel }) {
+export default function TeacherRollCallDialog({ model }: { model: TeacherRollCallModel }) {
   const { att, theme } = model;
   const open = model.rollCallOpen;
   const reduce = useReducedMotion() === true;
@@ -338,7 +344,7 @@ export default function TeacherRollCallDialog({ model }: { model: TeacherDashboa
   );
 }
 
-function UpNext({ model, queue, index }: { model: TeacherDashboardModel; queue: string[]; index: number }) {
+function UpNext({ model, queue, index }: { model: TeacherRollCallModel; queue: string[]; index: number }) {
   const next = queue
     .slice(index + 1, index + 4)
     .map((id) => model.att.students.find((s) => s.id === id))
@@ -365,7 +371,7 @@ function Recap({
   absentCount,
   skippedCount,
 }: {
-  model: TeacherDashboardModel;
+  model: TeacherRollCallModel;
   presentCount: number;
   absentCount: number;
   skippedCount: number;

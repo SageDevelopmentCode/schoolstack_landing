@@ -60,11 +60,15 @@ import type { AgreementSectionSignature } from "@/lib/admissions/enrollment-chec
 import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
 import { hasPaymentBreakdown, isPdfAgreementItem } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import {
+  GChip,
+  GKicker,
+  gBtnOutlineSm,
+  gBtnPopSm,
+} from "@/components/school-parent/garden/ui";
 import type { CombinedEnrollmentPaymentCandidate } from "@/lib/admissions/combined-enrollment-payment";
 import type { CheckoutPaymentMethod } from "@/lib/stripe/processing-fee";
 import { createClient } from "@/utils/supabase/client";
-import { useOptionalParentTheme } from "@/components/school-parent/ParentThemeContext";
 
 type EnrollmentChecklistItemPanelProps = {
   C: AdminThemeTokens;
@@ -114,28 +118,23 @@ function initFormStateFromResponses(
   };
 }
 
-function panelButtonStyle(C: AdminThemeTokens, disabled: boolean) {
-  return {
-    ...getAdminButtonStyle(C, "primary"),
-    opacity: disabled ? 0.5 : 1,
-    cursor: disabled ? "not-allowed" : "pointer",
-  } as const;
-}
+/** Primary panel action: the view's one Garden toy button. */
+const G_PANEL_PRIMARY = gBtnPopSm;
+/** Item / section title inside the checklist item card. */
+const G_PANEL_TITLE = "sf-display text-[1.4rem] leading-[1.1] text-[var(--sf-ink)]";
+/** Inset surface (PDF viewer, amount due) inside the item card. */
+const G_PANEL_INSET = "rounded-[18px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white";
 
-function SubmittedSuccessLabel({ C }: { C: AdminThemeTokens }) {
+function SubmittedSuccessLabel() {
   return (
-    <span
-      className="inline-flex items-center gap-1.5 text-sm font-medium"
-      style={{ color: C.success }}
-    >
+    <GChip tone="success" className="!px-3 !py-1 !text-[13px]">
       <CheckCircle className="h-4 w-4 shrink-0" aria-hidden />
       Submitted
-    </span>
+    </GChip>
   );
 }
 
 function GoToNextItemButton({
-  C,
   onClick,
   className = "",
 }: {
@@ -147,8 +146,7 @@ function GoToNextItemButton({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center justify-center gap-2 rounded-md px-5 py-2.5 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS} ${className}`.trim()}
-      style={getAdminButtonStyle(C, "success")}
+      className={`${gBtnPopSm} !bg-[var(--sf-forest)] ${BUTTON_LOADING_LAYOUT_CLASS} ${className}`.trim()}
     >
       <CheckCircle className="h-4 w-4 shrink-0" aria-hidden />
       Go to next item
@@ -193,14 +191,13 @@ function AlternateAgreementExplainer({
 }) {
   return (
     <div
-      className="shrink-0 rounded-lg border border-dashed p-4"
-      style={{ borderColor: C.border }}
+      className="shrink-0 rounded-[18px] border-[1.5px] border-dashed border-[var(--sf-ink)]/20 bg-[var(--sf-paper)] p-4"
     >
       <p className="text-sm" style={{ color: C.textSecondary }}>
         If a student is admissible with a collaborative support plan, staff may select this
         agreement option instead:
       </p>
-      <h2 className="mt-3 text-lg font-semibold" style={{ color: C.textPrimary }}>
+      <h2 className={`mt-3 ${G_PANEL_TITLE}`}>
         {item.label}
       </h2>
     </div>
@@ -248,7 +245,6 @@ function DocumentSignInlinePanel({
   initialSectionId?: string;
   initialPreviewSignerName?: string;
 }) {
-  const parentThemeCtx = useOptionalParentTheme();
   const sections = item.document?.kind === "inline_sections" ? item.document.sections : [];
   const consentOptions =
     item.document?.kind === "inline_sections" ? item.document.consentOptions ?? [] : [];
@@ -556,20 +552,10 @@ function DocumentSignInlinePanel({
             exit="exit"
             transition={sectionTransition}
           >
-            <p className="text-xs font-medium" style={{ color: C.textTertiary }}>
+            <GKicker>
               Section {sectionIndex + 1} of {sections.length}
-            </p>
-            <h2
-              className={`mt-2 text-lg font-semibold ${parentThemeCtx ? "font-heading" : ""}`}
-              style={
-                parentThemeCtx
-                  ? {
-                      fontFamily: parentThemeCtx.theme.fontDisplay,
-                      color: parentThemeCtx.theme.ink,
-                    }
-                  : { color: C.textPrimary }
-              }
-            >
+            </GKicker>
+            <h2 className={`mt-2 ${G_PANEL_TITLE}`}>
               {section.title}
             </h2>
             {isPendingResignSection && amendmentNotice ? (
@@ -637,8 +623,7 @@ function DocumentSignInlinePanel({
               setDirection(-1);
               setSectionIndex((idx) => idx - 1);
             }}
-            className="rounded-md border px-4 py-2 text-sm font-medium"
-            style={getAdminButtonStyle(C, "secondary")}
+            className={gBtnOutlineSm}
           >
             Back
           </button>
@@ -680,8 +665,7 @@ function DocumentSignInlinePanel({
                 await saveCurrentSection();
               }
             }}
-            className={`ml-auto rounded-md px-5 py-2.5 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS}`}
-            style={panelButtonStyle(C, isActionDisabled)}
+            className={`ml-auto ${G_PANEL_PRIMARY} ${BUTTON_LOADING_LAYOUT_CLASS}`}
           >
             {isCompleted ? (
               "Completed"
@@ -789,8 +773,7 @@ function DocumentSignPdfPanel({
   if (!pdfDocument?.storagePath) {
     return (
       <div
-        className="flex flex-col items-center justify-center rounded-lg border px-6 py-12 text-center"
-        style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
+        className={`flex flex-col items-center justify-center px-6 py-12 text-center ${G_PANEL_INSET}`}
       >
         <FileText className="mb-3 h-10 w-10" style={{ color: C.textQuaternary }} />
         <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
@@ -805,13 +788,12 @@ function DocumentSignPdfPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col space-y-4">
-      <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
+      <h2 className={G_PANEL_TITLE}>
         {item.label}
       </h2>
 
       <div
-        className={`${PDF_VIEWER_HEIGHT_CLASS} overflow-hidden rounded-lg border`}
-        style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
+        className={`${PDF_VIEWER_HEIGHT_CLASS} overflow-hidden ${G_PANEL_INSET}`}
       >
         {loading ? (
           <div className={`flex ${PDF_VIEWER_HEIGHT_CLASS} items-center justify-center`}>
@@ -885,8 +867,7 @@ function DocumentSignPdfPanel({
                 setSubmitting(false);
               }
             }}
-            className={`rounded-md px-5 py-2.5 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS}`}
-            style={panelButtonStyle(C, !isLive || !signature.trim() || submitting || isCompleted)}
+            className={`${G_PANEL_PRIMARY} ${BUTTON_LOADING_LAYOUT_CLASS}`}
           >
             {isCompleted ? (
               "Completed"
@@ -1130,7 +1111,7 @@ function FormItemPanel({
   return (
     <div className="space-y-5">
       {formSchema.title ? (
-        <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
+        <h2 className={G_PANEL_TITLE}>
           {formSchema.title}
         </h2>
       ) : null}
@@ -1189,17 +1170,12 @@ function FormItemPanel({
         <div className="flex flex-wrap items-center gap-3">
           {!isEditing ? (
             <>
-              <SubmittedSuccessLabel C={C} />
+              <SubmittedSuccessLabel />
               <button
                 type="button"
                 disabled={!isLive}
                 onClick={startEditing}
-                className="rounded-md px-5 py-2.5 text-sm font-semibold"
-                style={{
-                  ...getAdminButtonStyle(C, "secondary"),
-                  opacity: !isLive ? 0.5 : 1,
-                  cursor: !isLive ? "not-allowed" : "pointer",
-                }}
+                className={gBtnOutlineSm}
               >
                 Edit
                 {!isLive ? " (preview)" : ""}
@@ -1218,8 +1194,7 @@ function FormItemPanel({
                 type="button"
                 disabled={!isLive || submitting}
                 onClick={() => void handleSubmit()}
-                className={`rounded-md px-5 py-2.5 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS}`}
-                style={panelButtonStyle(C, !isLive || submitting)}
+                className={`${G_PANEL_PRIMARY} ${BUTTON_LOADING_LAYOUT_CLASS}`}
               >
                 <ButtonLoadingLabel loading={submitting} loadingLabel="Saving…">
                   Save changes
@@ -1230,12 +1205,7 @@ function FormItemPanel({
                 type="button"
                 disabled={submitting}
                 onClick={cancelEditing}
-                className="rounded-md px-5 py-2.5 text-sm font-semibold"
-                style={{
-                  ...getAdminButtonStyle(C, "neutral"),
-                  opacity: submitting ? 0.5 : 1,
-                  cursor: submitting ? "not-allowed" : "pointer",
-                }}
+                className={gBtnOutlineSm}
               >
                 Cancel
               </button>
@@ -1247,8 +1217,7 @@ function FormItemPanel({
           type="button"
           disabled={!isLive || submitting}
           onClick={() => void handleSubmit()}
-          className={`rounded-md px-5 py-2.5 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS}`}
-          style={panelButtonStyle(C, !isLive || submitting)}
+          className={`${G_PANEL_PRIMARY} ${BUTTON_LOADING_LAYOUT_CLASS}`}
         >
           <ButtonLoadingLabel loading={submitting} loadingLabel="Saving…">
             Submit form
@@ -1419,17 +1388,13 @@ function FileUploadPanel({
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
+      <h2 className={G_PANEL_TITLE}>
         {item.label}
       </h2>
 
       {config?.directions ? (
         <div
-          className="flex gap-3 rounded-md border px-4 py-3"
-          style={{
-            borderColor: C.border,
-            backgroundColor: C.accentLight,
-          }}
+          className="flex gap-3 rounded-[14px] bg-[var(--sf-accent-wash)] px-4 py-3"
         >
           <Info
             className="mt-0.5 h-4 w-4 shrink-0"
@@ -1468,17 +1433,12 @@ function FileUploadPanel({
         <div className="flex flex-wrap items-center gap-3">
           {!isEditing ? (
             <>
-              <SubmittedSuccessLabel C={C} />
+              <SubmittedSuccessLabel />
               <button
                 type="button"
                 disabled={!isLive}
                 onClick={startEditing}
-                className="rounded-md px-5 py-2.5 text-sm font-semibold"
-                style={{
-                  ...getAdminButtonStyle(C, "secondary"),
-                  opacity: !isLive ? 0.5 : 1,
-                  cursor: !isLive ? "not-allowed" : "pointer",
-                }}
+                className={gBtnOutlineSm}
               >
                 Edit
                 {!isLive ? " (preview)" : ""}
@@ -1497,8 +1457,7 @@ function FileUploadPanel({
                 type="button"
                 disabled={!isLive || uploading || submitting}
                 onClick={() => void handleSave()}
-                className={`rounded-md px-5 py-2.5 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS}`}
-                style={panelButtonStyle(C, !isLive || uploading || submitting)}
+                className={`${G_PANEL_PRIMARY} ${BUTTON_LOADING_LAYOUT_CLASS}`}
               >
                 <ButtonLoadingLabel
                   loading={submitting || uploading}
@@ -1512,12 +1471,7 @@ function FileUploadPanel({
                 type="button"
                 disabled={submitting || uploading}
                 onClick={cancelEditing}
-                className="rounded-md px-5 py-2.5 text-sm font-semibold"
-                style={{
-                  ...getAdminButtonStyle(C, "neutral"),
-                  opacity: submitting || uploading ? 0.5 : 1,
-                  cursor: submitting || uploading ? "not-allowed" : "pointer",
-                }}
+                className={gBtnOutlineSm}
               >
                 Cancel
               </button>
@@ -1529,8 +1483,7 @@ function FileUploadPanel({
           type="button"
           disabled={!isLive || uploading || submitting}
           onClick={() => void handleSave()}
-          className={`rounded-md px-5 py-2.5 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS}`}
-          style={panelButtonStyle(C, !isLive || uploading || submitting)}
+          className={`${G_PANEL_PRIMARY} ${BUTTON_LOADING_LAYOUT_CLASS}`}
         >
           <ButtonLoadingLabel
             loading={submitting || uploading}
@@ -1687,12 +1640,11 @@ function PaymentPanel({
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
+      <h2 className={G_PANEL_TITLE}>
         {payment?.label || item.label}
       </h2>
       <div
-        className="rounded-lg border px-4 py-4"
-        style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
+        className={`px-4 py-4 ${G_PANEL_INSET}`}
       >
         {showBreakdown ? (
           <PaymentFeeBreakdownList
@@ -1705,7 +1657,7 @@ function PaymentPanel({
             <p className="text-sm" style={{ color: C.textSecondary }}>
               Amount due
             </p>
-            <p className="mt-1 text-2xl font-semibold" style={{ color: C.textPrimary }}>
+            <p className="sf-display m-0 mt-1 text-[2.2rem] leading-none text-[var(--sf-ink)]">
               {amount}
             </p>
           </>
@@ -1720,8 +1672,7 @@ function PaymentPanel({
         type="button"
         disabled={!isLive || submitting || isCompleted}
         onClick={() => setPaymentModalOpen(true)}
-        className="rounded-md px-5 py-2.5 text-sm font-semibold text-white"
-        style={panelButtonStyle(C, !isLive || submitting || isCompleted)}
+        className={G_PANEL_PRIMARY}
       >
         {isCompleted ? "Paid" : submitting ? "Redirecting…" : `Pay ${amount}`}
         {!isLive ? " (preview)" : ""}
@@ -1742,8 +1693,7 @@ function PaymentPanel({
 
       {showCombinedOption ? (
         <div
-          className="rounded-lg border px-4 py-4"
-          style={{ borderColor: C.border, backgroundColor: C.elevated }}
+          className="rounded-[18px] border-[1.5px] border-dashed border-[var(--sf-ink)]/20 bg-[var(--sf-paper)] px-4 py-4"
         >
           <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
             Pay for all children in one checkout
@@ -1771,8 +1721,7 @@ function PaymentPanel({
             type="button"
             disabled={!isLive || submitting}
             onClick={() => setCombinedPaymentModalOpen(true)}
-            className="mt-4 rounded-md px-5 py-2.5 text-sm font-semibold text-white"
-            style={panelButtonStyle(C, !isLive || submitting)}
+            className={`${gBtnOutlineSm} mt-4`}
           >
             {submitting
               ? "Redirecting…"
@@ -1834,7 +1783,7 @@ function AcknowledgmentPanel({
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
+      <h2 className={G_PANEL_TITLE}>
         {item.label}
       </h2>
       <FormattedDocumentText
@@ -1907,8 +1856,7 @@ function AcknowledgmentPanel({
             setSubmitting(false);
           }
         }}
-        className={`rounded-md px-5 py-2.5 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS}`}
-        style={panelButtonStyle(C, !isLive || !signature.trim() || submitting || isCompleted)}
+        className={`${G_PANEL_PRIMARY} ${BUTTON_LOADING_LAYOUT_CLASS}`}
       >
         {isCompleted ? (
           "Completed"

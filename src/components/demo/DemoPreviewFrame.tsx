@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { Pill, type Tint } from "@/components/garden/ui";
 
 type DemoPreviewVariant =
   | "website"
@@ -12,121 +13,93 @@ type DemoPreviewVariant =
   | "contact"
   | "mobile";
 
+/** Garden wash + pill per preview, following the home page role tints
+ * (parents sky, teachers mint, admins peach). Literal classes only. */
 const VARIANT_CONFIG: Record<
   DemoPreviewVariant,
-  {
-    label: string;
-    emoji: string;
-    outerBg: string;
-    cardBorder: string;
-    pillBg: string;
-    pillText: string;
-    pillBorder: string;
-  }
+  { label: string; emoji: string; wash: string; pill: Tint }
 > = {
   website: {
     label: "Website",
     emoji: "🌐",
-    outerBg: "#F8F8F3",
-    cardBorder: "#E8E4DA",
-    pillBg: "#FFFFFF",
-    pillText: "#374151",
-    pillBorder: "#E8E4DA",
+    wash: "bg-[var(--sf-butter)]/35",
+    pill: "butter",
   },
   application: {
     label: "Application",
     emoji: "📝",
-    outerBg: "#F0EBF2",
-    cardBorder: "#C9BBD4",
-    pillBg: "#E8E0EC",
-    pillText: "#5A4D68",
-    pillBorder: "#C9BBD4",
+    wash: "bg-[var(--sf-lav)]/50",
+    pill: "lav",
   },
   observation: {
     label: "Observation booking",
     emoji: "📅",
-    outerBg: "#F0EBF2",
-    cardBorder: "#C9BBD4",
-    pillBg: "#E8E0EC",
-    pillText: "#5A4D68",
-    pillBorder: "#C9BBD4",
+    wash: "bg-[var(--sf-lav)]/50",
+    pill: "lav",
   },
   admin: {
     label: "Admin view",
     emoji: "📊",
-    outerBg: "#EEF4F8",
-    cardBorder: "#C5D9E8",
-    pillBg: "#E4EDF4",
-    pillText: "#173B5C",
-    pillBorder: "#C5D9E8",
+    wash: "bg-[var(--sf-peach)]/45",
+    pill: "clay",
   },
   parent: {
     label: "Parent portal",
     emoji: "👨‍👩‍👧",
-    outerBg: "#FBFAF6",
-    cardBorder: "#E8D9BC",
-    pillBg: "#F2E7D1",
-    pillText: "#173B5C",
-    pillBorder: "#E8D9BC",
+    wash: "bg-[var(--sf-sky)]/60",
+    pill: "sky",
   },
   teacher: {
     label: "Teacher view",
     emoji: "📋",
-    outerBg: "#EEF4F8",
-    cardBorder: "#C5D9E8",
-    pillBg: "#E4EDF4",
-    pillText: "#173B5C",
-    pillBorder: "#C5D9E8",
+    wash: "bg-[var(--sf-mint)]/55",
+    pill: "forest",
   },
   contact: {
     label: "Get in touch",
     emoji: "✉️",
-    outerBg: "#F7F1E7",
-    cardBorder: "#D9C9A3",
-    pillBg: "#F2E7D1",
-    pillText: "#2E4A3C",
-    pillBorder: "#D9C9A3",
+    wash: "bg-[var(--sf-mint)]/55",
+    pill: "forest",
   },
   mobile: {
     label: "Mobile app",
     emoji: "📱",
-    outerBg: "#F0EBF2",
-    cardBorder: "#C9BBD4",
-    pillBg: "#E8E0EC",
-    pillText: "#5A4D68",
-    pillBorder: "#C9BBD4",
+    wash: "bg-[var(--sf-lav)]/50",
+    pill: "lav",
   },
 };
+
+/** Beats `.sf-garden .sf-demo` so previews keep the font/ink set by the shell. */
+const PREVIEW_TYPE = { fontFamily: "inherit", color: "inherit" } as const;
 
 interface Props {
   variant: DemoPreviewVariant;
   children: ReactNode;
 }
 
+/**
+ * The live preview, framed as a toy card on a dotted wash. The card is
+ * `.sf-demo`, so the school's own site and portals keep their own type.
+ */
 export default function DemoPreviewFrame({ variant, children }: Props) {
   const config = VARIANT_CONFIG[variant];
 
   return (
     <div
-      className="flex flex-1 h-full flex-col overflow-hidden p-4 lg:p-8"
-      style={{ backgroundColor: config.outerBg }}
+      className={`sf-grid flex h-full flex-1 flex-col overflow-hidden px-4 pb-6 pt-4 lg:px-8 lg:pb-10 lg:pt-6 ${config.wash}`}
     >
-      <div className="mb-3 flex shrink-0 justify-center">
-        <span
-          className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider"
-          style={{
-            backgroundColor: config.pillBg,
-            color: config.pillText,
-            borderColor: config.pillBorder,
-          }}
+      <div className="mb-3.5 flex shrink-0 justify-center">
+        <Pill
+          tint={config.pill}
+          className="border-2 border-[var(--sf-ink)] !px-3 !py-1 !text-xs shadow-[0_2px_0_0_var(--sf-ink)]"
         >
-          <span aria-hidden>{config.emoji}</span>
+          <span aria-hidden="true">{config.emoji}</span>
           {config.label}
-        </span>
+        </Pill>
       </div>
       <div
-        className="min-h-0 flex-1 overflow-hidden rounded-2xl border bg-white shadow-lg"
-        style={{ borderColor: config.cardBorder }}
+        className="sf-demo min-h-0 flex-1 overflow-hidden rounded-[26px] border-2 border-[var(--sf-ink)] bg-white shadow-[0_8px_0_0_var(--sf-ink)]"
+        style={PREVIEW_TYPE}
       >
         {children}
       </div>

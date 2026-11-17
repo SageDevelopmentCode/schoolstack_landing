@@ -103,3 +103,23 @@ Prefetch today's roster once (`queueMicrotask(() => void loadRoster())`) and kee
 ```
 
 Keep every teacher `reportError` operation in the teacher controller; the shared view never hard-codes a portal's operation names or testIDs.
+
+## Day editor sheet with per-row validation (`my-hours/garden/sheets/adjust-hours-sheet.tsx`)
+
+- `AdminFormSheet` (approved keyboard path, dirty-close confirm, footer status line + one toy Save with `saveTestID`).
+- A model hook (`use-adjust-editor.ts`) owns the draft: prefill, add / remove rows, `isDirty`, in-sheet `notice` (errors, `READ_ONLY_NOTICE`), and `save` → `closeThen` → success toast from the feedback hook.
+- Each row is a card with `GTimeField`s, a live duration chip and its own error ("Overlaps session 2."); the footer says the running total or "Fix the highlighted times to save."
+- A pure validator (`adjust-validation.ts`) keeps the old save rule and is unit-tested against it.
+- "Add hours for this day" from another view: `controller.startAdjustFor(dateKey)` switches view and the model opens the editor once that week has loaded.
+
+Reuse for: shift edits, timesheets, any per-day list of time ranges.
+
+## Shared gallery screen logic (`school-admin/gallery/garden/use-gallery-screen-controller.ts`)
+
+```tsx
+const api = useMemo<GalleryScreenApi>(() => ({ listPage, uploadBatch, patchDate, deletePhotoById }), [deps]); // memoize!
+const gallery = useGalleryScreenController({ organizationId, operationPrefix: 'teacher_gallery',
+  uploadSurface: 'teacher_portal', api, canManagePhoto, refreshToastId: 'teacher-photos-refresh' });
+```
+
+The view picks its own layout (admin: `AdminTabHeader` + edge grid + bulk select; teacher: `GBackHeader` + upload card + `PhotoDayGrid`). Both use `GalleryPhotoActionSheet` / `GalleryEditDateSheet` and `AdminPhotoUploadSheet`. The viewer gets `gallery.orderedPhotos` so swipe order matches the grid.

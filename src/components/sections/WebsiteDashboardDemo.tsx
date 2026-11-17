@@ -7,7 +7,11 @@ import { defaultWebsiteDemoConfig } from "@/data/school-demos/default";
 import type { SchoolWebsiteDemoConfig } from "@/data/school-demos/types";
 import SignatureSection from "@/components/sections/website-demo/SignatureSection";
 import DemoWebsiteButton from "@/components/sections/website-demo/DemoWebsiteButton";
-import { buildBrightDemoWebsiteThemeVars, DEMO_CONTAINER } from "@/components/sections/website-demo/bright-demo-theme";
+import {
+  SITE_CONTAINER,
+  SITE_SCOPE_CLASS,
+  siteGardenScopeStyle,
+} from "@/components/sections/website-demo/site-garden-theme";
 import SiteNavBar from "@/components/sections/website-demo/sections/SiteNavBar";
 import SiteHero from "@/components/sections/website-demo/sections/SiteHero";
 import SiteStats from "@/components/sections/website-demo/sections/SiteStats";
@@ -163,24 +167,20 @@ export default function WebsiteDashboardDemo({
     return () => container.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const themeStyle: CSSProperties = {
-    ...buildBrightDemoWebsiteThemeVars(config.theme),
-    backgroundColor: "var(--demo-paper)",
-    color: "var(--demo-ink)",
-  };
+  const themeStyle: CSSProperties = siteGardenScopeStyle(config.theme);
 
   return (
     <div
       ref={scrollContainerRef}
-      className={standalone ? "min-h-screen w-full" : externalScroll ? "w-full" : "h-full overflow-y-auto overflow-x-hidden"}
+      className={`${SITE_SCOPE_CLASS} ${standalone ? "min-h-screen w-full" : externalScroll ? "w-full" : "h-full overflow-y-auto overflow-x-hidden"}`}
       style={themeStyle}
     >
-      <div className="@container/site relative">
+      <div className="@container/site relative overflow-x-clip">
         <div className="sticky top-0 z-40 h-0">
           <AnimatePresence>
             {showStickyNav ? (
               <motion.header
-                className={`${DEMO_CONTAINER} pt-3`}
+                className={`${SITE_CONTAINER} pt-3`}
                 initial={{ y: -24, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: -24, opacity: 0 }}
@@ -257,7 +257,7 @@ export default function WebsiteDashboardDemo({
               exit={{ y: 40, opacity: 0 }}
               transition={{ duration: 0.25 }}
             >
-              <DemoWebsiteButton variant="primary" className="w-full shadow-[var(--demo-shadow-float)]" onClick={handleDiscoveryCallClick}>
+              <DemoWebsiteButton variant="primary" className="w-full" onClick={handleDiscoveryCallClick}>
                 {hero.primaryCta}
                 <ArrowRight className="h-4 w-4" aria-hidden />
               </DemoWebsiteButton>

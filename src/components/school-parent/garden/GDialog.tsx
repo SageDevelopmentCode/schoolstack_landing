@@ -48,6 +48,7 @@ export function GDialog({
   bodyRef,
   headerExtra,
   footerBordered = false,
+  portalContainer,
 }: {
   theme: ParentThemeTokens;
   open: boolean;
@@ -70,6 +71,11 @@ export function GDialog({
   headerExtra?: ReactNode;
   /** Separates a sticky action footer from long scrolling content. */
   footerBordered?: boolean;
+  /**
+   * Where the dialog portals to (default `document.body`). Scaled previews
+   * pass an in-canvas node so the dialog stays inside the transformed frame.
+   */
+  portalContainer?: HTMLElement | null;
 }) {
   const reduce = useReducedMotion() === true;
   const isClient = useIsClient();
@@ -230,7 +236,7 @@ export function GDialog({
         </motion.div>
       ) : null}
     </AnimatePresence>,
-    document.body,
+    portalContainer ?? document.body,
   );
 }
 

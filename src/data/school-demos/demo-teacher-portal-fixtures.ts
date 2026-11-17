@@ -9,12 +9,19 @@ import type { BulletinPost } from "@/lib/school-bulletin/types";
 import type { TeacherCalendarInitialData } from "@/lib/school-events/types";
 import type { OrganizationEvent } from "@/lib/school-events/types";
 import type { TeacherDashboardSummary } from "@/lib/school-teacher/teacher-dashboard-summary";
+import { toDateKey } from "@/lib/school-admin/attendance/attendance-date-utils";
 import {
   DEMO_PORTAL_ORG_ID,
   DEMO_TEACHER_STAFF_ID,
 } from "./demo-portal-shared";
 
-const DEMO_ATTENDANCE_DATE = "2026-09-20";
+/**
+ * Demo attendance is always "today", so Garden rosters read "Today's roster"
+ * with "N left to mark" instead of a past day.
+ */
+function demoAttendanceDate(): string {
+  return toDateKey(new Date());
+}
 const DEMO_ENROLLED_AT = "2026-08-15T12:00:00.000Z";
 
 const DEMO_CLASSROOMS: StaffClassroomOption[] = [
@@ -205,7 +212,7 @@ function buildDemoStudents(): AdminEnrolledStudentSummary[] {
 }
 
 function buildAttendanceStudents(): AttendanceRosterStudent[] {
-  const date = DEMO_ATTENDANCE_DATE;
+  const date = demoAttendanceDate();
   return [
     {
       id: "student-emma",
@@ -320,7 +327,7 @@ function buildAttendanceStudents(): AttendanceRosterStudent[] {
 
 /** Extra roster rows for get-started showcase carousel (dense preview). */
 export function buildShowcaseTeacherAttendanceRosterStudents(): AttendanceRosterStudent[] {
-  const date = DEMO_ATTENDANCE_DATE;
+  const date = demoAttendanceDate();
   return [
     {
       id: "student-olivia",
@@ -570,7 +577,7 @@ export function buildDemoTeacherClassrooms(): StaffClassroomOption[] {
 export function buildDemoTeacherAttendanceRoster(): AttendanceRosterResponse {
   const students = buildAttendanceStudents();
   return {
-    date: DEMO_ATTENDANCE_DATE,
+    date: demoAttendanceDate(),
     students,
     summary: {
       totalStudents: students.length,

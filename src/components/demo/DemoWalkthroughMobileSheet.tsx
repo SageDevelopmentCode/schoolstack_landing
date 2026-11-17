@@ -4,10 +4,10 @@ import { useEffect, useId } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import DemoWalkthroughStepList from "@/components/demo/DemoWalkthroughStepList";
-import { BOLD_HEADING } from "@/components/home/bright-styles";
 import type { DemoWalkthroughStep } from "@/data/school-demos/walkthrough-placeholder";
 import type { SchoolDemoLogo } from "@/components/demo/SchoolDemoWordmark";
-import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
+import { DemoCoBrandCard, DemoStepProgress } from "@/components/demo/DemoWalkthroughPanel";
+import { Pill } from "@/components/garden/ui";
 
 type Props = {
   open: boolean;
@@ -16,7 +16,6 @@ type Props = {
   schoolLogo: SchoolDemoLogo;
   steps: DemoWalkthroughStep[];
   activeStep: number;
-  schoolPrimary: string;
   onStepSelect: (index: number) => void;
 };
 
@@ -27,7 +26,6 @@ export default function DemoWalkthroughMobileSheet({
   schoolLogo,
   steps,
   activeStep,
-  schoolPrimary,
   onStepSelect,
 }: Props) {
   const titleId = useId();
@@ -67,7 +65,7 @@ export default function DemoWalkthroughMobileSheet({
           data-testid="demo-walkthrough-mobile-sheet"
         >
           <div
-            className="absolute inset-0 bg-black/45"
+            className="absolute inset-0 bg-[var(--sf-ink)]/45"
             onClick={onClose}
             aria-hidden="true"
           />
@@ -80,46 +78,39 @@ export default function DemoWalkthroughMobileSheet({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: "100%", opacity: 0 }}
             transition={{ type: "spring", damping: 28, stiffness: 300 }}
-            className="absolute inset-y-0 right-0 z-[15] flex w-[min(100%,28rem)] max-w-full flex-col overflow-hidden border-l border-black/10 bg-white shadow-[0_24px_60px_rgba(0,0,0,0.12)]"
+            className="absolute inset-y-0 right-0 z-[15] flex w-[min(100%,28rem)] max-w-full flex-col overflow-hidden border-l-2 border-[var(--sf-ink)] bg-[var(--sf-paper)] shadow-[0_24px_60px_rgba(43,36,29,0.18)]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-center justify-between gap-3 border-b border-black/10 px-4 py-3">
+            <div className="flex items-start justify-between gap-3 border-b-2 border-[var(--sf-ink)]/10 px-4 pb-4 pt-4">
               <div className="min-w-0">
+                <Pill tint="forest" className="!px-3 !py-1 !text-xs">
+                  <span aria-hidden="true">🧺</span> Concept walkthrough
+                </Pill>
                 <p
                   id={titleId}
-                  className={`truncate text-base ${BOLD_HEADING}`}
+                  className="sf-display mt-2 truncate text-2xl leading-[1.05] text-[var(--sf-ink)]"
                 >
                   {schoolName}
-                </p>
-                <p
-                  className="font-secondary text-[11px] font-semibold uppercase tracking-widest"
-                  style={{ color: schoolPrimary }}
-                >
-                  Concept walkthrough
                 </p>
               </div>
               <button
                 type="button"
                 onClick={onClose}
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#F4F1EC] text-[#1d1a16] transition hover:bg-black/5"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-[var(--sf-ink)] ring-2 ring-inset ring-[var(--sf-ink)]/20 transition hover:ring-[var(--sf-ink)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/30"
                 aria-label="Close steps menu"
               >
-                <X className="h-5 w-5" aria-hidden />
+                <X className="h-5 w-5" strokeWidth={2.4} aria-hidden />
               </button>
             </div>
 
-            <div className="flex items-center justify-center border-b border-black/5 px-4 py-2">
-              <SchoolDemoWordmark
-                logo={schoolLogo}
-                className="h-7 w-auto max-w-[160px] object-contain"
-              />
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-4 py-4">
+            <div className="flex-1 overflow-y-auto px-4 py-5">
+              <DemoCoBrandCard schoolLogo={schoolLogo} className="mb-5" />
+              <div className="mb-6">
+                <DemoStepProgress activeStep={activeStep} total={steps.length} />
+              </div>
               <DemoWalkthroughStepList
                 steps={steps}
                 activeStep={activeStep}
-                accentColor={schoolPrimary}
                 onStepSelect={handleStepSelect}
                 compact
               />

@@ -424,6 +424,104 @@ export function GDateField({
 }
 
 /* ------------------------------------------------------------------ */
+/* Time field                                                          */
+/* ------------------------------------------------------------------ */
+
+function timeValueToDate(value: string): Date {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+  const date = new Date();
+  date.setHours(match ? Number(match[1]) : 8, match ? Number(match[2]) : 0, 0, 0);
+  return date;
+}
+
+/** "08:30" → "8:30 AM" (same label as `StoryTimeField`). */
+export function formatTimeValue(value: string): string {
+  return timeValueToDate(value).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+/**
+ * Same value format (`HH:mm`) and picker behaviour as `StoryTimeField` (iOS
+ * spinner toggled inline, Android dialog), Garden styled, with an inline error.
+ */
+export function GTimeField({
+  label,
+  value,
+  onChange,
+  error,
+  disabled = false,
+  testID,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  error?: string | null;
+  disabled?: boolean;
+  testID?: string;
+}) {
+  const accent = useGardenAccent();
+  const [iosOpen, setIosOpen] = useState(false);
+  const [androidOpen, setAndroidOpen] = useState(false);
+  const pickerDate = useMemo(() => timeValueToDate(value), [value]);
+  const display = formatTimeValue(value);
+
+  const onPickerChange = (event: DateTimePickerEvent, selected?: Date) => {
+    if (Platform.OS === 'android') {
+      setAndroidOpen(false);
+      if (event.type === 'dismissed') return;
+    }
+    if (selected) {
+      onChange(
+        `${String(selected.getHours()).padStart(2, '0')}:${String(selected.getMinutes()).padStart(2, '0')}`,
+      );
+    }
+  };
+
+  return (
+    <View style={styles.field}>
+      <FieldLabel label={label} />
+      <GPressable
+        testID={testID}
+        accessibilityLabel={`${label}, ${display}`}
+        accessibilityHint={iosOpen ? 'Closes time picker' : 'Opens time picker'}
+        accessibilityState={{ disabled, expanded: iosOpen }}
+        disabled={disabled}
+        haptic="select"
+        pressedScale={0.99}
+        onPress={() =>
+          Platform.OS === 'android' ? setAndroidOpen(true) : setIosOpen((open) => !open)
+        }
+        style={[
+          styles.input,
+          styles.dateInput,
+          {
+            borderColor: error ? '#C2714F' : iosOpen ? accent.clay : Garden.ink15,
+            borderWidth: iosOpen || error ? 2 : 1.5,
+          },
+          disabled && styles.inputDisabled,
+        ]}>
+        <Ionicons name="time-outline" size={17} color={accent.clayDeep} />
+        <Text style={[styles.dateText, styles.timeText]} numberOfLines={1}>
+          {display}
+        </Text>
+        <Ionicons name={iosOpen ? 'chevron-up' : 'chevron-down'} size={15} color={Garden.ink60} />
+      </GPressable>
+      {Platform.OS === 'ios' && iosOpen && !disabled ? (
+        <DateTimePicker
+          value={pickerDate}
+          mode="time"
+          display="spinner"
+          onChange={onPickerChange}
+        />
+      ) : null}
+      {Platform.OS === 'android' && androidOpen && !disabled ? (
+        <DateTimePicker value={pickerDate} mode="time" display="default" onChange={onPickerChange} />
+      ) : null}
+      <FieldFoot error={error} />
+    </View>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Inline banner (status inside sheets, where toasts can't show)       */
 /* ------------------------------------------------------------------ */
 
@@ -548,6 +646,7 @@ const styles = StyleSheet.create({
   dateInput: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   dateInputWithClear: { paddingRight: 44 },
   dateText: { flex: 1, fontFamily: GardenFonts.bodyBold, fontSize: 16, color: Garden.ink },
+  timeText: { fontVariant: ['tabular-nums'] },
   placeholder: { color: Garden.ink60, fontFamily: GardenFonts.bodySemi },
   clear: {
     position: 'absolute',

@@ -97,6 +97,7 @@ export function AdminFormSheet({
   accessibilityLabel,
   closeAccessibilityLabel,
   testID,
+  saveTestID,
   children,
 }: {
   visible: boolean;
@@ -120,6 +121,8 @@ export function AdminFormSheet({
   accessibilityLabel?: string;
   closeAccessibilityLabel?: string;
   testID?: string;
+  /** testID on the toy Save button. */
+  saveTestID?: string;
   children: ReactNode;
 }) {
   const { keyboardOpen, scrollContentStyle } = useBottomSheetKeyboardScrollStyle(styles.content);
@@ -165,6 +168,7 @@ export function AdminFormSheet({
               {secondaryAction ? <View style={styles.secondary}>{secondaryAction}</View> : null}
               <GOutlineButton label="Cancel" onPress={requestClose} />
               <GToyButton
+                testID={saveTestID}
                 label={saving ? savingLabel : saveLabel}
                 icon={saveIcon}
                 loading={saving}

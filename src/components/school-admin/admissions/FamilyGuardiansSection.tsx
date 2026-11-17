@@ -12,6 +12,7 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ApplicationDetail } from "@/lib/admissions/parent-portal-access";
 import { extractParent2FromApplication } from "@/lib/admissions/parent2-fields";
 import type { FamilyGuardianRecord } from "@/lib/admissions/family-guardians";
+import { useSubmissionDetailPreview } from "./SubmissionDetailPreviewContext";
 import { getGuardianRoleLabel } from "@/lib/admissions/guardian-role-label";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
@@ -51,6 +52,7 @@ function AddGuardianModal({
   onClose,
   onAdded,
 }: AddGuardianModalProps) {
+  const { previewMode } = useSubmissionDetailPreview();
   const [firstName, setFirstName] = useState(initialFirstName);
   const [lastName, setLastName] = useState(initialLastName);
   const [email, setEmail] = useState(initialEmail);
@@ -75,6 +77,7 @@ function AddGuardianModal({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (previewMode) return;
     setSubmitting(true);
     setError(null);
 
@@ -280,7 +283,9 @@ export default function FamilyGuardiansSection({
   detail,
   primaryGuardianId = null,
 }: FamilyGuardiansSectionProps) {
-  const [guardians, setGuardians] = useState<FamilyGuardianRecord[]>([]);
+  const { preview, previewMode } = useSubmissionDetailPreview();
+  const previewGuardians = preview?.guardians ?? null;
+  const [guardians, setGuardians] = useState<FamilyGuardianRecord[]>(previewGuardians ?? []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -296,6 +301,10 @@ export default function FamilyGuardiansSection({
     : null;
 
   const loadGuardians = useCallback(async () => {
+    if (previewGuardians) {
+      setGuardians(previewGuardians);
+      return;
+    }
     if (!familyId) {
       setGuardians([]);
       return;
@@ -332,7 +341,7 @@ export default function FamilyGuardiansSection({
     } finally {
       setLoading(false);
     }
-  }, [familyId]);
+  }, [familyId, organizationId, previewGuardians]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -341,7 +350,7 @@ export default function FamilyGuardiansSection({
   }, [loadGuardians]);
 
   const handleRemoveAccess = async () => {
-    if (!familyId || !removeTarget) return;
+    if (!familyId || !removeTarget || previewMode) return;
 
     setRemovingGuardianId(removeTarget.id);
 

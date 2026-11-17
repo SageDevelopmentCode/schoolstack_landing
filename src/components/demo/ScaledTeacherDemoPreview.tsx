@@ -50,11 +50,12 @@ export default function ScaledTeacherDemoPreview({
     void loadTeacherDemo(demoSlug).then(async (loaded) => {
       if (cancelled) return;
       if (loaded.kind === "shared") {
+        // Shared schools show the real Garden staff portal (header + pages).
         const mod = await import("@/components/demo/shared/lazySchoolTeacherDemo");
         if (!cancelled) {
           setSharedTeacher(
             () =>
-              mod.LazySchoolTeacherDashboardDemo as ComponentType<
+              mod.LazySchoolTeacherGardenPortal as ComponentType<
                 Record<string, unknown>
               >,
           );

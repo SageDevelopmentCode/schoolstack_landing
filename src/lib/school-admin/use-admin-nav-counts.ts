@@ -54,6 +54,8 @@ export function useAdminNavCountsPolling({
     mergeKnown(EMPTY_ADMIN_NAV_COUNTS, initialCounts ?? {}),
   );
   const countsRef = useRef(counts);
+  // Previews fetch nothing, but a page's own report still shows on the nav.
+  const [hasReport, setHasReport] = useState(false);
   const knownRef = useRef(initialCounts != null);
   const lastFetchRef = useRef(0);
   const requestIdRef = useRef(0);
@@ -107,6 +109,7 @@ export function useAdminNavCountsPolling({
       knownRef.current = true;
       const next = { ...countsRef.current, [key]: Math.max(0, value) };
       apply(next);
+      setHasReport(true);
     },
     [apply],
   );
@@ -159,5 +162,9 @@ export function useAdminNavCountsPolling({
     };
   }, [enabled, refresh]);
 
-  return { counts: enabled ? counts : EMPTY_ADMIN_NAV_COUNTS, report, refresh };
+  return {
+    counts: enabled || hasReport ? counts : EMPTY_ADMIN_NAV_COUNTS,
+    report,
+    refresh,
+  };
 }

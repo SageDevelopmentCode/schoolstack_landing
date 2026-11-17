@@ -25,6 +25,8 @@ if [[ -z "$FEATURE" ]]; then
   echo "  teacher-messages" >&2
   echo "  teacher-my-students" >&2
   echo "  teacher-calendar" >&2
+  echo "  teacher-my-hours" >&2
+  echo "  teacher-photos" >&2
   echo "  parent-coop-teaching-schedule" >&2
   echo "  parent-coop-more-menu" >&2
   exit 1
@@ -44,6 +46,8 @@ case "$FEATURE" in
   teacher-messages) FLOW="visual/teacher-messages.yaml" ;;
   teacher-my-students) FLOW="visual/teacher-my-students.yaml" ;;
   teacher-calendar) FLOW="visual/teacher-calendar.yaml" ;;
+  teacher-my-hours) FLOW="visual/teacher-my-hours.yaml" ;;
+  teacher-photos) FLOW="visual/teacher-photos.yaml" ;;
   parent-coop-teaching-schedule) FLOW="visual/parent-coop-teaching-schedule.yaml" ;;
   parent-coop-more-menu) FLOW="visual/parent-coop-more-menu.yaml" ;;
   *)

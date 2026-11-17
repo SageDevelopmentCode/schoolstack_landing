@@ -51,6 +51,16 @@ type SchoolTeacherHeaderProps = {
   onOpenNotifications?: () => void;
   portalOptions?: SchoolPortalOption[];
   openPortalLinksInNewTab?: boolean;
+  /**
+   * Marketing demos: a virtual pathname for active pills, and nav clicks
+   * handled in place instead of navigating (same as `SchoolParentHeader`).
+   */
+  embeddedPreview?: {
+    pathname: string;
+    onNavigate: (href: string) => void;
+  };
+  /** Messages badge to show in preview, where the unread poll is off. */
+  initialMessagesUnreadCount?: number;
 };
 
 export default function SchoolTeacherHeader({
@@ -66,8 +76,12 @@ export default function SchoolTeacherHeader({
   onOpenNotifications,
   portalOptions = [],
   openPortalLinksInNewTab = false,
+  embeddedPreview,
+  initialMessagesUnreadCount,
 }: SchoolTeacherHeaderProps) {
-  const pathname = usePathname();
+  const routerPathname = usePathname();
+  const pathname = embeddedPreview?.pathname ?? routerPathname;
+  const onPreviewNavigate = embeddedPreview?.onNavigate;
   const previewPortalOptions = usePreviewPortalOptions();
   const resolvedPortalOptions =
     previewMode && previewPortalOptions.length > 0
@@ -101,12 +115,16 @@ export default function SchoolTeacherHeader({
     );
   }, [slug, features, previewBasePath]);
   const messagesEnabled = Boolean(features.teacher.messages) && !previewMode;
-  const { unreadCount: messagesUnreadCount } = useMessagesUnreadCount(
+  const { unreadCount: polledMessagesUnreadCount } = useMessagesUnreadCount(
     "/api/teacher-portal/messages",
     organizationId,
     schoolName,
     messagesEnabled,
   );
+  const messagesUnreadCount =
+    previewMode && initialMessagesUnreadCount != null
+      ? initialMessagesUnreadCount
+      : polledMessagesUnreadCount;
   const { primary, more } = useMemo(
     () => splitTeacherNavForHeader(navItems),
     [navItems],
@@ -182,6 +200,19 @@ export default function SchoolTeacherHeader({
   };
 
   const wordmarkClass = `min-w-0 shrink rounded-lg transition-opacity hover:opacity-80 ${G_FOCUS}`;
+  const wordmark = (
+    <SchoolDemoWordmark
+      logo={{
+        src: branding.logo.src,
+        alt: branding.logo.alt || schoolName,
+        width: branding.logo.width,
+        height: branding.logo.height,
+        text: branding.logo.src ? undefined : schoolName,
+      }}
+      className="h-8 w-auto max-w-[min(120px,28vw)] object-contain sm:max-w-[min(180px,40vw)] sm:h-10"
+      sizes="(max-width: 640px) 160px, 200px"
+    />
+  );
 
   return (
     <ParentGardenScope
@@ -207,19 +238,15 @@ export default function SchoolTeacherHeader({
             />
           </Link>
           <div className="h-7 w-[1.5px] shrink-0 rounded-full bg-[var(--sf-ink)]/12 sm:h-8" aria-hidden />
-          <Link href={homeHref} className={wordmarkClass}>
-            <SchoolDemoWordmark
-              logo={{
-                src: branding.logo.src,
-                alt: branding.logo.alt || schoolName,
-                width: branding.logo.width,
-                height: branding.logo.height,
-                text: branding.logo.src ? undefined : schoolName,
-              }}
-              className="h-8 w-auto max-w-[min(120px,28vw)] object-contain sm:max-w-[min(180px,40vw)] sm:h-10"
-              sizes="(max-width: 640px) 160px, 200px"
-            />
-          </Link>
+          {onPreviewNavigate ? (
+            <button type="button" onClick={() => onPreviewNavigate(homeHref)} className={wordmarkClass}>
+              {wordmark}
+            </button>
+          ) : (
+            <Link href={homeHref} className={wordmarkClass}>
+              {wordmark}
+            </Link>
+          )}
         </div>
 
         <ParentGardenNav
@@ -234,6 +261,7 @@ export default function SchoolTeacherHeader({
           ariaLabel="Staff portal"
           isItemActive={isTeacherNavItemActive}
           testIdPrefix="teacher-header"
+          onNavigate={onPreviewNavigate}
         />
 
         <div className="relative z-[100] flex shrink-0 items-center gap-2" ref={menuRef}>
@@ -297,6 +325,7 @@ export default function SchoolTeacherHeader({
           ariaLabel="Staff portal"
           isItemActive={isTeacherNavItemActive}
           testIdPrefix="teacher-header"
+          onNavigate={onPreviewNavigate}
         />
       ) : null}
     </ParentGardenScope>
