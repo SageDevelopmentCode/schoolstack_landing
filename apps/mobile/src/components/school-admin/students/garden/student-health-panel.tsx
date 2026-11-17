@@ -7,7 +7,7 @@ import { Garden, GardenFonts, useGardenAccent, type GChipTone } from '@/componen
 import { GCard, GChip, GErrorCard, GOutlineButton, GPressable, GSkeleton } from '@/components/parent/garden/ui';
 import { useAdminAction } from '@/components/school-admin/garden/use-admin-action';
 import { AdminHealthFormSheet } from '@/components/school-admin/students/garden/admin-health-form-sheet';
-import { useStudentHealth } from '@/components/school-admin/students/garden/use-student-health';
+import { useStudentHealth, type StudentHealthSource } from '@/components/school-admin/students/garden/use-student-health';
 import type { HealthFormValues } from '@/components/school-admin/students/student-health-form-sheet';
 import { SEVERITY_LABELS, type HealthItemType, type StudentHealthProfile } from '@/lib/student-health/types';
 
@@ -39,14 +39,17 @@ export function StudentHealthPanel({
   studentId,
   studentFirstName,
   onProfileChange,
+  source,
 }: {
   organizationId: string;
   slug: string;
   studentId: string;
   studentFirstName: string;
   onProfileChange?: (profile: StudentHealthProfile) => void;
+  /** Teacher portal passes its own API + operations; admin uses the default. */
+  source?: StudentHealthSource;
 }) {
-  const health = useStudentHealth({ slug, studentId, onProfileChange });
+  const health = useStudentHealth({ slug, studentId, onProfileChange, source });
   const action = useAdminAction(organizationId);
   const { readOnly, notifyReadOnly } = useGardenReadOnlyGate();
   const [saveError, setSaveError] = useState<string | null>(null);

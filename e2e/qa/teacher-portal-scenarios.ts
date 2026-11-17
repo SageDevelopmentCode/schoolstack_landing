@@ -84,7 +84,10 @@ export const TEACHER_PORTAL_QA_SCENARIOS: PortalQaScenario[] = [
       await expect(page.getByTestId("teacher-classroom-signups-page")).toBeVisible({
         timeout: 30_000,
       });
-      await expect(page.getByText(E2E_CLASSROOM_SIGNUP_TITLE)).toBeVisible({
+      // Scoped to the list: the "Needs attention" strip can name the same signup.
+      await expect(
+        page.getByTestId("teacher-signups-list").getByText(E2E_CLASSROOM_SIGNUP_TITLE),
+      ).toBeVisible({
         timeout: 30_000,
       });
     },

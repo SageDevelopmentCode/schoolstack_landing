@@ -1,11 +1,20 @@
 "use client";
 
 import Image from "next/image";
-import { motion } from "framer-motion";
 import type { DemoFarmExperienceSection } from "@/data/school-demos/types";
 import DemoIcon from "./DemoIcon";
-import { DEMO_BLOCK, DEMO_BODY, DEMO_GUTTER, DEMO_H3, DEMO_TINTS, STORY_EASE } from "./bright-demo-theme";
-import SiteSectionHeader from "./sections/SiteSectionHeader";
+import {
+  SITE_BODY,
+  SITE_CARD,
+  SITE_CONTAINER,
+  SITE_H3,
+  SITE_ICON_RING,
+  SITE_SECTION,
+  SITE_STRAIGHTEN,
+  SITE_TINT_BG,
+  tiltAt,
+} from "./site-garden-theme";
+import { SiteReveal, SiteSectionIntro } from "./garden/SiteKit";
 
 const GRID_COLS: Record<number, string> = {
   2: "@3xl/site:grid-cols-2",
@@ -13,53 +22,43 @@ const GRID_COLS: Record<number, string> = {
   4: "@3xl/site:grid-cols-2 @6xl/site:grid-cols-4",
 };
 
+/** Postcard-style cards: a photo (or big icon) above the copy. */
 export default function FarmExperienceSection({ section }: { section: DemoFarmExperienceSection }) {
   const count = section.paths.length;
 
   return (
-    <section id="signature" className={`scroll-mt-[88px] py-3 ${DEMO_GUTTER}`}>
-      <div className={`${DEMO_BLOCK} bg-[var(--demo-tint-3)]`}>
-        <SiteSectionHeader eyebrow={section.eyebrow} heading={section.heading} subtitle={section.subtitle} align="split" />
+    <section id="signature" className={`scroll-mt-[88px] bg-[var(--sf-mint)]/45 ${SITE_SECTION}`}>
+      <div className={SITE_CONTAINER}>
+        <SiteSectionIntro eyebrow={section.eyebrow} heading={section.heading} subtitle={section.subtitle} align="split" />
 
-        <div className={`mt-12 grid gap-3 ${GRID_COLS[count] ?? "@3xl/site:grid-cols-3"}`}>
+        <ul className={`mt-14 grid gap-6 ${GRID_COLS[count] ?? "@3xl/site:grid-cols-3"}`}>
           {section.paths.map((path, i) => (
-            <motion.article
-              key={path.title}
-              className="group overflow-hidden rounded-[28px] bg-white ring-1 ring-black/[0.04] transition-transform duration-300 hover:-translate-y-1"
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.55, delay: i * 0.08, ease: STORY_EASE }}
-            >
-              <div
-                className="relative m-2 h-52 overflow-hidden rounded-[22px]"
-                style={{ backgroundColor: DEMO_TINTS[i % DEMO_TINTS.length] }}
+            <SiteReveal key={path.title} as="li" delay={i * 0.08}>
+              <article
+                className={`flex h-full flex-col overflow-hidden p-2.5 ${SITE_CARD} ${SITE_STRAIGHTEN}`}
+                style={{ rotate: tiltAt(i) }}
               >
-                {path.image ? (
-                  <Image
-                    src={path.image}
-                    fill
-                    sizes="420px"
-                    className="object-cover transition-transform duration-700 group-hover:scale-105"
-                    alt=""
-                  />
-                ) : (
-                  <DemoIcon
-                    name={path.icon}
-                    className="absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 text-[var(--demo-accent)]/40"
-                  />
-                )}
-                <span className="absolute left-3 top-3 flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-[var(--demo-shadow-card)]">
-                  <DemoIcon name={path.icon} className="h-5 w-5 text-[var(--demo-accent)]" />
-                </span>
-              </div>
-              <div className="px-6 pb-7 pt-4">
-                <h3 className={`${DEMO_H3} text-[var(--demo-ink)]`}>{path.title}</h3>
-                <p className={`${DEMO_BODY} mt-2 text-[15px]`}>{path.desc}</p>
-              </div>
-            </motion.article>
+                <div className={`relative h-52 overflow-hidden rounded-[18px] ${SITE_TINT_BG[i % SITE_TINT_BG.length]}`}>
+                  {path.image ? (
+                    <Image src={path.image} fill sizes="420px" className="object-cover" alt="" />
+                  ) : (
+                    <DemoIcon
+                      name={path.icon}
+                      className="absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 text-[var(--sf-ink)]/30"
+                    />
+                  )}
+                  <span className={`${SITE_ICON_RING} absolute left-3 top-3`} aria-hidden>
+                    <DemoIcon name={path.icon} className="h-5 w-5" />
+                  </span>
+                </div>
+                <div className="px-4 pb-5 pt-5">
+                  <h3 className={SITE_H3}>{path.title}</h3>
+                  <p className={`${SITE_BODY} mt-2 text-[15px]`}>{path.desc}</p>
+                </div>
+              </article>
+            </SiteReveal>
           ))}
-        </div>
+        </ul>
       </div>
     </section>
   );

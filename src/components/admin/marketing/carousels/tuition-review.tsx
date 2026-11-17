@@ -1,443 +1,203 @@
 "use client";
 
-import SlideCanvas, { displayStyle, SLIDE } from "@/components/admin/marketing/slide-frame";
-import {
-  CarouselProductSlide,
-  DEMO_SLIDE_PAPER,
-  type CarouselDemoCrop,
-} from "@/components/admin/marketing/carousels/carousel-product-slide";
 import {
   MarketingStudentsDemoWindow,
   MarketingTuitionDemoWindow,
 } from "@/components/admin/marketing/screens/marketing-demo-windows";
-import { MarketingMobilePromoCluster } from "@/components/admin/marketing/screens/marketing-mobile-promo-cluster";
+import { GardenParentBillingWindow } from "@/components/admin/marketing/screens/marketing-garden-demo-windows";
 import type { MarketingCarousel, MarketingSlide } from "@/components/admin/marketing/carousels/types";
+import {
+  Accent,
+  FONT,
+  G,
+  MascotListSlide,
+  MascotProductSlide,
+  MascotPromoSlide,
+} from "@/components/admin/marketing/mascot/mascot-slide-kit";
 
-const HOOK_NUMBERS = [
-  "Operating costs",
-  "Paid enrollment",
-  "Sustainable margin",
-  "Included vs. separate",
-  "Discounts and terms",
-];
+// Nutmeg (tuition) guides the five-number tuition check; Pip (enrollment) drops in for the head count.
 
-const COST_CATEGORIES = ["Payroll", "Rent", "Insurance", "Supplies", "Software", "Programming"];
+const HOOK_NUMBERS = ["What it costs", "Who will pay", "Room above break-even", "What tuition covers", "Discounts you can afford"];
 
-const EXAMPLE_ROW_VALUE_COLOR = {
-  cost: SLIDE.clay,
-  credit: "#4A7C59",
-  neutral: SLIDE.ink,
-} as const;
+const COST_ROWS = ["Payroll", "Rent", "Insurance", "Supplies", "Software", "Field trips & programs"];
 
-const EXAMPLE_ROWS: Array<{
-  label: string;
-  value: string;
-  tone: keyof typeof EXAMPLE_ROW_VALUE_COLOR;
-}> = [
-  { label: "Annual operating costs", value: "$180,000", tone: "cost" },
-  { label: "Other revenue", value: "−$18,000", tone: "credit" },
-  { label: "Reserve", value: "+$18,000", tone: "credit" },
-  { label: "Paid enrollment", value: "20 students", tone: "neutral" },
+const EXAMPLE_ROWS: Array<{ label: string; value: string; color: string }> = [
+  { label: "Yearly costs", value: "$180,000", color: G.clay },
+  { label: "Other income (grants, fundraising)", value: "−$18,000", color: "#4A7C59" },
+  { label: "Savings cushion (10%)", value: "+$18,000", color: G.clay },
+  { label: "Students who pay", value: "÷ 20", color: G.ink },
 ];
 
 const CHECKLIST = [
-  "Operating costs",
-  "Realistic paid enrollment",
-  "Sustainable margin",
-  "Included vs. separate costs",
-  "Discounts and payment terms",
+  { label: "What it really costs", detail: "Including the surprise costs" },
+  { label: "Who will actually pay", detail: "Not every empty seat" },
+  { label: "Room above break-even", detail: "A cushion for the unexpected" },
+  { label: "What tuition covers", detail: "Included, optional or extra" },
+  { label: "Discounts you can afford", detail: "Siblings, scholarships, payment plans" },
 ];
 
-const ROW_RULE = "1px solid #E7D9C6";
-const FOREST_RULE = "1px solid rgba(247, 241, 231, 0.28)";
-const FOREST_BODY = "rgba(247, 241, 231, 0.82)";
-
-const DEMO_CONTENT_HEIGHT = 920;
-const COVER_CROP: CarouselDemoCrop = { zoom: 1.22, originX: 0, originY: 0 };
+const DEMO_HEIGHT = 920;
 
 export const TUITION_REVIEW_CAROUSEL = {
   id: "tuition-review",
   title: "Thinking about raising tuition?",
-  description: "LinkedIn carousel for schools planning a tuition increase.",
+  description: "LinkedIn carousel for schools planning a tuition increase, guided by Nutmeg.",
   fileSlug: "mudkitchen-tuition-review",
   slides: [
-    {
-      id: "intro",
-      fileName: "01-pressure-test-these-5-numbers.png",
-      render: () => <CoverSlide />,
-    },
-    {
-      id: "costs",
-      fileName: "02-operating-costs.png",
-      render: () => <CostsSlide />,
-    },
-    {
-      id: "enrollment",
-      fileName: "03-realistic-paid-enrollment.png",
-      render: () => <EnrollmentSlide />,
-    },
-    {
-      id: "margin",
-      fileName: "04-sustainable-margin.png",
-      render: () => <MarginSlide />,
-    },
-    {
-      id: "included",
-      fileName: "05-included-vs-separate.png",
-      render: () => <IncludedSlide />,
-    },
-    {
-      id: "options",
-      fileName: "06-discounts-and-payment-terms.png",
-      render: () => <OptionsSlide />,
-    },
-    {
-      id: "close",
-      fileName: "07-save-this.png",
-      render: () => <SaveSlide />,
-    },
-    {
-      id: "promo",
-      fileName: "08-clear-family-billing.png",
-      render: () => <HomePromoSlide />,
-    },
+    { id: "intro", fileName: "01-pressure-test-these-5-numbers.png", render: () => <CoverSlide /> },
+    { id: "costs", fileName: "02-operating-costs.png", render: () => <CostsSlide /> },
+    { id: "enrollment", fileName: "03-realistic-paid-enrollment.png", render: () => <EnrollmentSlide /> },
+    { id: "margin", fileName: "04-sustainable-margin.png", render: () => <MarginSlide /> },
+    { id: "included", fileName: "05-included-vs-separate.png", render: () => <IncludedSlide /> },
+    { id: "options", fileName: "06-discounts-and-payment-terms.png", render: () => <OptionsSlide /> },
+    { id: "close", fileName: "07-save-this.png", render: () => <SaveSlide /> },
+    { id: "promo", fileName: "08-clear-family-billing.png", render: () => <HomePromoSlide /> },
   ] satisfies MarketingSlide[],
 } satisfies MarketingCarousel;
 
-function StepKicker({ children, onForest = false }: { children: string; onForest?: boolean }) {
-  return (
-    <p
-      style={{
-        margin: 0,
-        fontSize: 22,
-        fontWeight: 700,
-        letterSpacing: "0.16em",
-        textTransform: "uppercase",
-        color: onForest ? SLIDE.white : SLIDE.clay,
-      }}
-    >
-      {children}
-    </p>
-  );
-}
-
-function FiveNumbersCard() {
-  return (
-    <div
-      style={{
-        position: "absolute",
-        left: -42,
-        bottom: 80,
-        width: 520,
-        transform: "rotate(-6deg)",
-        background: SLIDE.white,
-        borderRadius: 28,
-        padding: "26px 28px 18px",
-        boxShadow: "0 28px 60px rgba(43, 36, 29, 0.22)",
-        border: `1px solid ${SLIDE.line}`,
-      }}
-    >
-      <p
-        style={{
-          margin: 0,
-          fontSize: 16,
-          fontWeight: 800,
-          letterSpacing: "0.14em",
-          textTransform: "uppercase",
-          color: "#729077",
-        }}
-      >
-        The 5 numbers
-      </p>
-      <div style={{ marginTop: 8 }}>
-        {HOOK_NUMBERS.map((line, index) => (
-          <div
-            key={line}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-              height: 58,
-              borderBottom: index === HOOK_NUMBERS.length - 1 ? "none" : ROW_RULE,
-            }}
-          >
-            <span style={{ ...displayStyle(28, SLIDE.forest), width: 28 }}>{index + 1}</span>
-            <span style={{ ...displayStyle(30), fontWeight: 560 }}>{line}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function CoverSlide() {
   return (
-    <CarouselProductSlide
-      title="Thinking about changing tuition for your Microschool?"
-      body="A full classroom on paper can still leave your school underfunded."
-      contentHeight={DEMO_CONTENT_HEIGHT}
-      cropFocus="top"
-      crop={COVER_CROP}
-      demoOverlay={<FiveNumbersCard />}
-    >
-      <MarketingTuitionDemoWindow
-        initialDashboardTab="catalog"
-        initialRateCatalogTab="tuition_rates"
-        contentHeight={DEMO_CONTENT_HEIGHT}
-      />
-    </CarouselProductSlide>
+    <MascotListSlide
+      kicker="Tuition check"
+      title={
+        <>
+          Thinking about raising tuition at your <Accent>Microschool?</Accent>
+        </>
+      }
+      body="Check these 5 numbers first. A full class can still leave you short."
+      rows={HOOK_NUMBERS.map((label) => ({ label }))}
+      mascot={{ name: "nutmeg", view: "thinking" }}
+      tip="I'm Nutmeg. Let's do the math together."
+      background="#FFF3CF"
+      headlineSize={72}
+    />
   );
 }
 
 function CostsSlide() {
   return (
-    <SlideCanvas background={SLIDE.forest}>
-      <div
-        style={{
-          height: "100%",
-          boxSizing: "border-box",
-          padding: "168px 80px 80px",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <StepKicker onForest>1 of 5</StepKicker>
-        <h1 style={{ ...displayStyle(76, SLIDE.white), marginTop: 16, maxWidth: 900 }}>
-          What does it actually cost to run your school?
-        </h1>
-        <div style={{ marginTop: 36, display: "flex", flexDirection: "column" }}>
-          {COST_CATEGORIES.map((line, index) => (
-            <div
-              key={line}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 18,
-                height: 96,
-                borderBottom: index === COST_CATEGORIES.length - 1 ? "none" : FOREST_RULE,
-              }}
-            >
-              <span style={{ ...displayStyle(32, SLIDE.white), width: 44 }}>{index + 1}</span>
-              <span style={{ ...displayStyle(44, SLIDE.white), fontWeight: 560 }}>{line}</span>
-            </div>
-          ))}
-        </div>
-        <p style={{ margin: "36px 0 0", maxWidth: 760, fontSize: 32, lineHeight: 1.35, color: FOREST_BODY }}>
-          And the costs that tend to show up later.
-        </p>
-      </div>
-    </SlideCanvas>
+    <MascotListSlide
+      kicker="1 of 5"
+      title="Add up what it really costs to run your school."
+      rows={COST_ROWS.map((label) => ({ label }))}
+      aside="and the surprise costs: repairs, turnover, new supplies"
+      mascot={{ name: "nutmeg", view: "hold" }}
+      tip="Start with last year's real spending."
+    />
   );
 }
 
 function EnrollmentSlide() {
   return (
-    <CarouselProductSlide
+    <MascotProductSlide
       kicker="2 of 5"
-      side="copyLeft"
-      title="How many students will realistically pay tuition?"
-      body="Budget from current enrollment, committed re-enrollments, and a conservative forecast—not every available seat."
-      contentHeight={DEMO_CONTENT_HEIGHT}
-      cropFocus="top"
+      title="Count the students who will actually pay."
+      body="Use enrolled and re-enrolled families, plus a careful guess. Not every empty seat."
+      lane="left"
+      mascot={{ name: "pip", view: "point" }}
+      tip="Pip here. Count signed families only!"
+      contentHeight={DEMO_HEIGHT}
     >
-      <MarketingStudentsDemoWindow contentHeight={DEMO_CONTENT_HEIGHT} />
-    </CarouselProductSlide>
+      <MarketingStudentsDemoWindow contentHeight={DEMO_HEIGHT} />
+    </MascotProductSlide>
   );
 }
 
 function MarginSlide() {
   return (
-    <SlideCanvas background={SLIDE.forest}>
-      <div
-        style={{
-          height: "100%",
-          boxSizing: "border-box",
-          padding: "168px 80px 72px",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <StepKicker onForest>3 of 5</StepKicker>
-        <h1 style={{ ...displayStyle(72, SLIDE.white), marginTop: 16, maxWidth: 900 }}>
-          What margin keeps the school healthy?
-        </h1>
-        <p style={{ margin: "22px 0 0", maxWidth: 860, fontSize: 32, lineHeight: 1.32, color: FOREST_BODY }}>
-          Tuition should cover more than break-even. Build room for surprises, growth, and a real operating reserve.
+    <MascotListSlide
+      kicker="3 of 5"
+      title="Leave room above break-even."
+      body="Build in a cushion for surprises, growth and savings."
+      mascot={{ name: "nutmeg", view: "determined" }}
+      tip="Break-even is not a plan."
+    >
+      <div style={{ background: G.paper, borderRadius: 28, border: `4px solid ${G.ink}`, boxShadow: `0 10px 0 ${G.ink}`, overflow: "hidden" }}>
+        <p style={{ margin: 0, padding: "22px 28px 4px", fontFamily: FONT.body, fontSize: 20, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: G.clayDeep }}>
+          Example
         </p>
-        <div
-          style={{
-            marginTop: 48,
-            background: SLIDE.white,
-            borderRadius: 28,
-            border: `1px solid ${SLIDE.line}`,
-            overflow: "hidden",
-          }}
-        >
-          <p
-            style={{
-              margin: 0,
-              padding: "22px 32px 0",
-              fontSize: 16,
-              fontWeight: 800,
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              color: SLIDE.clay,
-            }}
-          >
-            Example
-          </p>
-          {EXAMPLE_ROWS.map((row) => (
-            <div
-              key={row.label}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 24,
-                boxSizing: "border-box",
-                minHeight: 84,
-                padding: "0 32px",
-                borderBottom: ROW_RULE,
-              }}
-            >
-              <span style={{ fontSize: 30, color: SLIDE.muted }}>{row.label}</span>
-              <span style={{ ...displayStyle(36, EXAMPLE_ROW_VALUE_COLOR[row.tone]) }}>{row.value}</span>
-            </div>
-          ))}
+        {EXAMPLE_ROWS.map((row) => (
           <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 24,
-              boxSizing: "border-box",
-              minHeight: 84,
-              padding: "28px 32px",
-              background: SLIDE.forest,
-              color: SLIDE.paper,
-            }}
+            key={row.label}
+            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, minHeight: 82, padding: "0 28px", borderBottom: "2px dashed #E1D3BF" }}
           >
-            <span style={{ fontSize: 30, fontWeight: 650 }}>Tuition target</span>
-            <span style={{ ...displayStyle(52, SLIDE.paper) }}>$9,000 / student</span>
+            <span style={{ fontFamily: FONT.body, fontWeight: 700, fontSize: 27, lineHeight: 1.2, color: G.soft }}>{row.label}</span>
+            <span style={{ fontFamily: FONT.display, fontWeight: 800, fontSize: 34, color: row.color, whiteSpace: "nowrap" }}>{row.value}</span>
           </div>
+        ))}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, padding: "26px 28px", background: G.forest }}>
+          <span style={{ fontFamily: FONT.body, fontWeight: 800, fontSize: 28, color: G.cream }}>Tuition per student</span>
+          <span style={{ fontFamily: FONT.display, fontWeight: 800, fontSize: 48, color: G.butter, whiteSpace: "nowrap" }}>$9,000</span>
         </div>
       </div>
-    </SlideCanvas>
+    </MascotListSlide>
   );
 }
 
 function IncludedSlide() {
   return (
-    <CarouselProductSlide
+    <MascotProductSlide
       kicker="4 of 5"
-      side="copyRight"
-      title="What is included in tuition—and what is separate?"
-      body="Be clear about meals, materials, field trips, extended care, and enrollment fees: included, optional, or billed separately."
-      contentHeight={DEMO_CONTENT_HEIGHT}
-      cropFocus="top"
+      title="Spell out what tuition covers."
+      body="Meals, materials, field trips, after-care, fees: included, optional or extra?"
+      lane="right"
+      mascot={{ name: "nutmeg", view: "point" }}
+      tip="No surprise bills for families."
+      contentHeight={DEMO_HEIGHT}
     >
-      <MarketingTuitionDemoWindow initialDashboardTab="families" contentHeight={DEMO_CONTENT_HEIGHT} />
-    </CarouselProductSlide>
+      <MarketingTuitionDemoWindow initialDashboardTab="families" contentHeight={DEMO_HEIGHT} />
+    </MascotProductSlide>
   );
 }
 
 function OptionsSlide() {
   return (
-    <CarouselProductSlide
+    <MascotProductSlide
       kicker="5 of 5"
-      side="copyLeft"
-      tone="forest"
-      title="What discounts and payment options can you sustain?"
-      body="Price sibling discounts, scholarships, fee waivers, and payment plans into the model before you publish the rate."
-      contentHeight={DEMO_CONTENT_HEIGHT}
-      cropFocus="top"
+      title="Decide which discounts you can afford."
+      body="Sibling discounts, scholarships and payment plans lower what you collect. Plan for them first."
+      lane="left"
+      mascot={{ name: "nutmeg", view: "thinking" }}
+      tip="Every discount comes out of the budget."
+      background="#F8EDE4"
+      contentHeight={DEMO_HEIGHT}
     >
       <MarketingTuitionDemoWindow
         initialDashboardTab="families"
         initialFamilyId="family-rivera"
-        initialOpenAdjust={{
-          familyId: "family-rivera",
-          assignmentId: "assignment-rivera",
-          studentName: "Emma Rivera",
-        }}
-        contentHeight={DEMO_CONTENT_HEIGHT}
+        initialOpenAdjust={{ familyId: "family-rivera", assignmentId: "assignment-rivera", studentName: "Emma Rivera" }}
+        contentHeight={DEMO_HEIGHT}
       />
-    </CarouselProductSlide>
+    </MascotProductSlide>
   );
 }
 
 function SaveSlide() {
   return (
-    <SlideCanvas background={DEMO_SLIDE_PAPER}>
-      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 72, background: "#E7C2C2" }} />
-      <div
-        style={{
-          height: "100%",
-          boxSizing: "border-box",
-          padding: "140px 80px 72px 120px",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <p style={{ ...displayStyle(36, SLIDE.clay), letterSpacing: "0.08em", textTransform: "uppercase" }}>Save this</p>
-        <h1 style={{ ...displayStyle(72), marginTop: 16, maxWidth: 860 }}>
-          Before your next
-          <br />
-          tuition review.
-        </h1>
-        <div style={{ marginTop: 40, display: "flex", flexDirection: "column" }}>
-          {CHECKLIST.map((line, index) => (
-            <div
-              key={line}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 18,
-                height: 108,
-                borderBottom: ROW_RULE,
-              }}
-            >
-              <span style={{ ...displayStyle(36, SLIDE.forest), width: 52 }}>{index + 1}</span>
-              <span style={{ ...displayStyle(42), fontWeight: 560 }}>{line}</span>
-            </div>
-          ))}
-        </div>
-        <p style={{ margin: "auto 0 0", fontSize: 32, lineHeight: 1.3, color: SLIDE.muted }}>
-          Make the plan clear before you share the number.
-        </p>
-      </div>
-    </SlideCanvas>
+    <MascotListSlide
+      kicker="Save this"
+      title={
+        <>
+          Before your next <Accent>tuition review</Accent>
+        </>
+      }
+      rows={CHECKLIST}
+      aside="share the plan before you share the number"
+      mascot={{ name: "nutmeg", view: "thumbs" }}
+      background="#FFF3CF"
+    />
   );
 }
 
 function HomePromoSlide() {
   return (
-    <CarouselProductSlide
-      variant="promo"
-      demoPresentation="phones"
-      promoDensity="compact"
-      promoSiteLabel="trymudkitchen.com"
-      title="Turn the plan into clear family billing."
-      body="MudKitchen brings tuition rates, payment plans, discounts, and family-facing payments into one place."
-      footer={
-        <div style={{ marginTop: 16, display: "flex", justifyContent: "center" }}>
-          <span
-            style={{
-              display: "inline-block",
-              background: SLIDE.white,
-              color: SLIDE.forest,
-              borderRadius: 999,
-              padding: "20px 40px",
-              fontSize: 32,
-              fontWeight: 750,
-            }}
-          >
-            Book a demo
-          </span>
-        </div>
-      }
+    <MascotPromoSlide
+      title="Turn your tuition plan into clear family bills."
+      body="Rates, payment plans, discounts and family payments in one place."
+      cast={[{ name: "nutmeg", view: "celebrate" }, { name: "pip", view: "wave", flip: true }]}
+      contentHeight={DEMO_HEIGHT}
     >
-      <MarketingMobilePromoCluster variant="tuition" />
-    </CarouselProductSlide>
+      <GardenParentBillingWindow contentHeight={DEMO_HEIGHT} />
+    </MascotPromoSlide>
   );
 }

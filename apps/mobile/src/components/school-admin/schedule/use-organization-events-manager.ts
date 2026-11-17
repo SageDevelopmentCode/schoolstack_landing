@@ -170,29 +170,37 @@ export function useOrganizationEventsManager({
     reportErrorPrefix,
   ]);
 
-  /** Resolves `true` when the event was deleted. */
-  const handleDelete = useCallback(async (): Promise<boolean> => {
-    if (!selectedEvent) return false;
-    const deleted = { title: selectedEvent.title, date: selectedEvent.date };
-    setDeleting(true);
-    try {
-      await deleteOrganizationEventViaApi(organizationId, selectedEvent.id);
-      setSelectedEventId(null);
-      await onAfterMutate();
-      feedback?.onDeleted?.(deleted);
-      return true;
-    } catch (error) {
-      reportError(`${reportErrorPrefix}_event_delete`, error, {
-        entityType: 'organization_event',
-        entityId: selectedEvent.id,
-      });
-      if (feedback?.onDeleteError) feedback.onDeleteError(error);
-      else Alert.alert('Error', error instanceof Error ? error.message : 'Failed to delete event.');
-      return false;
-    } finally {
-      setDeleting(false);
-    }
-  }, [feedback, onAfterMutate, organizationId, reportError, reportErrorPrefix, selectedEvent]);
+  /** Delete one event. Resolves `true` when it was deleted. */
+  const deleteEvent = useCallback(
+    async (event: OrganizationEvent): Promise<boolean> => {
+      const deleted = { title: event.title, date: event.date };
+      setDeleting(true);
+      try {
+        await deleteOrganizationEventViaApi(organizationId, event.id);
+        setSelectedEventId((current) => (current === event.id ? null : current));
+        await onAfterMutate();
+        feedback?.onDeleted?.(deleted);
+        return true;
+      } catch (error) {
+        reportError(`${reportErrorPrefix}_event_delete`, error, {
+          entityType: 'organization_event',
+          entityId: event.id,
+        });
+        if (feedback?.onDeleteError) feedback.onDeleteError(error);
+        else Alert.alert('Error', error instanceof Error ? error.message : 'Failed to delete event.');
+        return false;
+      } finally {
+        setDeleting(false);
+      }
+    },
+    [feedback, onAfterMutate, organizationId, reportError, reportErrorPrefix],
+  );
+
+  /** Delete the selected event. Resolves `true` when it was deleted. */
+  const handleDelete = useCallback(
+    async (): Promise<boolean> => (selectedEvent ? deleteEvent(selectedEvent) : false),
+    [deleteEvent, selectedEvent],
+  );
 
   return {
     formOpen,
@@ -210,6 +218,7 @@ export function useOrganizationEventsManager({
     openEditForm,
     handleSave,
     handleDelete,
+    deleteEvent,
     isFormDirty: !eventFormsEqual(form, initialForm),
   };
 }

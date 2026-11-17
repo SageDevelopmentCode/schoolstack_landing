@@ -1,48 +1,41 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Quote } from "lucide-react";
 import type { DemoFruitsOfSpiritSection } from "@/data/school-demos/types";
-import { DEMO_BLOCK, DEMO_BODY, DEMO_GUTTER, DEMO_INK, STORY_EASE } from "./bright-demo-theme";
-import SiteSectionHeader from "./sections/SiteSectionHeader";
+import { SITE_BODY, SITE_CARD_SM, SITE_CONTAINER, SITE_SECTION, SITE_TINT_BG } from "./site-garden-theme";
+import { SiteReveal, SiteSectionIntro, SiteStickyNote } from "./garden/SiteKit";
 
+/** Sticky intro with the verse on a note, beside a grid of small index cards. */
 export default function FruitsOfSpiritSection({ section }: { section: DemoFruitsOfSpiritSection }) {
   return (
-    <section id="signature" className={`scroll-mt-[88px] py-3 ${DEMO_GUTTER}`}>
-      <div className={`${DEMO_BLOCK} bg-[var(--demo-tint-1)]`}>
-        <div className="grid gap-10 @5xl/site:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] @5xl/site:gap-14">
-          <div className="@5xl/site:sticky @5xl/site:top-28 @5xl/site:self-start">
-            <SiteSectionHeader eyebrow={section.eyebrow} heading={section.heading} subtitle={section.intro} />
-            {section.quote ? (
-              <div className="relative mt-8 overflow-hidden rounded-[28px] bg-[var(--demo-ink)] p-7 text-white">
-                <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[var(--demo-glow)] blur-2xl" aria-hidden />
-                <Quote className="relative h-7 w-7 text-[var(--demo-primary-light)]" aria-hidden />
-                <p className="font-secondary relative mt-4 text-[17px] font-medium italic leading-relaxed text-white/90">
-                  {section.quote}
-                </p>
-              </div>
-            ) : null}
-          </div>
+    <section id="signature" className={`scroll-mt-[88px] bg-[var(--sf-peach)]/60 ${SITE_SECTION}`}>
+      <div className={`${SITE_CONTAINER} grid gap-12 @5xl/site:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] @5xl/site:gap-14`}>
+        <div className="@5xl/site:sticky @5xl/site:top-28 @5xl/site:self-start">
+          <SiteSectionIntro eyebrow={section.eyebrow} heading={section.heading} subtitle={section.intro} />
+          {section.quote ? (
+            <SiteReveal className="mt-10 max-w-[460px]" delay={0.1}>
+              <SiteStickyNote tilt={-2} tape={1}>
+                <p className="text-[17px] font-bold italic leading-relaxed text-[var(--sf-ink)]">{section.quote}</p>
+              </SiteStickyNote>
+            </SiteReveal>
+          ) : null}
+        </div>
 
-          <div className="grid gap-3 @2xl/site:grid-cols-2 @5xl/site:grid-cols-3">
-            {section.fruits.map((fruit, i) => (
-              <motion.div
-                key={fruit.name}
-                className="group rounded-[24px] bg-white p-5 ring-1 ring-black/[0.04] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--demo-shadow-card)]"
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.45, delay: i * 0.04, ease: STORY_EASE }}
-              >
-                <span className="font-secondary flex h-9 w-9 items-center justify-center rounded-full bg-[var(--demo-tint-1)] text-[13px] font-bold text-[var(--demo-accent)] transition-colors group-hover:bg-[var(--demo-ink)] group-hover:text-white">
+        <ul className="grid gap-4 @2xl/site:grid-cols-2 @5xl/site:grid-cols-3">
+          {section.fruits.map((fruit, i) => (
+            <SiteReveal key={fruit.name} as="li" delay={i * 0.04}>
+              <div className={`h-full p-5 ${SITE_CARD_SM}`}>
+                <span
+                  className={`sf-display flex h-10 w-10 items-center justify-center rounded-full border-2 border-[var(--sf-ink)] text-[1.05rem] text-[var(--sf-ink)] ${SITE_TINT_BG[i % SITE_TINT_BG.length]}`}
+                  aria-hidden
+                >
                   {i + 1}
                 </span>
-                <p className={`font-secondary mt-4 text-[17px] font-bold ${DEMO_INK}`}>{fruit.name}</p>
-                <p className={`${DEMO_BODY} mt-1 text-[14px]`}>{fruit.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
+                <h3 className="mt-4 text-[17px] font-extrabold text-[var(--sf-ink)]">{fruit.name}</h3>
+                <p className={`${SITE_BODY} mt-1 text-[14px]`}>{fruit.desc}</p>
+              </div>
+            </SiteReveal>
+          ))}
+        </ul>
       </div>
     </section>
   );

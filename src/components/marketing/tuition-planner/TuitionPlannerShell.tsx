@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import MarketingBrightToolShell from "@/components/marketing/shared/MarketingBrightToolShell";
+import MarketingGardenToolShell from "@/components/marketing/shared/MarketingGardenToolShell";
 
 export default function TuitionPlannerShell({ children }: { children: ReactNode }) {
-  return <MarketingBrightToolShell>{children}</MarketingBrightToolShell>;
+  return <MarketingGardenToolShell>{children}</MarketingGardenToolShell>;
 }

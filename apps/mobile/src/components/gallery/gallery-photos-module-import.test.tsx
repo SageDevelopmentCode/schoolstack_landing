@@ -91,22 +91,17 @@ describe('gallery photos module imports', () => {
     expect(mod.ParentPhotosGardenScreen).toBeDefined();
   });
 
-  it('loads admin gallery photos screen', () => {
-    expect(() => require('@/components/gallery/gallery-photos-screen')).not.toThrow();
-    const mod = require('@/components/gallery/gallery-photos-screen');
-    expect(mod.GalleryPhotosScreen).toBeDefined();
-  });
-
   it('loads parent photos screen wrapper', () => {
     expect(() => require('@/components/parent/parent-photos-screen')).not.toThrow();
     const mod = require('@/components/parent/parent-photos-screen');
     expect(mod.ParentPhotosScreen).toBeDefined();
   });
 
-  it('loads teacher photos screen wrapper', () => {
-    expect(() => require('@/components/teacher/teacher-photos-screen')).not.toThrow();
-    const mod = require('@/components/teacher/teacher-photos-screen');
-    expect(mod.TeacherPhotosScreen).toBeDefined();
+  it('loads the teacher Garden photos screen and route', () => {
+    expect(() => require('@/components/teacher/photos/garden/teacher-photos-garden-screen')).not.toThrow();
+    const mod = require('@/components/teacher/photos/garden/teacher-photos-garden-screen');
+    expect(mod.TeacherPhotosGardenScreen).toBeDefined();
+    expect(typeof require('@/app/teacher/[slug]/more/photos').default).toBe('function');
   });
 
   it('loads school admin Garden photos screen', () => {
@@ -126,21 +121,4 @@ describe('gallery photos module imports', () => {
     expect(typeof mod.default).toBe('function');
   });
 
-  it('loads photos list skeleton', () => {
-    expect(() => require('@/components/school-admin/gallery/photos-list-skeleton')).not.toThrow();
-    const mod = require('@/components/school-admin/gallery/photos-list-skeleton');
-    expect(typeof mod.PhotosListSkeleton).toBe('function');
-  });
-
-  it('loads gallery upload sheet', () => {
-    expect(() => require('@/components/school-admin/gallery/gallery-upload-sheet')).not.toThrow();
-    const mod = require('@/components/school-admin/gallery/gallery-upload-sheet');
-    expect(typeof mod.GalleryUploadSheet).toBe('function');
-  });
-
-  it('loads gallery edit date modal', () => {
-    expect(() => require('@/components/school-admin/gallery/gallery-edit-date-modal')).not.toThrow();
-    const mod = require('@/components/school-admin/gallery/gallery-edit-date-modal');
-    expect(typeof mod.GalleryEditDateModal).toBe('function');
-  });
 });

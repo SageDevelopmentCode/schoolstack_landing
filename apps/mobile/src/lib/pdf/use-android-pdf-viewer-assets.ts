@@ -1,4 +1,5 @@
 import { Asset } from 'expo-asset';
+import { File } from 'expo-file-system';
 import { useEffect, useState } from 'react';
 
 function loadPdfJsModules(): {
@@ -13,70 +14,93 @@ function loadPdfJsModules(): {
   return { pdfMinModule, pdfWorkerModule };
 }
 
-export type AndroidPdfViewerAssetUris = {
-  pdfModuleUri: string;
-  workerModuleUri: string;
+/** pdf.js source text, inlined into the viewer HTML and loaded there as same-origin blob modules. */
+export type AndroidPdfViewerSources = {
+  pdfModuleSource: string;
+  workerModuleSource: string;
 };
 
-export function useAndroidPdfViewerAssets(enabled: boolean): {
-  assetUris: AndroidPdfViewerAssetUris | null;
+async function readAssetText(moduleId: unknown): Promise<string> {
+  const asset = await Asset.fromModule(moduleId as number).downloadAsync();
+  const uri = asset.localUri ?? asset.uri;
+  if (!uri) {
+    throw new Error('Bundled pdf.js asset has no local URI.');
+  }
+  const text = await new File(uri).text();
+  if (!text) {
+    throw new Error('Bundled pdf.js asset is empty.');
+  }
+  return text;
+}
+
+/** One read per app session (~1.7 MB); cleared on failure so "Try again" can retry. */
+let sourcesPromise: Promise<AndroidPdfViewerSources> | null = null;
+
+function loadAndroidPdfViewerSources(): Promise<AndroidPdfViewerSources> {
+  if (!sourcesPromise) {
+    sourcesPromise = (async () => {
+      const { pdfMinModule, pdfWorkerModule } = loadPdfJsModules();
+      const [pdfModuleSource, workerModuleSource] = await Promise.all([
+        readAssetText(pdfMinModule),
+        readAssetText(pdfWorkerModule),
+      ]);
+      return { pdfModuleSource, workerModuleSource };
+    })().catch((error: unknown) => {
+      sourcesPromise = null;
+      throw error;
+    });
+  }
+  return sourcesPromise;
+}
+
+export function useAndroidPdfViewerAssets(
+  enabled: boolean,
+  reloadKey = 0,
+): {
+  sources: AndroidPdfViewerSources | null;
   assetsFailed: boolean;
   /** Why asset loading failed (for operational reporting); null while loading or on success. */
   assetsError: unknown;
   assetsReady: boolean;
 } {
-  const [assetUris, setAssetUris] = useState<AndroidPdfViewerAssetUris | null>(null);
+  const [sources, setSources] = useState<AndroidPdfViewerSources | null>(null);
   const [assetsFailed, setAssetsFailed] = useState(false);
   const [assetsError, setAssetsError] = useState<unknown>(null);
 
   useEffect(() => {
     if (!enabled) {
-      setAssetUris(null);
+      setSources(null);
       setAssetsFailed(false);
       setAssetsError(null);
       return;
     }
 
     let cancelled = false;
-    setAssetUris(null);
     setAssetsFailed(false);
     setAssetsError(null);
 
-    void (async () => {
-      try {
-        const { pdfMinModule, pdfWorkerModule } = loadPdfJsModules();
-        const [pdfAsset, workerAsset] = await Promise.all([
-          Asset.fromModule(pdfMinModule).downloadAsync(),
-          Asset.fromModule(pdfWorkerModule).downloadAsync(),
-        ]);
-        if (cancelled) return;
-
-        const pdfModuleUri = pdfAsset.localUri ?? pdfAsset.uri;
-        const workerModuleUri = workerAsset.localUri ?? workerAsset.uri;
-        if (!pdfModuleUri || !workerModuleUri) {
-          setAssetsError(new Error('Bundled pdf.js asset has no local URI.'));
-          setAssetsFailed(true);
-          return;
-        }
-
-        setAssetUris({ pdfModuleUri, workerModuleUri });
-      } catch (assetError) {
+    loadAndroidPdfViewerSources().then(
+      (loaded) => {
+        if (!cancelled) setSources(loaded);
+      },
+      (assetError: unknown) => {
         if (!cancelled) {
+          setSources(null);
           setAssetsError(assetError);
           setAssetsFailed(true);
         }
-      }
-    })();
+      },
+    );
 
     return () => {
       cancelled = true;
     };
-  }, [enabled]);
+  }, [enabled, reloadKey]);
 
   return {
-    assetUris,
+    sources,
     assetsFailed,
     assetsError,
-    assetsReady: Boolean(assetUris),
+    assetsReady: Boolean(sources),
   };
 }

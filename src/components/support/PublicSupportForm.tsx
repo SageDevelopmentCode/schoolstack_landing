@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { btnPop, Tick } from "@/components/garden/ui";
 import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
 } from "@/components/ui/ButtonLoadingLabel";
@@ -15,10 +15,11 @@ import {
 import { MAX_PUBLIC_SUPPORT_DESCRIPTION_LENGTH } from "@/lib/public-support/public-support-validation";
 
 const inputClassName =
-  "w-full rounded-md bg-white border border-black/[0.09] px-3 py-2.5 text-sm text-[#2E4A3C] placeholder-[#2E4A3C]/40 font-body outline-none focus:ring-2 focus:ring-[#2E4A3C]/30 focus:border-[#2E4A3C] transition";
+  "w-full rounded-2xl border-2 border-[var(--sf-ink)]/80 bg-white px-4 py-3 text-base text-[var(--sf-ink)] placeholder:text-[var(--sf-soft)]/70 outline-none transition focus-visible:border-[var(--sf-ink)] focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/30";
 
-const textareaClassName =
-  "w-full min-h-[160px] resize-y rounded-md bg-white border border-black/[0.09] px-3 py-2.5 text-sm text-[#2E4A3C] placeholder-[#2E4A3C]/40 font-body outline-none focus:ring-2 focus:ring-[#2E4A3C]/30 focus:border-[#2E4A3C] transition";
+const textareaClassName = `${inputClassName} min-h-[160px] resize-y`;
+
+const labelClassName = "mb-2 block text-sm font-extrabold text-[var(--sf-ink)]";
 
 export default function PublicSupportForm() {
   const [name, setName] = useState("");
@@ -79,19 +80,17 @@ export default function PublicSupportForm() {
 
   if (submitted) {
     return (
-      <div className="rounded-2xl border border-clay/20 bg-clay/5 px-6 py-8 text-center">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-clay/15">
-          <Check className="h-6 w-6 text-clay" aria-hidden />
-        </div>
-        <h2 className="font-display text-2xl text-text">Message sent</h2>
-        <p className="mt-3 text-[15px] font-secondary text-text-muted leading-relaxed max-w-md mx-auto">
+      <div className="rounded-[26px] border-2 border-[var(--sf-forest)] bg-[var(--sf-mint)] px-6 py-10 text-center shadow-[0_4px_0_0_var(--sf-forest)]">
+        <Tick className="mx-auto mb-4 h-14 w-14" />
+        <h2 className="sf-display text-3xl leading-[1.05] text-[var(--sf-ink)]">Message sent</h2>
+        <p className="mx-auto mt-3 max-w-md text-[16px] leading-relaxed text-[var(--sf-ink)]/80">
           Thanks for reaching out. We received your support request and will get
           back to you as soon as we can — usually within one business day.
         </p>
         <button
           type="button"
           onClick={() => setSubmitted(false)}
-          className="mt-6 text-sm font-medium text-clay hover:text-clay/80 transition-colors"
+          className="mt-6 rounded-full text-sm font-extrabold text-[var(--sf-forest)] underline decoration-[var(--sf-moss)] decoration-2 underline-offset-4 hover:decoration-[var(--sf-forest)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-forest)]/40"
         >
           Send another message
         </button>
@@ -102,7 +101,7 @@ export default function PublicSupportForm() {
   return (
     <form
       onSubmit={(event) => void handleSubmit(event)}
-      className="relative rounded-2xl border border-black/[0.08] bg-white px-6 py-8 shadow-[0_8px_40px_rgba(0,0,0,0.06)] sm:px-8"
+      className="relative"
     >
       <PublicFormHoneypotField
         value={companyWebsite}
@@ -110,7 +109,7 @@ export default function PublicSupportForm() {
       />
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
-          <label htmlFor="support-name" className="block text-sm font-medium text-text mb-1.5">
+          <label htmlFor="support-name" className={labelClassName}>
             Name
           </label>
           <input
@@ -126,7 +125,7 @@ export default function PublicSupportForm() {
         </div>
 
         <div>
-          <label htmlFor="support-email" className="block text-sm font-medium text-text mb-1.5">
+          <label htmlFor="support-email" className={labelClassName}>
             Email
           </label>
           <input
@@ -143,7 +142,7 @@ export default function PublicSupportForm() {
       </div>
 
       <div className="mt-5">
-        <label htmlFor="support-topic" className="block text-sm font-medium text-text mb-1.5">
+        <label htmlFor="support-topic" className={labelClassName}>
           Topic
         </label>
         <select
@@ -164,7 +163,7 @@ export default function PublicSupportForm() {
       </div>
 
       <div className="mt-5">
-        <label htmlFor="support-message" className="block text-sm font-medium text-text mb-1.5">
+        <label htmlFor="support-message" className={labelClassName}>
           Message
         </label>
         <textarea
@@ -176,14 +175,14 @@ export default function PublicSupportForm() {
           className={textareaClassName}
           placeholder="Tell us how we can help..."
         />
-        <p className="mt-2 text-xs text-text-faint font-secondary">
+        <p className="mt-2 text-xs font-semibold text-[var(--sf-soft)]">
           {message.length.toLocaleString()} /{" "}
           {MAX_PUBLIC_SUPPORT_DESCRIPTION_LENGTH.toLocaleString()} characters
         </p>
       </div>
 
       {submitError ? (
-        <p className="mt-4 text-sm text-red-600" role="alert">
+        <p className="mt-5 rounded-2xl bg-[var(--sf-peach)] px-4 py-2.5 text-sm font-semibold text-[var(--sf-clay-deep)]" role="alert">
           {submitError}
         </p>
       ) : null}
@@ -191,11 +190,13 @@ export default function PublicSupportForm() {
       <button
         type="submit"
         disabled={!canSubmit}
-        className={`mt-6 inline-flex h-11 items-center justify-center rounded-pill bg-clay px-6 text-sm font-semibold text-white transition hover:bg-clay/90 disabled:cursor-not-allowed disabled:opacity-50 ${BUTTON_LOADING_LAYOUT_CLASS}`}
+        className={`${btnPop} mt-7 w-full disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto`}
       >
-        <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Sending…">
-          Send message
-        </ButtonLoadingLabel>
+        <span className={BUTTON_LOADING_LAYOUT_CLASS}>
+          <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Sending…">
+            Send message
+          </ButtonLoadingLabel>
+        </span>
       </button>
     </form>
   );

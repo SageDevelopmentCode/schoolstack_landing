@@ -4,10 +4,12 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Platform, Share, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
+import { useCalendarPortal } from '@/components/parent/calendar/garden/calendar-portal';
 import { EventTypeChip } from '@/components/parent/calendar/garden/garden-event-row';
+import { GInlineBanner } from '@/components/parent/garden/fields';
 import { GSheet } from '@/components/parent/garden/sheet';
 import { Garden, GardenFonts, useGardenAccent } from '@/components/parent/garden/tokens';
-import { GChip, GIcon, GKicker, GLink, GOutlineButton, GToyButton } from '@/components/parent/garden/ui';
+import { GChip, GIcon, GKicker, GLink, GOutlineButton, GPressable, GToyButton } from '@/components/parent/garden/ui';
 import { haptic } from '@/lib/haptics';
 import { formatLongEventDate } from '@/lib/parent/parent-calendar-agenda-utils';
 import { formatEventTimeRange } from '@/lib/school-events/calendar-time';
@@ -18,8 +20,21 @@ import { usePortalPreview } from '@/lib/portal-preview-gating';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 const COPIED_RESET_MS = 2200;
+const DELETE_RED = '#9A3412';
 
 type SheetNotice = { tone: 'success' | 'info' | 'error'; title: string; message?: string };
+
+/**
+ * Staff who manage the school calendar (teacher Calendar): Edit becomes the
+ * sheet's one toy button, Share moves to outline, Copy and Delete become links.
+ */
+export type GardenEventSheetManage = {
+  onEdit: (event: OrganizationEvent) => void;
+  onDelete: (event: OrganizationEvent) => void;
+  deleting: boolean;
+  /** Status inside the sheet (a failed delete, read-only preview); toasts sit behind it. */
+  notice: { tone: 'error' | 'info'; title: string; description?: string } | null;
+};
 
 function DetailRow({ icon, label, children }: { icon: keyof typeof Ionicons.glyphMap; label: string; children: ReactNode }) {
   return (
@@ -43,13 +58,17 @@ export function GardenEventSheet({
   event,
   today,
   onClose,
+  manage,
 }: {
   organizationId: string;
   event: OrganizationEvent | null;
   today: string;
   onClose: () => void;
+  manage?: GardenEventSheetManage;
 }) {
   const accent = useGardenAccent();
+  const portal = useCalendarPortal();
+  const tid = (suffix: string) => `${portal.testIdPrefix}-${suffix}`;
   const { reportError } = useMobileErrorReporter(organizationId);
   const { readOnly } = usePortalPreview();
 
@@ -77,9 +96,9 @@ export function GardenEventSheet({
     setNotice({
       tone: 'info',
       title: 'Read-only preview',
-      message: 'Copying and sharing are available to families in the live portal.',
+      message: portal.previewShareNotice,
     });
-  }, []);
+  }, [portal.previewShareNotice]);
 
   const copyDetails = useCallback(async () => {
     if (!current) return;
@@ -100,14 +119,14 @@ export function GardenEventSheet({
       copiedTimer.current = setTimeout(() => setCopied(false), COPIED_RESET_MS);
     } catch (err) {
       haptic.error();
-      reportError('parent_calendar_copy_details', err, { entityType: 'organization_event', entityId: current.id });
+      reportError(`${portal.operationPrefix}_copy_details`, err, { entityType: 'organization_event', entityId: current.id });
       setNotice({
         tone: 'error',
         title: 'Couldn’t copy the details',
         message: 'Try again, or use Share event instead.',
       });
     }
-  }, [current, readOnly, reportError, showReadOnly]);
+  }, [current, portal.operationPrefix, readOnly, reportError, showReadOnly]);
 
   const shareEvent = useCallback(async () => {
     if (!current) return;
@@ -127,25 +146,25 @@ export function GardenEventSheet({
       }
     } catch (err) {
       haptic.error();
-      reportError('parent_calendar_share', err, { entityType: 'organization_event', entityId: current.id });
+      reportError(`${portal.operationPrefix}_share`, err, { entityType: 'organization_event', entityId: current.id });
       setNotice({
         tone: 'error',
         title: 'Couldn’t open sharing',
         message: 'Try again, or use Copy details instead.',
       });
     }
-  }, [current, readOnly, reportError, showReadOnly]);
+  }, [current, portal.operationPrefix, readOnly, reportError, showReadOnly]);
 
   const openMaps = useCallback(() => {
     if (!current?.location) return;
     void openExternalUrlSafely(buildEventMapsUrl(current.location, Platform.OS), reportError, {
-      operation: 'parent_calendar_open_maps',
+      operation: `${portal.operationPrefix}_open_maps`,
       entityType: 'organization_event',
       entityId: current.id,
       errorTitle: 'Couldn’t open Maps',
       errorMessage: 'Copy the address from this event and search for it in your maps app.',
     });
-  }, [current, reportError]);
+  }, [current, portal.operationPrefix, reportError]);
 
   if (!current) return null;
 
@@ -164,26 +183,53 @@ export function GardenEventSheet({
       accessibilityLabel={`Close ${current.title}`}
       headerAside={statusChip}
       footer={
-        <View style={styles.footer} testID="parent-calendar-event-sheet-actions">
-          <GOutlineButton
-            testID="parent-calendar-copy-details"
-            label={copied ? 'Copied' : 'Copy details'}
-            icon={copied ? 'checkmark' : 'copy-outline'}
-            accessibilityHint="Copies the date, time, place and details"
-            onPress={() => void copyDetails()}
-            style={styles.footerButton}
-          />
-          <GToyButton
-            testID="parent-calendar-share"
-            label="Share event"
-            icon="share-outline"
-            accessibilityHint="Opens your phone’s share sheet"
-            onPress={() => void shareEvent()}
-            style={styles.footerButton}
-          />
+        <View style={styles.footer} testID={tid('event-sheet-actions')}>
+          {manage ? (
+            <>
+              <GOutlineButton
+                testID={tid('share')}
+                label="Share"
+                icon="share-outline"
+                accessibilityHint="Opens your phone’s share sheet"
+                onPress={() => void shareEvent()}
+                style={styles.footerButton}
+              />
+              <GToyButton
+                testID={tid('edit-event')}
+                label="Edit event"
+                icon="create-outline"
+                accessibilityHint="Opens the event form"
+                disabled={manage.deleting}
+                onPress={() => manage.onEdit(current)}
+                style={styles.footerButton}
+              />
+            </>
+          ) : (
+            <>
+              <GOutlineButton
+                testID={tid('copy-details')}
+                label={copied ? 'Copied' : 'Copy details'}
+                icon={copied ? 'checkmark' : 'copy-outline'}
+                accessibilityHint="Copies the date, time, place and details"
+                onPress={() => void copyDetails()}
+                style={styles.footerButton}
+              />
+              <GToyButton
+                testID={tid('share')}
+                label="Share event"
+                icon="share-outline"
+                accessibilityHint="Opens your phone’s share sheet"
+                onPress={() => void shareEvent()}
+                style={styles.footerButton}
+              />
+            </>
+          )}
         </View>
       }>
-      <View testID="parent-calendar-event-sheet" style={styles.body}>
+      <View testID={tid('event-sheet')} style={styles.body}>
+        {manage?.notice ? (
+          <GInlineBanner tone={manage.notice.tone} title={manage.notice.title} description={manage.notice.description} />
+        ) : null}
         <View style={styles.chips}>
           <EventTypeChip event={current} />
           {isToday ? <GChip tone="warning" icon="sunny" label="Today" /> : null}
@@ -233,7 +279,7 @@ export function GardenEventSheet({
                 {current.location}
               </Text>
               <GLink
-                testID="parent-calendar-open-maps"
+                testID={tid('open-maps')}
                 label="Open in Maps"
                 icon="navigate-outline"
                 accessibilityHint="Opens your maps app"
@@ -255,9 +301,34 @@ export function GardenEventSheet({
           <Ionicons name="bulb-outline" size={16} color={accent.clayDeep} />
           <Text style={[styles.tipText, { color: accent.clayDeep }]}>
             <Text style={styles.tipStrong}>Tip: </Text>
-            “Share event” sends it to Messages, Notes, email or your partner, so everyone has the plan.
+            {portal.shareTip}
           </Text>
         </View>
+
+        {manage ? (
+          <View style={styles.manageRow}>
+            <GLink
+              testID={tid('copy-details')}
+              label={copied ? 'Copied' : 'Copy details'}
+              icon={copied ? 'checkmark' : 'copy-outline'}
+              accessibilityHint="Copies the date, time, place and details"
+              onPress={() => void copyDetails()}
+            />
+            <GPressable
+              testID={tid('delete-event')}
+              accessibilityRole="button"
+              accessibilityLabel={manage.deleting ? 'Deleting event' : 'Delete event'}
+              accessibilityState={{ busy: manage.deleting, disabled: manage.deleting }}
+              disabled={manage.deleting}
+              haptic="none"
+              hitSlop={10}
+              onPress={() => manage.onDelete(current)}
+              style={styles.deleteLink}>
+              <Ionicons name="trash-outline" size={16} color={DELETE_RED} />
+              <Text style={styles.deleteText}>{manage.deleting ? 'Deleting…' : 'Delete event'}</Text>
+            </GPressable>
+          </View>
+        ) : null}
       </View>
     </GSheet>
   );
@@ -355,5 +426,23 @@ const styles = StyleSheet.create({
   },
   footerButton: {
     flexShrink: 1,
+  },
+  manageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingTop: 2,
+  },
+  deleteLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 44,
+  },
+  deleteText: {
+    fontFamily: GardenFonts.bodyExtra,
+    fontSize: 14,
+    color: DELETE_RED,
   },
 });

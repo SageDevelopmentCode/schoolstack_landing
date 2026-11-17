@@ -210,7 +210,7 @@ export default function ParentGardenMessagesView({
             aria-label="Conversation details"
             className="hidden w-[300px] shrink-0 flex-col border-l-[1.5px] border-[var(--sf-ink)]/10 bg-white xl:flex"
           >
-            <GardenThreadDetails thread={model.activeThread} C={C} />
+            <GardenThreadDetails thread={model.activeThread} C={C} onOpenStudent={actions.openStudent} />
           </aside>
         ) : null}
       </section>

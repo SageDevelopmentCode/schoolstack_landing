@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import MarketingBrightToolShell from "@/components/marketing/shared/MarketingBrightToolShell";
+import MarketingGardenToolShell from "@/components/marketing/shared/MarketingGardenToolShell";
 
 type MondayCheckStoryShellProps = {
   wide?: boolean;
@@ -11,12 +11,12 @@ export default function MondayCheckStoryShell({
   children,
 }: MondayCheckStoryShellProps) {
   return (
-    <MarketingBrightToolShell>
+    <MarketingGardenToolShell>
       <div
         className={`mx-auto transition-[max-width] duration-300 ${wide ? "max-w-[1180px]" : "max-w-[720px]"}`}
       >
         {children}
       </div>
-    </MarketingBrightToolShell>
+    </MarketingGardenToolShell>
   );
 }

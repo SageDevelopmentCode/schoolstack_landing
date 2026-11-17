@@ -40,6 +40,10 @@ export const PhotoDayGrid = memo(function PhotoDayGrid({
   showCount = true,
   tileSize,
   onOpenPhoto,
+  onLongPressPhoto,
+  tileBadge,
+  tileHint,
+  tileTestIDPrefix = 'parent-photo-tile',
 }: {
   group: GalleryPhotoDateGroup;
   latest: boolean;
@@ -47,6 +51,12 @@ export const PhotoDayGrid = memo(function PhotoDayGrid({
   showCount?: boolean;
   tileSize: number;
   onOpenPhoto: (photo: GalleryPhoto) => void;
+  /** Defaults to opening the photo (parent). */
+  onLongPressPhoto?: (photo: GalleryPhoto) => void;
+  /** Small label on the tile (e.g. "You" / the uploader). */
+  tileBadge?: (photo: GalleryPhoto) => { label: string; mine?: boolean } | null;
+  tileHint?: (photo: GalleryPhoto) => string;
+  tileTestIDPrefix?: string;
 }) {
   const dayLabel = photoDayLabel(group.photoDate);
   const fullDate = formatGalleryDateLabel(group.photoDate);
@@ -64,15 +74,23 @@ export const PhotoDayGrid = memo(function PhotoDayGrid({
         ) : null}
       </View>
       <View style={styles.grid}>
-        {group.photos.map((photo, index) => (
-          <PhotoTile
-            key={photo.id}
-            photo={photo}
-            size={tileSize}
-            accessibilityLabel={`Photo ${index + 1} of ${count} from ${fullDate}`}
-            onOpen={onOpenPhoto}
-          />
-        ))}
+        {group.photos.map((photo, index) => {
+          const badge = tileBadge?.(photo) ?? null;
+          const by = badge ? `, uploaded by ${badge.mine ? 'you' : badge.label}` : '';
+          return (
+            <PhotoTile
+              key={photo.id}
+              photo={photo}
+              size={tileSize}
+              accessibilityLabel={`Photo ${index + 1} of ${count} from ${fullDate}${by}`}
+              accessibilityHint={tileHint?.(photo)}
+              badge={badge}
+              testID={`${tileTestIDPrefix}-${photo.id}`}
+              onOpen={onOpenPhoto}
+              onLongPress={onLongPressPhoto}
+            />
+          );
+        })}
       </View>
     </View>
   );
@@ -82,12 +100,20 @@ const PhotoTile = memo(function PhotoTile({
   photo,
   size,
   accessibilityLabel,
+  accessibilityHint = 'Opens the photo full screen, where you can swipe and share',
+  badge,
+  testID,
   onOpen,
+  onLongPress,
 }: {
   photo: GalleryPhoto;
   size: number;
   accessibilityLabel: string;
+  accessibilityHint?: string;
+  badge: { label: string; mine?: boolean } | null;
+  testID: string;
   onOpen: (photo: GalleryPhoto) => void;
+  onLongPress?: (photo: GalleryPhoto) => void;
 }) {
   const imageUrl = photo.imageUrl ?? null;
   const [loaded, setLoaded] = useState(false);
@@ -102,12 +128,12 @@ const PhotoTile = memo(function PhotoTile({
 
   return (
     <GPressable
-      testID={`parent-photo-tile-${photo.id}`}
+      testID={testID}
       accessibilityLabel={accessibilityLabel}
-      accessibilityHint="Opens the photo full screen, where you can swipe and share"
+      accessibilityHint={accessibilityHint}
       pressedScale={0.96}
       onPress={() => onOpen(photo)}
-      onLongPress={() => onOpen(photo)}
+      onLongPress={() => (onLongPress ?? onOpen)(photo)}
       style={[styles.tile, { width: size, height: size }]}>
       {showImage && !loaded ? <GSkeleton style={[StyleSheet.absoluteFill, styles.tileSkeleton]} /> : null}
       {showImage ? (
@@ -129,6 +155,16 @@ const PhotoTile = memo(function PhotoTile({
           <Text style={styles.placeholderText}>Can&apos;t show</Text>
         </View>
       )}
+      {badge ? (
+        <View
+          style={[styles.badge, badge.mine && styles.badgeMine]}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants">
+          <Text style={[styles.badgeText, badge.mine && styles.badgeTextMine]} numberOfLines={1}>
+            {badge.label}
+          </Text>
+        </View>
+      ) : null}
     </GPressable>
   );
 });
@@ -166,5 +202,18 @@ const styles = StyleSheet.create({
   tileSkeleton: { borderRadius: 14 },
   image: { width: '100%', height: '100%' },
   placeholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  badge: {
+    position: 'absolute',
+    left: 5,
+    bottom: 5,
+    maxWidth: '86%',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: 'rgba(20,16,12,0.62)',
+  },
+  badgeMine: { backgroundColor: Garden.butter, borderWidth: 1, borderColor: Garden.ink25 },
+  badgeText: { fontFamily: GardenFonts.bodyBold, fontSize: 10.5, color: Garden.white },
+  badgeTextMine: { color: Garden.ink, fontFamily: GardenFonts.bodyExtra },
   placeholderText: { fontFamily: GardenFonts.bodyBold, fontSize: 11, color: Garden.soft },
 });

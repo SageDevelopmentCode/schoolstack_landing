@@ -37,7 +37,7 @@ export default function OrganizationSelector({
 
   if (visibleOrganizations.length === 0) {
     return (
-      <div className="rounded-[24px] border border-black/8 bg-[#F7F5F2] px-4 py-8 text-center font-secondary text-sm text-[#1d1a16]/70">
+      <div className="rounded-[26px] border-2 border-dashed border-[var(--sf-ink)]/20 bg-[var(--sf-paper)] px-5 py-8 text-center text-sm leading-relaxed text-[var(--sf-soft)]">
         You do not have access to any schools for this account. Go back and try
         signing in with a different account.
       </div>
@@ -49,7 +49,7 @@ export default function OrganizationSelector({
       {showSearch ? (
         <div className="relative">
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#1d1a16]/45"
+            className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--sf-soft)]"
             aria-hidden
           />
           <input
@@ -58,7 +58,7 @@ export default function OrganizationSelector({
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search schools…"
             disabled={isOpening}
-            className="w-full rounded-[12px] border border-black/10 bg-white py-2.5 pl-9 pr-3 font-secondary text-sm text-[#1d1a16] outline-none transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1d1a16] disabled:opacity-60"
+            className="w-full rounded-2xl border-2 border-[var(--sf-ink)]/15 bg-white py-3 pl-10 pr-4 text-[15px] text-[var(--sf-ink)] outline-none transition-colors placeholder:text-[var(--sf-ink)]/40 hover:border-[var(--sf-ink)]/40 focus-visible:border-[var(--sf-ink)] focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/25 disabled:opacity-60"
           />
         </div>
       ) : null}
@@ -74,7 +74,7 @@ export default function OrganizationSelector({
               onClick={() => onSelect(organization)}
               disabled={disabled || (isOpening && !isThisOpening)}
               aria-busy={isThisOpening}
-              className="grid w-full grid-cols-[minmax(0,5rem)_1fr_auto] items-center gap-3 rounded-[24px] border border-black/8 bg-[#F7F5F2] p-4 text-left transition hover:-translate-y-0.5 hover:shadow-[0_12px_40px_rgba(30,60,30,0.06)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="grid w-full grid-cols-[minmax(0,5rem)_1fr_auto] items-center gap-3 rounded-[24px] border-2 border-[var(--sf-ink)]/15 bg-white p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--sf-ink)] hover:shadow-[0_4px_0_0_var(--sf-ink)] focus-visible:-translate-y-0.5 focus-visible:border-[var(--sf-ink)] focus-visible:shadow-[0_4px_0_0_var(--sf-ink)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/25 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
             >
               <div className="flex h-full min-w-0 items-center justify-center">
                 <SchoolDemoWordmark
@@ -89,13 +89,13 @@ export default function OrganizationSelector({
                 />
               </div>
               <div className="min-w-0">
-                <p className="font-secondary text-sm font-semibold leading-snug text-[#1d1a16]">
+                <p className="text-base font-extrabold leading-snug text-[var(--sf-ink)]">
                   {organization.name}
                 </p>
               </div>
               {isThisOpening ? (
                 <Loader2
-                  className="h-5 w-5 shrink-0 animate-spin text-[#1d1a16]"
+                  className="h-5 w-5 shrink-0 animate-spin text-[var(--sf-forest)]"
                   aria-hidden
                 />
               ) : (
@@ -107,7 +107,7 @@ export default function OrganizationSelector({
       </div>
 
       {filteredOrganizations.length === 0 ? (
-        <p className="text-center font-secondary text-sm text-[#1d1a16]/70">
+        <p className="text-center text-sm text-[var(--sf-soft)]">
           No schools match your search.
         </p>
       ) : null}

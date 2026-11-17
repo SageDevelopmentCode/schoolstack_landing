@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { TeacherPhotosScreen } from '@/components/teacher/teacher-photos-screen';
+import { TeacherPhotosGardenScreen } from '@/components/teacher/photos/garden/teacher-photos-garden-screen';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function TeacherPhotosRoute() {
@@ -11,11 +11,5 @@ export default function TeacherPhotosRoute() {
     return null;
   }
 
-  return (
-    <TeacherPhotosScreen
-      organizationId={selectedSchool.id}
-      slug={selectedSchool.slug}
-      schoolName={selectedSchool.name}
-    />
-  );
+  return <TeacherPhotosGardenScreen organizationId={selectedSchool.id} slug={selectedSchool.slug} />;
 }

@@ -11,16 +11,17 @@ interface Props {
   schoolLogo: SchoolDemoLogo;
   steps: DemoWalkthroughStep[];
   activeStep: number;
-  schoolPrimary: string;
   onStepSelect: (index: number) => void;
 }
+
+const FOCUS =
+  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/30";
 
 export default function DemoWalkthroughMobileBar({
   schoolName,
   schoolLogo,
   steps,
   activeStep,
-  schoolPrimary,
   onStepSelect,
 }: Props) {
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -32,27 +33,24 @@ export default function DemoWalkthroughMobileBar({
   return (
     <>
       <div
-        className="sticky top-0 z-[90] flex shrink-0 items-center gap-2 border-b border-black/10 bg-white px-3 py-2.5 lg:hidden"
+        className="sticky top-0 z-[90] flex shrink-0 items-center gap-2 border-b-2 border-[var(--sf-ink)]/10 bg-[var(--sf-paper)] px-3 py-2.5 lg:hidden"
         data-testid="demo-walkthrough-mobile-bar"
       >
         <button
           type="button"
           disabled={!canPrev}
           onClick={() => onStepSelect(activeStep - 1)}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#F4F1EC] text-[#1d1a16] transition enabled:hover:bg-black/5 disabled:opacity-35"
+          className={`grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-[var(--sf-ink)] ring-2 ring-inset ring-[var(--sf-ink)]/20 transition enabled:hover:ring-[var(--sf-ink)] disabled:opacity-35 ${FOCUS}`}
           aria-label="Previous step"
         >
-          <ChevronLeft className="h-5 w-5" aria-hidden />
+          <ChevronLeft className="h-5 w-5" strokeWidth={2.4} aria-hidden />
         </button>
 
         <div className="min-w-0 flex-1">
-          <p className="font-secondary text-[10px] font-bold uppercase tracking-[0.12em] text-[#1d1a16]/50">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--sf-forest)]">
             Step {activeStep + 1} of {total}
           </p>
-          <p
-            className="truncate font-secondary text-sm font-semibold text-[#1d1a16]"
-            style={{ color: step ? undefined : schoolPrimary }}
-          >
+          <p className="truncate text-sm font-extrabold text-[var(--sf-ink)]">
             {step?.title ?? schoolName}
           </p>
         </div>
@@ -60,9 +58,9 @@ export default function DemoWalkthroughMobileBar({
         <button
           type="button"
           onClick={() => setSheetOpen(true)}
-          className="font-secondary inline-flex h-9 shrink-0 items-center gap-1 rounded-pill bg-[#F4F1EC] px-3 text-[12px] font-semibold text-[#1d1a16] transition hover:bg-black/5"
+          className={`inline-flex h-9 shrink-0 items-center gap-1 rounded-full border-2 border-[var(--sf-ink)] bg-white px-3 text-[12px] font-extrabold text-[var(--sf-ink)] shadow-[0_2px_0_0_var(--sf-ink)] transition active:translate-y-0.5 active:shadow-none ${FOCUS}`}
         >
-          <List className="h-4 w-4" aria-hidden />
+          <List className="h-4 w-4" strokeWidth={2.4} aria-hidden />
           Steps
         </button>
 
@@ -70,11 +68,10 @@ export default function DemoWalkthroughMobileBar({
           type="button"
           disabled={!canNext}
           onClick={() => onStepSelect(activeStep + 1)}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-white transition enabled:hover:opacity-90 disabled:opacity-35"
-          style={{ backgroundColor: schoolPrimary }}
+          className={`grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--sf-forest)] text-white shadow-[0_3px_0_0_var(--sf-forest-deep)] transition enabled:active:translate-y-0.5 enabled:active:shadow-none disabled:opacity-35 ${FOCUS}`}
           aria-label="Next step"
         >
-          <ChevronRight className="h-5 w-5" aria-hidden />
+          <ChevronRight className="h-5 w-5" strokeWidth={2.4} aria-hidden />
         </button>
       </div>
 
@@ -85,7 +82,6 @@ export default function DemoWalkthroughMobileBar({
         schoolLogo={schoolLogo}
         steps={steps}
         activeStep={activeStep}
-        schoolPrimary={schoolPrimary}
         onStepSelect={onStepSelect}
       />
     </>

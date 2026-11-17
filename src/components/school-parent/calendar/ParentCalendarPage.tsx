@@ -28,6 +28,8 @@ type ParentCalendarPageProps = {
   events: OrganizationEvent[];
   eventsDeferred?: boolean;
   previewMode?: boolean;
+  /** All events are already loaded (staff portal): skip month-window fetches. */
+  eventsComplete?: boolean;
   agendaTitle?: string;
   programId?: string;
   initialView?: CalendarViewMode;
@@ -54,6 +56,7 @@ export default function ParentCalendarPage({
   events,
   eventsDeferred = false,
   previewMode = false,
+  eventsComplete = false,
   agendaTitle,
   programId,
   initialView,
@@ -68,6 +71,7 @@ export default function ParentCalendarPage({
     events,
     eventsDeferred,
     previewMode,
+    eventsComplete,
     programId,
     initialView,
     previewAnchorDate,

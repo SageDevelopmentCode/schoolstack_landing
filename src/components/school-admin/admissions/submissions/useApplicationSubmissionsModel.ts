@@ -53,6 +53,12 @@ function visibleGuardianIds(submissions: AdminApplicationSubmission[]): string[]
 
 const FLASH_MS = 1600;
 
+/** Count changes that come with a row added in place (preview scripts). */
+export type SubmissionsMetaDelta = {
+  statusCounts?: Record<string, number>;
+  activeSubmissionsCount?: number;
+};
+
 export function useApplicationSubmissionsModel({
   organizationId,
   slug,
@@ -60,6 +66,8 @@ export function useApplicationSubmissionsModel({
   initialTableData,
   initialLoginStatusByGuardianId,
   hasStreamedTable,
+  previewMode = false,
+  initialSelectedId = null,
 }: {
   organizationId: string;
   slug: string;
@@ -68,9 +76,16 @@ export function useApplicationSubmissionsModel({
   initialLoginStatusByGuardianId?: Record<string, ParentPortalLoginStatus>;
   /** A Suspense loader will hydrate the table (children of the shell). */
   hasStreamedTable: boolean;
+  /**
+   * Marketing preview: fixtures only. No enrichment, login-status or refresh
+   * fetches, and the page URL (`?application=`) is never read.
+   */
+  previewMode?: boolean;
+  /** Opens this application's drawer on mount. */
+  initialSelectedId?: string | null;
 }) {
   const searchParams = useSearchParams();
-  const deepLinkApplicationId = searchParams.get("application");
+  const deepLinkApplicationId = previewMode ? null : searchParams.get("application");
   const hasInitialTable = initialTableData !== undefined;
 
   const [loadedSubmissions, setLoadedSubmissions] = useState<AdminApplicationSubmission[]>(
@@ -101,15 +116,17 @@ export function useApplicationSubmissionsModel({
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [formFilter, setFormFilter] = useState<FormFilter>("all");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId);
   const [tableReady, setTableReady] = useState(hasInitialTable);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(() => Date.now());
   const [flashId, setFlashId] = useState<string | null>(null);
   const flashTimerRef = useRef<number | null>(null);
   const loadedSubmissionsLengthRef = useRef(loadedSubmissions.length);
+  const loadedSubmissionsRef = useRef(loadedSubmissions);
   useEffect(() => {
     loadedSubmissionsLengthRef.current = loadedSubmissions.length;
-  }, [loadedSubmissions.length]);
+    loadedSubmissionsRef.current = loadedSubmissions;
+  }, [loadedSubmissions]);
   const enrichedIdsRef = useRef(new Set<string>());
 
   const filteredSubmissions = useMemo(
@@ -131,6 +148,7 @@ export function useApplicationSubmissionsModel({
 
   const loadEnrichment = useCallback(
     async (rows: AdminApplicationSubmission[]) => {
+      if (previewMode) return;
       const pendingIds = rows
         .map((row) => row.id)
         .filter((id) => !enrichedIdsRef.current.has(id));
@@ -170,11 +188,12 @@ export function useApplicationSubmissionsModel({
         setEnrichmentLoading(false);
       }
     },
-    [organizationId],
+    [organizationId, previewMode],
   );
 
   const loadLoginStatus = useCallback(
     async (rows: AdminApplicationSubmission[]) => {
+      if (previewMode) return;
       const guardianIds = visibleGuardianIds(rows);
       if (guardianIds.length === 0) {
         setLoginStatusByGuardianId({});
@@ -213,7 +232,7 @@ export function useApplicationSubmissionsModel({
         setLoginStatusLoading(false);
       }
     },
-    [organizationId],
+    [organizationId, previewMode],
   );
 
   const applyTableData = useCallback(
@@ -307,6 +326,11 @@ export function useApplicationSubmissionsModel({
       append = false,
       offset,
     }: { append?: boolean; offset?: number } = {}) => {
+      if (previewMode) {
+        // Fixtures are the whole list: nothing to fetch.
+        setLastUpdatedAt(Date.now());
+        return true;
+      }
       const requestOffset = offset ?? (append ? loadedSubmissionsLengthRef.current : 0);
 
       if (append) {
@@ -343,7 +367,7 @@ export function useApplicationSubmissionsModel({
         setLoadingMore(false);
       }
     },
-    [fetchSubmissionsPage, tableReady],
+    [fetchSubmissionsPage, organizationId, previewMode, tableReady],
   );
 
   const flashRow = useCallback((id: string | null) => {
@@ -361,6 +385,54 @@ export function useApplicationSubmissionsModel({
   );
 
   const { report: reportNavCount, refresh: refreshNavCounts } = useAdminNavCounts();
+
+  /**
+   * Adds a row at the top as if it just arrived (preview scripts): counts and
+   * the sidebar badge update in place, and the row flashes.
+   */
+  const insertRow = useCallback(
+    (row: AdminApplicationSubmission, metaDelta?: SubmissionsMetaDelta) => {
+      const delta: Required<SubmissionsMetaDelta> = {
+        statusCounts: metaDelta?.statusCounts ?? { [row.status]: 1 },
+        activeSubmissionsCount:
+          metaDelta?.activeSubmissionsCount ?? (row.status === "withdrawn" ? 0 : 1),
+      };
+      if (loadedSubmissionsRef.current.some((existing) => existing.id === row.id)) return;
+      loadedSubmissionsRef.current = [row, ...loadedSubmissionsRef.current];
+      setLoadedSubmissions((prev) =>
+        prev.some((existing) => existing.id === row.id) ? prev : [row, ...prev],
+      );
+      setUnfilteredTotalCount((count) => count + 1);
+      setStatusCounts((prev) => {
+        const next = { ...prev };
+        for (const [status, change] of Object.entries(delta.statusCounts)) {
+          next[status] = Math.max(0, (next[status] ?? 0) + change);
+        }
+        return next;
+      });
+      setActiveSubmissionsCount((count) => Math.max(0, count + delta.activeSubmissionsCount));
+      const formKey = row.formSlug?.trim() || row.formTitle.trim();
+      if (formKey) {
+        setFormOptions((prev) =>
+          prev.some((option) => option.key === formKey)
+            ? prev
+            : [...prev, { key: formKey, title: row.formTitle }].sort((a, b) =>
+                a.title.localeCompare(b.title),
+              ),
+        );
+      }
+      if (row.status === "submitted") {
+        setLatestSubmitted({
+          id: row.id,
+          submittedAt: row.submittedAt,
+          guardianName: row.guardianName,
+        });
+      }
+      setLastUpdatedAt(Date.now());
+      flashRow(row.id);
+    },
+    [flashRow],
+  );
 
   const handleSubmissionUpdated = useCallback(
     (update?: { status: AdminApplicationSubmission["status"] }) => {
@@ -412,13 +484,13 @@ export function useApplicationSubmissionsModel({
   }
 
   useEffect(() => {
-    if (hasInitialTable) {
+    if (hasInitialTable && !previewMode) {
       queueMicrotask(() => {
         void loadEnrichment(initialTableData.submissions);
         void loadLoginStatus(initialTableData.submissions);
       });
     }
-  }, [hasInitialTable, initialTableData, loadEnrichment, loadLoginStatus]);
+  }, [hasInitialTable, initialTableData, loadEnrichment, loadLoginStatus, previewMode]);
 
   useEffect(() => {
     if (!deepLinkApplicationId || initialLoading) return;
@@ -541,6 +613,7 @@ export function useApplicationSubmissionsModel({
     loadMore: () => void loadSubmissions({ append: true }),
     retry: () => void loadSubmissions(),
     handleSubmissionUpdated,
+    insertRow,
     changeStatusFilter,
     changeFormFilter,
   };

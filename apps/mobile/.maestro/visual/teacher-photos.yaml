@@ -1,0 +1,15 @@
+appId: com.mudkitchen.schoolstack.mobile
+tags:
+  - gallery
+---
+- runFlow: ../teacher-logged-in.yaml
+- tapOn: 'More'
+- extendedWaitUntil:
+    visible: 'Photos'
+    timeout: 30000
+- tapOn: 'Photos'
+- extendedWaitUntil:
+    visible:
+      id: teacher-photos-screen
+    timeout: 30000
+- takeScreenshot: visual-capture

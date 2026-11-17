@@ -7,6 +7,7 @@ import { adminToast } from "@/lib/school-admin/admin-toast";
 import { fetchAdminFormDownloadUrl } from "@/lib/school-admin/forms-documents/fetch-admin-form-download-url";
 import type { AdminParentForm } from "@/lib/school-admin/forms-documents/types";
 import { reportClientOperationalError } from "@/lib/operational-errors-client";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import type {
   TeacherFormAudienceType,
   TeacherFormFilterStatus,
@@ -18,9 +19,10 @@ import { readFormIdFromUrl, resolveValidFormId, syncFormDetailUrl } from "@/lib/
 import { computeFormMetrics, filterFormsByStatus } from "@/lib/school-teacher/forms-documents/utils";
 
 /*
- * Forms & Documents view-model (admin Garden; also used by Tuition →
- * Agreements). Same endpoints and URL sync as before; every action now has
- * its own pending state, a success toast, and an error toast with Retry.
+ * Forms & Documents view-model (admin Garden, Tuition → Agreements, and the
+ * staff portal's Forms tab via `apiBase` + `surface`). Same endpoints and URL
+ * sync as before; every action has its own pending state, a success toast,
+ * and an error toast with Retry. `previewMode` blocks every write.
  */
 
 export const FORMS_API_BASE = "/api/school-admin/forms-documents";
@@ -58,6 +60,10 @@ export function useFormsDocumentsModel({
   syncUrl,
   onFamiliesChanged,
   noun,
+  apiBase = FORMS_API_BASE,
+  fetchDownloadUrl = fetchAdminFormDownloadUrl,
+  surface = "school_admin",
+  previewMode = false,
 }: {
   organizationId: string;
   staffMemberId: string | null;
@@ -69,6 +75,12 @@ export function useFormsDocumentsModel({
   onFamiliesChanged?: () => void;
   /** "form" or "agreement" (toast copy). */
   noun: string;
+  /** Forms API root (staff portal: /api/teacher-portal/forms-documents). */
+  apiBase?: string;
+  fetchDownloadUrl?: (formId: string, organizationId: string) => Promise<string>;
+  /** Where operational errors are reported. */
+  surface?: "school_admin" | "teacher_portal";
+  previewMode?: boolean;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -134,13 +146,18 @@ export function useFormsDocumentsModel({
   }, []);
 
   const report = useCallback(
-    (operation: string, error: unknown, fallback: string) =>
+    (operation: string, error: unknown, fallback: string) => {
+      if (surface === "teacher_portal") {
+        void reportPortalOperationalError("teacher_portal", { organizationId, operation, error: "" }, error);
+        return;
+      }
       void reportClientOperationalError({
         organizationId,
         operation,
         error: error instanceof Error ? error.message : fallback,
-      }),
-    [organizationId],
+      });
+    },
+    [organizationId, surface],
   );
 
   /* ---- create wizard ---- */
@@ -182,7 +199,7 @@ export function useFormsDocumentsModel({
       setDetailLoading(true);
       setDetailError(null);
       try {
-        const response = await fetch(`${FORMS_API_BASE}/${formId}?${apiQuery}`);
+        const response = await fetch(`${apiBase}/${formId}?${apiQuery}`);
         const payload = (await response.json().catch(() => ({}))) as {
           form?: AdminParentForm;
           signatureRows?: TeacherFormSignatureRow[];
@@ -200,7 +217,7 @@ export function useFormsDocumentsModel({
         setDetailLoading(false);
       }
     },
-    [apiQuery, report],
+    [apiBase, apiQuery, report],
   );
 
   const openSidebar = useCallback(
@@ -227,19 +244,20 @@ export function useFormsDocumentsModel({
   // rows yet, e.g. a draft, refetched in a loop.)
   const fetchedDetailRef = useRef(new Set<string>());
   useEffect(() => {
-    if (!sidebarFormId) return;
+    if (!sidebarFormId || previewMode) return;
     if ((signatureRowsByFormId[sidebarFormId] ?? []).length > 0) return;
     if (fetchedDetailRef.current.has(sidebarFormId)) return;
     fetchedDetailRef.current.add(sidebarFormId);
     queueMicrotask(() => {
       void refreshFormDetail(sidebarFormId);
     });
-  }, [sidebarFormId, refreshFormDetail, signatureRowsByFormId]);
+  }, [previewMode, sidebarFormId, refreshFormDetail, signatureRowsByFormId]);
 
   /* ---- actions ---- */
   const patchForm = useCallback(
     async (formId: string, payload: Record<string, unknown>, fallback: string) => {
-      const response = await fetch(`${FORMS_API_BASE}/${formId}`, {
+      if (previewMode) throw new Error("Editing is off in preview.");
+      const response = await fetch(`${apiBase}/${formId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: buildFormsPatchBody(organizationId, category, payload),
@@ -252,22 +270,27 @@ export function useFormsDocumentsModel({
       if (!response.ok || !result.form) throw new Error(result.error ?? fallback);
       return result as { form: AdminParentForm; signatureRows?: TeacherFormSignatureRow[] };
     },
-    [category, organizationId],
+    [apiBase, category, organizationId, previewMode],
   );
 
   const requestArchive = useCallback(
-    (formId: string) => setArchiveTarget(forms.find((f) => f.id === formId) ?? null),
-    [forms],
+    (formId: string) => {
+      if (previewMode) return;
+      setArchiveTarget(forms.find((f) => f.id === formId) ?? null);
+    },
+    [forms, previewMode],
   );
 
   const confirmArchive = useCallback(async () => {
     const form = archiveTarget;
     if (!form) return;
-    const result = await action.run(
+    await action.run(
       async () => {
         try {
           const { form: next } = await patchForm(form.id, { action: "archive" }, "Failed to archive form.");
           setForms((current) => current.map((entry) => (entry.id === form.id ? next : entry)));
+          // Close here (not after run) so a toast Retry that succeeds closes the dialog too.
+          setArchiveTarget(null);
         } catch (error) {
           report("forms_documents.archive", error, "Failed to archive form.");
           throw error;
@@ -281,7 +304,6 @@ export function useFormsDocumentsModel({
         error: { title: `Couldn't archive the ${noun}.`, description: `${form.title} is unchanged.`, fallback: "Failed to archive form." },
       },
     );
-    if (result.ok) setArchiveTarget(null);
   }, [action, archiveTarget, noun, patchForm, report]);
 
   const duplicate = useCallback(
@@ -319,7 +341,7 @@ export function useFormsDocumentsModel({
       await action.run(
         async () => {
           try {
-            const signedUrl = await fetchAdminFormDownloadUrl(formId, organizationId);
+            const signedUrl = await fetchDownloadUrl(formId, organizationId);
             window.open(signedUrl, "_blank", "noopener,noreferrer");
           } catch (error) {
             report("forms_documents.download", error, "Failed to download form.");
@@ -334,16 +356,18 @@ export function useFormsDocumentsModel({
         },
       );
     },
-    [action, organizationId, report],
+    [action, fetchDownloadUrl, organizationId, report],
   );
 
   const sendNow = useCallback(
-    async (form: AdminParentForm, update: Record<string, unknown>) => {
+    async (form: AdminParentForm, update: Record<string, unknown>, closeSendModal = false) => {
       return action.run(
         async () => {
           try {
             const result = await patchForm(form.id, { update }, "Failed to send form.");
             setForms((current) => current.map((entry) => (entry.id === form.id ? result.form : entry)));
+            // Close inside the action so a successful toast Retry closes the modal too.
+            if (closeSendModal) setSendForm(null);
             if (result.signatureRows) {
               setSignatureRowsByFormId((current) => ({ ...current, [form.id]: result.signatureRows! }));
             }
@@ -372,6 +396,7 @@ export function useFormsDocumentsModel({
   const handleSendRequest = useCallback(
     (form: TeacherParentForm) => {
       const adminForm = form as AdminParentForm;
+      if (previewMode) return;
       if (adminForm.audienceType === "unassigned") {
         setSendForm(adminForm);
         return;
@@ -379,20 +404,23 @@ export function useFormsDocumentsModel({
       if (action.pendingKey) return;
       void sendNow(adminForm, { status: "active" });
     },
-    [action.pendingKey, sendNow],
+    [action.pendingKey, previewMode, sendNow],
   );
 
   const handleSendConfirm = useCallback(
     async (payload: FormsSendPayload) => {
       if (!sendForm || action.pendingKey) return;
-      const result = await sendNow(sendForm, {
-        status: "active",
-        audienceType: payload.audienceType,
-        classroomIds: payload.classroomIds,
-        familyIds: payload.familyIds,
-        dueDate: payload.dueDate,
-      });
-      if (result.ok) setSendForm(null);
+      await sendNow(
+        sendForm,
+        {
+          status: "active",
+          audienceType: payload.audienceType,
+          classroomIds: payload.classroomIds,
+          familyIds: payload.familyIds,
+          dueDate: payload.dueDate,
+        },
+        true,
+      );
     },
     [action.pendingKey, sendForm, sendNow],
   );
@@ -409,7 +437,10 @@ export function useFormsDocumentsModel({
     setCreatorFilter,
     creatorOptions,
     creating,
-    startCreate: () => setCreating(true),
+    previewMode,
+    startCreate: () => {
+      if (!previewMode) setCreating(true);
+    },
     cancelCreate: () => setCreating(false),
     handleFormPublished,
     handleFormSavedDraft,

@@ -4,6 +4,8 @@ import { Suspense, useMemo } from "react";
 import { Loader2 } from "lucide-react";
 import MessagesInboxLayout from "@/components/messages/MessagesInboxLayout";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
+import ParentGardenFrame from "@/components/school-parent/garden/ParentGardenFrame";
+import { useTeacherMessagesFeedback } from "@/components/school-teacher/messages/useTeacherMessagesFeedback";
 import type { MessagesInboxData, PortalMessage } from "@/lib/messages/types";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
@@ -20,6 +22,11 @@ type TeacherMessagesPageProps = {
   fillHeight?: boolean;
 };
 
+/**
+ * Staff Messages (Garden): the shared `MessagesInboxLayout` in the Garden
+ * inbox look (same view as parents/admin, so logic is never forked), staff
+ * toasts with Retry, and student names in a thread open their profile.
+ */
 function TeacherMessagesPageFallback() {
   return (
     <div
@@ -45,6 +52,7 @@ function TeacherMessagesPageContent({
   fillHeight = false,
 }: TeacherMessagesPageProps) {
   const { theme, adminCompat: C } = useParentTheme();
+  const onFeedback = useTeacherMessagesFeedback();
   const teacherPortal = useMemo(
     () =>
       staffMemberId
@@ -59,7 +67,8 @@ function TeacherMessagesPageContent({
   );
 
   return (
-    <div
+    <ParentGardenFrame
+      theme={theme}
       className={`flex min-h-0 flex-col overflow-hidden ${
         fillHeight ? "h-full flex-1" : "flex-1"
       }`}
@@ -79,10 +88,11 @@ function TeacherMessagesPageContent({
         readOnly={previewMode}
         C={C}
         theme={theme}
-        variant="parent-story"
+        variant="parent-garden"
         teacherPortal={teacherPortal}
+        onFeedback={onFeedback}
       />
-    </div>
+    </ParentGardenFrame>
   );
 }
 

@@ -26,6 +26,8 @@ Web portal screenshots use [portal-responsive-verify](../portal-responsive-verif
 | `parent-committees` | `.maestro/visual/parent-committees.yaml` | `E2E Volunteer Committee` |
 | `teacher-home` | `.maestro/visual/teacher-home.yaml` | `Your students` |
 | `teacher-messages` | `.maestro/visual/teacher-messages.yaml` | `Messages` |
+| `teacher-my-students` | `.maestro/visual/teacher-my-students.yaml` | `teacher-my-students-ready` |
+| `teacher-calendar` | `.maestro/visual/teacher-calendar.yaml` | `teacher-calendar-card` |
 | `parent-coop-teaching-schedule` | `.maestro/visual/parent-coop-teaching-schedule.yaml` | `parent-coop-teaching-schedule-ready` (after platform-admin parent preview) |
 | `parent-coop-more-menu` | `.maestro/visual/parent-coop-more-menu.yaml` | `Curriculum` + `Supply list` in More sheet |
 

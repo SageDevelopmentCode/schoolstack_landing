@@ -17,7 +17,21 @@ type GetStartedStoryTextFieldProps = {
   autoComplete?: string;
   maxLength?: number;
   className?: string;
+  /** "garden" needs a `.sf-garden` ancestor; only applies to `variant="intro"`. */
+  appearance?: "story" | "garden";
 };
+
+/** Garden form-field classes (literal so Tailwind can see them). */
+export const GARDEN_FIELD = {
+  label: "mb-2 block text-sm font-extrabold leading-snug text-[var(--sf-ink)]",
+  optional: "text-xs font-semibold text-[var(--sf-soft)]",
+  input:
+    "w-full rounded-2xl border-2 bg-white px-4 py-3.5 text-[15px] leading-normal text-[var(--sf-ink)] outline-none transition-colors placeholder:text-[var(--sf-ink)]/40 hover:border-[var(--sf-ink)]/40 focus-visible:border-[var(--sf-ink)] focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/25",
+  inputOk: "border-[var(--sf-ink)]/15",
+  inputError: "border-[var(--sf-clay-deep)]",
+  helper: "mt-2 text-xs leading-relaxed text-[var(--sf-soft)]",
+  error: "mt-2 text-xs font-bold leading-snug text-[var(--sf-clay-deep)]",
+} as const;
 
 export default function GetStartedStoryTextField({
   theme,
@@ -35,8 +49,46 @@ export default function GetStartedStoryTextField({
   autoComplete,
   maxLength,
   className = "",
+  appearance = "story",
 }: GetStartedStoryTextFieldProps) {
   const isIntro = variant === "intro";
+  const describedBy =
+    [helperText && id ? `${id}-helper` : null, hasError && errorText && id ? `${id}-error` : null]
+      .filter(Boolean)
+      .join(" ") || undefined;
+
+  if (isIntro && appearance === "garden") {
+    return (
+      <div className={className}>
+        <label htmlFor={id} className={GARDEN_FIELD.label}>
+          {label}
+          {optionalHint ? <span className={GARDEN_FIELD.optional}> {optionalHint}</span> : null}
+        </label>
+        <input
+          id={id}
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          autoComplete={autoComplete}
+          maxLength={maxLength}
+          aria-invalid={hasError}
+          aria-describedby={describedBy}
+          className={`${GARDEN_FIELD.input} ${hasError ? GARDEN_FIELD.inputError : GARDEN_FIELD.inputOk}`}
+        />
+        {helperText ? (
+          <p id={id ? `${id}-helper` : undefined} className={GARDEN_FIELD.helper}>
+            {helperText}
+          </p>
+        ) : null}
+        {hasError && errorText ? (
+          <p id={id ? `${id}-error` : undefined} className={GARDEN_FIELD.error} role="alert">
+            {errorText}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
   const borderColor = hasError ? "#B5594A" : theme.line;
   const focusOutline = hasError ? "#B5594A" : theme.primary;
 
@@ -177,6 +229,7 @@ type GetStartedIntroTextAreaProps = {
   placeholder?: string;
   id?: string;
   maxLength?: number;
+  appearance?: "story" | "garden";
 };
 
 export function GetStartedIntroTextArea({
@@ -187,7 +240,25 @@ export function GetStartedIntroTextArea({
   placeholder,
   id,
   maxLength,
+  appearance = "story",
 }: GetStartedIntroTextAreaProps) {
+  if (appearance === "garden") {
+    return (
+      <div>
+        <label htmlFor={id} className={GARDEN_FIELD.label}>
+          {label}
+        </label>
+        <textarea
+          id={id}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          maxLength={maxLength}
+          className={`${GARDEN_FIELD.input} ${GARDEN_FIELD.inputOk} min-h-[110px] resize-y`}
+        />
+      </div>
+    );
+  }
   return (
     <div>
       <label

@@ -12,8 +12,8 @@ import {
 const signedUrl = 'https://example.supabase.co/storage/v1/object/sign/forms/doc.pdf?token=abc';
 
 const shellOptions = {
-  pdfModuleUri: 'file:///bundled/pdf.min.mjs',
-  workerModuleUri: 'file:///bundled/pdf.worker.min.mjs',
+  pdfModuleSource: 'export const marker = "MAIN_SOURCE</script><b>\u2028";',
+  workerModuleSource: 'export const marker = "WORKER_SOURCE";',
 };
 
 describe('stripViewerFragment', () => {
@@ -27,13 +27,31 @@ describe('stripViewerFragment', () => {
 });
 
 describe('buildAndroidPdfViewerHtml', () => {
-  it('uses bundled pdf.js modules and disables eval in getDocument', () => {
+  it('inlines bundled pdf.js as blob modules and disables eval in getDocument', () => {
     const html = buildAndroidPdfViewerHtml(shellOptions);
     expect(html).not.toContain('cdnjs.cloudflare.com');
-    expect(html).toContain('file:///bundled/pdf.min.mjs');
-    expect(html).toContain('file:///bundled/pdf.worker.min.mjs');
+    // file:// modules are cross-origin to https://localhost and fail to import on Android.
+    expect(html).not.toContain('file://');
+    expect(html).toContain('MAIN_SOURCE');
+    expect(html).toContain('WORKER_SOURCE');
+    expect(html).toContain('URL.createObjectURL');
+    expect(html).toContain('await import(pdfModuleUrl)');
     expect(html).toContain('isEvalSupported: false');
     expect(html).not.toContain(signedUrl);
+  });
+
+  it('escapes inlined sources so they cannot close the script tag', () => {
+    const html = buildAndroidPdfViewerHtml(shellOptions);
+    expect(html).not.toContain('</script><b>');
+    expect(html).not.toContain('\u2028');
+    expect(html).toContain('\\u003c/script>');
+
+    const match = html.match(/window\.__pdfjsSources = (.*);\n/);
+    expect(match).not.toBeNull();
+    expect(JSON.parse(match![1])).toEqual({
+      main: shellOptions.pdfModuleSource,
+      worker: shellOptions.workerModuleSource,
+    });
   });
 
   it('loads document via host postMessage', () => {
@@ -54,6 +72,7 @@ describe('buildAndroidPdfViewerHtml', () => {
   it('surfaces module load failures from a classic script', () => {
     const html = buildAndroidPdfViewerHtml(shellOptions);
     expect(html).toContain("stage: 'module_load'");
+    expect(html).toContain("showFatalError('module_load', err)");
   });
 });
 

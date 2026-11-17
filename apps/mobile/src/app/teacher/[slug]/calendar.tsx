@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { TeacherCalendarScreen } from '@/components/teacher/calendar/teacher-calendar-screen';
+import { TeacherCalendarScreen } from '@/components/teacher/calendar/garden/teacher-calendar-screen';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function TeacherCalendarRoute() {

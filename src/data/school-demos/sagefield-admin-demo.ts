@@ -1,3 +1,5 @@
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
 export const SAGEFIELD_ADMIN_LOGO = {
   src: "/images/SageFieldLogo.png",
   alt: "Sage Field",
@@ -24,3 +26,17 @@ export const SAGEFIELD_ADMIN_COLORS = {
   textPrimary: "#333333",
   textSecondary: "#6D6257",
 } as const;
+
+/** Sage Field's Garden admin demo (case study Admin tab). Not in the `/demo/[slug]` registry. */
+export const sagefieldAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "sagefield",
+  logo: SAGEFIELD_ADMIN_LOGO,
+  colors: SAGEFIELD_ADMIN_COLORS,
+  compactRows: SAGEFIELD_ADMIN_COMPACT_ROWS,
+  copy: {
+    schoolName: "Sage Field",
+    schoolShortName: "Sage Field",
+    officeName: "Sage Field Office",
+    locationSubtitle: "Sage Field — Round Rock, TX · 2026–27 Enrollment",
+  },
+};

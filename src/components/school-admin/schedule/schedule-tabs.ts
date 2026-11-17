@@ -23,7 +23,20 @@ export const SCHEDULE_TABS: ReadonlyArray<{
   { id: "visits", label: "All visits", panelLabel: "All scheduled visits" },
 ];
 
-export function parseScheduleTab(value: string | null): ScheduleTabId {
+/** Tabs a free school sees with a lock: they open the unlock popup instead. */
+export const FREE_PLAN_LOCKED_SCHEDULE_TABS: readonly ScheduleTabId[] = [
+  "overview",
+  "events",
+  "permissions",
+  "shadow",
+];
+
+/** Tab from `?tab=`; a locked tab (free plan) falls back to Tours & interviews. */
+export function parseScheduleTab(
+  value: string | null,
+  lockedTabs: readonly ScheduleTabId[] = [],
+): ScheduleTabId {
+  let tab: ScheduleTabId = "overview";
   if (
     value === "events" ||
     value === "permissions" ||
@@ -31,9 +44,9 @@ export function parseScheduleTab(value: string | null): ScheduleTabId {
     value === "shadow" ||
     value === "visits"
   ) {
-    return value;
+    tab = value;
   }
-  return "overview";
+  return lockedTabs.includes(tab) ? "tours" : tab;
 }
 
 export type ToursSubtabId = "availability" | "submissions" | "public-tour";

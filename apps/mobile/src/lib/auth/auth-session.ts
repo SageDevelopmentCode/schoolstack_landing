@@ -84,6 +84,30 @@ async function refreshAccessToken(): Promise<string | null> {
   return token;
 }
 
+const ACCESS_TOKEN_EXPIRY_SKEW_SECONDS = 60;
+
+/**
+ * True when a JWT's `exp` is within `skewSeconds` of now (or past). Tokens that
+ * can't be decoded count as not expiring, so callers keep today's behaviour.
+ */
+export function isAccessTokenExpiringSoon(
+  token: string,
+  skewSeconds = ACCESS_TOKEN_EXPIRY_SKEW_SECONDS,
+  nowMs = Date.now(),
+): boolean {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload || typeof globalThis.atob !== 'function') return false;
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+    const { exp } = JSON.parse(globalThis.atob(padded)) as { exp?: unknown };
+    if (typeof exp !== 'number' || !Number.isFinite(exp)) return false;
+    return exp - skewSeconds <= nowMs / 1000;
+  } catch {
+    return false;
+  }
+}
+
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -122,7 +146,11 @@ export async function resolveAccessToken(
   const { signOutOnFailure = false } = options;
 
   if (cachedAccessToken) {
-    return cachedAccessToken;
+    if (!isAccessTokenExpiringSoon(cachedAccessToken)) {
+      return cachedAccessToken;
+    }
+    // Stale after a long background: fall through so getSession()/refresh mint a new one.
+    clearCachedAccessToken();
   }
 
   for (let attempt = 0; attempt < TOKEN_RESOLVE_MAX_ATTEMPTS; attempt += 1) {
@@ -230,6 +258,20 @@ export async function getApiAuthHeaders(includeJson = false): Promise<Record<str
     throw new Error(AUTH_REQUIRED_MESSAGE);
   }
 
+  return buildAuthHeaders(accessToken, includeJson);
+}
+
+/**
+ * Forces a session refresh, then returns headers with the new token. For
+ * callers that can't retry on 401 themselves (e.g. WebView header auth).
+ */
+export async function refreshApiAuthHeaders(
+  includeJson = false,
+): Promise<Record<string, string>> {
+  const accessToken = await refreshAccessToken();
+  if (!accessToken) {
+    throw new Error(AUTH_REQUIRED_MESSAGE);
+  }
   return buildAuthHeaders(accessToken, includeJson);
 }
 

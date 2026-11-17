@@ -19,6 +19,32 @@ export type HealthFormState =
   | { mode: 'create'; itemType: HealthItemType }
   | { mode: 'edit'; itemType: HealthItemType; itemId: string; values: HealthFormValues };
 
+/**
+ * Where health data comes from. Admin uses the school-admin API by slug; the
+ * teacher portal passes its own (`/api/teacher-portal/students/:id/health`).
+ */
+export type StudentHealthSource = {
+  fetchProfile: () => Promise<StudentHealthProfile>;
+  createItem: (itemType: HealthItemType, payload: Record<string, unknown>) => Promise<unknown>;
+  updateItem: (itemId: string, itemType: HealthItemType, payload: Record<string, unknown>) => Promise<unknown>;
+  deleteItem: (itemId: string) => Promise<unknown>;
+  /** `reportError` operations for saves and deletes. */
+  saveOperation: string;
+  deleteOperation: string;
+};
+
+function adminHealthSource(slug: string, studentId: string): StudentHealthSource {
+  return {
+    fetchProfile: () => fetchStudentHealthProfileAdmin(slug, studentId),
+    createItem: (itemType, payload) => createStudentHealthItemAdmin(slug, studentId, itemType, payload),
+    updateItem: (itemId, itemType, payload) =>
+      updateStudentHealthItemAdmin(slug, studentId, itemId, itemType, payload),
+    deleteItem: (itemId) => deleteStudentHealthItemAdmin(slug, studentId, itemId),
+    saveOperation: 'school_admin_student_health_save',
+    deleteOperation: 'school_admin_student_health_delete',
+  };
+}
+
 function valuesToPayload(values: HealthFormValues): Record<string, unknown> {
   if (values.type === 'allergy') {
     return { allergen: values.allergen, severity: values.severity, treatmentNotes: values.treatmentNotes };
@@ -45,16 +71,23 @@ export function useStudentHealth({
   slug,
   studentId,
   onProfileChange,
+  source: sourceProp,
 }: {
   slug: string;
   studentId: string;
   onProfileChange?: (profile: StudentHealthProfile) => void;
+  /** Defaults to the school-admin API. Read through a ref, so it need not be stable. */
+  source?: StudentHealthSource;
 }) {
   const { reportError } = useMobileErrorReporter();
   const onProfileChangeRef = useRef(onProfileChange);
   useEffect(() => {
     onProfileChangeRef.current = onProfileChange;
   }, [onProfileChange]);
+  const sourceRef = useRef<StudentHealthSource>(sourceProp ?? adminHealthSource(slug, studentId));
+  useEffect(() => {
+    sourceRef.current = sourceProp ?? adminHealthSource(slug, studentId);
+  }, [slug, sourceProp, studentId]);
 
   const [profile, setProfile] = useState<StudentHealthProfile>(emptyStudentHealthProfile());
   const [loading, setLoading] = useState(true);
@@ -64,7 +97,7 @@ export function useStudentHealth({
 
   const refreshProfile = useCallback(async () => {
     try {
-      const nextProfile = await fetchStudentHealthProfileAdmin(slug, studentId);
+      const nextProfile = await sourceRef.current.fetchProfile();
       setProfile(nextProfile);
       onProfileChangeRef.current?.(nextProfile);
       return nextProfile;
@@ -73,7 +106,8 @@ export function useStudentHealth({
       setProfile(emptyStudentHealthProfile());
       throw loadError;
     }
-  }, [slug, studentId]);
+    // Reads the current source through `sourceRef`.
+  }, []);
 
   const retryLoad = useCallback(async () => {
     setLoading(true);
@@ -96,7 +130,7 @@ export function useStudentHealth({
     });
     void (async () => {
       try {
-        const nextProfile = await fetchStudentHealthProfileAdmin(slug, studentId);
+        const nextProfile = await sourceRef.current.fetchProfile();
         if (cancelled) return;
         setProfile(nextProfile);
         onProfileChangeRef.current?.(nextProfile);
@@ -120,13 +154,13 @@ export function useStudentHealth({
       try {
         const payload = valuesToPayload(values);
         if (formState.mode === 'edit') {
-          await updateStudentHealthItemAdmin(slug, studentId, formState.itemId, formState.itemType, payload);
+          await sourceRef.current.updateItem(formState.itemId, formState.itemType, payload);
         } else {
-          await createStudentHealthItemAdmin(slug, studentId, values.type, payload);
+          await sourceRef.current.createItem(values.type, payload);
         }
         await refreshProfile();
       } catch (saveError) {
-        reportError('school_admin_student_health_save', saveError, {
+        reportError(sourceRef.current.saveOperation, saveError, {
           entityType: 'student',
           entityId: studentId,
           metadata: { itemType: formState.mode === 'edit' ? formState.itemType : values.type },
@@ -136,17 +170,17 @@ export function useStudentHealth({
         setSaving(false);
       }
     },
-    [formState, refreshProfile, reportError, slug, studentId],
+    [formState, refreshProfile, reportError, studentId],
   );
 
   /** Delete one item. Reports and rethrows on failure. */
   const remove = useCallback(
     async (itemType: HealthItemType, itemId: string) => {
       try {
-        await deleteStudentHealthItemAdmin(slug, studentId, itemId);
+        await sourceRef.current.deleteItem(itemId);
         await refreshProfile();
       } catch (deleteError) {
-        reportError('school_admin_student_health_delete', deleteError, {
+        reportError(sourceRef.current.deleteOperation, deleteError, {
           entityType: 'student',
           entityId: studentId,
           metadata: { itemType, itemId },
@@ -154,7 +188,7 @@ export function useStudentHealth({
         throw deleteError;
       }
     },
-    [refreshProfile, reportError, slug, studentId],
+    [refreshProfile, reportError, studentId],
   );
 
   return { profile, loading, error, retryLoad, formState, setFormState, saving, save, remove };

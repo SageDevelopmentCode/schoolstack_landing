@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { TeacherMyHoursScreen } from '@/components/teacher/my-hours/teacher-my-hours-screen';
+import { TeacherMyHoursGardenScreen } from '@/components/teacher/my-hours/garden/teacher-my-hours-garden-screen';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function TeacherMyHoursRoute() {
@@ -11,7 +11,5 @@ export default function TeacherMyHoursRoute() {
     return null;
   }
 
-  return (
-    <TeacherMyHoursScreen organizationId={selectedSchool.id} slug={slug} />
-  );
+  return <TeacherMyHoursGardenScreen organizationId={selectedSchool.id} slug={slug} />;
 }

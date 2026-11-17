@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
-import MarketingBrightToolShell from "@/components/marketing/shared/MarketingBrightToolShell";
+import MarketingGardenToolShell from "@/components/marketing/shared/MarketingGardenToolShell";
 
 export default function EnrollmentCalculatorShell({ children }: { children: ReactNode }) {
   return (
-    <MarketingBrightToolShell>
+    <MarketingGardenToolShell>
       <style>{`
         @media print {
           header.fixed,
@@ -12,14 +12,14 @@ export default function EnrollmentCalculatorShell({ children }: { children: Reac
             display: none !important;
           }
           .calculator-hero {
-            background: #f4f1ec !important;
-            color: #1d1a16 !important;
+            background: #F7F1E7 !important;
+            color: #2B241D !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
         }
       `}</style>
       {children}
-    </MarketingBrightToolShell>
+    </MarketingGardenToolShell>
   );
 }

@@ -2,21 +2,13 @@
 
 import type { RefObject } from "react";
 import Image from "next/image";
-import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
-import { ArrowRight, Check, Sparkles, Users } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { ArrowRight } from "lucide-react";
+import { Star, Tape, Tick } from "@/components/garden/ui";
 import type { SchoolWebsiteDemoConfig } from "@/data/school-demos/types";
 import DemoWebsiteButton from "../DemoWebsiteButton";
-import DemoWebsiteSectionKicker from "../DemoWebsiteSectionKicker";
-import {
-  DEMO_ACCENT_HIGHLIGHT,
-  DEMO_BODY,
-  DEMO_CHIP,
-  DEMO_CONTAINER,
-  DEMO_H1,
-  DEMO_INK,
-  DEMO_STICKER,
-  STORY_EASE,
-} from "../bright-demo-theme";
+import { SITE_CONTAINER, SITE_EASE, SITE_H1, SITE_LEAD } from "../site-garden-theme";
+import { keepHyphenated, SitePill, SitePolaroid, SiteSquiggleAccent, SiteStickyNote } from "../garden/SiteKit";
 import SiteNavBar from "./SiteNavBar";
 
 type Props = {
@@ -31,17 +23,10 @@ type Props = {
   onScrollToTop: () => void;
 };
 
-const rise = (delay: number) => ({
-  initial: { opacity: 0, y: 18 },
-  animate: { opacity: 1, y: 0 },
-  transition: { delay, duration: 0.6, ease: STORY_EASE },
-});
-
+/** Hero: copy on dot-grid paper beside a taped photo collage with sticky-note stats. */
 export default function SiteHero({
   config,
   heroRef,
-  scrollContainerRef,
-  isWide,
   activeNav,
   onNavLinkClick,
   onCtaClick,
@@ -49,38 +34,33 @@ export default function SiteHero({
   onScrollToTop,
 }: Props) {
   const { hero, stats } = config;
-  const reduceMotion = useReducedMotion();
-  const parallax = isWide && !reduceMotion;
+  const reduce = useReducedMotion();
   const showAnnouncementBar = hero.eyebrowPlacement === "announcementBar" && Boolean(hero.eyebrow);
-
-  const { scrollYProgress } = useScroll({
-    container: scrollContainerRef,
-    target: heroRef,
-    offset: ["start start", "end start"],
-  });
-  const mainY = useTransform(scrollYProgress, [0, 1], [0, -40]);
-  const leftY = useTransform(scrollYProgress, [0, 1], [0, 50]);
-  const rightY = useTransform(scrollYProgress, [0, 1], [0, -80]);
-
   const accentLine = hero.headlineAccentLine ?? hero.headline.length - 1;
   const [stickerA, stickerB] = stats;
+
+  // The frame lands first, then the copy follows (Garden hero timing).
+  const rise = (delay: number) => ({
+    initial: reduce ? false : { opacity: 0, y: 18 },
+    animate: { opacity: 1, y: 0 },
+    transition: { delay, duration: 0.7, ease: SITE_EASE },
+  });
+  const drop = (delay: number) => ({
+    initial: reduce ? false : { opacity: 0, y: -24, scale: 0.94 },
+    animate: { opacity: 1, y: 0, scale: 1 },
+    transition: { delay, type: "spring" as const, stiffness: 260, damping: 20 },
+  });
 
   return (
     <>
       {showAnnouncementBar ? (
-        <div className="font-secondary relative z-30 w-full bg-[var(--demo-ink)] px-4 py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-white/85 @2xl/site:text-xs">
+        <div className="relative z-30 w-full border-b-2 border-dashed border-[var(--sf-ink)]/25 bg-[var(--sf-butter)] px-4 py-2.5 text-center text-[12px] font-extrabold uppercase tracking-[0.14em] text-[var(--sf-ink)] @2xl/site:text-[13px]">
           {hero.eyebrow}
         </div>
       ) : null}
 
-      <section ref={heroRef} className="relative overflow-hidden bg-white pb-28 pt-4 @3xl/site:pb-36 @3xl/site:pt-5">
-        <div className="pointer-events-none absolute inset-0" aria-hidden>
-          <div className="absolute -left-40 top-40 h-[420px] w-[420px] rounded-full bg-[var(--demo-blob-c)] opacity-70 blur-[110px]" />
-          <div className="absolute -right-24 top-10 h-[520px] w-[520px] rounded-full bg-[var(--demo-blob-a)] opacity-60 blur-[120px]" />
-          <div className="absolute bottom-0 left-1/3 h-[360px] w-[620px] rounded-full bg-[var(--demo-blob-b)] opacity-70 blur-[120px]" />
-        </div>
-
-        <div className={`relative ${DEMO_CONTAINER}`}>
+      <section ref={heroRef} className="sf-grid relative overflow-hidden pb-28 pt-4 @3xl/site:pb-36 @3xl/site:pt-5">
+        <div className={`relative ${SITE_CONTAINER}`}>
           <SiteNavBar
             config={config}
             activeNav={activeNav}
@@ -89,67 +69,56 @@ export default function SiteHero({
             onScrollToTop={onScrollToTop}
           />
 
-          <div className="mt-12 grid grid-cols-1 items-center gap-14 @3xl/site:mt-16 @5xl/site:grid-cols-[1.02fr_1fr] @5xl/site:gap-12">
-            <div className="min-w-0">
+          <div className="mt-12 grid grid-cols-1 items-center gap-16 @3xl/site:mt-16 @5xl/site:grid-cols-[1.05fr_1fr] @5xl/site:gap-10">
+            <div className="relative min-w-0">
+              <Star
+                className="pointer-events-none absolute -left-2 -top-10 hidden h-9 w-9 @5xl/site:block"
+                color="var(--sf-school-primary)"
+              />
               {!showAnnouncementBar && hero.eyebrow ? (
-                <motion.div {...rise(0.05)}>
-                  <span className={`${DEMO_CHIP} py-2 shadow-sm`}>
-                    <span className="relative flex h-2 w-2" aria-hidden>
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--demo-primary)] opacity-50 motion-reduce:animate-none" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--demo-primary)]" />
-                    </span>
-                    {hero.eyebrow}
-                  </span>
+                <motion.div {...rise(0.25)}>
+                  <SitePill>{hero.eyebrow}</SitePill>
                 </motion.div>
               ) : hero.tagline ? (
-                <motion.div {...rise(0.05)}>
-                  <DemoWebsiteSectionKicker>{hero.tagline}</DemoWebsiteSectionKicker>
+                <motion.div {...rise(0.25)}>
+                  <SitePill>{hero.tagline}</SitePill>
                 </motion.div>
               ) : null}
 
-              <motion.h1 className={hero.headlineClassName ?? `${DEMO_H1} ${DEMO_INK} mt-6 text-balance`} {...rise(0.15)}>
+              <motion.h1 className={`${SITE_H1} mt-6 text-balance`} {...rise(0.35)}>
                 {hero.headline.map((line, i) => (
                   <span key={line}>
-                    {i === accentLine ? (
-                      <span className={hero.headlineAccentClassName ?? DEMO_ACCENT_HIGHLIGHT}>{line}</span>
-                    ) : (
-                      line
-                    )}
+                    {i === accentLine ? <SiteSquiggleAccent>{line}</SiteSquiggleAccent> : keepHyphenated(line)}
                     {i < hero.headline.length - 1 ? " " : null}
                   </span>
                 ))}
               </motion.h1>
 
               {hero.tagline && !showAnnouncementBar && hero.eyebrow ? (
-                <motion.p
-                  className="font-secondary mt-5 text-[15px] font-semibold text-[var(--demo-accent)]"
-                  {...rise(0.22)}
-                >
+                <motion.p className="mt-6 text-[16px] font-extrabold text-[var(--sf-clay-deep)]" {...rise(0.45)}>
                   {hero.tagline}
                 </motion.p>
               ) : null}
 
-              <motion.p className={`${DEMO_BODY} mt-5 max-w-[560px] text-[17px] @3xl/site:text-[19px]`} {...rise(0.28)}>
+              <motion.p className={`${SITE_LEAD} mt-5 max-w-[560px] @3xl/site:!text-[19px]`} {...rise(0.5)}>
                 {hero.subheadline}
               </motion.p>
 
-              <motion.div className="mt-9 flex flex-wrap items-center gap-3" {...rise(0.36)}>
-                <DemoWebsiteButton variant="primary" onClick={onCtaClick}>
+              <motion.div className="mt-9 flex flex-wrap items-center gap-4" {...rise(0.6)}>
+                <DemoWebsiteButton variant="primary" className="!h-14 !px-7 !text-[16px]" onClick={onCtaClick}>
                   {hero.primaryCta}
-                  <ArrowRight className="h-4 w-4" aria-hidden />
+                  <ArrowRight className="h-4 w-4" strokeWidth={2.6} aria-hidden />
                 </DemoWebsiteButton>
-                <DemoWebsiteButton variant="outline" onClick={onSecondaryCtaClick}>
+                <DemoWebsiteButton variant="outline" className="!h-14 !px-7 !text-[16px]" onClick={onSecondaryCtaClick}>
                   {hero.secondaryCta}
                 </DemoWebsiteButton>
               </motion.div>
 
               {hero.trustBadges && hero.trustBadges.length > 0 ? (
-                <motion.ul className="mt-9 flex flex-wrap gap-x-5 gap-y-2.5" {...rise(0.44)}>
+                <motion.ul className="mt-9 flex flex-wrap gap-x-5 gap-y-2.5" {...rise(0.7)}>
                   {hero.trustBadges.map((badge) => (
-                    <li key={badge} className="font-secondary flex items-center gap-2 text-[14px] font-medium text-[var(--demo-ink)]">
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--demo-tint-1)] text-[var(--demo-accent)]" aria-hidden>
-                        <Check className="h-3 w-3" strokeWidth={3} />
-                      </span>
+                    <li key={badge} className="flex items-center gap-2 text-[14px] font-extrabold text-[var(--sf-ink)]">
+                      <Tick className="h-5 w-5" color="var(--sf-clay)" fill="var(--sf-butter)" />
                       {badge}
                     </li>
                   ))}
@@ -157,84 +126,76 @@ export default function SiteHero({
               ) : null}
             </div>
 
-            <motion.div
-              className="relative mx-auto h-[420px] w-full max-w-[600px] @3xl/site:h-[560px]"
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2, duration: 0.8, ease: STORY_EASE }}
-            >
-              <div
-                className="absolute right-0 top-4 h-[88%] w-[84%] rotate-3 rounded-[40px] bg-[var(--demo-tint-1)] ring-1 ring-black/[0.04]"
-                aria-hidden
-              />
-              <motion.div
-                className="absolute right-3 top-0 h-[86%] w-[80%] overflow-hidden rounded-[36px] shadow-[var(--demo-shadow-float)] ring-1 ring-black/[0.06]"
-                style={parallax ? { y: mainY } : undefined}
-              >
-                <Image src={hero.backgroundImage} fill priority sizes="(min-width: 1024px) 560px, 90vw" className="object-cover" alt={hero.imageAlt} />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
+            <div className="relative mx-auto h-[440px] w-full max-w-[600px] @3xl/site:h-[560px]">
+              <motion.div className="absolute right-2 top-2 h-[82%] w-[80%]" {...drop(0.05)}>
+                <div
+                  className="relative h-full w-full rounded-[30px] border-2 border-[var(--sf-ink)] bg-white p-2.5 shadow-[0_10px_0_0_var(--sf-ink)] transition-[rotate] duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:!rotate-0"
+                  style={{ rotate: "1.6deg" }}
+                >
+                  <Tape color="var(--sf-butter)" className="-top-3 left-1/2 h-6 w-24 -translate-x-1/2 -rotate-3" />
+                  <div className="relative h-full w-full overflow-hidden rounded-[22px] bg-[var(--sf-cream)]">
+                    <Image
+                      src={hero.backgroundImage}
+                      fill
+                      preload
+                      sizes="(min-width: 1024px) 520px, 90vw"
+                      className="object-cover"
+                      alt={hero.imageAlt}
+                    />
+                  </div>
+                </div>
               </motion.div>
 
               {hero.floatingImages[0] ? (
-                <motion.div
-                  className="absolute bottom-2 left-0 h-[40%] w-[38%] -rotate-[5deg] overflow-hidden rounded-[26px] border-[6px] border-white shadow-[var(--demo-shadow-float)]"
-                  style={parallax ? { y: leftY } : undefined}
-                >
-                  <Image src={hero.floatingImages[0]} fill sizes="240px" className="object-cover" alt="" />
+                <motion.div className="absolute bottom-0 left-0 w-[40%]" {...drop(0.2)}>
+                  <SitePolaroid
+                    src={hero.floatingImages[0]}
+                    sizes="240px"
+                    tilt={-6}
+                    tape={1}
+                    imageClassName="aspect-square"
+                  />
                 </motion.div>
               ) : null}
 
               {hero.floatingImages[1] ? (
-                <motion.div
-                  className="absolute -right-1 bottom-[4%] hidden h-[26%] w-[26%] rotate-[6deg] overflow-hidden rounded-[22px] border-[5px] border-white shadow-[var(--demo-shadow-float)] @2xl/site:block"
-                  style={parallax ? { y: rightY } : undefined}
-                >
-                  <Image src={hero.floatingImages[1]} fill sizes="180px" className="object-cover" alt="" />
+                <motion.div className="absolute -right-2 bottom-[2%] hidden w-[27%] @2xl/site:block" {...drop(0.3)}>
+                  <SitePolaroid
+                    src={hero.floatingImages[1]}
+                    sizes="180px"
+                    tilt={7}
+                    tape={2}
+                    imageClassName="aspect-[4/5]"
+                  />
                 </motion.div>
               ) : null}
 
               {stickerA ? (
-                <motion.div
-                  className={`${DEMO_STICKER} absolute left-[6%] top-[10%] flex items-center gap-3`}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.7, duration: 0.6, ease: STORY_EASE }}
-                >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--demo-tint-1)] text-[var(--demo-accent)]" aria-hidden>
-                    <Sparkles className="h-5 w-5" />
-                  </span>
-                  <span>
-                    <span className="font-secondary block text-[17px] font-bold leading-none tracking-[-0.02em] text-[var(--demo-ink)]">
+                <motion.div className="absolute left-[2%] top-[8%] max-w-[190px]" {...drop(0.45)}>
+                  <SiteStickyNote tilt={-4} tape={false} className="!p-4">
+                    <span className="sf-display block text-[1.6rem] leading-none text-[var(--sf-ink)]">
                       {stickerA.value}
                     </span>
-                    <span className="font-secondary mt-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--demo-muted)]">
+                    <span className="mt-1.5 block text-[11px] font-extrabold uppercase tracking-[0.14em] text-[var(--sf-ink)]/70">
                       {stickerA.label}
                     </span>
-                  </span>
+                  </SiteStickyNote>
                 </motion.div>
               ) : null}
 
               {stickerB ? (
-                <motion.div
-                  className={`${DEMO_STICKER} absolute bottom-[16%] right-[30%] hidden items-center gap-3 @2xl/site:flex`}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.85, duration: 0.6, ease: STORY_EASE }}
-                >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--demo-ink)] text-white" aria-hidden>
-                    <Users className="h-5 w-5" />
-                  </span>
-                  <span>
-                    <span className="font-secondary block text-[17px] font-bold leading-none tracking-[-0.02em] text-[var(--demo-ink)]">
+                <motion.div className="absolute bottom-[20%] right-[30%] hidden max-w-[190px] @2xl/site:block" {...drop(0.55)}>
+                  <SiteStickyNote tilt={3} tint="bg-[var(--sf-mint)]" tape={false} className="!p-4">
+                    <span className="sf-display block text-[1.6rem] leading-none text-[var(--sf-ink)]">
                       {stickerB.value}
                     </span>
-                    <span className="font-secondary mt-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--demo-muted)]">
+                    <span className="mt-1.5 block text-[11px] font-extrabold uppercase tracking-[0.14em] text-[var(--sf-ink)]/70">
                       {stickerB.label}
                     </span>
-                  </span>
+                  </SiteStickyNote>
                 </motion.div>
               ) : null}
-            </motion.div>
+            </div>
           </div>
         </div>
       </section>

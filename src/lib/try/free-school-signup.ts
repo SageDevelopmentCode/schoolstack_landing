@@ -1,3 +1,6 @@
+import { DEMO_REQUEST_ROLE_OPTIONS, type DemoRequestRoleId } from "@/lib/demo-request-roles";
+import { isStudentCountId, type StudentCountId } from "@/lib/student-count-options";
+
 export const FREE_SCHOOL_PLAN = "free" as const;
 
 /** New self-serve schools are not churned, so public reads work, and they have not gone live with families. */
@@ -117,4 +120,46 @@ export function signupImpersonationMessage(
   }
 
   return null;
+}
+
+export const MAX_SIGNUP_FIRST_NAME_LENGTH = 80;
+
+export type SignupDetails = {
+  firstName: string;
+  role: DemoRequestRoleId | null;
+  studentCount: StudentCountId | null;
+};
+
+function isDemoRequestRoleId(value: unknown): value is DemoRequestRoleId {
+  return typeof value === "string" && DEMO_REQUEST_ROLE_OPTIONS.some((option) => option.id === value);
+}
+
+/**
+ * Optional signup details sent with /api/try/complete. First name is required
+ * (null when missing); unknown role or student count ids become null.
+ */
+export function normalizeSignupDetails(input: {
+  firstName?: unknown;
+  role?: unknown;
+  studentCount?: unknown;
+}): { ok: true; details: SignupDetails } | { ok: false; error: "missing_first_name" } {
+  const rawName = typeof input.firstName === "string" ? input.firstName : "";
+  const firstName = rawName
+    .trim()
+    .replace(/\s+/g, " ")
+    .slice(0, MAX_SIGNUP_FIRST_NAME_LENGTH)
+    .trim();
+
+  if (!firstName) {
+    return { ok: false, error: "missing_first_name" };
+  }
+
+  return {
+    ok: true,
+    details: {
+      firstName,
+      role: isDemoRequestRoleId(input.role) ? input.role : null,
+      studentCount: isStudentCountId(input.studentCount) ? input.studentCount : null,
+    },
+  };
 }

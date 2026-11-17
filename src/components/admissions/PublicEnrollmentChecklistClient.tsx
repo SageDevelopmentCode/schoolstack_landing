@@ -291,6 +291,7 @@ export default function PublicEnrollmentChecklistClient({
       fullBleed
       fillHeight
       helpFabClassName="max-sm:hidden"
+      toasterAppearance="garden"
     >
       <EnrollmentChecklistExperience
         branding={branding}

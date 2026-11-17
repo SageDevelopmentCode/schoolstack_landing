@@ -71,3 +71,45 @@ export function GardenAvatar({
 }
 
 export { isMudKitchenSupportListThread };
+
+/**
+ * Thread subtitle. For staff (`onOpenStudent` set) the students named in it
+ * become links that open their profile; otherwise the plain subtitle.
+ */
+export function GardenThreadSubtitle({
+  subtitle,
+  students,
+  onOpenStudent,
+  className,
+}: {
+  subtitle?: string | null;
+  students?: { id: string; name: string }[];
+  onOpenStudent?: (studentId: string) => void;
+  className: string;
+}) {
+  if (onOpenStudent && students?.length) {
+    return (
+      <p className={className}>
+        {students.map((student, index) => (
+          <span key={student.id}>
+            {index > 0 ? <span aria-hidden className="mx-1">·</span> : null}
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onOpenStudent(student.id);
+              }}
+              aria-label={`Open ${student.name}'s profile`}
+              title={`Open ${student.name}'s profile`}
+              className="cursor-pointer rounded-[6px] font-extrabold text-[var(--sf-clay-deep)] underline decoration-[var(--sf-clay)]/35 decoration-2 underline-offset-[3px] hover:decoration-[var(--sf-clay)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--sf-clay)]/45"
+            >
+              {student.name}
+            </button>
+          </span>
+        ))}
+      </p>
+    );
+  }
+  if (!subtitle) return null;
+  return <p className={className}>{subtitle}</p>;
+}

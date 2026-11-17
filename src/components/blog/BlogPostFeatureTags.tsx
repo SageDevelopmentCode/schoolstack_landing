@@ -8,20 +8,18 @@ type BlogPostFeatureTagsProps = {
   className?: string;
 };
 
+/** Feature tags as Garden pills. */
 export default function BlogPostFeatureTags({ tags, className = "" }: BlogPostFeatureTagsProps) {
   const resolved = resolveBlogFeatureTags(tags);
   if (resolved.length === 0) return null;
 
   return (
-    <div className={`flex flex-wrap gap-2 ${className}`}>
+    <ul className={`flex flex-wrap gap-2 ${className}`} aria-label="Topics">
       {resolved.map((tag) => (
-        <span
-          key={tag.id}
-          className={`inline-flex items-center rounded-pill px-2.5 py-1 text-[11px] font-semibold font-secondary ${tag.className}`}
-        >
+        <li key={tag.id} className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-extrabold ${tag.className}`}>
           {tag.label}
-        </span>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }

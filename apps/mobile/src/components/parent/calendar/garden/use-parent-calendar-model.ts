@@ -19,7 +19,14 @@ import type { OrganizationEvent } from '@/lib/school-events/types';
  * the Story screen's, except a day with 2+ events opens a list of them
  * (instead of only the first event).
  */
-export function useParentCalendarModel(controller: ParentCalendarScreenController) {
+export function useParentCalendarModel(
+  controller: ParentCalendarScreenController,
+  options?: {
+    /** Staff who manage events: tapping an empty day goes straight to "Add event" (as before). */
+    onEmptyDay?: (date: string) => void;
+  },
+) {
+  const onEmptyDay = options?.onEmptyDay;
   const { calendar, events, deepLinkEvent, clearDeepLinkEvent } = controller;
   const { setSelectedDate } = calendar;
 
@@ -84,6 +91,12 @@ export function useParentCalendarModel(controller: ParentCalendarScreenControlle
       setSelectedDate(date);
       const dayEvents = eventsByDate.get(date) ?? [];
       const outcome = dayTapOutcome(dayEvents);
+      if (outcome === 'empty' && onEmptyDay) {
+        setSelectedEvent(null);
+        setDaySheetDate(null);
+        onEmptyDay(date);
+        return;
+      }
       if (outcome === 'event') {
         setDaySheetDate(null);
         setSelectedEvent(dayEvents[0]);
@@ -92,7 +105,7 @@ export function useParentCalendarModel(controller: ParentCalendarScreenControlle
       setSelectedEvent(null);
       setDaySheetDate(date);
     },
-    [eventsByDate, setSelectedDate],
+    [eventsByDate, onEmptyDay, setSelectedDate],
   );
 
   /** From the day sheet's list: let the sheet dismiss, then open the event. */

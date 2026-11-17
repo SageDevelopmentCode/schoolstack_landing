@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import BreadcrumbJsonLd from "@/components/seo/BreadcrumbJsonLd";
-import HomeShell from "@/components/home/HomeShell";
+import GardenRoot from "@/components/garden/GardenRoot";
+import MarketingToolGardenPage from "@/components/marketing/shared/MarketingToolGardenPage";
 import EnrollmentCalculatorExperience from "@/components/marketing/enrollment-calculator/EnrollmentCalculatorExperience";
-import MarketingToolTail from "@/components/marketing/shared/MarketingToolTail";
 import { pageMetadata } from "@/lib/metadata";
 import { buildBreadcrumbs } from "@/lib/seo";
 
@@ -31,10 +31,11 @@ const BREADCRUMBS = buildBreadcrumbs({
 
 export default function HowManyStudentsPage() {
   return (
-    <HomeShell className="bg-white">
-      <BreadcrumbJsonLd items={BREADCRUMBS} />
-      <EnrollmentCalculatorExperience />
-      <MarketingToolTail />
-    </HomeShell>
+    <GardenRoot>
+      <MarketingToolGardenPage>
+        <BreadcrumbJsonLd items={BREADCRUMBS} />
+        <EnrollmentCalculatorExperience />
+      </MarketingToolGardenPage>
+    </GardenRoot>
   );
 }

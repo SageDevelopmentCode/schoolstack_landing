@@ -9,6 +9,7 @@ import {
   DEMO_REQUEST_ROLE_OPTIONS,
   type DemoRequestRoleId,
 } from "@/lib/demo-request-roles";
+import { Tick } from "@/components/garden/ui";
 import { DEMO_INTRO_FORM_COPY } from "@/lib/marketing/demo-intro-form-copy";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
@@ -25,12 +26,27 @@ const TILE_ICON = "#78917D";
 const CHOICE_BORDER = "#DCE4DA";
 const CHOICE_BORDER_SELECTED = "#91B198";
 
+/** Icon tile tint per stage card (literal classes; needs `.sf-garden`). */
+const GARDEN_ICON_TINT: Record<DemoRequestRoleId, string> = {
+  starting: "bg-[var(--sf-mint)] text-[var(--sf-forest)]",
+  running: "bg-[var(--sf-sky)] text-[#24507a]",
+  program: "bg-[var(--sf-butter)] text-[#6b4f00]",
+  other: "bg-[var(--sf-lav)] text-[#5e3a78]",
+};
+
+const GARDEN_CARD = {
+  on: "border-[var(--sf-ink)] bg-[var(--sf-butter)]/35 shadow-[0_4px_0_0_var(--sf-ink)]",
+  off: "border-[var(--sf-ink)]/15 bg-white hover:-translate-y-0.5 hover:border-[var(--sf-ink)]/50",
+} as const;
+
 type GetStartedRoleChoicesProps = {
   theme: ParentThemeTokens;
   value: DemoRequestRoleId | "";
   onChange: (role: DemoRequestRoleId) => void;
   hasError?: boolean;
   variant?: "default" | "intro";
+  /** "garden" needs a `.sf-garden` ancestor; only applies to `variant="intro"`. */
+  appearance?: "story" | "garden";
 };
 
 export default function GetStartedRoleChoices({
@@ -39,7 +55,77 @@ export default function GetStartedRoleChoices({
   onChange,
   hasError = false,
   variant = "default",
+  appearance = "story",
 }: GetStartedRoleChoicesProps) {
+  if (variant === "intro" && appearance === "garden") {
+    const copy = DEMO_INTRO_FORM_COPY;
+    return (
+      <fieldset className="m-0 mt-9 min-w-0 border-0 p-0">
+        <legend className="p-0 text-sm font-extrabold leading-snug text-[var(--sf-ink)]">
+          {copy.stageLegend}
+        </legend>
+        <p className="mt-1.5 text-xs leading-relaxed text-[var(--sf-soft)]">{copy.stageHint}</p>
+        <div
+          className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2"
+          role="radiogroup"
+          aria-invalid={hasError}
+          aria-describedby={hasError ? "intro-role-error" : undefined}
+        >
+          {DEMO_REQUEST_ROLE_OPTIONS.map((option) => {
+            const selected = value === option.id;
+            const Icon = ROLE_ICONS[option.id];
+            return (
+              <label
+                key={option.id}
+                className={`relative flex min-w-0 cursor-pointer items-start gap-3 rounded-[22px] border-2 p-4 transition-all duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-[var(--sf-clay)]/30 ${selected ? GARDEN_CARD.on : GARDEN_CARD.off}`}
+              >
+                <input
+                  type="radio"
+                  name="schoolStage"
+                  value={option.id}
+                  checked={selected}
+                  onChange={() => onChange(option.id)}
+                  className="absolute h-px w-px opacity-0"
+                  aria-label={`${option.title}: ${option.subtitle}`}
+                />
+                <span
+                  className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ring-2 ring-[var(--sf-ink)] ${GARDEN_ICON_TINT[option.id]}`}
+                >
+                  <Icon size={18} strokeWidth={2.4} aria-hidden />
+                </span>
+                <span className="min-w-0 pr-7">
+                  <strong className="block text-[15px] font-extrabold leading-snug text-[var(--sf-ink)]">
+                    {option.title}
+                  </strong>
+                  <small className="mt-0.5 block text-[13px] leading-snug text-[var(--sf-soft)]">
+                    {option.subtitle}
+                  </small>
+                </span>
+                {selected ? (
+                  <Tick className="absolute right-3 top-3 h-6 w-6" />
+                ) : (
+                  <span
+                    className="absolute right-3.5 top-3.5 h-5 w-5 rounded-full ring-2 ring-inset ring-[var(--sf-ink)]/20"
+                    aria-hidden
+                  />
+                )}
+              </label>
+            );
+          })}
+        </div>
+        {hasError ? (
+          <p
+            id="intro-role-error"
+            className="mt-2 text-xs font-bold leading-snug text-[var(--sf-clay-deep)]"
+            role="alert"
+          >
+            {copy.errors.role}
+          </p>
+        ) : null}
+      </fieldset>
+    );
+  }
+
   if (variant === "intro") {
     const copy = DEMO_INTRO_FORM_COPY;
     return (

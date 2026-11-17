@@ -12,7 +12,15 @@ type DemoComponent = ComponentType<Record<string, unknown>>;
 
 type LoadedParentDemo =
   | { kind: "shared"; slug: string }
+  | { kind: "garden"; slug: string }
   | { kind: "custom"; slug: string; Component: DemoComponent };
+
+type GardenParentDemos = typeof import("@/components/demo/shared/lazySchoolParentGardenDemo");
+
+/** Shared-school tabs that render the real Garden parent pages (others keep the story demo). */
+function usesGardenParentDemo(tab: DemoWalkthroughParentTab): boolean {
+  return tab === "enrollment" || tab === "home" || tab === "billing";
+}
 
 function loadParentDemo(slug: string): Promise<LoadedParentDemo> {
   if (slug === ROOTED_MEADOWS_SLUG) {
@@ -58,12 +66,21 @@ export default function ScaledParentDemoPreview({
   const [SharedParent, setSharedParent] = useState<ComponentType<
     Record<string, unknown>
   > | null>(null);
+  const [gardenDemos, setGardenDemos] = useState<GardenParentDemos | null>(null);
   const isRootedMeadows = demoSlug === ROOTED_MEADOWS_SLUG;
 
   useEffect(() => {
     let cancelled = false;
     void loadParentDemo(demoSlug).then(async (loaded) => {
       if (cancelled) return;
+      if (loaded.kind === "shared" && usesGardenParentDemo(initialParentTab)) {
+        const mod = await import("@/components/demo/shared/lazySchoolParentGardenDemo");
+        if (!cancelled) {
+          setGardenDemos(mod);
+          setLoadedDemo({ kind: "garden", slug: loaded.slug });
+        }
+        return;
+      }
       if (loaded.kind === "shared") {
         const mod = await import("@/components/demo/shared/lazySchoolParentDemo");
         if (!cancelled) {
@@ -82,7 +99,7 @@ export default function ScaledParentDemoPreview({
     return () => {
       cancelled = true;
     };
-  }, [demoSlug]);
+  }, [demoSlug, initialParentTab]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -120,6 +137,17 @@ export default function ScaledParentDemoPreview({
             transformOrigin: "top left",
           }}
         >
+          {loadedDemo?.kind === "garden" && gardenDemos ? (
+            initialParentTab === "enrollment" ? (
+              <gardenDemos.LazyDemoParentEnrollmentChecklist demoSlug={demoSlug} />
+            ) : (
+              <gardenDemos.LazyDemoParentGardenPortal
+                demoSlug={demoSlug}
+                initialTab={initialParentTab === "home" ? "home" : "billing"}
+                billingChildIds={billingChildIds}
+              />
+            )
+          ) : null}
           {loadedDemo?.kind === "shared" && SharedParent ? (
             <SharedParent demoSlug={demoSlug} {...demoProps} />
           ) : null}

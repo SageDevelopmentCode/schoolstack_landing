@@ -1,8 +1,59 @@
 import type { SchoolAdminDemoCopy } from "@/data/school-demos/demo-dashboard-types";
 import type { AdminDashboardSummary } from "@/lib/school-admin/dashboard-summary";
+import type { AdminDashboardStaffHoursToday } from "@/lib/school-admin/staff-hours/load-admin-staff-hours-dashboard-today";
+import { formatHoursMinutes, toDateKey } from "@/lib/school-teacher/my-hours/format-duration";
 const DEMO_ORG_ID = "demo-org";
 const DEMO_SLUG = "demo-school";
 const DEMO_ATTENDANCE_DATE = "2026-09-20";
+
+function clockLabel(date: Date): string {
+  return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+/**
+ * Staff hours for the demo Dashboard, relative to `now` so the live timers
+ * read like a normal school morning (two on the clock, one shift done).
+ */
+export function buildDemoStaffHoursToday(now: Date = new Date()): AdminDashboardStaffHoursToday {
+  const minutesAgo = (minutes: number) => new Date(now.getTime() - minutes * 60_000);
+  const live = [
+    { staffMemberId: "staff-sam", staffName: "Sam Okonkwo", startedMinutesAgo: 168 },
+    { staffMemberId: "staff-priya", staffName: "Priya Nair", startedMinutesAgo: 95 },
+  ];
+  const completed = [
+    { staffMemberId: "staff-chris", staffName: "Chris Alvarez", endedMinutesAgo: 40, minutes: 210 },
+  ];
+  const totalMinutesToday =
+    live.reduce((sum, row) => sum + row.startedMinutesAgo, 0) +
+    completed.reduce((sum, row) => sum + row.minutes, 0);
+  const totalHoursLabel = formatHoursMinutes(totalMinutesToday);
+  return {
+    referenceDateKey: toDateKey(now),
+    summaryLine: `${live.length} clocked in · ${completed.length} session${completed.length === 1 ? "" : "s"} done · ${totalHoursLabel} logged today`,
+    clockedInCount: live.length,
+    completedSessionCount: completed.length,
+    totalMinutesToday,
+    totalHoursLabel,
+    clockedIn: live.map((row) => {
+      const clockIn = minutesAgo(row.startedMinutesAgo);
+      return {
+        staffMemberId: row.staffMemberId,
+        staffName: row.staffName,
+        clockInAt: clockIn.toISOString(),
+        clockInLabel: clockLabel(clockIn),
+        elapsedLabel: formatHoursMinutes(row.startedMinutesAgo),
+      };
+    }),
+    completedToday: completed.map((row) => ({
+      staffMemberId: row.staffMemberId,
+      staffName: row.staffName,
+      clockInLabel: clockLabel(minutesAgo(row.endedMinutesAgo + row.minutes)),
+      clockOutLabel: clockLabel(minutesAgo(row.endedMinutesAgo)),
+      durationLabel: formatHoursMinutes(row.minutes),
+    })),
+    hiddenCompletedCount: 0,
+  };
+}
 
 function buildAttendanceToday() {
   const date = DEMO_ATTENDANCE_DATE;
@@ -333,7 +384,7 @@ export function buildDemoAdminDashboardSummary(
     ],
     messagesUnreadCount: 4,
     attendanceToday: buildAttendanceToday(),
-    staffHoursToday: null,
+    staffHoursToday: buildDemoStaffHoursToday(),
   };
 }
 

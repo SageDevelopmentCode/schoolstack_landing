@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { Check } from "lucide-react";
+import { ArrowLeft, Check, Video } from "lucide-react";
+import { Tick, btnOutline } from "@/components/garden/ui";
+import GardenBookingSteps from "@/components/get-started/garden/GardenBookingSteps";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
 import type { DemoSchedulerBooking } from "@/components/scheduler/DemoScheduler";
@@ -18,6 +20,9 @@ type GetStartedConfirmationProps = {
   schoolName: string;
   roleLabel: string;
   booking: DemoSchedulerBooking | null;
+  headingAs?: "h1" | "h2";
+  /** "garden" needs a `.sf-garden` ancestor. */
+  appearance?: "story" | "garden";
 };
 
 export default function GetStartedConfirmation({
@@ -25,6 +30,8 @@ export default function GetStartedConfirmation({
   schoolName,
   roleLabel,
   booking,
+  headingAs = "h1",
+  appearance = "story",
 }: GetStartedConfirmationProps) {
   const school = schoolName.trim() || "your school";
 
@@ -41,6 +48,74 @@ export default function GetStartedConfirmation({
   const showCanonicalSecondary =
     booking && booking.displayTimezone !== SCHEDULER_TIMEZONE;
 
+  if (appearance === "garden") {
+    const Heading = headingAs;
+    return (
+      <div className="text-[var(--sf-ink)]">
+        <GardenBookingSteps activeStep={2} />
+        <div className="text-center">
+          <span className="mx-auto grid h-16 w-16 place-items-center rounded-full border-2 border-[var(--sf-ink)] bg-[var(--sf-forest)] shadow-[0_4px_0_0_var(--sf-ink)]">
+            <Tick className="h-11 w-11" color="#fff" fill="transparent" />
+          </span>
+          <Heading className="sf-display mt-6 text-5xl leading-[0.95] text-[var(--sf-ink)]">
+            You&apos;re <span className="text-[var(--sf-clay)]">booked.</span>
+          </Heading>
+          <p className="sf-hand mt-2 rotate-[-2deg] text-2xl text-[var(--sf-forest)]" aria-hidden="true">
+            see you soon!
+          </p>
+          <p className="mx-auto mt-4 max-w-[44ch] text-lg leading-relaxed text-[var(--sf-soft)]">
+            We&apos;ll tailor the session around {school}
+            {roleLabel ? ` — ${roleLabel}.` : "."}
+          </p>
+          <p className="mx-auto mt-2 max-w-[44ch] text-[15px] leading-relaxed text-[var(--sf-soft)]">
+            We sent a confirmation to the email you provided.
+          </p>
+        </div>
+
+        {booking && visitorWhen ? (
+          <div className="mx-auto mt-8 max-w-[480px] rounded-[26px] border-2 border-[var(--sf-ink)] bg-[var(--sf-mint)] shadow-[0_6px_0_0_var(--sf-ink)]">
+            <div className="px-6 pb-4 pt-5 text-center">
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[var(--sf-forest)]">
+                Your demo
+              </p>
+              <p className="sf-display mt-1.5 text-2xl leading-tight">{visitorWhen}</p>
+              {showCanonicalSecondary && canonicalWhen ? (
+                <p className="mt-1 text-[13px] text-[var(--sf-ink)]/70">
+                  {canonicalWhen} <span>Central Time (our scheduling time)</span>
+                </p>
+              ) : null}
+            </div>
+            <p className="flex items-center justify-center gap-2 border-t-2 border-dashed border-[var(--sf-ink)]/20 px-6 py-3 text-[13px] font-bold text-[var(--sf-forest)]">
+              <Video size={15} aria-hidden />
+              20-minute video call
+            </p>
+          </div>
+        ) : null}
+
+        <div className="sf-paper mx-auto mt-8 max-w-[480px] rounded-[24px] border-2 border-[var(--sf-ink)]/15 px-6 py-5">
+          <h3 className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[var(--sf-soft)]">
+            Helpful before the call
+          </h3>
+          <ul className="mt-3 flex flex-col gap-3">
+            {PREP_ITEMS.map((item) => (
+              <li key={item} className="flex items-start gap-3 text-[15px] leading-snug">
+                <Tick className="h-6 w-6" />
+                <span className="pt-0.5">{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="mt-8 text-center">
+          <Link href="/" className={`${btnOutline} !px-6 !py-3 !text-[15px]`}>
+            <ArrowLeft size={16} strokeWidth={2.6} aria-hidden />
+            Back to home
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="text-center">
       <div className="flex justify-center mb-7">
@@ -54,7 +129,7 @@ export default function GetStartedConfirmation({
 
       <ParentDisplayHeading
         theme={theme}
-        as="h1"
+        as={headingAs}
         size="display"
         className="mb-4 font-display"
       >

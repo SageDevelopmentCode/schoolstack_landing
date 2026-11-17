@@ -1,86 +1,65 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Home, School, Sparkles } from "lucide-react";
+import { Home, School } from "lucide-react";
 import type { DemoHybridDay, DemoHybridRhythmSection } from "@/data/school-demos/types";
-import { DEMO_BLOCK, DEMO_CHIP, DEMO_GUTTER, STORY_EASE } from "./bright-demo-theme";
-import SiteSectionHeader from "./sections/SiteSectionHeader";
+import { SITE_CONTAINER, SITE_EYEBROW, SITE_ICON_RING, SITE_SECTION } from "./site-garden-theme";
+import { SitePill, SiteReveal, SiteSectionIntro } from "./garden/SiteKit";
 
-function DayColumn({
+/** One page of the weekly planner: a coloured tab over ruled notebook paper. */
+function PlannerPage({
   title,
   days,
   icon: Icon,
-  dark,
+  tabClass,
   delay,
 }: {
   title: string;
   days: DemoHybridDay[];
   icon: typeof School;
-  dark: boolean;
+  tabClass: string;
   delay: number;
 }) {
   return (
-    <motion.div
-      className={`relative overflow-hidden rounded-[28px] p-7 @3xl/site:p-9 ${dark ? "bg-[var(--demo-ink)] text-white" : "bg-white text-[var(--demo-ink)]"}`}
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.55, delay, ease: STORY_EASE }}
-    >
-      {dark ? (
-        <div className="pointer-events-none absolute -right-14 -top-14 h-48 w-48 rounded-full bg-[var(--demo-glow)] blur-3xl" aria-hidden />
-      ) : null}
-      <div className="relative flex items-center gap-3">
-        <span
-          className={`flex h-12 w-12 items-center justify-center rounded-2xl ${dark ? "bg-white/10 ring-1 ring-white/15" : "bg-[var(--demo-tint-1)]"}`}
-        >
-          <Icon className={`h-5 w-5 ${dark ? "text-[var(--demo-primary-light)]" : "text-[var(--demo-accent)]"}`} aria-hidden />
-        </span>
-        <p className="font-secondary text-[1.35rem] font-bold tracking-[-0.02em]">{title}</p>
+    <SiteReveal delay={delay}>
+      <div className="h-full overflow-hidden rounded-[26px] border-2 border-[var(--sf-ink)] bg-white shadow-[0_6px_0_0_var(--sf-ink)]">
+        <div className={`flex items-center gap-3 border-b-2 border-[var(--sf-ink)] px-6 py-4 ${tabClass}`}>
+          <span className={`${SITE_ICON_RING} !h-10 !w-10`} aria-hidden>
+            <Icon className="h-[18px] w-[18px]" strokeWidth={2.4} />
+          </span>
+          <h3 className="sf-display text-[1.6rem] leading-none text-[var(--sf-ink)]">{title}</h3>
+        </div>
+        <ul className="sf-paper divide-y-2 divide-dashed divide-[var(--sf-ink)]/15 px-6">
+          {days.map((day) => (
+            <li key={day.label} className="py-5">
+              <p className={SITE_EYEBROW}>{day.label}</p>
+              <p className="mt-1 text-[16px] font-extrabold text-[var(--sf-ink)]">{day.title}</p>
+              <p className="mt-1 text-[14px] leading-relaxed text-[var(--sf-soft)]">{day.desc}</p>
+            </li>
+          ))}
+        </ul>
       </div>
-      <ul className="relative mt-7 space-y-3">
-        {days.map((day) => (
-          <li
-            key={day.label}
-            className={`rounded-[20px] p-4 ${dark ? "bg-white/[0.06] ring-1 ring-white/10" : "bg-[var(--demo-tint-3)]"}`}
-          >
-            <p
-              className={`font-secondary text-[12px] font-semibold uppercase tracking-[0.14em] ${dark ? "text-[var(--demo-primary-light)]" : "text-[var(--demo-accent)]"}`}
-            >
-              {day.label}
-            </p>
-            <p className="font-secondary mt-1 text-[16px] font-bold">{day.title}</p>
-            <p className={`font-secondary mt-1 text-[14px] leading-relaxed ${dark ? "text-white/65" : "text-[var(--demo-muted)]"}`}>
-              {day.desc}
-            </p>
-          </li>
-        ))}
-      </ul>
-    </motion.div>
+    </SiteReveal>
   );
 }
 
 export default function HybridRhythmSection({ section }: { section: DemoHybridRhythmSection }) {
   return (
-    <section id="signature" className={`scroll-mt-[88px] py-3 ${DEMO_GUTTER}`}>
-      <div className={`${DEMO_BLOCK} bg-[var(--demo-tint-4)]`}>
-        <SiteSectionHeader eyebrow={section.eyebrow} heading={section.heading} subtitle={section.subtitle} align="center" />
+    <section id="signature" className={`scroll-mt-[88px] bg-[var(--sf-sky)]/50 ${SITE_SECTION}`}>
+      <div className={SITE_CONTAINER}>
+        <SiteSectionIntro eyebrow={section.eyebrow} heading={section.heading} subtitle={section.subtitle} align="center" />
         {section.tagline ? (
           <p className="mt-6 text-center">
-            <span className={DEMO_CHIP}>
-              <Sparkles className="h-3.5 w-3.5 text-[var(--demo-accent)]" aria-hidden />
-              {section.tagline}
-            </span>
+            <SitePill className="!bg-white">{section.tagline}</SitePill>
           </p>
         ) : null}
 
-        <div className="mt-12 grid gap-3 @3xl/site:grid-cols-2">
-          <DayColumn title="On campus" days={section.campusDays} icon={School} dark delay={0} />
-          <DayColumn title="At home" days={section.homeDays} icon={Home} dark={false} delay={0.08} />
+        <div className="mt-14 grid gap-6 @3xl/site:grid-cols-2">
+          <PlannerPage title="On campus" days={section.campusDays} icon={School} tabClass="bg-[var(--sf-butter)]" delay={0} />
+          <PlannerPage title="At home" days={section.homeDays} icon={Home} tabClass="bg-[var(--sf-mint)]" delay={0.08} />
         </div>
 
         {section.serviceNote ? (
-          <p className="font-secondary mx-auto mt-8 max-w-[640px] text-center text-[14px] leading-relaxed text-[var(--demo-muted)]">
+          <p className="mx-auto mt-10 max-w-[640px] text-center text-[14px] leading-relaxed text-[var(--sf-soft)]">
             {section.serviceNote}
           </p>
         ) : null}

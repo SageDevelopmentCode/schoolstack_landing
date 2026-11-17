@@ -1,10 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Fragment } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { StoryTextLink } from '@/components/story/story-text-link';
-import { Story } from '@/constants/story-theme';
-import { Spacing } from '@/constants/theme';
+import { Garden, GardenFonts } from '@/components/parent/garden/tokens';
+import { GPressable } from '@/components/parent/garden/ui';
 
 export type PreAuthLinkItem = {
   label: string;
@@ -18,37 +16,27 @@ type PreAuthLinkRowProps = {
   items: PreAuthLinkItem[];
 };
 
+/** Secondary sign-in routes ("Use password", "Admin login") as quiet Garden chips. */
 export function PreAuthLinkRow({ items }: PreAuthLinkRowProps) {
   if (items.length === 0) {
     return null;
   }
 
-  if (items.length === 1) {
-    const item = items[0];
-    return (
-      <StoryTextLink
-        label={item.label}
-        icon={item.icon}
-        accessibilityLabel={item.accessibilityLabel ?? item.label}
-        onPress={item.onPress}
-        disabled={item.disabled}
-      />
-    );
-  }
-
   return (
     <View style={styles.row}>
-      {items.map((item, index) => (
-        <Fragment key={item.label}>
-          {index > 0 ? <View style={styles.divider} /> : null}
-          <StoryTextLink
-            label={item.label}
-            icon={item.icon}
-            accessibilityLabel={item.accessibilityLabel ?? item.label}
-            onPress={item.onPress}
-            disabled={item.disabled}
-          />
-        </Fragment>
+      {items.map((item) => (
+        <GPressable
+          key={item.label}
+          accessibilityRole="button"
+          accessibilityLabel={item.accessibilityLabel ?? item.label}
+          accessibilityState={{ disabled: Boolean(item.disabled) }}
+          disabled={item.disabled}
+          haptic="select"
+          onPress={item.onPress}
+          style={[styles.chip, item.disabled && styles.chipDisabled]}>
+          {item.icon ? <Ionicons name={item.icon} size={16} color={Garden.ink} /> : null}
+          <Text style={styles.label}>{item.label}</Text>
+        </GPressable>
       ))}
     </View>
   );
@@ -60,11 +48,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexWrap: 'wrap',
-    gap: Spacing.three,
+    gap: 10,
   },
-  divider: {
-    width: 1,
-    height: 16,
-    backgroundColor: Story.line,
+  chip: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: Garden.ink15,
+    backgroundColor: Garden.paper,
+  },
+  chipDisabled: {
+    opacity: 0.5,
+  },
+  label: {
+    fontFamily: GardenFonts.bodyExtra,
+    fontSize: 14,
+    color: Garden.ink,
   },
 });

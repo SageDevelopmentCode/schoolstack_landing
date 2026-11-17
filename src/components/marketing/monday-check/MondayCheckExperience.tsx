@@ -9,8 +9,11 @@ import MondayCheckProgress from "@/components/marketing/monday-check/MondayCheck
 import MondayCheckQuestion from "@/components/marketing/monday-check/MondayCheckQuestion";
 import MondayCheckResults from "@/components/marketing/monday-check/MondayCheckResults";
 import { clearOpsCheckLocalPlanStorage } from "@/components/marketing/monday-check/useOpsCheckLocalPlan";
-import { MARKETING_TOOL_BRIGHT_THEME } from "@/components/marketing/free-tools/free-tools-hub-theme";
-import { DARK_PILL, OUTLINE_PILL } from "@/components/home/bright-styles";
+import {
+  MARKETING_TOOL_GARDEN_THEME,
+  toolBtnOutline,
+  toolBtnPrimary,
+} from "@/components/marketing/shared/marketing-tool-garden";
 import {
   MONDAY_CHECK_QUESTIONS,
   type MondayCheckAnswers,
@@ -36,7 +39,7 @@ const slideIn = {
   },
 };
 
-const theme = MARKETING_TOOL_BRIGHT_THEME;
+const theme = MARKETING_TOOL_GARDEN_THEME;
 
 export default function MondayCheckExperience() {
   const [phase, setPhase] = useState<Phase>("intro");
@@ -115,7 +118,7 @@ export default function MondayCheckExperience() {
 
   return (
     <MondayCheckStoryShell wide={wide}>
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="wait" initial={false}>
         {phase === "intro" && (
           <motion.div key="intro" {...slideIn}>
             <MondayCheckIntro theme={theme} onStart={handleStart} />
@@ -140,7 +143,7 @@ export default function MondayCheckExperience() {
               />
             </div>
             <div className="mt-8 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
-              <button type="button" onClick={handleBack} className={OUTLINE_PILL}>
+              <button type="button" onClick={handleBack} className={toolBtnOutline}>
                 <ArrowLeft className="h-4 w-4" aria-hidden />
                 Back
               </button>
@@ -148,7 +151,7 @@ export default function MondayCheckExperience() {
                 type="button"
                 onClick={handleNext}
                 disabled={!selectedOptionId}
-                className={`${DARK_PILL} w-full disabled:opacity-40 sm:w-auto`}
+                className={`${toolBtnPrimary} w-full sm:w-auto`}
               >
                 {questionIndex < MONDAY_CHECK_QUESTIONS.length - 1 ? (
                   <>

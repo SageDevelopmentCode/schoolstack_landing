@@ -24,6 +24,7 @@ This skill only lists what differs for admin. For the kit, tokens, motion and th
 Related skills:
 - `.agents/skills/parent-portal-garden-design/`: the kit (`GCard`, `GChip`, `GTabBar`, buttons…), `ParentGardenFrame`, motion and accessibility rules.
 - `.agents/skills/admin-workspace-design/`: School Day Story. Admin pages that haven't moved to Garden still use it. Don't mix the two looks on one page except through `PortalIsland`.
+- `.agents/skills/teacher-portal-garden-design/`: the staff portal's Garden rules. The teacher Dashboard reuses `GardenAttendanceBoard` (`headerAction`) and `useDashboardAttendanceModel` (`saveAttendanceAction(..., { quiet: true })`), so keep both backwards-compatible.
 - `.agents/skills/portal-responsive-verify/`, `.agents/skills/portal-qa/`: verification.
 
 ---

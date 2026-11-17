@@ -7,9 +7,22 @@ import { buildEmbeddedPdfViewerUrl } from '@/lib/school-bulletin/bulletin-format
 export { ANDROID_PDF_VIEWER_BASE_URL };
 
 export type AndroidPdfViewerShellOptions = {
-  pdfModuleUri: string;
-  workerModuleUri: string;
+  /** Source text of `pdfjs-dist/build/pdf.min.mjs`. */
+  pdfModuleSource: string;
+  /** Source text of `pdfjs-dist/build/pdf.worker.min.mjs`. */
+  workerModuleSource: string;
 };
+
+/**
+ * JSON for an inline classic `<script>`: escapes `<` (so `</script>` in the source cannot close the
+ * tag) and the JS-only line terminators U+2028 / U+2029.
+ */
+function toInlineScriptJson(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
 
 /** Removes iframe-style viewer fragments added by {@link buildEmbeddedPdfViewerUrl}. */
 export function stripViewerFragment(url: string): string {
@@ -93,6 +106,10 @@ export function parseAndroidPdfViewerMessage(data: string): AndroidPdfViewerMess
 /**
  * Static Android viewer shell: bundled pdf.js only (no CDN). Document URL is supplied later via postMessage.
  *
+ * pdf.js is inlined as text and imported from same-origin `blob:` URLs. The page's origin is
+ * {@link ANDROID_PDF_VIEWER_BASE_URL}, so a module import or module worker from a `file://` asset URI
+ * is a cross-origin CORS request that Chromium refuses (`ModuleLoadError` at stage `module_load`).
+ *
  * Large books (60+ MB) must not be rendered eagerly: page 1 is rendered first (and `pdf-loaded` is
  * posted right away), the remaining pages render on demand near the viewport, and canvases far
  * from the viewport are released so memory stays bounded. `disableAutoFetch` keeps pdf.js from
@@ -101,8 +118,10 @@ export function parseAndroidPdfViewerMessage(data: string): AndroidPdfViewerMess
  * The inline script avoids template literals so it can live inside this TS template string.
  */
 export function buildAndroidPdfViewerHtml(options: AndroidPdfViewerShellOptions): string {
-  const pdfModuleUri = JSON.stringify(options.pdfModuleUri);
-  const workerModuleUri = JSON.stringify(options.workerModuleUri);
+  const sourcesJson = toInlineScriptJson({
+    main: options.pdfModuleSource,
+    worker: options.workerModuleSource,
+  });
 
   return `<!DOCTYPE html>
 <html>
@@ -123,10 +142,24 @@ export function buildAndroidPdfViewerHtml(options: AndroidPdfViewerShellOptions)
 <div id="status">Loading document…</div>
 <div id="pages"></div>
 <div id="error"></div>
+<script>
+  window.__pdfjsSources = ${sourcesJson};
+</script>
 <script id="pdfjs-module" type="module">
-  import * as pdfjsLib from ${pdfModuleUri};
-
-  pdfjsLib.GlobalWorkerOptions.workerSrc = ${workerModuleUri};
+  var pdfjsSources = window.__pdfjsSources;
+  window.__pdfjsSources = null;
+  var pdfjsLib;
+  try {
+    var pdfModuleUrl = URL.createObjectURL(new Blob([pdfjsSources.main], { type: 'text/javascript' }));
+    var workerModuleUrl = URL.createObjectURL(new Blob([pdfjsSources.worker], { type: 'text/javascript' }));
+    pdfjsLib = await import(pdfModuleUrl);
+    pdfjsLib.GlobalWorkerOptions.workerSrc = workerModuleUrl;
+  } catch (err) {
+    pdfjsLib = null;
+    showFatalError('module_load', err);
+  } finally {
+    pdfjsSources = null;
+  }
 
   var PAGE_RENDER_MARGIN = '150% 0px';
   var KEEP_PAGES_AROUND_VIEWPORT = 4;
@@ -362,12 +395,14 @@ export function buildAndroidPdfViewerHtml(options: AndroidPdfViewerShellOptions)
     void renderPdf(payload.url, payload.firstPageOnly === true);
   }
 
-  document.addEventListener('message', handleHostMessage);
-  window.addEventListener('message', handleHostMessage);
-  post('pdf-viewer-ready');
+  if (pdfjsLib) {
+    document.addEventListener('message', handleHostMessage);
+    window.addEventListener('message', handleHostMessage);
+    post('pdf-viewer-ready');
+  }
 </script>
 <script>
-  // Classic script: a module that fails to import (blocked file:// asset, missing file) never runs,
+  // Classic script: a module script that fails to load or parse never runs its own catch,
   // so surface that immediately instead of waiting for the host load timeout.
   (function () {
     function postRaw(payload) {

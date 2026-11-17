@@ -3,7 +3,9 @@
 import { CUSTOM_COPY, PRICING_COPY } from "@/components/home/home-copy";
 import { BOOK_DEMO_HASH_HREF } from "@/lib/marketing/book-demo";
 import { Magnetic, Reveal } from "@/components/garden/motion";
+import StarRating from "@/components/garden/StarRating";
 import { Tape, Tick, btnButter, btnOutline, btnPop } from "@/components/garden/ui";
+import { TUITION_RATING } from "@/lib/marketing/social-proof";
 import SectionIntro from "../SectionIntro";
 
 const STICKER_TINTS = ["bg-[var(--sf-butter)]", "bg-[var(--sf-mint)]", "bg-[var(--sf-sky)]", "bg-[var(--sf-lav)]", "bg-[var(--sf-peach)]", "bg-white"];
@@ -36,6 +38,11 @@ export default function PricingPaper() {
                     </li>
                   ))}
                 </ul>
+                <StarRating
+                  className="mt-7 border-t-2 border-dashed border-[var(--sf-ink)]/20 pt-5"
+                  label={`Tuition checkout: ${TUITION_RATING.label}`}
+                  srLabel={TUITION_RATING.srLabel}
+                />
                 <div className="mt-10 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-5">
                   <Magnetic>
                     <a href={BOOK_DEMO_HASH_HREF} className={btnPop}>

@@ -15,6 +15,7 @@ export const MOBILE_PUSH_NOTIFICATION_KINDS = [
   "attendance.present",
   "attendance.pickup",
   "staff_hours.adjustment_reviewed",
+  "classroom_signup.reminder",
 ] as const;
 
 export type MobilePushNotificationKind =
@@ -108,6 +109,14 @@ export const MOBILE_PUSH_CATALOG: MobilePushCatalogEntry[] = [
     description:
       "Sent to enrolled families when staff upload photos to the school gallery (web or mobile). Opens the Photos area in the parent mobile app (payload kind: gallery).",
     channel: "gallery",
+    recipientPortals: ["parent"],
+  },
+  {
+    kind: "classroom_signup.reminder",
+    label: "Classroom signup reminder",
+    description:
+      "Sent when a teacher sends a reminder for an open classroom signup, only to families in its audience who haven't signed up yet. Opens the signup in the parent mobile app (payload kind: classroom_signup).",
+    channel: "bulletin",
     recipientPortals: ["parent"],
   },
   {

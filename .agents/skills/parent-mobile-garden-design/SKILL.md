@@ -33,7 +33,7 @@ Related skills:
 - `.agents/skills/mudkitchen-garden-design` (`in-app.md`): Garden tokens and the portal/brand split.
 - `apps/mobile/AGENTS.md`: keyboard layouts, operational error reporting, WebViews and links. All of it still applies.
 - `.agents/skills/mobile-ui-visual-verify`, `.agents/skills/mobile-e2e-local`: verification.
-- School admin mobile screens use this kit through `.agents/skills/admin-mobile-garden-design` (admin density, work queue, linked KPIs, save/retry contract). The shared attendance roster (`components/attendance/*`) is Garden in every portal. Other teacher mobile screens stay on **School Day Story** (`apps/mobile/src/components/story/*`) unless asked.
+- School admin mobile screens use this kit through `.agents/skills/admin-mobile-garden-design` (admin density, work queue, linked KPIs, save/retry contract). The shared attendance roster (`components/attendance/*`) is Garden in every portal. Teacher mobile screens use this kit through `.agents/skills/teacher-mobile-garden-design` (time clock, today list, class photo; Home is done, other teacher screens are still on School Day Story until migrated).
 
 Detailed snippets for each recipe are in **`recipes.md`**.
 
@@ -293,5 +293,5 @@ Finally, `npm run mobile:visual:capture -- parent-home` (or the tab's slug) per 
 - `progressViewOffset` for iOS.
 - Single-side dashed borders.
 - Sheets inside the `ScrollView`.
-- Using this kit on admin mobile screens without the admin rules (`admin-mobile-garden-design`), or on teacher screens (other than the shared roster) unless asked.
+- Using this kit on admin or teacher mobile screens without their rules (`admin-mobile-garden-design`, `teacher-mobile-garden-design`).
 - Eyebrow text above a screen, card or sheet title (§3.14).

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import HomeShell from "@/components/home/HomeShell";
-import BlogBrightIndex from "@/components/blog/BlogBrightIndex";
+import BlogGardenIndex from "@/components/blog/BlogGardenIndex";
+import GardenRoot from "@/components/garden/GardenRoot";
 import BreadcrumbJsonLd from "@/components/seo/BreadcrumbJsonLd";
+import { getRepoBlogFeatureTags } from "@/content/blog/registry";
 import { pageMetadata } from "@/lib/metadata";
 import { buildBreadcrumbs } from "@/lib/seo";
 import { listPublishedWebsiteBlogPosts } from "@/lib/website-blog/storage";
@@ -21,11 +22,19 @@ const BREADCRUMBS = buildBreadcrumbs({ name: "Blog", path: "/blog" });
 export default async function BlogPage() {
   const admin = createAdminClient();
   const posts = await listPublishedWebsiteBlogPosts(admin);
+  // Only what the cards show goes to the client (not the post bodies).
+  const cards = posts.map((p) => ({
+    slug: p.slug,
+    title: p.title,
+    excerpt: p.excerpt,
+    publishedAt: p.publishedAt,
+    tags: getRepoBlogFeatureTags(p.slug),
+  }));
 
   return (
-    <HomeShell className="bg-white">
+    <GardenRoot>
       <BreadcrumbJsonLd items={BREADCRUMBS} />
-      <BlogBrightIndex posts={posts} />
-    </HomeShell>
+      <BlogGardenIndex posts={cards} />
+    </GardenRoot>
   );
 }

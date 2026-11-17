@@ -23,11 +23,6 @@ describe('getMobilePdfDocumentFetchHosts', () => {
 });
 
 describe('isAllowedAndroidPdfWebViewNavigation', () => {
-  const bundled = [
-    'file:///data/user/0/app/files/pdf.min.mjs',
-    'file:///data/user/0/app/files/pdf.worker.min.mjs',
-  ];
-
   it('allows viewer base url and about:blank', () => {
     expect(isAllowedAndroidPdfWebViewNavigation('about:blank')).toBe(true);
     expect(isAllowedAndroidPdfWebViewNavigation('https://localhost/')).toBe(true);
@@ -51,12 +46,10 @@ describe('isAllowedAndroidPdfWebViewNavigation', () => {
     ).toBe(false);
   });
 
-  it('allows bundled file assets only when listed', () => {
+  it('rejects file:// urls (pdf.js is inlined, nothing loads from disk)', () => {
     expect(isAllowedAndroidPdfWebViewNavigation('file:///etc/passwd')).toBe(false);
     expect(
-      isAllowedAndroidPdfWebViewNavigation('file:///data/user/0/app/files/pdf.min.mjs', {
-        bundledAssetUris: bundled,
-      }),
-    ).toBe(true);
+      isAllowedAndroidPdfWebViewNavigation('file:///data/user/0/app/files/pdf.min.mjs'),
+    ).toBe(false);
   });
 });

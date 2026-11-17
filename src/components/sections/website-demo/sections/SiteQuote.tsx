@@ -1,38 +1,46 @@
 "use client";
 
 import Image from "next/image";
-import { FadeInView } from "@/components/ui/FadeInView";
 import type { SchoolWebsiteDemoConfig } from "@/data/school-demos/types";
-import { DEMO_CONTAINER, DEMO_HEADING, DEMO_INK } from "../bright-demo-theme";
+import { SITE_SECTION } from "../site-garden-theme";
+import { SiteAccent, SiteReveal, SiteStickyNote } from "../garden/SiteKit";
 
-/** Oversized centered pull quote with the photo as a small round portrait. */
+/** The pull quote on a big taped note, with the photo as a small polaroid. */
 export default function SiteQuote({ quote }: { quote: SchoolWebsiteDemoConfig["quote"] }) {
   const [first, ...rest] = quote.text;
 
   return (
-    <section className="bg-white py-20 @3xl/site:py-28">
-      <FadeInView className={`${DEMO_CONTAINER} text-center`}>
-        <div className="relative mx-auto h-20 w-20 overflow-hidden rounded-full ring-[6px] ring-[var(--demo-tint-1)]">
-          <Image src={quote.backgroundImage} fill sizes="80px" className="object-cover" alt="" />
-        </div>
-        <blockquote
-          className={`${DEMO_HEADING} ${DEMO_INK} mx-auto mt-8 max-w-[980px] text-balance text-[clamp(1.75rem,3.4cqw,3rem)]`}
-        >
-          &ldquo;{first}
-          {rest.length > 0 ? (
-            <>
-              {" "}
-              <span className="text-[var(--demo-accent)]">{rest.join(" ")}</span>
-            </>
-          ) : null}
-          &rdquo;
-        </blockquote>
-        <p className="font-secondary mt-8 inline-flex items-center gap-3 text-[13px] font-semibold uppercase tracking-[0.16em] text-[var(--demo-muted)]">
-          <span className="h-px w-8 bg-[var(--demo-primary)]" aria-hidden />
-          {quote.attribution}
-          <span className="h-px w-8 bg-[var(--demo-primary)]" aria-hidden />
-        </p>
-      </FadeInView>
+    <section className={SITE_SECTION}>
+      <SiteReveal className="relative mx-auto max-w-[1000px] px-5 @3xl/site:px-10">
+        <SiteStickyNote tilt={-1} tape={0} className="!px-7 !pb-10 !pt-12 text-center @3xl/site:!px-16 @3xl/site:!pb-14 @3xl/site:!pt-16">
+          <div
+            className="sf-polaroid absolute -right-3 -top-8 hidden w-28 !p-1.5 !pb-3 @3xl/site:block"
+            style={{ rotate: "6deg" }}
+            aria-hidden="true"
+          >
+            <div className="relative aspect-square overflow-hidden rounded-[3px]">
+              <Image src={quote.backgroundImage} fill sizes="112px" className="object-cover" alt="" />
+            </div>
+          </div>
+          <figure>
+            <blockquote className="sf-display mx-auto max-w-[820px] text-balance text-[clamp(1.8rem,3.4cqw,3rem)] leading-[1.06] text-[var(--sf-ink)]">
+              &ldquo;{first}
+              {rest.length > 0 ? (
+                <>
+                  {" "}
+                  <SiteAccent>{rest.join(" ")}</SiteAccent>
+                </>
+              ) : null}
+              &rdquo;
+            </blockquote>
+            <figcaption className="mt-8 inline-flex items-center gap-3 text-[13px] font-extrabold uppercase tracking-[0.16em] text-[var(--sf-ink)]/75">
+              <span className="h-0.5 w-8 rounded-full bg-[var(--sf-ink)]/40" aria-hidden />
+              {quote.attribution}
+              <span className="h-0.5 w-8 rounded-full bg-[var(--sf-ink)]/40" aria-hidden />
+            </figcaption>
+          </figure>
+        </SiteStickyNote>
+      </SiteReveal>
     </section>
   );
 }

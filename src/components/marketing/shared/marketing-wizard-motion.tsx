@@ -37,7 +37,7 @@ export function MarketingWizardStepMotion({ stepKey, children, className }: Mark
   const variants = reduceMotion ? marketingWizardFade : marketingWizardSlide;
 
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="wait" initial={false}>
       <motion.div key={stepKey} className={className} {...variants}>
         {children}
       </motion.div>

@@ -1,0 +1,34 @@
+appId: com.mudkitchen.schoolstack.mobile
+---
+- runFlow: ../teacher-logged-in.yaml
+- tapOn: 'More'
+- extendedWaitUntil:
+    visible: 'My Hours'
+    timeout: 30000
+- tapOn: 'My Hours'
+- extendedWaitUntil:
+    visible:
+      id: teacher-my-hours-page
+    timeout: 30000
+- takeScreenshot: visual-capture
+- tapOn:
+    id: teacher-my-hours-view-week
+- extendedWaitUntil:
+    visible:
+      id: teacher-my-hours-week-panel
+    timeout: 10000
+- takeScreenshot: visual-capture-week
+- tapOn:
+    id: teacher-my-hours-view-month
+- extendedWaitUntil:
+    visible:
+      id: teacher-my-hours-month-panel
+    timeout: 10000
+- takeScreenshot: visual-capture-month
+- tapOn:
+    id: teacher-my-hours-view-adjust
+- extendedWaitUntil:
+    visible:
+      id: teacher-my-hours-adjust-panel
+    timeout: 10000
+- takeScreenshot: visual-capture-adjust

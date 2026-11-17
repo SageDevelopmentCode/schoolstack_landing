@@ -97,16 +97,8 @@ export function ParentNewsletterDetailGardenScreen({
             setLoadError('This newsletter could not be loaded.');
           }}
           onHttpError={(event) => {
-            reportError(
-              'parent_newsletter_detail_http_error',
-              new Error(`Newsletter request failed with HTTP ${event.nativeEvent.statusCode}`),
-              {
-                entityType: 'newsletter_edition',
-                entityId: editionId,
-                metadata: { statusCode: event.nativeEvent.statusCode },
-              },
-            );
-            setLoadError('This newsletter could not be loaded.');
+            // Reports via reportError unless it's a first 401 (refresh + reload).
+            controller.handleHttpError(event.nativeEvent.statusCode);
           }}
           onRenderProcessGone={() => {
             reportError(

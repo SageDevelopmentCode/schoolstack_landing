@@ -13,6 +13,15 @@ export interface CalendarGridColors {
   warningBg?: string;
 }
 
+/** Day cells for variant="demoGarden" (literal classes; needs `.sf-garden`). */
+const DEMO_GARDEN_DAY = {
+  available:
+    "cursor-pointer bg-[var(--sf-mint)]/70 font-extrabold text-[var(--sf-forest)] hover:-translate-y-0.5 hover:ring-2 hover:ring-[var(--sf-forest)]/40",
+  selected:
+    "cursor-pointer border-2 border-[var(--sf-ink)] bg-[var(--sf-butter)] font-extrabold text-[var(--sf-ink)] shadow-[0_3px_0_0_var(--sf-ink)]",
+  unavailable: "cursor-default font-semibold text-[var(--sf-ink)]/25",
+} as const;
+
 type EditableDayState =
   | "selected"
   | "disabled"
@@ -123,19 +132,24 @@ export function CalendarGrid({
   colors?: CalendarGridColors;
   /** Larger day cells for touch-friendly apply-form date picking */
   largeCells?: boolean;
-  /** "garden": admin Garden pages (rounded tiles, bolder type). */
-  variant?: "default" | "demoStory" | "garden";
+  /**
+   * "garden": admin Garden pages (rounded tiles, bolder type).
+   * "demoGarden": the MudKitchen book-a-demo scheduler; needs a `.sf-garden` ancestor.
+   */
+  variant?: "default" | "demoStory" | "garden" | "demoGarden";
 }) {
   const garden = variant === "garden";
+  const demoGarden = variant === "demoGarden";
   const cellSizeClass =
-    variant === "demoStory"
+    variant === "demoStory" || demoGarden
       ? "h-[43px] w-full min-w-0"
       : garden
         ? "h-10 w-full min-w-0 max-w-[52px] sm:h-11"
       : largeCells
         ? "h-11 w-11 sm:h-10 sm:w-10"
         : "h-10 w-10";
-  const gridGapClass = variant === "demoStory" || garden ? "gap-1.5" : "gap-y-1";
+  const gridGapClass =
+    variant === "demoStory" || garden || demoGarden ? "gap-1.5" : "gap-y-1";
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const cells: (number | null)[] = [
@@ -151,13 +165,15 @@ export function CalendarGrid({
           <div
             key={d}
             className={
-              garden
+              demoGarden
+                ? "py-1 text-center text-[11px] font-extrabold uppercase tracking-[0.12em] text-[var(--sf-soft)]"
+                : garden
                 ? "py-1 text-center text-[11px] font-extrabold uppercase tracking-[0.12em]"
                 : colors
                   ? "text-center text-[11px] font-medium font-secondary py-1"
                   : "text-center text-[11px] font-medium font-secondary text-text-faint py-1"
             }
-            style={colors ? { color: colors.textFaint } : undefined}
+            style={colors && !demoGarden ? { color: colors.textFaint } : undefined}
           >
             {d}
           </div>
@@ -175,6 +191,32 @@ export function CalendarGrid({
             ? !isBeforeMin && !isAfterMax
             : hasSlots && !isBeforeMin && !isAfterMax;
           const isSelected = selectedDates?.has(key) ?? selected === key;
+
+          if (demoGarden && !editable) {
+            const state = isSelected
+              ? "selected"
+              : isSelectable && hasSlots
+                ? "available"
+                : "unavailable";
+            return (
+              <button
+                key={key}
+                type="button"
+                disabled={!isSelectable}
+                onClick={() => isSelectable && onSelect(key)}
+                aria-pressed={isSelectable ? isSelected : undefined}
+                className={`relative flex ${cellSizeClass} items-center justify-center rounded-[12px] text-[13px] tabular-nums transition-all duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/35 ${DEMO_GARDEN_DAY[state]}`}
+              >
+                {day}
+                {state === "available" ? (
+                  <span
+                    className="absolute bottom-1.5 h-1 w-1 rounded-full bg-[var(--sf-forest)]"
+                    aria-hidden
+                  />
+                ) : null}
+              </button>
+            );
+          }
 
           if (colors) {
             if (variant === "demoStory" && !editable) {

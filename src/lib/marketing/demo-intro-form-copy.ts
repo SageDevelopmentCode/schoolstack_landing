@@ -1,6 +1,9 @@
 export const DEMO_INTRO_FORM_COPY = {
   kicker: "First, a quick introduction",
   title: "Tell us about your school.",
+  /** `title` split for the Garden accent phrase (same words). */
+  titleLead: "Tell us about",
+  titleAccent: "your school.",
   subtitle: "Just a few details so we can make the conversation useful.",
   firstNameLabel: "First name",
   firstNamePlaceholder: "Your first name",

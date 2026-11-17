@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Bell, ExternalLink, LifeBuoy, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Bell, ExternalLink, LifeBuoy, Lock, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import SchoolAdminProfileMenu from "@/components/school-admin/SchoolAdminProfileMenu";
 import { G_FOCUS } from "@/components/school-parent/garden/ui";
 import GardenNavBadge from "@/components/school-parent/header/GardenNavBadge";
@@ -13,10 +13,30 @@ import { schoolMudKitchenPortalPath } from "@/lib/organization-settings/admin-ro
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { MUDKITCHEN_BRAND_GRADIENT, MUDKITCHEN_LOGO_BRAND as MK } from "@/lib/mudkitchen-portal/theme";
 import type { SchoolAdminUserProfile } from "@/lib/school-admin/access";
+import { MUDKITCHEN_ACCOUNT_LABEL } from "@/lib/school-admin/free-plan-upgrade";
 import SidebarFlyout from "./SidebarFlyout";
 
 function Tip({ label }: { label: string }) {
   return <div className="px-2.5 py-1.5 text-[13px] font-extrabold text-[var(--sf-ink)]">{label}</div>;
+}
+
+const ACCOUNT_CARD = `group relative flex w-full items-center gap-2.5 overflow-hidden rounded-[14px] transition-[filter,transform] duration-150 hover:-translate-y-px hover:brightness-110 active:scale-[0.98] ${G_FOCUS} focus-visible:ring-offset-0`;
+const ACCOUNT_STYLE = { background: MUDKITCHEN_BRAND_GRADIENT, color: MK.cream } as const;
+
+function AccountLogo({ locked = false }: { locked?: boolean }) {
+  return (
+    <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white">
+      <Image src="/images/Logo.png" alt="" width={24} height={24} className="h-6 w-6 object-contain" aria-hidden />
+      {locked ? (
+        <span
+          aria-hidden
+          className="absolute -bottom-1 -right-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--sf-ink)] text-white ring-[1.5px] ring-white"
+        >
+          <Lock className="h-2.5 w-2.5" strokeWidth={2.8} />
+        </span>
+      ) : null}
+    </span>
+  );
 }
 
 const ICON_BTN = `relative mx-auto flex h-10 w-10 items-center justify-center rounded-[12px] transition-colors ${G_FOCUS} focus-visible:ring-offset-0`;
@@ -35,6 +55,7 @@ export default function SidebarFooter({
   openPortalLinksInNewTab,
   previewMode,
   onToggleExpand,
+  onLockedSelect,
 }: {
   isExpanded: boolean;
   slug: string;
@@ -50,6 +71,8 @@ export default function SidebarFooter({
   previewMode: boolean;
   /** Desktop only; the phone drawer has its own close button. */
   onToggleExpand?: () => void;
+  /** Free plan: MudKitchen Account is locked and opens the unlock popup. */
+  onLockedSelect?: (label: string) => void;
 }) {
   const notificationsLabel =
     unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications";
@@ -118,33 +141,62 @@ export default function SidebarFooter({
         </>
       )}
 
-      <SidebarFlyout enabled={!isExpanded} panel={<Tip label="MudKitchen Account" />}>
-        <a
-          href={schoolMudKitchenPortalPath(slug)}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={isExpanded ? undefined : "MudKitchen Account (opens in a new tab)"}
-          className={`group relative flex w-full items-center gap-2.5 overflow-hidden rounded-[14px] transition-[filter,transform] duration-150 hover:-translate-y-px hover:brightness-110 active:scale-[0.98] ${G_FOCUS} focus-visible:ring-offset-0 ${
-            isExpanded ? "p-2" : "justify-center p-1.5"
-          }`}
-          style={{ background: MUDKITCHEN_BRAND_GRADIENT, color: MK.cream, textDecoration: "none" }}
-        >
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white">
-            <Image src="/images/Logo.png" alt="" width={24} height={24} className="h-6 w-6 object-contain" aria-hidden />
-          </span>
-          {isExpanded ? (
-            <>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[12.5px] font-extrabold">MudKitchen Account</span>
-                <span className="block truncate text-[11px] font-semibold opacity-85">
-                  View your requests, logs, and more
+      <SidebarFlyout
+        enabled={!isExpanded}
+        panel={<Tip label={onLockedSelect ? "MudKitchen Account · locked" : "MudKitchen Account"} />}
+      >
+        {onLockedSelect ? (
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            onClick={() => onLockedSelect(MUDKITCHEN_ACCOUNT_LABEL)}
+            aria-label={`${MUDKITCHEN_ACCOUNT_LABEL}, locked. See plans`}
+            data-testid="sidebar-mudkitchen-account-locked"
+            className={`${ACCOUNT_CARD} ${isExpanded ? "gap-2 p-2" : "justify-center p-1.5"}`}
+            style={ACCOUNT_STYLE}
+          >
+            <AccountLogo locked={!isExpanded} />
+            {isExpanded ? (
+              <>
+                <span className="min-w-0 flex-1 text-left">
+                  <span className="block truncate text-[12.5px] font-extrabold">MudKitchen Account</span>
+                  <span className="block truncate text-[11px] font-semibold opacity-85">
+                    Requests, build log and billing
+                  </span>
                 </span>
-              </span>
-              <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-80 transition-transform group-hover:-translate-y-px group-hover:translate-x-px" aria-hidden />
-              <span className="sr-only">(opens in a new tab)</span>
-            </>
-          ) : null}
-        </a>
+                <span
+                  aria-hidden
+                  className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/20 ring-1 ring-white/35"
+                >
+                  <Lock className="h-2.5 w-2.5" strokeWidth={2.8} />
+                </span>
+              </>
+            ) : null}
+          </button>
+        ) : (
+          <a
+            href={schoolMudKitchenPortalPath(slug)}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={isExpanded ? undefined : "MudKitchen Account (opens in a new tab)"}
+            className={`${ACCOUNT_CARD} ${isExpanded ? "p-2" : "justify-center p-1.5"}`}
+            style={{ ...ACCOUNT_STYLE, textDecoration: "none" }}
+          >
+            <AccountLogo />
+            {isExpanded ? (
+              <>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[12.5px] font-extrabold">MudKitchen Account</span>
+                  <span className="block truncate text-[11px] font-semibold opacity-85">
+                    View your requests, logs, and more
+                  </span>
+                </span>
+                <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-80 transition-transform group-hover:-translate-y-px group-hover:translate-x-px" aria-hidden />
+                <span className="sr-only">(opens in a new tab)</span>
+              </>
+            ) : null}
+          </a>
+        )}
       </SidebarFlyout>
 
       {userProfile ? (

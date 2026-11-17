@@ -82,10 +82,13 @@ export function useGardenAttendance({
   organizationId,
   slug,
   model,
+  previewMode = false,
 }: {
   organizationId: string;
   slug: string;
   model: AdminDashboardModel;
+  /** Read-only and never fetches a roster (marketing demos). */
+  previewMode?: boolean;
 }) {
   const attendanceToday = model.today.attendanceToday;
   const { setToday, refreshToday } = model;
@@ -96,7 +99,8 @@ export function useGardenAttendance({
     summary: attendanceToday?.summary ?? EMPTY_SUMMARY,
     attendanceHref: schoolAdminPath(slug, "my_school", "attendance"),
     operationalErrorSurface: "school_admin",
-    enabled: attendanceToday != null,
+    previewMode,
+    enabled: attendanceToday != null && !previewMode,
     onSummaryChange: (nextSummary) => {
       setToday((current) =>
         current.attendanceToday
@@ -233,6 +237,7 @@ export function GardenAttendanceBoard({
   variant = "dashboard",
   filter: controlledFilter,
   onFilterChange,
+  headerAction,
 }: {
   att: DashboardAttendanceModel;
   layout?: "grid" | "table";
@@ -248,6 +253,8 @@ export function GardenAttendanceBoard({
   /** Controlled status filter (page stat tiles share it). */
   filter?: AttendanceFilterKey;
   onFilterChange?: (filter: AttendanceFilterKey) => void;
+  /** Replaces the default "View attendance" toy link in the card header (dashboard variant). */
+  headerAction?: React.ReactNode;
 }) {
   const reduce = useReducedMotion() === true;
   const isPage = variant === "page";
@@ -503,7 +510,7 @@ export function GardenAttendanceBoard({
       kicker="Attendance"
       title={sectionTitle}
       action={
-        isPage ? undefined : (
+        isPage ? undefined : headerAction !== undefined ? headerAction : (
           <Link href={att.fullAttendanceHref} className={gBtnPopSm}>
             View attendance <ArrowRight className="h-4 w-4" aria-hidden />
           </Link>

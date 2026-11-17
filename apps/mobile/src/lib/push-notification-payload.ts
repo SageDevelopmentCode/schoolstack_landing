@@ -56,6 +56,13 @@ export type AttendancePushNotificationData = {
   intent: 'present' | 'pickup';
 };
 
+export type ClassroomSignupPushNotificationData = {
+  kind: 'classroom_signup';
+  portal: 'parent';
+  organizationSlug: string;
+  signupId: string;
+};
+
 export type StaffHoursPushNotificationData = {
   kind: 'staff_hours';
   portal: 'teacher';
@@ -69,7 +76,8 @@ export type PushNotificationData =
   | GalleryPushNotificationData
   | NewsletterPushNotificationData
   | AttendancePushNotificationData
-  | StaffHoursPushNotificationData;
+  | StaffHoursPushNotificationData
+  | ClassroomSignupPushNotificationData;
 
 function parsePushPortal(value: unknown): PushPortal | null {
   if (value === 'parent' || value === 'teacher' || value === 'admin') {
@@ -166,6 +174,18 @@ export function parsePushNotificationData(
       portal: 'parent',
       organizationSlug,
       editionId: editionId.trim(),
+    };
+  }
+
+  if (kind === 'classroom_signup') {
+    if (data.portal !== 'parent') return null;
+    const signupId = data.signupId;
+    if (typeof signupId !== 'string' || !signupId.trim()) return null;
+    return {
+      kind: 'classroom_signup',
+      portal: 'parent',
+      organizationSlug,
+      signupId: signupId.trim(),
     };
   }
 

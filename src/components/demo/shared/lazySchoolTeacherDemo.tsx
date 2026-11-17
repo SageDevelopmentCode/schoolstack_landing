@@ -9,6 +9,24 @@ const SchoolTeacherDashboardDemo = dynamic(
   { ssr: false },
 );
 
+const DemoTeacherGardenPortal = dynamic(
+  () => import("@/components/demo/shared/DemoTeacherGardenPortal"),
+  { ssr: false },
+);
+
+/** The walkthrough's staff step: the real Garden staff portal for this school. */
+export function LazySchoolTeacherGardenPortal({
+  demoSlug,
+  initialTab,
+}: {
+  demoSlug: string;
+  initialTab?: ComponentProps<typeof DemoTeacherGardenPortal>["initialTab"];
+}) {
+  const config = schoolTeacherDemoConfigs[demoSlug];
+  if (!config) return null;
+  return <DemoTeacherGardenPortal config={config} initialTab={initialTab} />;
+}
+
 export type LazySchoolTeacherDashboardDemoProps = Omit<
   ComponentProps<typeof SchoolTeacherDashboardDemo>,
   "config"

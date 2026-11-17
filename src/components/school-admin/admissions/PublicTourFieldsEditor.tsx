@@ -1,14 +1,19 @@
 "use client";
 
-import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
-import type { PublicTourFieldDefinition, PublicTourFieldType } from "@/lib/admissions/public-tour-settings";
-import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import {
-  committeeStoryInputClassName,
-  committeeStoryInputStyle,
-} from "@/components/school-admin/committees/committee-story-input-style";
-import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { useId, useRef, useState } from "react";
+import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import type {
+  PublicTourFieldDefinition,
+  PublicTourFieldType,
+} from "@/lib/admissions/public-tour-settings";
+import { GChip, G_FOCUS, G_INPUT, NOTE_TINTS } from "@/components/school-parent/garden/ui";
+import { PUBLIC_TOUR_FIELD_TYPE_LABELS } from "@/components/school-admin/admissions/public-tour-wizard-copy";
+
+/*
+ * Booking-form questions for the public tour page, as compact Garden rows.
+ * Renders inside the admin Garden frame (`--sf-*` tokens); only used by
+ * PublicTourSchoolSettingsPanel.
+ */
 
 const CUSTOM_FIELD_TYPES: PublicTourFieldType[] = [
   "text",
@@ -19,19 +24,11 @@ const CUSTOM_FIELD_TYPES: PublicTourFieldType[] = [
   "checkbox",
 ];
 
-const FIELD_TYPE_LABELS: Record<PublicTourFieldType, string> = {
-  text: "Short text",
-  textarea: "Long text",
-  email: "Email",
-  phone: "Phone",
-  select: "Dropdown",
-  checkbox: "Checkbox",
-  children_repeat: "Children list",
-};
+const ROW_ICON_BTN = `inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-[1.5px] border-[var(--sf-ink)]/15 bg-white text-[var(--sf-ink)]/65 transition-colors hover:border-[var(--sf-ink)]/45 hover:text-[var(--sf-ink)] disabled:cursor-not-allowed disabled:opacity-35 ${G_FOCUS}`;
+
+const ROW_INPUT = `${G_INPUT} !py-2`;
 
 type PublicTourFieldsEditorProps = {
-  C: AdminThemeTokens;
-  theme: ParentThemeTokens;
   fields: PublicTourFieldDefinition[];
   disabled?: boolean;
   onChange: (fields: PublicTourFieldDefinition[]) => void;
@@ -45,14 +42,19 @@ function canRemoveField(field: PublicTourFieldDefinition): boolean {
   );
 }
 
-function PublicTourRequiredSwitch({
-  theme,
+function parseChoices(raw: string): string[] {
+  return raw
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function RequiredSwitch({
   checked,
   disabled,
   questionIndex,
   onChange,
 }: {
-  theme: ParentThemeTokens;
   checked: boolean;
   disabled: boolean;
   questionIndex: number;
@@ -63,45 +65,86 @@ function PublicTourRequiredSwitch({
       type="button"
       role="switch"
       aria-checked={checked}
-      aria-label={`${checked ? "Required" : "Optional"} for question ${questionIndex + 1}`}
+      aria-label={`Required for question ${questionIndex + 1}`}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className="flex min-h-[44px] shrink-0 items-center gap-3 rounded-[10px] px-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+      className={`inline-flex min-h-[36px] shrink-0 items-center gap-2 rounded-full px-1.5 disabled:cursor-not-allowed disabled:opacity-50 ${G_FOCUS}`}
     >
       <span
-        className="text-[12px] font-bold tabular-nums"
-        style={{ color: checked ? theme.primaryDark : theme.muted }}
+        aria-hidden
+        className={`relative inline-flex h-6 w-10 shrink-0 items-center rounded-full border-2 border-[var(--sf-ink)] transition-colors ${
+          checked ? "bg-[var(--sf-clay)]" : "bg-[var(--sf-ink)]/10"
+        }`}
       >
-        {checked ? "Required" : "Optional"}
+        <span
+          className={`inline-block h-4 w-4 rounded-full border-[1.5px] border-[var(--sf-ink)] bg-white transition-transform duration-200 ${
+            checked ? "translate-x-[17px]" : "translate-x-[2px]"
+          }`}
+        />
       </span>
       <span
         aria-hidden
-        className="relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors"
-        style={{ backgroundColor: checked ? theme.primary : "#DCE4DC" }}
+        className={`w-[58px] text-left text-[12.5px] font-extrabold ${
+          checked ? "text-[var(--sf-clay-deep)]" : "text-[var(--sf-soft)]"
+        }`}
       >
-        <span
-          className="inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform"
-          style={{
-            transform: checked ? "translateX(22px)" : "translateX(2px)",
-          }}
-        />
+        {checked ? "Required" : "Optional"}
       </span>
     </button>
   );
 }
 
+/** Choices keep the raw text while typing so commas and spaces aren't eaten. */
+function ChoicesInput({
+  id,
+  options,
+  disabled,
+  onChange,
+}: {
+  id: string;
+  options: string[];
+  disabled: boolean;
+  onChange: (options: string[]) => void;
+}) {
+  const [draft, setDraft] = useState(() => options.join(", "));
+  const [lastOptions, setLastOptions] = useState(options);
+  if (lastOptions !== options) {
+    setLastOptions(options);
+    if (parseChoices(draft).join("\u0000") !== options.join("\u0000")) {
+      setDraft(options.join(", "));
+    }
+  }
+  return (
+    <div className="mt-2 pl-10 lg:pl-10">
+      <label htmlFor={id} className="mb-1 block text-[12.5px] font-extrabold text-[var(--sf-ink)]/80">
+        Choices, separated by commas
+      </label>
+      <input
+        id={id}
+        type="text"
+        disabled={disabled}
+        placeholder="Option A, Option B, Option C"
+        value={draft}
+        onChange={(event) => {
+          setDraft(event.target.value);
+          onChange(parseChoices(event.target.value));
+        }}
+        className={ROW_INPUT}
+      />
+    </div>
+  );
+}
+
 export default function PublicTourFieldsEditor({
-  C,
-  theme,
   fields,
   disabled = false,
   onChange,
 }: PublicTourFieldsEditorProps) {
-  const inputStyle = committeeStoryInputStyle(theme);
+  const baseId = useId().replace(/:/g, "");
+  const focusFieldIdRef = useRef<string | null>(null);
 
   function updateField(index: number, patch: Partial<PublicTourFieldDefinition>) {
-    const next = fields.map((field, i) => (i === index ? { ...field, ...patch } : field));
-    onChange(next);
+    onChange(fields.map((field, i) => (i === index ? { ...field, ...patch } : field)));
   }
 
   function removeField(index: number) {
@@ -119,208 +162,164 @@ export default function PublicTourFieldsEditor({
 
   function addField() {
     const id = `custom_${Date.now()}`;
-    onChange([
-      ...fields,
-      {
-        id,
-        label: "New question",
-        required: false,
-        type: "text",
-      },
-    ]);
+    focusFieldIdRef.current = id;
+    onChange([...fields, { id, label: "New question", required: false, type: "text" }]);
   }
 
   return (
     <div className="space-y-3">
-      <div
-        className="overflow-hidden rounded-[16px] border"
-        style={{ borderColor: theme.line, backgroundColor: "#F4F7F4" }}
-      >
+      <ol className="m-0 flex list-none flex-col gap-2 p-0" data-testid="public-tour-questions">
         {fields.map((field, index) => {
-          const reorderActions = (
-            <div className="flex shrink-0 items-center gap-0.5">
-              <button
-                type="button"
-                disabled={disabled || index === 0}
-                onClick={() => moveField(index, -1)}
-                className="rounded-md p-1.5 transition-colors hover:bg-black/5 disabled:opacity-30"
-                style={{ color: C.textTertiary }}
-                aria-label={`Move question ${index + 1} up`}
-              >
-                <ChevronUp className="h-4 w-4" aria-hidden />
-              </button>
-              <button
-                type="button"
-                disabled={disabled || index === fields.length - 1}
-                onClick={() => moveField(index, 1)}
-                className="rounded-md p-1.5 transition-colors hover:bg-black/5 disabled:opacity-30"
-                style={{ color: C.textTertiary }}
-                aria-label={`Move question ${index + 1} down`}
-              >
-                <ChevronDown className="h-4 w-4" aria-hidden />
-              </button>
-              {canRemoveField(field) ? (
-                <button
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => removeField(index)}
-                  className="rounded-md p-1.5 transition-colors hover:bg-black/5 disabled:opacity-30"
-                  style={{ color: C.error }}
-                  aria-label={`Remove question ${index + 1}`}
-                >
-                  <Trash2 className="h-4 w-4" aria-hidden />
-                </button>
-              ) : null}
-            </div>
-          );
-
-          const labelPreview =
-            field.label.trim().length > 0 ? field.label.trim() : "Untitled question";
-
+          const labelId = `${baseId}-label-${field.id}`;
+          const typeId = `${baseId}-type-${field.id}`;
+          const fixed = field.type === "children_repeat";
+          const tint = NOTE_TINTS[index % NOTE_TINTS.length];
           return (
-            <div
+            <li
               key={field.id}
-              className="border-b bg-white/90 px-4 py-5 last:border-b-0 sm:px-5"
-              style={{ borderColor: theme.line }}
+              className="rounded-[16px] border-[1.5px] border-[var(--sf-ink)]/10 bg-white px-3 py-2.5 sm:px-3.5"
             >
-              <div className="mb-3 flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p
-                    className="text-[11px] font-bold uppercase tracking-[0.1em]"
-                    style={{ color: theme.muted }}
+              <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-3">
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <span
+                    aria-hidden
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-[1.5px] border-[var(--sf-ink)]/70 text-[12.5px] font-extrabold tabular-nums text-[var(--sf-ink)] ${tint}`}
                   >
-                    Question {index + 1}
-                  </p>
-                  <p
-                    className="mt-0.5 truncate text-[13px] font-semibold"
-                    style={{ color: theme.ink }}
-                  >
-                    {labelPreview}
-                  </p>
+                    {index + 1}
+                  </span>
+                  {fixed ? (
+                    <div className="min-w-0 flex-1 py-1">
+                      <p className="m-0 text-[14px] font-extrabold text-[var(--sf-ink)]">
+                        <span className="sr-only">Question {index + 1}: </span>
+                        {field.label}
+                      </p>
+                      <p className="m-0 mt-0.5 text-[12.5px] font-semibold leading-snug text-[var(--sf-soft)]">
+                        {field.helpText ?? "Families can add multiple children."}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="min-w-0 flex-1">
+                      <label htmlFor={labelId} className="sr-only">
+                        Question {index + 1} label
+                      </label>
+                      <input
+                        id={labelId}
+                        ref={(node) => {
+                          if (node && focusFieldIdRef.current === field.id) {
+                            focusFieldIdRef.current = null;
+                            node.focus();
+                            node.select();
+                          }
+                        }}
+                        type="text"
+                        disabled={disabled}
+                        value={field.label}
+                        onChange={(event) => updateField(index, { label: event.target.value })}
+                        className={ROW_INPUT}
+                        placeholder="What families will read on the form"
+                      />
+                    </div>
+                  )}
                 </div>
-                {reorderActions}
-              </div>
 
-              <div className="space-y-3">
-                {field.type === "children_repeat" ? (
-                  <div>
-                    <p className="text-[13px] font-semibold" style={{ color: theme.ink }}>
-                      {field.label}
-                    </p>
-                    {field.helpText ? (
-                      <p className="mt-1 text-xs leading-relaxed" style={{ color: theme.muted }}>
-                        {field.helpText}
-                      </p>
-                    ) : (
-                      <p className="mt-1 text-xs leading-relaxed" style={{ color: theme.muted }}>
-                        Families can add multiple children.
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <label className="block">
-                    <span
-                      className="text-[11px] font-bold uppercase tracking-[0.06em]"
-                      style={{ color: theme.muted }}
-                    >
-                      Question label
-                    </span>
-                    <input
-                      type="text"
-                      disabled={disabled}
-                      value={field.label}
-                      onChange={(event) => updateField(index, { label: event.target.value })}
-                      className={`mt-1.5 ${committeeStoryInputClassName}`}
-                      style={inputStyle}
-                      placeholder="What families will read on the form"
-                    />
-                  </label>
-                )}
-
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                  {field.type !== "children_repeat" ? (
-                    <label className="block min-w-0 flex-1">
-                      <span
-                        className="text-[11px] font-bold uppercase tracking-[0.06em]"
-                        style={{ color: theme.muted }}
-                      >
-                        Answer type
-                      </span>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 pl-10 lg:shrink-0 lg:pl-0">
+                  {fixed ? (
+                    <GChip tone="success" className="!py-1">
+                      {PUBLIC_TOUR_FIELD_TYPE_LABELS.children_repeat}
+                    </GChip>
+                  ) : (
+                    <div className="relative w-[150px]">
+                      <label htmlFor={typeId} className="sr-only">
+                        Answer type for question {index + 1}
+                      </label>
                       <select
+                        id={typeId}
                         disabled={disabled}
                         value={field.type}
+                        data-garden-skip
                         onChange={(event) =>
                           updateField(index, { type: event.target.value as PublicTourFieldType })
                         }
-                        className={`mt-1.5 ${committeeStoryInputClassName} text-[13px]`}
-                        style={inputStyle}
+                        className={`${ROW_INPUT} cursor-pointer appearance-none pr-9`}
                       >
                         {CUSTOM_FIELD_TYPES.map((type) => (
                           <option key={type} value={type}>
-                            {FIELD_TYPE_LABELS[type]}
+                            {PUBLIC_TOUR_FIELD_TYPE_LABELS[type]}
                           </option>
                         ))}
                       </select>
-                    </label>
-                  ) : (
-                    <span
-                      className="inline-flex self-start rounded-full px-2.5 py-1 text-[10px] font-extrabold"
-                      style={{ backgroundColor: "#E8F2E9", color: "#346A4E" }}
-                    >
-                      {FIELD_TYPE_LABELS.children_repeat}
-                    </span>
+                      <ChevronDown
+                        aria-hidden
+                        className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--sf-ink)]/55"
+                      />
+                    </div>
                   )}
 
-                  <PublicTourRequiredSwitch
-                    theme={theme}
+                  <RequiredSwitch
                     checked={field.required}
                     disabled={disabled}
                     questionIndex={index}
                     onChange={(required) => updateField(index, { required })}
                   />
-                </div>
 
-                {field.type === "select" ? (
-                  <label className="block">
-                    <span
-                      className="text-[11px] font-bold uppercase tracking-[0.06em]"
-                      style={{ color: theme.muted }}
+                  <div className="ml-auto flex items-center gap-1 lg:ml-0">
+                    <button
+                      type="button"
+                      disabled={disabled || index === 0}
+                      onClick={() => moveField(index, -1)}
+                      className={ROW_ICON_BTN}
+                      aria-label={`Move question ${index + 1} up`}
                     >
-                      Choices (comma-separated)
-                    </span>
-                    <input
-                      type="text"
-                      disabled={disabled}
-                      placeholder="Option A, Option B, Option C"
-                      value={(field.options ?? []).join(", ")}
-                      onChange={(event) =>
-                        updateField(index, {
-                          options: event.target.value
-                            .split(",")
-                            .map((part) => part.trim())
-                            .filter(Boolean),
-                        })
-                      }
-                      className={`mt-1.5 ${committeeStoryInputClassName}`}
-                      style={inputStyle}
-                    />
-                  </label>
-                ) : null}
+                      <ChevronUp className="h-4 w-4" aria-hidden />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={disabled || index === fields.length - 1}
+                      onClick={() => moveField(index, 1)}
+                      className={ROW_ICON_BTN}
+                      aria-label={`Move question ${index + 1} down`}
+                    >
+                      <ChevronDown className="h-4 w-4" aria-hidden />
+                    </button>
+                    {canRemoveField(field) ? (
+                      <button
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => removeField(index)}
+                        className={`${ROW_ICON_BTN} hover:!border-[#b4412f]/60 hover:!text-[#9a3422]`}
+                        aria-label={`Remove question ${index + 1}`}
+                      >
+                        <Trash2 className="h-4 w-4" aria-hidden />
+                      </button>
+                    ) : (
+                      <span aria-hidden className="inline-block h-8 w-8" />
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
+
+              {field.type === "select" ? (
+                <ChoicesInput
+                  id={`${baseId}-choices-${field.id}`}
+                  options={field.options ?? []}
+                  disabled={disabled}
+                  onChange={(options) => updateField(index, { options })}
+                />
+              ) : null}
+            </li>
           );
         })}
-      </div>
+      </ol>
 
-      <AdminButton
-        theme={theme}
+      <button
         type="button"
-        variant="soft"
         disabled={disabled}
         onClick={addField}
+        className={`flex w-full items-center justify-center gap-2 rounded-[16px] border-[1.5px] border-dashed border-[var(--sf-ink)]/25 bg-[var(--sf-paper)] px-4 py-3 text-[14px] font-extrabold text-[var(--sf-clay-deep)] transition-colors hover:border-[var(--sf-clay)] hover:bg-[var(--sf-accent-wash)] disabled:cursor-not-allowed disabled:opacity-50 ${G_FOCUS}`}
       >
-        + Add question
-      </AdminButton>
+        <Plus className="h-4 w-4" aria-hidden strokeWidth={2.6} />
+        Add question
+      </button>
     </div>
   );
 }

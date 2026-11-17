@@ -5,6 +5,7 @@ import type { UnreadDigestDiscordDelivery } from "@/lib/messages/unread-message-
 import { formatCommitteeDigestGroupsForDiscord } from "@/lib/committees/daily-digest-utils";
 import { demoRequestRoleLabel } from "@/lib/demo-request-roles";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
+import { STUDENT_COUNTS } from "@/lib/student-count-options";
 import {
   formatAutopayLineItems,
   type AutopayLineItem,
@@ -1852,13 +1853,6 @@ const LAUNCH_TIMELINES: Record<string, string> = {
   "3-6": "3–6 months from now",
   "6-12": "6–12 months from now",
   exploring: "Just exploring for now",
-};
-
-const STUDENT_COUNTS: Record<string, string> = {
-  "0-10": "0–10 students",
-  "11-25": "11–25 students",
-  "26-75": "26–75 students",
-  "76+": "76+ students",
 };
 
 function formatSelectedDate(dateStr: string) {

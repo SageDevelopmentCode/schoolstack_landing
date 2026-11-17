@@ -108,5 +108,7 @@ export type MessagesInboxViewModel = {
     dismissError: () => void;
     retry: () => void;
     notify: MessagesFeedbackHandler;
+    /** Staff only: open a student's profile from the thread's student names. */
+    openStudent?: (studentId: string) => void;
   };
 };

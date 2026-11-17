@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import HomeShell from "@/components/home/HomeShell";
-import CustomersBrightPage from "@/components/customers/CustomersBrightPage";
+import GardenRoot from "@/components/garden/GardenRoot";
+import CustomersGardenPage from "@/components/customers/CustomersGardenPage";
 import BreadcrumbJsonLd from "@/components/seo/BreadcrumbJsonLd";
 import { pageMetadata } from "@/lib/metadata";
 import { buildBreadcrumbs } from "@/lib/seo";
@@ -16,9 +16,9 @@ const BREADCRUMBS = buildBreadcrumbs({ name: "Customer Stories", path: "/custome
 
 export default function CustomersPage() {
   return (
-    <HomeShell className="bg-white">
+    <GardenRoot>
       <BreadcrumbJsonLd items={BREADCRUMBS} />
-      <CustomersBrightPage />
-    </HomeShell>
+      <CustomersGardenPage />
+    </GardenRoot>
   );
 }

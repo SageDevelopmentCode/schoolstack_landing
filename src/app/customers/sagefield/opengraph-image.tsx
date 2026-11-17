@@ -12,6 +12,7 @@ export default async function OpenGraphImage() {
   );
   const photoSrc = `data:image/jpeg;base64,${photoData.toString("base64")}`;
 
+  // Garden palette: cream paper, ink type, a taped polaroid. Text unchanged.
   return new ImageResponse(
     (
       <div
@@ -19,45 +20,27 @@ export default async function OpenGraphImage() {
           width: "100%",
           height: "100%",
           display: "flex",
-          position: "relative",
-          backgroundColor: "#1a3327",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "64px 72px",
+          backgroundColor: "#F7F1E7",
+          backgroundImage: "radial-gradient(rgba(43,36,29,0.12) 1.4px, transparent 1.4px)",
+          backgroundSize: "26px 26px",
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={photoSrc}
-          alt=""
-          width={1200}
-          height={630}
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            opacity: 0.35,
-          }}
-        />
-        <div
-          style={{
-            position: "relative",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "flex-end",
-            width: "100%",
-            height: "100%",
-            padding: "64px",
-            background:
-              "linear-gradient(to top, rgba(26,51,39,0.95) 0%, rgba(26,51,39,0.4) 60%, transparent 100%)",
-          }}
-        >
+        <div style={{ display: "flex", flexDirection: "column", maxWidth: "640px" }}>
           <p
             style={{
-              fontSize: "18px",
-              fontWeight: 600,
-              letterSpacing: "0.12em",
+              display: "flex",
+              alignSelf: "flex-start",
+              fontSize: "20px",
+              fontWeight: 700,
+              letterSpacing: "0.08em",
               textTransform: "uppercase",
-              color: "rgba(255,255,255,0.55)",
+              color: "#7E4533",
+              backgroundColor: "#F8DDCF",
+              borderRadius: "999px",
+              padding: "8px 20px",
               margin: 0,
             }}
           >
@@ -65,25 +48,53 @@ export default async function OpenGraphImage() {
           </p>
           <p
             style={{
-              fontSize: "56px",
-              fontWeight: 600,
-              color: "#ffffff",
-              lineHeight: 1.1,
-              margin: "12px 0 0",
-              maxWidth: "900px",
+              fontSize: "60px",
+              fontWeight: 800,
+              color: "#2B241D",
+              lineHeight: 1.04,
+              letterSpacing: "-0.03em",
+              margin: "24px 0 0",
             }}
           >
             Sage Field: 0 to 35 students in under 3 months
           </p>
           <p
             style={{
-              fontSize: "24px",
-              color: "rgba(255,255,255,0.65)",
-              margin: "16px 0 0",
+              display: "flex",
+              fontSize: "26px",
+              fontWeight: 600,
+              color: "#2E4A3C",
+              margin: "24px 0 0",
             }}
           >
             Powered by MudKitchen · Round Rock, TX
           </p>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            position: "relative",
+            backgroundColor: "#ffffff",
+            padding: "14px 14px 44px",
+            borderRadius: "8px",
+            transform: "rotate(4deg)",
+            boxShadow: "0 24px 50px -20px rgba(43,36,29,0.55)",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: "-16px",
+              left: "120px",
+              width: "110px",
+              height: "32px",
+              backgroundColor: "#FFE58A",
+              opacity: 0.9,
+              transform: "rotate(-4deg)",
+            }}
+          />
+          <img src={photoSrc} alt="" width={330} height={420} style={{ width: "330px", height: "420px", objectFit: "cover", borderRadius: "4px" }} />
         </div>
       </div>
     ),

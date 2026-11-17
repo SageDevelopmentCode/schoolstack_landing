@@ -1,5 +1,7 @@
+"use client";
+
 import type { ReactNode } from "react";
-import { ACCENT_HIGHLIGHT, BOLD_HEADING } from "@/components/home/bright-styles";
+import { Pill } from "@/components/garden/ui";
 
 export type BrightAuthPreset = "login" | "parent" | "apply";
 
@@ -16,11 +18,13 @@ type LoginPhaseHeaderProps = {
   schoolWordmark?: ReactNode;
 };
 
+const ACCENT = "text-[var(--sf-clay)]";
+
 function phaseTitle(preset: BrightAuthPreset, phase: BrightAuthHeaderPhase): ReactNode {
   if (phase === "verify") {
     return (
       <>
-        Check <span className={ACCENT_HIGHLIGHT}>your email</span>
+        Check <span className={ACCENT}>your email</span>
       </>
     );
   }
@@ -28,7 +32,7 @@ function phaseTitle(preset: BrightAuthPreset, phase: BrightAuthHeaderPhase): Rea
   if (phase === "select_org") {
     return (
       <>
-        Choose <span className={ACCENT_HIGHLIGHT}>your school</span>
+        Choose <span className={ACCENT}>your school</span>
       </>
     );
   }
@@ -36,7 +40,7 @@ function phaseTitle(preset: BrightAuthPreset, phase: BrightAuthHeaderPhase): Rea
   if (preset === "parent") {
     return (
       <>
-        Sign in to your <span className={ACCENT_HIGHLIGHT}>parent portal</span>
+        Sign in to your <span className={ACCENT}>parent portal</span>
       </>
     );
   }
@@ -44,14 +48,14 @@ function phaseTitle(preset: BrightAuthPreset, phase: BrightAuthHeaderPhase): Rea
   if (preset === "apply") {
     return (
       <>
-        Sign in to your <span className={ACCENT_HIGHLIGHT}>applications</span>
+        Sign in to your <span className={ACCENT}>applications</span>
       </>
     );
   }
 
   return (
     <>
-      Sign in to <span className={ACCENT_HIGHLIGHT}>continue</span>
+      Sign in to <span className={ACCENT}>continue</span>
     </>
   );
 }
@@ -68,30 +72,31 @@ function phaseKicker(phase: BrightAuthHeaderPhase): string {
   }
 }
 
-/** Bright marketing headings for auth steps (`/login`, parent/apply gates). */
+const PHASE_EMOJI: Record<BrightAuthHeaderPhase, string> = {
+  select_org: "🏫",
+  email: "🌱",
+  password: "🌱",
+  verify: "💌",
+};
+
+/** Calm Garden headings for auth steps (`/login`, parent/apply gates). Needs a `.sf-garden` ancestor. */
 export default function LoginPhaseHeader({
   preset = "login",
   phase,
   subtitle,
   schoolWordmark,
 }: LoginPhaseHeaderProps) {
-  const titleClassName =
-    phase === "select_org"
-      ? "text-[clamp(1.75rem,3.5vw,2.25rem)]"
-      : "text-[clamp(1.6rem,3.2vw,2rem)]";
-
   return (
-    <div className="mb-8">
+    <div className="mb-7">
       {schoolWordmark}
-      <p className="font-secondary text-[13px] font-semibold uppercase tracking-widest text-clay">
+      <Pill tint="clay">
+        <span aria-hidden>{PHASE_EMOJI[phase]}</span>
         {phaseKicker(phase)}
-      </p>
-      <h1 className={`mt-2 ${titleClassName} ${BOLD_HEADING}`}>
+      </Pill>
+      <h1 className="sf-display mt-4 text-[2.35rem] leading-[0.98] text-[var(--sf-ink)] sm:text-5xl sm:leading-[0.95]">
         {phaseTitle(preset, phase)}
       </h1>
-      <p className="mt-3 font-secondary text-[16px] leading-relaxed text-[#1d1a16]/70">
-        {subtitle}
-      </p>
+      <p className="mt-4 text-base leading-relaxed text-[var(--sf-soft)]">{subtitle}</p>
     </div>
   );
 }

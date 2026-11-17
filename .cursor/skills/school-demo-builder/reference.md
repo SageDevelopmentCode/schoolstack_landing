@@ -14,10 +14,12 @@ Given school **Luff Learning Fine Arts Academy** and slug **`luff-learning`**:
 | Admin data | `luff-learning-admin-demo.ts` → `LUFF_LEARNING_ADMIN_*`, `luffLearningAdminDemoConfig` |
 | Parent data | `luff-learning-parent-demo.ts` → `LUFF_LEARNING_PARENT_*`, `luffLearningParentDemoConfig` |
 | Teacher data | `luff-learning-teacher-demo.ts` → `LUFF_LEARNING_TEACHER_*`, `luffLearningTeacherDemoConfig` |
-| Shared admin UI | `src/components/demo/shared/SchoolAdminDashboardDemo.tsx` |
-| Shared parent UI | `src/components/demo/shared/SchoolParentDashboardDemo.tsx` |
-| Shared teacher UI | `src/components/demo/shared/SchoolTeacherDashboardDemo.tsx` |
-| Shared loaders | `lazySchoolAdminDemo.tsx`, `lazySchoolParentDemo.tsx`, `lazySchoolTeacherDemo.tsx` |
+| Walkthrough admin (steps 3–4) | `src/components/demo/shared/DemoAdminGardenAdmissions.tsx` (real Garden admin portal) |
+| Walkthrough parent (steps 5–6) | `DemoParentEnrollmentChecklist.tsx`, `DemoParentGardenPortal.tsx` (real Garden parent pages) |
+| Walkthrough teacher (step 7) | `DemoTeacherGardenPortal.tsx` (real Garden staff portal) |
+| Older Story demos | `SchoolAdminDashboardDemo.tsx` / `SchoolParentDashboardDemo.tsx` / `SchoolTeacherDashboardDemo.tsx` — still used for the other admin steps (committees, tuition, My School) and `/demo-school` |
+| Shared loaders | `lazySchoolAdminDemo.tsx`, `lazySchoolParentDemo.tsx`, `lazySchoolParentGardenDemo.tsx`, `lazySchoolTeacherDemo.tsx` |
+| Website template | `src/components/sections/WebsiteDashboardDemo.tsx` + `website-demo/site-garden-theme.ts` + `website-demo/garden/SiteKit.tsx` |
 | Config types | `src/data/school-demos/demo-dashboard-types.ts` |
 | Registry | `src/data/school-demos/dashboard-registry.ts` |
 | Website component | `LuffLearningWebsiteDashboardDemo.tsx` (per-school website wrapper only) |
@@ -116,19 +118,17 @@ Redesign guides scraped from WordPress/Kadence often mislabel hex roles. Always 
 1. Open the logo — identify primary accent (e.g. sage green heart)
 2. Inspect live site CSS or computed styles
 3. Cross-check guide's "Palette N" table — labels may not match actual colors
-4. Build a corrected mapping:
+4. Build a corrected mapping onto the **Garden roles** (`siteGardenScopeStyle` in `site-garden-theme.ts`):
 
-| Demo use | Typical role |
+| `DemoTheme` field | What it drives on the Garden website |
 |---|---|
-| `theme.primary` | Main CTA / buttons |
-| `theme.primaryHover` | CTA hover |
-| `theme.dark` | Headings, dark nav |
-| `theme.accentText` | Secondary accent |
-| `theme.lightBg` | Soft section backgrounds |
-| `theme.muted` | Captions |
+| `theme.dark` | **Action colour**: every CTA button, accent words in headings, the one dark panel. Must pass white text (`readableOn` falls back to ink if not, but choose a dark brand colour). |
+| `theme.primary` | **Brand tint**: sticky notes, washi tape, marker highlights (mixed ~30% into paper). Bright yellows/oranges work well. |
+| `theme.primaryHover`, `darkHover` | Not used by the site; keep them sensible for older surfaces |
+| `theme.accentText`, `lightBg`, `lightBorder`, `muted`, `badgeBg`, `pageBg` | Not used by the Garden site (cream/paper/ink come from Garden); still required by the type |
 | `*_ADMIN_COLORS.clay` | Walkthrough gold/warm accent |
 
-Example correction (Luff Learning): guide labeled `#efad1f` as "primary purple" but it is gold; actual primary CTA is `#769a61` (sage green from logo).
+Example correction (Luff Learning): guide labeled `#efad1f` as "primary purple" but it is gold; the sage green from the logo (`#769a61`) is the brand colour.
 
 ## Testimonial shape
 
@@ -174,11 +174,11 @@ export const {PREFIX}_ADMIN_COLORS = {
 } as const;
 ```
 
-**Story alignment:** `accent` / `accentBright` / `accentLight` / `accentDark` feed `buildDemoParentThemeTokens()` in `src/components/demo/shared/demo-story-theme.ts`. Keep the same accent hex in admin, parent (`colors.accent`), and teacher (`accent`) configs.
+**One school colour across portals:** the accent becomes the school branding passed to the real Garden portals (`ParentThemeProvider` / `SchoolAdminBaseline` branding → `--sf-clay`). Keep the same accent hex in admin (`colors.accent`), parent (`colors.accent`) and teacher (`accent`) configs. The older Story demos still read it through `buildDemoParentThemeTokens()` in `src/components/demo/shared/demo-story-theme.ts`.
 
-Portal preview typography: Fraunces + DM Sans (set in shared `School*DashboardDemo.tsx` shells). Website step typography: school fonts in `layout.tsx` only.
+Typography: the website and the Garden portal steps use the Garden fonts (Bricolage / Nunito / Gochi); nothing per school.
 
-Mobile slides: paper interior `#F8F8F3`, story tab pills in `SchoolMobileAppShowcase.tsx`.
+Mobile slides are unchanged: paper interior `#F8F8F3`, story tab pills in `SchoolMobileAppShowcase.tsx`.
 
 ## Teacher program IDs
 
@@ -218,7 +218,7 @@ Set copy strings (school name, location subtitle, office name) on `SchoolAdminDe
 
 ## Scaled preview wiring
 
-**Admin / parent / teacher:** No per-school `Scaled*` edits. Shared loaders in `lazySchoolAdminDemo.tsx`, `lazySchoolParentDemo.tsx`, and `lazySchoolTeacherDemo.tsx` look up config from `dashboard-registry.ts` by `demoSlug`.
+**Admin / parent / teacher:** No per-school `Scaled*` edits. Shared loaders look up config from `dashboard-registry.ts` by `demoSlug`. `ScaledAdminDemoPreview` sends the submissions / start-enrollment steps to `DemoAdminGardenAdmissions`, `ScaledParentDemoPreview` sends enrollment / billing / home to the Garden parent wrappers, and `ScaledTeacherDemoPreview` renders `DemoTeacherGardenPortal` — all for every school except Rooted Meadows.
 
 **Website:** Register the school's website wrapper in `lazySchoolWebsiteDemo.tsx` → `WEBSITE_DEMO_LOADERS`.
 

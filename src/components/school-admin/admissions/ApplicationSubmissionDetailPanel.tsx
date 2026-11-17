@@ -34,6 +34,11 @@ import StartEnrollmentModal from "./StartEnrollmentModal";
 import FamilyGuardiansSection from "./FamilyGuardiansSection";
 import { SubmissionDetailStoryProvider } from "./SubmissionDetailStoryContext";
 import {
+  SubmissionDetailPreviewProvider,
+  type SubmissionDetailPreview,
+  type SubmissionDetailPreviewScript,
+} from "./SubmissionDetailPreviewContext";
+import {
   applicationStatusChipTone,
   applicationStatusLabel,
 } from "@/lib/admissions/application-status-ui";
@@ -71,6 +76,17 @@ type ApplicationSubmissionDetailPanelProps = {
   onSelectSubmission?: (applicationId: string) => void;
   /** Garden drawer on Admissions → Submissions; story elsewhere (Schedule). */
   appearance?: "story" | "garden";
+  /**
+   * Fixture detail (marketing preview): every loader is skipped and the
+   * sections read this instead of Supabase / `/api`.
+   */
+  previewDetail?: SubmissionDetailPreview | null;
+  /** Disables writes (or resolves them locally). Never hides UI. */
+  previewMode?: boolean;
+  /** Timed presses of the drawer's real controls (preview only). */
+  previewScript?: SubmissionDetailPreviewScript | null;
+  /** In-canvas node for dialogs in a scaled preview (default `document.body`). */
+  portalContainer?: HTMLElement | null;
 };
 
 type DetailTab = {
@@ -89,21 +105,28 @@ export default function ApplicationSubmissionDetailPanel({
   onSubmissionUpdated,
   onSelectSubmission,
   appearance = "story",
+  previewDetail = null,
+  previewMode: previewModeProp = false,
+  previewScript = null,
+  portalContainer = null,
 }: ApplicationSubmissionDetailPanelProps) {
   const garden = appearance === "garden";
+  const previewMode = previewModeProp || previewDetail != null;
   const { theme, C } = useSchoolAdminStoryTheme();
   const reducedMotion = useReducedMotion();
   const supabase = createClient();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const historyLoadedRef = useRef(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(previewDetail == null);
   const [error, setError] = useState<string | null>(null);
-  const [detail, setDetail] = useState<Awaited<ReturnType<typeof loadApplicationDetail>>>(null);
-  const [hasChecklist, setHasChecklist] = useState(false);
+  const [detail, setDetail] = useState<Awaited<ReturnType<typeof loadApplicationDetail>>>(
+    previewDetail?.detail ?? null,
+  );
+  const [hasChecklist, setHasChecklist] = useState(previewDetail?.hasChecklist ?? false);
   const [hasPublishedEnrollmentChecklist, setHasPublishedEnrollmentChecklist] =
-    useState(false);
+    useState(previewDetail?.publishedChecklistName != null);
   const [enrollmentChecklistName, setEnrollmentChecklistName] = useState<string | null>(
-    null,
+    previewDetail?.publishedChecklistName ?? null,
   );
   const [startEnrollmentOpen, setStartEnrollmentOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState(submission.status);
@@ -112,7 +135,7 @@ export default function ApplicationSubmissionDetailPanel({
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyUnlinked, setHistoryUnlinked] = useState(false);
   const [historyEvents, setHistoryEvents] = useState<FamilyAdmissionTimelineEvent[]>([]);
-  const [familyId, setFamilyId] = useState<string | null>(null);
+  const [familyId, setFamilyId] = useState<string | null>(previewDetail?.familyId ?? null);
 
   const navigateToTab = useCallback((tabId: string) => {
     setVisitedTabs((previous) => {
@@ -164,6 +187,7 @@ export default function ApplicationSubmissionDetailPanel({
 
   const loadDetail = useCallback(
     async (options?: { silent?: boolean }) => {
+      if (previewDetail) return;
       const silent = options?.silent ?? false;
       if (!silent) {
         setLoading(true);
@@ -203,12 +227,18 @@ export default function ApplicationSubmissionDetailPanel({
       loadChecklistState,
       loadPublishedEnrollmentChecklistState,
       organizationId,
+      previewDetail,
       submission.id,
       supabase,
     ],
   );
 
   const loadHistory = useCallback(async () => {
+    if (previewDetail) {
+      setHistoryEvents(previewDetail.history);
+      setHistoryUnlinked(previewDetail.familyId == null);
+      return;
+    }
     setHistoryLoading(true);
     setHistoryUnlinked(false);
     try {
@@ -240,16 +270,18 @@ export default function ApplicationSubmissionDetailPanel({
     } finally {
       setHistoryLoading(false);
     }
-  }, [organizationId, submission.id, supabase]);
+  }, [organizationId, previewDetail, submission.id, supabase]);
 
   const refreshAfterMutation = useCallback(async () => {
+    // Preview: the local state change is the whole update.
+    if (previewDetail) return;
     invalidateHistory();
     await loadDetail({ silent: true });
     if (visitedTabs.has("history")) {
       historyLoadedRef.current = true;
       await loadHistory();
     }
-  }, [invalidateHistory, loadDetail, loadHistory, visitedTabs]);
+  }, [invalidateHistory, loadDetail, loadHistory, previewDetail, visitedTabs]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -287,6 +319,25 @@ export default function ApplicationSubmissionDetailPanel({
     hasPublishedEnrollmentChecklist;
   const canMarkEnrolled =
     currentStatus === "accepted" || currentStatus === "enrolling";
+
+  // Preview script: press "Accept" the way the admin would (it opens Start
+  // enrollment when the program has a published checklist).
+  const acceptAfterMs = previewDetail ? previewScript?.acceptAfterMs : undefined;
+  const canScriptAccept =
+    acceptAfterMs != null &&
+    hasPublishedEnrollmentChecklist &&
+    !hasChecklist &&
+    !canMarkEnrolled &&
+    currentStatus !== "enrolled";
+  const scriptAcceptedRef = useRef(false);
+  useEffect(() => {
+    if (!canScriptAccept || scriptAcceptedRef.current) return;
+    const timer = window.setTimeout(() => {
+      scriptAcceptedRef.current = true;
+      setStartEnrollmentOpen(true);
+    }, acceptAfterMs);
+    return () => window.clearTimeout(timer);
+  }, [acceptAfterMs, canScriptAccept]);
   const showEnrollmentStatus =
     currentStatus === "enrolling" || hasChecklist;
 
@@ -492,6 +543,10 @@ export default function ApplicationSubmissionDetailPanel({
       applicationId={submission.id}
       studentLabel={submission.studentLabel}
       contactEmail={submission.contactEmail}
+      previewMode={previewMode}
+      previewData={previewDetail?.startEnrollment ?? null}
+      autoSubmitAfterMs={previewDetail ? previewScript?.startEnrollmentAfterMs : undefined}
+      portalContainer={portalContainer}
       onClose={() => setStartEnrollmentOpen(false)}
       onStarted={() => {
         setCurrentStatus("enrolling");
@@ -501,6 +556,13 @@ export default function ApplicationSubmissionDetailPanel({
       }}
     />
   );
+
+  const previewValue = {
+    preview: previewDetail,
+    previewMode,
+    script: previewScript,
+    portalContainer,
+  };
 
   if (garden) {
     const panelBody = loading ? (
@@ -543,206 +605,210 @@ export default function ApplicationSubmissionDetailPanel({
     ) : null;
 
     return (
-      <SubmissionDetailStoryProvider variant="garden" theme={theme}>
-        <GSidePanel
-          theme={theme}
-          open
-          size="xl"
-          panelId={`submission-detail-${submission.id}`}
-          testId="submission-detail-panel"
-          kicker="Application review"
-          title={familyLabel}
-          onClose={onClose}
-          bodyRef={scrollContainerRef}
-          subtitle={
-            <>
-              {metaLine ? (
-                <span className="block truncate">
-                  {metaLine} · Updated {formatShortDate(submission.updatedAt)}
-                </span>
-              ) : null}
-              <span className="block truncate">{contactLabel}</span>
-            </>
-          }
-          headerAside={
-            <GChip tone={applicationStatusChipTone(currentStatus)}>
-              ● {applicationStatusLabel(currentStatus)}
-            </GChip>
-          }
-          headerBelow={
-            detail && !loading && !error ? (
-              <GTabBar
-                items={tabs.map((tab) => ({
-                  key: tab.id,
-                  label: tab.label,
-                  icon: <tab.icon className="h-3.5 w-3.5" aria-hidden />,
-                  testId: `submission-tab-${tab.id}`,
-                }))}
-                activeKey={activeTab}
-                onChange={navigateToTab}
-                ariaLabel="Application sections"
-                className="!shadow-none"
-              />
-            ) : undefined
-          }
-        >
-          {panelBody}
-        </GSidePanel>
-        {startEnrollmentModal}
-      </SubmissionDetailStoryProvider>
+      <SubmissionDetailPreviewProvider value={previewValue}>
+        <SubmissionDetailStoryProvider variant="garden" theme={theme}>
+          <GSidePanel
+            theme={theme}
+            open
+            size="xl"
+            panelId={`submission-detail-${submission.id}`}
+            testId="submission-detail-panel"
+            kicker="Application review"
+            title={familyLabel}
+            onClose={onClose}
+            bodyRef={scrollContainerRef}
+            subtitle={
+              <>
+                {metaLine ? (
+                  <span className="block truncate">
+                    {metaLine} · Updated {formatShortDate(submission.updatedAt)}
+                  </span>
+                ) : null}
+                <span className="block truncate">{contactLabel}</span>
+              </>
+            }
+            headerAside={
+              <GChip tone={applicationStatusChipTone(currentStatus)}>
+                ● {applicationStatusLabel(currentStatus)}
+              </GChip>
+            }
+            headerBelow={
+              detail && !loading && !error ? (
+                <GTabBar
+                  items={tabs.map((tab) => ({
+                    key: tab.id,
+                    label: tab.label,
+                    icon: <tab.icon className="h-3.5 w-3.5" aria-hidden />,
+                    testId: `submission-tab-${tab.id}`,
+                  }))}
+                  activeKey={activeTab}
+                  onChange={navigateToTab}
+                  ariaLabel="Application sections"
+                  className="!shadow-none"
+                />
+              ) : undefined
+            }
+          >
+            {panelBody}
+          </GSidePanel>
+          {startEnrollmentModal}
+        </SubmissionDetailStoryProvider>
+      </SubmissionDetailPreviewProvider>
     );
   }
 
   return (
-    <motion.div
-      className="fixed inset-0 z-[100]"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
-    >
-      <div
-        className="absolute inset-0"
-        style={{ backgroundColor: "rgba(34,48,44,0.47)" }}
-        onClick={onClose}
-        aria-hidden="true"
-      />
+    <SubmissionDetailPreviewProvider value={previewValue}>
       <motion.div
-        initial={{ x: "100%", opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        exit={{ x: "100%", opacity: 0 }}
-        transition={{ type: "spring", damping: 28, stiffness: 300 }}
-        className="absolute inset-y-0 right-0 z-[15] flex w-[min(100%,44rem)] max-w-full flex-col overflow-hidden"
-        style={{
-          backgroundColor: "#F8FAF8",
-          borderLeft: "1px solid #E0E8E0",
-          boxShadow: "0 -18px 45px rgba(26,47,37,0.2)",
-        }}
-        onClick={(event) => event.stopPropagation()}
+        className="fixed inset-0 z-[100]"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
       >
         <div
-          className="flex flex-shrink-0 items-start justify-between gap-3 bg-white px-[21px] py-[17px]"
-          style={{ borderBottom: "1px solid #E0E8E0" }}
+          className="absolute inset-0"
+          style={{ backgroundColor: "rgba(34,48,44,0.47)" }}
+          onClick={onClose}
+          aria-hidden="true"
+        />
+        <motion.div
+          initial={{ x: "100%", opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: "100%", opacity: 0 }}
+          transition={{ type: "spring", damping: 28, stiffness: 300 }}
+          className="absolute inset-y-0 right-0 z-[15] flex w-[min(100%,44rem)] max-w-full flex-col overflow-hidden"
+          style={{
+            backgroundColor: "#F8FAF8",
+            borderLeft: "1px solid #E0E8E0",
+            boxShadow: "0 -18px 45px rgba(26,47,37,0.2)",
+          }}
+          onClick={(event) => event.stopPropagation()}
         >
-          <div className="min-w-0 flex-1">
-            <AdminSectionKicker theme={theme}>Application review</AdminSectionKicker>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <AdminDisplayHeading theme={theme} as="h2" size="section" className="truncate">
-                {familyLabel}
-              </AdminDisplayHeading>
-              <AdminChip theme={theme} tone={applicationStatusChipTone(currentStatus)}>
-                {applicationStatusLabel(currentStatus)}
-              </AdminChip>
-            </div>
-            {metaLine ? (
-              <p className="mt-1 truncate text-[11px]" style={{ color: theme.muted }}>
-                {metaLine}
-                <span className="mx-1.5 opacity-50">·</span>
-                Updated {formatShortDate(submission.updatedAt)}
-              </p>
-            ) : null}
-            <p className="mt-0.5 truncate text-[11px]" style={{ color: theme.muted }}>
-              {contactLabel}
-            </p>
-          </div>
-          <AdminButton
-            theme={theme}
-            variant="soft"
-            size="compact"
-            onClick={onClose}
-            aria-label="Close"
-            className="shrink-0"
-          >
-            Close ×
-          </AdminButton>
-        </div>
-
-        {detail && !loading && !error ? (
           <div
-            className="flex flex-shrink-0 overflow-x-auto bg-white px-[21px]"
-            style={{ borderBottom: "1px solid #E1E8E1" }}
+            className="flex flex-shrink-0 items-start justify-between gap-3 bg-white px-[21px] py-[17px]"
+            style={{ borderBottom: "1px solid #E0E8E0" }}
           >
-            <div
-              className="-mb-px flex gap-[3px]"
-              role="tablist"
-              aria-label="Application sections"
+            <div className="min-w-0 flex-1">
+              <AdminSectionKicker theme={theme}>Application review</AdminSectionKicker>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <AdminDisplayHeading theme={theme} as="h2" size="section" className="truncate">
+                  {familyLabel}
+                </AdminDisplayHeading>
+                <AdminChip theme={theme} tone={applicationStatusChipTone(currentStatus)}>
+                  {applicationStatusLabel(currentStatus)}
+                </AdminChip>
+              </div>
+              {metaLine ? (
+                <p className="mt-1 truncate text-[11px]" style={{ color: theme.muted }}>
+                  {metaLine}
+                  <span className="mx-1.5 opacity-50">·</span>
+                  Updated {formatShortDate(submission.updatedAt)}
+                </p>
+              ) : null}
+              <p className="mt-0.5 truncate text-[11px]" style={{ color: theme.muted }}>
+                {contactLabel}
+              </p>
+            </div>
+            <AdminButton
+              theme={theme}
+              variant="soft"
+              size="compact"
+              onClick={onClose}
+              aria-label="Close"
+              className="shrink-0"
             >
-              {tabs.map((tab) => {
-                const isActive = activeTab === tab.id;
-                const tabId = `submission-tab-${tab.id}`;
-                const panelId = `submission-panel-${tab.id}`;
-
-                return (
-                  <button
-                    key={tab.id}
-                    id={tabId}
-                    type="button"
-                    role="tab"
-                    aria-selected={isActive}
-                    aria-controls={panelId}
-                    onClick={() => navigateToTab(tab.id)}
-                    className="flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-[9px] py-[11px] text-[11px] font-bold transition-colors"
-                    style={{
-                      borderBottomColor: isActive ? theme.primary : "transparent",
-                      color: isActive ? theme.primary : "#77858A",
-                    }}
-                  >
-                    <tab.icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
+              Close ×
+            </AdminButton>
           </div>
-        ) : null}
 
-        <SubmissionDetailStoryProvider variant="story" theme={theme}>
-          <div
-            ref={scrollContainerRef}
-            className="flex-1 overflow-y-auto px-5 pb-6 pt-5 sm:px-5 sm:pb-8"
-          >
-            {loading ? (
-              <SchoolAdminDetailPanelSkeleton C={C} label="Loading application" />
-            ) : error ? (
-              <p className="text-sm" style={{ color: C.error }}>
-                {error}
-              </p>
-            ) : detail ? (
-              <>
-                {tabs.map((tab) =>
-                  visitedTabs.has(tab.id) ? (
-                    <div
+          {detail && !loading && !error ? (
+            <div
+              className="flex flex-shrink-0 overflow-x-auto bg-white px-[21px]"
+              style={{ borderBottom: "1px solid #E1E8E1" }}
+            >
+              <div
+                className="-mb-px flex gap-[3px]"
+                role="tablist"
+                aria-label="Application sections"
+              >
+                {tabs.map((tab) => {
+                  const isActive = activeTab === tab.id;
+                  const tabId = `submission-tab-${tab.id}`;
+                  const panelId = `submission-panel-${tab.id}`;
+
+                  return (
+                    <button
                       key={tab.id}
-                      id={`submission-panel-${tab.id}`}
-                      role="tabpanel"
-                      aria-labelledby={`submission-tab-${tab.id}`}
-                      hidden={activeTab !== tab.id}
-                      className={
-                        tab.id === "overview" ||
-                        tab.id === "application" ||
-                        tab.id === "history"
-                          ? ""
-                          : "space-y-6"
-                      }
+                      id={tabId}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      aria-controls={panelId}
+                      onClick={() => navigateToTab(tab.id)}
+                      className="flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-[9px] py-[11px] text-[11px] font-bold transition-colors"
+                      style={{
+                        borderBottomColor: isActive ? theme.primary : "transparent",
+                        color: isActive ? theme.primary : "#77858A",
+                      }}
                     >
-                      <motion.div
-                        variants={tabPanelVariants(reducedMotion ?? false)}
-                        initial={false}
-                        animate={activeTab === tab.id ? "animate" : "initial"}
-                        transition={tabPanelTransition(reducedMotion ?? false)}
-                      >
-                        {renderTabPanel(tab.id)}
-                      </motion.div>
-                    </div>
-                  ) : null,
-                )}
-              </>
-            ) : null}
-          </div>
-        </SubmissionDetailStoryProvider>
-      </motion.div>
+                      <tab.icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
 
-      {startEnrollmentModal}
-    </motion.div>
+          <SubmissionDetailStoryProvider variant="story" theme={theme}>
+            <div
+              ref={scrollContainerRef}
+              className="flex-1 overflow-y-auto px-5 pb-6 pt-5 sm:px-5 sm:pb-8"
+            >
+              {loading ? (
+                <SchoolAdminDetailPanelSkeleton C={C} label="Loading application" />
+              ) : error ? (
+                <p className="text-sm" style={{ color: C.error }}>
+                  {error}
+                </p>
+              ) : detail ? (
+                <>
+                  {tabs.map((tab) =>
+                    visitedTabs.has(tab.id) ? (
+                      <div
+                        key={tab.id}
+                        id={`submission-panel-${tab.id}`}
+                        role="tabpanel"
+                        aria-labelledby={`submission-tab-${tab.id}`}
+                        hidden={activeTab !== tab.id}
+                        className={
+                          tab.id === "overview" ||
+                          tab.id === "application" ||
+                          tab.id === "history"
+                            ? ""
+                            : "space-y-6"
+                        }
+                      >
+                        <motion.div
+                          variants={tabPanelVariants(reducedMotion ?? false)}
+                          initial={false}
+                          animate={activeTab === tab.id ? "animate" : "initial"}
+                          transition={tabPanelTransition(reducedMotion ?? false)}
+                        >
+                          {renderTabPanel(tab.id)}
+                        </motion.div>
+                      </div>
+                    ) : null,
+                  )}
+                </>
+              ) : null}
+            </div>
+          </SubmissionDetailStoryProvider>
+        </motion.div>
+
+        {startEnrollmentModal}
+      </motion.div>
+    </SubmissionDetailPreviewProvider>
   );
 }

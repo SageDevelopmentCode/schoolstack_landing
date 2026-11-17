@@ -12,6 +12,7 @@ import { getApplicationDecisionActions } from "@/lib/admissions/application-stat
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { useSubmissionDetailPreview } from "./SubmissionDetailPreviewContext";
 
 type AcceptedEnrollmentSectionProps = {
   C: AdminThemeTokens;
@@ -45,6 +46,7 @@ export default function AcceptedEnrollmentSection({
   onStartEnrollment,
   onStatusChanged,
 }: AcceptedEnrollmentSectionProps) {
+  const { previewMode } = useSubmissionDetailPreview();
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   const [markingEnrolled, setMarkingEnrolled] = useState(false);
   const [confirmMarkEnrolledOpen, setConfirmMarkEnrolledOpen] = useState(false);
@@ -123,6 +125,8 @@ export default function AcceptedEnrollmentSection({
 
   async function handleAction(nextStatus: string) {
     setMenuOpen(false);
+    // Preview: status changes are disabled.
+    if (previewMode) return;
     setPendingStatus(nextStatus);
     setError(null);
 
@@ -176,6 +180,7 @@ export default function AcceptedEnrollmentSection({
   }
 
   async function handleMarkEnrolled(completeChecklist: boolean) {
+    if (previewMode) return;
     setMarkingEnrolled(true);
     setError(null);
 

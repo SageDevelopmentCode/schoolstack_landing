@@ -295,21 +295,61 @@ export function buildDemoParentEvents(
   ];
 }
 
-export function buildDemoParentBillingPageMeta(): ParentBillingPageMeta {
+export type DemoParentBillingOptions = {
+  organizationId?: string;
+  /** Only these children's tuition, charges and readiness (all children when omitted). */
+  childIds?: readonly DemoParentChildId[];
+};
+
+const DEMO_STUDENT_KEY_BY_CHILD: Record<DemoParentChildId, string> = {
+  emma: DEMO_STUDENT_EMMA,
+  jake: DEMO_STUDENT_JAKE,
+  liam: DEMO_STUDENT_LIAM,
+};
+
+function resolveDemoBillingOptions(
+  input: string | DemoParentBillingOptions | undefined,
+): Required<Pick<DemoParentBillingOptions, "organizationId">> & DemoParentBillingOptions {
+  if (typeof input === "string") return { organizationId: input };
+  return { ...input, organizationId: input?.organizationId ?? DEMO_PORTAL_ORG_ID };
+}
+
+export function buildDemoParentBillingPageMeta(
+  options?: DemoParentBillingOptions,
+): ParentBillingPageMeta {
+  if (!options?.childIds) {
+    return {
+      balanceDueCents: 125000,
+      totalRemainingCents: 450000,
+      nextDueDate: "2026-05-15",
+      nextDueAmountCents: 125000,
+      openChargeCount: 2,
+      paymentCount: 3,
+      hasBillingSplit: false,
+    };
+  }
+  const data = buildDemoParentBillingInitialData(options);
+  const next = data.familySummary.nextCharge;
   return {
-    balanceDueCents: 125000,
-    totalRemainingCents: 450000,
-    nextDueDate: "2026-05-15",
-    nextDueAmountCents: 125000,
-    openChargeCount: 2,
+    balanceDueCents: data.familySummary.balanceDueCents,
+    totalRemainingCents: data.familySummary.totalRemainingCents,
+    nextDueDate: next?.dueDate ?? null,
+    nextDueAmountCents: next?.amountCents ?? 0,
+    openChargeCount: data.charges.length,
     paymentCount: 3,
     hasBillingSplit: false,
   };
 }
 
+/**
+ * Demo family billing. Pass `{ childIds }` to show only those children
+ * (walkthrough steps scope billing to the children they talk about); the
+ * legacy `(organizationId)` form still works.
+ */
 export function buildDemoParentBillingInitialData(
-  organizationId = DEMO_PORTAL_ORG_ID,
+  input?: string | DemoParentBillingOptions,
 ): ParentBillingInitialData {
+  const { organizationId, childIds } = resolveDemoBillingOptions(input);
   const now = "2026-04-18T12:00:00.000Z";
   const familyId = DEMO_PARENT_FAMILY_ID;
   const dueDate = "2026-05-15";
@@ -359,11 +399,66 @@ export function buildDemoParentBillingInitialData(
     },
   ];
 
-  const meta = buildDemoParentBillingPageMeta();
+  const chargeChildKey: Record<string, string> = {
+    "demo-charge-1": DEMO_STUDENT_EMMA,
+    "demo-charge-2": DEMO_STUDENT_LIAM,
+  };
+
+  const allChildren: ParentBillingInitialData["familySummary"]["children"] = [
+    {
+      childKey: DEMO_STUDENT_EMMA,
+      studentName: "Emma Mitchell",
+      assignmentId: "demo-assignment-1",
+      annualTuitionCents: 450000,
+      balanceDueCents: 125000,
+      totalRemainingCents: 225000,
+      nextCharge: {
+        label: "Tuition installment — Emma",
+        dueDate,
+        amountCents: 125000,
+      },
+      nextChargeId: "demo-charge-1",
+      status: "ready",
+      selectionItem: null,
+      paymentPlanLabel: "10-month plan",
+    },
+    {
+      childKey: DEMO_STUDENT_LIAM,
+      studentName: "Liam Mitchell",
+      assignmentId: "demo-assignment-2",
+      annualTuitionCents: 450000,
+      balanceDueCents: 0,
+      totalRemainingCents: 225000,
+      nextCharge: null,
+      nextChargeId: null,
+      status: "ready",
+      selectionItem: null,
+      paymentPlanLabel: "10-month plan",
+    },
+  ];
+
+  const allowedKeys = childIds
+    ? new Set(childIds.map((id) => DEMO_STUDENT_KEY_BY_CHILD[id]))
+    : null;
+  const children = allowedKeys
+    ? allChildren.filter((child) => allowedKeys.has(child.childKey))
+    : allChildren;
+  const visibleCharges = allowedKeys
+    ? charges.filter((charge) => allowedKeys.has(chargeChildKey[charge.id]))
+    : charges;
+
+  const sum = (pick: (child: (typeof children)[number]) => number) =>
+    children.reduce((total, child) => total + pick(child), 0);
+  const nextCharge =
+    children.find((child) => child.nextCharge)?.nextCharge ?? null;
+  const meta = allowedKeys ? null : buildDemoParentBillingPageMeta();
+  const balanceDueCents = meta?.balanceDueCents ?? sum((child) => child.balanceDueCents);
+  const totalRemainingCents =
+    meta?.totalRemainingCents ?? sum((child) => child.totalRemainingCents);
 
   return {
-    charges,
-    allFamilyCharges: charges,
+    charges: visibleCharges,
+    allFamilyCharges: visibleCharges,
     payments: [],
     adjustments: [],
     readiness: {
@@ -371,63 +466,30 @@ export function buildDemoParentBillingInitialData(
       unassignedEnrollments: [],
       pendingPaymentPlanAssignments: [],
       enrollmentChecklistHref: null,
-      firstChargeDue: {
-        date: dueDate,
-        amountCents: 125000,
-        label: "Tuition installment — Emma",
-      },
-      childrenNames: ["Emma Mitchell", "Liam Mitchell"],
+      firstChargeDue: nextCharge
+        ? {
+            date: nextCharge.dueDate,
+            amountCents: nextCharge.amountCents,
+            label: nextCharge.label,
+          }
+        : null,
+      childrenNames: children.map((child) => child.studentName),
     },
     familySummary: {
-      balanceDueCents: meta.balanceDueCents,
-      totalRemainingCents: meta.totalRemainingCents,
-      familyTotalRemainingCents: meta.totalRemainingCents,
-      annualTuitionCents: 900000,
+      balanceDueCents,
+      totalRemainingCents,
+      familyTotalRemainingCents: totalRemainingCents,
+      annualTuitionCents: sum((child) => child.annualTuitionCents),
       hasPendingSchedule: false,
-      nextCharge: {
-        label: "Tuition installment — Emma",
-        dueDate,
-        amountCents: 125000,
-      },
-      children: [
-        {
-          childKey: DEMO_STUDENT_EMMA,
-          studentName: "Emma Mitchell",
-          assignmentId: "demo-assignment-1",
-          annualTuitionCents: 450000,
-          balanceDueCents: 125000,
-          totalRemainingCents: 225000,
-          nextCharge: {
-            label: "Tuition installment — Emma",
-            dueDate,
-            amountCents: 125000,
-          },
-          nextChargeId: "demo-charge-1",
-          status: "ready",
-          selectionItem: null,
-          paymentPlanLabel: "10-month plan",
-        },
-        {
-          childKey: DEMO_STUDENT_LIAM,
-          studentName: "Liam Mitchell",
-          assignmentId: "demo-assignment-2",
-          annualTuitionCents: 450000,
-          balanceDueCents: 0,
-          totalRemainingCents: 225000,
-          nextCharge: null,
-          nextChargeId: null,
-          status: "ready",
-          selectionItem: null,
-          paymentPlanLabel: "10-month plan",
-        },
-      ],
+      nextCharge,
+      children,
     },
     autopayEnabled: false,
     savedPaymentMethod: null,
     recentAutopayFailure: null,
     guardianId: DEMO_PARENT_GUARDIAN_ID,
     hasBillingSplit: false,
-    initialChildKey: DEMO_STUDENT_EMMA,
+    initialChildKey: children[0]?.childKey ?? DEMO_STUDENT_EMMA,
     showTaxCreditPaymentBanner: false,
     tuitionAgreements: [],
   };

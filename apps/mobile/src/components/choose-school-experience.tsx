@@ -3,9 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { OrganizationSelector } from '@/components/organization-selector';
-import { OrganizationSelectorSkeleton } from '@/components/organization-selector-skeleton';
+import { GSkeleton, GToyButton } from '@/components/parent/garden/ui';
 import { PreAuthScreenShell } from '@/components/pre-auth-screen-shell';
-import { StoryButton } from '@/components/story/story-button';
 import {
   completeSchoolSignIn,
   useAuth,
@@ -25,7 +24,6 @@ import { logMobileAuthSignedIn } from '@/lib/mobile-activity';
 import type { LiveOrganization } from '@/lib/organizations';
 import { clearAllPersistedPortalCaches } from '@/lib/portal-cache';
 import { getSupabaseClient } from '@/lib/supabase';
-import { Spacing } from '@/constants/theme';
 
 type ChooseSchoolExperienceProps = {
   /** When true, back navigates to the previous screen instead of signing out. */
@@ -289,8 +287,10 @@ export function ChooseSchoolExperience({
       footer={
         error && !loading ? (
           <View style={styles.footer}>
-            <StoryButton
+            <GToyButton
               label="Try again"
+              icon="refresh"
+              size="md"
               onPress={() => void bootstrapChooseSchool()}
               disabled={isSubmitting || loading}
             />
@@ -298,7 +298,10 @@ export function ChooseSchoolExperience({
         ) : undefined
       }>
       {loading ? (
-        <OrganizationSelectorSkeleton rowCount={2} />
+        <View style={styles.skeleton} accessibilityLabel="Loading your schools">
+          <GSkeleton style={styles.skeletonRow} />
+          <GSkeleton style={styles.skeletonRow} />
+        </View>
       ) : showSelector ? (
         <OrganizationSelector
           organizations={organizations}
@@ -313,6 +316,13 @@ export function ChooseSchoolExperience({
 
 const styles = StyleSheet.create({
   footer: {
-    marginTop: Spacing.three,
+    marginTop: 16,
+  },
+  skeleton: {
+    gap: 10,
+  },
+  skeletonRow: {
+    height: 68,
+    borderRadius: 22,
   },
 });

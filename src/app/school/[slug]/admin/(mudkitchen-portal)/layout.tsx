@@ -10,6 +10,11 @@ import {
   requireSchoolAdminUser,
   schoolAdminLoginPath,
 } from "@/lib/school-admin/access";
+import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
+import {
+  FREE_PLAN_UPGRADE_QUERY,
+  MUDKITCHEN_ACCOUNT_LABEL,
+} from "@/lib/school-admin/free-plan-upgrade";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -63,6 +68,14 @@ export default async function MudKitchenPortalLayout({
         userEmail={deniedUserEmail}
       />
     );
+  }
+
+  // Free schools see the unlock popup on Home instead of the account pages.
+  if (org.plan === "free") {
+    const params = new URLSearchParams({
+      [FREE_PLAN_UPGRADE_QUERY]: MUDKITCHEN_ACCOUNT_LABEL,
+    });
+    redirect(`${schoolAdminPath(slug, "home")}?${params.toString()}`);
   }
 
   return (

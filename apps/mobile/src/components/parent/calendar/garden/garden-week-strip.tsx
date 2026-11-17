@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useCalendarTestId } from '@/components/parent/calendar/garden/calendar-portal';
 import { Garden, GardenFonts, useGardenAccent } from '@/components/parent/garden/tokens';
 import { GPressable } from '@/components/parent/garden/ui';
 import { dayA11yLabel, dayDotColors } from '@/lib/parent/parent-calendar-garden';
@@ -38,10 +39,11 @@ export function GardenWeekStrip({
   eventsByDate: Map<string, OrganizationEvent[]>;
   onSelectDate: (date: string) => void;
 }) {
+  const tid = useCalendarTestId();
   const accent = useGardenAccent();
 
   return (
-    <View style={styles.row} testID="parent-calendar-week-strip">
+    <View style={styles.row} testID={tid('week-strip')}>
       {weekDates.map((day) => {
         const key = dateKey(day);
         const selected = selectedDate === key;

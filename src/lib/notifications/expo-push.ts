@@ -62,6 +62,13 @@ export type AttendanceExpoPushData = {
   intent: "present" | "pickup";
 };
 
+export type ClassroomSignupExpoPushData = {
+  kind: "classroom_signup";
+  portal: "parent";
+  organizationSlug: string;
+  signupId: string;
+};
+
 export type StaffHoursExpoPushData = {
   kind: "staff_hours";
   portal: "teacher";
@@ -75,7 +82,8 @@ export type ExpoPushData =
   | GalleryExpoPushData
   | NewsletterExpoPushData
   | AttendanceExpoPushData
-  | StaffHoursExpoPushData;
+  | StaffHoursExpoPushData
+  | ClassroomSignupExpoPushData;
 
 export type ExpoPushPayload = {
   organizationId: string;
@@ -140,6 +148,7 @@ function resolveChannelId(payload: ExpoPushPayload): ExpoPushChannelId {
     case "gallery":
       return "gallery";
     case "newsletter":
+    case "classroom_signup":
       return "bulletin";
     case "attendance":
       return "attendance";
@@ -194,11 +203,15 @@ function resolveFailureOperation(payload: ExpoPushPayload): string {
   }
 }
 
+export type ExpoPushSendSummary = {
+  sentCount: number;
+};
+
 export async function sendExpoPushToUsers(
   admin: SupabaseClient,
   payload: ExpoPushPayload,
-): Promise<void> {
-  if (payload.userIds.length === 0) return;
+): Promise<ExpoPushSendSummary> {
+  if (payload.userIds.length === 0) return { sentCount: 0 };
 
   const channelId = resolveChannelId(payload);
 
@@ -226,7 +239,7 @@ export async function sendExpoPushToUsers(
     }),
   );
 
-  if (tokenRows.length === 0) return;
+  if (tokenRows.length === 0) return { sentCount: 0 };
 
   const messages: ExpoPushMessage[] = tokenRows.map((row) => ({
     to: String(row.push_token),
@@ -324,4 +337,7 @@ export async function sendExpoPushToUsers(
     },
     results,
   );
+
+  const sentCount = ticketList.filter((ticket) => ticket.status === "ok").length;
+  return { sentCount };
 }

@@ -1,45 +1,31 @@
 "use client";
 
-import Image from "next/image";
-import { motion } from "framer-motion";
-import { DEMO_CONTAINER, STORY_EASE } from "../bright-demo-theme";
+import { SITE_CONTAINER } from "../site-garden-theme";
+import { SitePolaroid, SiteReveal } from "../garden/SiteKit";
 
-const TILE_CLASSES = [
-  "@3xl/site:col-span-2 @3xl/site:row-span-2",
-  "@3xl/site:col-span-2",
-  "",
-  "hidden @3xl/site:block",
-] as const;
+const TILTS = [-3, 2.5, -1.5, 3.5] as const;
+const ASPECTS = ["aspect-[4/3]", "aspect-[4/5]", "aspect-square", "aspect-[4/5]"] as const;
 
-/** Bento photo gallery from `mosaicImages`. */
+/** A little wall of taped polaroids from `mosaicImages`. */
 export default function SiteGallery({ images }: { images: string[] }) {
   const tiles = images.slice(0, 4);
   if (tiles.length === 0) return null;
 
   return (
-    <section className="bg-white pb-20 @3xl/site:pb-28" aria-label="School life photos">
-      <div
-        className={`${DEMO_CONTAINER} grid auto-rows-[180px] grid-cols-2 gap-3 @3xl/site:auto-rows-[220px] @3xl/site:grid-cols-4`}
-      >
+    <section className="bg-[var(--sf-paper)] pb-24 @3xl/site:pb-32" aria-label="School life photos">
+      <ul className={`${SITE_CONTAINER} grid grid-cols-2 items-center gap-x-5 gap-y-8 @3xl/site:grid-cols-4 @3xl/site:gap-x-7`}>
         {tiles.map((src, i) => (
-          <motion.div
-            key={`${src}-${i}`}
-            className={`group relative overflow-hidden rounded-[28px] ring-1 ring-black/[0.06] ${i === 0 ? "col-span-2 row-span-2" : ""} ${TILE_CLASSES[i]}`}
-            initial={{ opacity: 0, scale: 0.97 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: i * 0.08, ease: STORY_EASE }}
-          >
-            <Image
+          <SiteReveal key={`${src}-${i}`} as="li" delay={i * 0.08} className={i === 3 ? "hidden @3xl/site:block" : ""}>
+            <SitePolaroid
               src={src}
-              fill
-              sizes="(min-width: 1024px) 600px, 50vw"
-              className="object-cover transition-transform duration-700 group-hover:scale-[1.04]"
-              alt=""
+              sizes="(min-width: 1024px) 300px, 45vw"
+              tilt={TILTS[i]}
+              tape={i}
+              imageClassName={ASPECTS[i]}
             />
-          </motion.div>
+          </SiteReveal>
         ))}
-      </div>
+      </ul>
     </section>
   );
 }

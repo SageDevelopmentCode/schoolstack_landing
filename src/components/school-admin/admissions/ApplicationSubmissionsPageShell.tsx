@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useImperativeHandle, type ReactNode, type Ref } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, ChevronRight, ClipboardList, ExternalLink, Inbox, Loader2 } from "lucide-react";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
@@ -17,6 +17,10 @@ import {
   type GardenStat,
 } from "@/components/school-admin/garden/kit";
 import ApplicationSubmissionDetailPanel from "./ApplicationSubmissionDetailPanel";
+import type {
+  SubmissionDetailPreview,
+  SubmissionDetailPreviewScript,
+} from "./SubmissionDetailPreviewContext";
 import { SubmissionsPageContext } from "./submissions-page-context";
 import {
   GardenContactCell,
@@ -28,6 +32,7 @@ import {
 import {
   useApplicationSubmissionsModel,
   type ApplicationSubmissionsModel,
+  type SubmissionsMetaDelta,
 } from "./submissions/useApplicationSubmissionsModel";
 import {
   adminApplicationStatusLabel,
@@ -50,6 +55,25 @@ type ApplicationSubmissionsPageShellProps = {
   initialTableData?: ApplicationSubmissionsTableData;
   initialLoginStatusByGuardianId?: Record<string, ParentPortalLoginStatus>;
   children?: ReactNode;
+  /** Marketing preview: fixtures in, no fetches, no URL changes. */
+  preview?: SubmissionsPagePreview;
+};
+
+/** Handle a preview script uses to drive the real page. */
+export type SubmissionsPreviewController = {
+  insertRow: (row: AdminApplicationSubmission, metaDelta?: SubmissionsMetaDelta) => void;
+  select: (applicationId: string | null) => void;
+};
+
+export type SubmissionsPagePreview = {
+  /** Fixture detail for the drawer; every drawer loader is skipped. */
+  detailFor: (submission: AdminApplicationSubmission) => SubmissionDetailPreview | null;
+  initialSelectedId?: string | null;
+  /** Timed presses inside the drawer (Accept → Start enrollment). */
+  detailScript?: SubmissionDetailPreviewScript | null;
+  /** In-canvas node for dialogs in a scaled preview. */
+  portalContainer?: HTMLElement | null;
+  controllerRef?: Ref<SubmissionsPreviewController>;
 };
 
 function statusLine(model: ApplicationSubmissionsModel): string {
@@ -71,6 +95,7 @@ export default function ApplicationSubmissionsPageShell({
   initialTableData,
   initialLoginStatusByGuardianId,
   children,
+  preview,
 }: ApplicationSubmissionsPageShellProps) {
   const { theme } = useSchoolAdminStoryTheme();
   const model = useApplicationSubmissionsModel({
@@ -80,7 +105,17 @@ export default function ApplicationSubmissionsPageShell({
     initialTableData,
     initialLoginStatusByGuardianId,
     hasStreamedTable: children != null,
+    previewMode: preview != null,
+    initialSelectedId: preview?.initialSelectedId ?? null,
   });
+  const { insertRow, setSelectedId } = model;
+  useImperativeHandle(
+    preview?.controllerRef,
+    () => ({ insertRow, select: setSelectedId }),
+    [insertRow, setSelectedId],
+  );
+  const previewDetail =
+    preview && model.selectedSubmission ? preview.detailFor(model.selectedSubmission) : null;
 
   const stats: GardenStat[] = [
     {
@@ -145,6 +180,10 @@ export default function ApplicationSubmissionsPageShell({
                 onClose={() => model.setSelectedId(null)}
                 onSubmissionUpdated={model.handleSubmissionUpdated}
                 onSelectSubmission={model.setSelectedId}
+                previewMode={preview != null}
+                previewDetail={previewDetail}
+                previewScript={preview?.detailScript ?? null}
+                portalContainer={preview?.portalContainer ?? null}
               />
             ) : null}
           </AnimatePresence>
@@ -410,7 +449,13 @@ function SubmissionsTable({ model, theme }: { model: ApplicationSubmissionsModel
             const selected = submission.id === model.selectedId;
             const flashed = submission.id === model.flashId;
             return (
-              <li key={submission.id}>
+              <motion.li
+                key={submission.id}
+                // A row that arrives while flashed (a new application) slides in.
+                initial={flashed && !reduce ? { opacity: 0, y: -10 } : false}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+              >
                 {/* Stretched-button card: the overlay button opens the record, the
                     login-status tooltip (its own button) stays clickable above it. */}
                 <div
@@ -451,7 +496,7 @@ function SubmissionsTable({ model, theme }: { model: ApplicationSubmissionsModel
                     <GardenNextStepCell submission={submission} />
                   </div>
                 </div>
-              </li>
+              </motion.li>
             );
           })}
         </ul>
@@ -482,8 +527,12 @@ function SubmissionsTable({ model, theme }: { model: ApplicationSubmissionsModel
                 const flashed = submission.id === model.flashId;
                 const cell = "border-b border-[var(--sf-ink)]/[0.06] px-3 py-3 align-middle";
                 return (
-                  <tr
+                  <motion.tr
                     key={submission.id}
+                    // A row that arrives while flashed (a new application) slides in.
+                    initial={flashed && !reduce ? { opacity: 0, x: -14 } : false}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
                     onClick={() => toggle(submission.id)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
@@ -568,7 +617,7 @@ function SubmissionsTable({ model, theme }: { model: ApplicationSubmissionsModel
                         <GardenFeeBadges submission={submission} />
                       </td>
                     ) : null}
-                  </tr>
+                  </motion.tr>
                 );
               })}
             </motion.tbody>

@@ -1,38 +1,51 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useObserve } from '@/lib/mobile-observe';
 import { Redirect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { useEffect } from 'react';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import Animated, { FadeInDown, FadeInUp, useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ImageCarousel } from '@/components/image-carousel';
 import { IntroLegalLinks } from '@/components/intro-legal-links';
-import { IntroSlideCopy } from '@/components/intro-slide-copy';
 import { MudKitchenLogo } from '@/components/mudkitchen-logo';
-import { StoryButton } from '@/components/story/story-button';
-import { INTRO_SLIDE_INTERVAL_MS, INTRO_SLIDES } from '@/constants/intro-slides';
-import { Story } from '@/constants/story-theme';
+import { Garden, GardenFonts } from '@/components/parent/garden/tokens';
+import { GToyButton } from '@/components/parent/garden/ui';
+import { IntroDayBackdrop } from '@/components/pre-auth/intro-day/intro-day-backdrop';
+import { IntroDayStage } from '@/components/pre-auth/intro-day/intro-day-stage';
+import { useIntroDayCycle } from '@/components/pre-auth/intro-day/use-intro-day-cycle';
+import { MudKitchenGardenThemeProvider } from '@/components/pre-auth/mudkitchen-garden-theme';
+import {
+  INTRO_DAY,
+  INTRO_DAY_INTERVAL_MS,
+  INTRO_DAY_RESUME_MS,
+  INTRO_HEADLINE,
+} from '@/constants/intro-day';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
-import { Spacing } from '@/constants/theme';
+import { Brand } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth-context';
 import { isMobileE2e } from '@/lib/e2e';
 
+/** Below this window height the stage drops the polaroid and shows two notes. */
+const COMPACT_HEIGHT = 720;
+
 const logoEntering = isMobileE2e ? undefined : FadeInDown.duration(500);
-const copyEntering = isMobileE2e ? undefined : FadeInUp.duration(500).delay(120);
-const ctaEntering = isMobileE2e ? undefined : FadeInUp.duration(500).delay(240);
+const stageEntering = isMobileE2e ? undefined : FadeInUp.duration(600).delay(80);
+const copyEntering = isMobileE2e ? undefined : FadeInUp.duration(500).delay(200);
+const ctaEntering = isMobileE2e ? undefined : FadeInUp.duration(500).delay(320);
 
 export default function IntroScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, portalType, isLoading } = useAuth();
-  const [activeIndex, setActiveIndex] = useState(0);
+  const { height } = useWindowDimensions();
   const { markInteractive } = useObserve();
-
-  const handleIndexChange = useCallback((index: number) => {
-    setActiveIndex(index);
-  }, []);
+  const reduceMotion = useReducedMotion();
+  const day = useIntroDayCycle({
+    count: INTRO_DAY.length,
+    intervalMs: INTRO_DAY_INTERVAL_MS,
+    resumeMs: INTRO_DAY_RESUME_MS,
+    reduceMotion,
+  });
 
   useEffect(() => {
     if (isMobileE2e || isLoading || user) return;
@@ -56,75 +69,78 @@ export default function IntroScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
-
-      <View style={styles.background}>
-        <ImageCarousel
-          slides={INTRO_SLIDES}
-          activeIndex={activeIndex}
-          onIndexChange={handleIndexChange}
-          autoAdvanceMs={isMobileE2e ? undefined : INTRO_SLIDE_INTERVAL_MS}
-          variant="fullscreen"
-          scrim="story"
-        />
-      </View>
-
+    <MudKitchenGardenThemeProvider>
       <View
         style={[
-          styles.overlay,
+          styles.container,
           {
-            paddingTop: insets.top + 12,
-            paddingBottom: insets.bottom + Spacing.three,
+            paddingTop: insets.top + 8,
+            paddingBottom: insets.bottom + 12,
             paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
           },
-        ]}
-        pointerEvents="box-none">
+        ]}>
+        <IntroDayBackdrop color={INTRO_DAY[day.activeIndex].wash} reduceMotion={reduceMotion} />
+        <StatusBar style="dark" />
+
         <Animated.View entering={logoEntering}>
-          <MudKitchenLogo variant="dark" size="md" style={styles.logo} />
+          <MudKitchenLogo size="md" />
         </Animated.View>
 
-        <View style={styles.spacer} />
+        <Animated.View entering={stageEntering} style={styles.stage}>
+          <IntroDayStage
+            compact={height < COMPACT_HEIGHT}
+            activeIndex={day.activeIndex}
+            select={day.select}
+            step={day.step}
+            hold={day.hold}
+            reduceMotion={reduceMotion}
+          />
+        </Animated.View>
 
         <Animated.View entering={copyEntering}>
-          <IntroSlideCopy activeIndex={activeIndex} variant="overlay" />
+          <Text accessibilityRole="header" style={styles.headline}>
+            {INTRO_HEADLINE.lead}{' '}
+            <Text style={styles.headlineAccent}>{INTRO_HEADLINE.accent}</Text>
+          </Text>
         </Animated.View>
 
         <Animated.View entering={ctaEntering} style={styles.ctaDock}>
-          <StoryButton
+          <GToyButton
             testID="intro-login-cta"
             accessibilityLabel="Log in to continue"
             label="Log in to continue"
-            trailingIcon={<Ionicons name="chevron-forward" size={20} color={Story.white} />}
+            size="md"
+            fullWidth
             onPress={() => router.push('/login')}
           />
           <IntroLegalLinks />
         </Animated.View>
       </View>
-    </View>
+    </MudKitchenGardenThemeProvider>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Story.paper,
+    backgroundColor: Garden.cream,
   },
-  background: {
-    ...StyleSheet.absoluteFill,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFill,
-    justifyContent: 'flex-end',
-  },
-  logo: {
-    alignSelf: 'flex-start',
-  },
-  spacer: {
+  stage: {
     flex: 1,
+    paddingVertical: 12,
+  },
+  headline: {
+    fontFamily: GardenFonts.display,
+    fontSize: 32,
+    lineHeight: 34,
+    letterSpacing: -1.1,
+    color: Garden.ink,
+  },
+  headlineAccent: {
+    color: Brand.clay,
   },
   ctaDock: {
-    marginTop: Spacing.four,
-    gap: Spacing.two,
+    marginTop: 20,
+    gap: 6,
   },
 });

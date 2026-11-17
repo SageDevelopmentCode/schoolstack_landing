@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ApplyAuthShell from "@/components/admissions/ApplyAuthShell";
@@ -14,6 +14,11 @@ import {
   BRIGHT_AUTH_ERROR_CLASS,
   BRIGHT_AUTH_PRIMARY_BUTTON,
   BRIGHT_AUTH_THEME,
+  GARDEN_AUTH_BACK,
+  GARDEN_AUTH_CARD,
+  GARDEN_AUTH_LINK,
+  GARDEN_AUTH_QUIET_LINK,
+  GARDEN_AUTH_WORDMARK_TEXT,
 } from "@/components/login/bright-auth-form-styles";
 import LoginPhaseHeader, {
   type BrightAuthPreset,
@@ -30,6 +35,7 @@ import {
 } from "@/lib/activity-auth-client";
 import { normalizeLoginErrorMessage } from "@/lib/auth/login-error-message";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import { buildParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { AuthActivityMetadata } from "@/lib/activity-log";
 import { attemptPostSignInRedirect } from "@/lib/auth/resolve-post-sign-in-redirect";
@@ -48,6 +54,8 @@ type ParentPortalSignInProps = {
   subtitle?: string;
   onComplete: () => void;
 };
+
+const WORDMARK_TEXT_STYLE = { "--demo-dark": "var(--sf-ink)" } as CSSProperties;
 
 const inputClassName = "w-full rounded-md border px-3 py-2.5 text-sm";
 
@@ -72,6 +80,7 @@ export default function ParentPortalSignIn({
   const supabase = useMemo(() => createClient(), []);
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const isBright = layoutVariant === "bright";
+  const gardenTheme = useMemo(() => buildParentThemeTokens(branding), [branding]);
   const headerPreset = authPresetFromPage(authPage);
 
   const [phase, setPhase] = useState<"email" | "verify">("email");
@@ -294,8 +303,10 @@ export default function ParentPortalSignIn({
         width: branding.logo.width,
         height: branding.logo.height,
         text: branding.logo.src ? undefined : schoolName,
+        textClassName: GARDEN_AUTH_WORDMARK_TEXT,
       }}
-      className="mb-6 h-8 w-auto max-w-[200px] object-contain"
+      className="mb-6 block h-9 w-auto max-w-[200px] object-contain"
+      style={WORDMARK_TEXT_STYLE}
     />
   );
 
@@ -303,7 +314,7 @@ export default function ParentPortalSignIn({
     phase === "verify" ? (
       <>
         We sent a 6-digit code to{" "}
-        <span className="font-semibold text-[#1d1a16]">{normalizedEmail}</span>. If it
+        <span className="font-bold text-[var(--sf-ink)]">{normalizedEmail}</span>. If it
         doesn&apos;t arrive within a minute, check your spam or junk folder.
       </>
     ) : (
@@ -425,9 +436,11 @@ export default function ParentPortalSignIn({
 
   const brightForm =
     phase === "email" ? (
-      <form onSubmit={handleEmailSubmit} className="space-y-4">
+      <form onSubmit={handleEmailSubmit} className={`${GARDEN_AUTH_CARD} space-y-4`}>
         <GetStartedStoryTextField
           theme={BRIGHT_AUTH_THEME}
+          variant="intro"
+          appearance="garden"
           id="parent-email"
           label="Email"
           type="email"
@@ -453,7 +466,7 @@ export default function ParentPortalSignIn({
         </button>
       </form>
     ) : (
-      <form onSubmit={handleVerifySubmit} className="space-y-4">
+      <form onSubmit={handleVerifySubmit} className={`${GARDEN_AUTH_CARD} space-y-4`}>
         <VerificationCodeInput
           id="parent-code"
           label="Verification code"
@@ -461,7 +474,7 @@ export default function ParentPortalSignIn({
           onChange={setCode}
           disabled={isSubmitting}
           autoFocus
-          variant="bright"
+          variant="garden"
         />
 
         {error ? (
@@ -480,12 +493,12 @@ export default function ParentPortalSignIn({
           </ButtonLoadingLabel>
         </button>
 
-        <div className="flex items-center justify-between font-secondary text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
           <button
             type="button"
             onClick={handleBackToEmail}
             disabled={isSubmitting}
-            className="text-[#1d1a16]/70 underline-offset-2 hover:underline disabled:opacity-60"
+            className={GARDEN_AUTH_QUIET_LINK}
           >
             Use a different email
           </button>
@@ -493,7 +506,7 @@ export default function ParentPortalSignIn({
             type="button"
             onClick={handleResendCode}
             disabled={resendCooldown > 0 || isSubmitting}
-            className="font-semibold text-clay underline-offset-2 hover:underline disabled:opacity-60"
+            className={GARDEN_AUTH_LINK}
           >
             {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
           </button>
@@ -503,13 +516,13 @@ export default function ParentPortalSignIn({
 
   if (isBright) {
     return (
-      <BrightPortalAuthShell>
+      <BrightPortalAuthShell theme={gardenTheme}>
         {phase === "verify" ? (
           <button
             type="button"
             onClick={handleBackToEmail}
             disabled={isSubmitting}
-            className="mb-6 inline-flex items-center gap-1.5 font-secondary text-sm font-medium text-[#1d1a16]/70 transition hover:text-[#1d1a16] disabled:cursor-not-allowed disabled:opacity-50"
+            className={GARDEN_AUTH_BACK}
           >
             <ArrowLeft className="h-4 w-4" />
             Back

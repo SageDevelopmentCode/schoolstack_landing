@@ -3,6 +3,7 @@
 import { AnimatePresence } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import GardenRoot from "@/components/garden/GardenRoot";
 import { demoStoryShellStyle } from "@/components/demo/shared/demo-story-theme";
 import { resolveWalkthroughStepIndex } from "@/lib/demo-walkthrough";
 import DemoContactPanel from "@/components/demo/DemoContactPanel";
@@ -29,15 +30,17 @@ interface Props {
 
 export default function SchoolDemoShell(props: Props) {
   return (
-    <Suspense
-      fallback={
-        <div className="flex h-screen items-center justify-center bg-white text-sm text-gray-500">
-          Loading walkthrough…
-        </div>
-      }
-    >
-      <SchoolDemoShellInner {...props} />
-    </Suspense>
+    <GardenRoot>
+      <Suspense
+        fallback={
+          <div className="flex h-screen items-center justify-center bg-[var(--sf-cream)] text-sm font-bold text-[var(--sf-soft)]">
+            Loading walkthrough…
+          </div>
+        }
+      >
+        <SchoolDemoShellInner {...props} />
+      </Suspense>
+    </GardenRoot>
   );
 }
 
@@ -99,19 +102,30 @@ function SchoolDemoShellInner({
     [config.theme],
   );
 
-  const schoolPrimary = config.theme.primary;
+  const storyStyle = demoStoryShellStyle(walkthroughTheme);
+  // Walkthrough chrome takes Garden type/colour from .sf-garden; the previews
+  // keep the story theme's font and ink (DemoPreviewFrame inherits them).
+  const shellStyle = {
+    ...storyStyle,
+    backgroundColor: undefined,
+    color: undefined,
+    fontFamily: undefined,
+  };
+  const previewStyle = {
+    color: storyStyle.color,
+    fontFamily: storyStyle.fontFamily,
+  };
 
   return (
     <div
-      className="flex h-screen flex-col overflow-hidden bg-white lg:flex-row"
-      style={demoStoryShellStyle(walkthroughTheme)}
+      className="flex h-screen flex-col overflow-hidden bg-[var(--sf-cream)] lg:flex-row"
+      style={shellStyle}
     >
       <DemoWalkthroughMobileBar
         schoolName={schoolName}
         schoolLogo={config.logo}
         steps={steps}
         activeStep={activeStep}
-        schoolPrimary={schoolPrimary}
         onStepSelect={handleStepSelect}
       />
       <DemoWalkthroughPanel
@@ -119,10 +133,9 @@ function SchoolDemoShellInner({
         schoolLogo={config.logo}
         steps={steps}
         activeStep={activeStep}
-        schoolPrimary={schoolPrimary}
         onStepSelect={handleStepSelect}
       />
-      <div className="relative h-full min-h-0 min-w-0 flex-1">
+      <div className="relative h-full min-h-0 min-w-0 flex-1" style={previewStyle}>
         {activePreview === "admin" ? (
           <ScaledAdminDemoPreview
             key={steps[activeStep].id}
@@ -198,7 +211,6 @@ function SchoolDemoShellInner({
             schoolName={schoolName}
             logo={config.logo}
             variant={steps[activeStep].contactPanelVariant ?? "schedule"}
-            theme={walkthroughTheme}
           />
         ) : activePreview === "mobile" ? (
           <ScaledMobileAppPreview key={steps[activeStep].id} demoSlug={config.slug} />

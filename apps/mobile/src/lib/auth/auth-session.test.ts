@@ -3,9 +3,11 @@ import {
   clearCachedAccessToken,
   fetchWithAuth,
   getApiAuthHeaders,
+  isAccessTokenExpiringSoon,
   isAuthRequiredError,
   MOBILE_CLIENT_HEADER,
   MOBILE_PLATFORM_HEADER,
+  refreshApiAuthHeaders,
   requireSupabaseAccessToken,
   resolveAccessToken,
   setCachedAccessToken,
@@ -315,6 +317,109 @@ describe('fetchWithAuth', () => {
     await expect(
       fetchWithAuth('https://example.com/api/parent-portal/home', { signOutOnFailure: false }),
     ).rejects.toThrow(AUTH_REQUIRED_MESSAGE);
+    expect(signOut).not.toHaveBeenCalled();
+  });
+});
+
+function jwtWithExp(expSeconds: number): string {
+  const encode = (value: object) =>
+    Buffer.from(JSON.stringify(value)).toString('base64url');
+  return `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({ sub: 'user-1', exp: expSeconds })}.sig`;
+}
+
+const nowSeconds = () => Math.floor(Date.now() / 1000);
+
+describe('isAccessTokenExpiringSoon', () => {
+  it('flags expired tokens and tokens inside the skew window', () => {
+    expect(isAccessTokenExpiringSoon(jwtWithExp(nowSeconds() - 10))).toBe(true);
+    expect(isAccessTokenExpiringSoon(jwtWithExp(nowSeconds() + 30))).toBe(true);
+  });
+
+  it('accepts tokens with time left', () => {
+    expect(isAccessTokenExpiringSoon(jwtWithExp(nowSeconds() + 3600))).toBe(false);
+  });
+
+  it('treats undecodable tokens as not expiring', () => {
+    expect(isAccessTokenExpiringSoon('memory-token')).toBe(false);
+    expect(isAccessTokenExpiringSoon('a.!!!.c')).toBe(false);
+  });
+});
+
+describe('resolveAccessToken with an expiring cached token', () => {
+  const signOut = jest.fn().mockResolvedValue(undefined);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    clearCachedAccessToken();
+  });
+
+  it('skips an expired cached JWT and reads the session instead', async () => {
+    setCachedAccessToken(jwtWithExp(nowSeconds() - 120));
+    const getSession = jest.fn().mockResolvedValue({
+      data: { session: { access_token: 'fresh-token' } },
+    });
+    mockGetSupabaseClient.mockReturnValue({
+      auth: { getSession, refreshSession: jest.fn(), signOut },
+    } as never);
+
+    await expect(resolveAccessToken()).resolves.toBe('fresh-token');
+    expect(getSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips a cached JWT that expires within the skew window', async () => {
+    setCachedAccessToken(jwtWithExp(nowSeconds() + 30));
+    const getSession = jest.fn().mockResolvedValue({
+      data: { session: { access_token: 'fresh-token' } },
+    });
+    mockGetSupabaseClient.mockReturnValue({
+      auth: { getSession, refreshSession: jest.fn(), signOut },
+    } as never);
+
+    await expect(resolveAccessToken()).resolves.toBe('fresh-token');
+  });
+
+  it('uses a valid cached JWT without reading the session', async () => {
+    const valid = jwtWithExp(nowSeconds() + 3600);
+    setCachedAccessToken(valid);
+    const getSession = jest.fn();
+    mockGetSupabaseClient.mockReturnValue({
+      auth: { getSession, refreshSession: jest.fn(), signOut },
+    } as never);
+
+    await expect(resolveAccessToken()).resolves.toBe(valid);
+    expect(getSession).not.toHaveBeenCalled();
+  });
+});
+
+describe('refreshApiAuthHeaders', () => {
+  const signOut = jest.fn().mockResolvedValue(undefined);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    clearCachedAccessToken();
+  });
+
+  it('refreshes even with a cached token and returns the new headers', async () => {
+    setCachedAccessToken('stale-token');
+    const refreshSession = jest.fn().mockResolvedValue({
+      data: { session: { access_token: 'refreshed-token' } },
+    });
+    mockGetSupabaseClient.mockReturnValue({
+      auth: { getSession: jest.fn(), refreshSession, signOut },
+    } as never);
+
+    const headers = await refreshApiAuthHeaders();
+    expect(headers.Authorization).toBe('Bearer refreshed-token');
+    expect(refreshSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('throws the auth-required error when refresh returns no session', async () => {
+    const refreshSession = jest.fn().mockResolvedValue({ data: { session: null } });
+    mockGetSupabaseClient.mockReturnValue({
+      auth: { getSession: jest.fn(), refreshSession, signOut },
+    } as never);
+
+    await expect(refreshApiAuthHeaders()).rejects.toThrow(AUTH_REQUIRED_MESSAGE);
     expect(signOut).not.toHaveBeenCalled();
   });
 });

@@ -179,8 +179,9 @@ export const athenaWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After the discovery call, you can send the enrollment link.",
+    title: "Start enrollment",
+    description:
+      "After the discovery call, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -336,8 +337,9 @@ export const wonderhereWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After the visit, you can send the enrollment link.",
+    title: "Start enrollment",
+    description:
+      "After the visit, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -493,8 +495,9 @@ export const wonderingOaksWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After the visit, you can send the enrollment link.",
+    title: "Start enrollment",
+    description:
+      "After the visit, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -650,8 +653,9 @@ export const wildHeartsWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After follow-up, send the enrollment link to the family.",
+    title: "Start enrollment",
+    description:
+      "After follow-up, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -807,8 +811,9 @@ export const naturesSchoolhouseWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After follow-up, send the enrollment link to the family.",
+    title: "Start enrollment",
+    description:
+      "After follow-up, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -964,8 +969,9 @@ export const theWoodlandsMicroschoolWalkthroughPlaceholder: DemoWalkthroughStep[
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After follow-up, send the enrollment link to the family.",
+    title: "Start enrollment",
+    description:
+      "After follow-up, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -1121,8 +1127,9 @@ export const monarchHillsWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After connecting with the family, you can send the enrollment link.",
+    title: "Start enrollment",
+    description:
+      "After connecting with the family, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -1278,8 +1285,9 @@ export const zoeLearningHouseWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After connecting with the family, you can send the enrollment link.",
+    title: "Start enrollment",
+    description:
+      "After connecting with the family, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -1436,8 +1444,9 @@ export const hiltonHorizonsAcademyWalkthroughPlaceholder: DemoWalkthroughStep[] 
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After connecting with the family, you can send the enrollment link.",
+    title: "Start enrollment",
+    description:
+      "After connecting with the family, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -1592,8 +1601,9 @@ export const micahMissionWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After connecting with the family, you can send the enrollment link.",
+    title: "Start enrollment",
+    description:
+      "After connecting with the family, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -1750,8 +1760,9 @@ export const homeworkHubWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After connecting with the family, you can send the enrollment link.",
+    title: "Start enrollment",
+    description:
+      "After connecting with the family, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -1907,8 +1918,9 @@ export const ascendMicroSchoolWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After the tour, you can send the enrollment link to the family.",
+    title: "Start enrollment",
+    description:
+      "After the tour, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -2642,8 +2654,9 @@ export const prestigeHomeschoolAcademyWalkthroughPlaceholder: DemoWalkthroughSte
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After connecting with the family, you can send the enrollment link.",
+    title: "Start enrollment",
+    description:
+      "After connecting with the family, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -2800,8 +2813,9 @@ export const arizonaGiftedAcademyWalkthroughPlaceholder: DemoWalkthroughStep[] =
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After connecting with the family, you can send the enrollment link.",
+    title: "Start enrollment",
+    description:
+      "After connecting with the family, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -2958,8 +2972,9 @@ export const springRiverSchoolWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After connecting with the family, you can send the enrollment link.",
+    title: "Start enrollment",
+    description:
+      "After connecting with the family, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -3114,8 +3129,9 @@ export const lighthouseHomeschoolWalkthroughPlaceholder: DemoWalkthroughStep[] =
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After follow-up, send the enrollment link to the family.",
+    title: "Start enrollment",
+    description:
+      "After follow-up, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -3270,8 +3286,9 @@ export const luffLearningWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After follow-up, send the enrollment link to the family.",
+    title: "Start enrollment",
+    description:
+      "After follow-up, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -3426,8 +3443,9 @@ export const paradiseEarthAcademyWalkthroughPlaceholder: DemoWalkthroughStep[] =
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After follow-up, send the enrollment link to the family.",
+    title: "Start enrollment",
+    description:
+      "After follow-up, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -3583,8 +3601,9 @@ export const creationAcresWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After the tour or interview, you can send the enrollment link to the family.",
+    title: "Start enrollment",
+    description:
+      "After the tour or interview, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -3741,8 +3760,9 @@ export const trueNorthWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After the info meeting, you can send the enrollment link to the family.",
+    title: "Start enrollment",
+    description:
+      "After the info meeting, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -3899,8 +3919,9 @@ export const oneAcreFarmWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After the tour, you can send the enrollment link to the family.",
+    title: "Start enrollment",
+    description:
+      "After the tour, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -4057,8 +4078,9 @@ export const labLearningWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After the tour, you can send the enrollment link to the family.",
+    title: "Start enrollment",
+    description:
+      "After the tour, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -4216,8 +4238,9 @@ export const kineoSchoolWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After follow-up, send the enrollment link to the family.",
+    title: "Start enrollment",
+    description:
+      "After follow-up, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -4374,8 +4397,9 @@ export const austinMicroSchoolWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After the Day Pass and Learning Profile, send the enrollment link to the family.",
+    title: "Start enrollment",
+    description:
+      "After the Day Pass and Learning Profile, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -4532,8 +4556,9 @@ export const katsCommunityMicroschoolWalkthroughPlaceholder: DemoWalkthroughStep
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After follow-up, send the enrollment link to the family.",
+    title: "Start enrollment",
+    description:
+      "After follow-up, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -4702,8 +4727,9 @@ export const kinderAcademyPrepSchoolWalkthroughPlaceholder: DemoWalkthroughStep[
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After follow-up, send the enrollment link to the family.",
+    title: "Start enrollment",
+    description:
+      "After follow-up, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -4872,8 +4898,9 @@ export const naplesMicroschoolsWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After the discovery call and farm tour, send the enrollment link to the family.",
+    title: "Start enrollment",
+    description:
+      "After the discovery call and farm tour, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -5043,9 +5070,9 @@ export const theFocusAcademyWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
+    title: "Start enrollment",
     description:
-      "After the family conversation, send the enrollment link to the family.",
+      "After the family conversation, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -5218,9 +5245,9 @@ export const piedmontForestSchoolWalkthroughPlaceholder: DemoWalkthroughStep[] =
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
+    title: "Start enrollment",
     description:
-      "After the site tour and program confirmation, send the enrollment link to the family.",
+      "After the site tour and program confirmation, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -5393,9 +5420,9 @@ export const littleSprigsTampaWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Follow up with the family",
+    title: "Start enrollment",
     description:
-      "After connecting about meetups or program fit, follow up with the family to welcome them to the community.",
+      "After connecting about meetups or program fit, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -5568,9 +5595,9 @@ export const actonAcademyPittsburghWalkthroughPlaceholder: DemoWalkthroughStep[]
   },
   {
     id: "send-application-link",
-    title: "Send application link",
+    title: "Start enrollment",
     description:
-      "After the campus tour and learner visit, send the application link to the family.",
+      "After the campus tour and learner visit, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -5743,9 +5770,9 @@ export const actonAcademyPlacerWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send application link",
+    title: "Start enrollment",
     description:
-      "After the info session and learner audition, send the application link to the family.",
+      "After the info session and learner audition, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -5918,9 +5945,9 @@ export const gatheredOakFarmWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
+    title: "Start enrollment",
     description:
-      "After the farm visit and program confirmation, send the enrollment link to the family.",
+      "After the farm visit and program confirmation, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -6093,9 +6120,9 @@ export const asheboroHybridAcademyWalkthroughPlaceholder: DemoWalkthroughStep[] 
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
+    title: "Start enrollment",
     description:
-      "After the admissions conversation, send the enrollment link to the family.",
+      "After the admissions conversation, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -6268,9 +6295,9 @@ export const tapestryAcademyWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
+    title: "Start enrollment",
     description:
-      "After the admissions conversation, send the enrollment link to the family.",
+      "After the admissions conversation, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -6442,8 +6469,9 @@ export const rootsAndWingsMicroschoolWalkthroughPlaceholder: DemoWalkthroughStep
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After the conversation, send the enrollment link to the family.",
+    title: "Start enrollment",
+    description:
+      "After the conversation, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -6613,9 +6641,9 @@ export const freedomPrepAcademyWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
+    title: "Start enrollment",
     description:
-      "After the initial conversation, send the official enrollment link to the family.",
+      "After the initial conversation, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -6786,8 +6814,9 @@ export const familyLyceumWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send application link",
-    description: "After the conversation, send the core class application link to the family.",
+    title: "Start enrollment",
+    description:
+      "After the conversation, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -6958,9 +6987,9 @@ export const riverOakAcademyWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send application link",
+    title: "Start enrollment",
     description:
-      "After the campus tour and trial period discussion, send the application link to the family.",
+      "After the campus tour and trial period discussion, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -7132,8 +7161,9 @@ export const brazosValleyHonorAcademyWalkthroughPlaceholder: DemoWalkthroughStep
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After the visit, send the enrollment link to the family.",
+    title: "Start enrollment",
+    description:
+      "After the visit, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -7297,8 +7327,9 @@ export const inspiredLearningWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After a fit-check conversation, send the enrollment link to the family.",
+    title: "Start enrollment",
+    description:
+      "After a fit-check conversation, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
@@ -7403,8 +7434,9 @@ export const wildcatMicroschoolWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send enrollment link",
-    description: "After a conversation, send the enrollment link to the family.",
+    title: "Start enrollment",
+    description:
+      "After a conversation, accept the application and send the family their enrollment checklist.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",

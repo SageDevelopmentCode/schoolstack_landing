@@ -14,8 +14,8 @@ export const metadata: Metadata = {
 
 function LoginFallback() {
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-white">
-      <div className="h-8 w-48 animate-pulse rounded-pill bg-[#F4F1EC]" />
+    <div className="flex min-h-dvh items-center justify-center bg-[#F7F1E7]">
+      <div className="h-8 w-48 animate-pulse rounded-full bg-[#F8DDCF]" />
     </div>
   );
 }

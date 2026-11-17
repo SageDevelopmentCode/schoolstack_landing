@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { TeacherHomeScreen } from '@/components/teacher/teacher-home-screen';
+import { TeacherGardenHomeScreen } from '@/components/teacher/home/garden/teacher-garden-home-screen';
 import { useAuth } from '@/contexts/auth-context';
 import { AttendanceProvider } from '@/contexts/attendance-context';
 
@@ -14,7 +14,7 @@ export default function TeacherHomeRoute() {
 
   return (
     <AttendanceProvider organizationId={selectedSchool.id} portal="teacher">
-      <TeacherHomeScreen slug={slug} />
+      <TeacherGardenHomeScreen slug={slug} />
     </AttendanceProvider>
   );
 }

@@ -16,10 +16,20 @@ type AdminDemoComponent = ComponentType<Record<string, unknown>>;
 
 type LoadedAdminDemo =
   | { kind: "shared"; slug: string }
+  | { kind: "garden-admissions"; slug: string }
   | { kind: "rooted-meadows" }
   | { kind: "custom"; slug: string; Component: AdminDemoComponent };
 
-function loadAdminDemo(slug: string): Promise<LoadedAdminDemo> {
+function loadAdminDemo(
+  slug: string,
+  gardenAdmissions: boolean,
+): Promise<LoadedAdminDemo> {
+  if (gardenAdmissions) {
+    return import("@/components/demo/shared/DemoAdminGardenAdmissions").then(() => ({
+      kind: "garden-admissions" as const,
+      slug,
+    }));
+  }
   if (slug === ROOTED_MEADOWS_SLUG) {
     return import("@/components/demo/rootedmeadows/lazyRootedMeadowsDemos").then(
       (m) => ({
@@ -101,12 +111,28 @@ export default function ScaledAdminDemoPreview({
   const [SharedAdmin, setSharedAdmin] = useState<ComponentType<
     Record<string, unknown>
   > | null>(null);
+  const [GardenAdmissions, setGardenAdmissions] = useState<ComponentType<
+    Record<string, unknown>
+  > | null>(null);
   const isRootedMeadows = demoSlug === ROOTED_MEADOWS_SLUG;
+  // Admissions steps of the shared schools show the real Garden admin portal.
+  const useGardenAdmissions =
+    !isRootedMeadows &&
+    (initialAdminPage ?? "leads") === "leads" &&
+    (initialAdmissionsTab === "submissions" || initialSelectedLeadId != null);
 
   useEffect(() => {
     let cancelled = false;
-    void loadAdminDemo(demoSlug).then(async (loaded) => {
+    void loadAdminDemo(demoSlug, useGardenAdmissions).then(async (loaded) => {
       if (cancelled) return;
+      if (loaded.kind === "garden-admissions") {
+        const mod = await import("@/components/demo/shared/DemoAdminGardenAdmissions");
+        if (!cancelled) {
+          setGardenAdmissions(() => mod.default as ComponentType<Record<string, unknown>>);
+          setLoadedDemo(loaded);
+        }
+        return;
+      }
       if (loaded.kind === "shared") {
         const mod = await import("@/components/demo/shared/lazySchoolAdminDemo");
         if (!cancelled) {
@@ -125,7 +151,7 @@ export default function ScaledAdminDemoPreview({
     return () => {
       cancelled = true;
     };
-  }, [demoSlug]);
+  }, [demoSlug, useGardenAdmissions]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -190,7 +216,19 @@ export default function ScaledAdminDemoPreview({
             transformOrigin: "top left",
           }}
         >
-          {loadedDemo?.kind === "shared" && SharedAdmin ? (
+          {loadedDemo?.kind === "garden-admissions" &&
+          useGardenAdmissions &&
+          GardenAdmissions ? (
+            <GardenAdmissions
+              key={`${demoSlug}-${initialSelectedLeadId ?? "list"}-${autoSendEnrollmentLink ? "send" : "view"}`}
+              demoSlug={demoSlug}
+              animateNewSubmission={animateNewSubmission}
+              initialSelectedLeadId={initialSelectedLeadId}
+              autoSendEnrollmentLink={autoSendEnrollmentLink}
+              autoSendEnrollmentLinkDelayMs={autoSendEnrollmentLinkDelayMs}
+            />
+          ) : null}
+          {loadedDemo?.kind === "shared" && !useGardenAdmissions && SharedAdmin ? (
             <SharedAdmin demoSlug={demoSlug} {...demoProps} />
           ) : null}
           {loadedDemo?.kind === "custom" ? (

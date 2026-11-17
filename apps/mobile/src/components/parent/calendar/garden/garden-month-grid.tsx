@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useCalendarTestId } from '@/components/parent/calendar/garden/calendar-portal';
 import { DayDots } from '@/components/parent/calendar/garden/garden-week-strip';
 import { Garden, GardenFonts, useGardenAccent } from '@/components/parent/garden/tokens';
 import { GPressable } from '@/components/parent/garden/ui';
@@ -27,6 +28,7 @@ export function GardenMonthGrid({
   eventsByDate: Map<string, OrganizationEvent[]>;
   onSelectDate: (date: string) => void;
 }) {
+  const tid = useCalendarTestId();
   const accent = useGardenAccent();
   const cells = useMemo(() => monthGridDates(year, month), [month, year]);
   const weeks = useMemo(() => {
@@ -36,7 +38,7 @@ export function GardenMonthGrid({
   }, [cells]);
 
   return (
-    <View testID="parent-calendar-month-grid">
+    <View testID={tid('month-grid')}>
       <View style={styles.weekdays} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         {DAY_NAMES.map((name) => (
           <Text key={name} style={styles.weekday}>

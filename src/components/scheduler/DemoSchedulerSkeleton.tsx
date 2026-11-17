@@ -1,11 +1,14 @@
 import ParentSkeletonBlock from "@/components/school-parent/ui/ParentSkeletonBlock";
+import { DemoSchedulerGardenSkeleton } from "@/components/scheduler/garden/DemoSchedulerGardenView";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
-type DemoSchedulerSkeletonProps = {
-  storyTheme: ParentThemeTokens;
-};
+type DemoSchedulerSkeletonProps =
+  | { appearance?: "story"; storyTheme: ParentThemeTokens }
+  | { appearance: "garden"; storyTheme?: ParentThemeTokens };
 
-export function DemoSchedulerSkeleton({ storyTheme }: DemoSchedulerSkeletonProps) {
+export function DemoSchedulerSkeleton(props: DemoSchedulerSkeletonProps) {
+  if (props.appearance === "garden") return <DemoSchedulerGardenSkeleton />;
+  const { storyTheme } = props;
   const borderColor = storyTheme.line;
 
   return (

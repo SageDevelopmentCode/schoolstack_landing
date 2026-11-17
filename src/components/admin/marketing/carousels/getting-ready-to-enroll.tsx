@@ -1,23 +1,25 @@
 "use client";
 
-import { SLIDE } from "@/components/admin/marketing/slide-frame";
-import {
-  CarouselProductSlide,
-  type CarouselDemoCrop,
-} from "@/components/admin/marketing/carousels/carousel-product-slide";
+import type { CarouselDemoCrop } from "@/components/admin/marketing/carousels/carousel-product-slide";
 import type { MarketingCarousel, MarketingSlide } from "@/components/admin/marketing/carousels/types";
 import {
   MARKETING_DEMO_APPLY_FLOW_SELECTION,
   MARKETING_DEMO_CHECKLIST_FLOW_SELECTION,
-  MarketingAdminHomeDemoWindow,
-  MarketingEnrollmentChecklistPreviewDemoWindow,
   MarketingEnrollmentFlowsDemoWindow,
   MarketingScheduleToursDemoWindow,
   MarketingTuitionDemoWindow,
 } from "@/components/admin/marketing/screens/marketing-demo-windows";
-import { MarketingMobilePromoCluster } from "@/components/admin/marketing/screens/marketing-mobile-promo-cluster";
+import {
+  GardenAdminDashboardWindow,
+  GardenEnrollmentChecklistWindow,
+  GardenParentHomeWindow,
+} from "@/components/admin/marketing/screens/marketing-garden-demo-windows";
+import { Accent, MascotProductSlide, MascotPromoSlide } from "@/components/admin/marketing/mascot/mascot-slide-kit";
 
-const DEMO_CONTENT_HEIGHT = 920;
+// A different crew member owns each setup step: Dig (front office), Pip (enrollment), Terra (website & visits),
+// Bramble (forms) and Nutmeg (tuition).
+
+const DEMO_HEIGHT = 920;
 
 const HOME_CROP: CarouselDemoCrop = { zoom: 1.22, originX: 0, originY: 0 };
 const APPLICATION_CROP: CarouselDemoCrop = { zoom: 1.3, originX: 0, originY: 0.04 };
@@ -29,174 +31,140 @@ const TUITION_CROP: CarouselDemoCrop = { zoom: 1.22, originX: 0, originY: 0 };
 export const GETTING_READY_TO_ENROLL_CAROUSEL = {
   id: "getting-ready-to-enroll",
   title: "Getting ready to enroll families for your Microschool?",
-  description: "Five things to set up before families enroll.",
+  description: "Five things to set up before families enroll, one crew member per step.",
   fileSlug: "mudkitchen-getting-ready-to-enroll",
   slides: [
-    {
-      id: "ready",
-      fileName: "01-getting-ready-to-enroll-families.png",
-      render: () => <ReadySlide />,
-    },
-    {
-      id: "application",
-      fileName: "02-build-the-application.png",
-      render: () => <ApplicationSlide />,
-    },
-    {
-      id: "visits",
-      fileName: "03-set-up-visits.png",
-      render: () => <VisitsSlide />,
-    },
-    {
-      id: "checklist",
-      fileName: "04-prepare-the-enrollment-checklist.png",
-      render: () => <ChecklistSlide />,
-    },
-    {
-      id: "preview",
-      fileName: "05-decide-what-families-see.png",
-      render: () => <PreviewSlide />,
-    },
-    {
-      id: "tuition",
-      fileName: "06-set-up-tuition.png",
-      render: () => <TuitionSlide />,
-    },
-    {
-      id: "promo",
-      fileName: "07-set-it-up-once.png",
-      render: () => <PromoSlide />,
-    },
+    { id: "ready", fileName: "01-getting-ready-to-enroll-families.png", render: () => <ReadySlide /> },
+    { id: "application", fileName: "02-build-the-application.png", render: () => <ApplicationSlide /> },
+    { id: "visits", fileName: "03-set-up-visits.png", render: () => <VisitsSlide /> },
+    { id: "checklist", fileName: "04-prepare-the-enrollment-checklist.png", render: () => <ChecklistSlide /> },
+    { id: "preview", fileName: "05-decide-what-families-see.png", render: () => <PreviewSlide /> },
+    { id: "tuition", fileName: "06-set-up-tuition.png", render: () => <TuitionSlide /> },
+    { id: "promo", fileName: "07-set-it-up-once.png", render: () => <PromoSlide /> },
   ] satisfies MarketingSlide[],
 } satisfies MarketingCarousel;
 
 function ReadySlide() {
   return (
-    <CarouselProductSlide
+    <MascotProductSlide
       kicker="Enrollment"
-      tone="slate"
-      title="Getting ready to enroll families for your Microschool?"
-      body="Make sure these five things are ready first."
-      contentHeight={DEMO_CONTENT_HEIGHT}
+      title={
+        <>
+          Getting ready to enroll families at your <Accent>Microschool?</Accent>
+        </>
+      }
+      body="Set up these 5 things first."
+      lane="right"
+      mascot={{ name: "dig", view: "hold", flip: true }}
+      tip="I'm Dig. Here's the setup list."
+      background="#E3EDFB"
+      contentHeight={DEMO_HEIGHT}
       crop={HOME_CROP}
     >
-      <MarketingAdminHomeDemoWindow contentHeight={DEMO_CONTENT_HEIGHT} innerPadding={16} />
-    </CarouselProductSlide>
+      <GardenAdminDashboardWindow contentHeight={DEMO_HEIGHT} />
+    </MascotProductSlide>
   );
 }
 
 function ApplicationSlide() {
   return (
-    <CarouselProductSlide
-      kicker="Application"
-      tone="forest"
-      title="1. Build the application."
-      body="Choose the questions and steps families need to complete."
-      contentHeight={DEMO_CONTENT_HEIGHT}
+    <MascotProductSlide
+      kicker="1 of 5 · Application"
+      title="Build your application."
+      body="Pick the questions and steps families fill out."
+      lane="left"
+      mascot={{ name: "pip", view: "point" }}
+      tip="Pip here. Keep it short!"
+      background="#FFF3CF"
+      contentHeight={DEMO_HEIGHT}
       crop={APPLICATION_CROP}
     >
-      <MarketingEnrollmentFlowsDemoWindow
-        initialFlowSelection={MARKETING_DEMO_APPLY_FLOW_SELECTION}
-        contentHeight={DEMO_CONTENT_HEIGHT}
-      />
-    </CarouselProductSlide>
+      <MarketingEnrollmentFlowsDemoWindow initialFlowSelection={MARKETING_DEMO_APPLY_FLOW_SELECTION} contentHeight={DEMO_HEIGHT} />
+    </MascotProductSlide>
   );
 }
 
 function VisitsSlide() {
   return (
-    <CarouselProductSlide
-      kicker="Visits"
-      title="2. Set up visits."
-      body="Publish times families can book for tours, interviews, or shadow days."
-      contentHeight={DEMO_CONTENT_HEIGHT}
+    <MascotProductSlide
+      kicker="2 of 5 · Visits"
+      title="Let families book a visit."
+      body="Post times for tours, interviews or shadow days. Families pick one."
+      lane="right"
+      mascot={{ name: "terra", view: "wave", flip: true }}
+      tip="Terra here. No more back-and-forth emails."
+      background="#EEF5E9"
+      contentHeight={DEMO_HEIGHT}
       crop={VISITS_CROP}
     >
-      <MarketingScheduleToursDemoWindow contentHeight={DEMO_CONTENT_HEIGHT} />
-    </CarouselProductSlide>
+      <MarketingScheduleToursDemoWindow contentHeight={DEMO_HEIGHT} />
+    </MascotProductSlide>
   );
 }
 
 function ChecklistSlide() {
   return (
-    <CarouselProductSlide
-      kicker="Enrollment"
-      tone="forest"
-      title="3. Prepare the enrollment checklist."
-      body="Add the agreements, forms, uploads, acknowledgments, and payments your school needs."
-      contentHeight={DEMO_CONTENT_HEIGHT}
+    <MascotProductSlide
+      kicker="3 of 5 · Checklist"
+      title="Make your enrollment checklist."
+      body="Agreements, forms, uploads, sign-offs and payments."
+      lane="left"
+      mascot={{ name: "bramble", view: "hold" }}
+      tip="Bramble here. One list, nothing lost."
+      background="#F3EEF8"
+      contentHeight={DEMO_HEIGHT}
       crop={CHECKLIST_CROP}
     >
-      <MarketingEnrollmentFlowsDemoWindow
-        initialFlowSelection={MARKETING_DEMO_CHECKLIST_FLOW_SELECTION}
-        wrapOutlineLabels
-        contentHeight={DEMO_CONTENT_HEIGHT}
-      />
-    </CarouselProductSlide>
+      <MarketingEnrollmentFlowsDemoWindow initialFlowSelection={MARKETING_DEMO_CHECKLIST_FLOW_SELECTION} wrapOutlineLabels contentHeight={DEMO_HEIGHT} />
+    </MascotProductSlide>
   );
 }
 
 function PreviewSlide() {
   return (
-    <CarouselProductSlide
-      kicker="Checklist"
-      title="4. Decide what families see."
-      body="Preview the checklist before you share it."
-      contentHeight={DEMO_CONTENT_HEIGHT}
+    <MascotProductSlide
+      kicker="4 of 5 · Preview"
+      title="See it the way families will."
+      body="Preview the checklist before you send it."
+      lane="right"
+      mascot={{ name: "pip", view: "peek", flip: true }}
+      tip="Looks clear to me!"
+      background="#FFF3CF"
+      contentHeight={DEMO_HEIGHT}
       crop={PREVIEW_CROP}
     >
-      <MarketingEnrollmentChecklistPreviewDemoWindow contentHeight={DEMO_CONTENT_HEIGHT} />
-    </CarouselProductSlide>
+      <GardenEnrollmentChecklistWindow contentHeight={DEMO_HEIGHT} />
+    </MascotProductSlide>
   );
 }
 
 function TuitionSlide() {
   return (
-    <CarouselProductSlide
-      kicker="Tuition"
-      tone="forest"
-      title="5. Set up tuition."
-      body="Add rate plans, fees, and payment options before families need to pay."
-      contentHeight={DEMO_CONTENT_HEIGHT}
+    <MascotProductSlide
+      kicker="5 of 5 · Tuition"
+      title="Set up tuition."
+      body="Add rates, fees and payment options before the first bill is due."
+      lane="left"
+      mascot={{ name: "nutmeg", view: "point" }}
+      tip="Nutmeg here. Bills go out on time."
+      background="#F8EDE4"
+      contentHeight={DEMO_HEIGHT}
       crop={TUITION_CROP}
     >
-      <MarketingTuitionDemoWindow
-        initialDashboardTab="catalog"
-        initialRateCatalogTab="tuition_rates"
-        contentHeight={DEMO_CONTENT_HEIGHT}
-      />
-    </CarouselProductSlide>
+      <MarketingTuitionDemoWindow initialDashboardTab="catalog" initialRateCatalogTab="tuition_rates" contentHeight={DEMO_HEIGHT} />
+    </MascotProductSlide>
   );
 }
 
 function PromoSlide() {
   return (
-    <CarouselProductSlide
-      variant="promo"
-      demoPresentation="phones"
-      promoDensity="compact"
-      promoSiteLabel="trymudkitchen.com"
-      title="Set it up once. Families see what to do next."
-      body="Application, visits, enrollment, and tuition stay connected from the first setup."
-      footer={
-        <div style={{ marginTop: 22, display: "flex", justifyContent: "center" }}>
-          <span
-            style={{
-              display: "inline-block",
-              background: SLIDE.white,
-              color: SLIDE.forest,
-              borderRadius: 999,
-              padding: "18px 40px",
-              fontSize: 28,
-              fontWeight: 750,
-            }}
-          >
-            Book a demo
-          </span>
-        </div>
-      }
+    <MascotPromoSlide
+      title="Set it up once. Families always know the next step."
+      body="Application, visits, enrollment and tuition stay connected."
+      cast={[{ name: "dig", view: "celebrate" }, { name: "pip", view: "wave", flip: true }]}
+      contentHeight={DEMO_HEIGHT}
     >
-      <MarketingMobilePromoCluster variant="admissions" />
-    </CarouselProductSlide>
+      <GardenParentHomeWindow contentHeight={DEMO_HEIGHT} />
+    </MascotPromoSlide>
   );
 }

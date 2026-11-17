@@ -167,7 +167,7 @@ export function AdminGardenPageHeader({
         actions={
           actions || refresh ? (
             <>
-              {refresh ? <RefreshControl {...refresh} /> : null}
+              {refresh ? <GardenRefreshControl {...refresh} /> : null}
               {actions}
             </>
           ) : undefined
@@ -186,7 +186,8 @@ export function AdminGardenPageHeader({
   );
 }
 
-function RefreshControl({
+/** "Updated 2m ago" + refresh button, for page headers. */
+export function GardenRefreshControl({
   onRefresh,
   refreshing,
   lastUpdatedAt,

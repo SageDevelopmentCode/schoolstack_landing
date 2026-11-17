@@ -13,6 +13,7 @@ const importAdmin = () => import('./AdminDashboardDemo') as Promise<DemoModule>
 const importTeacher = () => import('./TeacherDashboardDemo') as Promise<DemoModule>
 const importParent = () => import('./ParentDashboardDemo') as Promise<DemoModule>
 const importWebsite = () => import('./WebsiteDashboardDemo') as Promise<DemoModule>
+const importGardenEnrollment = () => import('@/components/demo/shared/DemoStageEnrollment')
 
 
 let adminPromise: Promise<DemoModule> | null = null
@@ -64,6 +65,42 @@ function loadWebsiteCached() {
   return websitePromise
 }
 
+/** Cache a demo chunk import so prefetch and render share one request. */
+function cachedImport<T>(name: string, load: () => Promise<T>) {
+  let promise: Promise<T> | null = null
+  return () => {
+    if (!promise) {
+      promise = load().catch((error) => {
+        promise = null
+        console.error(`Failed to load demo "${name}":`, error)
+        throw error
+      })
+    }
+    return promise
+  }
+}
+
+const loadGardenEnrollmentCached = cachedImport('garden-enrollment', importGardenEnrollment)
+const loadGardenAdminDashboardCached = cachedImport('garden-admin-dashboard', () =>
+  import('@/components/demo/shared/DemoStageAdminDashboard'),
+)
+const loadGardenAdminMarketingCached = cachedImport('garden-admin-marketing', () =>
+  import('@/components/demo/shared/DemoStageAdminMarketing'),
+)
+
+const GardenEnrollmentDemo = dynamic(() => loadGardenEnrollmentCached(), {
+  ssr: false,
+  loading: DemoChunkLoading,
+})
+const GardenAdminDashboardDemo = dynamic(() => loadGardenAdminDashboardCached(), {
+  ssr: false,
+  loading: DemoChunkLoading,
+})
+const GardenAdminMarketingDemo = dynamic(() => loadGardenAdminMarketingCached(), {
+  ssr: false,
+  loading: DemoChunkLoading,
+})
+
 const AdminDashboardDemo = dynamic(() => loadAdminCached(), {
   ssr: false,
   loading: DemoChunkLoading,
@@ -111,4 +148,31 @@ export function prefetchParentDemo() {
 
 export function prefetchWebsiteDemo() {
   void loadWebsiteCached()
+}
+
+/** The real Garden enrollment checklist (DemoStage "enrollment"). */
+export function LazyGardenEnrollmentDemo() {
+  return <GardenEnrollmentDemo />
+}
+
+export function prefetchGardenEnrollmentDemo() {
+  void loadGardenEnrollmentCached()
+}
+
+/** The real Garden admin Dashboard (DemoStage "admin"). */
+export function LazyGardenAdminDashboardDemo() {
+  return <GardenAdminDashboardDemo />
+}
+
+export function prefetchGardenAdminDashboardDemo() {
+  void loadGardenAdminDashboardCached()
+}
+
+/** The Garden marketing automations demo (DemoStage "marketing"). */
+export function LazyGardenAdminMarketingDemo() {
+  return <GardenAdminMarketingDemo />
+}
+
+export function prefetchGardenAdminMarketingDemo() {
+  void loadGardenAdminMarketingCached()
 }

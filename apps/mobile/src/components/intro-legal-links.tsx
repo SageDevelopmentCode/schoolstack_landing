@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Story, StoryFonts } from '@/constants/story-theme';
+import { Garden, GardenFonts } from '@/components/parent/garden/tokens';
 import { Spacing } from '@/constants/theme';
 import { resolveWebUrl } from '@/lib/admissions/school-apply-url';
 import { openExternalUrlSafely } from '@/lib/open-external-url';
@@ -41,16 +41,16 @@ const styles = StyleSheet.create({
     gap: Spacing.one,
   },
   link: {
-    fontFamily: StoryFonts.bodyMedium,
+    fontFamily: GardenFonts.bodySemi,
     fontSize: 12,
     lineHeight: 16,
-    color: Story.muted,
+    color: Garden.soft,
     textDecorationLine: 'underline',
   },
   separator: {
-    fontFamily: StoryFonts.body,
+    fontFamily: GardenFonts.bodySemi,
     fontSize: 12,
     lineHeight: 16,
-    color: Story.muted,
+    color: Garden.soft,
   },
 });

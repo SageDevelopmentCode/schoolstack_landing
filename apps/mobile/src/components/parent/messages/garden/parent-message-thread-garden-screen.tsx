@@ -17,6 +17,7 @@ import {
 } from '@/components/parent/messages/garden/use-parent-messages-feedback';
 import {
   useParentMessageThreadController,
+  type ParentMessageThreadController,
   type ParentMessageThreadControllerParams,
 } from '@/components/parent/messages/garden/use-parent-message-thread-controller';
 import type { RenderMessageItem } from '@/lib/messages/format-chat';
@@ -53,9 +54,19 @@ function ThreadSkeleton() {
  * "Sent ✓", a guided empty state, the composer, and edit / delete sheets.
  * Data + behaviour live in `useParentMessageThreadController`.
  */
-export function ParentMessageThreadGardenScreen(
-  props: Omit<ParentMessageThreadControllerParams, 'onFeedback'>,
-) {
+export function ParentMessageThreadGardenScreen({
+  useController = useParentMessageThreadController,
+  onStudentPress,
+  ...props
+}: Omit<ParentMessageThreadControllerParams, 'onFeedback'> & {
+  /**
+   * The data hook (parent by default). The teacher thread passes its own with
+   * the same shape. Must not change between renders of one screen.
+   */
+  useController?: (params: ParentMessageThreadControllerParams) => ParentMessageThreadController;
+  /** Teacher threads: student names in the details sheet open that student's page. */
+  onStudentPress?: (studentId: string) => void;
+}) {
   const router = useRouter();
   const { notify, notifyReadOnly } = useParentMessagesNotify();
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -76,7 +87,7 @@ export function ParentMessageThreadGardenScreen(
     [notify],
   );
 
-  const controller = useParentMessageThreadController({ ...props, onFeedback });
+  const controller = useController({ ...props, onFeedback });
   const { thread, mutations, renderItems, lastSentId, listRef } = controller;
 
   useEffect(() => {
@@ -139,7 +150,7 @@ export function ParentMessageThreadGardenScreen(
       backgroundColor={Garden.cream}
       onKeyboardShow={controller.scrollMessagesToEnd}>
       <StatusBar style="dark" />
-      <GardenThreadHeader thread={thread} />
+      <GardenThreadHeader thread={thread} onStudentPress={onStudentPress} />
 
       <View style={styles.messages}>
         {thread.messages.length > 0 ? (

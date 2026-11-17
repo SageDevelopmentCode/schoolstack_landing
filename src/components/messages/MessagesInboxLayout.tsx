@@ -1344,6 +1344,13 @@ export default function MessagesInboxLayout({
           }
         },
         notify: emitFeedback,
+        // Only when the thread carries student details, so a name is never a dead link.
+        openStudent:
+          api.viewer === "teacher" &&
+          teacherStaffMemberId &&
+          (activeThread?.subtitleStudentSummaries?.length ?? 0) > 0
+            ? handleStudentClick
+            : undefined,
       },
     };
 
@@ -1364,6 +1371,19 @@ export default function MessagesInboxLayout({
             loadingContacts={loadingContacts}
             C={C}
             theme={theme}
+          />
+        ) : null}
+        {selectedStudent && teacherPortal && teacherStaffMemberId ? (
+          <TeacherStudentDetailPanel
+            key={selectedStudent.id}
+            student={selectedStudent}
+            organizationId={teacherPortal.organizationId}
+            staffMemberId={teacherStaffMemberId}
+            branding={teacherPortal.branding}
+            schoolSlug={teacherPortal.organizationSlug}
+            detailAccess="messageableFamily"
+            readOnly={readOnly}
+            onClose={() => setSelectedStudent(null)}
           />
         ) : null}
       </>

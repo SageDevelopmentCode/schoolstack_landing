@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useCalendarTestId } from '@/components/parent/calendar/garden/calendar-portal';
 import { Garden, GardenFonts, useGardenAccent, withAlpha } from '@/components/parent/garden/tokens';
 import { GPressable } from '@/components/parent/garden/ui';
 import {
@@ -23,7 +24,7 @@ const GUTTER_WIDTH = 48;
 
 /**
  * Day view: all-day strip + an hour timeline (same time math as the Story
- * `ParentCalendarDayGrid`), restyled in Garden. Events take their own colour;
+ * old Story day grid), restyled in Garden. Events take their own colour;
  * the "now" line uses the school accent.
  */
 export function GardenDayTimeline({
@@ -39,6 +40,7 @@ export function GardenDayTimeline({
   selectedEventId?: string | null;
   onEventPress: (event: OrganizationEvent) => void;
 }) {
+  const tid = useCalendarTestId();
   const accent = useGardenAccent();
   const isTodayDay = date === today;
   const hourCount = WEEK_END_HOUR - WEEK_START_HOUR;
@@ -52,7 +54,7 @@ export function GardenDayTimeline({
   );
 
   return (
-    <View style={styles.container} testID="parent-calendar-day-timeline">
+    <View style={styles.container} testID={tid('day-timeline')}>
       {events.length === 0 ? (
         <View style={styles.emptyBanner}>
           <Ionicons name="sunny-outline" size={16} color={Garden.soft} />

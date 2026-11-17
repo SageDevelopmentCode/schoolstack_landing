@@ -28,6 +28,12 @@ import type { TuitionDashboardTabId } from "@/components/school-admin/tuition/tu
 import type { TuitionRateCatalogTabId } from "@/components/school-admin/tuition/tuition-rate-catalog-tabs";
 import { CAROUSEL_DEMO_INNER_WIDTH } from "@/components/admin/marketing/carousels/carousel-product-slide";
 import { useShowcaseDesktopEmbed } from "@/components/demo/shared/showcase-desktop-embed";
+import { useMemo, type ReactNode } from "react";
+import GardenRoot from "@/components/garden/GardenRoot";
+import DemoAdminGardenShell from "@/components/demo/shared/DemoAdminGardenShell";
+import { DEMO_PORTAL_SLUG } from "@/data/school-demos/demo-portal-shared";
+import { luffLearningAdminDemoConfig } from "@/data/school-demos/luff-learning-admin-demo";
+import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 
 function DemoCanvas({
   children,
@@ -49,28 +55,43 @@ function DemoCanvas({
     (fill || innerPadding > 0 || marketingContained);
 
   return (
-    <div
-      className={
-        fill
-          ? "flex min-h-0 flex-col overflow-hidden"
-          : applyContained
-            ? "h-full min-h-0 overflow-hidden [&_[data-apply-portal]]:!min-h-0 [&_[data-apply-portal]]:h-full"
-            : undefined
-      }
-      style={{
-        width: CAROUSEL_DEMO_INNER_WIDTH,
-        minHeight,
-        height: showcaseEmbed ? "auto" : minHeight,
-        boxSizing: "border-box",
-        padding: innerPadding,
-        display: fill ? "flex" : undefined,
-        flexDirection: fill ? "column" : undefined,
-        overflow: showcaseEmbed ? "visible" : overflowHidden ? "hidden" : undefined,
-        background: "#F8F8F3",
-      }}
-    >
-      {children}
-    </div>
+    <GardenRoot className="h-full min-h-0">
+      <div
+        className={
+          fill
+            ? "flex min-h-0 flex-col overflow-hidden"
+            : applyContained
+              ? "h-full min-h-0 overflow-hidden [&_[data-apply-portal]]:!min-h-0 [&_[data-apply-portal]]:h-full"
+              : undefined
+        }
+        style={{
+          width: CAROUSEL_DEMO_INNER_WIDTH,
+          minHeight,
+          height: showcaseEmbed ? "auto" : minHeight,
+          boxSizing: "border-box",
+          padding: innerPadding,
+          display: fill ? "flex" : undefined,
+          flexDirection: fill ? "column" : undefined,
+          overflow: showcaseEmbed ? "visible" : overflowHidden ? "hidden" : undefined,
+          background: "var(--sf-cream, #F7F1E7)",
+        }}
+      >
+        {children}
+      </div>
+    </GardenRoot>
+  );
+}
+
+/**
+ * Wraps an admin page body in the real Garden admin frame (sidebar + top bar, nothing navigates),
+ * with the matching nav item active — the same frame the home page's Admin demo shows.
+ */
+function AdminGardenFrame({ feature, subtab, children }: { feature: string; subtab?: string; children: ReactNode }) {
+  const previewPathname = useMemo(() => schoolAdminPath(DEMO_PORTAL_SLUG, feature, subtab), [feature, subtab]);
+  return (
+    <DemoAdminGardenShell config={luffLearningAdminDemoConfig} previewPathname={previewPathname}>
+      {() => children}
+    </DemoAdminGardenShell>
   );
 }
 
@@ -91,7 +112,9 @@ export function MarketingAdminHomeDemoWindow({
 export function MarketingScheduleToursDemoWindow({ contentHeight = 920 }: { contentHeight?: number }) {
   return (
     <DemoCanvas minHeight={contentHeight}>
-      <DemoAdminScheduleToursPage />
+      <AdminGardenFrame feature="schedule">
+        <DemoAdminScheduleToursPage />
+      </AdminGardenFrame>
     </DemoCanvas>
   );
 }
@@ -99,7 +122,9 @@ export function MarketingScheduleToursDemoWindow({ contentHeight = 920 }: { cont
 export function MarketingStudentsDemoWindow({ contentHeight = 920 }: { contentHeight?: number }) {
   return (
     <DemoCanvas minHeight={contentHeight}>
-      <DemoAdminStudentsPage />
+      <AdminGardenFrame feature="my_school" subtab="students">
+        <DemoAdminStudentsPage />
+      </AdminGardenFrame>
     </DemoCanvas>
   );
 }
@@ -201,10 +226,12 @@ export function MarketingEnrollmentFlowsDemoWindow({
 }) {
   return (
     <DemoCanvas minHeight={contentHeight}>
-      <DemoAdminEnrollmentFlowsPage
-        initialFlowSelection={initialFlowSelection}
-        wrapOutlineLabels={wrapOutlineLabels}
-      />
+      <AdminGardenFrame feature="admissions" subtab="flows">
+        <DemoAdminEnrollmentFlowsPage
+          initialFlowSelection={initialFlowSelection}
+          wrapOutlineLabels={wrapOutlineLabels}
+        />
+      </AdminGardenFrame>
     </DemoCanvas>
   );
 }
@@ -262,12 +289,14 @@ export function MarketingTuitionDemoWindow({
 }) {
   return (
     <DemoCanvas minHeight={contentHeight}>
-      <DemoAdminTuitionPage
-        initialDashboardTab={initialDashboardTab}
-        initialRateCatalogTab={initialRateCatalogTab}
-        initialFamilyId={initialFamilyId}
-        initialOpenAdjust={initialOpenAdjust}
-      />
+      <AdminGardenFrame feature="my_school" subtab="tuition">
+        <DemoAdminTuitionPage
+          initialDashboardTab={initialDashboardTab}
+          initialRateCatalogTab={initialRateCatalogTab}
+          initialFamilyId={initialFamilyId}
+          initialOpenAdjust={initialOpenAdjust}
+        />
+      </AdminGardenFrame>
     </DemoCanvas>
   );
 }
@@ -291,7 +320,9 @@ export function MarketingAdminBulletinDemoWindow({
 }) {
   return (
     <DemoCanvas minHeight={contentHeight}>
-      <DemoAdminBulletinPage />
+      <AdminGardenFrame feature="bulletin">
+        <DemoAdminBulletinPage />
+      </AdminGardenFrame>
     </DemoCanvas>
   );
 }
@@ -315,7 +346,7 @@ export function MarketingTeacherFormsDemoWindow({
 }) {
   return (
     <DemoCanvas minHeight={contentHeight}>
-      <DemoTeacherFormsDocumentsPage />
+      <DemoTeacherFormsDocumentsPage openFormId={null} />
     </DemoCanvas>
   );
 }

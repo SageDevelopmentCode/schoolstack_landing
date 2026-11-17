@@ -53,6 +53,16 @@
   line-height: revert-layer;
 }
 
+/* Demo school websites (WebsiteDashboardDemo) in school-branded Garden. The
+   site renders inside the walkthrough's .sf-demo preview card, so it
+   re-applies the type reset for itself. */
+.sf-site-garden :where(h1, h2, h3, h4, p, button) {
+  font-family: revert-layer;
+  font-weight: revert-layer;
+  letter-spacing: revert-layer;
+  line-height: revert-layer;
+}
+
 @layer components {
   .sf-display {
     font-family: var(--font-sf-display), ui-sans-serif, system-ui, sans-serif;
@@ -137,6 +147,106 @@
   }
   .sf-no-scrollbar::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Long-form reading (blog posts). Calm Garden: Nunito body, Bricolage
+     headings, clay-deep links on a moss underline. Embedded product demos
+     (.sf-demo) are left alone. */
+  .sf-prose {
+    font-size: 1.125rem;
+    line-height: 1.75;
+    color: rgb(43 36 29 / 0.82);
+  }
+  .sf-prose :where(p, ul, ol, blockquote, figure, pre, table):not(.sf-demo *) {
+    margin-top: 1.15em;
+  }
+  .sf-prose > :first-child {
+    margin-top: 0;
+  }
+  .sf-prose :where(h2):not(.sf-demo *) {
+    font-family: var(--font-sf-display), ui-sans-serif, system-ui, sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    font-size: clamp(1.7rem, 3vw, 2.15rem);
+    color: var(--sf-ink);
+    margin-top: 2.4em;
+    margin-bottom: 0.2em;
+  }
+  .sf-prose :where(h3, h4):not(.sf-demo *) {
+    font-family: var(--font-sf-display), ui-sans-serif, system-ui, sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    font-size: 1.35rem;
+    color: var(--sf-ink);
+    margin-top: 1.9em;
+  }
+  .sf-prose :where(h4):not(.sf-demo *) {
+    font-size: 1.15rem;
+  }
+  .sf-prose :where(a):not(.sf-demo *) {
+    color: var(--sf-clay-deep);
+    font-weight: 700;
+    text-decoration: underline;
+    text-decoration-color: var(--sf-moss);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+    transition: text-decoration-color 0.2s ease;
+  }
+  .sf-prose :where(a):not(.sf-demo *):hover {
+    text-decoration-color: var(--sf-clay);
+  }
+  .sf-prose :where(a):not(.sf-demo *):focus-visible {
+    outline: none;
+    border-radius: 4px;
+    box-shadow: 0 0 0 4px rgb(160 92 69 / 0.3);
+  }
+  .sf-prose :where(strong, b):not(.sf-demo *) {
+    font-weight: 800;
+    color: var(--sf-ink);
+  }
+  .sf-prose :where(ul, ol):not(.sf-demo *) {
+    padding-left: 1.5rem;
+  }
+  .sf-prose :where(ul):not(.sf-demo *) {
+    list-style: disc;
+  }
+  .sf-prose :where(ol):not(.sf-demo *) {
+    list-style: decimal;
+  }
+  .sf-prose :where(li):not(.sf-demo *) {
+    margin-top: 0.45em;
+    padding-left: 0.25rem;
+  }
+  .sf-prose :where(li):not(.sf-demo *)::marker {
+    color: var(--sf-forest);
+    font-weight: 800;
+  }
+  .sf-prose :where(blockquote):not(.sf-demo *) {
+    position: relative;
+    border-radius: 6px;
+    background: var(--sf-butter);
+    padding: 1.1rem 1.4rem;
+    color: var(--sf-ink);
+    font-weight: 700;
+    box-shadow: 0 14px 30px -16px rgba(43, 36, 29, 0.5);
+    rotate: -0.6deg;
+  }
+  .sf-prose :where(img):not(.sf-demo *) {
+    border-radius: 18px;
+    border: 2px solid var(--sf-ink);
+  }
+  .sf-prose :where(hr):not(.sf-demo *) {
+    margin: 2.5em 0;
+    border: 0;
+    border-top: 2px dashed rgb(43 36 29 / 0.2);
+  }
+  .sf-prose :where(code):not(.sf-demo *) {
+    border-radius: 6px;
+    background: var(--sf-mint);
+    padding: 0.1em 0.35em;
+    font-size: 0.92em;
   }
 }
 

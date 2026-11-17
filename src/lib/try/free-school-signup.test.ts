@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   authUserIdFromAdminList,
+  normalizeSignupDetails,
   signupImpersonationMessage,
   slugFromSchoolName,
   suffixedSlug,
@@ -62,5 +63,41 @@ describe("signupImpersonationMessage", () => {
       ]),
       null,
     );
+  });
+});
+
+describe("normalizeSignupDetails", () => {
+  it("trims the first name and keeps known role and student count ids", () => {
+    assert.deepEqual(
+      normalizeSignupDetails({ firstName: "  Ada   Mae ", role: "running", studentCount: "11-25" }),
+      { ok: true, details: { firstName: "Ada Mae", role: "running", studentCount: "11-25" } },
+    );
+  });
+
+  it("caps the first name at 80 characters", () => {
+    const result = normalizeSignupDetails({ firstName: "a".repeat(120) });
+    assert.equal(result.ok && result.details.firstName.length, 80);
+  });
+
+  it("nulls unknown or missing role and student count ids", () => {
+    assert.deepEqual(
+      normalizeSignupDetails({ firstName: "Ada", role: "private", studentCount: 12 }),
+      { ok: true, details: { firstName: "Ada", role: null, studentCount: null } },
+    );
+    assert.deepEqual(normalizeSignupDetails({ firstName: "Ada" }), {
+      ok: true,
+      details: { firstName: "Ada", role: null, studentCount: null },
+    });
+  });
+
+  it("requires a first name", () => {
+    assert.deepEqual(normalizeSignupDetails({ firstName: "   " }), {
+      ok: false,
+      error: "missing_first_name",
+    });
+    assert.deepEqual(normalizeSignupDetails({ firstName: 42 }), {
+      ok: false,
+      error: "missing_first_name",
+    });
   });
 });

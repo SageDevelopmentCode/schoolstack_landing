@@ -1,28 +1,16 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element -- PNG export needs a plain img, not next/image. */
-import {
-  ArrowRight,
-  CalendarCheck,
-  CalendarDays,
-  Clock,
-  CreditCard,
-  FilePen,
-  FolderOpen,
-  Globe,
-  MessageSquare,
-  Receipt,
-  UserPlus,
-  type LucideIcon,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import type { MarketingCarousel, MarketingSlide } from "@/components/admin/marketing/carousels/types";
 import SlideCanvas, { SLIDE, SLIDE_WIDTH } from "@/components/admin/marketing/slide-frame";
 import { dmSans, fraunces } from "@/lib/fonts/local";
+import { Mascot, type MascotName } from "@/components/admin/marketing/mascot/Mascot";
 
 export const ONE_PLACE_AD_CAROUSEL = {
   id: "one-place-ad",
   title: "Run your Microschool from one place",
-  description: "Single ad post: classroom photo, tagline, Book a demo, feature row.",
+  description: "Single ad post: classroom photo, tagline, Book a demo, and the crew row (one character per feature).",
   fileSlug: "mudkitchen-one-place-ad",
   slides: [
     {
@@ -33,36 +21,31 @@ export const ONE_PLACE_AD_CAROUSEL = {
   ] satisfies MarketingSlide[],
 } satisfies MarketingCarousel;
 
-type AdFeature = {
-  label: string;
-  icon: LucideIcon;
-  color: string;
-};
+type CrewFeature = { name: MascotName; label: string };
 
-const AD_FEATURES: AdFeature[] = [
-  { label: "Calendar", icon: CalendarDays, color: "#DC2626" },
-  { label: "Website", icon: Globe, color: "#A05C45" },
-  { label: "Enrollment", icon: UserPlus, color: "#2563EB" },
-  { label: "Tuition", icon: CreditCard, color: "#059669" },
-  { label: "Messaging", icon: MessageSquare, color: "#0284C7" },
-  { label: "Attendance", icon: CalendarCheck, color: "#D97706" },
-  { label: "Billing", icon: Receipt, color: "#7C3AED" },
-  { label: "Contracts", icon: FilePen, color: "#4F46E5" },
-  { label: "Files", icon: FolderOpen, color: "#D97706" },
-  { label: "Staff", icon: Clock, color: "#0D9488" },
+/** One crew member per feature, matching their roles in the mascot carousels. */
+const CREW_FEATURES: CrewFeature[] = [
+  { name: "pip", label: "Enrollment" },
+  { name: "nutmeg", label: "Tuition" },
+  { name: "dot", label: "Calendar" },
+  { name: "loam", label: "Messages" },
+  { name: "fennel", label: "Attendance" },
+  { name: "bramble", label: "Forms" },
+  { name: "terra", label: "Website" },
+  { name: "clover", label: "Staff hours" },
 ];
 
 const HERO_IMAGE_SRC = "/images/marketing/ads/one-place-hero.png";
 const HERO_OBJECT_POSITION = "55% center";
 
-const TILE_SIZE = 128;
-const TILE_GAP = 24;
-const TILE_RADIUS = 34;
-const FEATURE_ROW_WIDTH = AD_FEATURES.length * TILE_SIZE + (AD_FEATURES.length - 1) * TILE_GAP;
+const CREW_SIZE = 120;
+const CREW_GAP = 10;
+const CREW_ROW_WIDTH = CREW_FEATURES.length * CREW_SIZE + (CREW_FEATURES.length - 1) * CREW_GAP;
 const HERO_COPY_MAX_WIDTH = SLIDE_WIDTH - 48;
 
-const FONT_DISPLAY = "var(--font-fraunces), Georgia, serif";
-const FONT_BODY = "var(--font-dm-sans), system-ui, sans-serif";
+const FONT_DISPLAY = "var(--font-sf-display), 'Bricolage Grotesque', 'Avenir Next', sans-serif";
+const FONT_BODY = "var(--font-sf-body), Nunito, 'Avenir', sans-serif";
+const FONT_HAND = "var(--font-sf-hand), 'Gochi Hand', 'Comic Sans MS', cursive";
 
 function OnePlaceAdSlide() {
   return (
@@ -86,7 +69,7 @@ function OnePlaceAdSlide() {
           position: "absolute",
           inset: 0,
           background:
-            "linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.28) 24%, rgba(0,0,0,0) 38%, rgba(0,0,0,0) 46%, rgba(0,0,0,0.22) 58%, rgba(0,0,0,0.5) 76%, rgba(0,0,0,0.72) 100%)",
+            "linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.28) 24%, rgba(0,0,0,0) 36%, rgba(0,0,0,0) 42%, rgba(0,0,0,0.24) 54%, rgba(0,0,0,0.58) 70%, rgba(0,0,0,0.82) 100%)",
         }}
       />
 
@@ -119,7 +102,7 @@ function AdLogo() {
           margin: 0,
           fontFamily: FONT_DISPLAY,
           fontSize: 36,
-          fontWeight: 560,
+          fontWeight: 800,
           lineHeight: 1,
           letterSpacing: "-0.03em",
           color: SLIDE.white,
@@ -136,8 +119,8 @@ function AdHero() {
     <div
       style={{
         position: "absolute",
-        top: 200,
-        bottom: 220,
+        top: 160,
+        bottom: 300,
         left: 40,
         right: 40,
         display: "flex",
@@ -158,11 +141,11 @@ function AdHero() {
         <h1
           style={{
             margin: 0,
-            fontFamily: FONT_BODY,
+            fontFamily: FONT_DISPLAY,
             fontSize: 80,
-            fontWeight: 700,
+            fontWeight: 800,
             lineHeight: 1,
-            letterSpacing: "-0.04em",
+            letterSpacing: "-0.03em",
             color: "#FFFFFF",
             textShadow: "0 2px 24px rgba(0,0,0,0.35)",
           }}
@@ -173,10 +156,9 @@ function AdHero() {
         <p
           style={{
             margin: "8px 0 0",
-            fontFamily: FONT_DISPLAY,
-            fontSize: 68,
-            fontWeight: 500,
-            fontStyle: "italic",
+            fontFamily: FONT_HAND,
+            fontSize: 76,
+            fontWeight: 400,
             lineHeight: 1.05,
             letterSpacing: "-0.03em",
             color: SLIDE.white,
@@ -228,60 +210,31 @@ function AdFeatureRow() {
     <div
       style={{
         position: "absolute",
-        bottom: 48,
-        left: (SLIDE_WIDTH - FEATURE_ROW_WIDTH) / 2,
-        width: FEATURE_ROW_WIDTH,
+        bottom: 40,
+        left: (SLIDE_WIDTH - CREW_ROW_WIDTH) / 2,
+        width: CREW_ROW_WIDTH,
         display: "flex",
-        gap: TILE_GAP,
+        gap: CREW_GAP,
       }}
     >
-      {AD_FEATURES.map((feature) => (
-        <AdFeatureTile key={feature.label} feature={feature} />
+      {CREW_FEATURES.map((feature) => (
+        <div key={feature.name} style={{ width: CREW_SIZE, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+          <Mascot name={feature.name} view="happy" width={CREW_SIZE} />
+          <span
+            style={{
+              fontFamily: FONT_BODY,
+              fontSize: 23,
+              fontWeight: 800,
+              letterSpacing: "-0.01em",
+              color: "#FFFFFF",
+              whiteSpace: "nowrap",
+              textShadow: "0 2px 10px rgba(0,0,0,0.5)",
+            }}
+          >
+            {feature.label}
+          </span>
+        </div>
       ))}
-    </div>
-  );
-}
-
-function AdFeatureTile({ feature }: { feature: AdFeature }) {
-  const Icon = feature.icon;
-  return (
-    <div
-      style={{
-        width: TILE_SIZE,
-        flexShrink: 0,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 14,
-      }}
-    >
-      <div
-        style={{
-          width: TILE_SIZE,
-          height: TILE_SIZE,
-          borderRadius: TILE_RADIUS,
-          background: feature.color,
-          color: "#FFFFFF",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow: "inset 0 0 0 2px rgba(255,255,255,0.16), 0 18px 40px rgba(0,0,0,0.4)",
-        }}
-      >
-        <Icon size={60} strokeWidth={2} aria-hidden />
-      </div>
-      <span
-        style={{
-          fontFamily: FONT_BODY,
-          fontSize: 26,
-          fontWeight: 600,
-          letterSpacing: "-0.01em",
-          color: "#FFFFFF",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {feature.label}
-      </span>
     </div>
   );
 }

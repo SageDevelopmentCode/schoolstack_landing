@@ -6,6 +6,7 @@ import {
   parsePushNotificationData,
   type AttendancePushNotificationData,
   type BulletinPushNotificationData,
+  type ClassroomSignupPushNotificationData,
   type CommitteePushNotificationData,
   type GalleryPushNotificationData,
   type MessagePushNotificationData,
@@ -14,6 +15,7 @@ import {
 } from '@/lib/push-notifications';
 import {
   parentBulletinDetailRoute,
+  parentClassroomSignupDetailRoute,
   parentMoreRoute,
   parentNewsletterEditionRoute,
   parentCommitteeWorkspaceRoute,
@@ -94,6 +96,10 @@ function attendanceRoute(_data: AttendancePushNotificationData): Href | null {
   return parentMoreRoute(_data.organizationSlug, 'attendance');
 }
 
+function classroomSignupRoute(data: ClassroomSignupPushNotificationData): Href | null {
+  return parentClassroomSignupDetailRoute(data.organizationSlug, data.signupId);
+}
+
 function staffHoursRoute(data: StaffHoursPushNotificationData): Href | null {
   return teacherMoreRoute(data.organizationSlug, 'my-hours');
 }
@@ -114,6 +120,8 @@ function pushNotificationRoute(data: PushNotificationData): Href | null {
       return attendanceRoute(data);
     case 'staff_hours':
       return staffHoursRoute(data);
+    case 'classroom_signup':
+      return classroomSignupRoute(data);
     default:
       return null;
   }
