@@ -16,6 +16,38 @@ const MarketingSlideChromeContext = createContext<MarketingSlideChromeState>({
 export const SLIDE_WIDTH = 1080;
 export const SLIDE_HEIGHT = 1350;
 
+/** Export sizes: 4:5 feed (every post) and 9:16 Stories/Reels (ads). */
+export const SLIDE_SIZES = {
+  feed: { width: SLIDE_WIDTH, height: SLIDE_HEIGHT, label: "Feed 4:5" },
+  story: { width: 1080, height: 1920, label: "Story 9:16" },
+} as const;
+
+export type SlideSize = keyof typeof SLIDE_SIZES;
+export type SlideDimensions = { size: SlideSize; width: number; height: number };
+
+const SlideSizeContext = createContext<SlideSize>("feed");
+
+/** Provides the canvas size to `MarketingSlideShell`, `SlideCanvas` and size-aware ad layouts. */
+export function SlideSizeProvider({ size, children }: { size: SlideSize; children: ReactNode }) {
+  return <SlideSizeContext.Provider value={size}>{children}</SlideSizeContext.Provider>;
+}
+
+export function useSlideSize(): SlideDimensions {
+  const size = useContext(SlideSizeContext);
+  return { size, width: SLIDE_SIZES[size].width, height: SLIDE_SIZES[size].height };
+}
+
+const AdOfferContext = createContext(true);
+
+/** Ads only: `false` hides the gift-card offer so a no-incentive control version can be exported. */
+export function AdOfferProvider({ show, children }: { show: boolean; children: ReactNode }) {
+  return <AdOfferContext.Provider value={show}>{children}</AdOfferContext.Provider>;
+}
+
+export function useAdOffer(): boolean {
+  return useContext(AdOfferContext);
+}
+
 export const SLIDE = {
   paper: "#F7F1E7",
   ink: "#2B241D",
@@ -104,14 +136,15 @@ type MarketingSlideShellProps = {
 
 export function MarketingSlideShell({ children, audienceBanner }: MarketingSlideShellProps) {
   const hideCornerLogo = Boolean(audienceBanner);
+  const { width, height } = useSlideSize();
 
   return (
     <MarketingSlideChromeContext.Provider value={{ hideCornerLogo }}>
       <div
         style={{
           position: "relative",
-          width: SLIDE_WIDTH,
-          height: SLIDE_HEIGHT,
+          width,
+          height,
           overflow: "hidden",
         }}
       >
@@ -137,13 +170,14 @@ export default function SlideCanvas({
 }: SlideCanvasProps) {
   const { hideCornerLogo } = useContext(MarketingSlideChromeContext);
   const showCornerLogo = logo === "corner" && !hideCornerLogo;
+  const { width, height } = useSlideSize();
 
   return (
     <article
       className={gardenFontVariables}
       style={{
-        width: SLIDE_WIDTH,
-        height: SLIDE_HEIGHT,
+        width,
+        height,
         background,
         color: SLIDE.ink,
         position: "relative",

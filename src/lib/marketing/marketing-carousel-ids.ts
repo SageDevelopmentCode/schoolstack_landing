@@ -16,6 +16,20 @@ export const MARKETING_CAROUSEL_IDS = [
   "mascot-dot-calendar",
   "mascot-bramble-forms",
   "mascot-crew-singles",
+  "mascot-guided-setup",
+  "mascot-family-first-week",
+  "mascot-founder-week",
+  "mascot-flicker-tansy-community",
+  "mascot-holiday-program",
+  "mascot-spring-enrollment-plan",
+  "posts-weekly-singles",
+  "posts-holiday-singles",
+  "ads-holiday-gift",
+  "ads-winter-break",
+  "ads-crew-humor",
+  "ads-pain-proof",
+  "ads-feature-spotlight",
+  "ads-new-year",
 ] as const;
 
 export type MarketingCarouselId = (typeof MARKETING_CAROUSEL_IDS)[number];

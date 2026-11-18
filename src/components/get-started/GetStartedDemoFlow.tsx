@@ -31,6 +31,7 @@ import GardenBookingSteps from "@/components/get-started/garden/GardenBookingSte
 import { demoRequestRoleLabel } from "@/lib/demo-request-roles";
 import { MUDKITCHEN_MARKETING_BRIGHT_THEME } from "@/lib/marketing/mudkitchen-bright-marketing-theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import type { DemoPromoId } from "@/lib/marketing/gift-card-offer";
 
 type FormData = GetStartedIntroductionFormData;
 
@@ -88,6 +89,8 @@ type GetStartedDemoFlowProps = {
   introHeadingAs?: "h1" | "h2";
   /** MudKitchen Garden scheduler step; needs a `.sf-garden` ancestor. */
   garden?: boolean;
+  /** Promo id from a landing page (e.g. the /gift-card offer). The API adds its note to the request's prep notes. */
+  promo?: DemoPromoId;
 };
 
 const SCHEDULER_STEP_COPY = {
@@ -123,6 +126,7 @@ export default function GetStartedDemoFlow({
   theme: themeProp,
   introHeadingAs = "h1",
   garden = false,
+  promo,
 }: GetStartedDemoFlowProps) {
   const theme = useMemo(
     () => themeProp ?? MUDKITCHEN_MARKETING_BRIGHT_THEME,
@@ -279,6 +283,7 @@ export default function GetStartedDemoFlow({
           scheduledTime: selected.time,
           timezone: selected.displayTimezone,
           prepNotes,
+          ...(promo ? { promo } : {}),
           [PUBLIC_FORM_HONEYPOT_FIELD]: companyWebsite,
         }),
       });

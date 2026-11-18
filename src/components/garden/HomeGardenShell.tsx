@@ -20,11 +20,18 @@ const FloatingQuestionButton = dynamic(() => import("@/components/sections/Float
  * navbar, the shared #book-demo hash handling, the existing footer and the
  * floating "Questions?" button.
  */
-export default function HomeGardenShell({ children }: { children: ReactNode }) {
+export default function HomeGardenShell({
+  children,
+  bookDemoHref,
+}: {
+  children: ReactNode;
+  /** Overrides the navbar's "Book a Demo" link (defaults to /get-started). */
+  bookDemoHref?: string;
+}) {
   return (
     <SmoothScroll>
       <div className="overflow-x-clip">
-        <GardenNavbar />
+        <GardenNavbar bookDemoHref={bookDemoHref} />
         <HomePageMain>{children}</HomePageMain>
         <InViewSectionGate minHeight="12rem">
           <Footer />

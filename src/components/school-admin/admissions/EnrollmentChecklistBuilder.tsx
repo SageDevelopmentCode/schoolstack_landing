@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { EnrollmentChecklistTemplate } from "@/lib/admissions/enrollment-checklist-templates";
 import {
   createBlankChecklistItem,
@@ -97,6 +97,8 @@ export default function EnrollmentChecklistBuilder({
   aside,
 }: EnrollmentChecklistBuilderProps) {
   const theme = themeProp ?? buildParentThemeTokens(branding);
+  // The family's own theme, so the Family view matches the Garden enrollment checklist.
+  const familyTheme = useMemo(() => buildParentThemeTokens(branding), [branding]);
   const C = themeProp ? parentThemeToAdminCompat(theme) : buildAdminThemeTokens(branding);
   const [focus, setFocus] = useState<ChecklistBuilderFocus | null>(() =>
     initialChecklistFocus(items),
@@ -240,6 +242,7 @@ export default function EnrollmentChecklistBuilder({
       <EnrollmentChecklistFocusCanvas
         C={C}
         theme={themeProp}
+        familyTheme={familyTheme}
         focus={focus}
         items={items}
         organizationId={organizationId}

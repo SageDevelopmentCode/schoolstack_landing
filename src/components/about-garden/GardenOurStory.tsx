@@ -6,7 +6,7 @@ import { ArrowRight, ExternalLink } from "lucide-react";
 import { BOOK_DEMO_HASH_HREF, GET_STARTED_DEMO_SECTION_ID } from "@/lib/marketing/book-demo";
 import { scrollToBookDemoSection } from "@/lib/marketing/book-demo-hash-context";
 import { Reveal } from "@/components/garden/motion";
-import { Draw, Leaf, Squiggle, Tape, btnForest, btnOutline, btnPop } from "@/components/garden/ui";
+import { Draw, Leaf, Squiggle, Sun, Tape, btnForest, btnOutline, btnPop } from "@/components/garden/ui";
 import SectionIntro from "@/components/home-garden/SectionIntro";
 import { TAPES } from "@/components/home-garden/assets";
 import { FOUNDER_PORTRAITS, GET_STARTED_STORY_HEADER, OUR_STORY_COPY, SAGE_FIELD_URL } from "./about-copy";
@@ -47,6 +47,45 @@ function DemoCta({ variant }: { variant: OurStoryCtaVariant }) {
       {ctas.scheduleDemo}
       <ArrowRight size={18} strokeWidth={2.6} aria-hidden />
     </button>
+  );
+}
+
+type Founder = (typeof FOUNDER_PORTRAITS)[keyof typeof FOUNDER_PORTRAITS];
+
+/** Opposite tilts so the pair reads as pinned together, not a misaligned grid. */
+const FOUNDER_TILTS = ["-3.5deg", "2.5deg"] as const;
+
+/**
+ * One founder polaroid. The outer div is the Reveal (GSAP) target; the tilt
+ * and hover lift live on the inner figure so GSAP never touches them.
+ */
+function FounderPolaroid({ founder, index }: { founder: Founder; index: number }) {
+  const second = index === 1;
+  return (
+    <div className={`relative hover:z-20 ${second ? "z-10 sm:mt-10" : ""}`}>
+      <figure
+        className={`sf-polaroid relative ${second ? "sm:-ml-6 sm:mr-6" : "sm:ml-6 sm:-mr-6"} transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:!rotate-0 hover:-translate-y-1`}
+        style={{ rotate: FOUNDER_TILTS[index] }}
+      >
+        <Tape color={TAPES[index]} className={`-top-3 left-1/2 -translate-x-1/2 ${second ? "rotate-3" : "-rotate-3"}`} />
+        <div className="relative aspect-[4/5] overflow-hidden rounded-[3px] bg-[var(--sf-mint)]">
+          <Image
+            src={founder.src}
+            alt={founder.name}
+            fill
+            className="object-cover"
+            sizes="(max-width: 640px) 45vw, (max-width: 1024px) 40vw, 260px"
+          />
+        </div>
+        <figcaption className="px-1 pb-1 pt-3.5">
+          <span className="block text-[15px] font-extrabold leading-tight text-[var(--sf-ink)] sm:text-[17px]">{founder.name}</span>
+          <span className="mt-1.5 block text-[11px] font-extrabold uppercase leading-none tracking-[0.2em] text-[var(--sf-clay-deep)]">
+            {founder.role}
+          </span>
+          <span className="mt-1 block text-[13px] font-semibold leading-snug text-[var(--sf-soft)] sm:text-sm">{founder.focus}</span>
+        </figcaption>
+      </figure>
+    </div>
   );
 }
 
@@ -93,27 +132,17 @@ export default function GardenOurStory({
         )}
 
         {/* Founders + how it started */}
-        <div className="mt-14 grid items-start gap-14 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16">
-          <Reveal className="grid grid-cols-2 gap-5 sm:gap-8 lg:pt-6" y={50} stagger={0.12}>
-            {founders.map((f, i) => (
-              <figure
-                key={f.name}
-                className={`sf-polaroid relative transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:!rotate-0 hover:-translate-y-1 ${i === 1 ? "mt-10" : ""}`}
-                style={{ rotate: `${i === 0 ? -3 : 3.5}deg` }}
-              >
-                <Tape color={TAPES[i]} className="-top-3 left-1/2 -translate-x-1/2 -rotate-3" />
-                <div className="relative aspect-[4/5] overflow-hidden rounded-[3px] bg-[var(--sf-mint)]">
-                  <Image src={f.src} alt={f.name} fill className="object-cover" sizes="(max-width: 1024px) 45vw, 240px" />
-                </div>
-                <figcaption className="mt-3 px-1">
-                  <span className="block font-extrabold leading-tight text-[var(--sf-ink)]">{f.name}</span>
-                  <span className="mt-0.5 block text-sm font-semibold text-[var(--sf-soft)]">
-                    {f.role} · {f.focus}
-                  </span>
-                </figcaption>
-              </figure>
-            ))}
-          </Reveal>
+        <div className="mt-14 grid items-start gap-14 lg:grid-cols-[1fr_1.1fr] lg:gap-16">
+          <div className="relative lg:sticky lg:top-28 lg:self-start lg:pt-6">
+            <Draw className="pointer-events-none absolute -right-2 -top-6 hidden w-16 lg:block" delay={0.5}>
+              <Sun />
+            </Draw>
+            <Reveal className="relative mx-auto grid max-w-[540px] grid-cols-2 gap-4 sm:gap-0" y={50} stagger={0.12}>
+              {founders.map((f, i) => (
+                <FounderPolaroid key={f.name} founder={f} index={i} />
+              ))}
+            </Reveal>
+          </div>
 
           <Reveal y={50}>
             <div className="sf-paper relative rounded-[30px] border-2 border-[var(--sf-ink)] p-7 shadow-[0_8px_0_0_var(--sf-ink)] sm:p-10" style={{ rotate: "0.6deg" }}>

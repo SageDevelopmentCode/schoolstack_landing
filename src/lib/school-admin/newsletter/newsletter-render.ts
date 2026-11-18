@@ -167,7 +167,7 @@ export function buildNewsletterContentHtml(
     const photos = edition.photos
       .map(
         (p) =>
-          `<figure><img src="${p.src}" alt="${escapeHtml(p.caption || "School-day photo")}">${p.caption ? `<figcaption>${escapeHtml(p.caption)}</figcaption>` : ""}</figure>`,
+          `<figure><img src="${p.src}" loading="lazy" decoding="async" alt="${escapeHtml(p.caption || "School-day photo")}">${p.caption ? `<figcaption>${escapeHtml(p.caption)}</figcaption>` : ""}</figure>`,
       )
       .join("");
     add("Moments from our days", `<div class="n-photos">${photos}</div>`);

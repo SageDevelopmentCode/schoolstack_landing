@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { HOME_FAQ } from "@/lib/faq";
 import { Pill, Draw, Squiggle } from "@/components/garden/ui";
@@ -14,24 +14,44 @@ const FAQ_COPY = {
 
 const TINTS = ["bg-[var(--sf-butter)]", "bg-[var(--sf-mint)]", "bg-[var(--sf-sky)]", "bg-[var(--sf-lav)]", "bg-[var(--sf-peach)]"];
 
-/** Home FAQ as a stack of index cards. Same questions as the live page (and FaqJsonLd). */
-export default function GardenFaq({ className = "" }: { className?: string }) {
+type FaqItem = { readonly question: string; readonly answer: string };
+type FaqCopy = { readonly eyebrow: string; readonly heading: string; readonly sub: string };
+
+/**
+ * FAQ as a stack of index cards. Defaults to the home FAQ (same questions as the
+ * live page and FaqJsonLd); other pages pass their own `items` and `copy`.
+ */
+export default function GardenFaq({
+  className = "",
+  items = HOME_FAQ,
+  copy = FAQ_COPY,
+  idPrefix = "garden-faq",
+  footer,
+}: {
+  className?: string;
+  items?: readonly FaqItem[];
+  copy?: FaqCopy;
+  idPrefix?: string;
+  /** Extra content under the intro (e.g. a link to full terms). */
+  footer?: ReactNode;
+}) {
   const [open, setOpen] = useState<number | null>(0);
   return (
     <section className={`py-24 lg:py-32 ${className}`}>
       <div className="mx-auto grid max-w-7xl gap-12 px-6 sm:px-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-20 lg:px-16">
         <div className="lg:sticky lg:top-32 lg:self-start">
-          <Pill tint="lav">💬 {FAQ_COPY.eyebrow}</Pill>
-          <WordsReveal text={FAQ_COPY.heading} className="sf-display mt-5 text-5xl leading-[0.95] md:text-6xl" />
+          <Pill tint="lav">💬 {copy.eyebrow}</Pill>
+          <WordsReveal text={copy.heading} className="sf-display mt-5 text-5xl leading-[0.95] md:text-6xl" />
           <Draw className="mt-3 block w-48">
             <Squiggle color="var(--sf-lav)" className="w-full" />
           </Draw>
-          <p className="mt-6 max-w-md text-lg leading-relaxed text-[var(--sf-soft)]">{FAQ_COPY.sub}</p>
+          <p className="mt-6 max-w-md text-lg leading-relaxed text-[var(--sf-soft)]">{copy.sub}</p>
+          {footer}
         </div>
         <Reveal className="space-y-4" stagger={0.08} y={30}>
-          {HOME_FAQ.map((f, i) => {
+          {items.map((f, i) => {
             const isOpen = open === i;
-            const panelId = `garden-faq-${i}`;
+            const panelId = `${idPrefix}-${i}`;
             return (
               <div
                 key={f.question}

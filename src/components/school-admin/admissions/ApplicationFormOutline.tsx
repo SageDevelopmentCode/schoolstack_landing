@@ -1,27 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import {
-  CreditCard,
-  Eye,
-  Lock,
-  ListChecks,
-  Plus,
-  Settings2,
-  ShieldCheck,
-  Check,
-  ArrowUpDown,
-} from "lucide-react";
+import { Lock, Plus, Check, ArrowUpDown } from "lucide-react";
 import type { ApplicationSection } from "@/lib/admissions/application-form-schema";
 import { isSystemSection } from "@/lib/admissions/apply-system-fields";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
-import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminTextLink from "@/components/school-admin/ui/story/AdminTextLink";
-import {
-  focusKey,
-  type BuilderFocus,
-} from "./builder-focus";
+import type { BuilderFocus } from "./builder-focus";
 import ApplicationFormStepsReorderDialog from "./ApplicationFormStepsReorderDialog";
 import {
   outlineActiveRowStyle,
@@ -35,11 +21,9 @@ type ApplicationFormOutlineProps = {
   focus: BuilderFocus;
   readOnly: boolean;
   lockSystemStep?: boolean;
-  postSubmitActionCount?: number;
   onFocusChange: (focus: BuilderFocus) => void;
   onReorderSteps: (sections: ApplicationSection[]) => void;
   onAddStep: () => void;
-  onPreview: () => void;
   /** Steps with publish-checklist problems (amber dot). */
   issueStepIds?: ReadonlySet<string>;
 };
@@ -118,44 +102,11 @@ function StepOutlineRow({
   );
 }
 
-function NavRow({
-  C,
-  theme,
-  active,
-  onClick,
-  icon: Icon,
-  label,
-  meta,
-}: {
-  C: AdminThemeTokens;
-  theme?: ParentThemeTokens;
-  active: boolean;
-  onClick: () => void;
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  meta?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`mb-1 flex w-full items-center gap-2 rounded-[11px] border px-3 py-2.5 text-left text-xs ${outlineRowInteractiveClassName(active)}`}
-      style={{
-        ...outlineActiveRowStyle(active, theme),
-        color: active ? (theme?.primary ?? C.accent) : C.textSecondary,
-      }}
-    >
-      <Icon className="h-3.5 w-3.5 shrink-0" />
-      <span className="min-w-0 flex-1 truncate font-medium">{label}</span>
-      {meta ? (
-        <span className="text-[10px] shrink-0" style={{ color: C.textTertiary }}>
-          {meta}
-        </span>
-      ) : null}
-    </button>
-  );
-}
-
+/**
+ * The Questions stage's step list. From `lg` it is a column beside the step
+ * editor; below `lg` it becomes a horizontal row of step chips above it.
+ * Form settings, fees and after-submit live in their own stages now.
+ */
 export default function ApplicationFormOutline({
   C,
   theme,
@@ -163,15 +114,12 @@ export default function ApplicationFormOutline({
   focus,
   readOnly,
   lockSystemStep = false,
-  postSubmitActionCount = 0,
   onFocusChange,
   onReorderSteps,
   onAddStep,
-  onPreview,
   issueStepIds,
 }: ApplicationFormOutlineProps) {
   const [reorderOpen, setReorderOpen] = useState(false);
-  const activeKey = focusKey(focus);
   const isStepActive = (stepId: string) =>
     focus.kind === "step"
       ? focus.stepId === stepId
@@ -181,52 +129,29 @@ export default function ApplicationFormOutline({
     return null;
   }
 
+  const canReorder = !readOnly && sections.length >= 2;
+
   return (
-    <div
-      className="flex h-full w-[240px] shrink-0 flex-col overflow-hidden border-r bg-white lg:w-[264px]"
-      style={{ borderColor: "#EDF1ED" }}
-      data-flows-outline
-    >
+    <>
+      {/* lg and up: step column */}
       <div
-        className="flex shrink-0 items-center justify-between border-b px-4 py-3"
+        className="hidden h-full w-[264px] shrink-0 flex-col overflow-hidden border-r bg-white lg:flex"
         style={{ borderColor: "#EDF1ED" }}
+        data-flows-outline
       >
-        <div>
-          <p className="text-[15px] font-semibold" style={{ color: C.textPrimary }}>
-            Application steps
-          </p>
-        </div>
-        {!readOnly ? (
-          <AdminButton theme={theme} variant="soft" size="compact" onClick={onAddStep}>
-            + Add
-          </AdminButton>
-        ) : null}
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto p-2">
-        <p
-          className="px-2 pt-2 pb-1 text-[10px] font-extrabold uppercase tracking-[0.11em]"
-          style={{ color: "#98A39F" }}
+        <div
+          className="flex shrink-0 items-center justify-between gap-2 border-b px-4 py-3"
+          style={{ borderColor: "#EDF1ED" }}
         >
-          Form settings
-        </p>
-        <NavRow
-          C={C}
-          theme={theme}
-          active={activeKey === "setup"}
-          onClick={() => onFocusChange({ kind: "setup" })}
-          icon={Settings2}
-          label="Title, link & program"
-        />
-
-        <div className="flex items-center justify-between px-2 pt-3 pb-1">
-          <p
-            className="text-[10px] font-extrabold uppercase tracking-[0.11em]"
-            style={{ color: "#98A39F" }}
-          >
-            Steps
-          </p>
-          {!readOnly && sections.length >= 2 ? (
+          <div className="min-w-0">
+            <p className="text-[15px] font-semibold" style={{ color: C.textPrimary }}>
+              Application steps
+            </p>
+            <p className="text-[11px] tabular-nums" style={{ color: C.textTertiary }}>
+              {sections.length} step{sections.length === 1 ? "" : "s"} · families see them in this order
+            </p>
+          </div>
+          {canReorder ? (
             <AdminTextLink theme={theme} onClick={() => setReorderOpen(true)} aria-label="Reorder steps">
               <span className="inline-flex items-center gap-1">
                 <ArrowUpDown className="h-3.5 w-3.5" aria-hidden />
@@ -236,96 +161,113 @@ export default function ApplicationFormOutline({
           ) : null}
         </div>
 
-        {sections.length === 0 ? (
-          <p className="px-2 py-2 text-[11px]" style={{ color: C.textTertiary }}>
-            No steps yet
-          </p>
-        ) : (
-          sections.map((step, stepIdx) => (
-            <StepOutlineRow
-              key={step.id}
-              C={C}
-              theme={theme}
-              step={step}
-              stepIdx={stepIdx}
-              active={isStepActive(step.id)}
-              lockSystemStep={lockSystemStep}
-              hasIssue={issueStepIds?.has(step.id) ?? false}
-              onSelect={() => onFocusChange({ kind: "step", stepId: step.id })}
-            />
-          ))
-        )}
+        <div className="min-h-0 flex-1 overflow-y-auto p-2">
+          {sections.length === 0 ? (
+            <p className="px-2 py-2 text-[11px]" style={{ color: C.textTertiary }}>
+              No steps yet
+            </p>
+          ) : (
+            sections.map((step, stepIdx) => (
+              <StepOutlineRow
+                key={step.id}
+                C={C}
+                theme={theme}
+                step={step}
+                stepIdx={stepIdx}
+                active={isStepActive(step.id)}
+                lockSystemStep={lockSystemStep}
+                hasIssue={issueStepIds?.has(step.id) ?? false}
+                onSelect={() => onFocusChange({ kind: "step", stepId: step.id })}
+              />
+            ))
+          )}
 
-        {!readOnly ? (
-          <button
-            type="button"
-            onClick={onAddStep}
-            className="mx-1 mb-2 flex w-[calc(100%-8px)] cursor-pointer items-center justify-center gap-1.5 rounded-[11px] border border-dashed py-2 text-[11px] font-semibold transition-colors hover:bg-[#F3F8F4]"
-            style={{
-              borderColor: "#DCE4DC",
-              color: theme.primary,
-              backgroundColor: "transparent",
-            }}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add step
-          </button>
-        ) : null}
-
-        <p
-          className="px-2 pt-2 pb-1 text-[10px] font-extrabold uppercase tracking-[0.11em]"
-          style={{ color: "#98A39F" }}
-        >
-          Before submit
-        </p>
-        <NavRow
-          C={C}
-          theme={theme}
-          active={activeKey === "fee"}
-          onClick={() => onFocusChange({ kind: "fee" })}
-          icon={CreditCard}
-          label="Application fee"
-        />
-        <NavRow
-          C={C}
-          theme={theme}
-          active={activeKey === "acknowledgments"}
-          onClick={() => onFocusChange({ kind: "acknowledgments" })}
-          icon={ShieldCheck}
-          label="Acknowledgments"
-        />
-
-        <p
-          className="px-2 pt-2 pb-1 text-[10px] font-extrabold uppercase tracking-[0.11em]"
-          style={{ color: "#98A39F" }}
-        >
-          After submit
-        </p>
-        <NavRow
-          C={C}
-          theme={theme}
-          active={activeKey === "postSubmit"}
-          onClick={() => onFocusChange({ kind: "postSubmit" })}
-          icon={ListChecks}
-          label="Post-submit steps"
-          meta={postSubmitActionCount > 0 ? String(postSubmitActionCount) : undefined}
-        />
+          {!readOnly ? (
+            <button
+              type="button"
+              onClick={onAddStep}
+              className="mx-1 mb-2 mt-1 flex w-[calc(100%-8px)] cursor-pointer items-center justify-center gap-1.5 rounded-[11px] border border-dashed py-2.5 text-[12px] font-semibold transition-colors hover:bg-[#F3F8F4]"
+              style={{
+                borderColor: "#DCE4DC",
+                color: theme.primary,
+                backgroundColor: "transparent",
+              }}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add step
+            </button>
+          ) : null}
+        </div>
       </div>
 
-      <div className="shrink-0 border-t p-3" style={{ borderColor: "#EDF1ED" }}>
-        <button
-          type="button"
-          onClick={onPreview}
-          className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border py-2 text-xs font-semibold transition-colors hover:bg-[#F3F8F4]"
-          style={{
-            borderColor: "#DCE4DC",
-            color: C.textSecondary,
-            backgroundColor: C.surface,
-          }}
+      {/* Below lg: horizontal step chips */}
+      <div className="shrink-0 border-b-[1.5px] border-dashed border-[var(--sf-ink)]/12 bg-[#fffdf8] lg:hidden">
+        <div className="flex items-center justify-between gap-2 px-3 pt-2.5 sm:px-4">
+          <p className="m-0 text-[12.5px] font-extrabold text-[var(--sf-ink)]">
+            Application steps
+            <span className="ml-1.5 font-semibold tabular-nums text-[var(--sf-soft)]">{sections.length}</span>
+          </p>
+          {canReorder ? (
+            <AdminTextLink theme={theme} onClick={() => setReorderOpen(true)} aria-label="Reorder steps">
+              <span className="inline-flex items-center gap-1">
+                <ArrowUpDown className="h-3.5 w-3.5" aria-hidden />
+                Reorder
+              </span>
+            </AdminTextLink>
+          ) : null}
+        </div>
+        <ol
+          aria-label="Application steps"
+          className="m-0 flex list-none gap-1.5 overflow-x-auto px-3 pb-2.5 pt-2 [scrollbar-width:none] sm:px-4 [&::-webkit-scrollbar]:hidden"
         >
-          <Eye className="h-3.5 w-3.5" />
-          Preview form
-        </button>
+          {sections.map((step, stepIdx) => {
+            const active = isStepActive(step.id);
+            const hasIssue = issueStepIds?.has(step.id) ?? false;
+            return (
+              <li key={step.id} className="shrink-0">
+                <button
+                  type="button"
+                  onClick={() => onFocusChange({ kind: "step", stepId: step.id })}
+                  aria-current={active ? "step" : undefined}
+                  className={`inline-flex max-w-[15rem] items-center gap-1.5 rounded-full border-[1.5px] py-1.5 pl-1.5 pr-3 text-[12.5px] font-extrabold transition-colors ${
+                    active
+                      ? "border-[var(--sf-clay)]/40 bg-[var(--sf-accent-wash)] text-[var(--sf-ink)]"
+                      : "border-[var(--sf-ink)]/12 bg-white text-[var(--sf-ink)]/70 hover:border-[var(--sf-ink)]/30"
+                  }`}
+                >
+                  <span
+                    aria-hidden
+                    className={`relative inline-grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10.5px] tabular-nums ${
+                      active ? "bg-[var(--sf-clay)] text-white" : "bg-[var(--sf-ink)]/[0.07] text-[var(--sf-ink)]/70"
+                    }`}
+                  >
+                    {stepIdx + 1}
+                    {hasIssue ? (
+                      <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border border-white bg-[#d9a400]" />
+                    ) : null}
+                  </span>
+                  <span className="truncate">{step.title || `Step ${stepIdx + 1}`}</span>
+                  {lockSystemStep && isSystemSection(step) ? (
+                    <Lock className="h-3 w-3 shrink-0 text-[var(--sf-ink)]/40" aria-label="System step" />
+                  ) : null}
+                  {hasIssue ? <span className="sr-only">(needs a fix)</span> : null}
+                </button>
+              </li>
+            );
+          })}
+          {!readOnly ? (
+            <li className="shrink-0">
+              <button
+                type="button"
+                onClick={onAddStep}
+                className="inline-flex items-center gap-1 rounded-full border-[1.5px] border-dashed border-[var(--sf-ink)]/20 px-3 py-1.5 text-[12.5px] font-extrabold text-[var(--sf-clay-deep)] hover:bg-[var(--sf-accent-wash)]"
+              >
+                <Plus className="h-3.5 w-3.5" aria-hidden />
+                Add step
+              </button>
+            </li>
+          ) : null}
+        </ol>
       </div>
 
       <ApplicationFormStepsReorderDialog
@@ -337,6 +279,6 @@ export default function ApplicationFormOutline({
         lockSystemStep={lockSystemStep}
         onReorderSteps={onReorderSteps}
       />
-    </div>
+    </>
   );
 }

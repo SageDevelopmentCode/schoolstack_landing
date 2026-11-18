@@ -29,4 +29,22 @@ describe("buildExportHtmlDocument", () => {
     assert.match(html, /http-equiv="Content-Security-Policy"/);
     assert.match(html, /script-src 'none'/);
   });
+
+  it("lazy-loads photo grid images so long editions stay light in mobile WebViews", () => {
+    const edition = createBlankEdition(defaultSchoolTemplate());
+    edition.sections.photos = true;
+    edition.photos = [
+      { id: "p1", caption: "Garden day", src: "https://example.com/a.jpg" },
+      { id: "p2", caption: "", src: "https://example.com/b.jpg" },
+    ];
+
+    const html = buildExportHtmlDocument(edition, school);
+    const photoImgs = html.match(/<figure><img [^>]*>/g) ?? [];
+
+    assert.equal(photoImgs.length, 2);
+    for (const img of photoImgs) {
+      assert.match(img, /loading="lazy"/);
+      assert.match(img, /decoding="async"/);
+    }
+  });
 });

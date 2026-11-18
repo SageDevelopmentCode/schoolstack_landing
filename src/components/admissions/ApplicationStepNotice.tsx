@@ -1,5 +1,8 @@
+"use client";
+
 import { Info } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { useApplicationFieldAppearance } from "@/components/admissions/application-field-appearance";
 
 type ApplicationStepNoticeProps = {
   body: string;
@@ -12,9 +15,10 @@ export default function ApplicationStepNotice({
   C,
   className = "",
 }: ApplicationStepNoticeProps) {
+  const garden = useApplicationFieldAppearance() === "garden";
   return (
     <div
-      className={`flex gap-3 rounded-md border px-4 py-3 ${className}`.trim()}
+      className={`flex gap-3 ${garden ? "rounded-[16px] border-[1.5px]" : "rounded-md border"} px-4 py-3 ${className}`.trim()}
       style={{
         borderColor: C.border,
         backgroundColor: C.accentLight,
@@ -25,7 +29,10 @@ export default function ApplicationStepNotice({
         style={{ color: C.accent }}
         aria-hidden
       />
-      <p className="text-sm leading-relaxed" style={{ color: C.textSecondary }}>
+      <p
+        className={`text-sm leading-relaxed ${garden ? "font-semibold" : ""}`}
+        style={{ color: garden ? C.textPrimary : C.textSecondary }}
+      >
         {body}
       </p>
     </div>

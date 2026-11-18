@@ -1888,6 +1888,44 @@ function formatObservationVisitWhen(
   return `${labels} (${dayCount} school days, ${timezoneLabel})`;
 }
 
+export async function notifyFreeSchoolSignup(payload: {
+  firstName: string;
+  email: string;
+  schoolName: string;
+  slug: string;
+  organizationId: string;
+  role: string | null;
+  studentCount: string | null;
+  timezone: string;
+}) {
+  const adminUrl = `${SITE_URL}/school/${payload.slug}/admin`;
+
+  await sendDiscordEmbed({
+    title: "🌱 New free school signup",
+    description: `**${payload.firstName}** · ${payload.schoolName}`,
+    url: adminUrl,
+    color: DISCORD_EMBED_COLORS.sales,
+    fields: [
+      contactField(payload.email, payload.firstName),
+      schoolField(payload.schoolName, payload.slug, payload.organizationId),
+      ...(payload.role
+        ? [embedField("Where today", demoRequestRoleLabel(payload.role), true)]
+        : []),
+      ...(payload.studentCount
+        ? [
+            embedField(
+              "Student count",
+              STUDENT_COUNTS[payload.studentCount] ?? payload.studentCount,
+              true,
+            ),
+          ]
+        : []),
+      embedField("Timezone", payload.timezone, true),
+      embedField("Admin", adminUrl),
+    ],
+  });
+}
+
 export async function notifyDemoBooking(payload: {
   name: string;
   email: string;

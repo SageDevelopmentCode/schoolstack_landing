@@ -1,8 +1,13 @@
 "use client";
 
-import type { CSSProperties } from "react";
 import { Check } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import {
+  applicationChoiceRadius,
+  applicationFocusRing,
+  applicationMetaTextClass,
+  useApplicationFieldAppearance,
+} from "@/components/admissions/application-field-appearance";
 
 type ApplicationCheckboxInputProps = {
   id: string;
@@ -25,7 +30,9 @@ export default function ApplicationCheckboxInput({
   error = null,
   C,
 }: ApplicationCheckboxInputProps) {
-  const focusRing = { "--tw-ring-color": `${C.accent}40` } as CSSProperties;
+  const appearance = useApplicationFieldAppearance();
+  const garden = appearance === "garden";
+  const focusRing = applicationFocusRing(C.accent, appearance);
   const hasDescription = Boolean(description?.trim());
 
   return (
@@ -38,7 +45,7 @@ export default function ApplicationCheckboxInput({
         aria-invalid={Boolean(error)}
         disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={`flex min-h-[44px] w-full gap-3 rounded-md border px-4 py-3 text-left text-sm transition-all duration-150 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60 ${
+        className={`flex min-h-[44px] w-full gap-3 ${applicationChoiceRadius(appearance)} px-4 py-3 text-left text-sm transition-all duration-150 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60 ${
           hasDescription ? "items-start" : "items-center"
         }`}
         style={
@@ -59,7 +66,7 @@ export default function ApplicationCheckboxInput({
       >
         <span
           aria-hidden
-          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 ${
+          className={`flex shrink-0 items-center justify-center border-2 ${garden ? "h-5 w-5 rounded-[6px]" : "h-4 w-4 rounded"} ${
             hasDescription ? "mt-0.5" : ""
           }`}
           style={{
@@ -74,7 +81,7 @@ export default function ApplicationCheckboxInput({
         <span className="min-w-0 flex-1">
           {hasDescription ? (
             <>
-              <span className="block font-medium">{label}</span>
+              <span className={`block ${garden ? "font-bold" : "font-medium"}`}>{label}</span>
               <span
                 className="mt-1 block text-sm font-normal leading-relaxed"
                 style={{ color: C.textSecondary }}
@@ -83,12 +90,12 @@ export default function ApplicationCheckboxInput({
               </span>
             </>
           ) : (
-            <span className="font-normal leading-relaxed">{label}</span>
+            <span className={`leading-relaxed ${garden ? "font-semibold" : "font-normal"}`}>{label}</span>
           )}
         </span>
       </button>
       {error ? (
-        <p className="mt-1.5 text-xs" style={{ color: C.error }}>
+        <p className={applicationMetaTextClass(appearance)} style={{ color: C.error }}>
           {error}
         </p>
       ) : null}

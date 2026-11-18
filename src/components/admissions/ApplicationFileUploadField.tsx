@@ -13,6 +13,7 @@ import {
 } from "@/lib/admissions/application-file-storage";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { useApplicationFieldAppearance } from "@/components/admissions/application-field-appearance";
 
 type ApplicationFileUploadFieldProps = {
   id: string;
@@ -58,6 +59,9 @@ export default function ApplicationFileUploadField({
   onRemoveFile,
 }: ApplicationFileUploadFieldProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const garden = useApplicationFieldAppearance() === "garden";
+  const boxRadius = garden ? "rounded-[18px]" : "rounded-lg";
+  const buttonRadius = garden ? "rounded-full font-extrabold" : "rounded-md font-semibold";
   const fileInputDisabled = disabled || uploading;
   const atLimit = files.length >= maxFiles;
   const canAddMore = !atLimit && !fileInputDisabled;
@@ -91,7 +95,7 @@ export default function ApplicationFileUploadField({
     <div className="space-y-3">
       {files.length === 0 ? (
         <div
-          className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-10 text-center"
+          className={`flex flex-col items-center justify-center ${boxRadius} border-2 border-dashed px-6 py-10 text-center`}
           style={{
             borderColor: error ? C.errorBorder : C.borderStrong,
             backgroundColor: "#FFFFFF",
@@ -139,7 +143,7 @@ export default function ApplicationFileUploadField({
               event.stopPropagation();
               openFilePicker();
             }}
-            className={`mt-4 rounded-md px-4 py-2 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS}`}
+            className={`mt-4 ${buttonRadius} px-4 py-2 text-sm text-white ${BUTTON_LOADING_LAYOUT_CLASS}`}
             style={primaryButtonStyle(C, fileInputDisabled)}
           >
             <ButtonLoadingLabel loading={uploading} loadingLabel="Uploading…">
@@ -150,7 +154,7 @@ export default function ApplicationFileUploadField({
         </div>
       ) : (
         <div
-          className="rounded-lg border px-4 py-4"
+          className={`${boxRadius} ${garden ? "border-2" : "border"} px-4 py-4`}
           style={{
             borderColor: error ? C.errorBorder : C.border,
             backgroundColor: "#FFFFFF",
@@ -179,7 +183,7 @@ export default function ApplicationFileUploadField({
               type="button"
               disabled={uploading}
               onClick={openFilePicker}
-              className={`mt-4 rounded-md border px-4 py-2 text-sm font-semibold ${BUTTON_LOADING_LAYOUT_CLASS}`}
+              className={`mt-4 ${buttonRadius} border px-4 py-2 text-sm ${BUTTON_LOADING_LAYOUT_CLASS}`}
               style={{
                 ...getAdminButtonStyle(C, "neutral"),
                 opacity: uploading ? 0.7 : 1,

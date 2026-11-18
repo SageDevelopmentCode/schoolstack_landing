@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import ApplyAuthShell from "@/components/admissions/ApplyAuthShell";
 import ApplyFormRouteLoading, {
   ApplyFormRouteLoadingBrandingProvider,
 } from "@/components/admissions/ApplyFormRouteLoading";
-import { ApplyAuthShellLoader } from "@/components/admissions/ApplyAuthShellLoader";
 import ApplicationFormPageShell from "@/components/admissions/ApplicationFormPageShell";
 import PortalHelpFab from "@/components/school/shared/PortalHelpFab";
+import ApplyGardenShell from "@/components/admissions/garden/ApplyGardenShell";
+import { GSkeleton } from "@/components/school-parent/garden/ui";
+import { Loader2 } from "lucide-react";
 import { attemptPostSignInRedirect } from "@/lib/auth/resolve-post-sign-in-redirect";
 import type { BootstrapApplicantResult } from "@/lib/admissions/applicant-bootstrap";
 import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
@@ -45,8 +46,10 @@ import type {
   ApplicationFormFeeConfig,
   ApplicationFormSchema,
 } from "@/lib/admissions/application-form-schema";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
-import { buildParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import {
+  buildParentThemeTokens,
+  parentThemeToGardenCompat,
+} from "@/lib/organization-settings/parent-theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { ApplyAuthEntryOption } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
@@ -73,6 +76,7 @@ type PublicApplicationFormClientProps = {
   feeConfig: ApplicationFormFeeConfig;
   organizationId: string;
   formVersionId: string;
+  /** Kept for the route's API; the Garden form owns its layout in both cases. */
   shellLayout?: "standalone" | "embedded";
   serverAuthState?: ServerAuthState;
   initialApplicationId?: string | null;
@@ -146,13 +150,12 @@ function PublicApplicationFormClientContent({
   feeConfig,
   organizationId,
   formVersionId,
-  shellLayout = "standalone",
   serverAuthState,
   initialApplicationId = null,
   tourEntryOption = null,
 }: PublicApplicationFormClientProps) {
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const gardenTheme = useMemo(() => buildParentThemeTokens(branding), [branding]);
+  const C = useMemo(() => parentThemeToGardenCompat(gardenTheme), [gardenTheme]);
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const pathname = usePathname();
@@ -489,71 +492,49 @@ function PublicApplicationFormClientContent({
     setImportGeneration((current) => current + 1);
   };
 
-  const embeddedLoader = (message: string) => (
-    <div className="flex min-h-dvh items-center justify-center">
-      <ApplyAuthShellLoader message={message} C={C} />
-    </div>
-  );
-
   if (phase === "checking_session" || phase === "loading_draft") {
-    const loader = (
-      <ApplyAuthShellLoader
-        message={
-          phase === "checking_session"
-            ? "Checking your session…"
-            : "Loading your application…"
-        }
-        C={C}
-      />
-    );
-
-    if (shellLayout === "embedded") {
-      return embeddedLoader(
-        phase === "checking_session"
-          ? "Checking your session…"
-          : "Loading your application…",
-      );
-    }
-
+    const message =
+      phase === "checking_session" ? "Checking your session…" : "Loading your application…";
     return (
-      <ApplyAuthShell branding={branding} schoolName={schoolName} title={title}>
-        {loader}
-      </ApplyAuthShell>
+      <ApplyGardenShell branding={branding} schoolName={schoolName}>
+        <div role="status" aria-live="polite" className="grid items-start gap-6 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)] lg:gap-8">
+          <div className="flex flex-col gap-3">
+            <GSkeleton className="h-3 w-40" />
+            <GSkeleton className="h-10 w-4/5" />
+            <GSkeleton className="h-4 w-full" />
+            <GSkeleton className="h-4 w-2/3" />
+          </div>
+          <div className="rounded-[28px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white px-5 py-6 shadow-[0_6px_0_0_rgba(43,36,29,0.07)] sm:px-8 sm:py-8">
+            <p className="m-0 flex items-center gap-2 text-[13.5px] font-extrabold text-[var(--sf-soft)]">
+              <Loader2 className="h-4 w-4 animate-spin text-[var(--sf-clay)]" aria-hidden />
+              {message}
+            </p>
+            <div className="mt-6 grid gap-5 sm:grid-cols-2">
+              <GSkeleton className="h-11" />
+              <GSkeleton className="h-11" />
+              <GSkeleton className="h-11 sm:col-span-2" />
+            </div>
+          </div>
+        </div>
+      </ApplyGardenShell>
     );
   }
 
   if (phase === "error") {
-    const errorContent = (
-      <p className="mt-3 text-sm leading-relaxed" style={{ color: C.textSecondary }}>
-        {error ?? "Something went wrong. Please try again."}
-      </p>
-    );
-
-    if (shellLayout === "embedded") {
-      return (
-        <div
-          className="flex min-h-dvh flex-col items-center justify-center px-6 py-12"
-          style={{ backgroundColor: branding.colors.bg, color: C.textPrimary }}
-        >
-          <h2
-            className="text-center text-xl font-semibold"
-            style={{ color: C.accentDark }}
-          >
-            Unable to open your application
-          </h2>
-          {errorContent}
-        </div>
-      );
-    }
-
     return (
-      <ApplyAuthShell
-        branding={branding}
-        schoolName={schoolName}
-        title="Unable to open your application"
-      >
-        {errorContent}
-      </ApplyAuthShell>
+      <ApplyGardenShell branding={branding} schoolName={schoolName} centered>
+        <div
+          role="alert"
+          className="w-full max-w-[520px] rounded-[28px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white px-6 py-8 text-center shadow-[0_6px_0_0_rgba(43,36,29,0.07)] sm:px-8"
+        >
+          <h1 className="sf-display m-0 text-[1.6rem] leading-[1.1] text-[var(--sf-ink)]">
+            Unable to open your application
+          </h1>
+          <p className="m-0 mt-3 text-[15px] font-semibold leading-relaxed text-[var(--sf-soft)]">
+            {error ?? "Something went wrong. Please try again."}
+          </p>
+        </div>
+      </ApplyGardenShell>
     );
   }
 

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, Download, Loader2 } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Copy, Download, Loader2 } from "lucide-react";
 import { toPng } from "html-to-image";
 import JSZip from "jszip";
 import { MarketingCarouselSidebar } from "@/components/admin/marketing/MarketingCarouselSidebar";
@@ -12,12 +12,14 @@ import {
   MARKETING_CAROUSELS,
   resolveMarketingCarouselId,
 } from "@/components/admin/marketing/carousels/registry";
-import type { MarketingSlide } from "@/components/admin/marketing/carousels/types";
+import type { MarketingAdCopy, MarketingSlide } from "@/components/admin/marketing/carousels/types";
 import {
+  AdOfferProvider,
   DEFAULT_CAROUSEL_AUDIENCE_BANNER,
   MarketingSlideShell,
-  SLIDE_HEIGHT,
-  SLIDE_WIDTH,
+  SLIDE_SIZES,
+  SlideSizeProvider,
+  type SlideSize,
 } from "@/components/admin/marketing/slide-frame";
 import { AdminSwitch } from "@/components/admin/ui/AdminSwitch";
 import type { MarketingCarouselPostStatus } from "@/lib/marketing/carousel-post-status";
@@ -37,14 +39,15 @@ function emptyPostedByCarouselId(): Record<MarketingCarouselId, MarketingCarouse
   );
 }
 
-async function slideToPng(node: HTMLElement): Promise<string> {
+async function slideToPng(node: HTMLElement, size: SlideSize): Promise<string> {
+  const { width, height } = SLIDE_SIZES[size];
   return toPng(node, {
     cacheBust: true,
     pixelRatio: 1,
-    width: SLIDE_WIDTH,
-    height: SLIDE_HEIGHT,
-    canvasWidth: SLIDE_WIDTH,
-    canvasHeight: SLIDE_HEIGHT,
+    width,
+    height,
+    canvasWidth: width,
+    canvasHeight: height,
     skipAutoScale: true,
     filter: (domNode) => {
       if (!(domNode instanceof HTMLElement)) return true;
@@ -53,6 +56,14 @@ async function slideToPng(node: HTMLElement): Promise<string> {
     },
   });
 }
+
+/** `01-gift.png` → `01-gift-story-no-offer.png` (size suffix only when an entry has several sizes). */
+function exportFileName(fileName: string, size: SlideSize, multiSize: boolean, offerOff: boolean): string {
+  const suffix = `${multiSize ? `-${size}` : ""}${offerOff ? "-no-offer" : ""}`;
+  return suffix ? fileName.replace(/\.png$/, `${suffix}.png`) : fileName;
+}
+
+const exportKey = (size: SlideSize, index: number) => `${size}:${index}`;
 
 function downloadUrl(href: string, fileName: string) {
   const link = document.createElement("a");
@@ -65,12 +76,14 @@ export default function MarketingStudio() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const stageRef = useRef<HTMLDivElement>(null);
-  const exportRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const exportRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const carouselParam = searchParams.get("carousel");
   const selectedCarouselId = resolveMarketingCarouselId(carouselParam);
   const [index, setIndex] = useState(0);
   const [scale, setScale] = useState(0.42);
+  const [preferredSize, setPreferredSize] = useState<SlideSize>("feed");
+  const [showOffer, setShowOffer] = useState(true);
   const [exporting, setExporting] = useState<"slide" | "all" | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
   const [postedByCarouselId, setPostedByCarouselId] = useState(() => emptyPostedByCarouselId());
@@ -82,12 +95,29 @@ export default function MarketingStudio() {
   const carouselId = carousel?.id ?? "";
   const slides = carousel?.slides ?? [];
   const slide = slides[index] ?? slides[0];
+  const isAd = carousel?.kind === "ad";
+  const sizes: SlideSize[] = carousel?.sizes?.length ? carousel.sizes : ["feed"];
+  const multiSize = sizes.length > 1;
+  const activeSize: SlideSize = sizes.includes(preferredSize) ? preferredSize : sizes[0];
+  const activeDims = SLIDE_SIZES[activeSize];
+  const hasOfferToggle = isAd && Boolean(carousel?.offerToggle);
+  const offerOff = hasOfferToggle && !showOffer;
   const firstSlideAudienceBanner =
-    slides.length > 1 ? (carousel?.audienceBanner ?? DEFAULT_CAROUSEL_AUDIENCE_BANNER) : undefined;
+    slides.length > 1 && !carousel?.kind ? (carousel?.audienceBanner ?? DEFAULT_CAROUSEL_AUDIENCE_BANNER) : undefined;
 
   useEffect(() => {
-    exportRefs.current = [];
+    exportRefs.current = {};
   }, [carouselId]);
+
+  // Deep link from the Schedule tab: ?carousel=<id>&slide=<slide id> opens that slide (once per link).
+  const slideParam = searchParams.get("slide");
+  const deepLinkKey = slideParam ? `${carouselId}:${slideParam}` : null;
+  const [appliedDeepLink, setAppliedDeepLink] = useState<string | null>(null);
+  if (deepLinkKey && appliedDeepLink !== deepLinkKey) {
+    setAppliedDeepLink(deepLinkKey);
+    const target = slides.findIndex((item) => item.id === slideParam);
+    if (target >= 0) setIndex(target);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -178,6 +208,7 @@ export default function MarketingStudio() {
       setExportError(null);
 
       const params = new URLSearchParams(searchParams.toString());
+      params.delete("slide");
       if (nextId === DEFAULT_CAROUSEL_ID) {
         params.delete("carousel");
       } else {
@@ -195,15 +226,15 @@ export default function MarketingStudio() {
 
     const measure = () => {
       const rect = stage.getBoundingClientRect();
-      const next = Math.min((rect.width - 120) / SLIDE_WIDTH, (rect.height - 24) / SLIDE_HEIGHT);
-      setScale(Math.max(0.2, next));
+      const next = Math.min((rect.width - 120) / activeDims.width, (rect.height - 24) / activeDims.height);
+      setScale(Math.max(0.15, next));
     };
 
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(stage);
     return () => observer.disconnect();
-  }, [carouselId]);
+  }, [carouselId, activeDims.width, activeDims.height]);
 
   const slideCount = slides.length;
   const go = useCallback(
@@ -226,13 +257,13 @@ export default function MarketingStudio() {
   }, [go]);
 
   async function downloadCurrent() {
-    const node = exportRefs.current[index];
+    const node = exportRefs.current[exportKey(activeSize, index)];
     if (!node || !slide) return;
     setExporting("slide");
     setExportError(null);
     try {
-      const dataUrl = await slideToPng(node);
-      downloadUrl(dataUrl, slide.fileName);
+      const dataUrl = await slideToPng(node, activeSize);
+      downloadUrl(dataUrl, exportFileName(slide.fileName, activeSize, multiSize, offerOff));
     } catch (error) {
       setExportError(error instanceof Error ? error.message : "Could not export this slide.");
     } finally {
@@ -245,18 +276,21 @@ export default function MarketingStudio() {
     setExportError(null);
     try {
       const zip = new JSZip();
-      for (let i = 0; i < slides.length; i += 1) {
-        const node = exportRefs.current[i];
-        const item = slides[i];
-        if (!node || !item) continue;
-        const dataUrl = await slideToPng(node);
-        const base64 = dataUrl.split(",")[1];
-        if (!base64) throw new Error("Export returned an empty image.");
-        zip.file(item.fileName, base64, { base64: true });
+      for (const size of sizes) {
+        for (let i = 0; i < slides.length; i += 1) {
+          const node = exportRefs.current[exportKey(size, i)];
+          const item = slides[i];
+          if (!node || !item) continue;
+          const dataUrl = await slideToPng(node, size);
+          const base64 = dataUrl.split(",")[1];
+          if (!base64) throw new Error("Export returned an empty image.");
+          const name = exportFileName(item.fileName, size, multiSize, offerOff);
+          zip.file(multiSize ? `${size}/${name}` : name, base64, { base64: true });
+        }
       }
       const blob = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(blob);
-      downloadUrl(url, `${carousel.fileSlug}.zip`);
+      downloadUrl(url, `${carousel.fileSlug}${offerOff ? "-no-offer" : ""}.zip`);
       URL.revokeObjectURL(url);
     } catch (error) {
       setExportError(error instanceof Error ? error.message : "Could not export the carousel.");
@@ -292,6 +326,37 @@ export default function MarketingStudio() {
             <p className="text-sm text-admin-muted">{carousel.title}</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            {multiSize ? (
+              <div
+                role="radiogroup"
+                aria-label="Export size"
+                className="flex items-center rounded-admin-md border border-admin-border bg-admin-canvas p-0.5"
+              >
+                {sizes.map((size) => (
+                  <button
+                    key={size}
+                    type="button"
+                    role="radio"
+                    aria-checked={size === activeSize}
+                    onClick={() => setPreferredSize(size)}
+                    className={`rounded-admin-md px-2.5 py-1 text-xs font-medium ${
+                      size === activeSize ? "bg-admin-surface text-admin-text shadow-sm" : "text-admin-muted"
+                    }`}
+                  >
+                    {SLIDE_SIZES[size].label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            {hasOfferToggle ? (
+              <div className="flex items-center gap-2 border-r border-admin-border pr-3">
+                <AdminSwitch checked={showOffer} label="Show the gift-card offer" onChange={setShowOffer} />
+                <div>
+                  <p className="text-sm font-medium text-admin-text">Offer</p>
+                  <p className="text-[11px] text-admin-muted">Off = no-incentive control</p>
+                </div>
+              </div>
+            ) : null}
             <div className="flex items-center gap-2 border-r border-admin-border pr-3">
               <AdminSwitch
                 checked={currentCarouselPosted}
@@ -353,20 +418,24 @@ export default function MarketingStudio() {
             <ChevronLeft className="h-5 w-5" />
           </button>
 
-          <div style={{ width: SLIDE_WIDTH * scale, height: SLIDE_HEIGHT * scale }}>
+          <div style={{ width: activeDims.width * scale, height: activeDims.height * scale }}>
             <div
               style={{
-                width: SLIDE_WIDTH,
-                height: SLIDE_HEIGHT,
+                width: activeDims.width,
+                height: activeDims.height,
                 transform: `scale(${scale})`,
                 transformOrigin: "top left",
               }}
             >
-              <MarketingSlideShell
-                audienceBanner={index === 0 ? firstSlideAudienceBanner : undefined}
-              >
-                <SlideView slide={slide} />
-              </MarketingSlideShell>
+              <SlideSizeProvider size={activeSize}>
+                <AdOfferProvider show={!offerOff}>
+                  <MarketingSlideShell
+                    audienceBanner={index === 0 ? firstSlideAudienceBanner : undefined}
+                  >
+                    <SlideView slide={slide} />
+                  </MarketingSlideShell>
+                </AdOfferProvider>
+              </SlideSizeProvider>
             </div>
           </div>
 
@@ -398,27 +467,35 @@ export default function MarketingStudio() {
           </span>
         </div>
 
+        {slide?.adCopy ? <AdCopyPanel copy={slide.adCopy} /> : null}
+
         <div key={carousel.id} aria-hidden className="pointer-events-none fixed top-0 -left-[4000px]">
-          {slides.map((item, itemIndex) => (
-            <div
-              key={item.id}
-              ref={(node) => {
-                exportRefs.current[itemIndex] = node;
-              }}
-              style={{
-                width: SLIDE_WIDTH,
-                height: SLIDE_HEIGHT,
-                overflow: "hidden",
-                position: "relative",
-              }}
-            >
-              <MarketingSlideShell
-                audienceBanner={itemIndex === 0 ? firstSlideAudienceBanner : undefined}
+          {sizes.map((size) =>
+            slides.map((item, itemIndex) => (
+              <div
+                key={exportKey(size, itemIndex)}
+                ref={(node) => {
+                  exportRefs.current[exportKey(size, itemIndex)] = node;
+                }}
+                style={{
+                  width: SLIDE_SIZES[size].width,
+                  height: SLIDE_SIZES[size].height,
+                  overflow: "hidden",
+                  position: "relative",
+                }}
               >
-                <SlideView slide={item} />
-              </MarketingSlideShell>
-            </div>
-          ))}
+                <SlideSizeProvider size={size}>
+                  <AdOfferProvider show={!offerOff}>
+                    <MarketingSlideShell
+                      audienceBanner={itemIndex === 0 ? firstSlideAudienceBanner : undefined}
+                    >
+                      <SlideView slide={item} />
+                    </MarketingSlideShell>
+                  </AdOfferProvider>
+                </SlideSizeProvider>
+              </div>
+            )),
+          )}
         </div>
       </div>
     </div>
@@ -427,4 +504,53 @@ export default function MarketingStudio() {
 
 function SlideView({ slide }: { slide: MarketingSlide }) {
   return slide.render();
+}
+
+/** Text to paste into the ad manager next to this image. */
+function AdCopyPanel({ copy }: { copy: MarketingAdCopy }) {
+  const fields: Array<{ key: string; label: string; value: string }> = [
+    { key: "primary", label: "Primary text", value: copy.primaryText },
+    { key: "headline", label: "Headline", value: copy.headline },
+    ...(copy.description ? [{ key: "description", label: "Description", value: copy.description }] : []),
+  ];
+  return (
+    <section
+      aria-label="Ad copy"
+      className="grid shrink-0 gap-2 border-t border-admin-border px-6 py-3 md:grid-cols-[2fr_1fr_1fr]"
+    >
+      {fields.map((field) => (
+        <AdCopyField key={field.key} label={field.label} value={field.value} />
+      ))}
+    </section>
+  );
+}
+
+function AdCopyField({ label, value }: { label: string; value: string }) {
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 1600);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
+
+  return (
+    <div className="min-w-0 rounded-admin-md border border-admin-border bg-admin-surface px-3 py-2">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-admin-faint">
+          {label} <span className="font-normal normal-case">· {value.length} chars</span>
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            void navigator.clipboard?.writeText(value).then(() => setCopied(true));
+          }}
+          className="inline-flex items-center gap-1 text-[11px] font-medium text-admin-accent"
+        >
+          {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+      <p className="mt-1 text-xs leading-snug text-admin-text">{value}</p>
+    </div>
+  );
 }

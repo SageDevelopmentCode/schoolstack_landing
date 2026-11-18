@@ -79,6 +79,7 @@ export function ParentNewsletterDetailGardenScreen({
         </View>
       ) : (
         <WebView
+          key={controller.webViewKey}
           originWhitelist={['*']}
           source={{ uri: webSource.uri, headers: webSource.headers }}
           style={styles.webview}
@@ -100,21 +101,14 @@ export function ParentNewsletterDetailGardenScreen({
             // Reports via reportError unless it's a first 401 (refresh + reload).
             controller.handleHttpError(event.nativeEvent.statusCode);
           }}
-          onRenderProcessGone={() => {
-            reportError(
-              'parent_newsletter_detail_render_process_gone',
-              new Error('The newsletter viewer process was terminated.'),
-              { entityType: 'newsletter_edition', entityId: editionId },
-            );
-            setLoadError('This newsletter could not be loaded.');
+          onLoadEnd={controller.handleWebViewLoadEnd}
+          // The OS can kill the content process (often while backgrounded);
+          // the controller remounts silently and only reports repeat failures.
+          onRenderProcessGone={(event) => {
+            controller.handleProcessTerminated('android_gone', event.nativeEvent?.didCrash);
           }}
           onContentProcessDidTerminate={() => {
-            reportError(
-              'parent_newsletter_detail_render_process_gone',
-              new Error('The newsletter viewer process was terminated.'),
-              { entityType: 'newsletter_edition', entityId: editionId },
-            );
-            setLoadError('This newsletter could not be loaded.');
+            controller.handleProcessTerminated('ios_terminate');
           }}
           renderLoading={() => (
             <View style={styles.webviewLoading}>

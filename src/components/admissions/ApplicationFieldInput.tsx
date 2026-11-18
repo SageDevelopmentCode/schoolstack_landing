@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import type { CSSProperties } from "react";
 import dynamic from "next/dynamic";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import ApplicationRadioInput from "@/components/admissions/ApplicationRadioInput";
@@ -23,9 +22,15 @@ import {
 import { formatPhoneNumberInput } from "@/lib/phone-format";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { reportApplyOperationalError } from "@/lib/operational-errors-client";
+import {
+  applicationFieldClass,
+  applicationFocusRing,
+  applicationMetaTextClass,
+  useApplicationFieldAppearance,
+} from "@/components/admissions/application-field-appearance";
 
 function DeferredFieldFallback() {
-  return <div className="h-10 w-full rounded-md border bg-white" aria-hidden />;
+  return <div className="h-11 w-full rounded-md border bg-white" aria-hidden />;
 }
 
 const ApplicationDatePicker = dynamic(
@@ -52,10 +57,6 @@ type ApplicationFieldInputProps = {
   supabase?: SupabaseClient;
 };
 
-function fieldClassName() {
-  return "w-full rounded-md border px-3 py-2.5 text-sm outline-none transition focus:ring-2";
-}
-
 function HelpText({
   text,
   C,
@@ -64,7 +65,7 @@ function HelpText({
   C: AdminThemeTokens;
 }) {
   return (
-    <p className="mt-1.5 text-xs" style={{ color: C.textSecondary }}>
+    <p className={applicationMetaTextClass(useApplicationFieldAppearance())} style={{ color: C.textSecondary }}>
       {text}
     </p>
   );
@@ -78,7 +79,7 @@ function FieldError({
   C: AdminThemeTokens;
 }) {
   return (
-    <p className="mt-1.5 text-xs" style={{ color: C.error }}>
+    <p className={applicationMetaTextClass(useApplicationFieldAppearance())} style={{ color: C.error }}>
       {error}
     </p>
   );
@@ -94,6 +95,7 @@ export default function ApplicationFieldInput({
   uploadContext,
   supabase,
 }: ApplicationFieldInputProps) {
+  const appearance = useApplicationFieldAppearance();
   const [uploading, setUploading] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
 
@@ -103,7 +105,7 @@ export default function ApplicationFieldInput({
     backgroundColor: "#FFFFFF",
   } as const;
 
-  const focusRing = { "--tw-ring-color": `${C.accent}40` } as CSSProperties;
+  const focusRing = applicationFocusRing(C.accent, appearance);
 
   const appendLocalFiles = (files: File[]) => {
     const existing = parseApplicationFileFieldValue(value);
@@ -240,7 +242,7 @@ export default function ApplicationFieldInput({
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
           aria-invalid={Boolean(error)}
-          className={`${fieldClassName()} resize-y min-h-[88px]`}
+          className={`${applicationFieldClass(appearance)} resize-y min-h-[88px]`}
           style={{ ...style, ...focusRing }}
         />
         {error ? <FieldError error={error} C={C} /> : null}
@@ -342,7 +344,7 @@ export default function ApplicationFieldInput({
           onChange={(e) => onChange(formatPhoneNumberInput(e.target.value))}
           disabled={disabled}
           aria-invalid={Boolean(error)}
-          className={fieldClassName()}
+          className={applicationFieldClass(appearance)}
           style={{ ...style, ...focusRing }}
         />
         {error ? <FieldError error={error} C={C} /> : null}
@@ -383,7 +385,7 @@ export default function ApplicationFieldInput({
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
         aria-invalid={Boolean(error)}
-        className={fieldClassName()}
+        className={applicationFieldClass(appearance)}
         style={{ ...style, ...focusRing }}
       />
       {error ? <FieldError error={error} C={C} /> : null}

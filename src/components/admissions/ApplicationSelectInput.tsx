@@ -3,6 +3,10 @@
 import { useMemo } from "react";
 import CustomSelect from "@/components/ui/CustomSelect";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import {
+  applicationTriggerClass,
+  useApplicationFieldAppearance,
+} from "@/components/admissions/application-field-appearance";
 
 type SelectOption = {
   value: string;
@@ -34,6 +38,7 @@ export default function ApplicationSelectInput({
   error = null,
   C,
 }: ApplicationSelectInputProps) {
+  const appearance = useApplicationFieldAppearance();
   const theme = useMemo(
     () => ({
       textPrimary: C.textPrimary,
@@ -62,6 +67,7 @@ export default function ApplicationSelectInput({
       autoComplete={autoComplete}
       error={error}
       theme={theme}
+      triggerClassName={applicationTriggerClass(appearance)}
     />
   );
 }

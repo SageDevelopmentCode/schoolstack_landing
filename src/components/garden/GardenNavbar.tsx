@@ -12,7 +12,12 @@ import { MARKETING_NAV_LINKS } from "@/lib/marketing/nav-links";
  * Garden navbar: transparent over the cream hero, then tucks into a floating
  * paper pill once you scroll. Same links and CTAs as the live navbar.
  */
-export default function GardenNavbar() {
+export default function GardenNavbar({
+  bookDemoHref = GET_STARTED_PAGE_PATH,
+}: {
+  /** Where "Book a Demo" goes. Pages with their own booking flow pass its hash (e.g. "#book-demo"). */
+  bookDemoHref?: string;
+} = {}) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -73,7 +78,7 @@ export default function GardenNavbar() {
 
         <div className="hidden items-center gap-2 md:flex">
           <Link
-            href={GET_STARTED_PAGE_PATH}
+            href={bookDemoHref}
             className="hidden h-10 items-center rounded-full border-2 border-[var(--sf-ink)]/15 bg-white px-4 text-sm font-extrabold text-[var(--sf-ink)] transition-colors hover:border-[var(--sf-ink)]/40 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-ink)]/15 lg:inline-flex"
           >
             Book a Demo
@@ -125,7 +130,7 @@ export default function GardenNavbar() {
             <ArrowRight size={14} aria-hidden />
           </Link>
           <Link
-            href={GET_STARTED_PAGE_PATH}
+            href={bookDemoHref}
             onClick={() => setOpen(false)}
             className="mt-3 flex h-12 items-center justify-center rounded-full border-2 border-[var(--sf-ink)]/15 bg-white text-base font-extrabold text-[var(--sf-ink)]"
           >

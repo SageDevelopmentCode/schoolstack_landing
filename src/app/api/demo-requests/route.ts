@@ -24,6 +24,7 @@ import {
 } from "@/lib/public-forms/field-limits";
 import { demoRequestRoleLabel } from "@/lib/demo-request-roles";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { DEMO_PROMO_NOTES, isDemoPromoId } from "@/lib/marketing/gift-card-offer";
 
 const ROUTE = "/api/demo-requests";
 
@@ -61,6 +62,8 @@ interface DemoRequestBody {
   scheduledTime?: string;
   timezone?: string;
   companyWebsite?: string;
+  /** Promo id from a landing page; unknown ids are ignored. */
+  promo?: string;
 }
 
 export async function POST(request: Request) {
@@ -165,6 +168,13 @@ export async function POST(request: Request) {
     });
   }
 
+  // Tag promo leads (e.g. /gift-card) at the top of the prep notes. The column is capped at
+  // MAX_PUBLIC_FORM_SHORT_TEXT_LENGTH, so very long notes are trimmed to make room for the tag.
+  const promoNote = isDemoPromoId(body.promo) ? DEMO_PROMO_NOTES[body.promo] : null;
+  const storedPrepNotes = promoNote
+    ? [promoNote, prepNotes.slice(0, MAX_PUBLIC_FORM_SHORT_TEXT_LENGTH - promoNote.length - 2)].filter(Boolean).join("\n\n")
+    : prepNotes;
+
   if (conceptDemoSlug && !schoolDemoRegistry[conceptDemoSlug]) {
     return apiError(ROUTE, { request, status: 400, error: "Invalid concept demo." });
   }
@@ -255,7 +265,7 @@ export async function POST(request: Request) {
     priorities,
     website_url: websiteUrl,
     current_tools: currentTools,
-    prep_notes: prepNotes,
+    prep_notes: storedPrepNotes,
     scheduled_date: scheduledDate,
     scheduled_time: scheduledTime,
     timezone,
@@ -297,7 +307,7 @@ export async function POST(request: Request) {
       priorities,
       websiteUrl,
       currentTools,
-      prepNotes,
+      prepNotes: storedPrepNotes,
       conceptDemoSlug,
       scheduledDate,
       scheduledTime,

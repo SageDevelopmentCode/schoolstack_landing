@@ -83,3 +83,20 @@ export function flowSelectionToSearchParams(
   }
   return params.toString();
 }
+
+/**
+ * Mirror the form builder stage into `?stage=` without a navigation
+ * (history.replaceState: no server re-render, no history entry).
+ */
+export function writeBuilderStageParam(stage: string | null): void {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  if (stage) {
+    if (url.searchParams.get("stage") === stage) return;
+    url.searchParams.set("stage", stage);
+  } else {
+    if (!url.searchParams.has("stage")) return;
+    url.searchParams.delete("stage");
+  }
+  window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+}

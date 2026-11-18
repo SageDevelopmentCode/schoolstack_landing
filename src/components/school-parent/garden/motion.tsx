@@ -12,13 +12,23 @@ import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme
 
 export const PORTAL_EASE = [0.16, 1, 0.3, 1] as const;
 
-/** Card entrance: short fade/slide, staggered by card index. Spread onto a motion element. */
+/**
+ * Card entrance: short fade/slide, staggered by card index. Spread onto a motion element.
+ *
+ * `initial`/`animate` must not depend on `reduce`: the server never knows the
+ * visitor's motion preference (it renders `reduce = false`), so the hydrating
+ * client has to produce the same first-render style or React reports a
+ * mismatch and leaves the SSR'd `opacity:0` in place, i.e. reduced-motion
+ * visitors see an empty page. Reduced motion only zeroes the transition, so
+ * the element jumps straight to its final state on mount.
+ */
 export function gFade(index: number, reduce: boolean) {
-  if (reduce) return { initial: false as const };
   return {
     initial: { opacity: 0, y: 10 },
     animate: { opacity: 1, y: 0 },
-    transition: { delay: 0.04 + index * 0.05, duration: 0.32, ease: PORTAL_EASE },
+    transition: reduce
+      ? { duration: 0 }
+      : { delay: 0.04 + index * 0.05, duration: 0.32, ease: PORTAL_EASE },
   };
 }
 

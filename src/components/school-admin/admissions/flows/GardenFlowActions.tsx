@@ -43,6 +43,7 @@ export default function GardenFlowActions({
   onSelectReadinessItem,
   menuItems,
   extra,
+  readinessAlwaysVisible = false,
 }: {
   readOnly: boolean;
   isPublished: boolean;
@@ -60,6 +61,8 @@ export default function GardenFlowActions({
   menuItems: FlowMenuItem[];
   /** Extra controls placed before Preview (e.g. program picker). */
   extra?: ReactNode;
+  /** Show the readiness chip at every width (builders without a readiness rail). */
+  readinessAlwaysVisible?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -150,6 +153,7 @@ export default function GardenFlowActions({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <FlowReadinessPopover
+        alwaysVisible={readinessAlwaysVisible}
         readiness={readiness}
         isPublished={isPublished}
         kindLabel={kindLabel}

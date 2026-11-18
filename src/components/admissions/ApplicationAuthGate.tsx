@@ -4,8 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, Building2, LogIn, UserPlus } from "lucide-react";
-import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
+import {
+  ArrowLeft,
+  Building2,
+  ChevronRight,
+  LogIn,
+  UserPlus,
+} from "lucide-react";
 import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
 } from "@/components/ui/ButtonLoadingLabel";
@@ -13,18 +18,25 @@ import VerificationCodeInput from "@/components/ui/VerificationCodeInput";
 import type { BootstrapApplicantResult } from "@/lib/admissions/applicant-bootstrap";
 import { attemptPostSignInRedirect } from "@/lib/auth/resolve-post-sign-in-redirect";
 import { reportAuthOtpFailed } from "@/lib/activity-auth-client";
-import {
-  buildAdminThemeTokens,
-  type AdminThemeTokens,
-} from "@/lib/organization-settings/theme";
 import type {
   ApplyAuthEntryOption,
   OrganizationBranding,
 } from "@/lib/organization-settings/types";
 import AuthGatePromoColumn from "@/components/admissions/AuthGatePromoColumn";
-import ApplyProgramSelectStep, {
-  type ApplyProgramOption,
-} from "@/components/admissions/ApplyProgramSelectStep";
+import type { ApplyProgramOption } from "@/components/admissions/ApplyProgramSelectStep";
+import ApplyAuthGardenFrame, {
+  APPLY_AUTH_CARD,
+} from "@/components/admissions/garden/ApplyAuthGardenFrame";
+import {
+  G_FOCUS,
+  G_INPUT,
+  G_LABEL,
+  GIcon,
+  GKicker,
+  SPRINGY,
+  gBtnPop,
+  gLinkSm,
+} from "@/components/school-parent/garden/ui";
 import { createClient } from "@/utils/supabase/client";
 import { reportApplyOperationalError } from "@/lib/operational-errors-client";
 
@@ -80,12 +92,23 @@ const stepVariants = {
 
 const stepTransition = { duration: 0.22, ease: [0.25, 0.1, 0.25, 1] as const };
 
-function inputStyle(C: AdminThemeTokens) {
-  return {
-    borderColor: C.inputBorder,
-    backgroundColor: C.input,
-    color: C.textPrimary,
-  };
+/* Garden classes for the gate (school accent via `--sf-clay*`). */
+const PRIMARY_BUTTON = `${gBtnPop} w-full disabled:translate-y-0 disabled:shadow-[0_5px_0_0_var(--sf-ink)] ${BUTTON_LOADING_LAYOUT_CLASS}`;
+const TEXT_LINK = `${gLinkSm} disabled:cursor-not-allowed disabled:no-underline disabled:opacity-50`;
+const BACK_LINK = `mb-4 inline-flex items-center gap-1.5 rounded-md text-[13px] font-extrabold text-[var(--sf-soft)] transition-colors hover:text-[var(--sf-ink)] disabled:cursor-not-allowed disabled:opacity-50 ${G_FOCUS}`;
+const OPTION_ROW = `group flex w-full items-center gap-4 rounded-[18px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white p-4 text-left hover:-translate-y-0.5 hover:border-[var(--sf-ink)]/25 hover:bg-[var(--sf-accent-wash)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 ${SPRINGY} ${G_FOCUS}`;
+const OPTION_TITLE = "m-0 text-[15px] font-extrabold leading-snug text-[var(--sf-ink)]";
+const OPTION_META = "m-0 mt-0.5 text-[13px] font-semibold leading-snug text-[var(--sf-soft)]";
+const ERROR_NOTE =
+  "mb-4 rounded-[14px] border-[1.5px] border-[#b42318]/20 bg-[#fdf1ef] px-3.5 py-2.5 text-[13px] font-bold leading-relaxed text-[#b42318]";
+
+function OptionChevron() {
+  return (
+    <ChevronRight
+      className="ml-auto h-4 w-4 shrink-0 text-[var(--sf-ink)]/35 transition-colors group-hover:text-[var(--sf-clay-deep)]"
+      aria-hidden
+    />
+  );
 }
 
 function AuthField({
@@ -97,7 +120,6 @@ function AuthField({
   required,
   autoComplete,
   disabled,
-  C,
 }: {
   id: string;
   label: string;
@@ -107,15 +129,10 @@ function AuthField({
   required?: boolean;
   autoComplete?: string;
   disabled?: boolean;
-  C: AdminThemeTokens;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <label
-        htmlFor={id}
-        className="text-sm font-medium"
-        style={{ color: C.textPrimary }}
-      >
+    <div className="min-w-0">
+      <label htmlFor={id} className={G_LABEL}>
         {label}
       </label>
       <input
@@ -126,8 +143,7 @@ function AuthField({
         disabled={disabled}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md border px-3 py-2.5 text-sm outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
-        style={inputStyle(C)}
+        className={G_INPUT}
       />
     </div>
   );
@@ -154,9 +170,7 @@ export default function ApplicationAuthGate({
   onRedirectScheduleTour,
 }: ApplicationAuthGateProps) {
   const router = useRouter();
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
-  const pageBg = branding.colors.bg;
 
   const [phase, setPhase] = useState<AuthPhase>(initialPhase);
   const [direction, setDirection] = useState(1);
@@ -537,7 +551,7 @@ export default function ApplicationAuthGate({
       ) : (
         <>
           Save your progress for{" "}
-          <span className="font-medium" style={{ color: C.textPrimary }}>
+          <span className="font-extrabold text-[var(--sf-ink)]">
             {formTitle}
           </span>{" "}
           at {schoolName} and pick up where you left off.
@@ -556,7 +570,7 @@ export default function ApplicationAuthGate({
     ) : (
       <>
         We sent a 6-digit code to{" "}
-        <span className="font-medium" style={{ color: C.textPrimary }}>
+        <span className="font-extrabold text-[var(--sf-ink)]">
           {email}
         </span>
         . If it doesn&apos;t arrive within a minute, check your spam or junk folder.
@@ -564,71 +578,49 @@ export default function ApplicationAuthGate({
     );
 
   return (
-    <div className="flex min-h-dvh flex-col lg:flex-row">
-      <AuthGatePromoColumn />
-
-      <div
-        className="relative flex min-h-0 flex-1 flex-col lg:min-h-dvh"
-        style={{ backgroundColor: pageBg, color: C.textPrimary }}
+    <>
+      <ApplyAuthGardenFrame
+        branding={branding}
+        schoolName={schoolName}
+        aside={<AuthGatePromoColumn />}
       >
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 pb-20 sm:px-6 sm:py-8 sm:pb-24 lg:flex lg:items-center lg:justify-center lg:py-12">
-          <div className="mx-auto w-full max-w-md">
-            {phase !== "choice" && !(programOnly && phase === "program") ? (
-              <button
-                type="button"
-                onClick={
-                  phase === "credentials"
-                    ? handleBackToChoice
-                    : phase === "program"
-                      ? handleBackFromProgram
-                      : handleBackToCredentials
-                }
-                disabled={isSubmitting}
-                className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
-                style={{ color: C.textSecondary }}
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back
-              </button>
-            ) : null}
+        <section className={APPLY_AUTH_CARD} aria-labelledby="apply-auth-heading">
+          {phase !== "choice" && !(programOnly && phase === "program") ? (
+            <button
+              type="button"
+              onClick={
+                phase === "credentials"
+                  ? handleBackToChoice
+                  : phase === "program"
+                    ? handleBackFromProgram
+                    : handleBackToCredentials
+              }
+              disabled={isSubmitting}
+              className={BACK_LINK}
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden />
+              Back
+            </button>
+          ) : null}
 
-            <div className="mb-8">
-              <SchoolDemoWordmark
-                logo={{
-                  src: branding.logo.src,
-                  alt: branding.logo.alt || schoolName,
-                  width: branding.logo.width,
-                  height: branding.logo.height,
-                  text: branding.logo.src ? undefined : schoolName,
-                }}
-                className="mb-6 h-8 w-auto max-w-[200px] object-contain"
-                sizes="200px"
-                priority
-              />
+          <GKicker>{genericEntry ? schoolName : formTitle}</GKicker>
+          <h1
+            id="apply-auth-heading"
+            className={`sf-display m-0 mt-1.5 leading-[1.05] text-[var(--sf-ink)] ${
+              phase === "choice"
+                ? "text-[1.85rem] sm:text-[2.2rem]"
+                : "text-[1.6rem] sm:text-[1.85rem]"
+            }`}
+          >
+            {phaseHeading}
+          </h1>
+          <p className="m-0 mt-2.5 text-sm font-semibold leading-relaxed text-[var(--sf-soft)]">
+            {phaseSubtext}
+          </p>
 
-              <h1
-                className={`font-display font-medium leading-tight ${
-                  phase === "choice" ? "text-2xl sm:text-3xl" : "text-xl sm:text-2xl"
-                }`}
-                style={{ color: C.accentDark }}
-              >
-                {phaseHeading}
-              </h1>
-              <p className="mt-3 text-sm leading-relaxed" style={{ color: C.textSecondary }}>
-                {phaseSubtext}
-              </p>
-            </div>
-
+          <div className="mt-6">
             {authError ? (
-              <p
-                className="mb-4 rounded-md border px-3 py-2.5 text-sm"
-                style={{
-                  borderColor: C.border,
-                  backgroundColor: C.surface,
-                  color: "#b42318",
-                }}
-                role="alert"
-              >
+              <p className={ERROR_NOTE} role="alert">
                 {authError}
               </p>
             ) : null}
@@ -648,78 +640,54 @@ export default function ApplicationAuthGate({
                   <button
                     type="button"
                     onClick={() => handleChooseMode("create")}
-                    className="flex w-full items-center gap-4 rounded-xl border p-4 text-left shadow-sm transition hover:shadow-md sm:p-5"
-                    style={{
-                      borderColor: C.border,
-                      backgroundColor: C.surface,
-                    }}
+                    className={OPTION_ROW}
                   >
-                    <div
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full sm:h-12 sm:w-12"
-                      style={{ backgroundColor: C.clayBg, color: C.clay }}
-                    >
-                      <UserPlus className="h-5 w-5" />
+                    <GIcon>
+                      <UserPlus />
+                    </GIcon>
+                    <div className="min-w-0">
+                      <p className={OPTION_TITLE}>Create an account</p>
+                      <p className={OPTION_META}>New here? Start your application.</p>
                     </div>
-                    <div>
-                      <p className="text-base font-semibold" style={{ color: C.textPrimary }}>
-                        Create an account
-                      </p>
-                      <p className="mt-0.5 text-sm" style={{ color: C.textSecondary }}>
-                        New here? Start your application.
-                      </p>
-                    </div>
+                    <OptionChevron />
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handleChooseMode("login")}
-                    className="flex w-full items-center gap-4 rounded-xl border p-4 text-left shadow-sm transition hover:shadow-md sm:p-5"
-                    style={{
-                      borderColor: C.border,
-                      backgroundColor: C.surface,
-                    }}
+                    className={OPTION_ROW}
                   >
-                    <div
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full sm:h-12 sm:w-12"
-                      style={{ backgroundColor: C.clayBg, color: C.clay }}
-                    >
-                      <LogIn className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="text-base font-semibold" style={{ color: C.textPrimary }}>
-                        Log in to continue
-                      </p>
-                      <p className="mt-0.5 text-sm" style={{ color: C.textSecondary }}>
+                    <GIcon>
+                      <LogIn />
+                    </GIcon>
+                    <div className="min-w-0">
+                      <p className={OPTION_TITLE}>Log in to continue</p>
+                      <p className={OPTION_META}>
                         Already started? Pick up where you left off.
                       </p>
                     </div>
+                    <OptionChevron />
                   </button>
 
                   {tourEntryOption ? (
                     <button
                       type="button"
                       onClick={handleChooseTour}
-                      className="flex w-full items-center gap-4 rounded-xl border p-4 text-left shadow-sm transition hover:shadow-md sm:p-5"
-                      style={{
-                        borderColor: C.border,
-                        backgroundColor: C.surface,
-                      }}
+                      className={OPTION_ROW}
                     >
-                      <div
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full sm:h-12 sm:w-12"
-                        style={{ backgroundColor: C.clayBg, color: C.clay }}
-                      >
-                        <Building2 className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="text-base font-semibold" style={{ color: C.textPrimary }}>
+                      <GIcon>
+                        <Building2 />
+                      </GIcon>
+                      <div className="min-w-0">
+                        <p className={OPTION_TITLE}>
                           {tourEntryOption.label ?? "Schedule a tour of campus"}
                         </p>
-                        <p className="mt-0.5 text-sm" style={{ color: C.textSecondary }}>
+                        <p className={OPTION_META}>
                           {tourEntryOption.description ??
                             "Meet with faculty and learn more about our school."}
                         </p>
                       </div>
+                      <OptionChevron />
                     </button>
                   ) : null}
                 </motion.div>
@@ -732,7 +700,7 @@ export default function ApplicationAuthGate({
                   animate="center"
                   exit="exit"
                   transition={stepTransition}
-                  className="space-y-4"
+                  className="space-y-5"
                 >
                   <form onSubmit={handleCredentialsSubmit} className="space-y-4">
                     {mode === "create" ? (
@@ -745,7 +713,6 @@ export default function ApplicationAuthGate({
                           required
                           autoComplete="given-name"
                           disabled={isSubmitting}
-                          C={C}
                         />
                         <AuthField
                           id="auth-last-name"
@@ -755,7 +722,6 @@ export default function ApplicationAuthGate({
                           required
                           autoComplete="family-name"
                           disabled={isSubmitting}
-                          C={C}
                         />
                       </div>
                     ) : null}
@@ -769,30 +735,29 @@ export default function ApplicationAuthGate({
                       required
                       autoComplete="email"
                       disabled={isSubmitting}
-                      C={C}
                     />
 
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className={`mt-2 w-full rounded-md px-5 py-2.5 text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 ${BUTTON_LOADING_LAYOUT_CLASS}`}
-                      style={{ backgroundColor: C.accent }}
-                    >
-                      <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Sending code…">
-                        Continue
-                      </ButtonLoadingLabel>
-                    </button>
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className={PRIMARY_BUTTON}
+                      >
+                        <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Sending code…">
+                          Continue
+                        </ButtonLoadingLabel>
+                      </button>
+                    </div>
                   </form>
 
-                  <p className="text-sm" style={{ color: C.textSecondary }}>
+                  <p className="m-0 text-sm font-semibold text-[var(--sf-soft)]">
                     {mode === "create" ? (
                       <>
                         Already have an account?{" "}
                         <button
                           type="button"
                           onClick={() => switchMode("login")}
-                          className="font-medium underline-offset-2 hover:underline"
-                          style={{ color: C.accent }}
+                          className={TEXT_LINK}
                         >
                           Log in
                         </button>
@@ -803,8 +768,7 @@ export default function ApplicationAuthGate({
                         <button
                           type="button"
                           onClick={() => switchMode("create")}
-                          className="font-medium underline-offset-2 hover:underline"
-                          style={{ color: C.accent }}
+                          className={TEXT_LINK}
                         >
                           Create an account
                         </button>
@@ -822,12 +786,29 @@ export default function ApplicationAuthGate({
                   exit="exit"
                   transition={stepTransition}
                 >
-                  <ApplyProgramSelectStep
-                    options={programOptions}
-                    disabled={isSubmitting}
-                    onSelect={handleProgramSelect}
-                    C={C}
-                  />
+                  <ul className="m-0 list-none space-y-3 p-0">
+                    {programOptions.map((option) => (
+                      <li key={option.formVersionId}>
+                        <button
+                          type="button"
+                          disabled={isSubmitting}
+                          onClick={() => handleProgramSelect(option.formVersionId)}
+                          className={OPTION_ROW}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className={OPTION_TITLE}>{option.programName}</p>
+                            <p className={`${OPTION_META} line-clamp-2`}>
+                              {option.intro || option.formTitle}
+                            </p>
+                          </div>
+                          <span className="inline-flex shrink-0 items-center gap-0.5 text-sm font-extrabold text-[var(--sf-clay-deep)]">
+                            Apply
+                            <ChevronRight className="h-4 w-4" aria-hidden />
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
                 </motion.div>
               ) : (
                 <motion.div
@@ -838,7 +819,7 @@ export default function ApplicationAuthGate({
                   animate="center"
                   exit="exit"
                   transition={stepTransition}
-                  className="space-y-4"
+                  className="space-y-5"
                 >
                   <form onSubmit={handleVerifySubmit} className="space-y-4">
                     <VerificationCodeInput
@@ -848,34 +829,34 @@ export default function ApplicationAuthGate({
                       onChange={setCode}
                       disabled={isSubmitting}
                       autoFocus
-                      C={C}
+                      variant="school-garden"
                     />
 
-                    <p className="text-xs" style={{ color: C.textSecondary }}>
+                    <p className="m-0 text-[13px] font-semibold leading-relaxed text-[var(--sf-soft)]">
                       Enter the 6-digit code from your email. If you don&apos;t see it,
                       check your spam or junk folder. Codes expire after a few minutes.
                     </p>
 
-                    <button
-                      type="submit"
-                      disabled={!canVerify}
-                      className={`w-full rounded-md px-5 py-2.5 text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 ${BUTTON_LOADING_LAYOUT_CLASS}`}
-                      style={{ backgroundColor: C.accent }}
-                    >
-                      <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Verifying…">
-                        Verify and continue
-                      </ButtonLoadingLabel>
-                    </button>
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={!canVerify}
+                        className={PRIMARY_BUTTON}
+                      >
+                        <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Verifying…">
+                          Verify and continue
+                        </ButtonLoadingLabel>
+                      </button>
+                    </div>
                   </form>
 
-                  <p className="text-sm" style={{ color: C.textSecondary }}>
+                  <p className="m-0 text-sm font-semibold text-[var(--sf-soft)]">
                     Didn&apos;t get a code?{" "}
                     <button
                       type="button"
                       onClick={handleResendCode}
                       disabled={!canResend}
-                      className="font-medium underline-offset-2 enabled:hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-                      style={{ color: C.accent }}
+                      className={TEXT_LINK}
                     >
                       {resendCooldown > 0
                         ? `Resend in ${resendCooldown}s`
@@ -886,10 +867,10 @@ export default function ApplicationAuthGate({
               )}
             </AnimatePresence>
           </div>
-        </div>
-      </div>
+        </section>
+      </ApplyAuthGardenFrame>
 
       <AuthHelpButton />
-    </div>
+    </>
   );
 }

@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import EnrollmentChecklistItemPanel from "@/components/admissions/EnrollmentChecklistItemPanel";
+import { ApplicationFieldAppearanceProvider } from "@/components/admissions/application-field-appearance";
 import { Tick } from "@/components/garden/ui";
 import ParentGardenFrame, {
   GARDEN_SCOPE_CLASS,
@@ -493,6 +494,7 @@ export default function EnrollmentChecklistExperience({
         exit={reduce ? undefined : { opacity: 0, x: -8 }}
         transition={{ duration: 0.22, ease: PORTAL_EASE }}
       >
+        <ApplicationFieldAppearanceProvider value="garden">
         <EnrollmentChecklistItemPanel
           C={C}
           item={activeItem}
@@ -519,6 +521,7 @@ export default function EnrollmentChecklistExperience({
           }
           initialPreviewSignerName={initialPreviewSignerName}
         />
+        </ApplicationFieldAppearanceProvider>
       </motion.div>
     </AnimatePresence>
   ) : null;
