@@ -11,20 +11,6 @@ export const GIFT_CARD_PROMOTION_TERMS: LegalDocument = {
     "These terms (\"Offer Terms\") govern the MudKitchen $200 Amazon gift card offer (the \"Offer\") run by MudKitchen by Sage Field LLC, a Texas limited liability company (\"MudKitchen,\" \"we,\" \"us,\" or \"our\"). By booking a demo under the Offer, you agree to these Offer Terms. No purchase is required to book or attend a demo, but a paid MudKitchen plan is required to receive the gift card.",
   sections: [
     {
-      id: "summary",
-      title: "Summary",
-      blocks: [
-        {
-          type: "list",
-          items: [
-            "Book and attend a full MudKitchen product demo held on or before December 31, 2026.",
-            "Start a paid MudKitchen plan within 30 days after that demo, with your first payment successfully processed.",
-            "We email a $200 Amazon.com eGift card within 10 business days after that first payment.",
-          ],
-        },
-      ],
-    },
-    {
       id: "offer-period",
       title: "Offer period",
       blocks: [

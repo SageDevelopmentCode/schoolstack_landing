@@ -124,3 +124,14 @@ export const GIFT_CARD_FAQ = [
       "If the first payment is refunded, charged back or fails before we send the card, the gift card isn't issued. See the full terms for details.",
   },
 ] as const;
+
+export const GIFT_CARD_TERMS_COPY = {
+  pill: "📎 Offer terms",
+  back: "Back to the $200 offer",
+  lastUpdated: "Last updated",
+  glanceLabel: "At a glance",
+  tocLabel: "On this page",
+  closingHeading: "Ready to see MudKitchen?",
+  closingBody: "Pick a time for your demo. Start a paid plan within 30 days of it, and the $200 Amazon gift card is yours.",
+  closingCta: "Choose a time",
+} as const;

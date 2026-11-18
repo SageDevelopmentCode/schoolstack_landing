@@ -1,14 +1,15 @@
 "use client";
 
-import Link from "next/link";
 import HomeGardenShell from "@/components/garden/HomeGardenShell";
 import { Magnetic, Reveal, WordsReveal } from "@/components/garden/motion";
-import { Arrow, Draw, Leaf, Pill, Squiggle, Star, Sun, Tape, btnPop } from "@/components/garden/ui";
+import { Draw, Leaf, Pill, Squiggle, Star, Sun, Tape, btnPop } from "@/components/garden/ui";
 import GardenOurStory from "@/components/about-garden/GardenOurStory";
 import GardenBookDemo from "@/components/home-garden/GardenBookDemo";
 import GardenFaq from "@/components/home-garden/GardenFaq";
 import GardenModuleDemo from "@/components/home-garden/GardenModuleDemo";
 import SectionIntro from "@/components/home-garden/SectionIntro";
+import GiftCardSteps from "./GiftCardSteps";
+import GiftCardTermsLink from "./GiftCardTermsLink";
 import PricingPaper from "@/components/home-garden/sections/PricingPaper";
 import { TAPES } from "@/components/home-garden/assets";
 import { BOOK_DEMO_HASH_HREF } from "@/lib/marketing/book-demo";
@@ -18,19 +19,10 @@ import {
   GIFT_CARD_OFFER,
   GIFT_CARD_PAGE_COPY as COPY,
   GIFT_CARD_PROMO_ID,
-  GIFT_CARD_STEPS,
-  GIFT_CARD_TERMS_PATH,
 } from "@/lib/marketing/gift-card-offer";
 import { PRODUCT_SHOWCASE_SECTION_COPY } from "@/lib/marketing/showcase-section-copy";
 
-const termsLinkClass =
-  "font-extrabold text-[var(--sf-clay-deep)] underline decoration-[var(--sf-moss)] decoration-2 underline-offset-4 transition-colors hover:decoration-[var(--sf-clay)] focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/30";
 
-const STEP_NOTES = [
-  { tint: "bg-[var(--sf-butter)]", tilt: -2 },
-  { tint: "bg-[var(--sf-sky)]", tilt: 1.5 },
-  { tint: "bg-[var(--sf-clay)] text-white", tilt: -1 },
-] as const;
 
 const FINE_PRINT_TINTS = ["bg-[var(--sf-butter)]", "bg-[var(--sf-mint)]", "bg-[var(--sf-sky)]", "bg-[var(--sf-peach)]"] as const;
 
@@ -66,46 +58,6 @@ function GiftTag() {
   );
 }
 
-function StepNotes() {
-  return (
-    <div className="relative mt-20 lg:mt-24">
-      <h2 className="text-center text-sm font-extrabold uppercase tracking-[0.2em] text-[var(--sf-soft)]">{COPY.stepsLabel}</h2>
-      <div className="relative mt-12">
-        <Draw className="pointer-events-none absolute left-[29%] top-[-2.5rem] hidden w-28 lg:block" delay={0.4}>
-          <Arrow color="var(--sf-forest)" />
-        </Draw>
-        <Draw className="pointer-events-none absolute left-[63%] top-[-2.5rem] hidden w-28 lg:block" delay={0.9}>
-          <Arrow color="var(--sf-forest)" />
-        </Draw>
-        <Reveal as="ol" className="grid gap-8 md:grid-cols-3 md:gap-7" stagger={0.15} y={50}>
-          {GIFT_CARD_STEPS.map((s, i) => {
-            const n = STEP_NOTES[i];
-            const dark = i === 2;
-            return (
-              <li
-                key={s.n}
-                className={`sf-wiggle relative overflow-hidden rounded-md p-7 pt-9 shadow-[0_18px_34px_-18px_rgba(43,36,29,0.55)] ${n.tint}`}
-                style={{ rotate: `${n.tilt}deg` }}
-              >
-                <span className="absolute left-1/2 top-0 h-5 w-16 -translate-x-1/2 rotate-2 rounded-b-sm bg-white/70" aria-hidden="true" />
-                {dark ? (
-                  <Draw className="absolute -bottom-6 -right-6 w-28 opacity-40">
-                    <Leaf color="#fff" />
-                  </Draw>
-                ) : null}
-                <span aria-hidden="true" className={`sf-hand text-xl ${dark ? "text-white/85" : "text-[var(--sf-ink)]/60"}`}>
-                  step {s.n}
-                </span>
-                <h3 className={`sf-display mt-2 text-[1.9rem] leading-[1.02] ${dark ? "text-white" : "text-[var(--sf-ink)]"}`}>{s.title}</h3>
-                <p className={`mt-4 leading-relaxed ${dark ? "text-white/90" : "text-[var(--sf-ink)]/75"}`}>{s.body}</p>
-              </li>
-            );
-          })}
-        </Reveal>
-      </div>
-    </div>
-  );
-}
 
 function Hero() {
   return (
@@ -133,14 +85,12 @@ function Hero() {
                   {COPY.heroCta} <span aria-hidden="true">↓</span>
                 </a>
               </Magnetic>
-              <Link href={GIFT_CARD_TERMS_PATH} className={termsLinkClass}>
-                {COPY.termsLink}
-              </Link>
+              <GiftCardTermsLink />
             </div>
           </div>
           <GiftTag />
         </div>
-        <StepNotes />
+        <GiftCardSteps label={COPY.stepsLabel} className="mt-20 lg:mt-24" />
       </div>
     </section>
   );
@@ -209,9 +159,7 @@ function FinePrint() {
           ))}
         </Reveal>
         <p className="mt-14 text-center text-lg">
-          <Link href={GIFT_CARD_TERMS_PATH} className={termsLinkClass}>
-            {COPY.termsLink} →
-          </Link>
+          <GiftCardTermsLink />
         </p>
       </div>
     </section>
@@ -242,9 +190,7 @@ function ClosingCta() {
               {COPY.closingCta} <span aria-hidden="true">↑</span>
             </a>
           </Magnetic>
-          <Link href={GIFT_CARD_TERMS_PATH} className={termsLinkClass}>
-            {COPY.termsLink}
-          </Link>
+          <GiftCardTermsLink />
         </div>
       </div>
     </section>
@@ -271,9 +217,7 @@ export default function GiftCardGardenPage() {
         copy={{ eyebrow: COPY.faqPill, heading: COPY.faqHeading, sub: COPY.faqSub }}
         footer={
           <p className="mt-6">
-            <Link href={GIFT_CARD_TERMS_PATH} className={termsLinkClass}>
-              {COPY.termsLink} →
-            </Link>
+            <GiftCardTermsLink />
           </p>
         }
       />

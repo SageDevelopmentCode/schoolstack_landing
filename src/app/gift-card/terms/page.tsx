@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import BreadcrumbJsonLd from "@/components/seo/BreadcrumbJsonLd";
-import LegalPageShell from "@/components/legal/LegalPageShell";
+import GardenRoot from "@/components/garden/GardenRoot";
+import GiftCardTermsGardenPage from "@/components/gift-card-garden/GiftCardTermsGardenPage";
 import { GIFT_CARD_PROMOTION_TERMS } from "@/content/legal/gift-card-promotion";
 import { GIFT_CARD_TERMS_PATH } from "@/lib/marketing/gift-card-offer";
 import { pageMetadata } from "@/lib/metadata";
@@ -19,7 +20,9 @@ export default function GiftCardTermsPage() {
   return (
     <>
       <BreadcrumbJsonLd items={BREADCRUMBS} />
-      <LegalPageShell document={GIFT_CARD_PROMOTION_TERMS} />
+      <GardenRoot>
+        <GiftCardTermsGardenPage document={GIFT_CARD_PROMOTION_TERMS} />
+      </GardenRoot>
     </>
   );
 }
