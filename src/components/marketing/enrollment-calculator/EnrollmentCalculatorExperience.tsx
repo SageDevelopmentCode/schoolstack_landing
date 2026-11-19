@@ -36,6 +36,8 @@ import {
 import { MARKETING_TOOL_GARDEN_THEME, toolBtnOutline } from "@/components/marketing/shared/marketing-tool-garden";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import MarketingToolHero from "@/components/marketing/shared/MarketingToolHero";
+import EmailMyPlan from "@/components/lead-magnets/EmailMyPlan";
+import { formatCalculatorMoney } from "@/lib/marketing/enrollment-calculator";
 import ParentButton from "@/components/school-parent/ui/ParentButton";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
@@ -216,6 +218,24 @@ export default function EnrollmentCalculatorExperience() {
           />
         </aside>
       </div>
+
+      <EmailMyPlan
+        toolId="enrollment-calculator"
+        className="mt-8"
+        getLines={() => [
+          "HOW MANY STUDENTS DO YOU NEED?",
+          "",
+          enrollmentLiveSummary({ blank, estimate, todayAvailableCents: availableForPayCents(todayBreakdown) }),
+          "",
+          "YOUR NUMBERS",
+          ...tuitionGroups.map(
+            (g) => `${g.label}: ${g.enrollment} students at ${formatCalculatorMoney(g.tuitionCents)} / month`,
+          ),
+          `Fixed monthly costs: ${formatCalculatorMoney(fixedExpensesCents)}`,
+          `Variable cost per student: ${formatCalculatorMoney(variableCents)} / month`,
+          `Your pay goal: ${formatCalculatorMoney(ownerCents)} / month`,
+        ]}
+      />
 
       <details
         className="group mt-8 rounded-[22px] border-2 border-dashed border-[var(--sf-ink)]/25 bg-[var(--sf-paper)] px-5"

@@ -23,7 +23,8 @@ export const DEMO_INTRO_FORM_COPY = {
   notesFieldLabel: "Questions or topics for the walkthrough",
   notesPlaceholder: "What would you like to see or talk through?",
   submit: "See available times",
-  footerNote: "You'll choose a date and time next. Nothing is booked yet.",
+  footerNote:
+    "You'll choose a date and time next. Nothing is booked yet, but we keep these details so we can follow up if you don't finish.",
   steps: [
     { id: 0, label: "Your school" },
     { id: 1, label: "Choose a time" },

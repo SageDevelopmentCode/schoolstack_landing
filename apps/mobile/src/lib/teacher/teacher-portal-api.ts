@@ -2,6 +2,7 @@ import { throwMobileApiFormDataError } from '@/lib/api-form-data-error';
 import {
   assertApiAuthenticated,
   getApiAuthHeaders,
+  refreshApiAuthHeaders,
   throwUnauthorized,
 } from '@/lib/auth/auth-session';
 import {
@@ -14,6 +15,7 @@ import {
   resolveTeacherPreviewPath,
 } from '@/lib/platform-admin/mobile-preview-api';
 import type { OrganizationBranding } from '@/lib/organization-settings/types';
+import type { ParentNewslettersListBundle } from '@/lib/parent/parent-newsletters-types';
 import type { AdminEnrolledStudentSummary } from '@/lib/school-admin/enrolled-students';
 import type { BulletinPost } from '@/lib/school-bulletin/types';
 import type { OrganizationEvent } from '@/lib/school-events/types';
@@ -452,3 +454,45 @@ export async function fetchTeacherMessagesUnreadCount(
     throw error;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Newsletters (same published editions families read)                 */
+/* ------------------------------------------------------------------ */
+
+export async function fetchTeacherNewslettersList(
+  organizationId: string,
+): Promise<ParentNewslettersListBundle> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchTeacherApi<ParentNewslettersListBundle>(
+    `/api/teacher-portal/newsletters?${query}`,
+  );
+  return { editions: payload.editions ?? [] };
+}
+
+export function buildTeacherNewsletterDocumentApiPath(
+  organizationId: string,
+  editionId: string,
+): string {
+  const query = new URLSearchParams({ organizationId }).toString();
+  return `/api/teacher-portal/newsletters/${encodeURIComponent(editionId)}/document?${query}`;
+}
+
+/** WebView source for the standalone Garden newsletter document (staff). */
+export async function getTeacherNewsletterDocumentWebViewSource(
+  organizationId: string,
+  editionId: string,
+  options: { forceRefresh?: boolean } = {},
+): Promise<{ uri: string; headers: Record<string, string> }> {
+  const apiPath = buildTeacherNewsletterDocumentApiPath(organizationId, editionId);
+  const previewPath = resolveTeacherPreviewPath(apiPath);
+  const requestPath = previewPath ?? apiPath;
+  // The WebView sends these headers once and can't retry on 401, so callers
+  // force a refresh after a 401 or on Try again.
+  const headers = options.forceRefresh ? await refreshApiAuthHeaders() : await getApiAuthHeaders();
+  if (previewPath) {
+    const { MOBILE_PREVIEW_HEADER } = await import('@/lib/platform-admin/preview-session-store');
+    headers[MOBILE_PREVIEW_HEADER] = '1';
+  }
+  return { uri: `${siteUrl}${requestPath}`, headers };
+}
+

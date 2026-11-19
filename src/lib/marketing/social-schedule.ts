@@ -550,7 +550,7 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
 
 /** Posts to swap in if a slot opens or a post underperforms. */
 export const SCHEDULE_SPARES =
-  "The Pip, Dig, Terra, Fennel, Clover, Marigold, Loam and Dot carousels; crew singles #2, #3 and #4; and the original tuition, application and “where was that update” carousels.";
+  "The Pip, Dig, Terra, Fennel, Clover, Marigold, Loam and Dot carousels; crew singles #2, #3 and #4; the original tuition, application and “where was that update” carousels; and the free custom preview campaign (the 12 free-preview ads, the 8 free-preview singles, and the “What happens after you send us your website” and “From 9 tools to one link” carousels), all linking to trymudkitchen.com/free-preview.";
 
 export const SCHEDULE_ITEMS: ScheduleItem[] = SOCIAL_SCHEDULE.flatMap((week) => week.items);
 

@@ -151,6 +151,7 @@ export const DEFAULT_FEATURES: OrganizationFeatures = {
     payroll: false,
     forms_documents: true,
     committees: true,
+    newsletters: true,
   },
   parent: {
     portal: true,
@@ -360,6 +361,12 @@ export const FEATURE_CATALOG: FeatureDef[] = [
     key: "committees",
     label: "Committees",
     description: "Volunteer committee participation",
+  },
+  {
+    portal: "teacher",
+    key: "newsletters",
+    label: "Newsletters",
+    description: "Published school newsletters to read",
   },
   {
     portal: "teacher",

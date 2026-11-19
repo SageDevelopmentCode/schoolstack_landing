@@ -18,6 +18,8 @@ import {
 } from "@/components/marketing/tuition-planner/planner-copy";
 import { plannerFocusClass, TUITION_PLANNER_THEME } from "@/components/marketing/tuition-planner/planner-theme";
 import MarketingToolHero from "@/components/marketing/shared/MarketingToolHero";
+import EmailMyPlan from "@/components/lead-magnets/EmailMyPlan";
+import { formatCalculatorMoney } from "@/lib/marketing/enrollment-calculator";
 import { toolBtnOutline } from "@/components/marketing/shared/marketing-tool-garden";
 import ParentButton from "@/components/school-parent/ui/ParentButton";
 import { compareScenario, computeScenario, selectedLiveSummary } from "@/lib/marketing/tuition-scenario-planner";
@@ -214,6 +216,29 @@ export default function TuitionPlannerExperience() {
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>
+
+          <EmailMyPlan
+            toolId="tuition-planner"
+            className="mt-8"
+            getLines={() => {
+              const money = (cents: number | null) => (cents === null ? "n/a" : formatCalculatorMoney(cents));
+              return [
+                "TUITION SCENARIO PLANNER",
+                "",
+                summary,
+                "",
+                `Students: ${result.totalStudents}`,
+                `Gross annual tuition: ${money(result.grossCents)}`,
+                ...(result.annualSiblingDiscountCents
+                  ? [`Sibling discounts: -${money(result.annualSiblingDiscountCents)}`]
+                  : []),
+                ...(result.annualScholarshipCents ? [`Scholarships: -${money(result.annualScholarshipCents)}`] : []),
+                `Estimated annual tuition revenue: ${money(result.netCents)}`,
+                `Effective monthly tuition per student: ${money(result.effectiveMonthlyTuitionCents)}`,
+                ...(result.messages.length ? ["", ...result.messages] : []),
+              ];
+            }}
+          />
 
           <section
             className="mt-8 flex items-center justify-between gap-6 rounded-[26px] border-2 border-[var(--sf-ink)] bg-[var(--sf-peach)] px-6 py-5 shadow-[0_5px_0_0_var(--sf-ink)] max-[480px]:block"

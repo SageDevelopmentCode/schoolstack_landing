@@ -6,6 +6,7 @@ import HomeGardenShell from "@/components/garden/HomeGardenShell";
 import { Draw, Leaf } from "@/components/garden/ui";
 import GardenOurStory from "@/components/about-garden/GardenOurStory";
 import GardenBookDemo from "@/components/home-garden/GardenBookDemo";
+import CustomDemoOffer from "@/components/lead-magnets/CustomDemoOffer";
 import GardenBrowserFrame from "@/components/home-garden/GardenBrowserFrame";
 import GardenModuleDemo from "@/components/home-garden/GardenModuleDemo";
 import SectionIntro from "@/components/home-garden/SectionIntro";
@@ -110,6 +111,7 @@ export default function GetStartedGardenPage() {
         introHeadingAs="h1"
         className="bg-[var(--sf-mint)]/45"
       />
+      {step === 0 ? <CustomDemoOffer variant="get-started" /> : null}
       <Film />
       <GardenOurStory ctaVariant="get-started" heading="get-started" className="bg-[var(--sf-cream)]" />
     </HomeGardenShell>

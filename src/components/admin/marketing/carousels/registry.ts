@@ -28,6 +28,10 @@ import { POSTS_WEEKLY_SINGLES_CAROUSEL } from "@/components/admin/marketing/caro
 import { MASCOT_HOLIDAY_PROGRAM_CAROUSEL } from "@/components/admin/marketing/carousels/mascot-holiday-program";
 import { MASCOT_SPRING_ENROLLMENT_PLAN_CAROUSEL } from "@/components/admin/marketing/carousels/mascot-spring-enrollment-plan";
 import { POSTS_HOLIDAY_SINGLES_CAROUSEL } from "@/components/admin/marketing/carousels/posts-holiday-singles";
+import { ADS_FREE_PREVIEW_CAROUSEL } from "@/components/admin/marketing/carousels/ads-free-preview";
+import { MASCOT_FREE_PREVIEW_CAROUSEL } from "@/components/admin/marketing/carousels/mascot-free-preview";
+import { MASCOT_FREE_PREVIEW_BEFORE_AFTER_CAROUSEL } from "@/components/admin/marketing/carousels/mascot-free-preview-before-after";
+import { POSTS_FREE_PREVIEW_SINGLES_CAROUSEL } from "@/components/admin/marketing/carousels/posts-free-preview-singles";
 import type { MarketingCarousel } from "@/components/admin/marketing/carousels/types";
 
 export const MARKETING_CAROUSELS: MarketingCarousel[] = [
@@ -53,14 +57,18 @@ export const MARKETING_CAROUSELS: MarketingCarousel[] = [
   MASCOT_FLICKER_TANSY_COMMUNITY_CAROUSEL,
   MASCOT_HOLIDAY_PROGRAM_CAROUSEL,
   MASCOT_SPRING_ENROLLMENT_PLAN_CAROUSEL,
+  MASCOT_FREE_PREVIEW_CAROUSEL,
+  MASCOT_FREE_PREVIEW_BEFORE_AFTER_CAROUSEL,
   POSTS_WEEKLY_SINGLES_CAROUSEL,
   POSTS_HOLIDAY_SINGLES_CAROUSEL,
+  POSTS_FREE_PREVIEW_SINGLES_CAROUSEL,
   ADS_HOLIDAY_GIFT_CAROUSEL,
   ADS_WINTER_BREAK_CAROUSEL,
   ADS_CREW_HUMOR_CAROUSEL,
   ADS_PAIN_PROOF_CAROUSEL,
   ADS_FEATURE_SPOTLIGHT_CAROUSEL,
   ADS_NEW_YEAR_CAROUSEL,
+  ADS_FREE_PREVIEW_CAROUSEL,
 ];
 
 export const DEFAULT_CAROUSEL_ID = MARKETING_CAROUSELS[0]?.id ?? "tuition-review";

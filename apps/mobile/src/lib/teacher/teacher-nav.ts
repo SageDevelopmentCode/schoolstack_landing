@@ -7,7 +7,8 @@ export type TeacherMoreMenuItemId =
   | 'my-hours'
   | 'attendance'
   | 'committees'
-  | 'photos';
+  | 'photos'
+  | 'newsletters';
 
 export function teacherTabRoute(slug: string, tab: Exclude<TeacherTab, 'more'>): Href {
   return `/teacher/${slug}/${tab}` as Href;
@@ -15,6 +16,10 @@ export function teacherTabRoute(slug: string, tab: Exclude<TeacherTab, 'more'>):
 
 export function teacherMoreRoute(slug: string, item: TeacherMoreMenuItemId): Href {
   return `/teacher/${slug}/more/${item}` as Href;
+}
+
+export function teacherNewsletterEditionRoute(slug: string, editionId: string): Href {
+  return `/teacher/${slug}/more/newsletters/${encodeURIComponent(editionId)}` as Href;
 }
 
 export function teacherAccountRoute(slug: string): Href {
@@ -81,6 +86,7 @@ const FEATURE_ROUTE_MAP: Record<string, (slug: string) => Href> = {
   attendance: (slug) => teacherMoreRoute(slug, 'attendance'),
   committees: (slug) => teacherMoreRoute(slug, 'committees'),
   photos: (slug) => teacherMoreRoute(slug, 'photos'),
+  newsletters: (slug) => teacherMoreRoute(slug, 'newsletters'),
 };
 
 export function getTeacherFeatureRoute(slug: string, featureKey: string): Href | null {

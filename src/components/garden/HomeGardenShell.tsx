@@ -5,6 +5,8 @@ import type { ReactNode } from "react";
 import HomePageMain from "@/components/sections/HomePageMain";
 import SectionFallback from "@/components/ui/SectionFallback";
 import { InViewSectionGate } from "@/components/ui/InViewSectionGate";
+import { captureFirstTouch } from "@/lib/marketing/attribution";
+import { useEffect } from "react";
 import GardenNavbar from "./GardenNavbar";
 import SmoothScroll from "./SmoothScroll";
 
@@ -12,6 +14,10 @@ const Footer = dynamic(() => import("@/components/sections/Footer"), {
   loading: () => <SectionFallback minHeight="12rem" />,
 });
 const FloatingQuestionButton = dynamic(() => import("@/components/sections/FloatingQuestionButton"), {
+  loading: () => null,
+});
+const LeadMagnetPopup = dynamic(() => import("@/components/lead-magnets/LeadMagnetPopup"), {
+  ssr: false,
   loading: () => null,
 });
 
@@ -28,6 +34,10 @@ export default function HomeGardenShell({
   /** Overrides the navbar's "Book a Demo" link (defaults to /get-started). */
   bookDemoHref?: string;
 }) {
+  useEffect(() => {
+    captureFirstTouch();
+  }, []);
+
   return (
     <SmoothScroll>
       <div className="overflow-x-clip">
@@ -38,6 +48,7 @@ export default function HomeGardenShell({
         </InViewSectionGate>
       </div>
       <FloatingQuestionButton />
+      <LeadMagnetPopup />
     </SmoothScroll>
   );
 }

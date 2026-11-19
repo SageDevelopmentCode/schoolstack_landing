@@ -184,28 +184,36 @@ export function AdFooter({
   align = "left",
   chip = true,
   variant = "cta",
+  ctaLabel,
+  siteLabel = SITE_LABEL,
 }: {
   tone?: "light" | "dark";
   align?: "left" | "center";
   chip?: boolean;
   /** "site" = organic posts: just the website, no button or offer. */
   variant?: "cta" | "site";
+  /** Button text. Defaults to the kit's "Book a demo". */
+  ctaLabel?: string;
+  /** Site line (e.g. a landing-page path). Defaults to `SITE_LABEL`. */
+  siteLabel?: string;
 }) {
   const offer = useAdOffer();
   const dark = tone === "dark";
   if (variant === "site") {
     return (
       <div style={{ flexShrink: 0, display: "flex", justifyContent: align === "center" ? "center" : "flex-start", position: "relative", zIndex: 6 }}>
-        <span style={{ fontFamily: FONT.body, fontWeight: 800, fontSize: 30, color: dark ? G.mint : G.forest }}>{SITE_LABEL}</span>
+        <span style={{ fontFamily: FONT.body, fontWeight: 800, fontSize: 30, color: dark ? G.mint : G.forest }}>{siteLabel}</span>
       </div>
     );
   }
   return (
     <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: align === "center" ? "center" : "flex-start", gap: 18, position: "relative", zIndex: 6 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap", justifyContent: align === "center" ? "center" : "flex-start" }}>
-        <CtaButton bg={dark ? G.butter : G.clay} color={dark ? G.forestDeep : "#FFFFFF"} shadow={dark ? "#14241B" : G.clayDeep} />
+        <CtaButton bg={dark ? G.butter : G.clay} color={dark ? G.forestDeep : "#FFFFFF"} shadow={dark ? "#14241B" : G.clayDeep}>
+          {ctaLabel}
+        </CtaButton>
         {offer && chip ? <OfferChip /> : (
-          <span style={{ fontFamily: FONT.body, fontWeight: 800, fontSize: 30, color: dark ? G.mint : G.forest }}>{SITE_LABEL}</span>
+          <span style={{ fontFamily: FONT.body, fontWeight: 800, fontSize: 30, color: dark ? G.mint : G.forest }}>{siteLabel}</span>
         )}
       </div>
       {offer ? (

@@ -22,6 +22,13 @@ export async function sendViaSmtp(opts: {
   toAddress: string;
   subject: string;
   html: string;
+  /** Optional plain-text part (sent as multipart/alternative with the HTML). */
+  text?: string;
+  /** Optional Message-ID, so a later email can thread under this one. */
+  messageId?: string;
+  /** Threading headers for a reply in the same conversation. */
+  inReplyTo?: string;
+  references?: string[];
 }): Promise<{ success: boolean; error?: string }> {
   const env = readSmtpEnv();
   if (!isSmtpConfigured()) {
@@ -47,6 +54,10 @@ export async function sendViaSmtp(opts: {
       to: opts.toAddress,
       subject: opts.subject,
       html: opts.html,
+      ...(opts.text ? { text: opts.text } : {}),
+      ...(opts.messageId ? { messageId: opts.messageId } : {}),
+      ...(opts.inReplyTo ? { inReplyTo: opts.inReplyTo } : {}),
+      ...(opts.references?.length ? { references: opts.references } : {}),
     });
 
     return { success: true };

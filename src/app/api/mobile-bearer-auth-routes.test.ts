@@ -338,4 +338,18 @@ describe("mobile bearer auth route wiring", () => {
       "org boundary check should run before bookAdmissionsVisit",
     );
   });
+
+  it("staff newsletter routes use bearer-aware teacher auth", () => {
+    const helper = readRoute("lib/school-teacher/newsletters/teacher-newsletter-access.ts");
+    assert.match(helper, /const supabase = await createClientFromRequest\(request\)/);
+    assert.match(helper, /requireTeacherPortalUser\(supabase, organizationId, request\)/);
+    for (const route of [
+      "app/api/teacher-portal/newsletters/route.ts",
+      "app/api/teacher-portal/newsletters/[editionId]/route.ts",
+      "app/api/teacher-portal/newsletters/[editionId]/document/route.ts",
+    ]) {
+      assert.match(readRoute(route), /requireTeacherNewsletterAccess\(request, ROUTE\)/, route);
+    }
+  });
 });
+

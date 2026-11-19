@@ -8,9 +8,9 @@ import {
   type NewsletterWorkspaceState,
 } from "@/lib/school-admin/newsletter/newsletter-types";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
-import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import SchoolAdminDatePicker from "@/components/school-admin/ui/SchoolAdminDatePicker";
-import styles from "./newsletter-workspace.module.css";
+import { BusyLabel, GardenField, gInputClass } from "@/components/school-admin/garden/kit";
+import { GDialog } from "@/components/school-parent/garden/GDialog";
+import { gBtnOutlineSm, gBtnPopSm } from "@/components/school-parent/garden/ui";
 
 type NewsletterNewEditionModalProps = {
   open: boolean;
@@ -33,14 +33,12 @@ export default function NewsletterNewEditionModal({
   onClose,
   onCreate,
 }: NewsletterNewEditionModalProps) {
-  const { theme, C } = useSchoolAdminStoryTheme();
+  const { theme } = useSchoolAdminStoryTheme();
   const reference = sourceEdition ?? workspace.editions[0] ?? null;
   const defaultWeek = plusDays(reference?.week || new Date().toISOString().slice(0, 10), 7);
   const [week, setWeek] = useState(defaultWeek);
   const [carryReminders, setCarryReminders] = useState(true);
   const [carryEvents, setCarryEvents] = useState(true);
-
-  if (!open) return null;
 
   const create = () => {
     if (!week || creating) return;
@@ -66,76 +64,73 @@ export default function NewsletterNewEditionModal({
     });
   };
 
+  const checkClass = "h-4 w-4 shrink-0 accent-[var(--sf-clay)]";
+
   return (
-    <div
-      className={styles.modalOverlay}
-      role="presentation"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+    <GDialog
+      theme={theme}
+      open={open}
+      onClose={onClose}
+      closeDisabled={creating}
+      title="New newsletter"
+      description="Start a fresh draft for a new week. Your section layout and prompts stay the same."
+      data-testid="newsletter-new-edition-dialog"
+      footer={
+        <>
+          <button type="button" className={gBtnOutlineSm} onClick={onClose} disabled={creating}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className={gBtnPopSm}
+            onClick={create}
+            disabled={creating || !week}
+            aria-busy={creating || undefined}
+            data-testid="newsletter-new-edition-create"
+          >
+            <BusyLabel busy={creating} busyLabel="Creating…">
+              Create draft
+            </BusyLabel>
+          </button>
+        </>
+      }
     >
-      <section
-        className={styles.modal}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="newsletter-new-edition-title"
-      >
-        <div className={styles.modalHead}>
-          <div>
-            <div className={styles.kicker}>Newsletter</div>
-            <h2 id="newsletter-new-edition-title">New newsletter</h2>
-          </div>
-          <AdminButton theme={theme} variant="outline" size="compact" onClick={onClose}>
-            Close
-          </AdminButton>
-        </div>
-        <p className={styles.helper} style={{ marginTop: 0 }}>
-          Start a fresh draft for a new week. Your section layout and prompts stay the same.
-        </p>
+      <div className="flex flex-col gap-4">
         {reference ? (
-          <p className={styles.helper}>
-            Copying options from {weekLabel(reference)}.
-          </p>
+          <p className="m-0 text-[14px] font-semibold text-[var(--sf-soft)]">Copying options from {weekLabel(reference)}.</p>
         ) : null}
-        <div className={styles.field}>
-          <label htmlFor="newsletter-new-edition-week">Week beginning</label>
-          <SchoolAdminDatePicker
+        <GardenField id="newsletter-new-edition-week" label="Week beginning" required>
+          <input
             id="newsletter-new-edition-week"
-            C={C}
+            type="date"
+            className={gInputClass()}
             value={week}
-            onChange={setWeek}
-            placeholder="Select start date"
+            onChange={(e) => setWeek(e.target.value)}
           />
-        </div>
+        </GardenField>
         {reference ? (
-          <>
-            <label className={styles.checkLabel} style={{ fontSize: 11, marginTop: 20 }}>
+          <div className="flex flex-col gap-3">
+            <label className="inline-flex cursor-pointer items-center gap-2.5 text-[14px] font-bold text-[var(--sf-ink)]">
               <input
                 type="checkbox"
+                className={checkClass}
                 checked={carryReminders}
                 onChange={(e) => setCarryReminders(e.target.checked)}
               />
               Keep reminders marked &ldquo;Reuse next week&rdquo;
             </label>
-            <label className={styles.checkLabel} style={{ fontSize: 11, marginTop: 12 }}>
+            <label className="inline-flex cursor-pointer items-center gap-2.5 text-[14px] font-bold text-[var(--sf-ink)]">
               <input
                 type="checkbox"
+                className={checkClass}
                 checked={carryEvents}
                 onChange={(e) => setCarryEvents(e.target.checked)}
               />
               Keep dates on or after the new week
             </label>
-          </>
+          </div>
         ) : null}
-        <div className={styles.modalActions}>
-          <AdminButton theme={theme} variant="outline" onClick={onClose} disabled={creating}>
-            Cancel
-          </AdminButton>
-          <AdminButton theme={theme} variant="primary" onClick={create} disabled={creating}>
-            {creating ? "Creating…" : "Create draft"}
-          </AdminButton>
-        </div>
-      </section>
-    </div>
+      </div>
+    </GDialog>
   );
 }

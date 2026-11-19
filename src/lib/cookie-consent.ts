@@ -52,6 +52,7 @@ const MARKETING_ROUTE_PREFIXES = [
   "/blog",
   "/customers",
   "/get-started",
+  "/free-preview",
   "/privacy",
   "/terms",
   "/demo-school",

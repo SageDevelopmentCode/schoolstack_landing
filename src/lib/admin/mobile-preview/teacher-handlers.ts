@@ -26,6 +26,11 @@ import { getTotalUnreadCount } from "@/lib/messages/threads";
 import { fetchOrganizationWithSettingsUncached } from "@/lib/organization-settings/fetch";
 import { isTeacherFeatureEnabled } from "@/lib/organization-settings/teacher-routes";
 import {
+  isTeacherNewslettersFeatureEnabled,
+  loadParentNewsletterDetailBundleForOrganization,
+  loadParentNewslettersListBundle,
+} from "@/lib/parent-portal/newsletters/load-parent-newsletters";
+import {
   fetchTeacherActivityNotifications,
   fetchUnreadTeacherActivityNotificationCount,
 } from "@/lib/school-teacher/activity-notifications";
@@ -314,6 +319,41 @@ export async function handleTeacherMobilePreviewGet(
 
       const profile = await loadStudentHealthProfile(admin, organizationId, studentId);
       return NextResponse.json({ profile });
+    }
+
+    if (segment === "newsletters") {
+      if (!isTeacherFeatureEnabled(org.features, "newsletters")) {
+        return apiError(route, {
+          request: req,
+          status: 403,
+          error: "Newsletters are not available for this school.",
+          code: "feature_disabled",
+        });
+      }
+      const editionId = pathSegments[1];
+      if (!editionId) {
+        const bundle = await loadParentNewslettersListBundle(admin, organizationId);
+        return NextResponse.json(bundle);
+      }
+      const result = await loadParentNewsletterDetailBundleForOrganization(admin, organizationId, editionId, {
+        isFeatureEnabled: isTeacherNewslettersFeatureEnabled,
+      });
+      if (!result.ok) {
+        const notFound = result.reason === "org_not_found" || result.reason === "not_found";
+        return apiError(route, {
+          request: req,
+          status: notFound ? 404 : 403,
+          error: notFound ? "Newsletter not found." : "Newsletters are not available for this school.",
+          code: notFound ? "not_found" : "feature_disabled",
+        });
+      }
+      if (pathSegments[2] === "document") {
+        return new Response(result.bundle.htmlDocument, {
+          status: 200,
+          headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "private, no-store" },
+        });
+      }
+      return NextResponse.json(result.bundle);
     }
 
     if (segment === "my-hours") {

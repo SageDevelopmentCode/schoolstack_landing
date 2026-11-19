@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, ChevronLeft, ChevronRight, Copy, Download, Loader2 } from "lucide-react";
-import { toPng } from "html-to-image";
 import JSZip from "jszip";
+import { downloadUrl, nodeToPng } from "@/components/admin/marketing/export-png";
 import { MarketingCarouselSidebar } from "@/components/admin/marketing/MarketingCarouselSidebar";
 import {
   DEFAULT_CAROUSEL_ID,
@@ -39,22 +39,9 @@ function emptyPostedByCarouselId(): Record<MarketingCarouselId, MarketingCarouse
   );
 }
 
-async function slideToPng(node: HTMLElement, size: SlideSize): Promise<string> {
+function slideToPng(node: HTMLElement, size: SlideSize): Promise<string> {
   const { width, height } = SLIDE_SIZES[size];
-  return toPng(node, {
-    cacheBust: true,
-    pixelRatio: 1,
-    width,
-    height,
-    canvasWidth: width,
-    canvasHeight: height,
-    skipAutoScale: true,
-    filter: (domNode) => {
-      if (!(domNode instanceof HTMLElement)) return true;
-      if (domNode.dataset.marketingExportIgnore === "true") return false;
-      return window.getComputedStyle(domNode).position !== "fixed";
-    },
-  });
+  return nodeToPng(node, width, height);
 }
 
 /** `01-gift.png` → `01-gift-story-no-offer.png` (size suffix only when an entry has several sizes). */
@@ -64,13 +51,6 @@ function exportFileName(fileName: string, size: SlideSize, multiSize: boolean, o
 }
 
 const exportKey = (size: SlideSize, index: number) => `${size}:${index}`;
-
-function downloadUrl(href: string, fileName: string) {
-  const link = document.createElement("a");
-  link.href = href;
-  link.download = fileName;
-  link.click();
-}
 
 export default function MarketingStudio() {
   const router = useRouter();

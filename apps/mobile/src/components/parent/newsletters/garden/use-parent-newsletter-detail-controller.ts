@@ -9,6 +9,17 @@ import {
 } from '@/lib/school-admin/committees/committee-workspace-load';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
+/** Where an edition's document comes from (parent default; the staff app passes its own). */
+export type NewsletterDetailSource = {
+  getWebViewSource: (
+    organizationId: string,
+    editionId: string,
+    options?: { forceRefresh?: boolean },
+  ) => Promise<{ uri: string; headers: Record<string, string> }>;
+  /** Prefix for operational-error names, e.g. `teacher_newsletter_detail`. */
+  operationPrefix: string;
+};
+
 /**
  * Newsletter edition data + callbacks (no UI). Same timeout-wrapped request and
  * error reporting as the Story screen; `load()` doubles as Try again.
@@ -16,10 +27,14 @@ import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 export function useParentNewsletterDetailController({
   organizationId,
   editionId,
+  source,
 }: {
   organizationId: string;
   editionId: string;
+  source?: NewsletterDetailSource;
 }) {
+  const operationPrefix = source?.operationPrefix ?? 'parent_newsletter_detail';
+  const getWebViewSource = source?.getWebViewSource ?? getParentNewsletterDocumentWebViewSource;
   const router = useRouter();
   const { reportError } = useMobileErrorReporter(organizationId);
 
@@ -51,13 +66,13 @@ export function useParentNewsletterDetailController({
     setWebSource(null);
     try {
       const source = await withCommitteeWorkspaceLoadTimeout(
-        getParentNewsletterDocumentWebViewSource(organizationId, editionId, options),
+        getWebViewSource(organizationId, editionId, options),
       );
       setWebSource(source);
     } catch (err) {
       const timedOut = isCommitteeWorkspaceLoadTimeoutError(err);
       reportError(
-        timedOut ? 'parent_newsletter_detail_load_timeout' : 'parent_newsletter_detail_load',
+        timedOut ? `${operationPrefix}_load_timeout` : `${operationPrefix}_load`,
         err,
         timedOut ? { entityId: editionId, metadata: { editionId } } : undefined,
       );
@@ -69,7 +84,7 @@ export function useParentNewsletterDetailController({
     } finally {
       setIsLoading(false);
     }
-  }, [editionId, organizationId, reportError]);
+  }, [editionId, getWebViewSource, operationPrefix, organizationId, reportError]);
 
   useEffect(() => {
     retriedAuthRef.current = false;
@@ -95,7 +110,7 @@ export function useParentNewsletterDetailController({
         return;
       }
       reportError(
-        'parent_newsletter_detail_http_error',
+        `${operationPrefix}_http_error`,
         new Error(`Newsletter request failed with HTTP ${statusCode}`),
         {
           entityType: 'newsletter_edition',
@@ -105,7 +120,7 @@ export function useParentNewsletterDetailController({
       );
       setLoadError('This newsletter could not be loaded.');
     },
-    [editionId, load, reportError],
+    [editionId, load, operationPrefix, reportError],
   );
 
   const handleWebViewLoadEnd = useCallback(() => {
@@ -129,7 +144,7 @@ export function useParentNewsletterDetailController({
         return;
       }
       reportError(
-        'parent_newsletter_detail_render_process_gone',
+        `${operationPrefix}_render_process_gone`,
         new Error('The newsletter viewer process was terminated.'),
         {
           entityType: 'newsletter_edition',
@@ -148,7 +163,7 @@ export function useParentNewsletterDetailController({
       );
       setLoadError('This newsletter could not be loaded.');
     },
-    [editionId, reportError],
+    [editionId, operationPrefix, reportError],
   );
 
   const onBack = useCallback(() => {
@@ -157,6 +172,7 @@ export function useParentNewsletterDetailController({
 
   return {
     editionId,
+    operationPrefix,
     webSource,
     isLoading,
     loadError,

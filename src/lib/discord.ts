@@ -2086,6 +2086,68 @@ export async function notifyHomepageQuestion(payload: {
   });
 }
 
+const MARKETING_LEAD_TITLES: Record<string, string> = {
+  custom_demo: "🎨 Custom demo requested",
+  partial_booking: "👋 Started booking a demo",
+  tool_plan: "🧮 Free tool plan emailed",
+  template: "📄 Template downloaded",
+  popup: "🪟 Popup lead",
+};
+
+export async function notifyMarketingLead(payload: {
+  leadId: string;
+  magnet: string;
+  magnetDetail?: string | null;
+  name?: string | null;
+  email: string;
+  schoolName?: string | null;
+  websiteUrl?: string | null;
+  roleLabel?: string | null;
+  message?: string | null;
+  sourcePath?: string | null;
+  attributionSummary?: string | null;
+}) {
+  const fields: DiscordEmbedField[] = [
+    contactField(payload.email, payload.name ?? ""),
+    embedField("Lead ID", formatId(payload.leadId), true),
+  ];
+  if (payload.schoolName?.trim()) {
+    fields.push(embedField("School", truncate(payload.schoolName.trim()), true));
+  }
+  if (payload.roleLabel?.trim()) {
+    fields.push(embedField("Where today", truncate(payload.roleLabel.trim()), true));
+  }
+  if (payload.websiteUrl?.trim()) {
+    fields.push(embedField("Website", truncate(payload.websiteUrl.trim())));
+  }
+  if (payload.magnetDetail?.trim()) {
+    fields.push(embedField("Detail", truncate(payload.magnetDetail.trim()), true));
+  }
+  if (payload.message?.trim()) {
+    fields.push(
+      embedField(payload.magnet === "partial_booking" ? "Notes" : "Biggest headache", truncate(payload.message.trim())),
+    );
+  }
+  if (payload.sourcePath?.trim()) {
+    fields.push(embedField("Page", truncate(payload.sourcePath.trim()), true));
+  }
+  if (payload.attributionSummary?.trim()) {
+    fields.push(embedField("First touch", truncate(payload.attributionSummary.trim())));
+  }
+
+  await sendDiscordEmbed({
+    title: MARKETING_LEAD_TITLES[payload.magnet] ?? "📥 New marketing lead",
+    description:
+      payload.magnet === "custom_demo"
+        ? `**${payload.name || payload.email}** wants a preview built for their school. Promised within 2 business days.`
+        : payload.magnet === "partial_booking"
+          ? `**${payload.name || payload.email}** filled in the booking form but hasn't picked a time yet. If no booking alert follows, follow up.`
+          : `**${payload.name || payload.email}**`,
+    color: DISCORD_EMBED_COLORS.sales,
+    fields,
+  });
+}
+
 const PARENT_PORTAL_FEEDBACK_TYPE_LABELS: Record<string, string> = {
   feature_request: "Feature request",
   feedback: "General feedback",

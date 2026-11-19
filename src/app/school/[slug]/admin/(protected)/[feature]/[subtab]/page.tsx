@@ -88,7 +88,7 @@ const SchoolProfilePage = nextDynamic(
 );
 const NewsletterPage = nextDynamic(
   () => import("@/components/school-admin/newsletter/NewsletterPage"),
-  { loading: () => <AdminPageSkeleton label="Loading newsletters" /> },
+  { loading: () => <AdminGardenRouteSkeleton label="Loading newsletters" layout="table" /> },
 );
 
 export const dynamic = "force-dynamic";

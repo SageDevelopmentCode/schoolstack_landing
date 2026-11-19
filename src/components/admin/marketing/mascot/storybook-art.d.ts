@@ -15,3 +15,5 @@ export function renderMascotSvg(
   view?: MascotView,
   opts?: { ground?: boolean },
 ): string;
+export function renderMascotIconSvg(name: MascotName, bg?: 0 | 1, opts?: { square?: boolean }): string;
+export function mascotIconBackgrounds(name: MascotName): [string, string];

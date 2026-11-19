@@ -1,0 +1,539 @@
+"use client";
+
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Download, Loader2 } from "lucide-react";
+import JSZip from "jszip";
+import { AdminSwitch } from "@/components/admin/ui/AdminSwitch";
+import { dataUrlBase64, downloadUrl, nodeToPng } from "@/components/admin/marketing/export-png";
+import { MarkStage } from "@/components/admin/marketing/brand-marks/mark-kit";
+import {
+  BRAND_MARKS,
+  brandMarksOfKind,
+  coverInFormat,
+  DEFAULT_BRAND_MARK_ID,
+  designCount,
+  formatMonthDay,
+  getBrandMark,
+  seasonTiming,
+  type SeasonTiming,
+} from "@/components/admin/marketing/brand-marks/registry";
+import { COVER_FORMAT_ORDER, COVER_FORMATS, type BrandMark, type BrandMarkKind } from "@/components/admin/marketing/brand-marks/types";
+
+const KIND_LABEL: Record<BrandMarkKind, string> = { avatar: "Avatars", "app-icon": "App icons", cover: "Covers" };
+const ZIP_NAME: Record<BrandMarkKind, string> = {
+  avatar: "mudkitchen-profile-pictures.zip",
+  "app-icon": "mudkitchen-app-icons.zip",
+  cover: "mudkitchen-covers.zip",
+};
+/** iOS-style continuous-corner approximation. */
+const SQUIRCLE = "22.37%";
+
+function MarkView({ mark, size }: { mark: BrandMark; size: number }) {
+  return (
+    <MarkStage width={size} height={Math.round((size * mark.height) / mark.width)} stageW={mark.stage.w} stageH={mark.stage.h} background={mark.background}>
+      {mark.render()}
+    </MarkStage>
+  );
+}
+
+/** A mark clipped to how platforms show it: a circle for avatars, a rounded square for icons. */
+function Masked({ mark, size, ring = false }: { mark: BrandMark; size: number; ring?: boolean }) {
+  if (mark.kind === "cover") {
+    return (
+      <div className={`shrink-0 overflow-hidden rounded-[4px] ${ring ? "ring-1 ring-black/10" : ""}`}>
+        <MarkView mark={mark} size={size} />
+      </div>
+    );
+  }
+  return (
+    <div
+      className={ring ? "ring-1 ring-black/10" : undefined}
+      style={{ width: size, height: size, overflow: "hidden", borderRadius: mark.kind === "avatar" ? "50%" : SQUIRCLE, flexShrink: 0 }}
+    >
+      <MarkView mark={mark} size={size} />
+    </div>
+  );
+}
+
+function timingLabel(timing: SeasonTiming) {
+  if (timing.state === "now") return "In season";
+  if (timing.daysUntil === 1) return "Tomorrow";
+  return `In ${timing.daysUntil} days`;
+}
+
+const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+
+async function imagesReady(node: HTMLElement) {
+  await Promise.all(
+    Array.from(node.querySelectorAll("img")).map((img) => img.decode().catch(() => undefined)),
+  );
+}
+
+export default function BrandMarkStudio() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const selected = getBrandMark(searchParams.get("mark")) ?? getBrandMark(DEFAULT_BRAND_MARK_ID) ?? BRAND_MARKS[0];
+  const kind = selected.kind;
+  const allOfKind = useMemo(() => brandMarksOfKind(kind), [kind]);
+  /** Covers list one row per concept, in the selected format. */
+  const marks = useMemo(
+    () => (kind === "cover" ? allOfKind.filter((m) => m.format === selected.format) : allOfKind),
+    [allOfKind, kind, selected.format],
+  );
+
+  const [showCrop, setShowCrop] = useState(true);
+  const [exportMark, setExportMark] = useState<BrandMark>(selected);
+  const [exporting, setExporting] = useState<"one" | "all" | null>(null);
+  const [progress, setProgress] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
+  const [today] = useState(() => new Date());
+
+  const select = useCallback(
+    (id: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("mark", id);
+      router.replace(`?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams],
+  );
+
+  function switchKind(next: BrandMarkKind) {
+    if (next === kind) return;
+    if (next === "cover" || kind === "cover") {
+      select(next === "cover" ? (brandMarksOfKind("cover")[0]?.id ?? DEFAULT_BRAND_MARK_ID) : next === "avatar" ? DEFAULT_BRAND_MARK_ID : `${DEFAULT_BRAND_MARK_ID}-icon`);
+      return;
+    }
+    const base = selected.id.replace(/-icon$/, "");
+    const counterpart = getBrandMark(next === "app-icon" ? `${base}-icon` : base);
+    select(counterpart?.kind === next ? counterpart.id : (brandMarksOfKind(next)[0]?.id ?? DEFAULT_BRAND_MARK_ID));
+  }
+
+  const groups = useMemo(() => {
+    const timed = marks
+      .filter((mark) => mark.season)
+      .map((mark) => ({ mark, timing: seasonTiming(mark.season!, today) }))
+      .sort((a, b) => a.timing.daysUntil - b.timing.daysUntil);
+    return [
+      { label: "Coming up", items: timed.filter((t) => t.timing.state !== "later") },
+      { label: "Everyday", items: marks.filter((m) => m.group === "everyday").map((mark) => ({ mark, timing: null })) },
+      { label: "The crew", items: marks.filter((m) => m.group === "crew").map((mark) => ({ mark, timing: null })) },
+      { label: "Later this year", items: timed.filter((t) => t.timing.state === "later") },
+    ];
+  }, [marks, today]);
+
+  const selectedTiming = selected.season ? seasonTiming(selected.season, today) : null;
+
+  /** Mounts `mark` in the off-screen export slot at full size and captures it. */
+  async function capture(mark: BrandMark) {
+    flushSync(() => setExportMark(mark));
+    await nextFrame();
+    const node = exportRef.current;
+    if (!node) throw new Error("Export area is not ready.");
+    await imagesReady(node);
+    return nodeToPng(node, mark.width, mark.height);
+  }
+
+  async function downloadOne() {
+    setExporting("one");
+    setExportError(null);
+    try {
+      downloadUrl(await capture(selected), `mudkitchen-${selected.fileName}`);
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : "Could not export this design.");
+    } finally {
+      setExporting(null);
+    }
+  }
+
+  async function downloadAll() {
+    setExporting("all");
+    setExportError(null);
+    try {
+      const zip = new JSZip();
+      for (let i = 0; i < allOfKind.length; i += 1) {
+        const mark = allOfKind[i];
+        setProgress(`${i + 1} / ${allOfKind.length}`);
+        const folder = mark.kind === "cover" ? mark.format : mark.group;
+        zip.file(`${folder}/${mark.fileName}`, dataUrlBase64(await capture(mark)), { base64: true });
+      }
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      downloadUrl(url, ZIP_NAME[kind]);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : "Could not export the set.");
+    } finally {
+      setProgress(null);
+      setExporting(null);
+      setExportMark(selected);
+    }
+  }
+
+  const exportSize = exportMark.width;
+
+  return (
+    <div className="flex h-[calc(100vh-3rem)] min-h-0 overflow-hidden">
+      <aside className="flex w-80 shrink-0 flex-col overflow-hidden border-r border-admin-border bg-admin-surface">
+        <div className="shrink-0 border-b border-admin-border px-4 py-3">
+          <div role="tablist" aria-label="Design type" className="grid grid-cols-3 gap-1 rounded-admin-md bg-admin-canvas p-1">
+            {(["avatar", "app-icon", "cover"] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                role="tab"
+                aria-selected={kind === option}
+                onClick={() => switchKind(option)}
+                className={`rounded-admin-md px-2 py-1.5 text-xs font-medium transition-colors ${
+                  kind === option ? "bg-admin-surface text-admin-text shadow-sm" : "text-admin-muted hover:text-admin-text"
+                }`}
+              >
+                {KIND_LABEL[option]} · {designCount(option)}
+              </button>
+            ))}
+          </div>
+        </div>
+        <nav className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-3" aria-label={KIND_LABEL[kind]}>
+          {groups.map((group) =>
+            group.items.length ? (
+              <section key={group.label} className="flex flex-col gap-1.5">
+                <p className="px-1 text-[10px] font-semibold uppercase tracking-wide text-admin-faint">
+                  {group.label} · {group.items.length}
+                </p>
+                {group.items.map(({ mark, timing }) => {
+                  const isSelected = mark.id === selected.id;
+                  return (
+                    <button
+                      key={mark.id}
+                      type="button"
+                      aria-current={isSelected ? "true" : undefined}
+                      onClick={() => select(mark.id)}
+                      className={`flex w-full items-center gap-3 rounded-admin-md border px-2 py-2 text-left transition-colors ${
+                        isSelected
+                          ? "border-admin-accent/30 bg-admin-accent/10"
+                          : "border-transparent hover:border-admin-border hover:bg-admin-canvas/50"
+                      }`}
+                    >
+                      <Masked mark={mark} size={kind === "cover" ? 92 : 44} ring />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium text-admin-text">{mark.title}</span>
+                        <span className="block truncate text-[11px] text-admin-muted">
+                          {mark.season ? `${formatMonthDay(mark.season.from)} – ${formatMonthDay(mark.season.to)}` : mark.description}
+                        </span>
+                      </span>
+                      {timing && timing.state !== "later" ? (
+                        <span
+                          className={`shrink-0 rounded-admin-sm px-1.5 py-0.5 text-[10px] font-medium ${
+                            timing.state === "now" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+                          }`}
+                        >
+                          {timingLabel(timing)}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </section>
+            ) : null,
+          )}
+        </nav>
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-admin-border bg-admin-surface px-6 py-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="truncate text-base font-semibold text-admin-text">{selected.title}</h1>
+              {selected.season ? (
+                <span className="rounded-admin-sm border border-admin-border px-1.5 py-0.5 text-[11px] text-admin-muted">
+                  {selected.season.label} · {formatMonthDay(selected.season.from)} – {formatMonthDay(selected.season.to)}
+                  {selectedTiming && selectedTiming.state !== "later" ? ` · ${timingLabel(selectedTiming)}` : ""}
+                </span>
+              ) : null}
+            </div>
+            <p className="mt-0.5 truncate text-xs text-admin-muted">
+              {selected.description ? `${selected.description} · ` : ""}
+              {selected.width}×{selected.height} PNG
+              {kind === "app-icon"
+                ? " · square, no transparency (the phone rounds the corners)"
+                : kind === "cover" && selected.format
+                  ? ` · ${COVER_FORMATS[selected.format].label}`
+                  : " · shown as a circle on most platforms"}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {kind === "cover" ? (
+              <div role="tablist" aria-label="Cover size" className="flex gap-1 rounded-admin-md bg-admin-canvas p-1">
+                {COVER_FORMAT_ORDER.map((format) => (
+                  <button
+                    key={format}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected.format === format}
+                    onClick={() => {
+                      const sibling = coverInFormat(selected, format);
+                      if (sibling) select(sibling.id);
+                    }}
+                    className={`rounded-admin-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                      selected.format === format ? "bg-admin-surface text-admin-text shadow-sm" : "text-admin-muted hover:text-admin-text"
+                    }`}
+                  >
+                    {COVER_FORMATS[format].short}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            <label className="flex items-center gap-2">
+              <AdminSwitch checked={showCrop} onChange={setShowCrop} label="Show crop" />
+              <span className="text-sm text-admin-text">Show crop</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => void downloadOne()}
+              disabled={exporting != null}
+              className="inline-flex items-center gap-1.5 rounded-admin-md border border-admin-border bg-admin-surface px-3 py-1.5 text-sm font-medium text-admin-text disabled:opacity-60"
+            >
+              {exporting === "one" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+              Download PNG
+            </button>
+            <button
+              id="brand-mark-download-all"
+              type="button"
+              onClick={() => void downloadAll()}
+              disabled={exporting != null}
+              className="inline-flex items-center gap-1.5 rounded-admin-md bg-admin-accent px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
+            >
+              {exporting === "all" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+              {progress ? `Exporting ${progress}` : `Download all ${allOfKind.length}`}
+            </button>
+          </div>
+        </header>
+
+        {exportError ? <p className="border-b border-admin-border px-6 py-2 text-sm text-red-700">{exportError}</p> : null}
+
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-start justify-center gap-8 px-6 py-8">
+            {kind === "cover" ? (
+              <CoverPreview mark={selected} showCrop={showCrop} />
+            ) : (
+              <figure className="flex flex-col items-center gap-3">
+                <div className="relative overflow-hidden rounded-admin-md shadow-sm ring-1 ring-black/5" style={{ width: 460, height: 460 }}>
+                  <MarkView mark={selected} size={460} />
+                  {showCrop ? (
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute inset-0"
+                      style={{
+                        borderRadius: kind === "avatar" ? "50%" : SQUIRCLE,
+                        boxShadow: "0 0 0 400px rgba(20,16,12,.62)",
+                        outline: "2px dashed rgba(255,255,255,.8)",
+                        outlineOffset: -2,
+                      }}
+                    />
+                  ) : null}
+                </div>
+                <figcaption className="text-xs text-admin-muted">
+                  {showCrop ? "Shaded area is cropped away when shown" : "Full image, as downloaded"}
+                </figcaption>
+              </figure>
+            )}
+
+            <div className={`flex flex-col gap-6 ${kind === "cover" ? "w-[820px]" : "w-[360px]"}`}>
+              {kind === "avatar" ? <AvatarMocks mark={selected} /> : kind === "app-icon" ? <IconMocks mark={selected} /> : <CoverMocks mark={selected} />}
+            </div>
+          </div>
+        </div>
+
+        <div aria-hidden className="pointer-events-none fixed top-0 -left-[4000px]">
+          <div ref={exportRef} style={{ width: exportMark.width, height: exportMark.height, overflow: "hidden", position: "relative" }}>
+            <MarkView mark={exportMark} size={exportSize} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MockCard({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="rounded-admin-md border border-admin-border bg-admin-surface p-4">
+      <p className="mb-3 text-[10px] font-semibold uppercase tracking-wide text-admin-faint">{title}</p>
+      {children}
+    </section>
+  );
+}
+
+function AvatarMocks({ mark }: { mark: BrandMark }) {
+  return (
+    <>
+      <MockCard title="Profile header">
+        <div className="overflow-hidden rounded-admin-md border border-admin-border">
+          <div className="h-20" style={{ background: "linear-gradient(120deg, #2E4A3C, #A6B89A)" }} />
+          <div className="px-4 pb-4">
+            <div className="-mt-10 inline-block rounded-full border-4 border-white bg-white">
+              <Masked mark={mark} size={88} />
+            </div>
+            <p className="mt-1 text-sm font-semibold text-admin-text">MudKitchen</p>
+            <p className="text-xs text-admin-muted">trymudkitchen.com</p>
+          </div>
+        </div>
+      </MockCard>
+      <MockCard title="In a feed">
+        <div className="flex flex-col gap-3">
+          {[
+            { size: 40, line: "Posted a new photo" },
+            { size: 32, line: "Replied to a comment" },
+          ].map((row) => (
+            <div key={row.size} className="flex items-center gap-3">
+              <Masked mark={mark} size={row.size} />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-admin-text">MudKitchen</p>
+                <p className="text-xs text-admin-muted">{row.line}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </MockCard>
+      <MockCard title="Small sizes">
+        <div className="flex items-end gap-4">
+          {[110, 64, 40, 24].map((size) => (
+            <div key={size} className="flex flex-col items-center gap-1">
+              <Masked mark={mark} size={size} ring />
+              <span className="text-[10px] text-admin-faint">{size}px</span>
+            </div>
+          ))}
+        </div>
+      </MockCard>
+    </>
+  );
+}
+
+const PLACEHOLDER_APPS = ["#6FB7F2", "#7BC47F", "#FFCF3F", "#B98BEA", "#FF7A6B", "#E3EDFB", "#2B241D"];
+
+function IconMocks({ mark }: { mark: BrandMark }) {
+  return (
+    <>
+      <MockCard title="Home screen">
+        <div className="rounded-[22px] p-5" style={{ background: "linear-gradient(160deg, #1F3329 0%, #556b5d 55%, #c9b79c 100%)" }}>
+          <div className="grid grid-cols-4 gap-x-4 gap-y-3">
+            {PLACEHOLDER_APPS.slice(0, 5).map((color, i) => (
+              <div key={i} className="flex flex-col items-center gap-1">
+                <span className="block h-[60px] w-[60px] opacity-80" style={{ borderRadius: SQUIRCLE, background: color }} />
+                <span className="h-1.5 w-10 rounded-full bg-white/40" />
+              </div>
+            ))}
+            <div className="flex flex-col items-center gap-1">
+              <Masked mark={mark} size={60} />
+              <span className="text-[10px] font-medium text-white">MudKitchen</span>
+            </div>
+            {PLACEHOLDER_APPS.slice(5).map((color, i) => (
+              <div key={`b${i}`} className="flex flex-col items-center gap-1">
+                <span className="block h-[60px] w-[60px] opacity-80" style={{ borderRadius: SQUIRCLE, background: color }} />
+                <span className="h-1.5 w-10 rounded-full bg-white/40" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </MockCard>
+      <MockCard title="Sizes">
+        <div className="flex items-end gap-4">
+          {[120, 60, 40, 29].map((size) => (
+            <div key={size} className="flex flex-col items-center gap-1">
+              <Masked mark={mark} size={size} ring />
+              <span className="text-[10px] text-admin-faint">{size}pt</span>
+            </div>
+          ))}
+        </div>
+      </MockCard>
+      <MockCard title="Using it">
+        <p className="text-xs leading-relaxed text-admin-muted">
+          The download is the 1024×1024 master for the App Store. To ship one, replace <code>apps/mobile/assets/images/icon.png</code> and
+          make a new build. Android draws its icon from the separate adaptive-icon layers, so it keeps the classic bowl.
+        </p>
+      </MockCard>
+    </>
+  );
+}
+
+const PREVIEW_W = 820;
+
+/** Wide cover preview with the profile-photo overlap and (Facebook) mobile crop shaded. */
+function CoverPreview({ mark, showCrop }: { mark: BrandMark; showCrop: boolean }) {
+  const spec = mark.format ? COVER_FORMATS[mark.format] : null;
+  const k = PREVIEW_W / mark.width;
+  const shade = "rgba(20,16,12,.55)";
+  return (
+    <figure className="flex flex-col items-center gap-3">
+      <div className="relative overflow-hidden rounded-admin-md shadow-sm ring-1 ring-black/5" style={{ width: PREVIEW_W, height: Math.round(mark.height * k) }}>
+        <MarkView mark={mark} size={PREVIEW_W} />
+        {showCrop && spec ? (
+          <>
+            {spec.mobile ? (
+              <>
+                <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0" style={{ width: Math.round(spec.mobile.x * k), background: shade }} />
+                <span aria-hidden className="pointer-events-none absolute inset-y-0 right-0" style={{ width: Math.round((mark.width - spec.mobile.x - spec.mobile.w) * k), background: shade }} />
+              </>
+            ) : null}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute"
+              style={{
+                left: Math.round(spec.photo.x * k),
+                top: Math.round(spec.photo.y * k),
+                width: Math.round(spec.photo.w * k),
+                height: Math.round(spec.photo.h * k),
+                borderRadius: spec.photo.shape === "circle" ? "50%" : 12,
+                background: shade,
+                outline: "2px dashed rgba(255,255,255,.85)",
+              }}
+            />
+          </>
+        ) : null}
+      </div>
+      <figcaption className="text-xs text-admin-muted">
+        {showCrop
+          ? spec?.mobile
+            ? "Shaded: covered by the profile photo, and cut off on phones"
+            : "Shaded: covered by the profile photo or page logo"
+          : "Full image, as downloaded"}
+      </figcaption>
+    </figure>
+  );
+}
+
+/** Generic page header with the cover and the default sticker avatar over it. */
+function CoverMocks({ mark }: { mark: BrandMark }) {
+  const avatar = getBrandMark(DEFAULT_BRAND_MARK_ID);
+  const format = mark.format ?? "facebook";
+  const spec = COVER_FORMATS[format];
+  const w = 520;
+  const k = w / mark.width;
+  const photo = Math.round(spec.photo.w * k);
+  const square = spec.photo.shape === "square";
+  return (
+    <MockCard title={`${spec.label} — how it sits`}>
+      <div className="overflow-hidden rounded-admin-md border border-admin-border bg-white" style={{ width: w }}>
+        <MarkView mark={mark} size={w} />
+        <div className="relative px-4 pb-4" style={{ paddingTop: Math.round(photo * 0.5) + 6 }}>
+          {avatar ? (
+            <div
+              className="absolute border-4 border-white bg-white"
+              style={{ left: Math.round(spec.photo.x * k), top: -Math.round(photo * 0.5), borderRadius: square ? 10 : 999, overflow: "hidden" }}
+            >
+              <div style={{ borderRadius: square ? 6 : 999, overflow: "hidden" }}>
+                <MarkView mark={avatar} size={photo} />
+              </div>
+            </div>
+          ) : null}
+          <p className="text-sm font-semibold text-admin-text">MudKitchen</p>
+          <p className="text-xs text-admin-muted">trymudkitchen.com</p>
+        </div>
+      </div>
+      <p className="mt-3 text-xs text-admin-muted">
+        Platforms move the photo around between layouts, so keep words and faces out of the shaded areas in the preview.
+      </p>
+    </MockCard>
+  );
+}

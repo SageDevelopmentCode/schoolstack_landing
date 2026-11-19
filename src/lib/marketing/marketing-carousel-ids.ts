@@ -22,14 +22,18 @@ export const MARKETING_CAROUSEL_IDS = [
   "mascot-flicker-tansy-community",
   "mascot-holiday-program",
   "mascot-spring-enrollment-plan",
+  "mascot-free-preview",
+  "mascot-free-preview-before-after",
   "posts-weekly-singles",
   "posts-holiday-singles",
+  "posts-free-preview-singles",
   "ads-holiday-gift",
   "ads-winter-break",
   "ads-crew-humor",
   "ads-pain-proof",
   "ads-feature-spotlight",
   "ads-new-year",
+  "ads-free-preview",
 ] as const;
 
 export type MarketingCarouselId = (typeof MARKETING_CAROUSEL_IDS)[number];

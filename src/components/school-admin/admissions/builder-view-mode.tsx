@@ -11,11 +11,16 @@ import { G_TOGGLE, G_TOGGLE_OFF, G_TOGGLE_ON } from "@/components/school-parent/
 export type BuilderViewMode = "family" | "list";
 const STORAGE_KEY = "flows-step-view";
 
-/** Remembered per browser; falls back to Family view (and survives blocked storage). */
-export function useBuilderViewMode(): [BuilderViewMode, (mode: BuilderViewMode) => void] {
+/**
+ * Remembered per browser; falls back to Family view (and survives blocked storage).
+ * Builders other than Enrollment Flows pass their own `storageKey`.
+ */
+export function useBuilderViewMode(
+  storageKey: string = STORAGE_KEY,
+): [BuilderViewMode, (mode: BuilderViewMode) => void] {
   const [mode, setMode] = useState<BuilderViewMode>(() => {
     try {
-      return window.localStorage.getItem(STORAGE_KEY) === "list" ? "list" : "family";
+      return window.localStorage.getItem(storageKey) === "list" ? "list" : "family";
     } catch {
       return "family";
     }
@@ -23,7 +28,7 @@ export function useBuilderViewMode(): [BuilderViewMode, (mode: BuilderViewMode) 
   const update = (next: BuilderViewMode) => {
     setMode(next);
     try {
-      window.localStorage.setItem(STORAGE_KEY, next);
+      window.localStorage.setItem(storageKey, next);
     } catch {
       // Private mode / blocked storage: the choice just isn't remembered.
     }

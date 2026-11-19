@@ -25,6 +25,7 @@ import {
 import { demoRequestRoleLabel } from "@/lib/demo-request-roles";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { DEMO_PROMO_NOTES, isDemoPromoId } from "@/lib/marketing/gift-card-offer";
+import { sanitizeAttribution } from "@/lib/marketing/attribution";
 
 const ROUTE = "/api/demo-requests";
 
@@ -64,7 +65,13 @@ interface DemoRequestBody {
   companyWebsite?: string;
   /** Promo id from a landing page; unknown ids are ignored. */
   promo?: string;
+  /** Where the booking form was shown (e.g. "home", "get-started", "gift-card"). */
+  source?: string;
+  /** First-touch attribution from `readFirstTouch()`. */
+  attribution?: unknown;
 }
+
+const SOURCE_PATTERN = /^[a-z0-9-]{1,40}$/;
 
 export async function POST(request: Request) {
   let body: DemoRequestBody;
@@ -254,7 +261,15 @@ export async function POST(request: Request) {
     });
   }
 
-  const { error } = await admin.from("demo_requests").insert({
+  const rawSource = body.source?.trim() ?? "";
+  const source = conceptDemoSlug
+    ? "demo-walkthrough"
+    : SOURCE_PATTERN.test(rawSource)
+      ? rawSource
+      : "get-started";
+  const attribution = sanitizeAttribution(body.attribution);
+
+  const baseRow = {
     name,
     email,
     school_name: schoolName,
@@ -269,7 +284,20 @@ export async function POST(request: Request) {
     scheduled_date: scheduledDate,
     scheduled_time: scheduledTime,
     timezone,
-  });
+    source,
+  };
+  const trackingColumns = {
+    concept_demo_slug: conceptDemoSlug,
+    attribution: Object.keys(attribution).length ? attribution : null,
+  };
+
+  let { error } = await admin.from("demo_requests").insert({ ...baseRow, ...trackingColumns });
+  // Until 20261170_add_marketing_leads.sql is applied on a database, these columns don't
+  // exist (PostgREST PGRST204). Never lose a booking over tracking data: retry without them.
+  if (error?.code === "PGRST204") {
+    console.error(`[${ROUTE}] demo_requests tracking columns missing; apply 20261170_add_marketing_leads.sql`);
+    ({ error } = await admin.from("demo_requests").insert(baseRow));
+  }
 
   if (error) {
     if (error.code === "23505") {
@@ -294,6 +322,17 @@ export async function POST(request: Request) {
     route: ROUTE,
     request,
   });
+
+  // The visitor finished booking: close out their unfinished-booking lead, if any.
+  void admin
+    .from("marketing_leads")
+    .update({ status: "booked" })
+    .eq("magnet", "partial_booking")
+    .eq("status", "new")
+    .eq("email", email.toLowerCase())
+    .then(({ error: leadError }) => {
+      if (leadError) console.error(`[${ROUTE}] Failed to mark partial booking as booked`, leadError);
+    });
 
   try {
     await notifyDemoBooking({

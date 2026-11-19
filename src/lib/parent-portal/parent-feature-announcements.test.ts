@@ -38,6 +38,7 @@ const ALL_PARENT_FEATURES_ENABLED: OrganizationFeatures = {
     payroll: true,
     forms_documents: true,
     committees: true,
+    newsletters: true,
   },
   parent: {
     portal: true,

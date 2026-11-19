@@ -132,8 +132,11 @@ function EditionRow({
  */
 export function ParentNewslettersGardenScreen({
   controller,
+  testID = 'parent-newsletters-screen',
 }: {
   controller: ParentNewslettersScreenController;
+  /** The staff app reuses this screen with its own test id. */
+  testID?: string;
 }) {
   const accent = useGardenAccent();
   const { width } = useWindowDimensions();
@@ -150,7 +153,7 @@ export function ParentNewslettersGardenScreen({
 
   if (controller.isInitialLoading) {
     return (
-      <View style={styles.root} testID="parent-newsletters-screen">
+      <View style={styles.root} testID={testID}>
         <StatusBar style="dark" />
         <ParentNewslettersGardenSkeleton onBack={controller.onBack} />
       </View>
@@ -191,7 +194,7 @@ export function ParentNewslettersGardenScreen({
   );
 
   return (
-    <View style={styles.root} testID="parent-newsletters-screen">
+    <View style={styles.root} testID={testID}>
       <StatusBar style="dark" />
       <FlatList
         key={numColumns}

@@ -24,8 +24,18 @@ import { loadTeacherFormsDocumentsPageData } from "@/lib/school-teacher/forms-do
 import { mintTeacherFormUploadPreviewUrls } from "@/lib/school-teacher/forms-documents/mint-teacher-form-upload-preview-urls";
 import { loadTeacherDashboardPreviewData } from "@/lib/school-teacher/load-teacher-dashboard-data";
 import { loadTeacherMyHoursPreviewData } from "@/lib/school-teacher/my-hours/load-teacher-my-hours-data";
+import {
+  isTeacherNewslettersFeatureEnabled,
+  loadParentNewsletterDetailBundleForOrganization,
+  loadParentNewslettersListBundle,
+} from "@/lib/parent-portal/newsletters/load-parent-newsletters";
+import { staffPreviewFeaturePath } from "@/lib/staff/staff-preview-paths";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
+
+const TeacherNewslettersPage = nextDynamic(
+  () => import("@/components/school-teacher/newsletters/TeacherNewslettersPage"),
+);
 
 const TeacherCalendarPage = nextDynamic(
   () => import("@/components/school-teacher/TeacherCalendarPage"),
@@ -221,6 +231,30 @@ export default async function StaffTeacherPreviewFeaturePage({
         classroomOptions={pageData.classroomOptions}
         previewMode
         uploadPreviewUrlsByFormId={uploadPreviewUrlsByFormId}
+      />
+    );
+  }
+
+  if (feature === "newsletters") {
+    const editionId =
+      typeof resolvedSearchParams.edition === "string" ? resolvedSearchParams.edition : null;
+    const [initialList, detail] = await Promise.all([
+      loadParentNewslettersListBundle(admin, org.id),
+      editionId
+        ? loadParentNewsletterDetailBundleForOrganization(admin, org.id, editionId, {
+            isFeatureEnabled: isTeacherNewslettersFeatureEnabled,
+          })
+        : Promise.resolve(null),
+    ]);
+    return (
+      <TeacherNewslettersPage
+        organizationId={org.id}
+        slug={slug}
+        basePath={staffPreviewFeaturePath(slug, staffMemberId, "newsletters")}
+        branding={org.branding}
+        initialList={initialList}
+        detailBundle={detail?.ok ? detail.bundle : null}
+        previewMode
       />
     );
   }

@@ -233,6 +233,113 @@ export async function sendHomepageQuestionConfirmation(payload: {
   }
 }
 
+/** First name for headings: emailHeading escapes on its own, so this stays unescaped. */
+function plainFirstName(name: string | null | undefined): string {
+  const trimmed = name?.trim() ?? "";
+  return trimmed.split(/\s+/)[0] || "there";
+}
+
+export function buildCustomDemoRequestConfirmationHtml(payload: {
+  name: string;
+  schoolName: string;
+}): string {
+  return composeEmail({
+    preheader: `We're building a ${SITE_NAME} preview for ${payload.schoolName}.`,
+    contentHtml: `
+      ${emailBadge("Custom Preview Requested")}
+      ${emailHeading(`Thanks, ${plainFirstName(payload.name)}. We're on it.`)}
+      ${emailParagraph(
+        `We're building a private ${escapeHtml(SITE_NAME)} preview for <strong>${escapeHtml(payload.schoolName)}</strong>, using your school's logo, colours and programs. It shows your website, your parent app, your teacher portal and your admin portal.`,
+      )}
+      ${emailParagraph(
+        "We'll email you the link within 2 business days. If anything about your school would help us get it right, just reply to this email.",
+      )}
+      ${emailMutedParagraph(
+        "Want to talk sooner? You can book a time with us whenever you like.",
+      )}
+      ${emailCta({ label: "Book a Demo", href: `${getRuntimeSiteUrl()}/get-started` })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendCustomDemoRequestConfirmation(payload: {
+  name: string;
+  email: string;
+  schoolName: string;
+}): Promise<void> {
+  if (!(await isZohoConfigured())) return;
+
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `Your ${SITE_NAME} preview for ${payload.schoolName} is on the way`,
+    content: buildCustomDemoRequestConfirmationHtml(payload),
+    discord: prospectOutboundDiscord("custom_demo_request_confirmation"),
+  });
+
+  if (!result.success) {
+    console.error("Custom demo request confirmation email failed:", result.error);
+  }
+}
+
+/** `lines` must already be sanitized (`sanitizePlanLines`); they are escaped here. */
+export function buildFreeToolPlanHtml(payload: {
+  name: string | null;
+  toolName: string;
+  toolPath: string;
+  lines: string[];
+}): string {
+  const blocks: string[][] = [[]];
+  for (const line of payload.lines) {
+    if (line.trim() === "") {
+      if (blocks[blocks.length - 1].length) blocks.push([]);
+    } else {
+      blocks[blocks.length - 1].push(escapeHtml(line));
+    }
+  }
+  const body = blocks
+    .filter((b) => b.length)
+    .map((b) => emailParagraph(b.join("<br>")))
+    .join("");
+
+  return composeEmail({
+    preheader: `Your results from ${payload.toolName}.`,
+    contentHtml: `
+      ${emailBadge("Your Results")}
+      ${emailHeading(`Here's your plan, ${plainFirstName(payload.name)}.`)}
+      ${emailMutedParagraph(`You asked us to email your results from ${escapeHtml(payload.toolName)}. A copy is below.`)}
+      ${body}
+      ${emailCta({ label: "Open the tool again", href: `${getRuntimeSiteUrl()}${payload.toolPath}` })}
+      ${emailMutedParagraph(
+        `When you're ready to run all of this in one place, we're happy to show you ${escapeHtml(SITE_NAME)}. Just reply to this email.`,
+      )}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendFreeToolPlanEmail(payload: {
+  name: string | null;
+  email: string;
+  toolName: string;
+  toolPath: string;
+  lines: string[];
+}): Promise<boolean> {
+  if (!(await isZohoConfigured())) return false;
+
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `Your results: ${payload.toolName}`,
+    content: buildFreeToolPlanHtml(payload),
+    discord: prospectOutboundDiscord("free_tool_plan"),
+  });
+
+  if (!result.success) {
+    console.error("Free tool plan email failed:", result.error);
+  }
+  return result.success;
+}
+
 export function buildPublicSupportRequestConfirmationHtml(payload: {
   name: string;
 }): string {

@@ -19,6 +19,15 @@ export function resolveEditionRoute(slug: string, editionId: string, programSlug
   return parentNewsletterEditionRoute(slug, editionId);
 }
 
+/** Where a newsletters list reads from (parent default; the staff app passes its own). */
+export type NewslettersListSource = {
+  fetchList: (organizationId: string) => Promise<{ editions: ParentNewsletterListItem[] }>;
+  editionRoute: (editionId: string) => Href;
+  backRoute: Href;
+  /** Operational-error name for a failed load. */
+  loadOperation: string;
+};
+
 /**
  * Newsletters list data + callbacks (no UI). Same request and error reporting
  * (`parent_newsletters_load`) as the Story screen; edition routes still honour
@@ -28,10 +37,12 @@ export function useParentNewslettersScreenController({
   slug,
   organizationId,
   programSlug,
+  source,
 }: {
   slug: string;
   organizationId: string;
   programSlug?: string;
+  source?: NewslettersListSource;
 }) {
   const router = useRouter();
   const { reportError } = useMobileErrorReporter(organizationId);
@@ -48,18 +59,18 @@ export function useParentNewslettersScreenController({
       else setIsRefreshing(true);
       setError(null);
       try {
-        const bundle = await fetchParentNewslettersList(organizationId);
+        const bundle = await (source?.fetchList ?? fetchParentNewslettersList)(organizationId);
         setEditions(bundle.editions);
         setHasLoaded(true);
       } catch (err) {
-        reportError('parent_newsletters_load', err);
+        reportError(source?.loadOperation ?? 'parent_newsletters_load', err);
         setError('We could not load newsletters right now.');
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
       }
     },
-    [organizationId, reportError],
+    [organizationId, reportError, source],
   );
 
   useEffect(() => {
@@ -73,17 +84,18 @@ export function useParentNewslettersScreenController({
 
   const openEdition = useCallback(
     (editionId: string) => {
-      router.push(resolveEditionRoute(slug, editionId, programSlug));
+      router.push(source ? source.editionRoute(editionId) : resolveEditionRoute(slug, editionId, programSlug));
     },
-    [programSlug, router, slug],
+    [programSlug, router, slug, source],
   );
 
   const onBack = useCallback(() => {
     goBackOrReplace(
       router,
-      programSlug ? (parentProgramBasePath(slug, programSlug) as Href) : parentTabRoute(slug, 'home'),
+      source?.backRoute ??
+        (programSlug ? (parentProgramBasePath(slug, programSlug) as Href) : parentTabRoute(slug, 'home')),
     );
-  }, [programSlug, router, slug]);
+  }, [programSlug, router, slug, source]);
 
   return {
     editions,

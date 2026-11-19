@@ -382,6 +382,7 @@ const TEACHER_ICON_DEFAULTS: Record<string, string> = {
   payroll: "wallet",
   forms_documents: "file-text",
   committees: "heart",
+  newsletters: "book-open",
 };
 
 const PARENT_ICON_DEFAULTS: Record<string, string> = {

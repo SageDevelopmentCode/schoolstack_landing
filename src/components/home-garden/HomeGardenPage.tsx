@@ -1,6 +1,7 @@
 "use client";
 
 import HomeGardenShell from "@/components/garden/HomeGardenShell";
+import CustomDemoOffer from "@/components/lead-magnets/CustomDemoOffer";
 import FreeToolsPostcards from "./FreeToolsPostcards";
 import GardenBookDemo from "./GardenBookDemo";
 import GardenFaq from "./GardenFaq";
@@ -24,6 +25,7 @@ export default function HomeGardenPage() {
       <AppStrip />
       <StoryTicket />
       <SetupNotes />
+      <CustomDemoOffer />
       <PricingPaper />
       <FreeToolsPostcards className="bg-[var(--sf-paper)]" />
       <GardenFaq />

@@ -77,6 +77,14 @@ const MENU_ITEMS: {
     iconColor: '#D97706',
   },
   {
+    id: 'newsletters',
+    label: 'Newsletters',
+    subtitle: 'What families are reading',
+    icon: 'newspaper-outline',
+    iconBg: '#E3EDFB',
+    iconColor: '#24507A',
+  },
+  {
     id: 'photos',
     label: 'Photos',
     subtitle: 'School gallery for families and staff',
@@ -113,6 +121,7 @@ export function TeacherMoreMenuSheet({
   const myHoursEnabled = isTeacherFeatureEnabled(data?.features, 'my_hours');
   const committeesEnabled = isTeacherFeatureEnabled(data?.features, 'committees');
   const photosEnabled = isSchoolGalleryEnabled(data?.features);
+  const newslettersEnabled = isTeacherFeatureEnabled(data?.features, 'newsletters');
   const visibleMenuItems = useMemo(
     () =>
       MENU_ITEMS.filter((item) => {
@@ -120,9 +129,10 @@ export function TeacherMoreMenuSheet({
         if (item.id === 'my-hours') return myHoursEnabled;
         if (item.id === 'committees') return committeesEnabled;
         if (item.id === 'photos') return photosEnabled;
+        if (item.id === 'newsletters') return newslettersEnabled;
         return true;
       }),
-    [attendanceEnabled, myHoursEnabled, committeesEnabled, photosEnabled],
+    [attendanceEnabled, myHoursEnabled, committeesEnabled, photosEnabled, newslettersEnabled],
   );
 
   const [activeTab, setActiveTab] = useState<MoreMenuTabId>('menu');

@@ -359,7 +359,7 @@ const SB = {};
     const defs = o.standalone ? `${SB.baseDefs()}${C.defs()}` : '';
     const label = o.label != null ? o.label : `${C.name} app icon`;
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240"${label ? ` role="img" aria-label="${label}"` : ' aria-hidden="true"'}><defs>${defs}`
-      + SB.radial(id + 'g', [[0, '#fff', 0.28], [1, '#fff', 0]], 0.3, 0.2, 0.8) + `<clipPath id="${id}c"><rect width="240" height="240" rx="54"/></clipPath></defs>`
+      + SB.radial(id + 'g', [[0, '#fff', 0.28], [1, '#fff', 0]], 0.3, 0.2, 0.8) + `<clipPath id="${id}c"><rect width="240" height="240" rx="${o.square ? 0 : 54}"/></clipPath></defs>`
       + `<g clip-path="url(#${id}c)"><rect width="240" height="240" fill="${c.bgs[bg]}"/><rect width="240" height="240" fill="url(#${id}g)"/>`
       + `<circle cx="196" cy="40" r="5" fill="#fff" opacity=".35"/><circle cx="36" cy="200" r="4" fill="#fff" opacity=".25"/>`
       + `<g transform="translate(120,${c.ty}) scale(${c.s}) translate(${-c.cx},${-c.cy})">${body}</g></g></svg>`;
@@ -839,4 +839,23 @@ export function renderMascotSvg(name, view = 'neutral', opts = {}) {
   SB.resetIds(`${name}-${view}-${opts.ground === false ? 0 : 1}-`);
   return SB.svg(C, view, { standalone: true, label: '', ...opts })
     .replace('<svg ', '<svg width="100%" height="100%" preserveAspectRatio="xMidYMax meet" ');
+}
+
+/**
+ * App-icon tile for one character (240×240 art): the character on one of its two brand backgrounds.
+ * `square: true` drops the rounded corners for a full-bleed 1024 app icon (the OS applies its own mask).
+ */
+export function renderMascotIconSvg(name, bg = 0, opts = {}) {
+  const C = SB.C[name];
+  if (!C) throw new Error(`Unknown mascot: ${name}`);
+  SB.resetIds(`${name}-icon-${bg}-${opts.square ? 1 : 0}-`);
+  return SB.icon(C, bg, { standalone: true, label: '', square: Boolean(opts.square) })
+    .replace('<svg ', '<svg width="100%" height="100%" ');
+}
+
+/** The two icon background colours for a character. */
+export function mascotIconBackgrounds(name) {
+  const C = SB.C[name];
+  if (!C) throw new Error(`Unknown mascot: ${name}`);
+  return [...C.icon.bgs];
 }

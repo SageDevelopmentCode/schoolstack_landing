@@ -23,6 +23,7 @@ import {
   Megaphone,
   Headphones,
   ChevronDown,
+  Inbox,
   type LucideIcon,
 } from "lucide-react";
 
@@ -50,6 +51,7 @@ const NAV_ENTRIES: NavEntry[] = [
       id: "demos",
       label: "Demos",
       items: [
+        { href: "/admin/leads", label: "Leads", icon: Inbox, color: "#db2777" },
         { href: "/admin/demo-requests", label: "Requests", icon: CalendarCheck, color: "#2563eb" },
         { href: "/admin/availability", label: "Schedule", icon: CalendarClock, color: "#059669" },
         { href: "/admin/demo-feedback", label: "Feedback", icon: MessageSquareText, color: "#7c3aed" },
