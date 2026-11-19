@@ -22,6 +22,7 @@ import {
   PreviewLinkCard,
   YourAdminWindow,
   YourParentPhone,
+  YourTeacherWindow,
   YourWebsiteWindow,
   groundedY,
 } from "@/components/admin/marketing/carousels/free-preview-mocks";
@@ -44,7 +45,7 @@ const TOOLS: Array<{ label: string; x: number; y: number; r: number; tint: strin
 export const MASCOT_FREE_PREVIEW_BEFORE_AFTER_CAROUSEL = {
   id: "mascot-free-preview-before-after",
   title: "From 9 tools to one link (Free preview)",
-  description: `Mascot swipe carousel for the free custom preview: the scattered stack, then your school's website, parent app and admin portal behind one private preview link. Link: ${FREE_PREVIEW_UTM}`,
+  description: `Mascot swipe carousel for the free custom preview: the scattered stack, then your school's website, parent app, teacher portal and admin portal behind one private preview link. Link: ${FREE_PREVIEW_UTM}`,
   fileSlug: "mudkitchen-free-preview-one-link",
   slides: [
     {
@@ -121,7 +122,7 @@ export const MASCOT_FREE_PREVIEW_BEFORE_AFTER_CAROUSEL = {
               Now picture <Accent>one link.</Accent>
             </>
           }
-          body="Your website, parent app and admin portal, behind a single private link."
+          body="Your website, parent app, teacher portal and admin portal, behind a single private link."
           background="#EEF5E9"
         >
           <At x={110} y={540} z={3} rotate={-1.5}>
@@ -144,23 +145,29 @@ export const MASCOT_FREE_PREVIEW_BEFORE_AFTER_CAROUSEL = {
           body="Built with your logo, colours and programs."
           background={G.sky}
         >
-          <At x={40} y={540} rotate={-3} z={2}>
-            <YourAdminWindow scale={0.56} />
+          <At x={40} y={480} rotate={-3} z={2}>
+            <YourAdminWindow scale={0.46} />
           </At>
-          <Hand size={34} color={G.forest} rotate={-3} style={{ position: "absolute", left: 60, top: 920, zIndex: 5 }}>
+          <Hand size={32} color={G.forest} rotate={-3} style={{ position: "absolute", left: 60, top: 790, zIndex: 5 }}>
             admin portal
           </Hand>
-          <At x={500} y={800} rotate={3} z={3}>
-            <YourWebsiteWindow scale={0.56} />
+          <At x={560} y={500} rotate={2} z={2}>
+            <YourTeacherWindow scale={0.46} />
           </At>
-          <Hand size={34} color={G.forest} rotate={-3} style={{ position: "absolute", left: 330, top: 1060, zIndex: 5 }}>
+          <Hand size={32} color={G.forest} rotate={-3} style={{ position: "absolute", left: 600, top: 812, zIndex: 5 }}>
+            teacher portal
+          </Hand>
+          <At x={480} y={900} rotate={2} z={3}>
+            <YourWebsiteWindow scale={0.46} />
+          </At>
+          <Hand size={32} color={G.forest} rotate={-3} style={{ position: "absolute", left: 300, top: 1070, zIndex: 5 }}>
             website →
           </Hand>
-          <At x={620} y={500} z={4}>
-            <YourParentPhone scale={0.42} />
+          <At x={320} y={800} rotate={-3} z={4}>
+            <YourParentPhone scale={0.32} />
           </At>
-          <Hand size={34} color={G.forest} rotate={-3} style={{ position: "absolute", left: 790, top: 560, zIndex: 5 }}>
-            ← parent app
+          <Hand size={32} color={G.forest} rotate={-3} style={{ position: "absolute", left: 110, top: 880, zIndex: 5 }}>
+            parent app →
           </Hand>
           <PlacedMascot name="terra" view="wave" width={240} x={70} y={groundedY(240)} z={5} />
         </OneLinkSlide>

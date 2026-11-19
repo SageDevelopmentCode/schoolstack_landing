@@ -4,6 +4,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { gardenFontVariables } from "@/components/garden/fonts";
 import SlideCanvas, { useAdOffer, useSlideSize } from "@/components/admin/marketing/slide-frame";
+import type { PatternKind } from "@/components/admin/marketing/sticker";
 import { CarouselLaptopWindow, type CarouselDemoCrop } from "@/components/admin/marketing/carousels/carousel-product-slide";
 import { Mascot, type MascotName, type MascotView } from "@/components/admin/marketing/mascot/Mascot";
 import { CtaButton, FONT, G, Hand, Headline, SITE_LABEL } from "@/components/admin/marketing/mascot/mascot-slide-kit";
@@ -49,6 +50,8 @@ type AdFrameProps = {
   garland?: boolean;
   /** Right side of the header row. */
   tag?: ReactNode;
+  /** Background pattern override ("none" for plain). */
+  pattern?: PatternKind | "none";
   padding?: string;
   children: ReactNode;
 };
@@ -61,12 +64,13 @@ export function AdFrame({
   garland = false,
   tag,
   padding = "0 64px 52px",
+  pattern,
   children,
 }: AdFrameProps) {
   const { isStory, top, stageHeight, height } = useAdStage();
   const groundColor = ground ?? (tone === "dark" ? "rgba(0,0,0,.2)" : "rgba(46,74,60,.1)");
   return (
-    <SlideCanvas background={background} logo="none">
+    <SlideCanvas background={background} logo="none" pattern={pattern}>
       <div className={gardenFontVariables} style={{ position: "absolute", inset: 0, fontFamily: FONT.body, color: tone === "dark" ? G.cream : G.ink }}>
         {snow ? <Snowfall height={height} tone={tone} /> : null}
         {isStory ? (
@@ -118,9 +122,9 @@ function AdLogo({ tone }: { tone: "light" | "dark" }) {
         gap: 12,
         padding: "10px 24px 10px 14px",
         borderRadius: 999,
-        background: tone === "dark" ? "rgba(255,250,244,.12)" : "rgba(255,250,244,.92)",
-        border: tone === "dark" ? "2px solid rgba(255,250,244,.2)" : "2px solid rgba(43,36,29,.10)",
-        boxShadow: tone === "dark" ? "none" : "0 10px 22px rgba(43,36,29,.12)",
+        background: tone === "dark" ? "rgba(255,250,244,.12)" : "#FFFAF4",
+        border: tone === "dark" ? "4px solid rgba(255,250,244,.85)" : "4px solid #FFFFFF",
+        boxShadow: tone === "dark" ? "0 6px 0 0 rgba(0,0,0,.25)" : "0 6px 0 0 rgba(43,36,29,.2)",
       }}
     >
       <img src="/images/Logo.png" alt="" style={{ height: 46, width: 46, objectFit: "contain", display: "block", transform: "rotate(-6deg)" }} />

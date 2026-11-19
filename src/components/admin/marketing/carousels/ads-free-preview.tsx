@@ -32,11 +32,12 @@ import {
   YourAdminWindow,
   YourParentPhone,
   YourSchoolMark,
+  YourTeacherWindow,
   YourWebsiteWindow,
 } from "@/components/admin/marketing/carousels/free-preview-mocks";
 
 // Set F: the free custom preview. Send us your website → a private MudKitchen preview with your logo,
-// colours and programs (website, parent app, admin portal). Free, private, no obligation, within
+// colours and programs (website, parent app, teacher portal, admin portal). Free, private, no obligation, within
 // 2 business days. Every slide drives to trymudkitchen.com/free-preview.
 // Claims stay inside that offer: no gift card, no customer names, quotes or stats, and only the
 // generic "Your School" placeholder brand (never a prospect's concept demo).
@@ -73,7 +74,7 @@ export const ADS_FREE_PREVIEW_CAROUSEL = {
       adCopy: {
         primaryText: "Skip the generic demo. Send your website and we'll build a private MudKitchen preview of your school. Free.",
         headline: "See it before you book a call",
-        description: "Your website, parent app and admin portal.",
+        description: "Website, parent app, teacher and admin portals.",
       },
     },
     {
@@ -161,7 +162,7 @@ export const ADS_FREE_PREVIEW_CAROUSEL = {
       fileName: "ad-f11-whats-inside.png",
       render: () => noOffer(<WhatsInsideAd />),
       adCopy: {
-        primaryText: "Inside your free preview: your website, parent app and admin portal, with your logo, colours and programs. Private link.",
+        primaryText: "Inside your free preview: your website, parent app, teacher portal and admin portal, with your logo and colours.",
         headline: "What's inside your free preview",
         description: "Within 2 business days. No obligation.",
       },
@@ -258,18 +259,21 @@ function BeforeTheCallAd() {
             See it <Accent>before</Accent> you book a call.
           </>
         }
-        sub="Your website, parent app and admin portal, built with your school's logo, colours and programs."
+        sub="Your website, parent app, teacher portal and admin portal, all with your school's name on them."
         size={88}
       />
       <Scene>
-        <Pin left={-6} top={50} z={2} rotate={-3}>
-          <YourAdminWindow scale={0.62} />
+        <Pin left={-6} top={30} z={2} rotate={-3}>
+          <YourAdminWindow scale={0.56} />
         </Pin>
-        <Pin right={-10} top={150} z={3} rotate={3}>
-          <YourWebsiteWindow scale={0.56} />
+        <Pin right={-10} top={40} z={2} rotate={3}>
+          <YourTeacherWindow scale={0.5} />
         </Pin>
-        <Pin left={250} top={10} z={4}>
-          <YourParentPhone scale={0.68} />
+        <Pin left={-10} top={330} z={3} rotate={2}>
+          <YourWebsiteWindow scale={0.5} />
+        </Pin>
+        <Pin right={60} top={150} z={4} rotate={-2}>
+          <YourParentPhone scale={0.66} />
         </Pin>
       </Scene>
       <div style={{ height: 30, flexShrink: 0 }} />
@@ -603,10 +607,11 @@ function WhatsInsideAd() {
       <Scene style={{ display: "flex", alignItems: "center" }}>
         <InkCard width={720} rotate={-1.5} style={{ padding: "36px 40px" }}>
           <CheckList
-            size={36}
+            size={34}
             rows={[
               { label: "Your website", note: "with your logo and colours", done: true },
               { label: "Your parent app", note: "with your school's name", done: true },
+              { label: "Your teacher portal", note: "roll call, class, hours", done: true },
               { label: "Your admin portal", note: "admissions, tuition, messages", done: true },
               { label: "Your programs, set up", done: true },
               { label: "A private link, just for you", done: true, highlight: true },
@@ -669,7 +674,7 @@ function FortyEightHoursAd() {
         <Pin left={0} top={340} z={4}>
           <SpeechBubble size={30} tail="none" width={520} style={{ padding: "22px 28px" }}>
             <Hand size={34} color={G.forest} rotate={0}>
-              Your website, parent app and admin portal, built with your details.
+              Your website, parent app, teacher and admin portals, built with your details.
             </Hand>
           </SpeechBubble>
         </Pin>

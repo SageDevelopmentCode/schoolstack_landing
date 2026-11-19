@@ -247,6 +247,70 @@ export function AdminPortalMock() {
   );
 }
 
+const TEACHER_NAV = ["Today", "Roll call", "My class", "Messages", "My hours"];
+const ROLL = [
+  { w: 170, tint: YOUR.soft, here: true },
+  { w: 140, tint: YOUR.tint, here: true },
+  { w: 190, tint: "#EEF5E9", here: false },
+  { w: 155, tint: "#ECE2F3", here: true },
+  { w: 175, tint: YOUR.soft, here: true },
+];
+
+/** Teacher portal in the placeholder brand: roll call for the class (placeholder bars, no names). */
+export function TeacherPortalMock() {
+  return (
+    <div style={{ position: "absolute", inset: 0, display: "flex", background: "#FBF8F3", fontFamily: FONT.body, color: G.ink }}>
+      <div style={{ width: 220, flexShrink: 0, background: YOUR.soft, borderRight: "2px solid #D6E0EE", padding: "24px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ marginBottom: 18 }}>
+          <YourSchoolLockup size={36} fontSize={21} color={YOUR.primaryDeep} ring={YOUR.primaryDeep} />
+        </div>
+        {TEACHER_NAV.map((item, i) => (
+          <span
+            key={item}
+            style={{
+              padding: "11px 14px",
+              borderRadius: 14,
+              background: i === 1 ? YOUR.primary : "transparent",
+              color: i === 1 ? "#FFFFFF" : YOUR.primaryDeep,
+              fontWeight: 800,
+              fontSize: 18,
+            }}
+          >
+            {item}
+          </span>
+        ))}
+      </div>
+      <div style={{ flex: 1, padding: "24px 30px", display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ display: "flex", flexDirection: "column" }}>
+            <span style={{ fontFamily: FONT.display, fontWeight: 800, fontSize: 34, letterSpacing: "-0.02em" }}>Roll call</span>
+            <span style={{ fontWeight: 700, fontSize: 17, color: G.soft }}>My class · this morning</span>
+          </span>
+          <span style={{ padding: "9px 18px", borderRadius: 999, background: YOUR.accent, fontWeight: 800, fontSize: 16 }}>Clock in</span>
+        </div>
+        <div style={{ borderRadius: 20, background: "#FFFFFF", border: "2px solid #EDE4D8", padding: "6px 20px" }}>
+          {ROLL.map((row, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "11px 0", borderTop: i ? "2px dashed #EDE4D8" : "none" }}>
+              <span style={{ width: 34, height: 34, borderRadius: 999, background: row.tint, flexShrink: 0 }} />
+              <span style={{ flex: 1 }}>
+                <Bar w={row.w} h={12} color="#D9CFC2" />
+              </span>
+              <span style={{ display: "flex", borderRadius: 999, border: "2px solid #E4D8C8", overflow: "hidden", fontWeight: 800, fontSize: 14 }}>
+                <span style={{ padding: "6px 12px", background: row.here ? "#E3F1DC" : "transparent", color: row.here ? "#2F6B3A" : G.soft }}>Present</span>
+                <span style={{ padding: "6px 12px", background: row.here ? "transparent" : YOUR.tint, color: row.here ? G.soft : "#9A5A12" }}>Absent</span>
+              </span>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 12 }}>
+          <span style={{ padding: "10px 18px", borderRadius: 999, background: YOUR.primary, color: "#FFFFFF", fontWeight: 800, fontSize: 16 }}>Submit roll call</span>
+          <span style={{ padding: "10px 18px", borderRadius: 999, background: "#FFFFFF", border: "2px solid #E4D8C8", fontWeight: 800, fontSize: 16, color: YOUR.primaryDeep }}>Message families</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------- phone
 
 export const PHONE_W = 360;
@@ -327,6 +391,16 @@ export function YourAdminWindow({ scale = 1, label }: { scale?: number; label?: 
   );
 }
 
+export function YourTeacherWindow({ scale = 1, label }: { scale?: number; label?: string }) {
+  return (
+    <Scaled w={BROWSER_W} h={BROWSER_H + 12} scale={scale}>
+      <MockBrowser label={label}>
+        <TeacherPortalMock />
+      </MockBrowser>
+    </Scaled>
+  );
+}
+
 export function YourParentPhone({ scale = 1 }: { scale?: number }) {
   return (
     <Scaled w={PHONE_W} h={PHONE_H} scale={scale}>
@@ -365,7 +439,7 @@ export function PreviewReadyEmail({ width = 760, rotate = 0, style }: { width?: 
         </span>
       </div>
       <p style={{ margin: "22px 0 0", fontFamily: FONT.display, fontWeight: 800, fontSize: Math.min(38, Math.round(width * 0.048)), lineHeight: 1.1, letterSpacing: "-0.02em" }}>Your private preview is ready 🎉</p>
-      <p style={{ margin: "10px 0 0", fontWeight: 600, fontSize: 25, lineHeight: 1.35, color: G.soft }}>Your website, parent app and admin portal, with your logo, colours and programs.</p>
+      <p style={{ margin: "10px 0 0", fontWeight: 600, fontSize: 25, lineHeight: 1.35, color: G.soft }}>Your website, parent app, teacher portal and admin portal, with your logo and colours.</p>
       <div style={{ display: "flex", alignItems: "center", gap: 18, marginTop: 22, flexWrap: "wrap" }}>
         <span style={{ padding: "16px 30px", borderRadius: 999, background: G.forest, color: "#FFFFFF", fontWeight: 800, fontSize: 25 }}>Open your preview</span>
         <span style={{ fontWeight: 700, fontSize: 21, color: G.soft }}>🔒 Private link, just for you</span>
@@ -374,7 +448,7 @@ export function PreviewReadyEmail({ width = 760, rotate = 0, style }: { width?: 
   );
 }
 
-/** One big "link" pill with the three things behind it. */
+/** One big "link" pill with the four things behind it. */
 export function PreviewLinkCard({ width = 820, style }: { width?: number; style?: CSSProperties }) {
   return (
     <div
@@ -404,7 +478,7 @@ export function PreviewLinkCard({ width = 820, style }: { width?: number; style?
         </span>
       </div>
       <div style={{ display: "flex", gap: 12, marginTop: 24, flexWrap: "wrap" }}>
-        {["Website", "Parent app", "Admin portal"].map((item, i) => (
+        {["Website", "Parent app", "Teacher portal", "Admin portal"].map((item, i) => (
           <span
             key={item}
             style={{
@@ -413,7 +487,7 @@ export function PreviewLinkCard({ width = 820, style }: { width?: number; style?
               gap: 10,
               padding: "12px 20px",
               borderRadius: 999,
-              background: [YOUR.soft, YOUR.tint, "#EEF5E9"][i],
+              background: [YOUR.soft, YOUR.tint, "#ECE2F3", "#EEF5E9"][i],
               border: "2px solid #E4D8C8",
               fontWeight: 800,
               fontSize: 25,

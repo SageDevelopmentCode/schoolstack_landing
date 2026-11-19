@@ -195,11 +195,11 @@ function OneScreenAd() {
         sub="Applications, tuition and messages at a glance."
         size={86}
       />
-      <Scene style={{ marginTop: 34, marginRight: -110 }}>
+      <Scene style={{ marginTop: 34 }}>
         <ProductWindow crop={{ zoom: 1.15, originX: 0, originY: 0 }}>
           <GardenAdminDashboardWindow contentHeight={920} />
         </ProductWindow>
-        <Pin left={-90} bottom={-20} z={8}>
+        <Pin left={-30} bottom={-20} z={8}>
           <Crew name="dig" view="point" width={300} />
         </Pin>
       </Scene>
@@ -223,11 +223,11 @@ function FamiliesAd() {
         sub="Every bill, form and update in one place. Tuition on autopay."
         size={82}
       />
-      <Scene style={{ marginTop: 34, marginLeft: -110 }}>
+      <Scene style={{ marginTop: 34 }}>
         <ProductWindow crop={{ zoom: 1.15, originX: 0, originY: 0 }}>
           <GardenParentBillingWindow contentHeight={920} />
         </ProductWindow>
-        <Pin right={-90} bottom={-20} z={8}>
+        <Pin right={-30} bottom={-20} z={8}>
           <Crew name="nutmeg" view="thumbs" width={290} flip />
         </Pin>
       </Scene>

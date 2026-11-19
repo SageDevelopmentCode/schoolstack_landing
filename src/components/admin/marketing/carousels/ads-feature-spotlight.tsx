@@ -101,7 +101,7 @@ type SpotlightProps = {
   title: ReactNode;
   hand: string;
   mascot: { name: MascotName; view: MascotView };
-  /** Which side the character stands on; the window bleeds off the other edge. */
+  /** Which bottom corner of the window the character stands on (as a sticker, on top of it). */
   side: "left" | "right";
   crop?: CarouselDemoCrop;
   children: ReactNode;
@@ -111,9 +111,9 @@ function SpotlightAd({ background, title, hand, mascot, side, crop = { zoom: 1.1
   return (
     <AdFrame background={background}>
       <AdCopy title={title} hand={hand} size={80} />
-      <Scene style={{ marginTop: 30, marginLeft: side === "right" ? -110 : 0, marginRight: side === "left" ? -110 : 0 }}>
+      <Scene style={{ marginTop: 30 }}>
         <ProductWindow crop={crop}>{children}</ProductWindow>
-        <Pin left={side === "left" ? -90 : undefined} right={side === "right" ? -90 : undefined} bottom={-20} z={8}>
+        <Pin left={side === "left" ? -30 : undefined} right={side === "right" ? -30 : undefined} bottom={-20} z={8}>
           <Crew name={mascot.name} view={mascot.view} width={300} flip={side === "right"} />
         </Pin>
       </Scene>
@@ -210,7 +210,7 @@ function HoursAd() {
       }
       hand="payroll day, but nobody cried."
       mascot={{ name: "clover", view: "celebrate" }}
-      side="left"
+      side="right"
     >
       <GardenHoursWindow contentHeight={920} />
     </SpotlightAd>

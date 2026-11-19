@@ -79,8 +79,7 @@ function FlickerAttempts() {
   return (
     <MascotSlide background="#FFF3CF">
       <div style={{ position: "absolute", left: 72, right: 72, top: 120, zIndex: 5 }}>
-        <Kicker bg={G.paper}>Meet Flicker, our class photographer</Kicker>
-        <Headline size={66} style={{ marginTop: 22 }}>
+        <Headline size={66}>
           Flicker trying to get one photo where <Accent>all 12 kids</Accent> look at the camera
         </Headline>
       </div>
@@ -105,8 +104,7 @@ function FlickerOneMore() {
   return (
     <MascotSlide background="#E3EDFB">
       <div style={{ position: "absolute", left: 72, right: 72, top: 120, zIndex: 5 }}>
-        <Kicker bg={G.paper}>Flicker, our class photographer</Kicker>
-        <Headline size={72} style={{ marginTop: 22 }}>
+        <Headline size={72}>
           a parent asks for <Accent>&ldquo;just one more&rdquo;</Accent> field trip photo
         </Headline>
       </div>
@@ -134,8 +132,7 @@ function TansyMeeting() {
   return (
     <MascotSlide background="#EEF5E9">
       <div style={{ position: "absolute", left: 72, right: 72, top: 120, zIndex: 5 }}>
-        <Kicker bg={G.paper}>Meet Tansy, who runs the committees</Kicker>
-        <Headline size={66} style={{ marginTop: 22 }}>
+        <Headline size={66}>
           Tansy at a committee meeting that <Accent>could have been a message</Accent>
         </Headline>
       </div>
@@ -250,10 +247,7 @@ function PickYourFighter() {
   return (
     <MascotSlide background="#2E4A3C">
       <div style={{ position: "absolute", left: 72, right: 72, top: 120, zIndex: 5 }}>
-        <Kicker bg={G.butter} color={G.forestDeep}>
-          Enrollment season edition
-        </Kicker>
-        <Headline size={86} color={G.cream} style={{ marginTop: 20 }}>
+        <Headline size={86} color={G.cream}>
           Pick your <Accent color={G.butter}>fighter</Accent>
         </Headline>
       </div>

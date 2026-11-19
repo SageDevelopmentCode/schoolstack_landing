@@ -29,6 +29,7 @@ import {
   YourAdminWindow,
   YourParentPhone,
   YourSchoolMark,
+  YourTeacherWindow,
   YourWebsiteWindow,
 } from "@/components/admin/marketing/carousels/free-preview-mocks";
 
@@ -64,17 +65,17 @@ export const POSTS_FREE_PREVIEW_SINGLES_CAROUSEL = {
       fileName: "post-fp02-how-it-works.png",
       render: () => <HowItWorksPost />,
       adCopy: {
-        primaryText: `How the free preview works:\n\n1. Send us your school's website.\n2. We build your website, parent app and admin portal with your logo, colours and programs.\n3. Within 2 business days, a private link lands in your inbox.\n\n${LINK}\n\n${TAGS}`,
+        primaryText: `How the free preview works:\n\n1. Send us your school's website.\n2. We build your website, parent app, teacher portal and admin portal with your logo, colours and programs.\n3. Within 2 business days, a private link lands in your inbox.\n\n${LINK}\n\n${TAGS}`,
         headline: "How the free preview works",
       },
     },
     {
-      id: "three-things",
-      fileName: "post-fp03-three-things-one-link.png",
-      render: () => <ThreeThingsPost />,
+      id: "four-things",
+      fileName: "post-fp03-four-things-one-link.png",
+      render: () => <FourThingsPost />,
       adCopy: {
-        primaryText: `Three things, one private link: your website, your parent app and your admin portal, all set up with your school's details.\n\nFree, and yours to click around.\n\n${LINK}\n\n${TAGS}`,
-        headline: "Website, parent app, admin portal",
+        primaryText: `Four things, one private link: your website, your parent app, your teacher portal and your admin portal, all with your school's name on them.\n\nFree, and yours to click around.\n\n${LINK}\n\n${TAGS}`,
+        headline: "Four things, all with your name on them",
       },
     },
     {
@@ -118,7 +119,7 @@ export const POSTS_FREE_PREVIEW_SINGLES_CAROUSEL = {
       fileName: "post-fp08-in-your-inbox.png",
       render: () => <InboxPost />,
       adCopy: {
-        primaryText: `Picture this in your inbox: your school's website, parent app and admin portal, built in MudKitchen with your logo and colours.\n\nFree and private. Send us your website to get yours.\n\n${LINK}\n\n${TAGS}`,
+        primaryText: `Picture this in your inbox: your school's website, parent app, teacher portal and admin portal, built in MudKitchen with your logo and colours.\n\nFree and private. Send us your website to get yours.\n\n${LINK}\n\n${TAGS}`,
         headline: "Your preview, in your inbox",
       },
     },
@@ -198,29 +199,32 @@ function HowItWorksPost() {
   );
 }
 
-// ---------------------------------------------------------------- 3 three things
+// ---------------------------------------------------------------- 3 four things
 
-function ThreeThingsPost() {
+function FourThingsPost() {
   return (
     <AdFrame background="#EEF5E9">
       <AdCopy
         title={
           <>
-            Three things. <Accent>One private link.</Accent>
+            Four things. <Accent>One private link.</Accent>
           </>
         }
-        sub="Your website, parent app and admin portal, set up with your school's details."
+        sub="Your website, parent app, teacher portal and admin portal, all with your school's name on them."
         size={88}
       />
       <Scene>
-        <Pin left={-6} top={30} z={2} rotate={-3}>
-          <YourAdminWindow scale={0.6} />
+        <Pin left={-6} top={20} z={2} rotate={-3}>
+          <YourAdminWindow scale={0.54} />
         </Pin>
-        <Pin right={-10} top={200} z={3} rotate={3}>
-          <YourWebsiteWindow scale={0.54} />
+        <Pin right={-10} top={30} z={2} rotate={3}>
+          <YourTeacherWindow scale={0.48} />
         </Pin>
-        <Pin left={260} top={0} z={4}>
-          <YourParentPhone scale={0.66} />
+        <Pin left={-10} top={310} z={3} rotate={2}>
+          <YourWebsiteWindow scale={0.48} />
+        </Pin>
+        <Pin right={60} top={140} z={4} rotate={-2}>
+          <YourParentPhone scale={0.64} />
         </Pin>
       </Scene>
       <div style={{ height: 30, flexShrink: 0 }} />

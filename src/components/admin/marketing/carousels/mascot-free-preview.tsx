@@ -9,7 +9,6 @@ import {
   G,
   Hand,
   Headline,
-  Kicker,
   MascotHookSlide,
   MascotSlide,
   NotificationCard,
@@ -27,6 +26,7 @@ import {
   YourAdminWindow,
   YourParentPhone,
   YourSchoolLockup,
+  YourTeacherWindow,
   YourWebsiteWindow,
   groundedY,
 } from "@/components/admin/marketing/carousels/free-preview-mocks";
@@ -37,7 +37,7 @@ import {
 export const MASCOT_FREE_PREVIEW_CAROUSEL = {
   id: "mascot-free-preview",
   title: "What happens after you send us your website (Free preview)",
-  description: `Mascot swipe carousel for the free custom preview: the crew gets the request, Terra pulls your colours, Dig builds the admin portal, Pip sets up the parent app, it lands in your inbox, you click around. Link: ${FREE_PREVIEW_UTM}`,
+  description: `Mascot swipe carousel for the free custom preview: the crew gets the request, Terra pulls your colours, Dig builds the admin portal, Pip sets up the parent app, Fennel sets up the teacher portal, it lands in your inbox, you click around. Link: ${FREE_PREVIEW_UTM}`,
   fileSlug: "mudkitchen-free-preview-what-happens",
   slides: [
     {
@@ -147,11 +147,33 @@ export const MASCOT_FREE_PREVIEW_CAROUSEL = {
       ),
     },
     {
-      id: "inbox",
-      fileName: "05-it-lands-in-your-inbox.png",
+      id: "fennel-teacher",
+      fileName: "05-fennel-sets-up-your-teacher-portal.png",
       render: () => (
         <StepSlide
-          step="Step 4 · Loam"
+          step="Step 4 · Fennel"
+          title={
+            <>
+              Fennel sets up <Accent>your teacher portal.</Accent>
+            </>
+          }
+          body="Roll call, their class, messages to families and their hours, for your staff."
+          background="#ECE2F3"
+          swipeLeft
+        >
+          <At x={60} y={600} z={2}>
+            <YourTeacherWindow scale={0.86} />
+          </At>
+          <PlacedMascot name="fennel" view="thumbs" width={300} x={760} y={groundedY(300)} z={5} flip />
+        </StepSlide>
+      ),
+    },
+    {
+      id: "inbox",
+      fileName: "06-it-lands-in-your-inbox.png",
+      render: () => (
+        <StepSlide
+          step="Step 5 · Loam"
           title={
             <>
               It lands <Accent>in your inbox.</Accent>
@@ -173,34 +195,37 @@ export const MASCOT_FREE_PREVIEW_CAROUSEL = {
     },
     {
       id: "click-around",
-      fileName: "06-you-click-around.png",
+      fileName: "07-you-click-around.png",
       render: () => (
         <StepSlide
-          step="Step 5 · You"
+          step="Step 6 · You"
           title={
             <>
               Then you <Accent>click around.</Accent>
             </>
           }
-          body="Your website, parent app and admin portal. No call needed, no obligation."
+          body="Your website, parent app, teacher portal and admin portal. No call needed, no obligation."
           background="#EEF5E9"
         >
           <At x={40} y={590} rotate={-3} z={2}>
-            <YourAdminWindow scale={0.56} />
+            <YourAdminWindow scale={0.48} />
           </At>
-          <At x={500} y={830} rotate={3} z={3}>
-            <YourWebsiteWindow scale={0.56} />
+          <At x={540} y={600} rotate={2} z={2}>
+            <YourTeacherWindow scale={0.48} />
           </At>
-          <At x={600} y={540} z={4}>
-            <YourParentPhone scale={0.44} />
+          <At x={300} y={890} rotate={-1} z={3}>
+            <YourWebsiteWindow scale={0.48} />
           </At>
-          <PlacedMascot name="dot" view="thumbs" width={230} x={70} y={groundedY(230)} z={5} />
+          <At x={820} y={850} rotate={3} z={4}>
+            <YourParentPhone scale={0.36} />
+          </At>
+          <PlacedMascot name="dot" view="thumbs" width={200} x={50} y={groundedY(200)} z={5} />
         </StepSlide>
       ),
     },
     {
       id: "cta",
-      fileName: "07-get-your-free-preview.png",
+      fileName: "08-get-your-free-preview.png",
       render: () => (
         <FreePreviewCtaSlide
           lead="Send us your website."
@@ -221,12 +246,11 @@ export const MASCOT_FREE_PREVIEW_CAROUSEL = {
 } satisfies MarketingCarousel;
 
 /** Middle slide: step kicker, headline and body at the top; scene art below; swipe hint. */
-function StepSlide({ swipeLeft, step, title, body, background, children }: { step: string; title: ReactNode; body?: string; background: string; children: ReactNode; swipeLeft?: boolean }) {
+function StepSlide({ swipeLeft, title, body, background, children }: { step: string; title: ReactNode; body?: string; background: string; children: ReactNode; swipeLeft?: boolean }) {
   return (
     <MascotSlide background={background}>
       <div style={{ position: "absolute", left: 72, right: 72, top: 128, zIndex: 6 }}>
-        <Kicker bg={G.paper}>{step}</Kicker>
-        <Headline size={72} style={{ marginTop: 22 }}>
+        <Headline size={72}>
           {title}
         </Headline>
         {body ? (

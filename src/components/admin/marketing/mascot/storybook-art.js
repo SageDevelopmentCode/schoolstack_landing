@@ -313,7 +313,7 @@ const SB = {};
     if (V.droop) tf += ` translate(0,3) scale(1,0.985)`;
     if (V.peek) tf = `translate(${C.peekDx || 34},4) rotate(-10 ${cxp} 238)`;
     const shRx = (C.shadow || 64) * (1 + lift / 60) * (V.sit ? 1.15 : 1);
-    s += `<ellipse cx="${gx}" cy="241" rx="${r1(shRx)}" ry="${r1(7 * (1 + lift / 80))}" fill="#2E1B12" opacity="${lift ? 0.12 : 0.18}"/>`;
+    if (o.shadow !== false) s += `<ellipse cx="${gx}" cy="241" rx="${r1(shRx)}" ry="${r1(7 * (1 + lift / 80))}" fill="#2E1B12" opacity="${lift ? 0.12 : 0.18}"/>`;
     s += `<g transform="${tf}">${inner}</g>`;
     if (V.peek) s += SB.fence();
     // global effects

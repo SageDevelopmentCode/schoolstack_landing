@@ -8,7 +8,6 @@ import {
   G,
   Hand,
   Headline,
-  Kicker,
   MascotOutroSlide,
   MascotProductSlide,
   MascotSlide,
@@ -42,8 +41,7 @@ function HookSlide() {
   return (
     <MascotSlide background="#FDEBDD">
       <div style={{ position: "absolute", left: 72, right: 72, top: 128, zIndex: 5 }}>
-        <Kicker bg={G.paper}>Meet Nutmeg, who handles tuition</Kicker>
-        <Headline size={78} style={{ marginTop: 22 }}>
+        <Headline size={78}>
           Nutmeg rehearsing <Accent>the reminder</Accent> in the mirror
         </Headline>
       </div>
