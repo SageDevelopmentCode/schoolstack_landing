@@ -101,7 +101,6 @@ export function ParentNewsletterDetailGardenScreen({
             // Reports via reportError unless it's a first 401 (refresh + reload).
             controller.handleHttpError(event.nativeEvent.statusCode);
           }}
-<<<<<<< Updated upstream
           onLoadEnd={controller.handleWebViewLoadEnd}
           // The OS can kill the content process (often while backgrounded);
           // the controller remounts silently and only reports repeat failures.
@@ -111,11 +110,6 @@ export function ParentNewsletterDetailGardenScreen({
           onContentProcessDidTerminate={() => {
             controller.handleProcessTerminated('ios_terminate');
           }}
-=======
-          // Reloads silently first (iOS kills it in the background); reports a crash loop.
-          onRenderProcessGone={controller.handleProcessTerminated}
-          onContentProcessDidTerminate={controller.handleProcessTerminated}
->>>>>>> Stashed changes
           renderLoading={() => (
             <View style={styles.webviewLoading}>
               <NewsletterPageSkeleton />
