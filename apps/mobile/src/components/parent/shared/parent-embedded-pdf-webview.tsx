@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { WebView, type WebViewProps } from 'react-native-webview';
 
+import { useWebViewTerminationRecovery } from '@/hooks/use-webview-termination-recovery';
 import { ParentEmbeddedPdfLoadingPlaceholder } from '@/components/parent/shared/parent-embedded-pdf-loading-placeholder';
 import { StoryButton } from '@/components/story/story-button';
 import { StoryFonts } from '@/constants/story-theme';
@@ -91,6 +92,12 @@ export function ParentEmbeddedPdfWebView({
   const viewerReadyRef = useRef(false);
   const firstPageShownRef = useRef(false);
   const reportedKeysRef = useRef<Set<string>>(new Set());
+  const { shouldReloadAfterTermination, resetTerminationRecovery } =
+    useWebViewTerminationRecovery();
+
+  useEffect(() => {
+    resetTerminationRecovery();
+  }, [resetTerminationRecovery, url]);
 
   useEffect(() => {
     setPhase('loading');
@@ -229,17 +236,26 @@ export function ParentEmbeddedPdfWebView({
     [markError, reportViewerFailure],
   );
 
+  /**
+   * iOS kills a backgrounded app's web content process routinely, so the first
+   * termination remounts the viewer silently (Apple's documented recovery).
+   * Only a second one soon after that reload is reported as a crash loop.
+   */
   const handleRenderProcessGone = useCallback(
     (event: { nativeEvent?: object }) => {
+      if (shouldReloadAfterTermination()) {
+        setReloadKey((key) => key + 1);
+        return;
+      }
       const didCrash = (event?.nativeEvent as { didCrash?: boolean } | undefined)?.didCrash;
       reportViewerFailure(
         'parent_pdf_viewer_render_process_gone',
         new Error('The PDF viewer process was terminated (likely out of memory).'),
-        { stage: 'render_process_gone', didCrash },
+        { stage: 'render_process_gone', didCrash, autoReloaded: true },
       );
       markError();
     },
-    [markError, reportViewerFailure],
+    [markError, reportViewerFailure, shouldReloadAfterTermination],
   );
 
   const openExternally = useCallback(async () => {
@@ -254,8 +270,9 @@ export function ParentEmbeddedPdfWebView({
   }, [reportEntityId, reportEntityType, reportError, url]);
 
   const retry = useCallback(() => {
+    resetTerminationRecovery();
     setReloadKey((key) => key + 1);
-  }, []);
+  }, [resetTerminationRecovery]);
 
   const handleShouldStartLoadWithRequest = useCallback(
     (request: { url: string }) => {

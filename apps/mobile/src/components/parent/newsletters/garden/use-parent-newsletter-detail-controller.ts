@@ -1,7 +1,12 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
+<<<<<<< Updated upstream
 import { AppState, Platform } from 'react-native';
+=======
+import { Platform } from 'react-native';
+>>>>>>> Stashed changes
 
+import { useWebViewTerminationRecovery } from '@/hooks/use-webview-termination-recovery';
 import { getParentNewsletterDocumentWebViewSource } from '@/lib/parent/parent-portal-api';
 import {
   isCommitteeWorkspaceLoadTimeoutError,
@@ -32,6 +37,10 @@ export function useParentNewsletterDetailController({
 
   /** Set once a load has already retried a 401 with a refreshed token. */
   const retriedAuthRef = useRef(false);
+  /** Bumped to remount (and so reload) the WebView after its process is killed. */
+  const [webViewKey, setWebViewKey] = useState(0);
+  const { shouldReloadAfterTermination, resetTerminationRecovery } =
+    useWebViewTerminationRecovery();
 
   /** Bumped to remount the WebView after iOS/Android kills its content process. */
   const [webViewKey, setWebViewKey] = useState(0);
@@ -43,9 +52,13 @@ export function useParentNewsletterDetailController({
   const loadStartedAtRef = useRef(0);
 
   const load = useCallback(async (options: { forceRefresh?: boolean } = {}) => {
+<<<<<<< Updated upstream
     terminationsRef.current = 0;
     loadedRef.current = false;
     loadStartedAtRef.current = Date.now();
+=======
+    resetTerminationRecovery();
+>>>>>>> Stashed changes
     setIsLoading(true);
     setLoadError(null);
     setWebSource(null);
@@ -69,7 +82,7 @@ export function useParentNewsletterDetailController({
     } finally {
       setIsLoading(false);
     }
-  }, [editionId, organizationId, reportError]);
+  }, [editionId, organizationId, reportError, resetTerminationRecovery]);
 
   useEffect(() => {
     retriedAuthRef.current = false;
@@ -108,6 +121,7 @@ export function useParentNewsletterDetailController({
     [editionId, load, reportError],
   );
 
+<<<<<<< Updated upstream
   const handleWebViewLoadEnd = useCallback(() => {
     loadedRef.current = true;
   }, []);
@@ -125,6 +139,17 @@ export function useParentNewsletterDetailController({
       const canRecover = terminations === 1 || (terminations === 2 && loadedRef.current);
       if (canRecover) {
         loadedRef.current = false;
+=======
+  /**
+   * The WebView's web content process went away. iOS kills it routinely while
+   * the app is in the background, so we remount the WebView silently (Apple's
+   * documented recovery). Only a second termination soon after that reload is a
+   * real crash loop, which is reported and shows the error card.
+   */
+  const handleProcessTerminated = useCallback(
+    (event?: { nativeEvent?: { didCrash?: boolean } }) => {
+      if (shouldReloadAfterTermination()) {
+>>>>>>> Stashed changes
         setWebViewKey((key) => key + 1);
         return;
       }
@@ -135,6 +160,7 @@ export function useParentNewsletterDetailController({
           entityType: 'newsletter_edition',
           entityId: editionId,
           metadata: {
+<<<<<<< Updated upstream
             source,
             platform: Platform.OS,
             didCrash,
@@ -143,12 +169,21 @@ export function useParentNewsletterDetailController({
             loadedBeforeTermination: loadedRef.current,
             appState: AppState.currentState,
             elapsedMs: Date.now() - loadStartedAtRef.current,
+=======
+            autoReloaded: true,
+            platform: Platform.OS,
+            didCrash: event?.nativeEvent?.didCrash,
+>>>>>>> Stashed changes
           },
         },
       );
       setLoadError('This newsletter could not be loaded.');
     },
+<<<<<<< Updated upstream
     [editionId, reportError],
+=======
+    [editionId, reportError, shouldReloadAfterTermination],
+>>>>>>> Stashed changes
   );
 
   const onBack = useCallback(() => {
@@ -166,7 +201,10 @@ export function useParentNewsletterDetailController({
     retry,
     handleHttpError,
     webViewKey,
+<<<<<<< Updated upstream
     handleWebViewLoadEnd,
+=======
+>>>>>>> Stashed changes
     handleProcessTerminated,
     onBack,
   };
