@@ -4,6 +4,7 @@ import { isCrmStatus, type CrmStatus } from "@/lib/admin-crm/crm-status";
 import {
   isOutreachChannel,
   isOutreachDirection,
+  isOutreachEmailStatus,
   nextStatusAfterTouch,
   type DemoOutreach,
   type DemoOutreachTouch,
@@ -57,8 +58,7 @@ function toEmailRecord(row: EmailRow): OutreachEmailRecord {
     channel: row.channel === "social" ? "social" : "email",
     toEmail: row.to_email,
     subject: row.subject ?? "",
-    status:
-      row.status === "sent" || row.status === "logged" || row.status === "skipped_unsubscribed" ? row.status : "failed",
+    status: isOutreachEmailStatus(row.status) ? row.status : "failed",
     error: row.error,
     sentAt: row.sent_at,
   };

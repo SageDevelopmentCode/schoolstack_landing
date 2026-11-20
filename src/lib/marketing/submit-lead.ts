@@ -2,6 +2,11 @@
 
 import { readFirstTouch } from "@/lib/marketing/attribution";
 import type { FreeToolPlanId, LeadMagnet } from "@/lib/marketing/lead-magnets";
+import {
+  isUsablePartialBookingDraft,
+  parsePartialBookingDraft,
+  type PartialBookingDraft,
+} from "@/lib/marketing/partial-booking-draft";
 import { PUBLIC_FORM_HONEYPOT_FIELD } from "@/lib/public-forms/honeypot";
 
 /** localStorage flag: once someone has given us their email, stop showing the lead popup. */
@@ -10,8 +15,6 @@ export const LEAD_CAPTURED_KEY = "mk-lead-captured";
 export const PARTIAL_BOOKING_DRAFT_KEY = "mk-partial-booking-draft";
 /** Window event fired by the booking flow whenever its step changes (detail: step number). */
 export const BOOKING_STEP_EVENT = "mk-booking-step";
-
-type PartialBookingDraft = { leadId: string; token: string };
 
 export function markLeadCaptured() {
   try {
@@ -33,11 +36,7 @@ function readPartialBookingDraft(): PartialBookingDraft | null {
   try {
     const raw = window.sessionStorage.getItem(PARTIAL_BOOKING_DRAFT_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as PartialBookingDraft;
-    if (typeof parsed.leadId === "string" && typeof parsed.token === "string") {
-      return parsed;
-    }
-    return null;
+    return parsePartialBookingDraft(JSON.parse(raw));
   } catch {
     return null;
   }
@@ -77,7 +76,15 @@ export type SubmitLeadResult = { ok: true } | { ok: false; error: string };
 
 export async function submitLead(input: SubmitLeadInput): Promise<SubmitLeadResult> {
   const { companyWebsite, ...fields } = input;
-  const partialDraft = fields.magnet === "partial_booking" ? readPartialBookingDraft() : null;
+  let partialDraft: PartialBookingDraft | null =
+    fields.magnet === "partial_booking" ? readPartialBookingDraft() : null;
+  if (
+    partialDraft &&
+    !isUsablePartialBookingDraft(partialDraft, fields.email)
+  ) {
+    clearPartialBookingDraft();
+    partialDraft = null;
+  }
   try {
     const res = await fetch("/api/marketing-leads", {
       method: "POST",
@@ -105,7 +112,12 @@ export async function submitLead(input: SubmitLeadInput): Promise<SubmitLeadResu
       typeof data.partialLeadId === "string" &&
       typeof data.partialLeadToken === "string"
     ) {
-      writePartialBookingDraft({ leadId: data.partialLeadId, token: data.partialLeadToken });
+      writePartialBookingDraft({
+        leadId: data.partialLeadId,
+        token: data.partialLeadToken,
+        email: fields.email.trim().toLowerCase(),
+        savedAt: new Date().toISOString(),
+      });
     }
     markLeadCaptured();
     return { ok: true };

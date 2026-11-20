@@ -1,7 +1,23 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { CRM_STATUSES } from "@/lib/admin-crm/crm-status";
-import { isFollowUpDue, nextStatusAfterTouch } from "@/lib/admin-crm/demo-outreach-types";
+import {
+  isFollowUpDue,
+  isOutreachEmailStatus,
+  OUTREACH_EMAIL_STATUSES,
+  nextStatusAfterTouch,
+} from "@/lib/admin-crm/demo-outreach-types";
+
+describe("isOutreachEmailStatus", () => {
+  it("recognizes every outreach email status including sending", () => {
+    for (const status of OUTREACH_EMAIL_STATUSES) {
+      assert.equal(isOutreachEmailStatus(status), true);
+    }
+    assert.equal(isOutreachEmailStatus("sending"), true);
+    assert.equal(isOutreachEmailStatus("unknown"), false);
+    assert.equal(isOutreachEmailStatus(null), false);
+  });
+});
 
 describe("nextStatusAfterTouch", () => {
   it("moves outbound touches through contacted then followed up", () => {

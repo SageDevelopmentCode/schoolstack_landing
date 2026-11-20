@@ -20,7 +20,7 @@ create table if not exists public.crm_outreach_emails (
   message_id   text,
   in_reply_to  text,
   status       text not null
-               check (status in ('sent', 'skipped_unsubscribed', 'failed', 'logged')),
+               check (status in ('sending', 'sent', 'skipped_unsubscribed', 'failed', 'logged')),
   error        text,
   sent_by      uuid references auth.users(id) on delete set null,
   sent_at      timestamptz not null default now()
@@ -32,10 +32,10 @@ create index if not exists crm_outreach_emails_school_sent_idx
 create index if not exists crm_outreach_emails_sent_at_idx
   on public.crm_outreach_emails (sent_at desc);
 
--- A step goes out once per school (failed / skipped attempts can be retried).
+-- A step goes out once per school, counting in-flight sends (failed / skipped attempts can be retried).
 create unique index if not exists crm_outreach_emails_one_success_per_step
   on public.crm_outreach_emails (school_id, step_id)
-  where status in ('sent', 'logged');
+  where status in ('sending', 'sent', 'logged');
 
 alter table public.crm_outreach_emails enable row level security;
 

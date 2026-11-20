@@ -39,7 +39,18 @@ export type DemoOutreach = {
 };
 
 /** 'sending' is the claim row held while Zoho sends; it becomes sent / skipped_unsubscribed / failed. */
-export type OutreachEmailStatus = "sending" | "sent" | "skipped_unsubscribed" | "failed" | "logged";
+export const OUTREACH_EMAIL_STATUSES = [
+  "sending",
+  "sent",
+  "skipped_unsubscribed",
+  "failed",
+  "logged",
+] as const;
+export type OutreachEmailStatus = (typeof OUTREACH_EMAIL_STATUSES)[number];
+
+export function isOutreachEmailStatus(value: unknown): value is OutreachEmailStatus {
+  return typeof value === "string" && (OUTREACH_EMAIL_STATUSES as readonly string[]).includes(value);
+}
 
 /** One outreach step sent (email) or logged (social note), from `crm_outreach_emails`. */
 export type OutreachEmailRecord = {

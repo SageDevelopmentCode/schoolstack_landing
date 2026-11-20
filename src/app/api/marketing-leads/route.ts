@@ -5,6 +5,7 @@ import { demoRequestRoleLabel } from "@/lib/demo-request-roles";
 import { notifyMarketingLead } from "@/lib/discord";
 import { sendCustomDemoRequestConfirmation, sendFreeToolPlanEmail } from "@/lib/emails";
 import { sanitizeAttribution, type LeadAttribution } from "@/lib/marketing/attribution";
+import { PARTIAL_BOOKING_DEDUPE_HOURS } from "@/lib/marketing/partial-booking-dedupe";
 import {
   signPartialBookingContinuation,
   verifyPartialBookingContinuation,
@@ -39,8 +40,6 @@ import { createAdminClient } from "@/utils/supabase/admin";
 const ROUTE = "/api/marketing-leads";
 const MAX_MESSAGE_LENGTH = 1000;
 const MAX_DETAIL_LENGTH = 100;
-/** Repeat "Continue" clicks on the booking form update one row instead of adding more. */
-const PARTIAL_BOOKING_DEDUPE_HOURS = 24;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ROLE_SET = new Set<string>(LEAD_ROLES);
