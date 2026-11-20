@@ -6,8 +6,12 @@ import { PUBLIC_FORM_HONEYPOT_FIELD } from "@/lib/public-forms/honeypot";
 
 /** localStorage flag: once someone has given us their email, stop showing the lead popup. */
 export const LEAD_CAPTURED_KEY = "mk-lead-captured";
+/** sessionStorage: HMAC continuation for updating the same partial_booking row. */
+export const PARTIAL_BOOKING_DRAFT_KEY = "mk-partial-booking-draft";
 /** Window event fired by the booking flow whenever its step changes (detail: step number). */
 export const BOOKING_STEP_EVENT = "mk-booking-step";
+
+type PartialBookingDraft = { leadId: string; token: string };
 
 export function markLeadCaptured() {
   try {
@@ -22,6 +26,36 @@ export function hasCapturedLead(): boolean {
     return Boolean(window.localStorage.getItem(LEAD_CAPTURED_KEY));
   } catch {
     return false;
+  }
+}
+
+function readPartialBookingDraft(): PartialBookingDraft | null {
+  try {
+    const raw = window.sessionStorage.getItem(PARTIAL_BOOKING_DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PartialBookingDraft;
+    if (typeof parsed.leadId === "string" && typeof parsed.token === "string") {
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function writePartialBookingDraft(draft: PartialBookingDraft) {
+  try {
+    window.sessionStorage.setItem(PARTIAL_BOOKING_DRAFT_KEY, JSON.stringify(draft));
+  } catch {
+    // Storage blocked: updates may create duplicate leads instead of de-duping.
+  }
+}
+
+export function clearPartialBookingDraft() {
+  try {
+    window.sessionStorage.removeItem(PARTIAL_BOOKING_DRAFT_KEY);
+  } catch {
+    // Ignore.
   }
 }
 
@@ -43,20 +77,35 @@ export type SubmitLeadResult = { ok: true } | { ok: false; error: string };
 
 export async function submitLead(input: SubmitLeadInput): Promise<SubmitLeadResult> {
   const { companyWebsite, ...fields } = input;
+  const partialDraft = fields.magnet === "partial_booking" ? readPartialBookingDraft() : null;
   try {
     const res = await fetch("/api/marketing-leads", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...fields,
+        ...(partialDraft
+          ? { partialLeadId: partialDraft.leadId, partialLeadToken: partialDraft.token }
+          : {}),
         sourcePath: window.location.pathname,
         attribution: readFirstTouch(),
         [PUBLIC_FORM_HONEYPOT_FIELD]: companyWebsite ?? "",
       }),
     });
-    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    const data = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      partialLeadId?: string;
+      partialLeadToken?: string;
+    };
     if (!res.ok) {
       return { ok: false, error: data.error ?? "Something went wrong. Please try again." };
+    }
+    if (
+      fields.magnet === "partial_booking" &&
+      typeof data.partialLeadId === "string" &&
+      typeof data.partialLeadToken === "string"
+    ) {
+      writePartialBookingDraft({ leadId: data.partialLeadId, token: data.partialLeadToken });
     }
     markLeadCaptured();
     return { ok: true };

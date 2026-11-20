@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { btnPop } from "@/components/garden/ui";
-import { captureFirstTouch } from "@/lib/marketing/attribution";
+import { useCaptureFirstTouch } from "@/hooks/useCaptureFirstTouch";
 import SmoothScroll from "./SmoothScroll";
 
 /**
@@ -30,9 +30,9 @@ export default function FunnelGardenShell({
   footerLinks: { label: string; href: string }[];
 }) {
   const [scrolled, setScrolled] = useState(false);
+  useCaptureFirstTouch();
 
   useEffect(() => {
-    captureFirstTouch();
     const onScroll = () => setScrolled(window.scrollY > 24);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });

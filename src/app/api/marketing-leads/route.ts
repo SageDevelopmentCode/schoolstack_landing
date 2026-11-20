@@ -6,6 +6,11 @@ import { notifyMarketingLead } from "@/lib/discord";
 import { sendCustomDemoRequestConfirmation, sendFreeToolPlanEmail } from "@/lib/emails";
 import { sanitizeAttribution, type LeadAttribution } from "@/lib/marketing/attribution";
 import {
+  signPartialBookingContinuation,
+  verifyPartialBookingContinuation,
+} from "@/lib/marketing/partial-booking-continuation";
+import { runAfterResponse } from "@/lib/next/run-after-response";
+import {
   FREE_TOOL_PLAN_NAMES,
   FREE_TOOL_PLAN_PATHS,
   LEAD_ROLES,
@@ -55,6 +60,9 @@ type LeadBody = {
   planLines?: unknown;
   attribution?: unknown;
   companyWebsite?: unknown;
+  /** Returned on first partial_booking save; required to update the same draft. */
+  partialLeadId?: unknown;
+  partialLeadToken?: unknown;
 };
 
 function str(value: unknown): string {
@@ -149,32 +157,6 @@ export async function POST(request: Request) {
       return apiError(ROUTE, { request, status: 400, error: "Missing required fields." });
     }
 
-    const since = new Date(Date.now() - PARTIAL_BOOKING_DEDUPE_HOURS * 3600_000).toISOString();
-    const { data: existing, error: lookupError } = await admin
-      .from("marketing_leads")
-      .select("id")
-      .eq("magnet", "partial_booking")
-      .eq("email", email.toLowerCase())
-      .eq("status", "new")
-      .gte("created_at", since)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (lookupError) {
-      return apiError(ROUTE, { request, status: 500, error: "An unexpected error occurred.", cause: lookupError });
-    }
-
-    if (existing) {
-      const { error } = await admin
-        .from("marketing_leads")
-        .update({ name: base.name, school_name: base.school_name, role: base.role, message: message.slice(0, MAX_MESSAGE_LENGTH) || null })
-        .eq("id", existing.id);
-      if (error) {
-        return apiError(ROUTE, { request, status: 500, error: "An unexpected error occurred.", cause: error });
-      }
-      return NextResponse.json({ ok: true });
-    }
-
     const protection = await enforcePublicFormSubmission({ request, form: "marketing_lead", email, companyWebsite: honeypot });
     if (!protection.ok) {
       return apiError(ROUTE, {
@@ -184,6 +166,68 @@ export async function POST(request: Request) {
         code: protection.code,
         notify: shouldNotifyPublicFormProtectionFailure(protection),
       });
+    }
+
+    const partialLeadId = str(body.partialLeadId);
+    const partialLeadToken = str(body.partialLeadToken);
+    const since = new Date(Date.now() - PARTIAL_BOOKING_DEDUPE_HOURS * 3600_000).toISOString();
+    const normalizedEmail = email.toLowerCase();
+    const partialFields = {
+      name: base.name,
+      school_name: base.school_name,
+      role: base.role,
+      message: message.slice(0, MAX_MESSAGE_LENGTH) || null,
+    };
+
+    if (partialLeadId || partialLeadToken) {
+      if (!partialLeadId || !partialLeadToken) {
+        return apiError(ROUTE, { request, status: 400, error: "Invalid submission.", code: "partial_booking_continuation" });
+      }
+      if (!verifyPartialBookingContinuation(partialLeadId, email, partialLeadToken)) {
+        return apiError(ROUTE, { request, status: 400, error: "Invalid submission.", code: "partial_booking_continuation" });
+      }
+
+      const { data: draft, error: draftError } = await admin
+        .from("marketing_leads")
+        .select("id, email, magnet, status, created_at")
+        .eq("id", partialLeadId)
+        .maybeSingle();
+      if (draftError) {
+        return apiError(ROUTE, { request, status: 500, error: "An unexpected error occurred.", cause: draftError });
+      }
+      if (
+        !draft ||
+        draft.magnet !== "partial_booking" ||
+        draft.status !== "new" ||
+        draft.email !== normalizedEmail ||
+        draft.created_at < since
+      ) {
+        return apiError(ROUTE, { request, status: 400, error: "Invalid submission.", code: "partial_booking_continuation" });
+      }
+
+      const { error: updateError } = await admin.from("marketing_leads").update(partialFields).eq("id", draft.id);
+      if (updateError) {
+        return apiError(ROUTE, { request, status: 500, error: "An unexpected error occurred.", cause: updateError });
+      }
+      void recordPublicFormSubmissionEvent({ form: "marketing_lead", ip: getRequestIp(request), email, route: ROUTE, request });
+      return NextResponse.json({ ok: true });
+    }
+
+    const { data: existing, error: lookupError } = await admin
+      .from("marketing_leads")
+      .select("id")
+      .eq("magnet", "partial_booking")
+      .eq("email", normalizedEmail)
+      .eq("status", "new")
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (lookupError) {
+      return apiError(ROUTE, { request, status: 500, error: "An unexpected error occurred.", cause: lookupError });
+    }
+    if (existing) {
+      return NextResponse.json({ ok: true });
     }
 
     const { data: partialRow, error } = await admin
@@ -199,26 +243,46 @@ export async function POST(request: Request) {
     if (error || !partialRow) {
       return apiError(ROUTE, { request, status: 500, error: "An unexpected error occurred.", cause: error });
     }
+
+    let partialLeadTokenOut: string;
+    try {
+      partialLeadTokenOut = signPartialBookingContinuation(partialRow.id, email);
+    } catch (err) {
+      return apiError(ROUTE, {
+        request,
+        status: 500,
+        error: "An unexpected error occurred.",
+        code: "partial_booking_signing_unconfigured",
+        cause: err,
+      });
+    }
+
     void recordPublicFormSubmissionEvent({ form: "marketing_lead", ip: getRequestIp(request), email, route: ROUTE, request });
 
-    // One alert per person per day: the de-dupe update path above never notifies.
-    try {
-      await notifyMarketingLead({
-        leadId: partialRow.id,
-        magnet: "partial_booking",
-        magnetDetail: placement,
-        name,
-        email,
-        schoolName,
-        roleLabel: demoRequestRoleLabel(role),
-        message,
-        sourcePath,
-        attributionSummary: attributionSummary(attribution),
-      });
-    } catch (err) {
-      void logNotificationFailure(admin, { operation: "marketing_lead_discord", error: err, metadata: { email, magnet } });
-    }
-    return NextResponse.json({ ok: true });
+    // One alert per person per day: continuation updates never notify.
+    runAfterResponse(async () => {
+      try {
+        await notifyMarketingLead({
+          leadId: partialRow.id,
+          magnet: "partial_booking",
+          magnetDetail: placement,
+          name,
+          email,
+          schoolName,
+          roleLabel: demoRequestRoleLabel(role),
+          message,
+          sourcePath,
+          attributionSummary: attributionSummary(attribution),
+        });
+      } catch (err) {
+        void logNotificationFailure(admin, { operation: "marketing_lead_discord", error: err, metadata: { email, magnet } });
+      }
+    });
+    return NextResponse.json({
+      ok: true,
+      partialLeadId: partialRow.id,
+      partialLeadToken: partialLeadTokenOut,
+    });
   }
 
   // ── Custom demo request and free tool plan: both notify and email. ──
@@ -286,23 +350,25 @@ export async function POST(request: Request) {
 
   void recordPublicFormSubmissionEvent({ form: "marketing_lead", ip: getRequestIp(request), email, route: ROUTE, request });
 
-  try {
-    await notifyMarketingLead({
-      leadId: inserted.id,
-      magnet,
-      magnetDetail: magnet === "tool_plan" && toolId ? FREE_TOOL_PLAN_NAMES[toolId as keyof typeof FREE_TOOL_PLAN_NAMES] : magnetDetail,
-      name,
-      email,
-      schoolName,
-      websiteUrl,
-      roleLabel: role ? demoRequestRoleLabel(role) : null,
-      message,
-      sourcePath,
-      attributionSummary: attributionSummary(attribution),
-    });
-  } catch (err) {
-    void logNotificationFailure(admin, { operation: "marketing_lead_discord", error: err, metadata: { email, magnet } });
-  }
+  runAfterResponse(async () => {
+    try {
+      await notifyMarketingLead({
+        leadId: inserted.id,
+        magnet,
+        magnetDetail: magnet === "tool_plan" && toolId ? FREE_TOOL_PLAN_NAMES[toolId as keyof typeof FREE_TOOL_PLAN_NAMES] : magnetDetail,
+        name,
+        email,
+        schoolName,
+        websiteUrl,
+        roleLabel: role ? demoRequestRoleLabel(role) : null,
+        message,
+        sourcePath,
+        attributionSummary: attributionSummary(attribution),
+      });
+    } catch (err) {
+      void logNotificationFailure(admin, { operation: "marketing_lead_discord", error: err, metadata: { email, magnet } });
+    }
+  });
 
   if (magnet === "custom_demo") {
     try {
@@ -329,6 +395,13 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     void logNotificationFailure(admin, { operation: "free_tool_plan_email", error: err, metadata: { email, toolId } });
+    return apiError(ROUTE, {
+      request,
+      status: 502,
+      error: "We couldn't send the email right now. Please try again in a moment.",
+      notify: true,
+      cause: err,
+    });
   }
 
   if (!sent) {

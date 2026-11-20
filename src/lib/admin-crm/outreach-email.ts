@@ -224,6 +224,11 @@ function endOfDay(now: Date): number {
 const REPLIED_STATUSES: CrmStatus[] = ["replied", "demo_scheduled", "proposal_sent"];
 const CLOSED_STATUSES: CrmStatus[] = ["won", "not_interested"];
 
+/** True when CRM status means the automated outreach sequence must not send (reply or closed deal). */
+export function isOutreachSequenceStoppedByCrmStatus(status: CrmStatus): boolean {
+  return REPLIED_STATUSES.includes(status) || CLOSED_STATUSES.includes(status);
+}
+
 export type NextOutreachStep = {
   stage: OutreachStage;
   /** The next step to do, when there is one. */
@@ -243,8 +248,11 @@ export function nextOutreachStep(input: {
 
   if (plan?.doNotEmail) return { stage: "do_not_email", step: null, dueAt: null };
   // A reply or a closed deal wins over everything else, plan or no plan.
-  if (REPLIED_STATUSES.includes(crmStatus)) return { stage: "replied", step: null, dueAt: null };
-  if (CLOSED_STATUSES.includes(crmStatus)) return { stage: "closed", step: null, dueAt: null };
+  if (isOutreachSequenceStoppedByCrmStatus(crmStatus)) {
+    return REPLIED_STATUSES.includes(crmStatus)
+      ? { stage: "replied", step: null, dueAt: null }
+      : { stage: "closed", step: null, dueAt: null };
+  }
   if (!plan) return { stage: "needs_research", step: null, dueAt: null };
 
   const done = new Set(completed.map((c) => c.stepId));

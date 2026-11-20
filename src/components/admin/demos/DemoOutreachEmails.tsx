@@ -8,6 +8,7 @@ import type { DemoOutreach, OutreachChannel } from "@/lib/admin-crm/demo-outreac
 import { OutreachComposeModal } from "@/components/admin/demos/OutreachComposeModal";
 import { buildResearchPrompt, OUTREACH_STEP_LABEL, stepState, type StepState } from "@/components/admin/demos/outreach-ui";
 import { crmStatusLabel } from "@/lib/admin-crm/crm-status";
+import { isOutreachSequenceStoppedByCrmStatus } from "@/lib/admin-crm/outreach-email";
 import { formatShortDate } from "@/components/admin/demos/demo-outreach-format";
 
 /** The Claude Code prompt that researches this school and writes its sequence. */
@@ -29,6 +30,11 @@ function StateBadge({ state }: { state: StepState }) {
       <span className={`${base} bg-admin-success-bg text-admin-success border-admin-success-border`}>
         {state.record.status === "logged" ? "Logged" : "Sent"} {formatShortDate(state.record.sentAt)}
       </span>
+    );
+  }
+  if (state.kind === "attempted" && state.record.status === "sending") {
+    return (
+      <span className={`${base} bg-admin-neutral-bg text-admin-muted border-admin-border`}>Sending…</span>
     );
   }
   if (state.kind === "attempted") {
@@ -136,7 +142,7 @@ export function DemoOutreachEmails({
     );
   }
 
-  const replied = outreach && ["replied", "demo_scheduled", "proposal_sent", "won", "not_interested"].includes(outreach.crmStatus);
+  const replied = outreach && isOutreachSequenceStoppedByCrmStatus(outreach.crmStatus);
 
   return (
     <section className="flex flex-col gap-3">

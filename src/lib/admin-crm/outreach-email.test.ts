@@ -4,6 +4,7 @@ import type { OutreachPlan } from "@/data/outreach/types";
 import {
   addBusinessDays,
   followUpSubject,
+  isOutreachSequenceStoppedByCrmStatus,
   nextOutreachStep,
   outreachWarnings,
   renderOutreachEmail,
@@ -24,6 +25,20 @@ const plan: OutreachPlan = {
     { id: "close", kind: "email", businessDay: 20, purpose: "p", body: "Hi" },
   ],
 };
+
+describe("isOutreachSequenceStoppedByCrmStatus", () => {
+  it("stops when they replied, advanced the deal, or closed out", () => {
+    for (const status of ["replied", "demo_scheduled", "proposal_sent", "won", "not_interested"] as const) {
+      assert.equal(isOutreachSequenceStoppedByCrmStatus(status), true, status);
+    }
+  });
+
+  it("allows in-sequence pipeline statuses", () => {
+    for (const status of ["not_contacted", "contacted", "followed_up", "nurturing"] as const) {
+      assert.equal(isOutreachSequenceStoppedByCrmStatus(status), false, status);
+    }
+  });
+});
 
 describe("renderOutreachEmail", () => {
   it("adds the legal footer and escapes HTML", () => {

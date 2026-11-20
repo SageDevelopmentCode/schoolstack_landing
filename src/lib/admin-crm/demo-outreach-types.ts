@@ -38,7 +38,8 @@ export type DemoOutreach = {
   emails: OutreachEmailRecord[];
 };
 
-export type OutreachEmailStatus = "sent" | "skipped_unsubscribed" | "failed" | "logged";
+/** 'sending' is the claim row held while Zoho sends; it becomes sent / skipped_unsubscribed / failed. */
+export type OutreachEmailStatus = "sending" | "sent" | "skipped_unsubscribed" | "failed" | "logged";
 
 /** One outreach step sent (email) or logged (social note), from `crm_outreach_emails`. */
 export type OutreachEmailRecord = {

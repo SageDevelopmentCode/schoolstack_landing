@@ -33,7 +33,12 @@ import { MUDKITCHEN_MARKETING_BRIGHT_THEME } from "@/lib/marketing/mudkitchen-br
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { DemoPromoId } from "@/lib/marketing/gift-card-offer";
 import { readFirstTouch } from "@/lib/marketing/attribution";
-import { BOOKING_STEP_EVENT, markLeadCaptured, submitLead } from "@/lib/marketing/submit-lead";
+import {
+  BOOKING_STEP_EVENT,
+  clearPartialBookingDraft,
+  markLeadCaptured,
+  submitLead,
+} from "@/lib/marketing/submit-lead";
 
 type FormData = GetStartedIntroductionFormData;
 
@@ -326,6 +331,7 @@ export default function GetStartedDemoFlow({
         return;
       }
 
+      clearPartialBookingDraft();
       markLeadCaptured();
       setBooking(selected);
       goToStep(2);

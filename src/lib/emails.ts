@@ -212,7 +212,7 @@ export async function sendDemoBookingConfirmation(payload: {
   });
 
   if (!result.success) {
-    console.error("Demo booking confirmation email failed:", result.error);
+    throw new Error(result.error ?? "Demo booking confirmation email failed");
   }
 }
 
@@ -231,7 +231,7 @@ export async function sendHomepageQuestionConfirmation(payload: {
   });
 
   if (!result.success) {
-    console.error("Homepage question confirmation email failed:", result.error);
+    throw new Error(result.error ?? "Homepage question confirmation email failed");
   }
 }
 
@@ -306,7 +306,7 @@ export async function sendCustomDemoRequestConfirmation(payload: {
   });
 
   if (!result.success) {
-    console.error("Custom demo request confirmation email failed:", result.error);
+    throw new Error(result.error ?? "Custom demo request confirmation email failed");
   }
 }
 
@@ -363,9 +363,9 @@ export async function sendFreeToolPlanEmail(payload: {
   });
 
   if (!result.success) {
-    console.error("Free tool plan email failed:", result.error);
+    throw new Error(result.error ?? "Free tool plan email failed");
   }
-  return result.success;
+  return true;
 }
 
 export function buildPublicSupportRequestConfirmationHtml(payload: {
@@ -403,7 +403,7 @@ export async function sendPublicSupportRequestConfirmation(payload: {
   });
 
   if (!result.success) {
-    console.error("Public support request confirmation email failed:", result.error);
+    throw new Error(result.error ?? "Public support request confirmation email failed");
   }
 }
 
@@ -423,7 +423,7 @@ export async function sendDemoFeedbackConfirmation(payload: {
   });
 
   if (!result.success) {
-    console.error("Demo feedback confirmation email failed:", result.error);
+    throw new Error(result.error ?? "Demo feedback confirmation email failed");
   }
 }
 

@@ -9,9 +9,11 @@ import {
   logDemoOutreachTouch,
 } from "@/lib/admin-crm/demo-outreach";
 import { completedOutreachSteps, type DemoOutreach, type OutreachChannel } from "@/lib/admin-crm/demo-outreach-types";
+import { isCrmStatus } from "@/lib/admin-crm/crm-status";
 import {
   followUpSubject,
   hasBlockingWarning,
+  isOutreachSequenceStoppedByCrmStatus,
   nextOutreachStep,
   outreachWarnings,
   renderOutreachEmail,
@@ -38,6 +40,9 @@ export class OutreachSendError extends Error {
 
 export const POSTAL_ADDRESS_MISSING_MESSAGE =
   "Set OUTREACH_POSTAL_ADDRESS to a street address, PO box or virtual mailbox (not an email). US law (CAN-SPAM) requires one in every cold email.";
+
+export const OUTREACH_SEQUENCE_STOPPED_MESSAGE =
+  "They've replied or the deal has moved on, so the sequence has stopped.";
 
 /**
  * The postal address printed in every cold email's footer (CAN-SPAM). Not the sender's email:
@@ -150,6 +155,11 @@ export async function sendOutreachEmail(
   }
 
   const school = await ensureSchoolForDemo(supabase, demo);
+  const crmStatus = isCrmStatus(school.crm_status) ? school.crm_status : "not_contacted";
+  if (isOutreachSequenceStoppedByCrmStatus(crmStatus)) {
+    throw new OutreachSendError(OUTREACH_SEQUENCE_STOPPED_MESSAGE, "outreach_stopped", 409);
+  }
+
   const { subject, firstMessageId, references } = await resolveSubject(supabase, school.id, step.id, draft.subject);
 
   const warnings = outreachWarnings({ stepId: step.id, subject: step.id === "first" ? subject : undefined, body: draft.body });
@@ -167,7 +177,7 @@ export async function sendOutreachEmail(
     .from("crm_outreach_emails")
     .select("id", { count: "exact", head: true })
     .eq("channel", "email")
-    .eq("status", "sent")
+    .in("status", ["sent", "sending"])
     .gte("sent_at", since);
   if (countError) throw countError;
   if ((count ?? 0) >= OUTREACH_DAILY_SEND_CAP) {
@@ -183,26 +193,9 @@ export async function sendOutreachEmail(
   const messageId = `<outreach-${randomUUID()}@${domain}>`;
   const dryRun = isOutboundEmailDisabled();
 
-  const result = await sendZohoEmail({
-    toAddress: toEmail,
-    subject,
-    content: html,
-    text,
-    messageId,
-    inReplyTo: firstMessageId ?? undefined,
-    references: references.length > 0 ? references : undefined,
-    sendClass: "marketing",
-    discord: {
-      channel: "demo_outreach",
-      audience: "prospect",
-      surface: "web",
-      entityType: "demo_outreach",
-      entityId: `${demo.slug}:${step.id}`,
-    },
-  });
-
-  const status = !result.success ? "failed" : "skipped" in result && result.skipped ? "skipped_unsubscribed" : "sent";
-  const { error: insertError } = await supabase.from("crm_outreach_emails").insert({
+  // Claim the step before emailing: the unique index allows one 'sending' / 'sent' row per
+  // school + step, so a concurrent request fails here instead of sending a second email.
+  const claimId = await claimOutreachStep(supabase, {
     school_id: school.id,
     demo_slug: demo.slug,
     step_id: step.id,
@@ -210,18 +203,52 @@ export async function sendOutreachEmail(
     to_email: toEmail,
     subject,
     body_text: text,
-    message_id: status === "sent" ? messageId : null,
     in_reply_to: firstMessageId,
-    status,
-    error: !result.success
-      ? result.error ?? "Zoho send failed"
-      : dryRun
-        ? "DISABLE_OUTBOUND_EMAIL is on: logged but not actually sent"
-        : null,
     sent_by: input.userId,
     sent_at: now.toISOString(),
-  });
-  if (insertError) throw insertError;
+  }, now);
+
+  let result: Awaited<ReturnType<typeof sendZohoEmail>>;
+  try {
+    result = await sendZohoEmail({
+      toAddress: toEmail,
+      subject,
+      content: html,
+      text,
+      messageId,
+      inReplyTo: firstMessageId ?? undefined,
+      references: references.length > 0 ? references : undefined,
+      sendClass: "marketing",
+      discord: {
+        channel: "demo_outreach",
+        audience: "prospect",
+        surface: "web",
+        entityType: "demo_outreach",
+        entityId: `${demo.slug}:${step.id}`,
+      },
+    });
+  } catch (error) {
+    await supabase
+      .from("crm_outreach_emails")
+      .update({ status: "failed", error: error instanceof Error ? error.message : "Zoho send failed" })
+      .eq("id", claimId);
+    throw error;
+  }
+
+  const status = !result.success ? "failed" : "skipped" in result && result.skipped ? "skipped_unsubscribed" : "sent";
+  const { error: updateError } = await supabase
+    .from("crm_outreach_emails")
+    .update({
+      message_id: status === "sent" ? messageId : null,
+      status,
+      error: !result.success
+        ? result.error ?? "Zoho send failed"
+        : dryRun
+          ? "DISABLE_OUTBOUND_EMAIL is on: logged but not actually sent"
+          : null,
+    })
+    .eq("id", claimId);
+  if (updateError) throw updateError;
 
   if (!result.success) {
     throw new OutreachSendError(`Zoho didn't send it: ${result.error ?? "unknown error"}`, "send_failed", 502);
@@ -245,6 +272,53 @@ export async function sendOutreachEmail(
 
   const finalStatus = status === "skipped_unsubscribed" ? "skipped_unsubscribed" : "sent";
   return { status: finalStatus, dryRun, outreach: await loadOutreach(supabase, school.id) };
+}
+
+/** A 'sending' claim older than this belongs to a request that died mid-send. */
+const STALE_SEND_CLAIM_MS = 10 * 60 * 1000;
+
+/**
+ * Inserts the 'sending' row that reserves an email step for one request, and returns its id.
+ * Throws `already_sent` when another request holds the step or it already went out.
+ */
+async function claimOutreachStep(
+  supabase: SupabaseClient,
+  row: {
+    school_id: string;
+    demo_slug: string;
+    step_id: string;
+    channel: "email";
+    to_email: string;
+    subject: string;
+    body_text: string;
+    in_reply_to: string | null;
+    sent_by: string;
+    sent_at: string;
+  },
+  now: Date,
+): Promise<string> {
+  // Free a step left reserved by a request that crashed, so it isn't blocked forever.
+  const { error: staleError } = await supabase
+    .from("crm_outreach_emails")
+    .update({ status: "failed", error: "Send was interrupted. Check the Zoho Sent folder before retrying." })
+    .eq("school_id", row.school_id)
+    .eq("step_id", row.step_id)
+    .eq("status", "sending")
+    .lt("sent_at", new Date(now.getTime() - STALE_SEND_CLAIM_MS).toISOString());
+  if (staleError) throw staleError;
+
+  const { data, error } = await supabase
+    .from("crm_outreach_emails")
+    .insert({ ...row, status: "sending" })
+    .select("id")
+    .single();
+  if (error) {
+    if (error.code === "23505") {
+      throw new OutreachSendError("This step is already being sent or was sent to this school.", "already_sent", 409);
+    }
+    throw error;
+  }
+  return (data as { id: string }).id;
 }
 
 /** Logs a touch for a completed step and sets the follow-up date to the next step's due date. */
@@ -292,6 +366,11 @@ export async function logOutreachSocialStep(
   }
 
   const school = await ensureSchoolForDemo(supabase, input.demo);
+  const crmStatus = isCrmStatus(school.crm_status) ? school.crm_status : "not_contacted";
+  if (isOutreachSequenceStoppedByCrmStatus(crmStatus)) {
+    throw new OutreachSendError(OUTREACH_SEQUENCE_STOPPED_MESSAGE, "outreach_stopped", 409);
+  }
+
   const existing = await listOutreachEmails(supabase, [school.id]);
   if (completedOutreachSteps(existing.get(school.id) ?? []).some((c) => c.stepId === "social")) {
     throw new OutreachSendError("The social note is already logged for this school.", "already_sent", 409);
@@ -308,7 +387,12 @@ export async function logOutreachSocialStep(
     sent_by: input.userId,
     sent_at: now.toISOString(),
   });
-  if (error) throw error;
+  if (error) {
+    if (error.code === "23505") {
+      throw new OutreachSendError("The social note is already logged for this school.", "already_sent", 409);
+    }
+    throw error;
+  }
 
   await recordCompletedStep(supabase, {
     plan: input.plan,

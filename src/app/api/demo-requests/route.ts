@@ -3,6 +3,7 @@ import { schoolDemoRegistry } from "@/data/school-demos";
 import { isPastDate, SCHEDULER_TIMEZONE } from "@/lib/demo-scheduler";
 import { isValidIanaTimezone } from "@/lib/marketing/demo-timezone-options";
 import { logNotificationFailure } from "@/lib/admissions/notification-logging";
+import { reportOperationalError } from "@/lib/operational-errors";
 import { apiError } from "@/lib/api/route-errors";
 import { notifyDemoBooking } from "@/lib/discord";
 import { sendDemoBookingConfirmation } from "@/lib/emails";
@@ -295,7 +296,17 @@ export async function POST(request: Request) {
   // Until 20261170_add_marketing_leads.sql is applied on a database, these columns don't
   // exist (PostgREST PGRST204). Never lose a booking over tracking data: retry without them.
   if (error?.code === "PGRST204") {
-    console.error(`[${ROUTE}] demo_requests tracking columns missing; apply 20261170_add_marketing_leads.sql`);
+    void reportOperationalError({
+      supabase: admin,
+      surface: "api",
+      operation: "demo_requests_tracking_columns_fallback",
+      error:
+        "demo_requests tracking columns missing; retried insert without attribution/concept_demo_slug. Apply 20261170_add_marketing_leads.sql.",
+      severity: "warning",
+      cause: error,
+      actor: { type: "system" },
+      metadata: { email: email.toLowerCase() },
+    });
     ({ error } = await admin.from("demo_requests").insert(baseRow));
   }
 
@@ -331,7 +342,18 @@ export async function POST(request: Request) {
     .eq("status", "new")
     .eq("email", email.toLowerCase())
     .then(({ error: leadError }) => {
-      if (leadError) console.error(`[${ROUTE}] Failed to mark partial booking as booked`, leadError);
+      if (leadError) {
+        void reportOperationalError({
+          supabase: admin,
+          surface: "api",
+          operation: "demo_request_mark_partial_booking_booked",
+          error: "Failed to mark partial_booking marketing lead as booked.",
+          severity: "warning",
+          cause: leadError,
+          actor: { type: "system" },
+          metadata: { email: email.toLowerCase() },
+        });
+      }
     });
 
   try {

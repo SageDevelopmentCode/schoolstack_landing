@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { ArrowDownLeft, ArrowUpRight, Trash2 } from "lucide-react";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
@@ -88,20 +88,28 @@ function DrawerBody({
   const current = outreach ?? placeholder();
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const patchQueueRef = useRef(Promise.resolve());
+  const patchGenRef = useRef(0);
 
   const base = `/api/admin/demo-outreach/${encodeURIComponent(demo.slug)}`;
 
-  /** Optimistic status / follow-up change, rolled back if the save fails. */
-  async function patch(next: Partial<Pick<DemoOutreach, "crmStatus" | "nextFollowUpAt">>) {
+  /** Optimistic status / follow-up change; PATCH runs in order so stale responses cannot win. */
+  function patch(next: Partial<Pick<DemoOutreach, "crmStatus" | "nextFollowUpAt">>) {
     const previous = outreach;
+    const generation = ++patchGenRef.current;
     onChange(demo.slug, { ...current, ...next });
     setError(null);
-    try {
-      onChange(demo.slug, await send(base, "PATCH", next));
-    } catch (e) {
-      onChange(demo.slug, previous);
-      setError(e instanceof Error ? e.message : "Couldn't save. Try again.");
-    }
+    patchQueueRef.current = patchQueueRef.current.then(async () => {
+      try {
+        const saved = await send(base, "PATCH", next);
+        if (generation === patchGenRef.current) onChange(demo.slug, saved);
+      } catch (e) {
+        if (generation === patchGenRef.current) {
+          onChange(demo.slug, previous);
+          setError(e instanceof Error ? e.message : "Couldn't save. Try again.");
+        }
+      }
+    });
   }
 
   async function logTouch(input: {
@@ -124,17 +132,23 @@ function DrawerBody({
     }
   }
 
-  async function deleteTouch(touchId: string) {
+  function deleteTouch(touchId: string) {
     if (!window.confirm("Delete this touch from the history?")) return;
     const previous = outreach;
+    const generation = ++patchGenRef.current;
     onChange(demo.slug, { ...current, touches: current.touches.filter((t) => t.id !== touchId) });
     setError(null);
-    try {
-      onChange(demo.slug, await send(`/api/admin/demo-outreach/touches/${touchId}`, "DELETE"));
-    } catch (e) {
-      onChange(demo.slug, previous);
-      setError(e instanceof Error ? e.message : "Couldn't delete the touch. Try again.");
-    }
+    patchQueueRef.current = patchQueueRef.current.then(async () => {
+      try {
+        const saved = await send(`/api/admin/demo-outreach/touches/${touchId}`, "DELETE");
+        if (generation === patchGenRef.current) onChange(demo.slug, saved);
+      } catch (e) {
+        if (generation === patchGenRef.current) {
+          onChange(demo.slug, previous);
+          setError(e instanceof Error ? e.message : "Couldn't delete the touch. Try again.");
+        }
+      }
+    });
   }
 
   const due = isFollowUpDue(current.nextFollowUpAt);
