@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { calmEnter, staggerDelay } from '@/lib/motion/portal-motion';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { ParentCoopTeachingScheduleSkeleton } from '@/components/parent/coop/parent-coop-teaching-schedule-skeleton';
 import { ParentCoopTeachingScheduleStoryHeader } from '@/components/parent/coop/parent-coop-teaching-schedule-story-header';
@@ -223,12 +224,12 @@ export function ParentCoopTeachingScheduleScreen({
       testID="parent-coop-teaching-schedule-ready"
       style={{ flex: 1, backgroundColor: Story.paper }}
       contentContainerStyle={styles.content}>
-      <Animated.View entering={FadeInDown.duration(280)}>
+      <Animated.View entering={calmEnter()}>
         <ParentCoopTeachingScheduleStoryHeader />
       </Animated.View>
 
       {weeks.length > 0 ? (
-        <Animated.View entering={FadeInDown.duration(300).delay(40)} style={styles.summaryRow}>
+        <Animated.View entering={calmEnter({ delay: 40 })} style={styles.summaryRow}>
           <SummaryStatCard
             label="WEEKS"
             value={String(summary.weekCount)}
@@ -258,7 +259,7 @@ export function ParentCoopTeachingScheduleScreen({
       ) : null}
 
       {weeks.length > 0 ? (
-        <Animated.View entering={FadeInDown.duration(300).delay(80)}>
+        <Animated.View entering={calmEnter({ delay: 80 })}>
           <StoryPillNav
             items={filterPills}
             activeKey={filterKey}
@@ -280,7 +281,7 @@ export function ParentCoopTeachingScheduleScreen({
           return (
             <Animated.View
               key={week.id}
-              entering={FadeInDown.duration(280).delay(100 + index * 30)}>
+              entering={calmEnter({ delay: staggerDelay(index) })}>
               <StoryCard style={isPast ? styles.weekCardPast : undefined}>
                 <View style={styles.weekCardInner}>
                   <StoryChip

@@ -38,7 +38,7 @@ export const ADS_PAIN_PROOF_CAROUSEL = {
       render: () => <SixPlacesAd />,
       adCopy: {
         primaryText:
-          "Enrollment in a form builder. Tuition in Venmo. Updates in a group text. Student details in a spreadsheet. MudKitchen pulls them into one shared system for your microschool. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Running a microschool? Enrollment in a form builder. Tuition in Venmo. Updates in a group text. Student details in a spreadsheet. MudKitchen pulls them into one shared system for your microschool. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Run your school from one place",
         description: "Built for microschools.",
       },
@@ -49,7 +49,7 @@ export const ADS_PAIN_PROOF_CAROUSEL = {
       render: () => <SageFieldAd />,
       adCopy: {
         primaryText:
-          "Sage Field went from 0 to 35 students in under 3 months, with their website, enrollment, tuition and family communication all running on MudKitchen. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Microschool founders: Sage Field went from 0 to 35 students in under 3 months, with their website, enrollment, tuition and family communication all running on MudKitchen. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "0 → 35 students in under 3 months",
         description: "Read how Sage Field launched.",
       },
@@ -60,7 +60,7 @@ export const ADS_PAIN_PROOF_CAROUSEL = {
       render: () => <OneScreenAd />,
       adCopy: {
         primaryText:
-          "Applications, tuition and messages at a glance. MudKitchen gives you one workspace to run your microschool. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Microschool directors: applications, tuition and messages at a glance. MudKitchen gives you one workspace to run your microschool. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Your whole school on one screen",
         description: "The admin portal for microschools.",
       },
@@ -71,7 +71,7 @@ export const ADS_PAIN_PROOF_CAROUSEL = {
       render: () => <FamiliesAd />,
       adCopy: {
         primaryText:
-          "Families see every bill, sign forms and get updates in one place, and tuition gets paid on autopay. Fewer \"did you get my check?\" texts. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "School owners: families see every bill, sign forms and get updates in one place, and tuition gets paid on autopay. Fewer \"did you get my check?\" texts. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Families pay, sign and stay in the loop",
         description: "A parent portal with your school's name on it.",
       },

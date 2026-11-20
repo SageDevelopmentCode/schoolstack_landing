@@ -42,7 +42,7 @@ export const ADS_WINTER_BREAK_CAROUSEL = {
       render: () => <HallsQuietAd />,
       adCopy: {
         primaryText:
-          "Winter break is the calmest two weeks of the school year. Use it to get MudKitchen set up, so enrollment, tuition and parent messages are ready when families come back. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Microschool founders: winter break is the calmest two weeks of the school year. Use it to get MudKitchen set up, so enrollment, tuition and parent messages are ready when families come back. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Set up over break, open January ready",
         description: "Guided setup for microschools.",
       },
@@ -53,7 +53,7 @@ export const ADS_WINTER_BREAK_CAROUSEL = {
       render: () => <DecemberJanuaryAd />,
       adCopy: {
         primaryText:
-          "December: a demo, then we set things up with you. January: families apply, pay and get updates in one place. Book a demo before the break, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Running a microschool? December: a demo, then we set things up with you. January: families apply, pay and get updates in one place. Book a demo before the break, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Open January with it running",
         description: "We help move the important pieces over.",
       },
@@ -64,7 +64,7 @@ export const ADS_WINTER_BREAK_CAROUSEL = {
       render: () => <SpringFormsAd />,
       adCopy: {
         primaryText:
-          "Spring enrollment opens in January. Are your application, enrollment forms and tuition plans ready? We'll set them up with you over break. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Microschool directors: spring enrollment opens in January. Are your application, enrollment forms and tuition plans ready? We'll set them up with you over break. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Spring enrollment, ready by January",
         description: "Online applications, forms and tuition.",
       },
@@ -75,7 +75,7 @@ export const ADS_WINTER_BREAK_CAROUSEL = {
       render: () => <SetupCrewAd />,
       adCopy: {
         primaryText:
-          "Students are out. Your setup crew is in. We review how your school runs today, build your setup inside MudKitchen and help you go live, without starting over. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Microschool owners: students are out. Your setup crew is in. We review how your school runs today, build your setup inside MudKitchen and help you go live, without starting over. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Guided setup, without starting over",
         description: "Website, enrollment, tuition and families.",
       },
@@ -86,7 +86,7 @@ export const ADS_WINTER_BREAK_CAROUSEL = {
       render: () => <MarchDecemberAd />,
       adCopy: {
         primaryText:
-          "Switching systems mid-semester is chaos. Switching over winter break is a cozy afternoon. Book a MudKitchen demo now, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Microschool founders: switching systems mid-semester is chaos. Switching over winter break is a cozy afternoon. Book a MudKitchen demo now, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Switch while it's quiet",
         description: "Built for founder-led microschools.",
       },
@@ -97,7 +97,7 @@ export const ADS_WINTER_BREAK_CAROUSEL = {
       render: () => <BreakTodoAd />,
       adCopy: {
         primaryText:
-          "Your winter break to-do list: sleep in, eat too many cookies, and take a look at MudKitchen. Start a paid plan within 30 days of your demo and we'll send a $200 Amazon gift card. Terms apply.",
+          "Microschool directors, your winter break to-do list: sleep in, eat too many cookies, and take a look at MudKitchen. Start a paid plan within 30 days of your demo and we'll send a $200 Amazon gift card. Terms apply.",
         headline: "One small item for your break",
         description: "Sign up, get a $200 Amazon gift card.",
       },

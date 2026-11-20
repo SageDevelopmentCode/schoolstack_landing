@@ -2,9 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
-  FadeInDown,
-  FadeOut,
-  LinearTransition,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -16,6 +13,7 @@ import {
   PORTAL_EASE,
 } from '@/components/parent/garden/tokens';
 import type { IntroDayMoment } from '@/constants/intro-day';
+import { calmEnter, calmExit, calmLayout, MOTION } from '@/lib/motion/portal-motion';
 
 /** Scale and opacity by depth: the newest note on top, older ones settle back. */
 const DEPTH_SCALE = [1, 0.95, 0.9];
@@ -54,17 +52,9 @@ export function NotificationStack({
       {visible.map(({ moment, position }) => (
         <Animated.View
           key={moment.id}
-          entering={
-            reduceMotion
-              ? undefined
-              : FadeInDown.springify().damping(15).stiffness(170).mass(0.9)
-          }
-          exiting={reduceMotion ? undefined : FadeOut.duration(220)}
-          layout={
-            reduceMotion
-              ? undefined
-              : LinearTransition.springify().damping(20).stiffness(170)
-          }
+          entering={reduceMotion ? undefined : calmEnter()}
+          exiting={reduceMotion ? undefined : calmExit(MOTION.base)}
+          layout={reduceMotion ? undefined : calmLayout}
         >
           <StickerCard
             moment={moment}

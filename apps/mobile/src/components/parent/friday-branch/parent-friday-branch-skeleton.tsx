@@ -1,13 +1,14 @@
 import { StyleSheet, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { StoryCard } from '@/components/story/story-card';
 import { StoryCardPadding } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
+import { calmEnter } from '@/lib/motion/portal-motion';
 
 export function ParentFridayBranchSkeleton() {
   return (
-    <Animated.View entering={FadeInDown.duration(300)} style={styles.container}>
+    <Animated.View entering={calmEnter()} style={styles.container}>
       <View style={styles.blockRow}>
         <StoryCard compact style={styles.blockCard} />
         <StoryCard compact style={styles.blockCard} />

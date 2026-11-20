@@ -46,6 +46,7 @@ All paths are under `apps/mobile/src/`.
 | Path | What |
 |---|---|
 | `components/parent/garden/tokens.ts` | `Garden` hexes, `GardenFonts`, `NOTE_TINTS`, `PANEL_TINTS`, `CHIP_TONES`, `PORTAL_EASE`, `CARD_SHADOW`, `useGardenAccent()`, `mixIntoPaper`, `withAlpha` |
+| `lib/motion/portal-motion.ts` | Calm motion helpers: `calmEnter`, `calmRise`, `calmFadeIn`, `calmExit`, `calmLayout`, `staggerDelay`, `PRESS_IN` / `PRESS_OUT`, `GLIDE`, `SNAP_BACK_SPRING`, `CALM_EASE`, `MOTION` (§7) |
 | `components/parent/garden/ui.tsx` | The kit (§4) |
 | `components/parent/garden/segmented.tsx` | `GSegmented` (tab bar with a gliding accent pill) |
 | `components/parent/garden/toast.tsx` | `GardenToastProvider`, `useGardenToast()` |
@@ -110,7 +111,22 @@ const accent = useGardenAccent();
 4. **No tilt on data.** Only photos may tilt (±3°, as `ChildThumb` does). Note tiles are taped but never rotated.
 5. **At most one dark card per screen** (`GCard tone="dark"`, background `accent.clayDeep`). Pastels go on small things only.
 6. **Reduced motion.** Every animation reads Reanimated `useReducedMotion()` and renders the final state. Layout animations (`FadeInDown`, …) follow `ReduceMotion.System` by default.
-7. **Motion timing:** entrance `FadeInDown.delay(40 + index*50).duration(320).easing(PORTAL_EASE)`, built into `GCard`. Springs only for press feedback and pill indicators.
+7. **Calm motion.** Motion should feel smooth and quiet, never bouncy. Use the helpers in `lib/motion/portal-motion.ts`, never hand-rolled durations, springs or Reanimated presets:
+
+   | Need | Use |
+   |---|---|
+   | Card / section entrance | `calmEnter({ delay: staggerDelay(index) })` (8pt settle, 280ms). Built into `GCard`. |
+   | Bottom-anchored entrance (toast, action bar) | `calmRise()`; exit with `calmExit()` (fade only) |
+   | Tab / panel swap, inline status | `calmFadeIn()` or `tabPanelEntering` |
+   | Siblings reflowing | `layout={calmLayout}` |
+   | Press feedback | `withTiming(PRESSED_SCALE, PRESS_IN)` / `withTiming(1, PRESS_OUT)` (`GPressable` already does this) |
+   | Indicator pill gliding | `withTiming(x, GLIDE)` |
+   | Settling after a released drag | `withSpring(0, SNAP_BACK_SPRING)` (clamped, no overshoot) |
+   | Custom curve | `CALM_EASE` (`PORTAL_EASE` points at it) |
+
+   - **No overshoot.** `withSpring` only with `SNAP_BACK_SPRING`. Never `.springify()`, `ZoomIn`, `BounceIn`, raw `FadeInDown`/`FadeInUp` (they slide 25pt), or `Easing.back/elastic/bounce`.
+   - **Small and short:** travel ≤ 8pt, scale changes ≤ 1.1× (press 0.985), durations 110–280ms (pre-auth hero up to 400ms), stagger capped at 6 items.
+   - **Flourishes stay rare and soft:** `GCelebrate` confetti is 16 pieces with gentle spin; badge pulses go to 1.1×; looping dots move ≤ 4pt.
 8. **Android hard shadows:** don't rely on `shadowOffset` with `shadowRadius: 0`. `GToyButton` draws a real ink underlay `View` so it looks the same on both platforms. Copy that if you need a hard offset elsewhere.
 9. **Dashed lines:** iOS can't dash a single border side. Use `<GDashedRule />` (or `vertical`).
 10. **Lists inside sheets:** use `<GSheet list>` and give the `FlatList` / `SectionList` `style={{ flex: 1 }}`. Never `flexGrow: 0` there: the list then has no height and the sheet looks blank. (`BottomSheetShell`'s `scrollable={false}` path itself used to collapse to 0pt for the same reason; it now sets explicit `flexGrow: 1`.)
@@ -197,7 +213,7 @@ Sheets: use `GSheet` for read-only sheets (feeds, details, lists). Use `ParentBo
 | A real success moment (all caught up, payment done, enrollment complete) | `<GCelebrate active celebrationKey>`, which includes `haptic.success` |
 | Loading | A skeleton shaped like the final layout (`GSkeleton`), never a bare spinner |
 
-- **Toasts:** a reused `id` replaces the toast. At most 2 are visible; they're dismissable by swipe or ✕, and announced to screen readers. They render above the tab bar because the shell mounts the provider.
+- **Toasts:** a reused `id` replaces the toast. At most 2 are visible; they're dismissable by swipe or ✕, and announced to screen readers. They fade in with an 8pt rise (`calmRise`), fade out without moving, reflow with `calmLayout`, and settle back from a partial swipe without bouncing. They render above the tab bar because the shell mounts the provider.
 - **Sheets are native modals**, so toasts appear behind an open sheet. While a sheet is open, show status inside it instead (a `GChip` in `GSheet`'s `headerAside`, e.g. "3 new" → "Marked as read"). After closing, wait for the dismiss before navigating or toasting: `closeThen` in the Hub waits 220ms.
 
 ## 7. Recipes from the Home (details in `recipes.md`)

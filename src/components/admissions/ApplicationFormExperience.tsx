@@ -665,7 +665,7 @@ export default function ApplicationFormExperience({
                     currentPath={helpButton.currentPath}
                     submitEndpoint={helpButton.submitEndpoint}
                     variant="inline"
-                    className="sm:hidden"
+                    className="shrink-0"
                   />
                 ) : null}
               </div>

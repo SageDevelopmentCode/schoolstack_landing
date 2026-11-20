@@ -63,9 +63,14 @@ export default function MarketingSchedule() {
   const [statuses, setStatuses] = useState<Record<string, ScheduleStatus>>({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [savingId, setSavingId] = useState<string | null>(null);
+  const inFlightRef = useRef(new Set<string>());
+  const [savingIds, setSavingIds] = useState<Set<string>>(() => new Set());
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
   const [today, setToday] = useState<string | null>(null);
+
+  const syncSavingIds = useCallback(() => {
+    setSavingIds(new Set(inFlightRef.current));
+  }, []);
 
   useEffect(() => {
     setToday(localToday());
@@ -98,7 +103,9 @@ export default function MarketingSchedule() {
     async (item: ScheduleItem, status: ScheduleStatus) => {
       const previous = statuses[item.id] ?? "planned";
       if (previous === status) return;
-      setSavingId(item.id);
+      if (inFlightRef.current.has(item.id)) return;
+      inFlightRef.current.add(item.id);
+      syncSavingIds();
       setRowErrors((current) => ({ ...current, [item.id]: "" }));
       setStatuses((current) => ({ ...current, [item.id]: status }));
       try {
@@ -118,10 +125,11 @@ export default function MarketingSchedule() {
           [item.id]: `${error instanceof Error ? error.message : "Could not save the status."} Try again.`,
         }));
       } finally {
-        setSavingId(null);
+        inFlightRef.current.delete(item.id);
+        syncSavingIds();
       }
     },
-    [statuses],
+    [statuses, syncSavingIds],
   );
 
   const counts = useMemo(() => {
@@ -178,7 +186,7 @@ export default function MarketingSchedule() {
               isCurrent={currentWeek?.id === week.id}
               today={today}
               statusOf={statusOf}
-              savingId={savingId}
+              savingIds={savingIds}
               rowErrors={rowErrors}
               onStatus={setStatus}
             />
@@ -200,7 +208,7 @@ function WeekSection({
   isCurrent,
   today,
   statusOf,
-  savingId,
+  savingIds,
   rowErrors,
   onStatus,
 }: {
@@ -208,7 +216,7 @@ function WeekSection({
   isCurrent: boolean;
   today: string | null;
   statusOf: (id: string) => ScheduleStatus;
-  savingId: string | null;
+  savingIds: Set<string>;
   rowErrors: Record<string, string>;
   onStatus: (item: ScheduleItem, status: ScheduleStatus) => void;
 }) {
@@ -247,7 +255,7 @@ function WeekSection({
             past={today != null && item.date < today}
             isToday={today === item.date}
             status={statusOf(item.id)}
-            saving={savingId === item.id}
+            saving={savingIds.has(item.id)}
             error={rowErrors[item.id]}
             onStatus={onStatus}
           />

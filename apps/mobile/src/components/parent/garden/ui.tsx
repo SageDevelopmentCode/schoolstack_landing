@@ -14,14 +14,12 @@ import {
   type ViewStyle,
 } from 'react-native';
 import Animated, {
-  FadeInDown,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
   withDelay,
   withRepeat,
   withSequence,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
@@ -37,7 +35,12 @@ import {
 } from '@/components/parent/garden/tokens';
 import { ScalePressable } from '@/components/scale-pressable';
 import { haptic } from '@/lib/haptics';
-import { CARD_PRESS_SPRING } from '@/lib/motion/portal-motion';
+import {
+  calmEnter,
+  PRESS_IN,
+  PRESS_OUT,
+  staggerDelay,
+} from '@/lib/motion/portal-motion';
 
 type IoniconName = keyof typeof Ionicons.glyphMap;
 type HapticKind = 'tap' | 'select' | 'press' | 'none';
@@ -154,9 +157,7 @@ export function GCard({
     <Animated.View
       testID={testID}
       onLayout={onLayout ? (event) => onLayout(event.nativeEvent.layout.y) : undefined}
-      entering={FadeInDown.delay(40 + index * 50)
-        .duration(320)
-        .easing(PORTAL_EASE)}
+      entering={calmEnter({ delay: staggerDelay(index) })}
       style={[
         styles.card,
         { backgroundColor: bg, borderColor: dark ? 'transparent' : Garden.ink12 },
@@ -646,10 +647,10 @@ export function GToyButton({
       disabled={inactive}
       hitSlop={6}
       onPressIn={() => {
-        press.value = withSpring(1, CARD_PRESS_SPRING);
+        press.value = withTiming(1, PRESS_IN);
       }}
       onPressOut={() => {
-        press.value = withSpring(0, CARD_PRESS_SPRING);
+        press.value = withTiming(0, PRESS_OUT);
       }}
       onPress={() => {
         haptic.press();

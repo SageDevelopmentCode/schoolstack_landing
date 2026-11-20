@@ -3,13 +3,13 @@ import { Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-nativ
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
 import { Garden } from '@/components/parent/garden/tokens';
 import { GHand } from '@/components/parent/garden/ui';
 import type { IntroDayMoment } from '@/constants/intro-day';
+import { CALM_EASE } from '@/lib/motion/portal-motion';
 
 const SUN_SIZE = 24;
 const STOP_SIZE = 8;
@@ -41,7 +41,7 @@ export function DayTrack({ moments, activeIndex, onSelect, accent, reduceMotion 
     const target = stopX(activeIndex);
     sunX.value = reduceMotion
       ? withTiming(target, { duration: 0 })
-      : withSpring(target, { stiffness: 180, damping: 20, mass: 0.9 });
+      : withTiming(target, { duration: 360, easing: CALM_EASE });
     // stopX only depends on width/count, both covered.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIndex, width, reduceMotion]);

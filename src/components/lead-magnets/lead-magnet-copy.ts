@@ -25,8 +25,7 @@ export const CUSTOM_DEMO_COPY = {
     schoolLabel: "School name",
     websiteLabel: "School website",
     websitePlaceholder: "yourschool.com",
-    websiteHelper: "We use it to pull in your logo, colours and programs.",
-    noWebsiteHint: "No website yet? Book a demo instead and we'll show you around.",
+    websiteOptional: "(optional)",
     messageLabel: "What's the biggest headache right now?",
     messageOptional: "(optional)",
     messagePlaceholder: "Tuition reminders, enrollment forms, parent messages…",
@@ -37,7 +36,7 @@ export const CUSTOM_DEMO_COPY = {
       name: "Please enter your first name.",
       email: "Please enter a valid email address.",
       school: "Please enter your school's name.",
-      website: "Please enter your school's website, like yourschool.com.",
+      website: "That doesn't look like a website. Try yourschool.com, or leave it blank.",
     },
   },
   success: {

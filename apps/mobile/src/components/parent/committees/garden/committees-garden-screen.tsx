@@ -3,12 +3,12 @@ import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { GBackHeader } from '@/components/parent/garden/back-header';
 import { useGardenPullRefresh } from '@/components/parent/garden/feedback';
 import { GSegmented } from '@/components/parent/garden/segmented';
-import { Garden, GardenFonts, PORTAL_EASE, useGardenAccent } from '@/components/parent/garden/tokens';
+import { Garden, GardenFonts, useGardenAccent } from '@/components/parent/garden/tokens';
 import { GCard, GChip, GErrorCard, GHand, GIcon, GPressable, GSkeleton, gText } from '@/components/parent/garden/ui';
 import { buildUnreadMaps } from '@/lib/committees/committee-unread-section-labels';
 import {
@@ -18,6 +18,7 @@ import {
   type CommitteesPortal,
 } from '@/lib/committees/committees-portal-config';
 import { useCommitteeUnreadSummary } from '@/lib/committees/use-committee-unread-summary';
+import { calmEnter, staggerDelay } from '@/lib/motion/portal-motion';
 import {
   REQUEST_STATUS_CHIP,
   committeesSubtitle,
@@ -314,9 +315,7 @@ export function CommitteesGardenScreen({
         ListEmptyComponent={isLoading ? null : <EmptyState tab={activeTab} />}
         renderItem={({ item, index }) => (
           <Animated.View
-            entering={FadeInDown.delay(40 + Math.min(index, 6) * 50)
-              .duration(320)
-              .easing(PORTAL_EASE)}>
+            entering={calmEnter({ delay: staggerDelay(index) })}>
             {item.kind === 'browse' ? (
               <BrowseCard
                 committee={item.committee}

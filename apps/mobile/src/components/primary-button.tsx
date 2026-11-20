@@ -3,11 +3,12 @@ import { Pressable, StyleSheet, Text, View, type PressableProps } from 'react-na
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 
 import { Brand, Fonts, Radius } from '@/constants/theme';
 import { isMobileE2e } from '@/lib/e2e';
+import { PRESS_IN, PRESS_OUT, PRESSED_SCALE } from '@/lib/motion/portal-motion';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -92,14 +93,14 @@ export function PrimaryButton({
 
   const handlePressIn: PrimaryButtonProps['onPressIn'] = (event) => {
     if (!disabled && isNative) {
-      scale.value = withSpring(0.98, { damping: 20, stiffness: 400 });
+      scale.value = withTiming(PRESSED_SCALE, PRESS_IN);
     }
     onPressIn?.(event);
   };
 
   const handlePressOut: PrimaryButtonProps['onPressOut'] = (event) => {
     if (isNative) {
-      scale.value = withSpring(1, { damping: 20, stiffness: 400 });
+      scale.value = withTiming(1, PRESS_OUT);
     }
     onPressOut?.(event);
   };

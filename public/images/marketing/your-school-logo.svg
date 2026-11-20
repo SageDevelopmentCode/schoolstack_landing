@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="52" viewBox="0 0 220 52">
+  <circle cx="26" cy="26" r="22" fill="#3E5C8A"/>
+  <path d="M26 38V24" stroke="#FFFFFF" stroke-width="3.4" stroke-linecap="round" fill="none"/>
+  <path d="M26 27c0-6 4-10 11-10 0 6-4 10-11 10z" fill="#F0A04B"/>
+  <path d="M26 30c0-5-3.5-8.5-9.5-8.5 0 5 3.5 8.5 9.5 8.5z" fill="#FFFFFF"/>
+  <text x="58" y="34" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="23" font-weight="800" letter-spacing="-0.5" fill="#2C4468">Your School</text>
+</svg>

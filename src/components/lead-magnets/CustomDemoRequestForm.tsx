@@ -53,7 +53,8 @@ export default function CustomDemoRequestForm({
     if (!name.trim()) next.add("name");
     if (!EMAIL_PATTERN.test(email.trim())) next.add("email");
     if (!school.trim()) next.add("school");
-    if (!normalizeWebsiteUrl(website)) next.add("website");
+    // Optional: only flag a website the visitor typed that we can't read.
+    if (website.trim() && !normalizeWebsiteUrl(website)) next.add("website");
     setErrors(next);
     if (next.size) {
       const first = (["name", "email", "school", "website"] as Field[]).find((f) => next.has(f));
@@ -190,7 +191,7 @@ export default function CustomDemoRequestForm({
         </div>
         <div>
           <label htmlFor={fieldId("website")} className={labelClass}>
-            {COPY.websiteLabel}
+            {COPY.websiteLabel} <span className={GARDEN_FIELD.optional}>{COPY.websiteOptional}</span>
           </label>
           <input
             id={fieldId("website")}
@@ -205,21 +206,10 @@ export default function CustomDemoRequestForm({
             autoComplete="url"
             maxLength={500}
             aria-invalid={errors.has("website")}
-            aria-describedby={describedBy("website", !compact)}
+            aria-describedby={describedBy("website")}
             className={input("website")}
           />
           {errorText("website", COPY.errors.website)}
-          {!compact ? (
-            <p id={fieldId("website-helper")} className={GARDEN_FIELD.helper}>
-              {COPY.websiteHelper}{" "}
-              <a
-                href={bookDemoHref}
-                className="font-bold text-[var(--sf-clay-deep)] underline decoration-[var(--sf-moss)] underline-offset-2 hover:decoration-[var(--sf-clay)]"
-              >
-                {COPY.noWebsiteHint}
-              </a>
-            </p>
-          ) : null}
         </div>
         {!compact ? (
           <div className="sm:col-span-2">

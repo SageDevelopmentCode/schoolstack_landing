@@ -10,12 +10,12 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { GInlineBanner } from '@/components/parent/garden/fields';
 import { GSegmented } from '@/components/parent/garden/segmented';
 import { GSheet } from '@/components/parent/garden/sheet';
-import { Garden, GardenFonts, PORTAL_EASE, useGardenAccent } from '@/components/parent/garden/tokens';
+import { Garden, GardenFonts, useGardenAccent } from '@/components/parent/garden/tokens';
 import {
   GCard,
   GChip,
@@ -49,6 +49,7 @@ import {
   type TeacherMyStudentsFeedback,
 } from '@/components/teacher/students/garden/use-teacher-my-students-feedback';
 import { haptic } from '@/lib/haptics';
+import { calmEnter } from '@/lib/motion/portal-motion';
 import type { AdminEnrolledStudentSummary } from '@/lib/school-admin/enrolled-students';
 import type { TeacherRosterScope } from '@/lib/teacher/teacher-students-utils';
 
@@ -330,7 +331,7 @@ function ListHeader({
   return (
     <View style={styles.headerBlock}>
       {hasStudents ? (
-        <Animated.View entering={FadeInDown.delay(40).duration(320).easing(PORTAL_EASE)}>
+        <Animated.View entering={calmEnter({ delay: 40 })}>
           <NumberStrip
             cells={tiles}
             activeId={
@@ -343,7 +344,7 @@ function ListHeader({
       ) : null}
 
       {isSchoolScope && metrics.unassignedCount > 0 && rosterFilter !== 'unassigned' ? (
-        <Animated.View entering={FadeInDown.delay(90).duration(320).easing(PORTAL_EASE)}>
+        <Animated.View entering={calmEnter({ delay: 90 })}>
           <GInlineBanner
             tone="warning"
             title="Needs attention"

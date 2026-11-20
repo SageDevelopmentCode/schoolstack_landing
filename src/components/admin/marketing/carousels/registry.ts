@@ -32,6 +32,9 @@ import { ADS_FREE_PREVIEW_CAROUSEL } from "@/components/admin/marketing/carousel
 import { MASCOT_FREE_PREVIEW_CAROUSEL } from "@/components/admin/marketing/carousels/mascot-free-preview";
 import { MASCOT_FREE_PREVIEW_BEFORE_AFTER_CAROUSEL } from "@/components/admin/marketing/carousels/mascot-free-preview-before-after";
 import { POSTS_FREE_PREVIEW_SINGLES_CAROUSEL } from "@/components/admin/marketing/carousels/posts-free-preview-singles";
+import { ADS_FOUNDER_NOTES_CAROUSEL } from "@/components/admin/marketing/carousels/ads-founder-notes";
+import { ADS_SCHOOL_OBJECTS_CAROUSEL } from "@/components/admin/marketing/carousels/ads-school-objects";
+import { MASCOT_FOUNDER_LETTER_CAROUSEL } from "@/components/admin/marketing/carousels/mascot-founder-letter";
 import type { MarketingCarousel } from "@/components/admin/marketing/carousels/types";
 
 export const MARKETING_CAROUSELS: MarketingCarousel[] = [
@@ -59,6 +62,7 @@ export const MARKETING_CAROUSELS: MarketingCarousel[] = [
   MASCOT_SPRING_ENROLLMENT_PLAN_CAROUSEL,
   MASCOT_FREE_PREVIEW_CAROUSEL,
   MASCOT_FREE_PREVIEW_BEFORE_AFTER_CAROUSEL,
+  MASCOT_FOUNDER_LETTER_CAROUSEL,
   POSTS_WEEKLY_SINGLES_CAROUSEL,
   POSTS_HOLIDAY_SINGLES_CAROUSEL,
   POSTS_FREE_PREVIEW_SINGLES_CAROUSEL,
@@ -69,6 +73,8 @@ export const MARKETING_CAROUSELS: MarketingCarousel[] = [
   ADS_FEATURE_SPOTLIGHT_CAROUSEL,
   ADS_NEW_YEAR_CAROUSEL,
   ADS_FREE_PREVIEW_CAROUSEL,
+  ADS_FOUNDER_NOTES_CAROUSEL,
+  ADS_SCHOOL_OBJECTS_CAROUSEL,
 ];
 
 export const DEFAULT_CAROUSEL_ID = MARKETING_CAROUSELS[0]?.id ?? "tuition-review";

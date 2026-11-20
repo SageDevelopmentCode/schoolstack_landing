@@ -63,7 +63,19 @@ export const SOFTWARE_FEATURES = [
   "Guided setup and support",
 ];
 
+/** How prospects reach MudKitchen. Used in the site footer and prospect emails. */
+export const MUDKITCHEN_CONTACT = {
+  email: "julius@trymudkitchen.com",
+  phoneDisplay: "(562) 332-4687",
+  phoneHref: "tel:+15623324687",
+  smsHref: "sms:+15623324687",
+  instagram: "https://www.instagram.com/trymudkitchen/",
+  facebook: "https://www.facebook.com/profile.php?id=61594823257049",
+} as const;
+
 export const SAME_AS = [
+  MUDKITCHEN_CONTACT.instagram,
+  MUDKITCHEN_CONTACT.facebook,
   process.env.NEXT_PUBLIC_LINKEDIN_URL,
   process.env.NEXT_PUBLIC_TWITTER_URL,
 ].filter((url): url is string => Boolean(url));

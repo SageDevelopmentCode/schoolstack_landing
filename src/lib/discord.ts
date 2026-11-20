@@ -242,14 +242,19 @@ async function sendDiscordEmbedToWebhook(
   }
 }
 
-export async function sendDiscordEmbed(embed: DiscordEmbed) {
+export async function sendDiscordEmbed(
+  embed: DiscordEmbed,
+  options?: { strict?: boolean },
+) {
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
   if (!webhookUrl) {
     console.warn("DISCORD_WEBHOOK_URL is not set; skipping Discord notification.");
     return;
   }
 
-  await sendDiscordEmbedToWebhook(webhookUrl, embed);
+  await sendDiscordEmbedToWebhook(webhookUrl, embed, {
+    strict: options?.strict,
+  });
 }
 
 async function sendRootedMeadowsDiscordEmbed(embed: DiscordEmbed) {
@@ -1900,30 +1905,33 @@ export async function notifyFreeSchoolSignup(payload: {
 }) {
   const adminUrl = `${SITE_URL}/school/${payload.slug}/admin`;
 
-  await sendDiscordEmbed({
-    title: "🌱 New free school signup",
-    description: `**${payload.firstName}** · ${payload.schoolName}`,
-    url: adminUrl,
-    color: DISCORD_EMBED_COLORS.sales,
-    fields: [
-      contactField(payload.email, payload.firstName),
-      schoolField(payload.schoolName, payload.slug, payload.organizationId),
-      ...(payload.role
-        ? [embedField("Where today", demoRequestRoleLabel(payload.role), true)]
-        : []),
-      ...(payload.studentCount
-        ? [
-            embedField(
-              "Student count",
-              STUDENT_COUNTS[payload.studentCount] ?? payload.studentCount,
-              true,
-            ),
-          ]
-        : []),
-      embedField("Timezone", payload.timezone, true),
-      embedField("Admin", adminUrl),
-    ],
-  });
+  await sendDiscordEmbed(
+    {
+      title: "🌱 New free school signup",
+      description: `**${payload.firstName}** · ${payload.schoolName}`,
+      url: adminUrl,
+      color: DISCORD_EMBED_COLORS.sales,
+      fields: [
+        contactField(payload.email, payload.firstName),
+        schoolField(payload.schoolName, payload.slug, payload.organizationId),
+        ...(payload.role
+          ? [embedField("Where today", demoRequestRoleLabel(payload.role), true)]
+          : []),
+        ...(payload.studentCount
+          ? [
+              embedField(
+                "Student count",
+                STUDENT_COUNTS[payload.studentCount] ?? payload.studentCount,
+                true,
+              ),
+            ]
+          : []),
+        embedField("Timezone", payload.timezone, true),
+        embedField("Admin", adminUrl),
+      ],
+    },
+    { strict: true },
+  );
 }
 
 export async function notifyDemoBooking(payload: {

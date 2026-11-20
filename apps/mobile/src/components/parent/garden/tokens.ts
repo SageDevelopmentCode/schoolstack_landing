@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { Easing } from 'react-native-reanimated';
 
 import { useParentTheme } from '@/contexts/parent-theme-context';
+import { CALM_EASE } from '@/lib/motion/portal-motion';
 
 /**
  * Garden tokens for the parent portal on mobile. Hexes match web
@@ -55,7 +55,8 @@ export const CHIP_TONES: Record<GChipTone, { bg: string; fg: string }> = {
   neutral: { bg: Garden.ink06, fg: 'rgba(43,36,29,0.75)' },
 };
 
-export const PORTAL_EASE = Easing.bezier(0.16, 1, 0.3, 1);
+/** Portal easing = the calm ease-out from `lib/motion/portal-motion` (no front-loaded jump). */
+export const PORTAL_EASE = CALM_EASE;
 export const PORTAL_DURATION = 300;
 
 /** Hard "toy" shadow. Android cannot draw hard shadows; components add an ink underlay there. */

@@ -12,9 +12,6 @@ import {
 import { AccessibilityInfo, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  FadeInDown,
-  FadeOutDown,
-  LinearTransition,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
@@ -23,6 +20,12 @@ import Animated, {
 
 import { Garden, GardenFonts, useGardenAccent } from '@/components/parent/garden/tokens';
 import { haptic } from '@/lib/haptics';
+import {
+  calmExit,
+  calmLayout,
+  calmRise,
+  SNAP_BACK_SPRING,
+} from '@/lib/motion/portal-motion';
 
 /**
  * Garden toasts for the parent portal on mobile — mirrors web `parentToast`
@@ -95,7 +98,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastEntry; onDismiss: (key: s
       if (event.translationY > 40 || event.velocityY > 600) {
         runOnJS(onDismiss)(toast.key);
       } else {
-        translateY.value = withSpring(0);
+        translateY.value = withSpring(0, SNAP_BACK_SPRING);
       }
     });
 
@@ -107,9 +110,9 @@ function ToastCard({ toast, onDismiss }: { toast: ToastEntry; onDismiss: (key: s
   return (
     <GestureDetector gesture={pan}>
       <Animated.View
-        entering={FadeInDown.duration(260)}
-        exiting={FadeOutDown.duration(180)}
-        layout={LinearTransition.duration(200)}
+        entering={calmRise()}
+        exiting={calmExit()}
+        layout={calmLayout}
         accessibilityLiveRegion="polite"
         style={[styles.card, { backgroundColor: tone.bg }, dragStyle]}>
         <Ionicons name={tone.icon} size={20} color={tone.fg} style={styles.icon} />

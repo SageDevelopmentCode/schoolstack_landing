@@ -7,7 +7,7 @@ jest.mock('react-native-reanimated', () => {
   // Layout animation builders chain (`FadeInDown.delay(40).duration(320).easing(…)`).
   const builder = (): Record<string, unknown> => {
     const chain: Record<string, unknown> = {};
-    for (const key of ['delay', 'duration', 'easing', 'springify', 'reduceMotion']) {
+    for (const key of ['delay', 'duration', 'easing', 'springify', 'reduceMotion', 'withInitialValues']) {
       chain[key] = () => chain;
     }
     return chain;
@@ -23,12 +23,14 @@ jest.mock('react-native-reanimated', () => {
     FadeOut: builder(),
     FadeInDown: builder(),
     FadeInUp: builder(),
+    LinearTransition: builder(),
     Easing: {
       bezier: () => identity,
       in: identity,
       out: identity,
       inOut: identity,
       cubic: identity,
+      quad: identity,
       linear: identity,
     },
     ReduceMotion: { System: 'system', Always: 'always', Never: 'never' },

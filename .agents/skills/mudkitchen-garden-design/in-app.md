@@ -90,6 +90,7 @@ Calm Garden is the home page's materials without the theatre.
 
 - **Portal timing** (keep it): easing `[0.16, 1, 0.3, 1]`, 220–350ms fades and slides, `AnimatePresence mode="wait"` for tab and panel swaps.
 - **Springs** (`stiffness ~380, damping ~18–24`) only for celebration chips, sticker pops and pill indicators (`layoutId`).
+- **Mobile timing** is calmer than web: no springs except a clamped snap-back after a drag, `CALM_EASE`, ≤ 8pt travel. Use the helpers in `apps/mobile/src/lib/motion/portal-motion.ts`; rules in `parent-mobile-garden-design` §7.
 - **Web reduced motion:** framer `useReducedMotion()`. Pass `initial={reduce ? false : …}` and skip exit animations. `globals.css` also clamps CSS animations globally.
 - **Mobile reduced motion:** new animated mobile UI must read Reanimated's `useReducedMotion()` (or `ReduceMotion.System`) and skip non-essential motion. The parent Garden kit already does.
 

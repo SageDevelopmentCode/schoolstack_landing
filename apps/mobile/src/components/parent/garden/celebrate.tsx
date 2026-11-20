@@ -16,7 +16,7 @@ import { isMobileE2e } from '@/lib/e2e';
 /** Keys that already celebrated this app session (web uses sessionStorage). */
 const celebratedKeys = new Set<string>();
 
-const PIECE_COUNT = 28;
+const PIECE_COUNT = 16;
 
 type Piece = {
   x: number;
@@ -34,15 +34,15 @@ function ConfettiPiece({ piece, height }: { piece: Piece; height: number }) {
   useEffect(() => {
     progress.value = withDelay(
       piece.delay,
-      withTiming(1, { duration: 1500, easing: Easing.out(Easing.quad) }),
+      withTiming(1, { duration: 1900, easing: Easing.out(Easing.cubic) }),
     );
   }, [piece.delay, progress]);
 
   const style = useAnimatedStyle(() => ({
-    opacity: progress.value < 0.75 ? 1 : 1 - (progress.value - 0.75) / 0.25,
+    opacity: progress.value < 0.6 ? 1 : 1 - (progress.value - 0.6) / 0.4,
     transform: [
       { translateX: piece.x + piece.drift * progress.value },
-      { translateY: -24 + height * 0.7 * progress.value },
+      { translateY: -24 + height * 0.5 * progress.value },
       { rotate: `${piece.rotate * progress.value}deg` },
     ],
   }));
@@ -83,10 +83,10 @@ export function GCelebrate({ active, celebrationKey }: { active: boolean; celebr
       id: Date.now(),
       pieces: Array.from({ length: PIECE_COUNT }, (_, i) => ({
         x: Math.random() * width,
-        drift: (Math.random() - 0.5) * 120,
+        drift: (Math.random() - 0.5) * 60,
         delay: Math.random() * 260,
-        rotate: (Math.random() - 0.5) * 720,
-        size: 7 + Math.random() * 6,
+        rotate: (Math.random() - 0.5) * 240,
+        size: 6 + Math.random() * 4,
         color: colors[i % colors.length],
         round: i % 3 === 0,
       })),
@@ -96,7 +96,7 @@ export function GCelebrate({ active, celebrationKey }: { active: boolean; celebr
   const burstId = burst?.id;
   useEffect(() => {
     if (burstId == null) return;
-    const timer = setTimeout(() => setBurst(null), 2200);
+    const timer = setTimeout(() => setBurst(null), 2400);
     return () => clearTimeout(timer);
   }, [burstId]);
 

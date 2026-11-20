@@ -2,12 +2,14 @@ import {
   composeEmail,
   emailBadge,
   emailBulletList,
+  emailContactCard,
   emailCta,
   emailDetailCard,
   emailDigestActivityCard,
   emailDigestSectionHeader,
   emailHeading,
   emailMutedParagraph,
+  emailNumberedSteps,
   emailParagraph,
   emailSignOff,
   escapeHtml,
@@ -239,26 +241,51 @@ function plainFirstName(name: string | null | undefined): string {
   return trimmed.split(/\s+/)[0] || "there";
 }
 
+export function customDemoRequestConfirmationSubject(schoolName: string): string {
+  return `We got it! Your ${SITE_NAME} preview for ${schoolName} is underway`;
+}
+
 export function buildCustomDemoRequestConfirmationHtml(payload: {
   name: string;
   schoolName: string;
+  websiteUrl?: string | null;
 }): string {
+  const school = escapeHtml(payload.schoolName);
+  const host = payload.websiteUrl?.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const buildStep = host
+    ? `We'll pull the logo, colours and programs from <strong>${escapeHtml(host)}</strong> and set everything up for ${school}.`
+    : `You didn't share a website, and that's fine. Reply with your logo or a few photos and we'll use them. If not, we'll pick a look that suits ${school}.`;
+
   return composeEmail({
-    preheader: `We're building a ${SITE_NAME} preview for ${payload.schoolName}.`,
+    preheader: `We're building a private ${SITE_NAME} preview for ${payload.schoolName}. Here's what happens next.`,
     contentHtml: `
-      ${emailBadge("Custom Preview Requested")}
-      ${emailHeading(`Thanks, ${plainFirstName(payload.name)}. We're on it.`)}
+      ${emailBadge("Request Received")}
+      ${emailHeading(`Thanks, ${plainFirstName(payload.name)}. We got your request!`)}
       ${emailParagraph(
-        `We're building a private ${escapeHtml(SITE_NAME)} preview for <strong>${escapeHtml(payload.schoolName)}</strong>, using your school's logo, colours and programs. It shows your website, your parent app, your teacher portal and your admin portal.`,
+        `We're building a private, clickable ${escapeHtml(SITE_NAME)} preview for <strong>${school}</strong>. It's your own school, not a generic demo: a refreshed school website, the parent app, the teacher portal and the admin portal, all with your name and branding.`,
       )}
+      ${emailParagraph(`<strong>Here's what happens next:</strong>`)}
+      ${emailNumberedSteps([
+        { title: "We build your preview by hand", bodyHtml: buildStep },
+        {
+          title: "Your link arrives within 2 business days",
+          bodyHtml: "We'll email you a private link. No login and nothing to install.",
+        },
+        {
+          title: "Click around on your own time",
+          bodyHtml:
+            "See enrollment, tuition, parent messages and daily operations the way your families and staff would. When you're ready, book a call right from the preview.",
+        },
+      ])}
       ${emailParagraph(
-        "We'll email you the link within 2 business days. If anything about your school would help us get it right, just reply to this email.",
+        "Want it to feel even more like your school? Just reply to this email with your programs, ages, tuition or your biggest headache right now. We read every reply.",
       )}
-      ${emailMutedParagraph(
-        "Want to talk sooner? You can book a time with us whenever you like.",
-      )}
+      ${emailMutedParagraph("Rather talk it through sooner? Grab a time that works for you.")}
       ${emailCta({ label: "Book a Demo", href: `${getRuntimeSiteUrl()}/get-started` })}
-      ${emailSignOff()}
+      ${emailContactCard()}
+      <p style="margin:0;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:15px;line-height:1.65;">
+        Talk soon,<br><strong>Julius</strong><br><span style="opacity:0.65;font-size:14px;">${escapeHtml(SITE_NAME)}</span>
+      </p>
     `,
   });
 }
@@ -267,12 +294,13 @@ export async function sendCustomDemoRequestConfirmation(payload: {
   name: string;
   email: string;
   schoolName: string;
+  websiteUrl?: string | null;
 }): Promise<void> {
   if (!(await isZohoConfigured())) return;
 
   const result = await sendZohoEmail({
     toAddress: payload.email,
-    subject: `Your ${SITE_NAME} preview for ${payload.schoolName} is on the way`,
+    subject: customDemoRequestConfirmationSubject(payload.schoolName),
     content: buildCustomDemoRequestConfirmationHtml(payload),
     discord: prospectOutboundDiscord("custom_demo_request_confirmation"),
   });

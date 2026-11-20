@@ -3,13 +3,13 @@ import { type Href, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { GBackHeader } from '@/components/parent/garden/back-header';
 import { closeThen, useGardenPullRefresh, useGardenReadOnlyGate } from '@/components/parent/garden/feedback';
 import { GInlineBanner } from '@/components/parent/garden/fields';
 import { GSegmented } from '@/components/parent/garden/segmented';
-import { Garden, GardenFonts, PORTAL_EASE, type GChipTone } from '@/components/parent/garden/tokens';
+import { Garden, GardenFonts, type GChipTone } from '@/components/parent/garden/tokens';
 import { GCard, GChip, GLink, GPressable, GSkeleton } from '@/components/parent/garden/ui';
 import { useUpdatedLabel } from '@/components/school-admin/dashboard/garden/sections/admin-header';
 import { AdminCommitteeActivity } from '@/components/school-admin/committees/garden/admin-committee-activity';
@@ -28,6 +28,7 @@ import {
 import { useAdminAction } from '@/components/school-admin/garden/use-admin-action';
 import { useSchoolAdminCommittees } from '@/contexts/school-admin-committees-context';
 import { haptic } from '@/lib/haptics';
+import { calmEnter } from '@/lib/motion/portal-motion';
 import type { CommitteeActivityItem, CommitteeListItem } from '@/lib/parent/parent-committees-types';
 import { fetchAdminCommitteeActivity } from '@/lib/school-admin-api';
 import { createCommitteeFromTemplate } from '@/lib/school-admin/committees/mutations';
@@ -170,7 +171,7 @@ export function SchoolAdminCommitteesScreen({ slug, organizationId }: Props) {
   const listHeader = (
     <View style={styles.headerBlock}>
       {committees.length > 0 ? (
-        <Animated.View entering={FadeInDown.delay(40).duration(320).easing(PORTAL_EASE)}>
+        <Animated.View entering={calmEnter({ delay: 40 })}>
           <AdminKpiTiles
             tiles={[
               { id: 'active', label: 'Active committees', value: String(metrics.activeCount), barColor: KPI_BARS.active, onPress: () => setRosterFilter('active') },

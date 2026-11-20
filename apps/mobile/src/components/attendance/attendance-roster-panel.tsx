@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AttendanceDetailSheet } from '@/components/attendance/attendance-detail-sheet';
@@ -20,6 +20,7 @@ import { Garden, GardenFonts, useGardenAccent } from '@/components/parent/garden
 import { GLink } from '@/components/parent/garden/ui';
 import { AdminTabHeader, useAdminTopBleed } from '@/components/school-admin/garden/admin-tab-header';
 import { useAttendance } from '@/contexts/attendance-context';
+import { calmEnter, MOTION, staggerDelay } from '@/lib/motion/portal-motion';
 import { formatEnrolledStudentName } from '@/lib/teacher/teacher-home-utils';
 
 type AttendanceRosterPanelProps = {
@@ -246,7 +247,7 @@ export function AttendanceRosterPanel({
           />
         }
         renderItem={({ item, index }) => (
-          <Animated.View entering={FadeInDown.delay(Math.min(index, 12) * 30).duration(220)}>
+          <Animated.View entering={calmEnter({ delay: staggerDelay(index), duration: MOTION.base })}>
             <AttendanceStudentRow
               student={item}
               saving={savingStudentId === item.id}

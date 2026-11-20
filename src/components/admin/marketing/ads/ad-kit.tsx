@@ -50,6 +50,8 @@ type AdFrameProps = {
   garland?: boolean;
   /** Right side of the header row. */
   tag?: ReactNode;
+  /** Who the ad is for, shown inside the logo pill ("MudKitchen | for microschools"). `false` hides it. */
+  audience?: string | false;
   /** Background pattern override ("none" for plain). */
   pattern?: PatternKind | "none";
   padding?: string;
@@ -63,6 +65,7 @@ export function AdFrame({
   snow = false,
   garland = false,
   tag,
+  audience = DEFAULT_AD_AUDIENCE,
   padding = "0 64px 52px",
   pattern,
   children,
@@ -103,7 +106,7 @@ export function AdFrame({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, height: 140, flexShrink: 0, paddingTop: garland && !isStory ? 36 : 0 }}>
-            <AdLogo tone={tone} />
+            <AdLogo tone={tone} audience={audience} />
             {tag}
           </div>
           {children}
@@ -113,7 +116,11 @@ export function AdFrame({
   );
 }
 
-function AdLogo({ tone }: { tone: "light" | "dark" }) {
+/** Default audience line on every paid ad; founder-voice sets pass "for microschool founders". */
+export const DEFAULT_AD_AUDIENCE = "for microschools";
+
+function AdLogo({ tone, audience }: { tone: "light" | "dark"; audience: string | false }) {
+  const dark = tone === "dark";
   return (
     <div
       style={{
@@ -122,15 +129,24 @@ function AdLogo({ tone }: { tone: "light" | "dark" }) {
         gap: 12,
         padding: "10px 24px 10px 14px",
         borderRadius: 999,
-        background: tone === "dark" ? "rgba(255,250,244,.12)" : "#FFFAF4",
-        border: tone === "dark" ? "4px solid rgba(255,250,244,.85)" : "4px solid #FFFFFF",
-        boxShadow: tone === "dark" ? "0 6px 0 0 rgba(0,0,0,.25)" : "0 6px 0 0 rgba(43,36,29,.2)",
+        background: dark ? "rgba(255,250,244,.12)" : "#FFFAF4",
+        border: dark ? "4px solid rgba(255,250,244,.85)" : "4px solid #FFFFFF",
+        boxShadow: dark ? "0 6px 0 0 rgba(0,0,0,.25)" : "0 6px 0 0 rgba(43,36,29,.2)",
+        whiteSpace: "nowrap",
       }}
     >
       <img src="/images/Logo.png" alt="" style={{ height: 46, width: 46, objectFit: "contain", display: "block", transform: "rotate(-6deg)" }} />
-      <span style={{ fontFamily: FONT.display, fontSize: 28, fontWeight: 800, lineHeight: 1, letterSpacing: "-0.035em", color: tone === "dark" ? G.cream : G.ink }}>
+      <span style={{ fontFamily: FONT.display, fontSize: 28, fontWeight: 800, lineHeight: 1, letterSpacing: "-0.035em", color: dark ? G.cream : G.ink }}>
         MudKitchen
       </span>
+      {audience ? (
+        <>
+          <span aria-hidden style={{ width: 3, height: 30, borderRadius: 2, background: dark ? "rgba(255,250,244,.4)" : "rgba(43,36,29,.18)", margin: "0 4px" }} />
+          <span style={{ fontFamily: FONT.display, fontSize: 26, fontWeight: 800, lineHeight: 1, letterSpacing: "-0.03em", color: dark ? G.butter : G.clayDeep }}>
+            {audience}
+          </span>
+        </>
+      ) : null}
     </div>
   );
 }
@@ -501,7 +517,7 @@ export function CheckList({ rows, size = 36 }: { rows: CheckRow[]; size?: number
 /** Real product screen in the laptop chrome. Fills its parent; width/height are first-paint guesses. */
 export function ProductWindow({ width = 952, height = 560, crop, contentHeight = 920, children }: { width?: number; height?: number; crop?: CarouselDemoCrop; contentHeight?: number; children: ReactNode }) {
   return (
-    <div style={{ position: "absolute", inset: 0 }}>
+    <div data-demo-window style={{ position: "absolute", inset: 0 }}>
       <CarouselLaptopWindow contentHeight={contentHeight} cropFocus="top" crop={crop} defaultBodyWidth={width} defaultBodyHeight={height}>
         {children}
       </CarouselLaptopWindow>

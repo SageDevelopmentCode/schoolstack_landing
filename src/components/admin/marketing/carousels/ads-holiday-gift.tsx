@@ -135,7 +135,7 @@ export const ADS_HOLIDAY_GIFT_CAROUSEL = {
       render: () => <SnowDayAd />,
       adCopy: {
         primaryText:
-          "School's out for winter. Your $200 isn't. Grab a cocoa, take a look at MudKitchen for your microschool, and get a $200 Amazon gift card when you start a paid plan within 30 days. ☕ Terms apply.",
+          "Microschool founders: school's out for winter. Your $200 isn't. Grab a cocoa, take a look at MudKitchen for your microschool, and get a $200 Amazon gift card when you start a paid plan within 30 days. ☕ Terms apply.",
         headline: "School's out. Your $200 isn't.",
         description: "Book a demo over break.",
       },
@@ -146,7 +146,7 @@ export const ADS_HOLIDAY_GIFT_CAROUSEL = {
       render: () => <GiftSwapAd />,
       adCopy: {
         primaryText:
-          "Staff-room gift swap, director edition: you drew yourself. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Your staff can keep the mugs. Terms apply.",
+          "Staff-room gift swap, microschool director edition: you drew yourself. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Your staff can keep the mugs. Terms apply.",
         headline: "You drew yourself. Nice.",
         description: "$200 Amazon gift card when you sign up.",
       },

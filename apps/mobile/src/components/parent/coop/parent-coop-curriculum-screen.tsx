@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { calmEnter } from '@/lib/motion/portal-motion';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import {
   Pressable,
@@ -9,7 +10,7 @@ import {
   View,
   type ScrollView,
 } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { ParentCoopCurriculumSkeleton } from '@/components/parent/coop/parent-coop-curriculum-skeleton';
 import { ParentCoopCurriculumStoryHeader } from '@/components/parent/coop/parent-coop-curriculum-story-header';
@@ -284,7 +285,7 @@ export function ParentCoopCurriculumScreen({
       style={{ flex: 1, backgroundColor: Story.paper }}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled">
-      <Animated.View entering={FadeInDown.duration(280)}>
+      <Animated.View entering={calmEnter()}>
         <ParentCoopCurriculumStoryHeader />
       </Animated.View>
 
@@ -293,7 +294,7 @@ export function ParentCoopCurriculumScreen({
       ) : (
         <>
           {guidePills.length > 1 ? (
-            <Animated.View entering={FadeInDown.duration(300).delay(40)}>
+            <Animated.View entering={calmEnter({ delay: 40 })}>
               <StoryPillNav
                 items={guidePills}
                 activeKey={activeCurriculum?.id ?? guidePills[0]?.key ?? ''}
@@ -303,7 +304,7 @@ export function ParentCoopCurriculumScreen({
             </Animated.View>
           ) : null}
 
-          <Animated.View entering={FadeInDown.duration(300).delay(60)}>
+          <Animated.View entering={calmEnter({ delay: 60 })}>
             <StoryCard>
               <View style={styles.pdfCardInner}>
                 {pdfLoading ? (
@@ -332,7 +333,7 @@ export function ParentCoopCurriculumScreen({
             </StoryCard>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.duration(300).delay(80)}>
+          <Animated.View entering={calmEnter({ delay: 80 })}>
             <StoryCard>
               <Pressable
                 onPress={() => setDiscussionOpen((open) => !open)}

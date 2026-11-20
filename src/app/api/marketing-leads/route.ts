@@ -228,15 +228,22 @@ export async function POST(request: Request) {
 
   if (magnet === "custom_demo") {
     const rawWebsite = str(body.websiteUrl);
-    if (!name || !schoolName || !rawWebsite) {
-      return apiError(ROUTE, { request, status: 400, error: "Please fill in your name, school and website." });
+    if (!name || !schoolName) {
+      return apiError(ROUTE, { request, status: 400, error: "Please fill in your name and school." });
     }
-    if (exceedsMaxLength(rawWebsite, MAX_PUBLIC_FORM_SHORT_TEXT_LENGTH)) {
-      return apiError(ROUTE, { request, status: 400, error: fieldTooLongLabel("Website") });
-    }
-    websiteUrl = normalizeWebsiteUrl(rawWebsite);
-    if (!websiteUrl) {
-      return apiError(ROUTE, { request, status: 400, error: "Please enter your school's website, like yourschool.com." });
+    // The website is optional; a typed one still has to be readable.
+    if (rawWebsite) {
+      if (exceedsMaxLength(rawWebsite, MAX_PUBLIC_FORM_SHORT_TEXT_LENGTH)) {
+        return apiError(ROUTE, { request, status: 400, error: fieldTooLongLabel("Website") });
+      }
+      websiteUrl = normalizeWebsiteUrl(rawWebsite);
+      if (!websiteUrl) {
+        return apiError(ROUTE, {
+          request,
+          status: 400,
+          error: "That doesn't look like a website. Try yourschool.com, or leave it blank.",
+        });
+      }
     }
   } else {
     if (!isFreeToolPlanId(body.toolId)) {
@@ -299,7 +306,7 @@ export async function POST(request: Request) {
 
   if (magnet === "custom_demo") {
     try {
-      await sendCustomDemoRequestConfirmation({ name, email, schoolName });
+      await sendCustomDemoRequestConfirmation({ name, email, schoolName, websiteUrl });
     } catch (err) {
       void logNotificationFailure(admin, {
         operation: "custom_demo_request_confirmation_email",

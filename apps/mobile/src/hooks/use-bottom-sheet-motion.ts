@@ -10,6 +10,8 @@ import {
   withTiming,
 } from 'react-native-reanimated';
 
+import { SNAP_BACK_SPRING } from '@/lib/motion/portal-motion';
+
 export const SHEET_SLIDE_OFFSET = 500;
 const OPEN_DURATION_MS = 280;
 const CLOSE_DURATION_MS = 220;
@@ -126,7 +128,7 @@ export function useBottomSheetMotion({
         return;
       }
 
-      sheetTranslateY.value = withSpring(0, { damping: 20, stiffness: 300 });
+      sheetTranslateY.value = withSpring(0, SNAP_BACK_SPRING);
       backdropOpacity.value = withTiming(1, { duration: 200 });
     });
 
@@ -163,7 +165,7 @@ export function useBottomSheetMotion({
         return;
       }
 
-      sheetTranslateY.value = withSpring(0, { damping: 20, stiffness: 300 });
+      sheetTranslateY.value = withSpring(0, SNAP_BACK_SPRING);
       backdropOpacity.value = withTiming(1, { duration: 200 });
     });
 

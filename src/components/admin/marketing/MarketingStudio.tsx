@@ -13,6 +13,7 @@ import {
   resolveMarketingCarouselId,
 } from "@/components/admin/marketing/carousels/registry";
 import type { MarketingAdCopy, MarketingSlide } from "@/components/admin/marketing/carousels/types";
+import { resolveMarketingAdCopy } from "@/lib/marketing/marketing-ad-copy";
 import {
   AdOfferProvider,
   DEFAULT_CAROUSEL_AUDIENCE_BANNER,
@@ -82,6 +83,7 @@ export default function MarketingStudio() {
   const activeDims = SLIDE_SIZES[activeSize];
   const hasOfferToggle = isAd && Boolean(carousel?.offerToggle);
   const offerOff = hasOfferToggle && !showOffer;
+  const panelCopy = slide ? resolveMarketingAdCopy(slide, offerOff) : undefined;
   const firstSlideAudienceBanner =
     slides.length > 1 && !carousel?.kind ? (carousel?.audienceBanner ?? DEFAULT_CAROUSEL_AUDIENCE_BANNER) : undefined;
 
@@ -447,7 +449,7 @@ export default function MarketingStudio() {
           </span>
         </div>
 
-        {slide?.adCopy ? <AdCopyPanel copy={slide.adCopy} /> : null}
+        {panelCopy ? <AdCopyPanel copy={panelCopy} /> : null}
 
         <div key={carousel.id} aria-hidden className="pointer-events-none fixed top-0 -left-[4000px]">
           {sizes.map((size) =>

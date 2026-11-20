@@ -42,6 +42,9 @@ import {
 // Claims stay inside that offer: no gift card, no customer names, quotes or stats, and only the
 // generic "Your School" placeholder brand (never a prospect's concept demo).
 
+/** Founder-voice sets name the reader in the logo pill. */
+const AUDIENCE = "for microschool founders";
+
 /** This set has no gift-card callout, so the offer chip and fine print are always off. */
 const noOffer = (node: ReactNode) => <AdOfferProvider show={false}>{node}</AdOfferProvider>;
 
@@ -62,7 +65,7 @@ export const ADS_FREE_PREVIEW_CAROUSEL = {
       fileName: "ad-f01-your-logo-here.png",
       render: () => noOffer(<LogoHereAd />),
       adCopy: {
-        primaryText: "Send us your school's website. We'll build a private MudKitchen preview with your logo, colours and programs. Free.",
+        primaryText: "Microschool founders: send us your school's website and we'll build a private MudKitchen preview with your logo, colours and programs. Free.",
         headline: "See MudKitchen with your logo on it",
         description: "Free, private, within 2 business days.",
       },
@@ -72,7 +75,7 @@ export const ADS_FREE_PREVIEW_CAROUSEL = {
       fileName: "ad-f02-see-it-before-the-call.png",
       render: () => noOffer(<BeforeTheCallAd />),
       adCopy: {
-        primaryText: "Skip the generic demo. Send your website and we'll build a private MudKitchen preview of your school. Free.",
+        primaryText: "Microschool owners: skip the generic demo. Send your website and we'll build a private MudKitchen preview of your school. Free.",
         headline: "See it before you book a call",
         description: "Website, parent app, teacher and admin portals.",
       },
@@ -82,7 +85,7 @@ export const ADS_FREE_PREVIEW_CAROUSEL = {
       fileName: "ad-f03-free-in-two-business-days.png",
       render: () => noOffer(<FreeTwoDaysAd />),
       adCopy: {
-        primaryText: "Free, built for your school, and in your inbox within 2 business days. Send your website to get your MudKitchen preview.",
+        primaryText: "Microschool founders: a preview that's free, built for your school, and in your inbox within 2 business days. Send your website to get your MudKitchen preview.",
         headline: "Free. Built for you. 2 business days.",
         description: "No obligation.",
       },
@@ -92,7 +95,7 @@ export const ADS_FREE_PREVIEW_CAROUSEL = {
       fileName: "ad-f04-still-picturing-it.png",
       render: () => noOffer(<FeatureListAd />),
       adCopy: {
-        primaryText: "Feature lists all blur together. See MudKitchen with your school's logo, colours and programs instead. Free preview.",
+        primaryText: "Microschool directors: feature lists all blur together. See MudKitchen with your school's logo, colours and programs instead. Free preview.",
         headline: "Skip the feature list. See yours.",
         description: "Free, private, within 2 business days.",
       },
@@ -102,7 +105,7 @@ export const ADS_FREE_PREVIEW_CAROUSEL = {
       fileName: "ad-f05-the-crew-is-building-yours.png",
       render: () => noOffer(<CrewBuildingAd />),
       adCopy: {
-        primaryText: "Send us your website and the MudKitchen crew gets to work: your logo, your colours, your programs. Free and private.",
+        primaryText: "Microschool founders: send us your website and the MudKitchen crew gets to work: your logo, your colours, your programs. Free and private.",
         headline: "Let the crew build your preview",
         description: "Ready within 2 business days.",
       },
@@ -112,7 +115,7 @@ export const ADS_FREE_PREVIEW_CAROUSEL = {
       fileName: "ad-f06-parent-app-with-your-name.png",
       render: () => noOffer(<ParentAppAd />),
       adCopy: {
-        primaryText: "Picture your families opening an app with your school's name on it. Send your website and we'll build you a free preview.",
+        primaryText: "Microschool owners: picture your families opening an app with your school's name on it. Send your website and we'll build you a free preview.",
         headline: "A parent app with your name on it",
         description: "Part of your free, private preview.",
       },
@@ -122,7 +125,7 @@ export const ADS_FREE_PREVIEW_CAROUSEL = {
       fileName: "ad-f07-your-admin-portal.png",
       render: () => noOffer(<AdminPortalAd />),
       adCopy: {
-        primaryText: "Admissions, tuition and messages in one admin portal, set up with your school's details. Get a free private preview.",
+        primaryText: "Microschool admins: admissions, tuition and messages in one admin portal, set up with your school's details. Get a free private preview.",
         headline: "Your admin portal, set up for you",
         description: "Free, within 2 business days.",
       },
@@ -132,7 +135,7 @@ export const ADS_FREE_PREVIEW_CAROUSEL = {
       fileName: "ad-f08-website-makeover.png",
       render: () => noOffer(<WebsiteMakeoverAd />),
       adCopy: {
-        primaryText: "Send us your current website. We'll rebuild it in MudKitchen with your logo, colours and programs, as a free private preview.",
+        primaryText: "Microschool founders: send us your current website. We'll rebuild it in MudKitchen with your logo, colours and programs, as a free private preview.",
         headline: "See your website, made over",
         description: "Free, private, no obligation.",
       },
@@ -142,7 +145,7 @@ export const ADS_FREE_PREVIEW_CAROUSEL = {
       fileName: "ad-f09-no-sales-call.png",
       render: () => noOffer(<NoSalesCallAd />),
       adCopy: {
-        primaryText: "No sales call needed. Send your website and a private MudKitchen preview of your school lands in your inbox. Free.",
+        primaryText: "Microschool owners: no sales call needed. Send your website and a private MudKitchen preview of your school lands in your inbox. Free.",
         headline: "No sales call. Just your preview.",
         description: "Within 2 business days.",
       },
@@ -152,7 +155,7 @@ export const ADS_FREE_PREVIEW_CAROUSEL = {
       fileName: "ad-f10-founder-note.png",
       render: () => noOffer(<FounderNoteAd />),
       adCopy: {
-        primaryText: "A note from our founder: send us your school's website and we'll build you a private MudKitchen preview. Free, no strings.",
+        primaryText: "A note from our founder to microschool founders: send us your school's website and we'll build you a private MudKitchen preview. Free, no strings.",
         headline: "Send us your website",
         description: "We'll build your preview for free.",
       },
@@ -162,7 +165,7 @@ export const ADS_FREE_PREVIEW_CAROUSEL = {
       fileName: "ad-f11-whats-inside.png",
       render: () => noOffer(<WhatsInsideAd />),
       adCopy: {
-        primaryText: "Inside your free preview: your website, parent app, teacher portal and admin portal, with your logo and colours.",
+        primaryText: "For microschool founders, inside your free preview: your website, parent app, teacher portal and admin portal, with your logo and colours.",
         headline: "What's inside your free preview",
         description: "Within 2 business days. No obligation.",
       },
@@ -172,7 +175,7 @@ export const ADS_FREE_PREVIEW_CAROUSEL = {
       fileName: "ad-f12-48-hours.png",
       render: () => noOffer(<FortyEightHoursAd />),
       adCopy: {
-        primaryText: "Send your website today. Within 2 business days, a private MudKitchen preview of your school is in your inbox. Free.",
+        primaryText: "Microschool owners: send your website today. Within 2 business days, a private MudKitchen preview of your school is in your inbox. Free.",
         headline: "Your preview in 2 business days",
         description: "Free, private, no obligation.",
       },
@@ -207,11 +210,11 @@ function Callout({ children, arrow = "down-left", color = G.clayDeep }: { childr
 
 function LogoHereAd() {
   return (
-    <AdFrame background={G.cream} tag={<FreeTag />}>
+    <AdFrame audience={AUDIENCE} background={G.cream} tag={<FreeTag text="Free · private" />}>
       <AdCopy
         title={
           <>
-            Picture MudKitchen with <Accent>your logo on it.</Accent>
+            Picture MudKitchen with <Accent>your school&rsquo;s logo on it.</Accent>
           </>
         }
         hand="send your website. we'll build it."
@@ -252,14 +255,14 @@ function LogoHereAd() {
 
 function BeforeTheCallAd() {
   return (
-    <AdFrame background="#EEF5E9" tag={<FreeTag />}>
+    <AdFrame audience={AUDIENCE} background="#EEF5E9" tag={<FreeTag text="Free · private" />}>
       <AdCopy
         title={
           <>
             See it <Accent>before</Accent> you book a call.
           </>
         }
-        sub="Your website, parent app, teacher portal and admin portal, all with your school's name on them."
+        sub="Your microschool's website, parent app, teacher portal and admin portal, all with your school's name on them."
         size={88}
       />
       <Scene>
@@ -292,11 +295,11 @@ const STAMPS: Array<{ big: string; small: string; bg: string; rotate: number }> 
 
 function FreeTwoDaysAd() {
   return (
-    <AdFrame background={G.cream}>
+    <AdFrame audience={AUDIENCE} background={G.cream}>
       <AdCopy
         title={
           <>
-            Your school in MudKitchen. <Accent>Free.</Accent>
+            Your microschool in MudKitchen. <Accent>Free.</Accent>
           </>
         }
         hand="we build it, you click around."
@@ -326,14 +329,14 @@ const FEATURES = ["Online enrollment", "Tuition & autopay", "Parent messaging", 
 
 function FeatureListAd() {
   return (
-    <AdFrame background={G.sky}>
+    <AdFrame audience={AUDIENCE} background={G.sky}>
       <AdCopy
         title={
           <>
             Still picturing it <Accent>from a feature list?</Accent>
           </>
         }
-        sub="See it with your school's name on it instead."
+        sub="Microschool founders: see it with your school's name on it instead."
         size={86}
       />
       <Scene>
@@ -367,7 +370,7 @@ function FeatureListAd() {
 
 function CrewBuildingAd() {
   return (
-    <AdFrame background="#F3EEF8" tag={<FreeTag />}>
+    <AdFrame audience={AUDIENCE} background="#F3EEF8" tag={<FreeTag text="Free · private" />}>
       <AdCopy
         title={
           <>
@@ -420,14 +423,14 @@ function CrewBuildingAd() {
 
 function ParentAppAd() {
   return (
-    <AdFrame background={YOUR.soft}>
+    <AdFrame audience={AUDIENCE} background={YOUR.soft}>
       <AdCopy
         title={
           <>
             A parent app with <Accent>your name on it.</Accent>
           </>
         }
-        sub="Tuition, forms and updates for your families. We'll build you a free preview."
+        sub="Tuition, forms and updates for your school's families. We'll build you a free preview."
         size={86}
       />
       <Scene>
@@ -451,14 +454,14 @@ function ParentAppAd() {
 
 function AdminPortalAd() {
   return (
-    <AdFrame background="#EEF5E9">
+    <AdFrame audience={AUDIENCE} background="#EEF5E9">
       <AdCopy
         title={
           <>
             Your admin portal, <Accent>ready to click around.</Accent>
           </>
         }
-        sub="Admissions, tuition and messages, set up with your school's details."
+        sub="For microschool admins: admissions, tuition and messages, set up with your school's details."
         size={84}
       />
       <Scene style={{ marginRight: -110 }}>
@@ -479,14 +482,14 @@ function AdminPortalAd() {
 
 function WebsiteMakeoverAd() {
   return (
-    <AdFrame background={G.peach}>
+    <AdFrame audience={AUDIENCE} background={G.peach}>
       <AdCopy
         title={
           <>
             Your website, <Accent>made over.</Accent>
           </>
         }
-        sub="Send us the one you have. We'll rebuild it in MudKitchen as a free preview."
+        sub="Microschool founders: send us the one you have. We'll rebuild it in MudKitchen as a free preview."
         size={92}
       />
       <Scene>
@@ -522,7 +525,7 @@ function WebsiteMakeoverAd() {
 
 function NoSalesCallAd() {
   return (
-    <AdFrame background={G.cream}>
+    <AdFrame audience={AUDIENCE} background={G.cream}>
       <AdCopy
         title={
           <>
@@ -560,7 +563,7 @@ function NoSalesCallAd() {
 
 function FounderNoteAd() {
   return (
-    <AdFrame background={G.forest} tone="dark">
+    <AdFrame audience={AUDIENCE} background={G.forest} tone="dark">
       <AdCopy
         tone="dark"
         title={
@@ -573,7 +576,7 @@ function FounderNoteAd() {
       <Scene style={{ display: "flex", alignItems: "center" }}>
         <StickyNote width={760} rotate={-2} color={G.butter} style={{ padding: "54px 50px 44px" }}>
           <Hand size={48} color={G.ink} rotate={0} style={{ lineHeight: 1.25 }}>
-            Send me your school&rsquo;s website and we&rsquo;ll build you a private MudKitchen preview: your logo, your colours, your programs.
+            Dear microschool founder: send me your school&rsquo;s website and we&rsquo;ll build you a private MudKitchen preview: your logo, your colours, your programs.
           </Hand>
           <Hand size={48} color={G.ink} rotate={0} style={{ marginTop: 22, lineHeight: 1.25 }}>
             Free. No call needed. Yours in 2 business days.
@@ -595,7 +598,7 @@ function FounderNoteAd() {
 
 function WhatsInsideAd() {
   return (
-    <AdFrame background={G.cream} tag={<FreeTag />}>
+    <AdFrame audience={AUDIENCE} background={G.cream} tag={<FreeTag text="Free · private" />}>
       <AdCopy
         title={
           <>
@@ -656,7 +659,7 @@ function FlipDigit({ value }: { value: string }) {
 
 function FortyEightHoursAd() {
   return (
-    <AdFrame background={G.mint} tag={<FreeTag text="Free · private" />}>
+    <AdFrame audience={AUDIENCE} background={G.mint} tag={<FreeTag text="Free · private" />}>
       <AdCopy
         title={
           <>

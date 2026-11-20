@@ -1,10 +1,10 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo } from 'react';
 import { FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { GInlineBanner } from '@/components/parent/garden/fields';
-import { Garden, PORTAL_EASE } from '@/components/parent/garden/tokens';
+import { Garden } from '@/components/parent/garden/tokens';
 import { GErrorCard, GLink, GSkeleton } from '@/components/parent/garden/ui';
 import { SubmissionRow } from '@/components/school-admin/admissions/garden/submission-row';
 import {
@@ -26,6 +26,7 @@ import {
 import { AdminTabHeader, useAdminTopBleed } from '@/components/school-admin/garden/admin-tab-header';
 import { formatShortDate } from '@/lib/admissions/application-submissions';
 import { haptic } from '@/lib/haptics';
+import { calmEnter } from '@/lib/motion/portal-motion';
 
 const KPI_BARS = {
   all: '#2E4A3C',
@@ -99,7 +100,7 @@ function AdmissionsListContent({ controller }: { controller: AdmissionsListContr
   const header = (
     <View style={styles.headerBlock}>
       {hasAnyApplications ? (
-        <Animated.View entering={FadeInDown.delay(40).duration(320).easing(PORTAL_EASE)}>
+        <Animated.View entering={calmEnter({ delay: 40 })}>
           <AdminKpiTiles
             tiles={[
               {
@@ -140,7 +141,7 @@ function AdmissionsListContent({ controller }: { controller: AdmissionsListContr
       ) : null}
 
       {latestSubmitted ? (
-        <Animated.View entering={FadeInDown.delay(90).duration(320).easing(PORTAL_EASE)}>
+        <Animated.View entering={calmEnter({ delay: 90 })}>
           <AdminLeadStrip
             testID="admissions-review-latest"
             icon="document-text-outline"

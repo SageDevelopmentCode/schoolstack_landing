@@ -272,7 +272,9 @@ function isApplicationsDraftSave(response: {
 }
 
 export async function advanceFromStudentStep(page: Page): Promise<void> {
-  const continueButton = page.getByRole("button", { name: /Save and continue/i });
+  const continueButton = page
+    .locator("footer")
+    .getByRole("button", { name: /Save and continue/i });
   await expect(continueButton).toBeVisible();
   await expect(continueButton).toBeEnabled();
 

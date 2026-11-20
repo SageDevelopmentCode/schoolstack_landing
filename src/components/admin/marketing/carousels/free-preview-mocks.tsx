@@ -4,6 +4,12 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { MascotName, MascotView } from "@/components/admin/marketing/mascot/Mascot";
 import { Accent, CtaButton, FONT, G, Hand, Headline, MascotSlide, PlacedMascot } from "@/components/admin/marketing/mascot/mascot-slide-kit";
+import { CAROUSEL_DEMO_INNER_WIDTH } from "@/components/admin/marketing/carousels/carousel-product-slide";
+import {
+  GardenAdminDashboardWindow,
+  GardenTeacherHomeWindow,
+  GardenWebsiteWindow,
+} from "@/components/admin/marketing/screens/marketing-garden-demo-windows";
 
 // Shared art for the "free custom preview" campaign (ads, posts and two swipe carousels).
 // Everything is branded with a generic "Your School" placeholder: never a real school or a
@@ -35,10 +41,6 @@ export function Scaled({ w, h, scale, children, style }: { w: number; h: number;
       <div style={{ position: "absolute", left: 0, top: 0, width: w, height: h, transform: `scale(${scale})`, transformOrigin: "top left" }}>{children}</div>
     </div>
   );
-}
-
-function Bar({ w, h = 14, color = "#E3DBD0", style }: { w: number | string; h?: number; color?: string; style?: CSSProperties }) {
-  return <span style={{ display: "block", width: w, height: h, borderRadius: 999, background: color, ...style }} />;
 }
 
 function Check({ size = 22, color = "#FFFFFF" }: { size?: number; color?: string }) {
@@ -134,179 +136,21 @@ export function MockBrowser({ children, label = `${YOUR.name} · private preview
   );
 }
 
-const PROGRAMS = [
-  { name: "Little Learners", ages: "Ages 4–6", tint: YOUR.tint },
-  { name: "Lower School", ages: "Ages 6–9", tint: YOUR.soft },
-  { name: "Upper School", ages: "Ages 9–12", tint: "#EEF5E9" },
-];
+// ---------------------------------------------------------------- real screens
 
-/** A school website in the placeholder brand: nav, hero, programs. */
-export function WebsiteMock() {
+/** Inner size of a MockBrowser body (960 − 2×4 border, 620 − 58 bar − 2×4 border). */
+const BODY_W = BROWSER_W - 8;
+const BODY_H = BROWSER_H - 66;
+const REAL_SCALE = BODY_W / CAROUSEL_DEMO_INNER_WIDTH;
+const REAL_H = Math.round(BODY_H / REAL_SCALE);
+
+/** A real Garden demo window (1100px canvas) scaled to fill a MockBrowser body. */
+function RealScreen({ children }: { children: ReactNode }) {
   return (
-    <div style={{ position: "absolute", inset: 0, background: "#FFFDF9", fontFamily: FONT.body, color: G.ink }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 34px" }}>
-        <YourSchoolLockup size={40} fontSize={24} ring={YOUR.primaryDeep} />
-        <span style={{ display: "flex", alignItems: "center", gap: 26, fontWeight: 700, fontSize: 18, color: G.soft }}>
-          <span>Programs</span>
-          <span>Tuition</span>
-          <span>About</span>
-          <span style={{ padding: "10px 20px", borderRadius: 999, background: YOUR.primary, color: "#FFFFFF", fontWeight: 800 }}>Apply</span>
-        </span>
-      </div>
-      <div style={{ margin: "4px 34px 0", height: 290, borderRadius: 26, background: YOUR.soft, position: "relative", overflow: "hidden", display: "flex" }}>
-        <div style={{ padding: "40px 0 0 40px", width: 470, position: "relative", zIndex: 2 }}>
-          <p style={{ margin: 0, fontFamily: FONT.display, fontWeight: 800, fontSize: 46, lineHeight: 1.02, letterSpacing: "-0.03em", color: YOUR.primaryDeep }}>A small school for curious kids.</p>
-          <p style={{ margin: "14px 0 0", fontWeight: 600, fontSize: 19, lineHeight: 1.35, color: G.soft }}>Mixed-age classes, project days and lots of time outside.</p>
-          <span style={{ display: "inline-block", marginTop: 20, padding: "12px 24px", borderRadius: 999, background: YOUR.accent, color: G.ink, fontWeight: 800, fontSize: 19 }}>Book a tour</span>
-        </div>
-        <svg width="420" height="290" viewBox="0 0 420 290" aria-hidden style={{ position: "absolute", right: 0, bottom: 0 }}>
-          <circle cx="300" cy="90" r="42" fill={YOUR.accent} />
-          <path d="M0 230 Q 110 150 220 210 T 420 180 V 290 H 0z" fill={YOUR.primary} opacity="0.85" />
-          <path d="M60 290 Q 190 200 320 250 T 420 240 V 290z" fill={YOUR.primaryDeep} />
-        </svg>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 18, margin: "22px 34px 0" }}>
-        {PROGRAMS.map((p) => (
-          <div key={p.name} style={{ padding: "18px 20px", borderRadius: 20, background: p.tint, border: "2px solid #EDE4D8" }}>
-            <p style={{ margin: 0, fontFamily: FONT.display, fontWeight: 800, fontSize: 23, color: G.ink }}>{p.name}</p>
-            <p style={{ margin: "4px 0 12px", fontWeight: 700, fontSize: 16, color: G.soft }}>{p.ages}</p>
-            <Bar w="90%" h={10} />
-            <Bar w="65%" h={10} style={{ marginTop: 8 }} />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-const ADMIN_NAV = ["Dashboard", "Admissions", "Students", "Tuition", "Messages", "Calendar"];
-const ADMIN_TILES = [
-  { label: "Applications", tint: YOUR.tint },
-  { label: "Tuition", tint: YOUR.soft },
-  { label: "Messages", tint: "#EEF5E9" },
-];
-const ADMIN_ROWS = [
-  { status: "New", bg: YOUR.tint, color: "#9A5A12" },
-  { status: "Tour booked", bg: YOUR.soft, color: YOUR.primaryDeep },
-  { status: "Enrolled", bg: "#E3F1DC", color: "#2F6B3A" },
-];
-
-/** Admin portal in the placeholder brand: sidebar, tiles and an admissions list (placeholder bars, no data). */
-export function AdminPortalMock() {
-  return (
-    <div style={{ position: "absolute", inset: 0, display: "flex", background: "#FBF8F3", fontFamily: FONT.body, color: G.ink }}>
-      <div style={{ width: 230, flexShrink: 0, background: YOUR.primaryDeep, padding: "24px 18px", display: "flex", flexDirection: "column", gap: 8 }}>
-        <div style={{ marginBottom: 18 }}>
-          <YourSchoolLockup size={36} fontSize={21} color="#FFFFFF" ring="#FFFFFF" />
-        </div>
-        {ADMIN_NAV.map((item, i) => (
-          <span
-            key={item}
-            style={{
-              padding: "11px 14px",
-              borderRadius: 14,
-              background: i === 0 ? "rgba(255,255,255,.16)" : "transparent",
-              color: i === 0 ? "#FFFFFF" : "rgba(255,255,255,.72)",
-              fontWeight: 800,
-              fontSize: 18,
-            }}
-          >
-            {item}
-          </span>
-        ))}
-      </div>
-      <div style={{ flex: 1, padding: "26px 30px", display: "flex", flexDirection: "column", gap: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <p style={{ margin: 0, fontFamily: FONT.display, fontWeight: 800, fontSize: 34, letterSpacing: "-0.02em" }}>Good morning</p>
-          <span style={{ padding: "9px 18px", borderRadius: 999, background: YOUR.accent, fontWeight: 800, fontSize: 16 }}>+ New</span>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
-          {ADMIN_TILES.map((t) => (
-            <div key={t.label} style={{ padding: "16px 18px", borderRadius: 18, background: t.tint, border: "2px solid #EDE4D8" }}>
-              <p style={{ margin: "0 0 12px", fontWeight: 800, fontSize: 18, color: G.soft }}>{t.label}</p>
-              <Bar w="55%" h={22} color={YOUR.primary} style={{ opacity: 0.85 }} />
-              <Bar w="80%" h={10} style={{ marginTop: 12 }} />
-            </div>
-          ))}
-        </div>
-        <div style={{ flex: 1, borderRadius: 20, background: "#FFFFFF", border: "2px solid #EDE4D8", padding: "16px 20px" }}>
-          <p style={{ margin: "0 0 10px", fontFamily: FONT.display, fontWeight: 800, fontSize: 22 }}>Admissions</p>
-          {ADMIN_ROWS.map((row, i) => (
-            <div key={row.status} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 0", borderTop: i ? "2px dashed #EDE4D8" : "none" }}>
-              <span style={{ width: 34, height: 34, borderRadius: 999, background: [YOUR.soft, YOUR.tint, "#EEF5E9"][i] }} />
-              <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 7 }}>
-                <Bar w={[180, 150, 200][i]} h={12} color="#D9CFC2" />
-                <Bar w={[110, 130, 90][i]} h={9} />
-              </span>
-              <span style={{ padding: "6px 14px", borderRadius: 999, background: row.bg, color: row.color, fontWeight: 800, fontSize: 15 }}>{row.status}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const TEACHER_NAV = ["Today", "Roll call", "My class", "Messages", "My hours"];
-const ROLL = [
-  { w: 170, tint: YOUR.soft, here: true },
-  { w: 140, tint: YOUR.tint, here: true },
-  { w: 190, tint: "#EEF5E9", here: false },
-  { w: 155, tint: "#ECE2F3", here: true },
-  { w: 175, tint: YOUR.soft, here: true },
-];
-
-/** Teacher portal in the placeholder brand: roll call for the class (placeholder bars, no names). */
-export function TeacherPortalMock() {
-  return (
-    <div style={{ position: "absolute", inset: 0, display: "flex", background: "#FBF8F3", fontFamily: FONT.body, color: G.ink }}>
-      <div style={{ width: 220, flexShrink: 0, background: YOUR.soft, borderRight: "2px solid #D6E0EE", padding: "24px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
-        <div style={{ marginBottom: 18 }}>
-          <YourSchoolLockup size={36} fontSize={21} color={YOUR.primaryDeep} ring={YOUR.primaryDeep} />
-        </div>
-        {TEACHER_NAV.map((item, i) => (
-          <span
-            key={item}
-            style={{
-              padding: "11px 14px",
-              borderRadius: 14,
-              background: i === 1 ? YOUR.primary : "transparent",
-              color: i === 1 ? "#FFFFFF" : YOUR.primaryDeep,
-              fontWeight: 800,
-              fontSize: 18,
-            }}
-          >
-            {item}
-          </span>
-        ))}
-      </div>
-      <div style={{ flex: 1, padding: "24px 30px", display: "flex", flexDirection: "column", gap: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ display: "flex", flexDirection: "column" }}>
-            <span style={{ fontFamily: FONT.display, fontWeight: 800, fontSize: 34, letterSpacing: "-0.02em" }}>Roll call</span>
-            <span style={{ fontWeight: 700, fontSize: 17, color: G.soft }}>My class · this morning</span>
-          </span>
-          <span style={{ padding: "9px 18px", borderRadius: 999, background: YOUR.accent, fontWeight: 800, fontSize: 16 }}>Clock in</span>
-        </div>
-        <div style={{ borderRadius: 20, background: "#FFFFFF", border: "2px solid #EDE4D8", padding: "6px 20px" }}>
-          {ROLL.map((row, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "11px 0", borderTop: i ? "2px dashed #EDE4D8" : "none" }}>
-              <span style={{ width: 34, height: 34, borderRadius: 999, background: row.tint, flexShrink: 0 }} />
-              <span style={{ flex: 1 }}>
-                <Bar w={row.w} h={12} color="#D9CFC2" />
-              </span>
-              <span style={{ display: "flex", borderRadius: 999, border: "2px solid #E4D8C8", overflow: "hidden", fontWeight: 800, fontSize: 14 }}>
-                <span style={{ padding: "6px 12px", background: row.here ? "#E3F1DC" : "transparent", color: row.here ? "#2F6B3A" : G.soft }}>Present</span>
-                <span style={{ padding: "6px 12px", background: row.here ? "transparent" : YOUR.tint, color: row.here ? G.soft : "#9A5A12" }}>Absent</span>
-              </span>
-            </div>
-          ))}
-        </div>
-        <div style={{ display: "flex", gap: 12 }}>
-          <span style={{ padding: "10px 18px", borderRadius: 999, background: YOUR.primary, color: "#FFFFFF", fontWeight: 800, fontSize: 16 }}>Submit roll call</span>
-          <span style={{ padding: "10px 18px", borderRadius: 999, background: "#FFFFFF", border: "2px solid #E4D8C8", fontWeight: 800, fontSize: 16, color: YOUR.primaryDeep }}>Message families</span>
-        </div>
-      </div>
+    <div data-demo-window style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+      <Scaled w={CAROUSEL_DEMO_INNER_WIDTH} h={REAL_H} scale={REAL_SCALE}>
+        {children}
+      </Scaled>
     </div>
   );
 }
@@ -314,56 +158,51 @@ export function TeacherPortalMock() {
 // ---------------------------------------------------------------- phone
 
 export const PHONE_W = 360;
-export const PHONE_H = 740;
+export const PHONE_H = 760;
 
-const PARENT_CARDS = [
-  { title: "Tuition", sub: "Paid · autopay on", icon: "✓", tint: "#E3F1DC" },
-  { title: "Field trip form", sub: "Ready to sign", icon: "✎", tint: YOUR.tint },
-  { title: "This week", sub: "Friday picnic", icon: "★", tint: YOUR.soft },
-];
+/**
+ * Real screenshots of the MudKitchen mobile app, signed in to the fictional "Your School" on the local
+ * stack (scripts/seed-your-school-marketing-local.ts). Captured on the iOS Simulator at 720px wide.
+ */
+export const APP_SCREENS = {
+  parent: {
+    home: "/images/marketing/app-screens/parent-home.png",
+    billing: "/images/marketing/app-screens/parent-billing.png",
+    messages: "/images/marketing/app-screens/parent-messages.png",
+    forms: "/images/marketing/app-screens/parent-forms.png",
+    calendar: "/images/marketing/app-screens/parent-calendar.png",
+  },
+  teacher: {
+    home: "/images/marketing/app-screens/teacher-home.png",
+    rollCall: "/images/marketing/app-screens/teacher-roll-call.png",
+  },
+  admin: {
+    dashboard: "/images/marketing/app-screens/admin-dashboard.png",
+    admissions: "/images/marketing/app-screens/admin-admissions.png",
+  },
+} as const;
 
-/** Parent app on a phone in the placeholder brand. */
-export function ParentAppPhone() {
+export type AppScreenApp = keyof typeof APP_SCREENS;
+export type AppScreenName<A extends AppScreenApp> = keyof (typeof APP_SCREENS)[A];
+
+/** A real app screenshot in an ink phone bezel (the capture already includes the status bar). */
+export function AppPhone<A extends AppScreenApp>({ app, screen }: { app: A; screen: AppScreenName<A> }) {
+  const src = (APP_SCREENS[app] as Record<string, string>)[screen as string];
   return (
     <div
       style={{
         width: PHONE_W,
         height: PHONE_H,
         boxSizing: "border-box",
-        padding: 12,
+        padding: 11,
         background: G.ink,
-        borderRadius: 58,
+        borderRadius: 60,
         boxShadow: "0 22px 40px rgba(43,36,29,.28)",
       }}
     >
-      <div style={{ position: "relative", width: "100%", height: "100%", borderRadius: 46, overflow: "hidden", background: "#FBF8F3", fontFamily: FONT.body, color: G.ink }}>
-        <div style={{ background: YOUR.primary, padding: "52px 24px 26px", color: "#FFFFFF" }}>
-          <span style={{ position: "absolute", top: 14, left: "50%", marginLeft: -50, width: 100, height: 26, borderRadius: 999, background: G.ink }} />
-          <YourSchoolLockup size={38} fontSize={22} color="#FFFFFF" ring="#FFFFFF" />
-          <p style={{ margin: "20px 0 0", fontFamily: FONT.display, fontWeight: 800, fontSize: 30, lineHeight: 1.05, letterSpacing: "-0.02em" }}>Hi there 👋</p>
-          <p style={{ margin: "6px 0 0", fontWeight: 700, fontSize: 17, color: "rgba(255,255,255,.8)" }}>Here&rsquo;s your week.</p>
-        </div>
-        <div style={{ padding: "18px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
-          {PARENT_CARDS.map((c) => (
-            <div key={c.title} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", borderRadius: 20, background: "#FFFFFF", border: "2px solid #EDE4D8" }}>
-              <span style={{ width: 44, height: 44, borderRadius: 14, background: c.tint, display: "grid", placeItems: "center", fontWeight: 800, fontSize: 22, color: YOUR.primaryDeep }}>{c.icon}</span>
-              <span style={{ display: "flex", flexDirection: "column" }}>
-                <span style={{ fontWeight: 800, fontSize: 19 }}>{c.title}</span>
-                <span style={{ fontWeight: 600, fontSize: 15, color: G.soft }}>{c.sub}</span>
-              </span>
-            </div>
-          ))}
-          <div style={{ marginTop: 4, padding: "14px 16px", borderRadius: 20, background: YOUR.tint, border: "2px solid #F3DDBF" }}>
-            <p style={{ margin: "0 0 10px", fontWeight: 800, fontSize: 16, color: "#9A5A12" }}>From the classroom</p>
-            <Bar w="92%" h={10} color="#EBD3B4" />
-            <Bar w="70%" h={10} color="#EBD3B4" style={{ marginTop: 8 }} />
-          </div>
-        </div>
-        <div style={{ position: "absolute", left: 16, right: 16, bottom: 16, height: 62, borderRadius: 999, background: "#FFFFFF", border: "2px solid #EDE4D8", display: "flex", alignItems: "center", justifyContent: "space-around" }}>
-          {["Home", "Billing", "Messages", "More"].map((tab, i) => (
-            <span key={tab} style={{ fontWeight: 800, fontSize: 14, color: i === 0 ? YOUR.primary : G.soft }}>{tab}</span>
-          ))}
-        </div>
+      <div style={{ position: "relative", width: "100%", height: "100%", borderRadius: 49, overflow: "hidden", background: "#FFFFFF" }}>
+        <img src={src} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", display: "block" }} />
+        <span aria-hidden style={{ position: "absolute", top: 11, left: "50%", marginLeft: -52, width: 104, height: 30, borderRadius: 999, background: "#000000" }} />
       </div>
     </div>
   );
@@ -371,40 +210,79 @@ export function ParentAppPhone() {
 
 // ---------------------------------------------------------------- scaled shortcuts
 
+/** The real Garden school website, branded "Your School". */
 export function YourWebsiteWindow({ scale = 1, label }: { scale?: number; label?: string }) {
   return (
     <Scaled w={BROWSER_W} h={BROWSER_H + 12} scale={scale}>
       <MockBrowser label={label}>
-        <WebsiteMock />
+        <RealScreen>
+          <GardenWebsiteWindow brand="your-school" contentHeight={REAL_H} />
+        </RealScreen>
       </MockBrowser>
     </Scaled>
   );
 }
 
+/** The real Garden admin dashboard, branded "Your School". */
 export function YourAdminWindow({ scale = 1, label }: { scale?: number; label?: string }) {
   return (
     <Scaled w={BROWSER_W} h={BROWSER_H + 12} scale={scale}>
       <MockBrowser label={label}>
-        <AdminPortalMock />
+        <RealScreen>
+          <GardenAdminDashboardWindow brand="your-school" contentHeight={REAL_H} />
+        </RealScreen>
       </MockBrowser>
     </Scaled>
   );
 }
 
+/** The real Garden teacher portal (Today), branded "Your School". */
 export function YourTeacherWindow({ scale = 1, label }: { scale?: number; label?: string }) {
   return (
     <Scaled w={BROWSER_W} h={BROWSER_H + 12} scale={scale}>
       <MockBrowser label={label}>
-        <TeacherPortalMock />
+        <RealScreen>
+          <GardenTeacherHomeWindow brand="your-school" contentHeight={REAL_H} />
+        </RealScreen>
       </MockBrowser>
     </Scaled>
   );
 }
 
-export function YourParentPhone({ scale = 1 }: { scale?: number }) {
+/** Any real Garden window (billing, admissions, roll call…) in the same ink browser chrome. */
+export function YourRealWindow({ scale = 1, label, children }: { scale?: number; label?: string; children: (contentHeight: number) => ReactNode }) {
+  return (
+    <Scaled w={BROWSER_W} h={BROWSER_H + 12} scale={scale}>
+      <MockBrowser label={label}>
+        <RealScreen>{children(REAL_H)}</RealScreen>
+      </MockBrowser>
+    </Scaled>
+  );
+}
+
+/** The real parent app (Home by default) for "Your School". */
+export function YourParentPhone({ scale = 1, screen = "home" }: { scale?: number; screen?: AppScreenName<"parent"> }) {
   return (
     <Scaled w={PHONE_W} h={PHONE_H} scale={scale}>
-      <ParentAppPhone />
+      <AppPhone app="parent" screen={screen} />
+    </Scaled>
+  );
+}
+
+/** The real teacher app for "Your School". */
+export function YourTeacherPhone({ scale = 1, screen = "rollCall" }: { scale?: number; screen?: AppScreenName<"teacher"> }) {
+  return (
+    <Scaled w={PHONE_W} h={PHONE_H} scale={scale}>
+      <AppPhone app="teacher" screen={screen} />
+    </Scaled>
+  );
+}
+
+/** The real school-admin app for "Your School". */
+export function YourAdminPhone({ scale = 1, screen = "dashboard" }: { scale?: number; screen?: AppScreenName<"admin"> }) {
+  return (
+    <Scaled w={PHONE_W} h={PHONE_H} scale={scale}>
+      <AppPhone app="admin" screen={screen} />
     </Scaled>
   );
 }

@@ -56,7 +56,7 @@ export const POSTS_FREE_PREVIEW_SINGLES_CAROUSEL = {
       fileName: "post-fp01-what-if-it-had-your-logo.png",
       render: () => <WhatIfPost />,
       adCopy: {
-        primaryText: `What if you could see MudKitchen with your logo, your colours and your programs before you decide anything?\n\nSend us your school's website and we'll build you a private preview. Free, no obligation.\n\n${LINK}\n\n${TAGS}`,
+        primaryText: `Microschool founders: what if you could see MudKitchen with your logo, your colours and your programs before you decide anything?\n\nSend us your school's website and we'll build you a private preview. Free, no obligation.\n\n${LINK}\n\n${TAGS}`,
         headline: "See MudKitchen with your logo on it",
       },
     },
@@ -65,7 +65,7 @@ export const POSTS_FREE_PREVIEW_SINGLES_CAROUSEL = {
       fileName: "post-fp02-how-it-works.png",
       render: () => <HowItWorksPost />,
       adCopy: {
-        primaryText: `How the free preview works:\n\n1. Send us your school's website.\n2. We build your website, parent app, teacher portal and admin portal with your logo, colours and programs.\n3. Within 2 business days, a private link lands in your inbox.\n\n${LINK}\n\n${TAGS}`,
+        primaryText: `Microschool founders, here's how the free preview works:\n\n1. Send us your school's website.\n2. We build your website, parent app, teacher portal and admin portal with your logo, colours and programs.\n3. Within 2 business days, a private link lands in your inbox.\n\n${LINK}\n\n${TAGS}`,
         headline: "How the free preview works",
       },
     },
@@ -74,7 +74,7 @@ export const POSTS_FREE_PREVIEW_SINGLES_CAROUSEL = {
       fileName: "post-fp03-four-things-one-link.png",
       render: () => <FourThingsPost />,
       adCopy: {
-        primaryText: `Four things, one private link: your website, your parent app, your teacher portal and your admin portal, all with your school's name on them.\n\nFree, and yours to click around.\n\n${LINK}\n\n${TAGS}`,
+        primaryText: `For microschool owners: four things, one private link: your website, your parent app, your teacher portal and your admin portal, all with your school's name on them.\n\nFree, and yours to click around.\n\n${LINK}\n\n${TAGS}`,
         headline: "Four things, all with your name on them",
       },
     },
@@ -83,7 +83,7 @@ export const POSTS_FREE_PREVIEW_SINGLES_CAROUSEL = {
       fileName: "post-fp04-your-colours-not-ours.png",
       render: () => <YourColoursPost />,
       adCopy: {
-        primaryText: `Your colours, not ours. Terra pulls them straight from your website, so the preview already looks like your school.\n\nSend us your link and we'll build it, free.\n\n${LINK}\n\n${TAGS} #schoolbranding`,
+        primaryText: `Microschool founders: your colours, not ours. Terra pulls them straight from your website, so the preview already looks like your school.\n\nSend us your link and we'll build it, free.\n\n${LINK}\n\n${TAGS} #schoolbranding`,
         headline: "Your colours, not ours",
       },
     },
@@ -92,7 +92,7 @@ export const POSTS_FREE_PREVIEW_SINGLES_CAROUSEL = {
       fileName: "post-fp05-free-preview-faq.png",
       render: () => <FaqPost />,
       adCopy: {
-        primaryText: `"Wait, what's the catch?" There isn't one.\n\nIt's free. You don't need a call. The link is private. And there's no obligation to sign up.\n\n${LINK}\n\n${TAGS}`,
+        primaryText: `Microschool owners ask us: "wait, what's the catch?" There isn't one.\n\nIt's free. You don't need a call. The link is private. And there's no obligation to sign up.\n\n${LINK}\n\n${TAGS}`,
         headline: "Free preview: the quick FAQ",
       },
     },
@@ -110,7 +110,7 @@ export const POSTS_FREE_PREVIEW_SINGLES_CAROUSEL = {
       fileName: "post-fp07-feature-list-or-preview.png",
       render: () => <ThisOrThatPost />,
       adCopy: {
-        primaryText: `This or that: read another feature list, or click around a preview built for your school?\n\nWe'll make the second one for you. Free, within 2 business days.\n\n${LINK}\n\n${TAGS}`,
+        primaryText: `Microschool founders, this or that: read another feature list, or click around a preview built for your school?\n\nWe'll make the second one for you. Free, within 2 business days.\n\n${LINK}\n\n${TAGS}`,
         headline: "Feature list or your own preview?",
       },
     },
@@ -119,7 +119,7 @@ export const POSTS_FREE_PREVIEW_SINGLES_CAROUSEL = {
       fileName: "post-fp08-in-your-inbox.png",
       render: () => <InboxPost />,
       adCopy: {
-        primaryText: `Picture this in your inbox: your school's website, parent app, teacher portal and admin portal, built in MudKitchen with your logo and colours.\n\nFree and private. Send us your website to get yours.\n\n${LINK}\n\n${TAGS}`,
+        primaryText: `Microschool founders, picture this in your inbox: your school's website, parent app, teacher portal and admin portal, built in MudKitchen with your logo and colours.\n\nFree and private. Send us your website to get yours.\n\n${LINK}\n\n${TAGS}`,
         headline: "Your preview, in your inbox",
       },
     },

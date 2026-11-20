@@ -1,10 +1,10 @@
 import { StatusBar } from 'expo-status-bar';
 import { useMemo } from 'react';
 import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { GInlineBanner } from '@/components/parent/garden/fields';
-import { Garden, GardenFonts, PORTAL_EASE } from '@/components/parent/garden/tokens';
+import { Garden, GardenFonts } from '@/components/parent/garden/tokens';
 import { GErrorCard, GLink, GSkeleton } from '@/components/parent/garden/ui';
 import { AdminTabHeader, useAdminTopBleed } from '@/components/school-admin/garden/admin-tab-header';
 import {
@@ -24,6 +24,7 @@ import {
   type StaffListFilter,
 } from '@/components/school-admin/staff/garden/use-staff-list-controller';
 import { useStaffListFeedback } from '@/components/school-admin/staff/garden/use-staff-list-feedback';
+import { calmEnter } from '@/lib/motion/portal-motion';
 
 const KPI_BARS = { all: '#2E4A3C', active: '#7FA7D9', portal: '#E2B33C', learners: '#B5577A' } as const;
 
@@ -79,7 +80,7 @@ function StaffListContent({ controller }: { controller: StaffListController }) {
   const header = (
     <View style={styles.headerBlock}>
       {hasStaff ? (
-        <Animated.View entering={FadeInDown.delay(40).duration(320).easing(PORTAL_EASE)}>
+        <Animated.View entering={calmEnter({ delay: 40 })}>
           <AdminKpiTiles
             tiles={[
               { id: 'all', label: 'All staff', value: String(metrics.totalCount), barColor: KPI_BARS.all, onPress: () => feedback.applyFilter('all'), testID: 'staff-kpi-all' },
@@ -92,7 +93,7 @@ function StaffListContent({ controller }: { controller: StaffListController }) {
       ) : null}
 
       {metrics.needsReviewCount > 0 && rosterFilter !== 'review' ? (
-        <Animated.View entering={FadeInDown.delay(90).duration(320).easing(PORTAL_EASE)}>
+        <Animated.View entering={calmEnter({ delay: 90 })}>
           <AdminLeadStrip
             testID="staff-show-review"
             icon="id-card-outline"

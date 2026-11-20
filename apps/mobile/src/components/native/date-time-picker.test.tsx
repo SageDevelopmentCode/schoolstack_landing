@@ -17,7 +17,7 @@ jest.mock('react-native-reanimated', () => {
   const { View } = require('react-native');
   const builder = (): Record<string, unknown> => {
     const chain: Record<string, unknown> = {};
-    for (const key of ['delay', 'duration', 'easing', 'springify', 'reduceMotion']) {
+    for (const key of ['delay', 'duration', 'easing', 'springify', 'reduceMotion', 'withInitialValues']) {
       chain[key] = () => chain;
     }
     return chain;
@@ -32,6 +32,7 @@ jest.mock('react-native-reanimated', () => {
       out: identity,
       inOut: identity,
       cubic: identity,
+      quad: identity,
       linear: identity,
     },
     ReduceMotion: { System: 'system', Always: 'always', Never: 'never' },

@@ -7,7 +7,6 @@ import ApplyFormRouteLoading, {
   ApplyFormRouteLoadingBrandingProvider,
 } from "@/components/admissions/ApplyFormRouteLoading";
 import ApplicationFormPageShell from "@/components/admissions/ApplicationFormPageShell";
-import PortalHelpFab from "@/components/school/shared/PortalHelpFab";
 import ApplyGardenShell from "@/components/admissions/garden/ApplyGardenShell";
 import { GSkeleton } from "@/components/school-parent/garden/ui";
 import { Loader2 } from "lucide-react";
@@ -46,10 +45,6 @@ import type {
   ApplicationFormFeeConfig,
   ApplicationFormSchema,
 } from "@/lib/admissions/application-form-schema";
-import {
-  buildParentThemeTokens,
-  parentThemeToGardenCompat,
-} from "@/lib/organization-settings/parent-theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { ApplyAuthEntryOption } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
@@ -154,8 +149,6 @@ function PublicApplicationFormClientContent({
   initialApplicationId = null,
   tourEntryOption = null,
 }: PublicApplicationFormClientProps) {
-  const gardenTheme = useMemo(() => buildParentThemeTokens(branding), [branding]);
-  const C = useMemo(() => parentThemeToGardenCompat(gardenTheme), [gardenTheme]);
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const pathname = usePathname();
@@ -540,7 +533,6 @@ function PublicApplicationFormClientContent({
 
   if (phase === "form" && applicationId && (draft || submitted)) {
     return (
-      <>
         <ApplicationFormPageShell branding={branding}>
           <ApplicationFormExperience
             key={`${applicationId}-${importGeneration}`}
@@ -575,16 +567,6 @@ function PublicApplicationFormClientContent({
             }}
           />
         </ApplicationFormPageShell>
-        <PortalHelpFab
-          C={C}
-          theme={gardenTheme}
-          organizationId={organizationId}
-          userEmail={userEmail}
-          currentPath={pathname}
-          submitEndpoint="/api/admissions/support-requests"
-          className="max-sm:hidden"
-        />
-      </>
     );
   }
 

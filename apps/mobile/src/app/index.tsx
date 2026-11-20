@@ -3,7 +3,7 @@ import { Redirect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Animated, { FadeInDown, FadeInUp, useReducedMotion } from 'react-native-reanimated';
+import Animated, { useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { IntroLegalLinks } from '@/components/intro-legal-links';
@@ -24,14 +24,15 @@ import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Brand } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth-context';
 import { isMobileE2e } from '@/lib/e2e';
+import { calmEnter, calmRise } from '@/lib/motion/portal-motion';
 
 /** Below this window height the stage drops the polaroid and shows two notes. */
 const COMPACT_HEIGHT = 720;
 
-const logoEntering = isMobileE2e ? undefined : FadeInDown.duration(500);
-const stageEntering = isMobileE2e ? undefined : FadeInUp.duration(600).delay(80);
-const copyEntering = isMobileE2e ? undefined : FadeInUp.duration(500).delay(200);
-const ctaEntering = isMobileE2e ? undefined : FadeInUp.duration(500).delay(320);
+const logoEntering = calmEnter({ duration: 360 });
+const stageEntering = calmRise({ duration: 400, delay: 80 });
+const copyEntering = calmRise({ duration: 360, delay: 180 });
+const ctaEntering = calmRise({ duration: 360, delay: 260 });
 
 export default function IntroScreen() {
   const router = useRouter();

@@ -37,7 +37,7 @@ export const ADS_CREW_HUMOR_CAROUSEL = {
       render: () => <NinthTabAd />,
       adCopy: {
         primaryText:
-          "Opening the 9th tab to check whether a family paid tuition? MudKitchen puts enrollment, billing and messages in one workspace. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Microschool directors: opening the 9th tab to check whether a family paid tuition? MudKitchen puts enrollment, billing and messages in one workspace. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "47 tabs → 1",
         description: "The admin portal for microschools.",
       },
@@ -48,7 +48,7 @@ export const ADS_CREW_HUMOR_CAROUSEL = {
       render: () => <NewRuleAd />,
       adCopy: {
         primaryText:
-          "Nutmeg's new rule: no chasing tuition over winter break. Families set up autopay once and tuition gets paid on time. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "For microschool owners, Nutmeg's new rule: no chasing tuition over winter break. Families set up autopay once and tuition gets paid on time. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "No more chasing tuition",
         description: "Bills, autopay and payment history in one place.",
       },
@@ -59,7 +59,7 @@ export const ADS_CREW_HUMOR_CAROUSEL = {
       render: () => <QuickQuestionAd />,
       adCopy: {
         primaryText:
-          "9:47pm on Christmas Eve: \"quick question\". MudKitchen keeps every parent message in one inbox, so nothing gets lost in a group chat. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Microschool founders know this one. 9:47pm on Christmas Eve: \"quick question\". MudKitchen keeps every parent message in one inbox, so nothing gets lost in a group chat. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Every message, in the right place",
         description: "One inbox for every family.",
       },
@@ -70,7 +70,7 @@ export const ADS_CREW_HUMOR_CAROUSEL = {
       render: () => <InTheCarAd />,
       adCopy: {
         primaryText:
-          "POV: it's January and 22 enrollment forms are \"in the car.\" With MudKitchen, families fill in and sign forms online, and you see what's still missing. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "POV: you run a microschool, it's January and 22 enrollment forms are \"in the car.\" With MudKitchen, families fill in and sign forms online, and you see what's still missing. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Forms that don't live in the car",
         description: "Online forms and signatures.",
       },
@@ -81,7 +81,7 @@ export const ADS_CREW_HUMOR_CAROUSEL = {
       render: () => <PickFighterAd />,
       adCopy: {
         primaryText:
-          "Pick your fighter for spring enrollment. Plot twist: you get the whole crew. Website, enrollment, tuition, attendance, messages and more in one place. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Microschool founders, pick your fighter for spring enrollment. Plot twist: you get the whole crew. Website, enrollment, tuition, attendance, messages and more in one place. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Plot twist: you get all 12",
         description: "Everything your microschool needs.",
       },
@@ -92,7 +92,7 @@ export const ADS_CREW_HUMOR_CAROUSEL = {
       render: () => <ResolutionAd />,
       adCopy: {
         primaryText:
-          "Pip's only New Year's resolution: no more paper applications. Families apply online, and you see every application by stage. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "For microschool directors: Pip's only New Year's resolution: no more paper applications. Families apply online, and you see every application by stage. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "New year, no paper applications",
         description: "Online applications for microschools.",
       },
