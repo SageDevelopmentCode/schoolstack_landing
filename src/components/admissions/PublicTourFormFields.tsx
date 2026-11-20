@@ -1,12 +1,12 @@
 "use client";
 
+import type { ReactNode } from "react";
+import { Plus } from "lucide-react";
 import type {
   PublicTourChildEntry,
   PublicTourFieldDefinition,
 } from "@/lib/admissions/public-tour-settings";
-import ParentButton from "@/components/school-parent/ui/ParentButton";
-import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
-import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { G_FOCUS, G_INPUT, G_LABEL, gBtnOutlineSm } from "@/components/school-parent/garden/ui";
 import { formatPhoneNumberInput } from "@/lib/phone-format";
 
 type PublicTourFormFieldsProps = {
@@ -16,50 +16,44 @@ type PublicTourFormFieldsProps = {
   disabled?: boolean;
 };
 
-function inputClassName(): string {
-  return "mt-2 w-full rounded-[10px] border px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[color:var(--parent-primary)]/25";
-}
-
-function inputStyle(theme: ParentThemeTokens): React.CSSProperties {
-  return {
-    borderColor: theme.line,
-    backgroundColor: theme.white,
-    color: theme.ink,
-  };
+function RequiredMark({ required }: { required?: boolean }) {
+  if (!required) return null;
+  return (
+    <span className="text-[var(--sf-soft)]" aria-hidden>
+      {" "}
+      *
+    </span>
+  );
 }
 
 function FieldBlock({
-  theme,
   label,
   required,
   helpText,
   htmlFor,
   children,
 }: {
-  theme: ParentThemeTokens;
   label: string;
   required?: boolean;
   helpText?: string;
   htmlFor?: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
-    <div>
-      <label
-        htmlFor={htmlFor}
-        className="text-[13px] font-bold"
-        style={{ color: theme.ink }}
-      >
-        {label}
-        {required ? (
-          <span style={{ color: theme.muted }} aria-hidden>
-            {" "}
-            *
-          </span>
-        ) : null}
-      </label>
+    <div className="min-w-0">
+      {htmlFor ? (
+        <label htmlFor={htmlFor} className={G_LABEL}>
+          {label}
+          <RequiredMark required={required} />
+        </label>
+      ) : (
+        <p className={`m-0 ${G_LABEL}`}>
+          {label}
+          <RequiredMark required={required} />
+        </p>
+      )}
       {helpText ? (
-        <p className="mt-1 text-xs leading-relaxed" style={{ color: theme.muted }}>
+        <p className="m-0 -mt-0.5 mb-2 text-[13px] font-semibold leading-relaxed text-[var(--sf-soft)]">
           {helpText}
         </p>
       ) : null}
@@ -74,9 +68,6 @@ export default function PublicTourFormFields({
   onChange,
   disabled = false,
 }: PublicTourFormFieldsProps) {
-  const { theme } = useParentTheme();
-  const styles = inputStyle(theme);
-
   function setField(id: string, value: unknown) {
     onChange({ ...values, [id]: value });
   }
@@ -91,18 +82,11 @@ export default function PublicTourFormFields({
           return (
             <FieldBlock
               key={field.id}
-              theme={theme}
               label={field.label}
               required={field.required}
               helpText={field.helpText}
             >
-              <div
-                className="mt-3 space-y-3 rounded-[12px] border p-4"
-                style={{
-                  borderColor: theme.line,
-                  backgroundColor: theme.cream,
-                }}
-              >
+              <div className="space-y-3 rounded-[18px] border-[1.5px] border-dashed border-[var(--sf-ink)]/20 bg-[var(--sf-accent-wash)] p-3 sm:p-4">
                 {children.map((child, index) => (
                   <div
                     key={`${field.id}-${index}`}
@@ -113,19 +97,20 @@ export default function PublicTourFormFields({
                       disabled={disabled}
                       value={child.name ?? ""}
                       placeholder="Child name"
+                      aria-label={`Child ${index + 1} name`}
                       onChange={(event) => {
                         const next = [...children];
                         next[index] = { ...next[index], name: event.target.value };
                         setField(field.id, next);
                       }}
-                      className={`${inputClassName().replace("mt-2", "mt-0")} min-w-0`}
-                      style={styles}
+                      className={`${G_INPUT} min-w-0`}
                     />
                     <input
                       type="text"
                       disabled={disabled}
                       value={child.gradeAttending ?? ""}
                       placeholder="Grade attending"
+                      aria-label={`Child ${index + 1} grade attending`}
                       onChange={(event) => {
                         const next = [...children];
                         next[index] = {
@@ -134,22 +119,21 @@ export default function PublicTourFormFields({
                         };
                         setField(field.id, next);
                       }}
-                      className={`${inputClassName().replace("mt-2", "mt-0")} min-w-0`}
-                      style={styles}
+                      className={`${G_INPUT} min-w-0`}
                     />
                   </div>
                 ))}
-                <ParentButton
-                  theme={theme}
+                <button
                   type="button"
-                  variant="soft"
                   disabled={disabled}
                   onClick={() =>
                     setField(field.id, [...children, { name: "", gradeAttending: "" }])
                   }
+                  className={gBtnOutlineSm}
                 >
-                  + Add child
-                </ParentButton>
+                  <Plus className="h-4 w-4" strokeWidth={2.6} aria-hidden />
+                  Add child
+                </button>
               </div>
             </FieldBlock>
           );
@@ -160,7 +144,6 @@ export default function PublicTourFormFields({
           return (
             <FieldBlock
               key={field.id}
-              theme={theme}
               label={field.label}
               required={field.required}
               helpText={field.helpText}
@@ -174,8 +157,7 @@ export default function PublicTourFormFields({
                 }
                 onChange={(event) => setField(field.id, event.target.value)}
                 rows={3}
-                className={`${inputClassName()} resize-y`}
-                style={styles}
+                className={`${G_INPUT} resize-y`}
               />
             </FieldBlock>
           );
@@ -186,7 +168,6 @@ export default function PublicTourFormFields({
           return (
             <FieldBlock
               key={field.id}
-              theme={theme}
               label={field.label}
               required={field.required}
               helpText={field.helpText}
@@ -199,8 +180,7 @@ export default function PublicTourFormFields({
                   typeof values[field.id] === "string" ? (values[field.id] as string) : ""
                 }
                 onChange={(event) => setField(field.id, event.target.value)}
-                className={inputClassName()}
-                style={styles}
+                className={`${G_INPUT} cursor-pointer`}
               >
                 <option value="">Select…</option>
                 {field.options.map((option) => (
@@ -215,29 +195,28 @@ export default function PublicTourFormFields({
 
         if (field.type === "checkbox") {
           const fieldId = `public-tour-${field.id}`;
+          const checked = values[field.id] === true;
           return (
             <label
               key={field.id}
               htmlFor={fieldId}
-              className="flex cursor-pointer items-start gap-3 rounded-[10px] border px-3 py-3"
-              style={{ borderColor: theme.line, backgroundColor: theme.white }}
+              className={`flex cursor-pointer items-start gap-3 rounded-[14px] border-2 bg-white px-3.5 py-3 transition-colors has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-[var(--sf-clay)]/20 ${
+                checked
+                  ? "border-[var(--sf-clay)] bg-[var(--sf-accent-wash)]"
+                  : "border-[var(--sf-ink)]/15 hover:border-[var(--sf-ink)]/30"
+              }`}
             >
               <input
                 id={fieldId}
                 type="checkbox"
                 disabled={disabled}
-                checked={values[field.id] === true}
+                checked={checked}
                 onChange={(event) => setField(field.id, event.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded"
+                className={`mt-0.5 h-[18px] w-[18px] shrink-0 cursor-pointer rounded accent-[var(--sf-clay)] ${G_FOCUS}`}
               />
-              <span className="text-[13px] font-bold" style={{ color: theme.ink }}>
+              <span className="text-[14px] font-bold text-[var(--sf-ink)]">
                 {field.label}
-                {field.required ? (
-                  <span style={{ color: theme.muted }} aria-hidden>
-                    {" "}
-                    *
-                  </span>
-                ) : null}
+                <RequiredMark required={field.required} />
               </span>
             </label>
           );
@@ -250,7 +229,6 @@ export default function PublicTourFormFields({
           return (
             <FieldBlock
               key={field.id}
-              theme={theme}
               label={field.label}
               required={field.required}
               helpText={field.helpText}
@@ -267,8 +245,7 @@ export default function PublicTourFormFields({
                 onChange={(event) =>
                   setField(field.id, formatPhoneNumberInput(event.target.value))
                 }
-                className={inputClassName()}
-                style={styles}
+                className={G_INPUT}
               />
             </FieldBlock>
           );
@@ -280,7 +257,6 @@ export default function PublicTourFormFields({
         return (
           <FieldBlock
             key={field.id}
-            theme={theme}
             label={field.label}
             required={field.required}
             helpText={field.helpText}
@@ -289,13 +265,13 @@ export default function PublicTourFormFields({
             <input
               id={fieldId}
               type={inputType}
+              autoComplete={field.type === "email" ? "email" : undefined}
               disabled={disabled}
               value={
                 typeof values[field.id] === "string" ? (values[field.id] as string) : ""
               }
               onChange={(event) => setField(field.id, event.target.value)}
-              className={inputClassName()}
-              style={styles}
+              className={G_INPUT}
             />
           </FieldBlock>
         );

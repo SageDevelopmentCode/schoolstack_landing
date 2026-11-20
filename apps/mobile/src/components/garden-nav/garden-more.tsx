@@ -1,14 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { GSegmented } from '@/components/parent/garden/segmented';
 import { GSheet } from '@/components/parent/garden/sheet';
 import {
   Garden,
   GardenFonts,
-  PORTAL_EASE,
   useGardenAccent,
 } from '@/components/parent/garden/tokens';
 import { GChip, GKicker, GPressable, GSkeleton, GTick } from '@/components/parent/garden/ui';
@@ -16,6 +15,7 @@ import { MessagesAvatar } from '@/components/school-admin/messages/messages-avat
 import { StoryMoreMenuTabPanel } from '@/components/story/more/story-more-menu-tab-panel';
 import { isMobileE2e } from '@/lib/e2e';
 import type { MoreMenuTab, MoreMenuTabId } from '@/lib/more-menu-tab-ids';
+import { calmEnter, staggerDelay } from '@/lib/motion/portal-motion';
 
 type IoniconName = keyof typeof Ionicons.glyphMap;
 
@@ -300,9 +300,7 @@ function GardenMoreTile<Id extends string>({
       entering={
         isMobileE2e
           ? undefined
-          : FadeInDown.delay(40 + Math.min(index, 10) * 35)
-              .duration(280)
-              .easing(PORTAL_EASE)
+          : calmEnter({ delay: staggerDelay(index) })
       }>
       <GPressable
         testID={`more-menu-item-${item.id}`}

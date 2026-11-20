@@ -21,6 +21,7 @@ import Animated, {
 
 import { Garden, GardenFonts, useGardenAccent } from '@/components/parent/garden/tokens';
 import { GBadge, GCountUp, GDashedRule, GLink, GPressable, GSkeleton } from '@/components/parent/garden/ui';
+import { CALM_EASE } from '@/lib/motion/portal-motion';
 
 type IoniconName = keyof typeof Ionicons.glyphMap;
 
@@ -235,13 +236,16 @@ export function AdminLiveDot({ color = Garden.forest }: { color?: string }) {
   useEffect(() => {
     if (reduceMotion) return;
     scale.value = withRepeat(
-      withSequence(withTiming(1.9, { duration: 900 }), withTiming(1, { duration: 0 })),
+      withSequence(
+        withTiming(1.5, { duration: 1600, easing: CALM_EASE }),
+        withTiming(1, { duration: 0 }),
+      ),
       -1,
     );
   }, [reduceMotion, scale]);
   const ring = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
-    opacity: reduceMotion ? 0 : Math.max(0, 1.9 - scale.value) * 0.5,
+    opacity: reduceMotion ? 0 : Math.max(0, 1.5 - scale.value) * 0.7,
   }));
   return (
     <View style={styles.liveWrap} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">

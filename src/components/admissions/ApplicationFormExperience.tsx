@@ -4,16 +4,27 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle2, Loader2 } from "lucide-react";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { Loader2 } from "lucide-react";
 import type { CopyableApplication } from "@/lib/admissions/application-copy";
-import ApplyPortalBranding from "@/components/admissions/ApplyPortalBranding";
 import PortalHelpFab from "@/components/school/shared/PortalHelpFab";
-import ApplicationFieldInput from "@/components/admissions/ApplicationFieldInput";
 import ApplicationCheckboxInput from "@/components/admissions/ApplicationCheckboxInput";
-import ApplicationStepNotice from "@/components/admissions/ApplicationStepNotice";
-import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
+import { ApplicationFieldAppearanceProvider } from "@/components/admissions/application-field-appearance";
+import ApplicationGardenSection from "@/components/admissions/garden/ApplicationGardenSection";
+import ApplyGardenShell, {
+  ApplyBrandPill,
+  ApplyGardenBackdrop,
+} from "@/components/admissions/garden/ApplyGardenShell";
+import ParentGardenFrame from "@/components/school-parent/garden/ParentGardenFrame";
+import {
+  G_FOCUS,
+  G_INPUT,
+  gBtnOutlineSm,
+  gBtnPop,
+  gLinkSm,
+} from "@/components/school-parent/garden/ui";
+import { PORTAL_EASE, useCelebrate } from "@/components/school-parent/garden/motion";
+import { Tick } from "@/components/garden/ui";
 import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
 } from "@/components/ui/ButtonLoadingLabel";
@@ -24,11 +35,13 @@ import {
   formatFeeAmount,
   type ApplicationFormFeeConfig,
   type ApplicationFormSchema,
-  type ApplicationSection,
 } from "@/lib/admissions/application-form-schema";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
-import { buildParentThemeTokens } from "@/lib/organization-settings/parent-theme";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import {
+  buildParentThemeTokens,
+  parentThemeToGardenCompat,
+  type ParentThemeTokens,
+} from "@/lib/organization-settings/parent-theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { CheckoutPaymentMethod } from "@/lib/stripe/processing-fee";
 import {
@@ -97,7 +110,7 @@ const stepVariants = {
   }),
 };
 
-const stepTransition = { duration: 0.22, ease: [0.25, 0.1, 0.25, 1] as const };
+const stepTransition = { duration: 0.24, ease: PORTAL_EASE };
 
 function reportApplyOperationalError(
   organizationId: string | undefined,
@@ -186,8 +199,10 @@ export default function ApplicationFormExperience({
 }: ApplicationFormExperienceProps) {
   const isLive = mode === "live";
   const canPersist = isLive && Boolean(applicationId && onSaveDraft);
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const gardenTheme = useMemo(() => buildParentThemeTokens(branding), [branding]);
+  // Garden ink/paper with the school accent; inputs and portalled popups read these.
+  const C = useMemo(() => parentThemeToGardenCompat(gardenTheme), [gardenTheme]);
+  const reduceMotion = useReducedMotion() === true;
   const supabase = useMemo(
     () => (canPersist ? createClient() : null),
     [canPersist],
@@ -355,10 +370,11 @@ export default function ApplicationFormExperience({
     scrollToTop();
   };
 
-  const handleBack = async () => {
-    if (stepIndex <= 0) return;
+  const handleBack = () => goToEarlierStep(stepIndex - 1);
 
-    const previousStepIndex = stepIndex - 1;
+  /** Back, or a jump back from the steps rail: saves like Back always has. */
+  const goToEarlierStep = async (previousStepIndex: number) => {
+    if (previousStepIndex < 0 || previousStepIndex >= stepIndex) return;
 
     if (canPersist) {
       setSaving(true);
@@ -575,12 +591,11 @@ export default function ApplicationFormExperience({
     }
   };
 
-  const pageBg = branding.colors.bg;
-
   if (applicationStatus !== "draft") {
     return (
       <SubmittedConfirmation
         branding={branding}
+        theme={gardenTheme}
         schoolName={schoolName}
         schoolSlug={schoolSlug}
         title={title}
@@ -591,55 +606,56 @@ export default function ApplicationFormExperience({
 
   if (schema.sections.length === 0) {
     return (
-      <div
-        className="flex h-full flex-col items-center justify-center px-6 py-12 text-center"
-        style={{ backgroundColor: pageBg }}
+      <ParentGardenFrame
+        theme={gardenTheme}
+        className="flex h-full flex-col items-center justify-center bg-[var(--sf-cream)] px-6 py-12 text-center"
       >
-        <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+        <p className="m-0 text-[15px] font-extrabold text-[var(--sf-ink)]">
           Add at least one step to preview the form.
         </p>
-        <p className="mt-2 text-sm" style={{ color: C.textSecondary }}>
+        <p className="m-0 mt-2 text-sm font-semibold text-[var(--sf-soft)]">
           Families will see your application questions here once steps are added.
         </p>
-      </div>
+      </ParentGardenFrame>
     );
   }
 
+  const canSaveAndExit = showExitToApplyDashboard && canPersist && Boolean(onExitToApplyDashboard);
+  const motionProps = reduceMotion
+    ? {}
+    : {
+        custom: direction,
+        variants: stepVariants,
+        initial: "enter" as const,
+        animate: "center" as const,
+        exit: "exit" as const,
+        transition: stepTransition,
+      };
+
   return (
-    <div
-      className="flex flex-1 min-h-0 flex-col"
-      style={{ backgroundColor: pageBg, color: C.textPrimary }}
+    <ParentGardenFrame
+      theme={gardenTheme}
+      className="relative flex min-h-0 flex-1 flex-col bg-[var(--sf-cream)] text-[var(--sf-ink)]"
     >
-      <div
-        ref={scrollContainerRef}
-        className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6"
-      >
-        <div className="mx-auto max-w-3xl">
-          <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <ApplyPortalBranding
-              branding={branding}
-              schoolName={schoolName}
-              className="min-w-0"
-              schoolLogoClassName="h-7 w-auto max-w-[min(200px,70vw)] object-contain sm:h-8"
-            />
-            {helpButton ||
-            (showExitToApplyDashboard && canPersist && onExitToApplyDashboard) ? (
-              <div className="flex items-center justify-between gap-3 sm:contents">
-                {showExitToApplyDashboard && canPersist && onExitToApplyDashboard ? (
+      <div ref={scrollContainerRef} className="relative min-h-0 flex-1 overflow-y-auto">
+        <ApplyGardenBackdrop />
+        <div className="relative mx-auto w-full min-w-0 max-w-[1120px] px-4 pb-10 pt-5 sm:px-8 sm:pt-6 lg:px-10">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 sm:mb-8">
+            <ApplyBrandPill branding={branding} schoolName={schoolName} />
+            {canSaveAndExit || helpButton ? (
+              <div className="flex items-center gap-3">
+                {canSaveAndExit ? (
                   <button
                     type="button"
                     onClick={() => void handleSaveAndContinueLater()}
                     disabled={saving}
-                    className="inline-flex shrink-0 items-center gap-1.5 text-xs font-normal transition hover:underline disabled:opacity-50"
-                    style={{ color: C.textTertiary }}
+                    className={`${gLinkSm} !text-[13px] disabled:opacity-50 lg:hidden`}
                   >
                     <ButtonLoadingLabel loading={saving} loadingLabel="Saving…">
                       Save & Continue later
                     </ButtonLoadingLabel>
                   </button>
-                ) : (
-                  <span className="sm:hidden" aria-hidden />
-                )}
+                ) : null}
                 {helpButton ? (
                   <PortalHelpFab
                     C={C}
@@ -649,283 +665,314 @@ export default function ApplicationFormExperience({
                     currentPath={helpButton.currentPath}
                     submitEndpoint={helpButton.submitEndpoint}
                     variant="inline"
-                    className="sm:hidden"
+                    className="shrink-0"
                   />
                 ) : null}
               </div>
             ) : null}
           </div>
 
-          <AnimatePresence mode="wait" initial={false} custom={direction}>
-            {isFirstStep && (title || intro) ? (
-              <motion.div
-                key="intro"
-                custom={direction}
-                variants={stepVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={stepTransition}
-                className="mb-8"
-              >
-                {title ? (
-                  <h1
-                    className="text-2xl font-semibold leading-tight sm:text-3xl"
-                    style={{ color: C.accentDark }}
-                  >
-                    {title}
-                  </h1>
-                ) : null}
-                {intro ? (
-                  <p
-                    className="mt-4 text-sm leading-relaxed"
-                    style={{ color: C.textPrimary }}
-                  >
-                    {intro}
-                  </p>
-                ) : null}
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
-
-          <p
-            className="mb-2 text-xs font-medium"
-            style={{ color: C.textSecondary }}
-          >
-            {stepLabel}
-          </p>
-          <div className="mb-6 flex items-center gap-2">
-            {Array.from({ length: totalSteps }).map((_, index) => (
-              <div
-                key={index}
-                className="h-1.5 flex-1 rounded-full transition-colors"
-                style={{
-                  backgroundColor: index <= stepIndex ? C.accent : C.border,
-                }}
-              />
-            ))}
-          </div>
-
-          {showBulkCopyPanel ? (
-            <div
-              className={`mb-6 rounded-lg border px-4 ${bulkCopyExpanded ? "py-4" : "py-3"}`}
-              style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-                  Applying for another child?
-                </p>
-                <button
-                  type="button"
-                  onClick={() =>
-                    bulkCopyExpanded
-                      ? setBulkCopyExpanded(false)
-                      : setBulkCopyExpanded(true)
-                  }
-                  aria-expanded={bulkCopyExpanded}
-                  aria-controls="bulk-copy-panel"
-                  className="shrink-0 text-sm font-medium underline-offset-2 hover:underline"
-                  style={{ color: C.accent }}
-                >
-                  {bulkCopyExpanded ? "Cancel" : "Copy answers"}
-                </button>
-              </div>
-              <AnimatePresence initial={false}>
-                {bulkCopyExpanded ? (
-                  <motion.div
-                    id="bulk-copy-panel"
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
-                    className="overflow-hidden"
-                  >
-                    <p className="mt-2 text-sm" style={{ color: C.textSecondary }}>
-                      Copy answers from a previous application, then update
-                      student-specific details.
-                    </p>
-                    <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-                      <select
-                        value={bulkCopySourceId}
-                        onChange={(event) => setBulkCopySourceId(event.target.value)}
-                        className="w-full rounded-md border px-3 py-2 text-sm sm:max-w-xs"
-                        style={{
-                          borderColor: C.inputBorder,
-                          backgroundColor: C.input,
-                          color: C.textPrimary,
-                        }}
-                      >
-                        {copyableApplications.map((application) => (
-                          <option key={application.id} value={application.id}>
-                            {application.label}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() => void handleBulkCopy()}
-                        disabled={importing || !bulkCopySourceId}
-                        className={`rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-60 ${BUTTON_LOADING_LAYOUT_CLASS}`}
-                        style={getAdminButtonStyle(C, "primary")}
-                      >
-                        <ButtonLoadingLabel loading={importing} loadingLabel="Copying…">
-                          Copy answers
-                        </ButtonLoadingLabel>
-                      </button>
-                    </div>
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
-            </div>
-          ) : null}
-
-          <AnimatePresence mode="wait" initial={false} custom={direction}>
-            <motion.div
-              key={stepContentKey}
-              custom={direction}
-              variants={stepVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={stepTransition}
-            >
-              {currentStep?.kind === "acknowledgments" ? (
-                <AcknowledgmentsStep
-                  C={C}
-                  schema={schema}
-                  acknowledgments={acknowledgments}
-                  onAckChange={(id, checked) =>
-                    setAcknowledgments((prev) => ({ ...prev, [id]: checked }))
-                  }
-                />
-              ) : currentStep?.kind === "fee" ? (
-                <FeeStep C={C} feeConfig={feeConfig} feeStatus={feeStatus} />
-              ) : section ? (
-                <SectionStep
-                  C={C}
-                  section={section}
-                  values={values}
-                  onChange={updateValue}
-                  fieldErrors={fieldErrors}
-                  priorFieldValues={priorFieldValues}
-                  onReuseField={(fieldId) => void handleReuseField(fieldId)}
-                  supabase={supabase ?? undefined}
-                  uploadContext={uploadContext}
-                  hideStepNotice={showBulkCopyPanel}
-                />
+          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)] lg:gap-8">
+            {/* Rail: what this is, and where you are. */}
+            <aside className="min-w-0 lg:sticky lg:top-6">
+              <p className="m-0 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[var(--sf-soft)]">
+                Application · {schoolName}
+              </p>
+              {title ? (
+                <h1 className="sf-display m-0 mt-2 text-[1.85rem] leading-[1.05] text-[var(--sf-ink)] sm:text-[2.3rem] lg:text-[2.5rem]">
+                  {title}
+                </h1>
               ) : null}
-            </motion.div>
-          </AnimatePresence>
+              {intro ? (
+                <p
+                  className={`m-0 mt-3 whitespace-pre-line text-[15px] font-semibold leading-relaxed text-[var(--sf-soft)] ${
+                    isFirstStep ? "" : "hidden lg:line-clamp-4 lg:block"
+                  }`}
+                >
+                  {intro}
+                </p>
+              ) : null}
+
+              <nav
+                aria-label="Application steps"
+                className="mt-6 hidden rounded-[22px] border-[1.5px] border-[var(--sf-ink)]/10 bg-[var(--sf-paper)] p-3 shadow-[0_3px_0_0_rgba(43,36,29,0.06)] lg:block"
+              >
+                <ol className="m-0 flex list-none flex-col gap-0.5 p-0">
+                  {steps.map((step, index) => {
+                    const done = index < stepIndex;
+                    const current = index === stepIndex;
+                    const name = stepName(step, schema, index);
+                    const dot = done ? (
+                      <Tick className="h-6 w-6" />
+                    ) : (
+                      <span
+                        aria-hidden
+                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-[1.5px] text-[11.5px] font-extrabold tabular-nums ${
+                          current
+                            ? "border-[var(--sf-ink)] bg-[var(--sf-clay)] text-white shadow-[0_2px_0_0_var(--sf-ink)]"
+                            : "border-[var(--sf-ink)]/25 bg-white text-[var(--sf-ink)]/55"
+                        }`}
+                      >
+                        {index + 1}
+                      </span>
+                    );
+                    const body = (
+                      <>
+                        {dot}
+                        <span
+                          className={`min-w-0 flex-1 truncate text-[14px] ${
+                            current
+                              ? "font-extrabold text-[var(--sf-ink)]"
+                              : done
+                                ? "font-bold text-[var(--sf-ink)]/70"
+                                : "font-semibold text-[var(--sf-ink)]/50"
+                          }`}
+                        >
+                          {name}
+                        </span>
+                        {done ? <span className="sr-only">(done)</span> : null}
+                      </>
+                    );
+                    return (
+                      <li key={`${step.kind}-${index}`}>
+                        {done ? (
+                          <button
+                            type="button"
+                            onClick={() => void goToEarlierStep(index)}
+                            disabled={saving}
+                            className={`flex w-full items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-left transition-colors hover:bg-[var(--sf-accent-wash)] disabled:cursor-wait ${G_FOCUS} focus-visible:ring-inset`}
+                          >
+                            {body}
+                          </button>
+                        ) : (
+                          <div
+                            aria-current={current ? "step" : undefined}
+                            className={`flex items-center gap-2.5 rounded-[12px] px-2.5 py-2 ${
+                              current ? "bg-[var(--sf-accent-wash)] ring-[1.5px] ring-[var(--sf-clay)]/30" : ""
+                            }`}
+                          >
+                            {body}
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ol>
+                {canSaveAndExit ? (
+                  <div className="mt-2 border-t-[1.5px] border-dashed border-[var(--sf-ink)]/12 px-2.5 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => void handleSaveAndContinueLater()}
+                      disabled={saving}
+                      className={`${gLinkSm} !text-[13px] disabled:opacity-50`}
+                    >
+                      <ButtonLoadingLabel loading={saving} loadingLabel="Saving…">
+                        Save & Continue later
+                      </ButtonLoadingLabel>
+                    </button>
+                  </div>
+                ) : null}
+              </nav>
+            </aside>
+
+            <div className="flex min-w-0 flex-col gap-5">
+              {showBulkCopyPanel ? (
+                <div className="rounded-[20px] border-[1.5px] border-[var(--sf-ink)]/10 bg-[var(--sf-sky)] px-4 py-3.5 sm:px-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="m-0 text-[14.5px] font-extrabold text-[var(--sf-ink)]">
+                      Applying for another child?
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setBulkCopyExpanded((open) => !open)}
+                      aria-expanded={bulkCopyExpanded}
+                      aria-controls="bulk-copy-panel"
+                      className={`${gLinkSm} shrink-0 !text-[13.5px]`}
+                    >
+                      {bulkCopyExpanded ? "Cancel" : "Copy answers"}
+                    </button>
+                  </div>
+                  <AnimatePresence initial={false}>
+                    {bulkCopyExpanded ? (
+                      <motion.div
+                        id="bulk-copy-panel"
+                        initial={reduceMotion ? false : { height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={reduceMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+                        transition={{ duration: 0.22, ease: PORTAL_EASE }}
+                        className="overflow-hidden"
+                      >
+                        <p className="m-0 mt-2 text-[13.5px] font-semibold text-[var(--sf-ink)]/75">
+                          Copy answers from a previous application, then update
+                          student-specific details.
+                        </p>
+                        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+                          <select
+                            value={bulkCopySourceId}
+                            onChange={(event) => setBulkCopySourceId(event.target.value)}
+                            aria-label="Previous application to copy from"
+                            className={`${G_INPUT} sm:max-w-xs`}
+                          >
+                            {copyableApplications.map((application) => (
+                              <option key={application.id} value={application.id}>
+                                {application.label}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => void handleBulkCopy()}
+                            disabled={importing || !bulkCopySourceId}
+                            className={`${gBtnOutlineSm} ${BUTTON_LOADING_LAYOUT_CLASS}`}
+                          >
+                            <ButtonLoadingLabel loading={importing} loadingLabel="Copying…">
+                              Copy answers
+                            </ButtonLoadingLabel>
+                          </button>
+                        </div>
+                      </motion.div>
+                    ) : null}
+                  </AnimatePresence>
+                </div>
+              ) : null}
+
+              <section
+                aria-label={stepLabel}
+                className="min-w-0 rounded-[28px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white px-5 py-6 shadow-[0_6px_0_0_rgba(43,36,29,0.07)] sm:px-8 sm:py-8"
+              >
+                <p className="m-0 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[var(--sf-soft)]">
+                  {stepLabel}
+                </p>
+                <div aria-hidden className="mb-6 mt-2.5 flex items-center gap-1.5 lg:hidden">
+                  {steps.map((step, index) => (
+                    <span
+                      key={`${step.kind}-${index}`}
+                      className={`h-1.5 flex-1 rounded-full ${
+                        index <= stepIndex ? "bg-[var(--sf-clay)]" : "bg-[var(--sf-ink)]/12"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <div className="hidden h-4 lg:block" aria-hidden />
+
+                <AnimatePresence mode="wait" initial={false} custom={direction}>
+                  <motion.div key={stepContentKey} {...motionProps}>
+                    {currentStep?.kind === "acknowledgments" ? (
+                      <AcknowledgmentsStep
+                        C={C}
+                        schema={schema}
+                        acknowledgments={acknowledgments}
+                        onAckChange={(id, checked) =>
+                          setAcknowledgments((prev) => ({ ...prev, [id]: checked }))
+                        }
+                      />
+                    ) : currentStep?.kind === "fee" ? (
+                      <FeeStep feeConfig={feeConfig} feeStatus={feeStatus} />
+                    ) : section ? (
+                      <ApplicationGardenSection
+                        C={C}
+                        section={section}
+                        values={values}
+                        onChange={updateValue}
+                        fieldErrors={fieldErrors}
+                        priorFieldValues={priorFieldValues}
+                        onReuseField={(fieldId) => void handleReuseField(fieldId)}
+                        supabase={supabase ?? undefined}
+                        uploadContext={uploadContext}
+                        hideTopNotice={showBulkCopyPanel}
+                      />
+                    ) : null}
+                  </motion.div>
+                </AnimatePresence>
+              </section>
+            </div>
+          </div>
         </div>
       </div>
 
-      <footer
-        className="shrink-0 border-t px-4 py-3 pb-safe sm:px-6 sm:py-4"
-        style={{ borderColor: C.border, backgroundColor: pageBg }}
-      >
-        <div className="mx-auto max-w-3xl">
-          <p
-            className="mb-3 text-center text-xs font-medium sm:hidden"
-            style={{ color: C.textSecondary }}
-          >
-            {stepLabel}
-          </p>
-          {saveError ? (
-            <p
-              className="mb-3 rounded-md border px-3 py-2 text-sm"
-              style={{
-                borderColor: C.errorBorder,
-                backgroundColor: C.surface,
-                color: C.error,
-              }}
-              role="alert"
-            >
-              {saveError}
+      <footer className="relative shrink-0 border-t-[1.5px] border-dashed border-[var(--sf-ink)]/15 bg-[var(--sf-paper)]/95 px-4 py-3 pb-safe backdrop-blur-sm sm:px-8 sm:py-4 lg:px-10">
+        <div className="mx-auto grid w-full max-w-[1120px] lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)] lg:gap-8">
+          <div aria-hidden className="hidden lg:block" />
+          <div className="min-w-0">
+            <p className="m-0 mb-3 text-center text-[12.5px] font-bold text-[var(--sf-soft)] sm:hidden">
+              {stepLabel}
             </p>
-          ) : null}
+            {saveError ? (
+              <p
+                className="m-0 mb-3 rounded-[14px] border-[1.5px] border-[#b4412f]/30 bg-[#fdf0ec] px-3.5 py-2.5 text-[13.5px] font-bold text-[#9a3422]"
+                role="alert"
+              >
+                {saveError}
+              </p>
+            ) : null}
 
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
-          {!isFirstStep ? (
-            <button
-              type="button"
-              onClick={handleBack}
-              disabled={saving}
-              className="w-full rounded-md border px-4 py-2.5 text-center text-sm font-medium transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-              style={getAdminButtonStyle(C, "secondary")}
-            >
-              Back
-            </button>
-          ) : null}
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
+              {!isFirstStep ? (
+                <button
+                  type="button"
+                  onClick={() => void handleBack()}
+                  disabled={saving}
+                  className={`${gBtnOutlineSm} w-full sm:w-auto`}
+                >
+                  Back
+                </button>
+              ) : null}
 
-          <div className="flex w-full flex-col gap-3 sm:ml-auto sm:w-auto sm:flex-row">
-            {currentStep?.kind === "fee" ? (
-              <button
-                type="button"
-                onClick={handlePayFee}
-                disabled={
-                  !isLive
-                    ? false
-                    : actionLoading ||
+              <div className="flex w-full flex-col gap-3 sm:ml-auto sm:w-auto sm:flex-row">
+                {currentStep?.kind === "fee" ? (
+                  <button
+                    type="button"
+                    onClick={handlePayFee}
+                    disabled={
+                      !isLive
+                        ? false
+                        : actionLoading ||
+                          saving ||
+                          feeStatus === "paid" ||
+                          (feeConfig.amount_cents ?? 0) <= 0
+                    }
+                    className={`${gBtnPop} w-full sm:w-auto`}
+                  >
+                    {actionLoading || saving
+                      ? "Preparing checkout…"
+                      : `Pay ${formatFeeAmount(feeConfig.amount_cents ?? 0)}`}
+                    {!isLive ? " (preview)" : ""}
+                  </button>
+                ) : (currentStep?.kind === "acknowledgments" && !feeConfig.enabled) || isLastStep ? (
+                  <button
+                    type="button"
+                    onClick={isLive ? handleSubmit : undefined}
+                    disabled={
+                      (currentStep?.kind === "acknowledgments" && !allAcknowledged) ||
+                      (isLive && (actionLoading || saving))
+                    }
+                    className={`${gBtnPop} w-full sm:w-auto ${BUTTON_LOADING_LAYOUT_CLASS}`}
+                  >
+                    <ButtonLoadingLabel loading={actionLoading} loadingLabel="Submitting…">
+                      Submit application
+                    </ButtonLoadingLabel>
+                    {!isLive ? " (preview)" : ""}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleContinue}
+                    disabled={
                       saving ||
-                      feeStatus === "paid" ||
-                      (feeConfig.amount_cents ?? 0) <= 0
-                }
-                className="w-full rounded-md px-5 py-2.5 text-center text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-                style={getAdminButtonStyle(C, "primary")}
-              >
-                {actionLoading || saving
-                  ? "Preparing checkout…"
-                  : `Pay ${formatFeeAmount(feeConfig.amount_cents ?? 0)}`}
-                {!isLive ? " (preview)" : ""}
-              </button>
-            ) : currentStep?.kind === "acknowledgments" && !feeConfig.enabled ? (
-              <button
-                type="button"
-                onClick={isLive ? handleSubmit : undefined}
-                disabled={
-                  !allAcknowledged ||
-                  (isLive && (actionLoading || saving))
-                }
-                className={`w-full rounded-md px-5 py-2.5 text-center text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto ${BUTTON_LOADING_LAYOUT_CLASS}`}
-                style={getAdminButtonStyle(C, "primary")}
-              >
-                <ButtonLoadingLabel loading={actionLoading} loadingLabel="Submitting…">
-                  Submit application
-                </ButtonLoadingLabel>
-                {!isLive ? " (preview)" : ""}
-              </button>
-            ) : isLastStep ? (
-              <button
-                type="button"
-                onClick={isLive ? handleSubmit : undefined}
-                disabled={isLive && (actionLoading || saving)}
-                className={`w-full rounded-md px-5 py-2.5 text-center text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto ${BUTTON_LOADING_LAYOUT_CLASS}`}
-                style={getAdminButtonStyle(C, "primary")}
-              >
-                <ButtonLoadingLabel loading={actionLoading} loadingLabel="Submitting…">
-                  Submit application
-                </ButtonLoadingLabel>
-                {!isLive ? " (preview)" : ""}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleContinue}
-                disabled={
-                  saving ||
-                  (currentStep?.kind === "acknowledgments" && !allAcknowledged)
-                }
-                className={`w-full rounded-md px-5 py-2.5 text-center text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto ${BUTTON_LOADING_LAYOUT_CLASS}`}
-                style={getAdminButtonStyle(C, "primary")}
-              >
-                <ButtonLoadingLabel loading={saving} loadingLabel="Saving…">
-                  {currentStep?.kind === "acknowledgments"
-                    ? "Continue"
-                    : "Save and continue"}
-                </ButtonLoadingLabel>
-              </button>
-            )}
-          </div>
+                      (currentStep?.kind === "acknowledgments" && !allAcknowledged)
+                    }
+                    aria-busy={saving || undefined}
+                    className={`${gBtnPop} w-full sm:w-auto ${BUTTON_LOADING_LAYOUT_CLASS}`}
+                  >
+                    <ButtonLoadingLabel loading={saving} loadingLabel="Saving…">
+                      {currentStep?.kind === "acknowledgments"
+                        ? "Continue"
+                        : "Save and continue"}
+                    </ButtonLoadingLabel>
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </footer>
@@ -933,6 +980,8 @@ export default function ApplicationFormExperience({
       {feeConfig.enabled && (feeConfig.amount_cents ?? 0) > 0 ? (
         <PaymentMethodSelectionModal
           C={C}
+          appearance="parent-garden"
+          theme={gardenTheme}
           open={paymentModalOpen}
           onClose={() => {
             if (!actionLoading) setPaymentModalOpen(false);
@@ -943,138 +992,16 @@ export default function ApplicationFormExperience({
           onConfirm={handleConfirmPayment}
         />
       ) : null}
-    </div>
+    </ParentGardenFrame>
   );
 }
 
-function SectionStep({
-  C,
-  section,
-  values,
-  onChange,
-  fieldErrors = {},
-  priorFieldValues,
-  onReuseField,
-  supabase,
-  uploadContext,
-  hideStepNotice,
-}: {
-  C: ReturnType<typeof buildAdminThemeTokens>;
-  section: ApplicationSection;
-  values: Record<string, string>;
-  onChange: (fieldId: string, value: string) => void;
-  fieldErrors?: Record<string, string>;
-  priorFieldValues?: Record<string, string>;
-  onReuseField?: (fieldId: string) => void;
-  supabase?: SupabaseClient;
-  uploadContext?: ApplicationFileUploadContext;
-  hideStepNotice?: boolean;
-}) {
-  const topNotice =
-    !hideStepNotice &&
-    section.stepNotice?.body.trim() &&
-    section.stepNotice.placement === "top"
-      ? section.stepNotice.body.trim()
-      : null;
-  const bottomNotice =
-    section.stepNotice?.body.trim() &&
-    section.stepNotice.placement === "bottom"
-      ? section.stepNotice.body.trim()
-      : null;
-
-  return (
-    <div>
-      <h2 className="text-lg font-semibold sm:text-xl" style={{ color: C.accentDark }}>
-        {section.title}
-      </h2>
-      {section.description ? (
-        <p className="mt-2 text-sm" style={{ color: C.textSecondary }}>
-          {section.description}
-        </p>
-      ) : null}
-      {topNotice ? (
-        <ApplicationStepNotice body={topNotice} C={C} className="mt-5" />
-      ) : null}
-      <div className="mt-5 grid grid-cols-1 gap-x-5 gap-y-5 sm:grid-cols-2">
-        {section.fields.map((field) => {
-          const isAddress = field.type === "address";
-          const isRadio = field.type === "radio";
-          const useDivWrapper = isAddress || isRadio;
-          const wrapperClassName = useDivWrapper
-            ? "block min-w-0 sm:col-span-2"
-            : field.width === "half"
-              ? "block min-w-0"
-              : "block min-w-0 sm:col-span-2";
-
-          const fieldLabel =
-            field.type !== "checkbox" ? (
-              <span
-                className="mb-1.5 flex items-center justify-between gap-2 text-sm font-medium"
-                style={{ color: C.textPrimary }}
-              >
-                <span>
-                  {field.label}
-                  {field.required ? (
-                    <span style={{ color: C.accent }}> *</span>
-                  ) : null}
-                </span>
-                {field.type !== "file" &&
-                priorFieldValues?.[field.id] &&
-                onReuseField ? (
-                  <button
-                    type="button"
-                    onClick={() => onReuseField(field.id)}
-                    className="text-xs font-medium underline-offset-2 hover:underline"
-                    style={{ color: C.accent }}
-                  >
-                    Reuse answer
-                  </button>
-                ) : null}
-              </span>
-            ) : null;
-
-          const fieldInput = (
-            <ApplicationFieldInput
-              field={field}
-              value={values[field.id] ?? ""}
-              onChange={(value) => onChange(field.id, value)}
-              error={fieldErrors[field.id]}
-              C={C}
-              supabase={supabase}
-              uploadContext={uploadContext}
-            />
-          );
-
-          if (useDivWrapper) {
-            return (
-              <div
-                key={field.id}
-                data-field-id={field.id}
-                className={wrapperClassName}
-              >
-                {fieldLabel}
-                {fieldInput}
-              </div>
-            );
-          }
-
-          return (
-            <label
-              key={field.id}
-              data-field-id={field.id}
-              className={wrapperClassName}
-            >
-              {fieldLabel}
-              {fieldInput}
-            </label>
-          );
-        })}
-      </div>
-      {bottomNotice ? (
-        <ApplicationStepNotice body={bottomNotice} C={C} className="mt-5" />
-      ) : null}
-    </div>
-  );
+/** Short name for a step in the rail. */
+function stepName(step: ExperienceStep, schema: ApplicationFormSchema, index: number): string {
+  if (step.kind === "section") {
+    return schema.sections[step.sectionIndex]?.title.trim() || `Step ${index + 1}`;
+  }
+  return step.kind === "acknowledgments" ? "Acknowledgments" : "Application fee";
 }
 
 function AcknowledgmentsStep({
@@ -1083,20 +1010,20 @@ function AcknowledgmentsStep({
   acknowledgments,
   onAckChange,
 }: {
-  C: ReturnType<typeof buildAdminThemeTokens>;
+  C: AdminThemeTokens;
   schema: ApplicationFormSchema;
   acknowledgments: Record<string, boolean>;
   onAckChange: (id: string, checked: boolean) => void;
 }) {
   return (
-    <div>
-      <h2 className="text-lg font-semibold sm:text-xl" style={{ color: C.accentDark }}>
+    <ApplicationFieldAppearanceProvider value="garden">
+      <h2 className="sf-display m-0 text-[1.5rem] leading-[1.1] text-[var(--sf-ink)] sm:text-[1.75rem]">
         Parent acknowledgments
       </h2>
-      <p className="mt-2 text-sm" style={{ color: C.textSecondary }}>
+      <p className="m-0 mt-2 text-[15px] font-semibold leading-relaxed text-[var(--sf-soft)]">
         Please confirm the following before submitting your application.
       </p>
-      <div className="mt-5 space-y-4">
+      <div className="mt-6 space-y-3">
         {schema.acknowledgments.map((item) => (
           <ApplicationCheckboxInput
             key={item.id}
@@ -1108,39 +1035,40 @@ function AcknowledgmentsStep({
           />
         ))}
       </div>
-    </div>
+    </ApplicationFieldAppearanceProvider>
   );
 }
 
 function FeeStep({
-  C,
   feeConfig,
   feeStatus,
 }: {
-  C: ReturnType<typeof buildAdminThemeTokens>;
   feeConfig: ApplicationFormFeeConfig;
   feeStatus?: string;
 }) {
   const amount = formatFeeAmount(feeConfig.amount_cents ?? 0);
+  const paid = feeStatus === "paid";
 
   return (
     <div>
-      <h2 className="text-lg font-semibold sm:text-xl" style={{ color: C.accentDark }}>
+      <h2 className="sf-display m-0 text-[1.5rem] leading-[1.1] text-[var(--sf-ink)] sm:text-[1.75rem]">
         Application fee
       </h2>
-      <p className="mt-2 text-sm" style={{ color: C.textSecondary }}>
-        {feeStatus === "paid"
+      <p className="m-0 mt-2 text-[15px] font-semibold leading-relaxed text-[var(--sf-soft)]">
+        {paid
           ? "Your application fee has been paid."
           : "Review the application fee before submitting."}
       </p>
-      <div
-        className="mt-6 rounded-lg border px-5 py-4"
-        style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
-      >
-        <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-          {feeConfig.label ?? "Application fee"}
-        </p>
-        <p className="mt-1 text-2xl font-semibold" style={{ color: C.accentDark }}>
+      <div className="sf-ticket mt-6 flex items-center justify-between gap-4 rounded-[18px] border-[1.5px] border-[var(--sf-ink)]/12 bg-[var(--sf-butter)] px-5 py-4 shadow-[0_3px_0_0_rgba(43,36,29,0.08)]">
+        <div className="min-w-0">
+          <p className="m-0 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[var(--sf-ink)]/60">
+            {paid ? "Paid" : "Due before you submit"}
+          </p>
+          <p className="m-0 mt-1 truncate text-[15px] font-extrabold text-[var(--sf-ink)]">
+            {feeConfig.label ?? "Application fee"}
+          </p>
+        </div>
+        <p className="sf-display m-0 shrink-0 text-[2rem] leading-none tabular-nums text-[var(--sf-ink)]">
           {amount}
         </p>
       </div>
@@ -1150,21 +1078,22 @@ function FeeStep({
 
 function SubmittedConfirmation({
   branding,
+  theme,
   schoolName,
   schoolSlug,
   title,
   awaitingPaymentConfirmation,
 }: {
   branding: OrganizationBranding;
+  theme: ParentThemeTokens;
   schoolName: string;
   schoolSlug?: string;
   title: string;
   awaitingPaymentConfirmation: boolean;
 }) {
   const router = useRouter();
-  const C = buildAdminThemeTokens(branding);
-  const pageBg = branding.colors.bg;
   const applyDashboardHref = schoolSlug ? `/school/${schoolSlug}/apply` : null;
+  useCelebrate(!awaitingPaymentConfirmation, theme, "apply-submitted");
 
   useEffect(() => {
     if (awaitingPaymentConfirmation || !applyDashboardHref) return;
@@ -1177,63 +1106,42 @@ function SubmittedConfirmation({
   }, [applyDashboardHref, awaitingPaymentConfirmation, router]);
 
   return (
-    <div
-      className="flex h-full min-h-dvh flex-col items-center justify-center px-6 py-12 text-center"
-      style={{ backgroundColor: pageBg, color: C.textPrimary }}
-    >
-      <SchoolDemoWordmark
-        logo={{
-          src: branding.logo.src,
-          alt: branding.logo.alt || schoolName,
-          width: branding.logo.width,
-          height: branding.logo.height,
-          text: branding.logo.src ? undefined : schoolName,
-        }}
-        className="mb-8 h-8 w-auto max-w-[200px] object-contain"
-      />
-      {awaitingPaymentConfirmation ? (
-        <>
-          <Loader2
-            className="mx-auto h-8 w-8 animate-spin"
-            style={{ color: C.accent }}
-          />
-          <h1
-            className="mt-6 text-xl font-semibold sm:text-2xl"
-            style={{ color: C.accentDark }}
-          >
-            Confirming your payment…
-          </h1>
-          <p className="mt-3 max-w-md text-sm leading-relaxed" style={{ color: C.textSecondary }}>
-            This usually takes a few seconds. Please keep this page open.
-          </p>
-        </>
-      ) : (
-        <>
-          <CheckCircle2 className="mx-auto h-10 w-10" style={{ color: C.accent }} />
-          <h1
-            className="mt-6 text-xl font-semibold sm:text-2xl"
-            style={{ color: C.accentDark }}
-          >
-            Application submitted
-          </h1>
-          <p className="mt-3 max-w-md text-sm leading-relaxed" style={{ color: C.textSecondary }}>
-            Thank you for submitting{" "}
-            <span className="font-medium" style={{ color: C.textPrimary }}>
-              {title}
-            </span>
-            . {schoolName} will be in touch about next steps.
-          </p>
-          {applyDashboardHref ? (
-            <Link
-              href={applyDashboardHref}
-              className="mt-6 inline-flex items-center justify-center rounded-md px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
-              style={getAdminButtonStyle(C, "primary")}
-            >
-              View your applications
-            </Link>
-          ) : null}
-        </>
-      )}
-    </div>
+    <ApplyGardenShell branding={branding} schoolName={schoolName} centered>
+      <div className="w-full max-w-[560px] rounded-[28px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white px-6 py-10 text-center shadow-[0_6px_0_0_rgba(43,36,29,0.07)] sm:px-10">
+        {awaitingPaymentConfirmation ? (
+          <>
+            <Loader2 className="mx-auto h-9 w-9 animate-spin text-[var(--sf-clay)]" aria-hidden />
+            <h1 className="sf-display m-0 mt-5 text-[1.9rem] leading-[1.05] text-[var(--sf-ink)]">
+              Confirming your payment…
+            </h1>
+            <p className="m-0 mx-auto mt-3 max-w-md text-[15px] font-semibold leading-relaxed text-[var(--sf-soft)]">
+              This usually takes a few seconds. Please keep this page open.
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--sf-mint)]">
+              <Tick className="h-11 w-11" tick />
+            </div>
+            <h1 className="sf-display m-0 mt-5 text-[1.9rem] leading-[1.05] text-[var(--sf-ink)] sm:text-[2.2rem]">
+              Application submitted
+            </h1>
+            <p className="m-0 mx-auto mt-3 max-w-md text-[15px] font-semibold leading-relaxed text-[var(--sf-soft)]">
+              Thank you for submitting{" "}
+              <span className="font-extrabold text-[var(--sf-ink)]">{title}</span>. {schoolName} will be
+              in touch about next steps.
+            </p>
+            <p aria-hidden className="sf-hand m-0 mt-4 text-[1.35rem] text-[var(--sf-clay-deep)]">
+              one step closer ✿
+            </p>
+            {applyDashboardHref ? (
+              <Link href={applyDashboardHref} className={`${gBtnPop} mt-6`}>
+                View your applications
+              </Link>
+            ) : null}
+          </>
+        )}
+      </div>
+    </ApplyGardenShell>
   );
 }

@@ -9,7 +9,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { OrganizationSelectorSkeleton } from '@/components/organization-selector-skeleton';
 import { OrganizationStatusFilters } from '@/components/platform-admin/organization-status-filters';
@@ -21,6 +21,7 @@ import { PlatformAdminOrganizationsStoryHeader } from '@/components/platform-adm
 import { StoryErrorBanner } from '@/components/story/story-error-banner';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { useAuth } from '@/contexts/auth-context';
+import { calmEnter, MOTION, staggerDelay } from '@/lib/motion/portal-motion';
 import type { AdminOrganization, OrganizationStatus } from '@/lib/organizations';
 import { listAllOrganizations } from '@/lib/organizations';
 import { Story, StoryFonts } from '@/constants/story-theme';
@@ -84,14 +85,14 @@ export function PlatformAdminOrganizationsScreen() {
 
   const listHeader = (
     <View style={styles.headerBlock}>
-      <Animated.View entering={FadeInDown.duration(350)}>
+      <Animated.View entering={calmEnter()}>
         <PlatformAdminOrganizationsStoryHeader
           totalCount={organizations.length}
           email={user?.email}
         />
       </Animated.View>
 
-      <Animated.View entering={FadeInDown.delay(40).duration(350)}>
+      <Animated.View entering={calmEnter({ delay: 40 })}>
         <View
           style={[
             styles.searchField,
@@ -113,7 +114,7 @@ export function PlatformAdminOrganizationsScreen() {
       </Animated.View>
 
       {organizations.length > 0 ? (
-        <Animated.View entering={FadeInDown.delay(80).duration(350)}>
+        <Animated.View entering={calmEnter({ delay: 80 })}>
           <OrganizationStatusFilters
             activeStatus={statusFilter}
             counts={counts}
@@ -130,7 +131,7 @@ export function PlatformAdminOrganizationsScreen() {
     return (
       <View style={styles.loadingContainer}>
         <View style={styles.loadingContent}>
-          <Animated.View entering={FadeInDown.duration(350)} style={styles.loadingHeader}>
+          <Animated.View entering={calmEnter()} style={styles.loadingHeader}>
             <PlatformAdminOrganizationsStoryHeader totalCount={0} email={user?.email} />
           </Animated.View>
           <OrganizationSelectorSkeleton rowCount={4} />
@@ -164,7 +165,7 @@ export function PlatformAdminOrganizationsScreen() {
           </View>
         }
         renderItem={({ item, index }) => (
-          <Animated.View entering={FadeInDown.delay(Math.min(index * 30, 180)).duration(220)}>
+          <Animated.View entering={calmEnter({ delay: staggerDelay(index), duration: MOTION.base })}>
             <OrganizationStoryListItem organization={item} onPress={handleSelectOrganization} />
           </Animated.View>
         )}

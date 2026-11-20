@@ -13,7 +13,6 @@ import {
   G,
   Hand,
   Headline,
-  Kicker,
   MascotOutroSlide,
   MascotProductSlide,
   MascotSlide,
@@ -57,8 +56,7 @@ function HookSlide() {
   return (
     <MascotSlide background="#EAF1F8">
       <div style={{ position: "absolute", left: 72, right: 72, top: 120, zIndex: 5 }}>
-        <Kicker bg={G.paper}>Meet Dig, who runs the front office</Kicker>
-        <Headline size={96} style={{ marginTop: 22 }}>
+        <Headline size={96}>
           Dig has <Accent>47 tabs</Accent> open.
         </Headline>
         <Hand size={46} color={G.forest} rotate={-3} style={{ marginTop: 14 }}>

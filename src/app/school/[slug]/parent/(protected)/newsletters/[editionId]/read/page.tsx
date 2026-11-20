@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import NewsletterFullScreenFrame from "@/components/school-parent/newsletters/NewsletterFullScreenFrame";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { schoolParentPath } from "@/lib/organization-settings/parent-routes";
 import {
@@ -38,22 +37,10 @@ export default async function ParentNewsletterReadPage({ params }: PageProps) {
   const documentSrc = parentNewsletterDocumentApiPath(org.id, editionId);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-[#F8F8F3]">
-      <div className="shrink-0 border-b border-[#E4E8E1] bg-white px-4 py-3">
-        <Link
-          href={listHref}
-          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#5F7864]"
-        >
-          <ArrowLeft size={16} aria-hidden />
-          Back to newsletter
-        </Link>
-      </div>
-      <iframe
-        title={result.bundle.edition.title || "School newsletter"}
-        src={documentSrc}
-        sandbox="allow-popups allow-popups-to-escape-sandbox"
-        className="min-h-0 w-full flex-1 border-0"
-      />
-    </div>
+    <NewsletterFullScreenFrame
+      backHref={listHref}
+      documentSrc={documentSrc}
+      title={result.bundle.edition.title}
+    />
   );
 }

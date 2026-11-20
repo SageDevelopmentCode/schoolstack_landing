@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { calmEnter, staggerDelay } from '@/lib/motion/portal-motion';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { ParentCoopSupplyListSkeleton } from '@/components/parent/coop/parent-coop-supply-list-skeleton';
 import { ParentCoopSupplyListStoryHeader } from '@/components/parent/coop/parent-coop-supply-list-story-header';
@@ -149,12 +150,12 @@ export function ParentCoopSupplyListScreen({
       testID="parent-coop-supply-list-ready"
       style={{ flex: 1, backgroundColor: Story.paper }}
       contentContainerStyle={styles.content}>
-      <Animated.View entering={FadeInDown.duration(280)}>
+      <Animated.View entering={calmEnter()}>
         <ParentCoopSupplyListStoryHeader search={search} onSearchChange={setSearch} />
       </Animated.View>
 
       {items.length > 0 ? (
-        <Animated.View entering={FadeInDown.duration(300).delay(40)} style={styles.summaryRow}>
+        <Animated.View entering={calmEnter({ delay: 40 })} style={styles.summaryRow}>
           <SummaryStatCard
             label="ITEMS"
             value={String(summary.itemCount)}
@@ -195,7 +196,7 @@ export function ParentCoopSupplyListScreen({
             .join(' · ');
 
           return (
-            <Animated.View key={item.id} entering={FadeInDown.duration(280).delay(80 + index * 25)}>
+            <Animated.View key={item.id} entering={calmEnter({ delay: staggerDelay(index) })}>
               <StoryCard>
                 <View style={styles.cardInner}>
                   <View style={styles.titleRow}>

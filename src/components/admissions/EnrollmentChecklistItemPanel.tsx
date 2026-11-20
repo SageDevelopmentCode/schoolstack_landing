@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, CheckCircle, FileText, Info, Loader2 } from "lucide-react";
 import ApplicationFileUploadField from "@/components/admissions/ApplicationFileUploadField";
-import ApplicationFieldInput from "@/components/admissions/ApplicationFieldInput";
 import ApplicationRadioInput from "@/components/admissions/ApplicationRadioInput";
 import ApplicationStepNotice from "@/components/admissions/ApplicationStepNotice";
 import PaymentMethodSelectionModal from "@/components/admissions/PaymentMethodSelectionModal";
@@ -13,6 +12,7 @@ import TypedSignatureField, {
   parseStoredSignerName,
 } from "@/components/admissions/TypedSignatureField";
 import RepeatableFormEntries from "@/components/admissions/RepeatableFormEntries";
+import ApplicationGardenSection from "@/components/admissions/garden/ApplicationGardenSection";
 import FormattedDocumentText from "@/components/admissions/FormattedDocumentText";
 import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
@@ -1110,55 +1110,46 @@ function FormItemPanel({
 
   return (
     <div className="space-y-5">
-      {formSchema.title ? (
-        <h2 className={G_PANEL_TITLE}>
-          {formSchema.title}
-        </h2>
-      ) : null}
-
-      {formSchema.description ? (
-        <p className="text-sm" style={{ color: C.textSecondary }}>
-          {formSchema.description}
-        </p>
-      ) : null}
-
-      {topNotice ? <ApplicationStepNotice body={topNotice} C={C} /> : null}
-
       {allowMultiple ? (
-        <RepeatableFormEntries
-          C={C}
-          fields={fields}
-          entries={entries}
-          stepHeading={stepHeading}
-          required={item.required}
-          disabled={fieldsDisabled}
-          onChange={setEntries}
-        />
-      ) : (
-        fields.map((field) => (
-          <div key={field.id}>
-            {field.type !== "checkbox" ? (
-              <label className="mb-1.5 block text-sm font-medium" style={{ color: C.textPrimary }}>
-                {field.label}
-                {field.required ? (
-                  <span style={{ color: C.error }}> *</span>
-                ) : null}
-              </label>
-            ) : null}
-            <ApplicationFieldInput
-              field={field}
-              value={values[field.id] ?? ""}
-              onChange={(value) =>
-                setValues((prev) => ({ ...prev, [field.id]: value }))
-              }
-              disabled={fieldsDisabled}
-              C={C}
-            />
-          </div>
-        ))
-      )}
+        <>
+          {formSchema.title ? (
+            <h2 className={G_PANEL_TITLE}>
+              {formSchema.title}
+            </h2>
+          ) : null}
 
-      {bottomNotice ? <ApplicationStepNotice body={bottomNotice} C={C} /> : null}
+          {formSchema.description ? (
+            <p className="text-sm" style={{ color: C.textSecondary }}>
+              {formSchema.description}
+            </p>
+          ) : null}
+
+          {topNotice ? <ApplicationStepNotice body={topNotice} C={C} /> : null}
+
+          <RepeatableFormEntries
+            C={C}
+            fields={fields}
+            entries={entries}
+            stepHeading={stepHeading}
+            required={item.required}
+            disabled={fieldsDisabled}
+            onChange={setEntries}
+          />
+
+          {bottomNotice ? <ApplicationStepNotice body={bottomNotice} C={C} /> : null}
+        </>
+      ) : (
+        /* Same layout as the apply form (half/full grid), shared with the builder's Family view. */
+        <ApplicationGardenSection
+          C={C}
+          section={{ ...formSchema, fields }}
+          values={values}
+          onChange={(fieldId, value) =>
+            setValues((prev) => ({ ...prev, [fieldId]: value }))
+          }
+          disabled={fieldsDisabled}
+        />
+      )}
 
       {error ? (
         <p className="text-sm" style={{ color: C.error }}>

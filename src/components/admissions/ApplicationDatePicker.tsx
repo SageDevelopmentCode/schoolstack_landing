@@ -13,6 +13,10 @@ import {
   todayMonthYear,
 } from "@/lib/demo-scheduler";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import {
+  applicationTriggerClass,
+  useApplicationFieldAppearance,
+} from "@/components/admissions/application-field-appearance";
 
 type ApplicationDatePickerProps = {
   id: string;
@@ -107,6 +111,7 @@ export default function ApplicationDatePicker({
   const rootRef = useRef<HTMLDivElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
   const hydrated = useHydrated();
+  const appearance = useApplicationFieldAppearance();
   const [open, setOpen] = useState(false);
   const [popupPosition, setPopupPosition] = useState<PopupPosition | null>(null);
 
@@ -341,7 +346,7 @@ export default function ApplicationDatePicker({
         aria-expanded={open}
         aria-invalid={Boolean(error)}
         onClick={() => (open ? setOpen(false) : openPicker())}
-        className="flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2.5 text-left text-sm outline-none transition focus:ring-2"
+        className={`flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2.5 text-left text-sm outline-none transition focus:ring-2 ${applicationTriggerClass(appearance)}`}
         style={{ ...inputStyle, ...focusRing }}
       >
         <span style={{ color: value ? C.textPrimary : C.textTertiary }}>

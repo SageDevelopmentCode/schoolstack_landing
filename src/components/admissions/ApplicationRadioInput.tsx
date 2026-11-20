@@ -1,8 +1,12 @@
 "use client";
 
-import type { CSSProperties } from "react";
 import type { ApplicationFieldOption } from "@/lib/admissions/application-form-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import {
+  applicationFocusRing,
+  applicationMetaTextClass,
+  useApplicationFieldAppearance,
+} from "@/components/admissions/application-field-appearance";
 
 type ApplicationRadioInputProps = {
   name: string;
@@ -27,8 +31,16 @@ export default function ApplicationRadioInput({
   layout = "inline",
   C,
 }: ApplicationRadioInputProps) {
-  const focusRing = { "--tw-ring-color": `${C.accent}40` } as CSSProperties;
+  const appearance = useApplicationFieldAppearance();
+  const garden = appearance === "garden";
+  const focusRing = applicationFocusRing(C.accent, appearance);
   const isStacked = layout === "stacked";
+  // Garden: choices are cards (stacked) or pills (inline); no box around the group.
+  const itemShape = garden
+    ? isStacked
+      ? "rounded-[14px] border-2 font-semibold"
+      : "rounded-full border-2 font-semibold"
+    : "rounded-md border font-medium";
 
   return (
     <div>
@@ -39,9 +51,11 @@ export default function ApplicationRadioInput({
         className={
           isStacked
             ? "flex flex-col gap-2"
-            : "flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:flex-wrap"
+            : garden
+              ? "flex flex-col gap-2 sm:flex-row sm:flex-wrap"
+              : "flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:flex-wrap"
         }
-        style={{ borderColor: error && !isStacked ? C.errorBorder : "transparent" }}
+        style={garden ? undefined : { borderColor: error && !isStacked ? C.errorBorder : "transparent" }}
       >
       {options.map((option) => {
         const isSelected = value === option.value;
@@ -58,8 +72,8 @@ export default function ApplicationRadioInput({
             onClick={() => onChange(option.value)}
             className={
               isStacked
-                ? "flex min-h-[44px] w-full items-center gap-3 rounded-md border px-4 py-3 text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
-                : "flex min-h-[44px] w-full min-w-[5rem] items-center gap-3 rounded-md border px-4 py-2.5 text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:flex-1"
+                ? `flex min-h-[44px] w-full items-center gap-3 ${itemShape} px-4 py-3 text-sm transition-all duration-150 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60`
+                : `flex min-h-[44px] w-full min-w-[5rem] items-center gap-3 ${itemShape} px-4 py-2.5 text-sm transition-all duration-150 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60 ${garden ? "sm:w-auto" : "sm:w-auto sm:flex-1"}`
             }
             style={
               isSelected
@@ -97,7 +111,7 @@ export default function ApplicationRadioInput({
       })}
       </div>
       {error ? (
-        <p className="mt-1.5 text-xs" style={{ color: C.error }}>
+        <p className={applicationMetaTextClass(appearance)} style={{ color: C.error }}>
           {error}
         </p>
       ) : null}

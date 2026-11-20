@@ -1,3 +1,8 @@
+/* Pin Tailwind v4's layer order. This file can land ahead of Tailwind in the
+   CSS bundle; without this line `components` is declared first, so Tailwind's
+   `base` reset (padding/margin/border: 0) beats every .sf-* component rule. */
+@layer properties, theme, base, components, utilities;
+
 /* MudKitchen "Garden" design system — warm, playful, premium.
    Ported from the Sage Field Garden kit and re-tinted to the MudKitchen brand
    (forest anchor, clay action color, pastel papers on cream).
@@ -320,7 +325,9 @@ html:has(.lenis) {
 /* Admin Garden skin (school admin pages moved to Garden, e.g. Admissions).
    Deep editors still pass story inline styles to raw inputs and hand-rolled
    dialogs; inside `.sf-admin-garden-skin` they take the Garden field and
-   dialog look. Embedded product previews (.sf-demo) are left alone.
+   dialog look. Embedded product previews (.sf-demo) and the form builder's
+   family view ([data-family-preview], drawn with the public form's look)
+   are left alone.
    Skill: .claude/skills/admin-portal-garden-design */
 .sf-admin-garden-skin
   :is(
@@ -335,7 +342,7 @@ html:has(.lenis) {
     input[type="search"],
     textarea,
     select
-  ):not(.sf-demo *):not([data-garden-skip]) {
+  ):not(.sf-demo *):not([data-family-preview] *):not([data-garden-skip]) {
   border: 2px solid rgba(43, 36, 29, 0.15) !important;
   border-radius: 14px !important;
   background-color: #fff !important;
@@ -346,32 +353,32 @@ html:has(.lenis) {
   transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 .sf-admin-garden-skin
-  :is(input, textarea, select):not(.sf-demo *):not([data-garden-skip]):hover {
+  :is(input, textarea, select):not(.sf-demo *):not([data-family-preview] *):not([data-garden-skip]):hover {
   border-color: rgba(43, 36, 29, 0.3) !important;
 }
 .sf-admin-garden-skin
-  :is(input, textarea, select):not(.sf-demo *):not([data-garden-skip]):focus {
+  :is(input, textarea, select):not(.sf-demo *):not([data-family-preview] *):not([data-garden-skip]):focus {
   outline: none !important;
   border-color: var(--sf-clay) !important;
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--sf-clay) 15%, transparent) !important;
 }
-.sf-admin-garden-skin :is(input[type="checkbox"], input[type="radio"]):not(.sf-demo *) {
+.sf-admin-garden-skin :is(input[type="checkbox"], input[type="radio"]):not(.sf-demo *):not([data-family-preview] *) {
   accent-color: var(--sf-clay);
   padding: 0 !important;
   border-radius: revert !important;
   box-shadow: none !important;
 }
-.sf-admin-garden-skin [role="dialog"][aria-modal="true"]:not(.sf-demo *):not([data-garden-dialog]) {
+.sf-admin-garden-skin [role="dialog"][aria-modal="true"]:not(.sf-demo *):not([data-family-preview] *):not([data-garden-dialog]) {
   border-radius: 24px !important;
   border: 1.5px solid rgba(43, 36, 29, 0.14) !important;
   background-color: var(--sf-cream) !important;
   box-shadow: 0 6px 0 0 rgba(43, 36, 29, 0.12), 0 30px 60px -30px rgba(43, 36, 29, 0.45) !important;
 }
 /* Story editors use 9–11px meta type; admin Garden meta is 12–13px. */
-.sf-admin-garden-skin :is(.text-\[9px\], .text-\[10px\]):not(.sf-demo *) {
+.sf-admin-garden-skin :is(.text-\[9px\], .text-\[10px\]):not(.sf-demo *):not([data-family-preview] *) {
   font-size: 11.5px;
 }
-.sf-admin-garden-skin :is(.text-\[11px\], .text-xs):not(.sf-demo *) {
+.sf-admin-garden-skin :is(.text-\[11px\], .text-xs):not(.sf-demo *):not([data-family-preview] *) {
   font-size: 12.5px;
 }
 /* Enrollment Flows builders: outline rail + canvas on Garden paper. */

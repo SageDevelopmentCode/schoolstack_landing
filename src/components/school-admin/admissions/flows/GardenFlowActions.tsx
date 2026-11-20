@@ -43,6 +43,8 @@ export default function GardenFlowActions({
   onSelectReadinessItem,
   menuItems,
   extra,
+  readinessAlwaysVisible = false,
+  hidePrimary = false,
 }: {
   readOnly: boolean;
   isPublished: boolean;
@@ -60,6 +62,10 @@ export default function GardenFlowActions({
   menuItems: FlowMenuItem[];
   /** Extra controls placed before Preview (e.g. program picker). */
   extra?: ReactNode;
+  /** Show the readiness chip at every width (builders without a readiness rail). */
+  readinessAlwaysVisible?: boolean;
+  /** Hide the toy action while the page shows its own (e.g. a review stage's Publish). */
+  hidePrimary?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -100,7 +106,7 @@ export default function GardenFlowActions({
   const firstBlocking = readiness.items.find((item) => item.status === "todo");
 
   let primary: ReactNode = null;
-  if (!readOnly) {
+  if (!readOnly && !hidePrimary) {
     if (!isPublished) {
       primary =
         !readiness.ready && firstBlocking ? (
@@ -150,6 +156,7 @@ export default function GardenFlowActions({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <FlowReadinessPopover
+        alwaysVisible={readinessAlwaysVisible}
         readiness={readiness}
         isPublished={isPublished}
         kindLabel={kindLabel}

@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { apiError } from "@/lib/api/route-errors";
+import { notifyFreeSchoolSignup } from "@/lib/discord";
+import { runAfterResponse } from "@/lib/next/run-after-response";
 import { reportOperationalError } from "@/lib/operational-errors";
 import { isValidIanaTimezone } from "@/lib/marketing/demo-timezone-options";
 import {
@@ -213,6 +216,28 @@ export async function POST(request: Request) {
       email,
       route: ROUTE,
       request,
+    });
+
+    runAfterResponse(async () => {
+      try {
+        await notifyFreeSchoolSignup({
+          firstName: signupDetails.details.firstName,
+          email,
+          schoolName,
+          slug: created.slug,
+          organizationId: created.organizationId,
+          role: signupDetails.details.role,
+          studentCount: signupDetails.details.studentCount,
+          timezone,
+        });
+      } catch (notifyError) {
+        void logNotificationFailure(admin, {
+          organizationId: created.organizationId,
+          operation: "free_school_signup_discord",
+          error: notifyError,
+          metadata: { email, schoolName },
+        });
+      }
     });
 
     return NextResponse.json({ slug: created.slug });

@@ -39,6 +39,7 @@ import {
   type computeMondayCheckResults,
 } from "@/lib/marketing/microschool-monday-check";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import EmailMyPlan from "@/components/lead-magnets/EmailMyPlan";
 
 type MondayCheckResultsProps = {
   theme: ParentThemeTokens;
@@ -162,7 +163,7 @@ export default function MondayCheckResults({
 
   const planComplete = plan.taskIds.filter((id) => plan.doneIds.includes(id)).length;
 
-  const downloadPlan = useCallback(() => {
+  const buildPlanLines = useCallback(() => {
     const findInsight = (id: string) => personalizedInsights.find((i) => i.questionId === id);
     const lines = [
       "MICROSCHOOL OPS CHECK",
@@ -184,6 +185,11 @@ export default function MondayCheckResults({
           `${item.pillarLabel}\nQuestion: ${item.prompt}\nAnswer: ${item.option.label}\nNext step: ${item.option.action}\n`,
       ),
     ];
+    return lines;
+  }, [personalizedInsights, plan, totalScore, maxScore]);
+
+  const downloadPlan = useCallback(() => {
+    const lines = buildPlanLines();
     const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -191,7 +197,7 @@ export default function MondayCheckResults({
     a.download = "microschool-ops-check-action-plan.txt";
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }, [personalizedInsights, plan, totalScore, maxScore]);
+  }, [buildPlanLines]);
 
   const expandAll = () => {
     if (expanded.size > 0) {
@@ -359,6 +365,12 @@ export default function MondayCheckResults({
           </p>
         </aside>
       </section>
+
+      <EmailMyPlan
+        toolId="ops-check"
+        className="mb-7"
+        getLines={() => buildPlanLines().flatMap((line) => line.split("\n"))}
+      />
 
       <nav
         role="tablist"
@@ -1016,7 +1028,7 @@ export default function MondayCheckResults({
       >
         <span className="inline-flex items-center gap-1.5">
           <Lock className="h-3.5 w-3.5" aria-hidden />
-          Your action plan is kept in this browser. Nothing is sent to a server.
+          Your action plan is kept in this browser. Nothing is sent unless you choose to email it.
         </span>
         <button
           type="button"

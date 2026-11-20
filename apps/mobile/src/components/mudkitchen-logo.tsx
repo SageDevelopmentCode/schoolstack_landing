@@ -7,12 +7,12 @@ import Animated, {
   useSharedValue,
   withDelay,
   withSequence,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
 import { Garden, GardenFonts } from '@/components/parent/garden/tokens';
 import { isMobileE2e } from '@/lib/e2e';
+import { CALM_EASE } from '@/lib/motion/portal-motion';
 
 type MudKitchenLogoProps = {
   size?: 'sm' | 'md';
@@ -25,7 +25,7 @@ const REST_TILT = -6;
 /**
  * The MudKitchen wordmark in Garden: the pot and "MudKitchen" in Bricolage on a
  * paper pill, like the web Garden navbar once it floats. The pot gives one small
- * wiggle when the badge appears.
+ * nod when the badge appears.
  */
 export function MudKitchenLogo({ size = 'md', style }: MudKitchenLogoProps) {
   const reduceMotion = useReducedMotion();
@@ -38,9 +38,8 @@ export function MudKitchenLogo({ size = 'md', style }: MudKitchenLogoProps) {
     tilt.value = withDelay(
       350,
       withSequence(
-        withTiming(6, { duration: 160 }),
-        withTiming(-10, { duration: 180 }),
-        withSpring(REST_TILT, { stiffness: 260, damping: 9 }),
+        withTiming(REST_TILT + 4, { duration: 240, easing: CALM_EASE }),
+        withTiming(REST_TILT, { duration: 280, easing: CALM_EASE }),
       ),
     );
   }, [reduceMotion, tilt]);

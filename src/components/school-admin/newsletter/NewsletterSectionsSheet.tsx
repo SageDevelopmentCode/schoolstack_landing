@@ -26,7 +26,7 @@ import {
   type NewsletterStoryBlockKind,
   type NewsletterWorkspaceState,
 } from "@/lib/school-admin/newsletter/newsletter-types";
-import styles from "./newsletter-workspace.module.css";
+import { gIconBtn, gInputClass } from "@/components/school-admin/garden/kit";
 
 const STORY_KIND_LABELS: Record<NewsletterStoryBlockKind, string> = {
   welcome: "Opening note",
@@ -243,9 +243,9 @@ export default function NewsletterSectionsSheet({
           {customBlocks.length > 0 ? (
             <div className="mt-3 space-y-2">
               {customBlocks.map((block, index) => (
-                <div key={`edit-${block.id}`} className={styles.customRow}>
+                <div key={`edit-${block.id}`} className="flex items-center gap-2">
                   <input
-                    className={styles.input}
+                    className={gInputClass()}
                     value={block.prompt}
                     placeholder="Prompt / section title"
                     maxLength={100}
@@ -264,7 +264,7 @@ export default function NewsletterSectionsSheet({
                   />
                   <button
                     type="button"
-                    className={styles.iconBtn}
+                    className={gIconBtn}
                     aria-label={`Remove custom prompt ${index + 1}`}
                     onClick={() => {
                       setTemplate((prev) => ({

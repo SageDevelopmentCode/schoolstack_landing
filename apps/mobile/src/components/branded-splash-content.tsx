@@ -5,7 +5,6 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   FadeIn,
-  FadeInDown,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -18,6 +17,7 @@ import Animated, {
 import { Garden, GardenFonts, PORTAL_EASE } from '@/components/parent/garden/tokens';
 import { GTape } from '@/components/parent/garden/ui';
 import { Brand } from '@/constants/theme';
+import { calmEnter } from '@/lib/motion/portal-motion';
 
 /**
  * MudKitchen splash in Calm Garden. Shown before any school is known, so the
@@ -69,7 +69,7 @@ export function BrandedSplashContent({
       </View>
 
       <View style={styles.below}>
-        <Animated.View entering={FadeInDown.delay(60).duration(320).easing(PORTAL_EASE)}>
+        <Animated.View entering={calmEnter({ delay: 60 })}>
           <Text accessibilityRole="header" accessibilityLabel="MudKitchen" style={styles.wordmark}>
             Mud<Text style={styles.wordmarkAccent}>Kitchen</Text>
           </Text>
@@ -108,8 +108,8 @@ function LoaderDot({ tint, index }: { tint: string; index: number }) {
       index * 140,
       withRepeat(
         withSequence(
-          withTiming(-7, { duration: 280, easing: PORTAL_EASE }),
-          withTiming(0, { duration: 280, easing: PORTAL_EASE }),
+          withTiming(-4, { duration: 320, easing: PORTAL_EASE }),
+          withTiming(0, { duration: 320, easing: PORTAL_EASE }),
           withTiming(0, { duration: 260 }),
         ),
         -1,

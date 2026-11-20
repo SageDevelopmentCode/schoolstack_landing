@@ -1,8 +1,10 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
 import GetStartedDemoFlow, { type GetStartedDemoStep } from "@/components/get-started/GetStartedDemoFlow";
 import { BOOK_DEMO_SECTION_ID } from "@/lib/marketing/book-demo";
+import type { DemoPromoId } from "@/lib/marketing/gift-card-offer";
 import { MUDKITCHEN_MARKETING_GARDEN_THEME } from "@/lib/marketing/mudkitchen-garden-marketing-theme";
 import { Arrow, Draw, Leaf, Tape } from "@/components/garden/ui";
 
@@ -16,6 +18,7 @@ export default function GardenBookDemo({
   scrollOnStepChange = "section",
   onStepChange,
   introHeadingAs = "h2",
+  promo,
 }: {
   className?: string;
   id?: string;
@@ -23,8 +26,14 @@ export default function GardenBookDemo({
   onStepChange?: (step: GetStartedDemoStep) => void;
   /** "h1" only on /get-started, where the form title is the page heading. */
   introHeadingAs?: "h1" | "h2";
+  /** Tags bookings from a promo landing page (see DEMO_PROMO_NOTES). */
+  promo?: DemoPromoId;
 }) {
   const sectionRef = useRef<HTMLElement>(null);
+  const pathname = usePathname();
+  // Stored as demo_requests.source: "/" → "home", "/customers/sagefield" → "customers-sagefield".
+  const source =
+    pathname === "/" ? "home" : (pathname ?? "").replace(/^\/+/, "").replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 40) || "get-started";
   const [step, setStep] = useState<GetStartedDemoStep>(0);
   const handleStepChange = (next: GetStartedDemoStep) => {
     setStep(next);
@@ -55,6 +64,8 @@ export default function GardenBookDemo({
             showStepProgress={false}
             theme={MUDKITCHEN_MARKETING_GARDEN_THEME}
             garden
+            promo={promo}
+            source={source}
           />
         </div>
       </div>

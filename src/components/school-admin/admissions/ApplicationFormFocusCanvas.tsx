@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { Plus, Copy, Trash2 } from "lucide-react";
@@ -34,7 +34,11 @@ import ApplicationFormFieldEditor from "./ApplicationFormFieldEditor";
 import BuilderFieldEditorPanel from "./BuilderFieldEditorPanel";
 import ApplicationFormFeePanel from "./ApplicationFormFeePanel";
 import ApplicationFormPostSubmitEditor from "./ApplicationFormPostSubmitEditor";
-import ApplicationFormQuestionList from "./ApplicationFormQuestionList";
+import ApplicationFormQuestionList, { orderFieldsSystemFirst } from "./ApplicationFormQuestionList";
+import StepFamilyCanvas from "./StepFamilyCanvas";
+import { BuilderViewToggle, useBuilderViewMode } from "./builder-view-mode";
+import { buildParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import {
   BuilderQuestionCard,
   BuilderQuestionGroup,
@@ -42,6 +46,7 @@ import {
 } from "./builder-question-card";
 import { builderCanvasTransition } from "./builder-canvas-motion";
 import { focusKey, type BuilderFocus } from "./builder-focus";
+import { stageOfFocus } from "./builder-stages";
 import { BUILDER_CANVAS_BG } from "./outline-item-styles";
 import ReuseApplicationStepDialog from "./ReuseApplicationStepDialog";
 
@@ -58,6 +63,8 @@ export type EditableFormSlice = {
 
 type ApplicationFormFocusCanvasProps = {
   C: AdminThemeTokens;
+  /** School branding: the family view draws steps with the public form's tokens. */
+  branding?: OrganizationBranding;
   theme?: ParentThemeTokens;
   focus: BuilderFocus;
   editable: EditableFormSlice;
@@ -83,6 +90,8 @@ type ApplicationFormFocusCanvasProps = {
   onReuseDialogOpen?: () => void;
   programEnrollmentChecklist?: EnrollmentChecklistTemplate | null;
   onOpenEnrollmentChecklist?: (checklistId: string) => void;
+  /** Rendered for the Review & publish stage (`focus.kind === "review"`). */
+  reviewStage?: React.ReactNode;
 };
 
 type PendingDelete =
@@ -174,12 +183,12 @@ function SetupView({
       <BuilderSectionIntro
         C={C}
         theme={theme}
-        eyebrow={theme ? "Form settings" : undefined}
-        title="Welcome & student information"
-        subtitle="Set the tone for families, then collect the essential details needed to begin a thoughtful review."
+        eyebrow={theme ? "Basics" : undefined}
+        title="Name, welcome & apply link"
+        subtitle="What families see first, where they apply and which program the application is for."
       />
 
-      <BuilderQuestionGroup title="Basics" description="What families see first.">
+      <BuilderQuestionGroup title="Welcome" description="What families see first.">
       <BuilderQuestionCard
         C={C}
         tone="accent"
@@ -391,8 +400,203 @@ function SetupView({
   );
 }
 
+type StepDetailsSection = "title" | "description" | "notice";
+
+/** Step title, instructions and highlighted note (compact list inline, family view in a side panel). */
+function StepDetailsFields({
+  C,
+  step,
+  readOnly,
+  onUpdateStep,
+  initialSection,
+}: {
+  C: AdminThemeTokens;
+  step: ApplicationSection;
+  readOnly: boolean;
+  onUpdateStep: (patch: Partial<ApplicationSection>) => void;
+  /** Opens that section's editor and moves focus into it (side panel). */
+  initialSection?: StepDetailsSection;
+}) {
+  const hasDescription = Boolean(step.description?.trim());
+  const hasStepNotice = Boolean(step.stepNotice?.body?.trim());
+  const [descriptionEditorOpen, setDescriptionEditorOpen] = useState(initialSection === "description");
+  const [stepNoticeEditorOpen, setStepNoticeEditorOpen] = useState(initialSection === "notice");
+  const showDescriptionEditor = hasDescription || descriptionEditorOpen;
+  const showStepNoticeEditor = hasStepNotice || stepNoticeEditorOpen;
+
+  useEffect(() => {
+    if (!initialSection) return;
+    // GSidePanel focuses its Close button ~60ms after opening; land in the field after that.
+    const timer = window.setTimeout(() => {
+      const section = document.getElementById(`step-details-${initialSection}`);
+      const input = section?.querySelector<HTMLElement>("input, textarea");
+      section?.scrollIntoView({ block: "nearest" });
+      input?.focus({ preventScroll: true });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [initialSection]);
+
+  return (
+    <div className="space-y-5">
+      <div id="step-details-title">
+        <BuilderQuestionCard
+          C={C}
+          tone="accent"
+          question="What should families call this step?"
+          helper="This is the heading families see at the top of this screen."
+        >
+          <input
+            type="text"
+            value={step.title}
+            disabled={readOnly}
+            onChange={(e) => onUpdateStep({ title: e.target.value })}
+            placeholder="e.g. Parent information"
+            style={inputStyle(C)}
+          />
+        </BuilderQuestionCard>
+      </div>
+
+      {readOnly && !hasDescription ? null : (
+        <div id="step-details-description">
+          <BuilderQuestionCard
+            C={C}
+            tone="clay"
+            question="What instructions should appear at the top of this step?"
+            helper={
+              showDescriptionEditor
+                ? "Optional — add context before families start answering questions."
+                : undefined
+            }
+            action={
+              !readOnly && !showDescriptionEditor ? (
+                <BuilderAddButton
+                  C={C}
+                  onClick={() => setDescriptionEditorOpen(true)}
+                />
+              ) : undefined
+            }
+          >
+            {showDescriptionEditor ? (
+              <textarea
+                rows={2}
+                value={step.description ?? ""}
+                disabled={readOnly}
+                onChange={(e) => {
+                  const description = e.target.value;
+                  if (!description.trim()) {
+                    onUpdateStep({ description: undefined });
+                    setDescriptionEditorOpen(false);
+                    return;
+                  }
+                  onUpdateStep({ description });
+                }}
+                placeholder="Optional instructions for this step…"
+                style={{ ...inputStyle(C), resize: "vertical" }}
+              />
+            ) : null}
+          </BuilderQuestionCard>
+        </div>
+      )}
+
+      {readOnly && !hasStepNotice ? null : (
+        <div id="step-details-notice">
+          <BuilderQuestionCard
+            C={C}
+            tone="info"
+            question="Is there a message you want to highlight on this step?"
+            helper={
+              showStepNoticeEditor
+                ? "Optional callout shown to families on this step."
+                : undefined
+            }
+            action={
+              !readOnly && !showStepNoticeEditor ? (
+                <BuilderAddButton
+                  C={C}
+                  onClick={() => setStepNoticeEditorOpen(true)}
+                />
+              ) : undefined
+            }
+          >
+            {showStepNoticeEditor ? (
+              <div className="space-y-3">
+                <textarea
+                  rows={2}
+                  value={step.stepNotice?.body ?? ""}
+                  disabled={readOnly}
+                  onChange={(e) => {
+                    const body = e.target.value;
+                    if (!body.trim()) {
+                      onUpdateStep({ stepNotice: undefined });
+                      setStepNoticeEditorOpen(false);
+                      return;
+                    }
+                    onUpdateStep({
+                      stepNotice: {
+                        body,
+                        placement: step.stepNotice?.placement ?? "bottom",
+                      },
+                    });
+                  }}
+                  placeholder="Optional callout message for families…"
+                  style={{ ...inputStyle(C), resize: "vertical" }}
+                />
+                {step.stepNotice?.body.trim() ? (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium" style={{ color: C.textSecondary }}>
+                      Show this message at the…
+                    </p>
+                    <div className="flex flex-wrap gap-4">
+                      {(
+                        [
+                          { value: "top", label: "Top of step" },
+                          { value: "bottom", label: "Bottom of step" },
+                        ] as const
+                      ).map((option) => (
+                        <label
+                          key={option.value}
+                          className="inline-flex items-center gap-2 text-sm"
+                          style={{ color: C.textPrimary }}
+                        >
+                          <input
+                            type="radio"
+                            name={`step-notice-placement-${step.id}`}
+                            value={option.value}
+                            checked={step.stepNotice?.placement === option.value}
+                            disabled={readOnly}
+                            onChange={() =>
+                              onUpdateStep({
+                                stepNotice: {
+                                  body: step.stepNotice!.body,
+                                  placement: option.value,
+                                },
+                              })
+                            }
+                            className="h-4 w-4"
+                            style={{ accentColor: C.accent }}
+                          />
+                          {option.label}
+                        </label>
+                      ))}
+                    </div>
+                    <ApplicationStepNotice
+                      body={step.stepNotice.body.trim()}
+                      C={C}
+                    />
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </BuilderQuestionCard>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StepView({
   C,
+  familyTheme,
   theme,
   step,
   stepIdx,
@@ -402,13 +606,16 @@ function StepView({
   selectedFieldId,
   onFocusChange,
   onUpdateStep,
+  onUpdateField,
   onRequestDeleteStep,
+  onRequestDeleteField,
   onRequestReuseStep,
   canReuseStep,
   onAddField,
   onReorderFields,
 }: {
   C: AdminThemeTokens;
+  familyTheme?: ParentThemeTokens;
   theme?: ParentThemeTokens;
   step: ApplicationSection;
   stepIdx: number;
@@ -418,27 +625,47 @@ function StepView({
   selectedFieldId: string | null;
   onFocusChange: (focus: BuilderFocus) => void;
   onUpdateStep: (patch: Partial<ApplicationSection>) => void;
+  onUpdateField: (fieldId: string, patch: Partial<ApplicationField>) => void;
   onRequestDeleteStep: () => void;
+  onRequestDeleteField: (fieldId: string) => void;
   onRequestReuseStep?: () => void;
   canReuseStep?: boolean;
   onAddField: (field: ApplicationField) => void;
   onReorderFields: (fields: ApplicationField[]) => void;
 }) {
   const isLockedStep = lockSystemFields && isSystemSection(step);
-  const hasDescription = Boolean(step.description?.trim());
-  const hasStepNotice = Boolean(step.stepNotice?.body?.trim());
-  const [descriptionEditorOpen, setDescriptionEditorOpen] = useState(false);
-  const [stepNoticeEditorOpen, setStepNoticeEditorOpen] = useState(false);
+  const [viewMode, setViewMode] = useBuilderViewMode();
+  const [detailsSection, setDetailsSection] = useState<StepDetailsSection | null>(null);
+  const [detailsStepId, setDetailsStepId] = useState(step.id);
+  // Another step: close its details panel (previous-props pattern, no effect).
+  if (detailsStepId !== step.id) {
+    setDetailsStepId(step.id);
+    setDetailsSection(null);
+  }
 
-  const showDescriptionEditor = hasDescription || descriptionEditorOpen;
-  const showStepNoticeEditor = hasStepNotice || stepNoticeEditorOpen;
+  const addField = (field: ApplicationField) => {
+    onAddField(field);
+    onFocusChange({ kind: "field", stepId: step.id, fieldId: field.id });
+  };
 
-  useEffect(() => {
-    queueMicrotask(() => {
-      setDescriptionEditorOpen(false);
-      setStepNoticeEditorOpen(false);
-    });
-  }, [step.id]);
+  const moveField = (fieldId: string, direction: -1 | 1) => {
+    const index = step.fields.findIndex((field) => field.id === fieldId);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= step.fields.length) return;
+    const next = [...step.fields];
+    [next[index], next[target]] = [next[target], next[index]];
+    onReorderFields(orderFieldsSystemFirst(next, lockSystemFields));
+  };
+
+  const openDetails = (section: StepDetailsSection) => {
+    onFocusChange({ kind: "step", stepId: step.id });
+    setDetailsSection(section);
+  };
+
+  const viewToggle = theme ? (
+    <BuilderViewToggle mode={viewMode} onChange={setViewMode} label="How to show this step" />
+  ) : null;
+  const showFamily = Boolean(theme && familyTheme) && viewMode === "family";
 
   return (
     <div className="w-full space-y-5">
@@ -455,7 +682,9 @@ function StepView({
           subtitle={
             isLockedStep
               ? "Required student fields for your school directory."
-              : "Configure what families see and answer on this step."
+              : showFamily
+                ? "This is the page families see. Click anything to change it."
+                : "Configure what families see and answer on this step."
           }
         />
         {!readOnly && !isLockedStep ? (
@@ -488,6 +717,8 @@ function StepView({
         ) : null}
       </div>
 
+      {viewToggle}
+
       {isLockedStep ? (
         <div
           className="rounded-md border px-4 py-3 text-sm leading-relaxed"
@@ -501,187 +732,83 @@ function StepView({
         </div>
       ) : null}
 
-      {!isLockedStep ? (
-        <>
-          <BuilderQuestionCard
-            C={C}
-            tone="accent"
-            question="What should families call this step?"
-            helper="This is the heading families see at the top of this screen."
-          >
-            <input
-              type="text"
-              value={step.title}
-              disabled={readOnly}
-              onChange={(e) => onUpdateStep({ title: e.target.value })}
-              placeholder="e.g. Parent information"
-              style={inputStyle(C)}
-            />
-          </BuilderQuestionCard>
-
-          {readOnly && !hasDescription ? null : (
-            <BuilderQuestionCard
-              C={C}
-              tone="clay"
-              question="What instructions should appear at the top of this step?"
-              helper={
-                showDescriptionEditor
-                  ? "Optional — add context before families start answering questions."
-                  : undefined
-              }
-              action={
-                !readOnly && !showDescriptionEditor ? (
-                  <BuilderAddButton
-                    C={C}
-                    onClick={() => setDescriptionEditorOpen(true)}
-                  />
-                ) : undefined
-              }
-            >
-              {showDescriptionEditor ? (
-                <textarea
-                  rows={2}
-                  value={step.description ?? ""}
-                  disabled={readOnly}
-                  onChange={(e) => {
-                    const description = e.target.value;
-                    if (!description.trim()) {
-                      onUpdateStep({ description: undefined });
-                      setDescriptionEditorOpen(false);
-                      return;
-                    }
-                    onUpdateStep({ description });
-                  }}
-                  placeholder="Optional instructions for this step…"
-                  style={{ ...inputStyle(C), resize: "vertical" }}
-                />
-              ) : null}
-            </BuilderQuestionCard>
-          )}
-
-          {readOnly && !hasStepNotice ? null : (
-            <BuilderQuestionCard
-              C={C}
-              tone="info"
-              question="Is there a message you want to highlight on this step?"
-              helper={
-                showStepNoticeEditor
-                  ? "Optional callout shown to families on this step."
-                  : undefined
-              }
-              action={
-                !readOnly && !showStepNoticeEditor ? (
-                  <BuilderAddButton
-                    C={C}
-                    onClick={() => setStepNoticeEditorOpen(true)}
-                  />
-                ) : undefined
-              }
-            >
-              {showStepNoticeEditor ? (
-                <div className="space-y-3">
-                  <textarea
-                    rows={2}
-                    value={step.stepNotice?.body ?? ""}
-                    disabled={readOnly}
-                    onChange={(e) => {
-                      const body = e.target.value;
-                      if (!body.trim()) {
-                        onUpdateStep({ stepNotice: undefined });
-                        setStepNoticeEditorOpen(false);
-                        return;
-                      }
-                      onUpdateStep({
-                        stepNotice: {
-                          body,
-                          placement: step.stepNotice?.placement ?? "bottom",
-                        },
-                      });
-                    }}
-                    placeholder="Optional callout message for families…"
-                    style={{ ...inputStyle(C), resize: "vertical" }}
-                  />
-                  {step.stepNotice?.body.trim() ? (
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium" style={{ color: C.textSecondary }}>
-                        Show this message at the…
-                      </p>
-                      <div className="flex flex-wrap gap-4">
-                        {(
-                          [
-                            { value: "top", label: "Top of step" },
-                            { value: "bottom", label: "Bottom of step" },
-                          ] as const
-                        ).map((option) => (
-                          <label
-                            key={option.value}
-                            className="inline-flex items-center gap-2 text-sm"
-                            style={{ color: C.textPrimary }}
-                          >
-                            <input
-                              type="radio"
-                              name={`step-notice-placement-${step.id}`}
-                              value={option.value}
-                              checked={step.stepNotice?.placement === option.value}
-                              disabled={readOnly}
-                              onChange={() =>
-                                onUpdateStep({
-                                  stepNotice: {
-                                    body: step.stepNotice!.body,
-                                    placement: option.value,
-                                  },
-                                })
-                              }
-                              className="h-4 w-4"
-                              style={{ accentColor: C.accent }}
-                            />
-                            {option.label}
-                          </label>
-                        ))}
-                      </div>
-                      <ApplicationStepNotice
-                        body={step.stepNotice.body.trim()}
-                        C={C}
-                      />
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-            </BuilderQuestionCard>
-          )}
-        </>
-      ) : null}
-
-      <BuilderQuestionCard
-        C={C}
-        tone="success"
-        question="What questions should families answer on this step?"
-        helper="Click a question to edit it. Families answer these on this screen."
-      >
-        <ApplicationFormQuestionList
-          C={C}
-          stepId={step.id}
-          fields={step.fields}
-          selectedFieldId={selectedFieldId}
+      {showFamily ? (
+        <StepFamilyCanvas
+          familyTheme={familyTheme!}
+          step={step}
+          stepIdx={stepIdx}
+          totalSteps={totalSteps}
           readOnly={readOnly}
           lockSystemFields={lockSystemFields}
-          onSelectField={(fieldId) =>
-            onFocusChange({ kind: "field", stepId: step.id, fieldId })
-          }
-          onAddField={(field) => {
-            onAddField(field);
-            onFocusChange({ kind: "field", stepId: step.id, fieldId: field.id });
+          isLockedStep={isLockedStep}
+          selectedFieldId={selectedFieldId}
+          onSelectField={(fieldId) => {
+            setDetailsSection(null);
+            onFocusChange({ kind: "field", stepId: step.id, fieldId });
           }}
-          onReorderFields={onReorderFields}
-          hideHeader
+          onOpenStepDetails={openDetails}
+          onUpdateField={onUpdateField}
+          onMoveField={moveField}
+          onRequestDeleteField={onRequestDeleteField}
+          onAddField={addField}
         />
-      </BuilderQuestionCard>
+      ) : (
+        <>
+          {!isLockedStep ? (
+            <StepDetailsFields key={step.id} C={C} step={step} readOnly={readOnly} onUpdateStep={onUpdateStep} />
+          ) : null}
+
+          <BuilderQuestionCard
+            C={C}
+            tone="success"
+            question="What questions should families answer on this step?"
+            helper="Click a question to edit it. Families answer these on this screen."
+          >
+            <ApplicationFormQuestionList
+              C={C}
+              stepId={step.id}
+              fields={step.fields}
+              selectedFieldId={selectedFieldId}
+              readOnly={readOnly}
+              lockSystemFields={lockSystemFields}
+              onSelectField={(fieldId) =>
+                onFocusChange({ kind: "field", stepId: step.id, fieldId })
+              }
+              onAddField={addField}
+              onReorderFields={onReorderFields}
+              hideHeader
+            />
+          </BuilderQuestionCard>
+        </>
+      )}
+
+      {showFamily && !isLockedStep ? (
+        <BuilderFieldEditorPanel
+          C={C}
+          open={detailsSection !== null}
+          eyebrow={`Step ${stepIdx + 1} · Details`}
+          title="Step details"
+          subtitle="The heading, instructions and note families see on this step."
+          onClose={() => setDetailsSection(null)}
+        >
+          {detailsSection ? (
+            <StepDetailsFields
+              C={C}
+              step={step}
+              readOnly={readOnly}
+              onUpdateStep={onUpdateStep}
+              initialSection={detailsSection}
+            />
+          ) : null}
+        </BuilderFieldEditorPanel>
+      ) : null}
     </div>
   );
 }
 
 export default function ApplicationFormFocusCanvas({
   C,
+  branding,
   theme,
   focus,
   editable,
@@ -705,11 +832,54 @@ export default function ApplicationFormFocusCanvas({
   onReuseDialogOpen,
   programEnrollmentChecklist = null,
   onOpenEnrollmentChecklist,
+  reviewStage,
 }: ApplicationFormFocusCanvasProps) {
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [reuseDialogOpen, setReuseDialogOpen] = useState(false);
   const [reuseTargetStepId, setReuseTargetStepId] = useState<string | null>(null);
   const key = focusKey(focus);
+  const stage = stageOfFocus(focus);
+  // Same tokens as the public apply page and ApplicationFormPreview; falls back to the admin tokens.
+  // The family's own theme, so the Family view matches the Garden apply form exactly.
+  const familyTheme = useMemo(
+    () => (branding ? buildParentThemeTokens(branding) : theme),
+    [branding, theme],
+  );
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const previousStage = useRef(stage);
+  const pendingStageFocus = useRef(false);
+
+  // New stage: start at the top and move keyboard / screen-reader focus to it.
+  // The panel may mount after this effect (AnimatePresence "wait"), so the
+  // callback ref below finishes the job when it does.
+  useEffect(() => {
+    if (previousStage.current === stage) return;
+    previousStage.current = stage;
+    scrollRef.current?.scrollTo({ top: 0 });
+    const node = stageRef.current;
+    if (node?.isConnected && node.dataset.stageKey === key) {
+      node.focus({ preventScroll: true });
+    } else {
+      pendingStageFocus.current = true;
+    }
+  }, [stage, key]);
+
+  const setStageNode = (node: HTMLDivElement | null) => {
+    stageRef.current = node;
+    if (node && pendingStageFocus.current) {
+      pendingStageFocus.current = false;
+      node.focus({ preventScroll: true });
+    }
+  };
+
+  // Fees & agreements is one stage: bring the section a readiness row points at into view.
+  useEffect(() => {
+    if (focus.kind !== "acknowledgments") return;
+    document
+      .getElementById("flows-acknowledgments")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [focus.kind]);
 
   const step =
     focus.kind === "step" || focus.kind === "field"
@@ -812,9 +982,16 @@ export default function ApplicationFormFocusCanvas({
   const totalSteps = editable.schema.sections.length;
 
   const canvasBody = (
-    <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6">
+    <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-5">
       <AnimatePresence mode="wait">
-        <motion.div key={key} className="mx-auto w-full max-w-[880px]" {...canvasTransition}>
+        <motion.div
+          key={key}
+          ref={setStageNode}
+          data-stage-key={key}
+          tabIndex={-1}
+          className={`mx-auto w-full outline-none ${focus.kind === "review" ? "max-w-[1080px]" : "max-w-[880px]"}`}
+          {...canvasTransition}
+        >
           {focus.kind === "setup" && (
             <SetupView
               C={C}
@@ -837,6 +1014,7 @@ export default function ApplicationFormFocusCanvas({
             stepIdx >= 0 && (
               <StepView
                 C={C}
+                familyTheme={familyTheme}
                 theme={theme}
                 step={step}
                 stepIdx={stepIdx}
@@ -848,6 +1026,17 @@ export default function ApplicationFormFocusCanvas({
                 }
                 onFocusChange={onFocusChange}
                 onUpdateStep={(patch) => updateStep(step.id, patch)}
+                onUpdateField={(fieldId, patch) => updateField(step.id, fieldId, patch)}
+                onRequestDeleteField={(fieldId) => {
+                  const target = step.fields.find((entry) => entry.id === fieldId);
+                  if (!target || (lockSystemFields && isSystemFieldId(fieldId))) return;
+                  setPendingDelete({
+                    kind: "field",
+                    stepId: step.id,
+                    fieldId,
+                    fieldLabel: target.label || "Untitled question",
+                  });
+                }}
                 onRequestDeleteStep={() => {
                   if (lockSystemFields && isSystemSection(step)) return;
                   setPendingDelete({
@@ -870,13 +1059,35 @@ export default function ApplicationFormFocusCanvas({
               />
             )}
 
-          {focus.kind === "fee" && (
+          {(focus.kind === "step" || focus.kind === "field") && !step && (
             <div className="w-full space-y-5">
+              <BuilderSectionIntro
+                C={C}
+                theme={theme}
+                eyebrow="Questions"
+                title="No steps yet"
+                subtitle="Add a step to start asking families questions. Each step is one page of the application."
+              />
+            </div>
+          )}
+
+          {(focus.kind === "fee" || focus.kind === "acknowledgments") && (
+            <div className="w-full space-y-8">
+              <BuilderSectionIntro
+                C={C}
+                theme={theme}
+                eyebrow={theme ? "Fees & agreements" : undefined}
+                title="Before families submit"
+                subtitle="Decide whether families pay an application fee, and what they must agree to before they can submit."
+              />
+              <section id="flows-fee" aria-labelledby="flows-fee-title" className="scroll-mt-4 space-y-4">
               <BuilderSectionIntro
                 C={C}
                 theme={theme}
                 title="Application fee"
                 subtitle="Decide whether families pay before they can submit."
+                titleId="flows-fee-title"
+                level="h3"
               />
               <ApplicationFormFeePanel
                 C={C}
@@ -887,16 +1098,19 @@ export default function ApplicationFormFocusCanvas({
                 orgSlug={orgSlug}
                 stripePaymentsReady={stripePaymentsReady}
               />
-            </div>
-          )}
-
-          {focus.kind === "acknowledgments" && (
-            <div className="w-full space-y-5">
+              </section>
+              <section
+                id="flows-acknowledgments"
+                aria-labelledby="flows-acknowledgments-title"
+                className="scroll-mt-4 space-y-4 border-t-[1.5px] border-dashed border-[var(--sf-ink)]/12 pt-8"
+              >
               <BuilderSectionIntro
                 C={C}
                 theme={theme}
                 title="Acknowledgments"
                 subtitle="Add agreements families must confirm before submitting."
+                titleId="flows-acknowledgments-title"
+                level="h3"
               />
               <ApplicationFormAcknowledgmentsEditor
                 C={C}
@@ -907,6 +1121,20 @@ export default function ApplicationFormFocusCanvas({
                 }
                 hideHeader
               />
+              </section>
+            </div>
+          )}
+
+          {focus.kind === "review" && (
+            <div className="w-full space-y-5">
+              <BuilderSectionIntro
+                C={C}
+                theme={theme}
+                eyebrow={theme ? "Review & publish" : undefined}
+                title="Check it over, then share it"
+                subtitle="Everything families will see, in one place. Fix anything flagged, preview the form, then publish or save from the top bar."
+              />
+              {reviewStage}
             </div>
           )}
 
@@ -915,6 +1143,7 @@ export default function ApplicationFormFocusCanvas({
               <BuilderSectionIntro
                 C={C}
                 theme={theme}
+                eyebrow={theme ? "After submit" : undefined}
                 title="Post-submit steps"
                 subtitle="Guide families on what to do after they submit."
               />

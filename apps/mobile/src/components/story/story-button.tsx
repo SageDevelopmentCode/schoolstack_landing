@@ -11,11 +11,12 @@ import {
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 
 import { Story, StoryRadius, StoryFonts } from '@/constants/story-theme';
 import { isMobileE2e } from '@/lib/e2e';
+import { PRESS_IN, PRESS_OUT, PRESSED_SCALE } from '@/lib/motion/portal-motion';
 import { usePortalReadOnly } from '@/lib/portal-preview-gating';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -115,13 +116,13 @@ export function StoryButton({
 
   const handlePressIn: StoryButtonProps['onPressIn'] = (event) => {
     if (!effectiveDisabled) {
-      scale.value = withSpring(0.98, { damping: 20, stiffness: 400 });
+      scale.value = withTiming(PRESSED_SCALE, PRESS_IN);
     }
     onPressIn?.(event);
   };
 
   const handlePressOut: StoryButtonProps['onPressOut'] = (event) => {
-    scale.value = withSpring(1, { damping: 20, stiffness: 400 });
+    scale.value = withTiming(1, PRESS_OUT);
     onPressOut?.(event);
   };
 
@@ -206,13 +207,13 @@ export function StoryIconButton({
 
   const handlePressIn: StoryIconButtonProps['onPressIn'] = (event) => {
     if (!effectiveDisabled) {
-      scale.value = withSpring(0.98, { damping: 20, stiffness: 400 });
+      scale.value = withTiming(PRESSED_SCALE, PRESS_IN);
     }
     onPressIn?.(event);
   };
 
   const handlePressOut: StoryIconButtonProps['onPressOut'] = (event) => {
-    scale.value = withSpring(1, { damping: 20, stiffness: 400 });
+    scale.value = withTiming(1, PRESS_OUT);
     onPressOut?.(event);
   };
 

@@ -1,18 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 import { ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
+import Animated, { useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MudKitchenLogo } from '@/components/mudkitchen-logo';
 import { OrganizationLogo } from '@/components/organization-logo';
 import { GInlineBanner } from '@/components/parent/garden/fields';
-import { Garden, GardenFonts, PORTAL_EASE } from '@/components/parent/garden/tokens';
+import { Garden, GardenFonts } from '@/components/parent/garden/tokens';
 import { GPressable } from '@/components/parent/garden/ui';
 import { MudKitchenGardenThemeProvider } from '@/components/pre-auth/mudkitchen-garden-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Brand } from '@/constants/theme';
 import { isMobileE2e } from '@/lib/e2e';
+import { calmEnter } from '@/lib/motion/portal-motion';
 
 type PreAuthScreenShellProps = {
   heading: string;
@@ -54,7 +55,7 @@ export function PreAuthScreenShell({
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   const cardEntering =
-    reduceMotion || isMobileE2e ? undefined : FadeInDown.duration(320).easing(PORTAL_EASE);
+    reduceMotion || isMobileE2e ? undefined : calmEnter();
 
   return (
     <MudKitchenGardenThemeProvider>

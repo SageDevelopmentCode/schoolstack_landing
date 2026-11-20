@@ -23,8 +23,46 @@ import DemoTeacherFormsDocumentsPage from "@/components/demo/shared/DemoTeacherF
 import DemoTeacherMessagesPage from "@/components/demo/shared/DemoTeacherMessagesPage";
 import { luffLearningAdminDemoConfig } from "@/data/school-demos/luff-learning-admin-demo";
 import { luffLearningParentDemoConfig } from "@/data/school-demos/luff-learning-parent-demo";
+import { luffLearningTeacherDemoConfig } from "@/data/school-demos/luff-learning-teacher-demo";
+import { defaultWebsiteDemoConfig } from "@/data/school-demos/default";
+import {
+  yourSchoolAdminDemoConfig,
+  yourSchoolParentDemoConfig,
+  yourSchoolTeacherDemoConfig,
+  yourSchoolWebsiteDemoConfig,
+} from "@/data/school-demos/your-school-demo";
+import { applyAdminDemoRuntime } from "@/components/demo/shared/admin-demo-runtime";
+import { applyParentDemoRuntime } from "@/components/demo/shared/parent-demo-runtime";
+import { applyTeacherDemoRuntime } from "@/components/demo/shared/teacher-demo-runtime";
 
-function GardenCanvas({ children, contentHeight }: { children: ReactNode; contentHeight: number }) {
+/**
+ * "luff" = the home page's Luff Learning demo; "your-school" = the neutral placeholder brand
+ * (src/data/school-demos/your-school-demo.ts) for ads that say "this is what yours looks like".
+ */
+export type GardenDemoBrand = "luff" | "your-school";
+
+const BRANDS = {
+  luff: {
+    admin: luffLearningAdminDemoConfig,
+    parent: luffLearningParentDemoConfig,
+    teacher: luffLearningTeacherDemoConfig,
+    website: defaultWebsiteDemoConfig,
+  },
+  "your-school": {
+    admin: yourSchoolAdminDemoConfig,
+    parent: yourSchoolParentDemoConfig,
+    teacher: yourSchoolTeacherDemoConfig,
+    website: yourSchoolWebsiteDemoConfig,
+  },
+} as const;
+
+function GardenCanvas({ children, contentHeight, brand }: { children: ReactNode; contentHeight: number; brand: GardenDemoBrand }) {
+  // Some demo pages read the module-level demo runtime instead of taking a config. Set it for this
+  // brand before the children render, so a window never shows the last brand that rendered.
+  const configs = BRANDS[brand];
+  applyAdminDemoRuntime(configs.admin);
+  applyParentDemoRuntime(configs.parent);
+  applyTeacherDemoRuntime(configs.teacher);
   return (
     <GardenRoot>
       <div
@@ -43,104 +81,112 @@ function GardenCanvas({ children, contentHeight }: { children: ReactNode; conten
   );
 }
 
-type WindowProps = { contentHeight?: number };
+type WindowProps = { contentHeight?: number; brand?: GardenDemoBrand };
 
-export function GardenWebsiteWindow({ contentHeight = 920, toForm = false }: WindowProps & { toForm?: boolean }) {
+export function GardenWebsiteWindow({ contentHeight = 920, brand = "luff", toForm = false }: WindowProps & { toForm?: boolean }) {
   return (
-    <GardenCanvas contentHeight={contentHeight}>
-      <WebsiteDashboardDemo disableTour scrollRequest={toForm ? { target: "form", nonce: 1 } : null} />
+    <GardenCanvas contentHeight={contentHeight} brand={brand}>
+      <WebsiteDashboardDemo config={BRANDS[brand].website} disableTour scrollRequest={toForm ? { target: "form", nonce: 1 } : null} />
     </GardenCanvas>
   );
 }
 
-export function GardenAdminDashboardWindow({ contentHeight = 920 }: WindowProps) {
+export function GardenAdminDashboardWindow({ contentHeight = 920, brand = "luff" }: WindowProps) {
   return (
-    <GardenCanvas contentHeight={contentHeight}>
-      <DemoAdminGardenDashboard config={luffLearningAdminDemoConfig} />
+    <GardenCanvas contentHeight={contentHeight} brand={brand}>
+      <DemoAdminGardenDashboard config={BRANDS[brand].admin} />
     </GardenCanvas>
   );
 }
 
-export function GardenAdmissionsWindow({ contentHeight = 920, selectedLeadId }: WindowProps & { selectedLeadId?: string }) {
+export function GardenAdmissionsWindow({ contentHeight = 920, brand = "luff", selectedLeadId }: WindowProps & { selectedLeadId?: string }) {
   return (
-    <GardenCanvas contentHeight={contentHeight}>
-      <DemoAdminGardenAdmissions config={luffLearningAdminDemoConfig} initialSelectedLeadId={selectedLeadId} />
+    <GardenCanvas contentHeight={contentHeight} brand={brand}>
+      <DemoAdminGardenAdmissions config={BRANDS[brand].admin} initialSelectedLeadId={selectedLeadId} />
     </GardenCanvas>
   );
 }
 
-export function GardenMarketingWindow({ contentHeight = 920 }: WindowProps) {
+export function GardenMarketingWindow({ contentHeight = 920, brand = "luff" }: WindowProps) {
   return (
-    <GardenCanvas contentHeight={contentHeight}>
-      <DemoAdminGardenMarketing config={luffLearningAdminDemoConfig} />
+    <GardenCanvas contentHeight={contentHeight} brand={brand}>
+      <DemoAdminGardenMarketing config={BRANDS[brand].admin} />
     </GardenCanvas>
   );
 }
 
-export function GardenParentBillingWindow({ contentHeight = 920 }: WindowProps) {
+export function GardenParentBillingWindow({ contentHeight = 920, brand = "luff" }: WindowProps) {
   return (
-    <GardenCanvas contentHeight={contentHeight}>
-      <ParentDashboardDemo initialTab="billing" disableTour hideNav />
+    <GardenCanvas contentHeight={contentHeight} brand={brand}>
+      <ParentDashboardDemo config={BRANDS[brand].parent} initialTab="billing" disableTour hideNav />
     </GardenCanvas>
   );
 }
 
-export function GardenParentHomeWindow({ contentHeight = 920 }: WindowProps) {
+export function GardenParentHomeWindow({ contentHeight = 920, brand = "luff" }: WindowProps) {
   return (
-    <GardenCanvas contentHeight={contentHeight}>
-      <ParentDashboardDemo initialTab="home" disableTour hideNav />
+    <GardenCanvas contentHeight={contentHeight} brand={brand}>
+      <ParentDashboardDemo config={BRANDS[brand].parent} initialTab="home" disableTour hideNav />
     </GardenCanvas>
   );
 }
 
-export function GardenParentApplyWindow({ contentHeight = 920 }: WindowProps) {
+export function GardenParentApplyWindow({ contentHeight = 920, brand = "luff" }: WindowProps) {
   return (
-    <GardenCanvas contentHeight={contentHeight}>
+    <GardenCanvas contentHeight={contentHeight} brand={brand}>
       <DemoParentApplyDashboardPage story="submitted" celebrateSubmission={false} suppressHelpFab />
     </GardenCanvas>
   );
 }
 
-export function GardenEnrollmentChecklistWindow({ contentHeight = 920 }: WindowProps) {
+export function GardenEnrollmentChecklistWindow({ contentHeight = 920, brand = "luff" }: WindowProps) {
   return (
-    <GardenCanvas contentHeight={contentHeight}>
-      <DemoParentEnrollmentChecklist config={luffLearningParentDemoConfig} />
+    <GardenCanvas contentHeight={contentHeight} brand={brand}>
+      <DemoParentEnrollmentChecklist config={BRANDS[brand].parent} />
     </GardenCanvas>
   );
 }
 
-export function GardenParentCalendarWindow({ contentHeight = 920, view = "month" }: WindowProps & { view?: "month" | "week" }) {
+export function GardenParentCalendarWindow({ contentHeight = 920, brand = "luff", view = "month" }: WindowProps & { view?: "month" | "week" }) {
   return (
-    <GardenCanvas contentHeight={contentHeight}>
+    <GardenCanvas contentHeight={contentHeight} brand={brand}>
       {/* Demo events live around spring 2026 (same anchor as the older calendar window). */}
       <DemoParentCalendarPage initialView={view} previewAnchorDate="2026-05-01" previewAgendaAsOf="2026-04-01" />
     </GardenCanvas>
   );
 }
 
-export function GardenAttendanceWindow({ contentHeight = 920 }: WindowProps) {
+export function GardenTeacherHomeWindow({ contentHeight = 920, brand = "luff" }: WindowProps) {
   return (
-    <GardenCanvas contentHeight={contentHeight}>
-      <TeacherDashboardDemo initialTab="attendance" disableTour hideNav />
+    <GardenCanvas contentHeight={contentHeight} brand={brand}>
+      <TeacherDashboardDemo config={BRANDS[brand].teacher} initialTab="dashboard" disableTour hideNav />
     </GardenCanvas>
   );
 }
 
-export function GardenMessagesWindow({ contentHeight = 920, threadId }: WindowProps & { threadId?: string }) {
+export function GardenAttendanceWindow({ contentHeight = 920, brand = "luff" }: WindowProps) {
   return (
-    <GardenCanvas contentHeight={contentHeight}>
+    <GardenCanvas contentHeight={contentHeight} brand={brand}>
+      <TeacherDashboardDemo config={BRANDS[brand].teacher} initialTab="attendance" disableTour hideNav />
+    </GardenCanvas>
+  );
+}
+
+export function GardenMessagesWindow({ contentHeight = 920, brand = "luff", threadId }: WindowProps & { threadId?: string }) {
+  return (
+    <GardenCanvas contentHeight={contentHeight} brand={brand}>
       {threadId ? (
         <DemoTeacherMessagesPage initialThreadId={threadId} fillHeight />
       ) : (
-        <TeacherDashboardDemo initialTab="messages" disableTour hideNav />
+        <TeacherDashboardDemo config={BRANDS[brand].teacher} initialTab="messages" disableTour hideNav />
       )}
     </GardenCanvas>
   );
 }
 
-export function GardenHoursWindow({ contentHeight = 920 }: WindowProps) {
+export function GardenHoursWindow({ contentHeight = 920, brand = "luff" }: WindowProps) {
   return (
-    <GardenCanvas contentHeight={contentHeight}>
+    <GardenCanvas contentHeight={contentHeight} brand={brand}>
       <div style={{ display: "flex", flex: 1, minHeight: 0, flexDirection: "column", overflow: "hidden" }}>
         <DemoTeacherHoursPage />
       </div>
@@ -148,9 +194,9 @@ export function GardenHoursWindow({ contentHeight = 920 }: WindowProps) {
   );
 }
 
-export function GardenTeacherFormsWindow({ contentHeight = 920 }: WindowProps) {
+export function GardenTeacherFormsWindow({ contentHeight = 920, brand = "luff" }: WindowProps) {
   return (
-    <GardenCanvas contentHeight={contentHeight}>
+    <GardenCanvas contentHeight={contentHeight} brand={brand}>
       <DemoTeacherFormsDocumentsPage openFormId={null} />
     </GardenCanvas>
   );

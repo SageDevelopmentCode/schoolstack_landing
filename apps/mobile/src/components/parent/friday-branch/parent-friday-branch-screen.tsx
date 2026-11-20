@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { ParentFridayBranchBlockStrip } from '@/components/parent/friday-branch/parent-friday-branch-block-strip';
 import { ParentFridayBranchClassSheet } from '@/components/parent/friday-branch/parent-friday-branch-class-sheet';
@@ -15,6 +15,7 @@ import { StoryCard } from '@/components/story/story-card';
 import { StoryErrorBanner } from '@/components/story/story-error-banner';
 import { useParentFridayBranch } from '@/contexts/parent-friday-branch-context';
 import { useParentTheme } from '@/contexts/parent-theme-context';
+import { calmEnter } from '@/lib/motion/portal-motion';
 import type {
   ParentFridayBranchClassDetailBundle,
   ParentFridayBranchFlyerTarget,
@@ -184,7 +185,7 @@ export function ParentFridayBranchScreen({
             tintColor={theme.primary}
           />
         }>
-        <Animated.View entering={FadeInDown.duration(300)}>
+        <Animated.View entering={calmEnter()}>
           <ParentFridayBranchStoryHeader />
         </Animated.View>
 

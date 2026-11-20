@@ -12,7 +12,8 @@ export type PublicFormId =
   | "parent_portal_support"
   | "parent_portal_feedback"
   | "free_school_otp"
-  | "free_school_signup";
+  | "free_school_signup"
+  | "marketing_lead";
 
 export type EnforcePublicFormSubmissionResult =
   | { ok: true }

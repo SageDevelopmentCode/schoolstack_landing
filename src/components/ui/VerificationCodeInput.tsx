@@ -20,8 +20,12 @@ type VerificationCodeInputPortalProps = VerificationCodeInputBaseProps & {
 };
 
 type VerificationCodeInputBrightProps = VerificationCodeInputBaseProps & {
-  /** "garden": MudKitchen Garden cells; use inside `GardenRoot`. */
-  variant: "bright" | "garden";
+  /**
+   * "garden": MudKitchen Garden cells; use inside `GardenRoot`.
+   * "school-garden": parent-portal Garden input cells (`G_INPUT` look) in the
+   * school accent; use inside `ParentGardenFrame`.
+   */
+  variant: "bright" | "garden" | "school-garden";
   C?: never;
 };
 
@@ -49,8 +53,9 @@ export default function VerificationCodeInput(props: VerificationCodeInputProps)
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const autofillRef = useRef<HTMLInputElement>(null);
 
+  const isSchoolGarden = variant === "school-garden";
   const isGarden = variant === "garden";
-  const isBright = variant === "bright" || isGarden;
+  const isBright = variant === "bright" || isGarden || isSchoolGarden;
   const C = variant === "portal" ? props.C : null;
 
   const focusRing = !isBright && C
@@ -65,7 +70,9 @@ export default function VerificationCodeInput(props: VerificationCodeInputProps)
       }
     : undefined;
 
-  const cellClassName = isGarden
+  const cellClassName = isSchoolGarden
+    ? "h-12 w-full min-w-0 rounded-[14px] border-2 border-[var(--sf-ink)]/15 bg-white text-center text-xl font-extrabold tabular-nums text-[var(--sf-ink)] outline-none transition-colors hover:border-[var(--sf-ink)]/30 focus:border-[var(--sf-clay)] focus:ring-4 focus:ring-[var(--sf-clay)]/15 disabled:cursor-not-allowed disabled:opacity-60 sm:h-14 sm:text-2xl"
+    : isGarden
     ? "h-14 w-full min-w-0 rounded-2xl border-2 border-[var(--sf-ink)] bg-white text-center text-2xl font-extrabold tabular-nums text-[var(--sf-ink)] outline-none transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/30 disabled:cursor-not-allowed disabled:opacity-60"
     : isBright
     ? "h-12 w-full min-w-0 rounded-[12px] border border-black/10 bg-white text-center font-secondary text-xl font-semibold tabular-nums text-[#1d1a16] outline-none transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1d1a16] disabled:cursor-not-allowed disabled:opacity-60"
@@ -151,7 +158,9 @@ export default function VerificationCodeInput(props: VerificationCodeInputProps)
         <span
           id={labelId}
           className={
-            isGarden
+            isSchoolGarden
+              ? "mb-0 block text-[13px] font-extrabold text-[var(--sf-ink)]"
+              : isGarden
               ? "text-sm font-extrabold text-[var(--sf-ink)]"
               : isBright
               ? "font-secondary text-[13px] font-semibold text-[#1d1a16]/70"

@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState, Platform } from 'react-native';
 
 import { getParentNewsletterDocumentWebViewSource } from '@/lib/parent/parent-portal-api';
 import {
@@ -8,6 +9,17 @@ import {
 } from '@/lib/school-admin/committees/committee-workspace-load';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
+/** Where an edition's document comes from (parent default; the staff app passes its own). */
+export type NewsletterDetailSource = {
+  getWebViewSource: (
+    organizationId: string,
+    editionId: string,
+    options?: { forceRefresh?: boolean },
+  ) => Promise<{ uri: string; headers: Record<string, string> }>;
+  /** Prefix for operational-error names, e.g. `teacher_newsletter_detail`. */
+  operationPrefix: string;
+};
+
 /**
  * Newsletter edition data + callbacks (no UI). Same timeout-wrapped request and
  * error reporting as the Story screen; `load()` doubles as Try again.
@@ -15,10 +27,14 @@ import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 export function useParentNewsletterDetailController({
   organizationId,
   editionId,
+  source,
 }: {
   organizationId: string;
   editionId: string;
+  source?: NewsletterDetailSource;
 }) {
+  const operationPrefix = source?.operationPrefix ?? 'parent_newsletter_detail';
+  const getWebViewSource = source?.getWebViewSource ?? getParentNewsletterDocumentWebViewSource;
   const router = useRouter();
   const { reportError } = useMobileErrorReporter(organizationId);
 
@@ -32,19 +48,31 @@ export function useParentNewsletterDetailController({
   /** Set once a load has already retried a 401 with a refreshed token. */
   const retriedAuthRef = useRef(false);
 
+  /** Bumped to remount the WebView after iOS/Android kills its content process. */
+  const [webViewKey, setWebViewKey] = useState(0);
+  /** Content-process terminations seen for the current load. */
+  const terminationsRef = useRef(0);
+  /** True once the WebView finished loading since the last (re)mount. */
+  const loadedRef = useRef(false);
+  /** Set by `load()` before the WebView mounts; used for report diagnostics. */
+  const loadStartedAtRef = useRef(0);
+
   const load = useCallback(async (options: { forceRefresh?: boolean } = {}) => {
+    terminationsRef.current = 0;
+    loadedRef.current = false;
+    loadStartedAtRef.current = Date.now();
     setIsLoading(true);
     setLoadError(null);
     setWebSource(null);
     try {
       const source = await withCommitteeWorkspaceLoadTimeout(
-        getParentNewsletterDocumentWebViewSource(organizationId, editionId, options),
+        getWebViewSource(organizationId, editionId, options),
       );
       setWebSource(source);
     } catch (err) {
       const timedOut = isCommitteeWorkspaceLoadTimeoutError(err);
       reportError(
-        timedOut ? 'parent_newsletter_detail_load_timeout' : 'parent_newsletter_detail_load',
+        timedOut ? `${operationPrefix}_load_timeout` : `${operationPrefix}_load`,
         err,
         timedOut ? { entityId: editionId, metadata: { editionId } } : undefined,
       );
@@ -56,7 +84,7 @@ export function useParentNewsletterDetailController({
     } finally {
       setIsLoading(false);
     }
-  }, [editionId, organizationId, reportError]);
+  }, [editionId, getWebViewSource, operationPrefix, organizationId, reportError]);
 
   useEffect(() => {
     retriedAuthRef.current = false;
@@ -82,7 +110,7 @@ export function useParentNewsletterDetailController({
         return;
       }
       reportError(
-        'parent_newsletter_detail_http_error',
+        `${operationPrefix}_http_error`,
         new Error(`Newsletter request failed with HTTP ${statusCode}`),
         {
           entityType: 'newsletter_edition',
@@ -92,7 +120,50 @@ export function useParentNewsletterDetailController({
       );
       setLoadError('This newsletter could not be loaded.');
     },
-    [editionId, load, reportError],
+    [editionId, load, operationPrefix, reportError],
+  );
+
+  const handleWebViewLoadEnd = useCallback(() => {
+    loadedRef.current = true;
+  }, []);
+
+  /**
+   * The OS killed the WebView's content process. iOS does this routinely while
+   * the app is backgrounded or under memory pressure, so the first time (and
+   * once more if the page loaded fine in between) we remount silently. Only a
+   * repeat before the page loads, or a third kill, is reported as a failure.
+   */
+  const handleProcessTerminated = useCallback(
+    (source: 'ios_terminate' | 'android_gone', didCrash?: boolean) => {
+      terminationsRef.current += 1;
+      const terminations = terminationsRef.current;
+      const canRecover = terminations === 1 || (terminations === 2 && loadedRef.current);
+      if (canRecover) {
+        loadedRef.current = false;
+        setWebViewKey((key) => key + 1);
+        return;
+      }
+      reportError(
+        `${operationPrefix}_render_process_gone`,
+        new Error('The newsletter viewer process was terminated.'),
+        {
+          entityType: 'newsletter_edition',
+          entityId: editionId,
+          metadata: {
+            source,
+            platform: Platform.OS,
+            didCrash,
+            terminations,
+            recoveries: terminations - 1,
+            loadedBeforeTermination: loadedRef.current,
+            appState: AppState.currentState,
+            elapsedMs: Date.now() - loadStartedAtRef.current,
+          },
+        },
+      );
+      setLoadError('This newsletter could not be loaded.');
+    },
+    [editionId, operationPrefix, reportError],
   );
 
   const onBack = useCallback(() => {
@@ -101,6 +172,7 @@ export function useParentNewsletterDetailController({
 
   return {
     editionId,
+    operationPrefix,
     webSource,
     isLoading,
     loadError,
@@ -109,6 +181,9 @@ export function useParentNewsletterDetailController({
     reportError,
     retry,
     handleHttpError,
+    webViewKey,
+    handleWebViewLoadEnd,
+    handleProcessTerminated,
     onBack,
   };
 }

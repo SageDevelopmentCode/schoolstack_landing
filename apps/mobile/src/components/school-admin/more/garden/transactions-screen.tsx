@@ -2,12 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { memo, useCallback, useMemo } from 'react';
 import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { useGardenPullRefresh } from '@/components/parent/garden/feedback';
 import { GInlineBanner } from '@/components/parent/garden/fields';
 import { useGardenToast } from '@/components/parent/garden/toast';
-import { Garden, GardenFonts, PORTAL_EASE, type GChipTone } from '@/components/parent/garden/tokens';
+import { Garden, GardenFonts, type GChipTone } from '@/components/parent/garden/tokens';
 import { GChip, GErrorCard, GLink, GPressable, GSkeleton } from '@/components/parent/garden/ui';
 import { AdminTabHeader, useAdminTopBleed } from '@/components/school-admin/garden/admin-tab-header';
 import {
@@ -34,6 +34,7 @@ import {
   type PaymentType,
 } from '@/lib/admissions/payment-records';
 import { haptic } from '@/lib/haptics';
+import { calmEnter } from '@/lib/motion/portal-motion';
 import { formatRelativeTime } from '@/lib/school-admin/format-relative-time';
 
 const KPI_BARS = { collected: '#2E4A3C', pending: '#E2B33C', failed: '#B5577A', refunded: '#7FA7D9' } as const;
@@ -150,7 +151,7 @@ function TransactionsContent({ controller }: { controller: TransactionsControlle
   const header = (
     <View style={styles.headerBlock}>
       {controller.hasAnyPayments ? (
-        <Animated.View entering={FadeInDown.delay(40).duration(320).easing(PORTAL_EASE)}>
+        <Animated.View entering={calmEnter({ delay: 40 })}>
           <AdminKpiTiles
             tiles={[
               {
@@ -191,7 +192,7 @@ function TransactionsContent({ controller }: { controller: TransactionsControlle
       ) : null}
 
       {controller.showAttention && attention && statusFilter !== attention ? (
-        <Animated.View entering={FadeInDown.delay(90).duration(320).easing(PORTAL_EASE)} style={styles.attention}>
+        <Animated.View entering={calmEnter({ delay: 90 })} style={styles.attention}>
           <AdminLeadStrip
             label="Needs attention"
             testID="transactions-attention"

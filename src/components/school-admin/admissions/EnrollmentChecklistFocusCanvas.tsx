@@ -27,6 +27,8 @@ import EnrollmentChecklistItemEditor from "./EnrollmentChecklistItemEditor";
 import EnrollmentChecklistOutline from "./EnrollmentChecklistOutline";
 import { BUILDER_CANVAS_BG } from "./outline-item-styles";
 import { builderCanvasTransition } from "./builder-canvas-motion";
+import { BuilderViewToggle, useBuilderViewMode } from "./builder-view-mode";
+import ChecklistItemFamilyView from "./ChecklistItemFamilyView";
 
 function itemTypeSubtitle(type: ChecklistItemType): string {
   switch (type) {
@@ -51,6 +53,8 @@ const canvasTransition = builderCanvasTransition;
 type EnrollmentChecklistFocusCanvasProps = {
   C: AdminThemeTokens;
   theme?: ParentThemeTokens;
+  /** The family's theme (`buildParentThemeTokens(branding)`) for the Family view. */
+  familyTheme?: ParentThemeTokens;
   focus: ChecklistBuilderFocus | null;
   items: EnrollmentChecklistItem[];
   organizationId: string;
@@ -71,6 +75,8 @@ type EnrollmentChecklistFocusCanvasProps = {
 function ItemView({
   C,
   theme,
+  familyTheme,
+  onRequestDeleteField,
   item,
   itemIdx,
   organizationId,
@@ -89,6 +95,8 @@ function ItemView({
 }: {
   C: AdminThemeTokens;
   theme?: ParentThemeTokens;
+  familyTheme?: ParentThemeTokens;
+  onRequestDeleteField: (fieldId: string) => void;
   item: EnrollmentChecklistItem;
   itemIdx: number;
   organizationId: string;
@@ -105,6 +113,34 @@ function ItemView({
   onPreviewItem: (itemId: string) => void;
   allItems: EnrollmentChecklistItem[];
 }) {
+  const [viewMode, setViewMode] = useBuilderViewMode();
+  const [editorOpen, setEditorOpen] = useState(false);
+  const showFamily = Boolean(theme && familyTheme) && viewMode === "family";
+  const typeLabel = CHECKLIST_ITEM_TYPE_LABELS[item.type];
+
+  const editor = (
+    <EnrollmentChecklistItemEditor
+      C={C}
+      item={item}
+      organizationId={organizationId}
+      templateId={templateId}
+      orgSlug={orgSlug}
+      stripePaymentsReady={stripePaymentsReady}
+      readOnly={readOnly}
+      selectedFieldId={selectedFieldId}
+      onChange={onUpdateItem}
+      onSelectField={(fieldId) => {
+        setEditorOpen(false);
+        onFocusChange({ kind: "field", itemId: item.id, fieldId });
+      }}
+      onAddVariant={onAddVariant ? () => onAddVariant(item.id) : undefined}
+      onSetDefaultVariant={
+        onSetDefaultVariant ? () => onSetDefaultVariant(item.id) : undefined
+      }
+      allItems={allItems}
+    />
+  );
+
   return (
     <div className="w-full space-y-5">
       <div className="flex items-start justify-between gap-4">
@@ -113,7 +149,11 @@ function ItemView({
           theme={theme}
           eyebrow={`Item ${itemIdx + 1} of ${allItems.length}`}
           title={item.label || "Untitled item"}
-          subtitle={itemTypeSubtitle(item.type)}
+          subtitle={
+            showFamily
+              ? "This is what families see on their enrollment checklist. Click it to change it."
+              : itemTypeSubtitle(item.type)
+          }
         />
         <ChecklistPreviewMenuButton
           C={C}
@@ -124,25 +164,45 @@ function ItemView({
           onPreviewHere={(previewItemId) => onPreviewItem(previewItemId ?? item.id)}
         />
       </div>
-      <EnrollmentChecklistItemEditor
-        C={C}
-        item={item}
-        organizationId={organizationId}
-        templateId={templateId}
-        orgSlug={orgSlug}
-        stripePaymentsReady={stripePaymentsReady}
-        readOnly={readOnly}
-        selectedFieldId={selectedFieldId}
-        onChange={onUpdateItem}
-        onSelectField={(fieldId) =>
-          onFocusChange({ kind: "field", itemId: item.id, fieldId })
-        }
-        onAddVariant={onAddVariant ? () => onAddVariant(item.id) : undefined}
-        onSetDefaultVariant={
-          onSetDefaultVariant ? () => onSetDefaultVariant(item.id) : undefined
-        }
-        allItems={allItems}
-      />
+
+      {theme && familyTheme ? (
+        <BuilderViewToggle mode={viewMode} onChange={setViewMode} label="How to show this item" />
+      ) : null}
+
+      {showFamily && familyTheme ? (
+        <>
+          <ChecklistItemFamilyView
+            familyTheme={familyTheme}
+            item={item}
+            itemIdx={itemIdx}
+            totalItems={allItems.length}
+            readOnly={Boolean(readOnly)}
+            selectedFieldId={selectedFieldId ?? null}
+            onSelectField={(fieldId) => {
+              setEditorOpen(false);
+              onFocusChange({ kind: "field", itemId: item.id, fieldId });
+            }}
+            onUpdateItem={onUpdateItem}
+            onRequestDeleteField={onRequestDeleteField}
+            onOpenEditor={() => {
+              onFocusChange({ kind: "item", itemId: item.id });
+              setEditorOpen(true);
+            }}
+          />
+          <BuilderFieldEditorPanel
+            C={C}
+            open={editorOpen}
+            eyebrow={`Item ${itemIdx + 1} · ${typeLabel}`}
+            title={`Edit ${typeLabel.toLowerCase()}`}
+            subtitle="Changes show on the family view as you make them."
+            onClose={() => setEditorOpen(false)}
+          >
+            {editorOpen ? editor : null}
+          </BuilderFieldEditorPanel>
+        </>
+      ) : (
+        editor
+      )}
     </div>
   );
 }
@@ -193,6 +253,7 @@ function EmptyCanvasView({
 export default function EnrollmentChecklistFocusCanvas({
   C,
   theme,
+  familyTheme,
   focus,
   items,
   organizationId,
@@ -291,6 +352,15 @@ export default function EnrollmentChecklistFocusCanvas({
               key={item.id}
               C={C}
               theme={theme}
+              familyTheme={familyTheme}
+              onRequestDeleteField={(fieldId) => {
+                const target = item.formSchema?.fields.find((entry) => entry.id === fieldId);
+                setPendingDeleteField({
+                  itemId: item.id,
+                  fieldId,
+                  fieldLabel: target?.label || "Untitled question",
+                });
+              }}
               item={item}
               itemIdx={itemIdx}
               organizationId={organizationId}

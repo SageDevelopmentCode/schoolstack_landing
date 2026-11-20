@@ -2,12 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
-  ZoomIn,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
   withSequence,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,6 +14,7 @@ import { GPressable } from '@/components/parent/garden/ui';
 import { Garden, GardenFonts, useGardenAccent } from '@/components/parent/garden/tokens';
 import { haptic } from '@/lib/haptics';
 import { isMobileE2e } from '@/lib/e2e';
+import { CALM_EASE, calmFadeIn, GLIDE, MOTION } from '@/lib/motion/portal-motion';
 
 type IoniconName = keyof typeof Ionicons.glyphMap;
 
@@ -57,8 +56,6 @@ type GardenTabBarProps<Id extends string> = {
   header?: ReactNode;
 };
 
-const PILL_SPRING = { damping: 22, stiffness: 340, mass: 0.9 } as const;
-
 /**
  * Show the short form of slash labels on the bar ("Billing / tuition" → "Billing").
  * The full label is kept as the accessibility label.
@@ -96,8 +93,8 @@ export function GardenTabBar<Id extends string>({
       pillWidth.value = layout.width;
       return;
     }
-    pillX.value = withSpring(layout.x, PILL_SPRING);
-    pillWidth.value = withSpring(layout.width, PILL_SPRING);
+    pillX.value = withTiming(layout.x, GLIDE);
+    pillWidth.value = withTiming(layout.width, GLIDE);
   }, [activeId, layouts, pillWidth, pillX, reduceMotion]);
 
   const pillStyle = useAnimatedStyle(() => ({
@@ -192,7 +189,7 @@ function GardenTabItem<Id extends string>({
       <View style={styles.iconWrap}>
         <Animated.View
           key={iconName}
-          entering={isMobileE2e ? undefined : ZoomIn.duration(180)}
+          entering={calmFadeIn({ duration: MOTION.fast })}
           style={styles.iconInner}>
           <Ionicons name={iconName} size={21} color={color} />
         </Animated.View>
@@ -237,7 +234,10 @@ function TabBadge({
     const grew = count > previous.current;
     previous.current = count;
     if (!grew || reduceMotion || isMobileE2e) return;
-    scale.value = withSequence(withTiming(1.3, { duration: 120 }), withSpring(1, PILL_SPRING));
+    scale.value = withSequence(
+      withTiming(1.1, { duration: 120, easing: CALM_EASE }),
+      withTiming(1, { duration: 180, easing: CALM_EASE }),
+    );
   }, [count, reduceMotion, scale]);
 
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));

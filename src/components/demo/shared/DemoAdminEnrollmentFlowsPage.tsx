@@ -54,6 +54,7 @@ export default function DemoAdminEnrollmentFlowsPage({
           initialFlowSelection={initialFlowSelection}
           startOnOverview={startOnOverview}
           previewChecklistItemsByTemplateId={previewChecklistItemsByTemplateId}
+          initialBuilderStage="questions"
         />
       </div>
     </DemoSchoolAdminStoryProvider>

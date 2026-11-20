@@ -6,6 +6,18 @@ import { WebView } from 'react-native-webview';
 import { Garden } from '@/components/parent/garden/tokens';
 import { GErrorCard, GLink, GSkeleton } from '@/components/parent/garden/ui';
 import type { ParentNewsletterDetailController } from '@/components/parent/newsletters/garden/use-parent-newsletter-detail-controller';
+import { openExternalUrlSafely } from '@/lib/open-external-url';
+
+/** Origin + path, so query order, encoding or a #hash never block the document itself. */
+function documentKey(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.origin}${parsed.pathname}`;
+  } catch {
+    const hash = url.indexOf('#');
+    return hash === -1 ? url : url.slice(0, hash);
+  }
+}
 
 /** Paper page placeholder shaped like a newsletter: masthead, hero, columns of copy. */
 function NewsletterPageSkeleton() {
@@ -44,17 +56,37 @@ function NewsletterPageSkeleton() {
  */
 export function ParentNewsletterDetailGardenScreen({
   controller,
+  testID = 'parent-newsletter-detail-screen',
 }: {
   controller: ParentNewsletterDetailController;
+  testID?: string;
 }) {
   const { editionId, webSource, isLoading, loadError, setLoadError, reportError } = controller;
+
+  /**
+   * Keep the newsletter in place: only the edition document loads in the
+   * WebView. Any link a school pasted (target="_blank" lands here on iOS and
+   * Android) opens in the in-app browser, or the OS for mailto:/tel:.
+   */
+  const handleShouldStartLoad = (request: { url: string }) => {
+    const url = request.url;
+    if (!webSource || url === 'about:blank' || documentKey(url) === documentKey(webSource.uri)) {
+      return true;
+    }
+    void openExternalUrlSafely(url, reportError, {
+      operation: `${controller.operationPrefix}_open_link`,
+      entityType: 'newsletter_edition',
+      entityId: editionId,
+    });
+    return false;
+  };
 
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: Garden.cream }]}
       // The parent shell already insets the top and pads above the tab bar (skill §3.11).
       edges={[]}
-      testID="parent-newsletter-detail-screen">
+      testID={testID}>
       <StatusBar style="dark" />
       <View style={styles.topBar}>
         <GLink
@@ -79,14 +111,16 @@ export function ParentNewsletterDetailGardenScreen({
         </View>
       ) : (
         <WebView
+          key={controller.webViewKey}
           originWhitelist={['*']}
           source={{ uri: webSource.uri, headers: webSource.headers }}
           style={styles.webview}
           setSupportMultipleWindows={false}
+          onShouldStartLoadWithRequest={handleShouldStartLoad}
           startInLoadingState
           onError={(event) => {
             reportError(
-              'parent_newsletter_detail_webview_error',
+              `${controller.operationPrefix}_webview_error`,
               new Error(event.nativeEvent.description?.trim() || 'Newsletter WebView failed to load.'),
               {
                 entityType: 'newsletter_edition',
@@ -100,21 +134,14 @@ export function ParentNewsletterDetailGardenScreen({
             // Reports via reportError unless it's a first 401 (refresh + reload).
             controller.handleHttpError(event.nativeEvent.statusCode);
           }}
-          onRenderProcessGone={() => {
-            reportError(
-              'parent_newsletter_detail_render_process_gone',
-              new Error('The newsletter viewer process was terminated.'),
-              { entityType: 'newsletter_edition', entityId: editionId },
-            );
-            setLoadError('This newsletter could not be loaded.');
+          onLoadEnd={controller.handleWebViewLoadEnd}
+          // The OS can kill the content process (often while backgrounded);
+          // the controller remounts silently and only reports repeat failures.
+          onRenderProcessGone={(event) => {
+            controller.handleProcessTerminated('android_gone', event.nativeEvent?.didCrash);
           }}
           onContentProcessDidTerminate={() => {
-            reportError(
-              'parent_newsletter_detail_render_process_gone',
-              new Error('The newsletter viewer process was terminated.'),
-              { entityType: 'newsletter_edition', entityId: editionId },
-            );
-            setLoadError('This newsletter could not be loaded.');
+            controller.handleProcessTerminated('ios_terminate');
           }}
           renderLoading={() => (
             <View style={styles.webviewLoading}>

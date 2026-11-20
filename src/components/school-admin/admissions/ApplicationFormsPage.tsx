@@ -106,11 +106,27 @@ import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import { GardenCanvasSkeleton } from "./flows/GardenCanvasSkeleton";
 import { applyFormReadiness, checklistReadiness, type ReadinessItem } from "./flows/flowReadiness";
 import { FlowReadinessRail, FlowStatusPill } from "./flows/FlowReadinessRail";
+import { FlowStageStepper } from "./flows/FlowStageStepper";
+import { FlowStageFooter } from "./flows/FlowStageFooter";
+import ApplicationFormReviewStage from "./ApplicationFormReviewStage";
+import {
+  BUILDER_STAGES,
+  BUILDER_STAGE_IDS,
+  firstStageNeedingWork,
+  focusForStage,
+  isBuilderStage,
+  stageIndex,
+  stageInfo,
+  stageOfFocus,
+  stageStatuses,
+  type BuilderStage,
+} from "./builder-stages";
 import GardenFlowActions from "./flows/GardenFlowActions";
 import {
   DEFAULT_BUILDER_FOCUS,
   type BuilderFocus,
 } from "./builder-focus";
+import { writeBuilderStageParam } from "./enrollment-flow-selection";
 import { parseOperationalError } from "@/lib/operational-errors-client";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import {
@@ -133,6 +149,8 @@ type ApplicationFormsPageProps = {
   initialFlowSelection?: FlowListSelection;
   startOnOverview?: boolean;
   previewChecklistItemsByTemplateId?: Record<string, EnrollmentChecklistItem[]>;
+  /** Stage the application form builder opens on (demos). Otherwise `?stage=`, then live → Questions, draft → first stage needing work. */
+  initialBuilderStage?: BuilderStage;
 };
 
 type EditableFormState = EditableFormSnapshot;
@@ -398,6 +416,7 @@ export default function ApplicationFormsPage({
   initialFlowSelection,
   startOnOverview,
   previewChecklistItemsByTemplateId,
+  initialBuilderStage,
 }: ApplicationFormsPageProps) {
   const theme = useMemo(() => buildParentThemeTokens(branding), [branding]);
   const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
@@ -408,6 +427,14 @@ export default function ApplicationFormsPage({
   const flowParam = searchParams.get("flow");
   const applyIdParam = searchParams.get("apply");
   const checklistIdParam = searchParams.get("checklist");
+  // Read once: later writes come from the builder itself.
+  const [initialStageParam] = useState(() => {
+    const value = searchParams.get("stage");
+    return isBuilderStage(value) ? value : null;
+  });
+  const initialStageParamUsedRef = useRef(false);
+  const stageInitFormIdRef = useRef<string | null>(null);
+  const lastStepIdRef = useRef<string | null>(null);
   const hasInitialList = initialListData !== undefined;
   const openEditorInitially = useMemo(
     () =>
@@ -639,6 +666,26 @@ export default function ApplicationFormsPage({
         : null,
     [editable, isApplyFormSelected, stripePaymentsReady],
   );
+  const applyStageStatuses = useMemo(
+    () => stageStatuses(applyReadiness?.items ?? []),
+    [applyReadiness],
+  );
+  const applyStage = stageOfFocus(focus);
+  const applyEditorOpen = !showOverview && selection?.kind === "apply";
+
+  // Questions remembers the last step the admin had open.
+  useEffect(() => {
+    if (focus.kind === "step" || focus.kind === "field") {
+      lastStepIdRef.current = focus.stepId;
+    }
+  }, [focus]);
+
+  // `?stage=` keeps the stage across reloads. replaceState: no server
+  // re-render, no history entry. Re-runs when the editor URL (?apply=) lands.
+  useEffect(() => {
+    if (previewMode) return;
+    writeBuilderStageParam(applyEditorOpen ? applyStage : null);
+  }, [applyEditorOpen, applyStage, applyIdParam, previewMode]);
   const applyIssueStepIds = useMemo(
     () =>
       new Set(
@@ -752,7 +799,9 @@ export default function ApplicationFormsPage({
       setSelection(nextSelection);
       setShowOverview(false);
       syncEditorUrl(nextSelection);
-      setFocus(options?.focus ?? DEFAULT_BUILDER_FOCUS);
+      // Switching forms resets focus (selectedApplyFormId effect) and the first
+      // sync picks the opening stage; re-opening the same form keeps its stage.
+      if (options?.focus) setFocus(options.focus);
     },
     [syncEditorUrl],
   );
@@ -955,6 +1004,28 @@ export default function ApplicationFormsPage({
         setEditable(next);
         setApplySavedSnapshot(serializeEditableFormState(next));
       }
+
+      // First time this form opens: land on the stage that matters most.
+      if (stageInitFormIdRef.current !== form.id) {
+        stageInitFormIdRef.current = form.id;
+        let stage: BuilderStage | null = null;
+        if (!initialStageParamUsedRef.current) {
+          initialStageParamUsedRef.current = true;
+          stage = initialStageParam;
+        }
+        stage ??= initialBuilderStage ?? null;
+        if (!stage) {
+          stage =
+            form.status === "published"
+              ? "questions"
+              : firstStageNeedingWork(
+                  // The fee check only ever warns, so Stripe status can't change the stage.
+                  applyFormReadiness(next, { isApplyForm: isApply, stripePaymentsReady: true }).items,
+                );
+        }
+        lastStepIdRef.current = null;
+        setFocus(focusForStage(stage, next.schema.sections));
+      }
     });
 
     return () => {
@@ -965,6 +1036,8 @@ export default function ApplicationFormsPage({
     selectedForm?.updated_at,
     selectedForm?.status,
     selectedApplyFormHydrated,
+    initialStageParam,
+    initialBuilderStage,
   ]);
 
   const focusSlugSetup = (errorMessage: string) => {
@@ -1892,6 +1965,19 @@ export default function ApplicationFormsPage({
     if (item.target) setFocus(item.target);
   };
 
+  const goToApplyStage = (stage: BuilderStage) => {
+    if (!editable) return;
+    setFocus(focusForStage(stage, editable.schema.sections, lastStepIdRef.current));
+  };
+  const applyStageIndex = stageIndex(applyStage);
+  const applyPrevStage: BuilderStage | undefined = BUILDER_STAGE_IDS[applyStageIndex - 1];
+  const applyNextStage: BuilderStage | undefined = BUILDER_STAGE_IDS[applyStageIndex + 1];
+  const applyLinkPath = isApplyFormSelected
+    ? canonicalApplyFormPublicPath(slug)
+    : editable?.publicSlug.trim()
+      ? publicApplicationFormPath(slug, editable.publicSlug.trim())
+      : null;
+
   const handleSelectChecklistReadinessItem = (item: ReadinessItem) => {
     if (!item.checklistItemId) return;
     setChecklistFocusRequest((prev) => ({
@@ -2153,24 +2239,35 @@ export default function ApplicationFormsPage({
             </div>
           )}
 
-          <div className="flex min-h-0 flex-1 overflow-hidden">
-            <ApplicationFormOutline
-              C={C}
-              theme={theme}
-              sections={editable.schema.sections}
-              focus={focus}
-              readOnly={readOnly}
-              lockSystemStep={isApplyFormSelected}
-              postSubmitActionCount={editable.postSubmitConfig.actions.length}
-              onFocusChange={setFocus}
-              onReorderSteps={reorderSteps}
-              onAddStep={addStep}
-              onPreview={() => setPreviewOpen(true)}
-              issueStepIds={applyIssueStepIds}
-            />
+          <FlowStageStepper
+            stages={BUILDER_STAGES.map((stage) => ({
+              id: stage.id,
+              label: stage.label,
+              status: applyStageStatuses[stage.id],
+            }))}
+            current={applyStage}
+            onSelect={goToApplyStage}
+          />
+
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+            {applyStage === "questions" ? (
+              <ApplicationFormOutline
+                C={C}
+                theme={theme}
+                sections={editable.schema.sections}
+                focus={focus}
+                readOnly={readOnly}
+                lockSystemStep={isApplyFormSelected}
+                onFocusChange={setFocus}
+                onReorderSteps={reorderSteps}
+                onAddStep={addStep}
+                issueStepIds={applyIssueStepIds}
+              />
+            ) : null}
 
             <ApplicationFormFocusCanvas
               C={C}
+              branding={branding}
               theme={theme}
               focus={focus}
               editable={editable}
@@ -2197,19 +2294,36 @@ export default function ApplicationFormsPage({
                 enterEditor({ kind: "checklist", id: checklistId });
                 setFocus(DEFAULT_BUILDER_FOCUS);
               }}
+              reviewStage={
+                applyReadiness ? (
+                  <ApplicationFormReviewStage
+                    editable={editable}
+                    programName={
+                      editable.programId ? programNameById.get(editable.programId) ?? null : null
+                    }
+                    applyLinkLabel={applyLinkPath ?? "No apply link yet"}
+                    readiness={applyReadiness}
+                    statuses={applyStageStatuses}
+                    isPublished={isPublished}
+                    publicUrl={publishedPublicUrl}
+                    onSelectItem={handleSelectApplyReadinessItem}
+                    onGoToStage={goToApplyStage}
+                    onPreview={() => setPreviewOpen(true)}
+                    onCopyLink={handleCopyPublicLink}
+                  />
+                ) : null
+              }
             />
-            {applyReadiness ? (
-              <FlowReadinessRail
-                readiness={applyReadiness}
-                isPublished={isPublished}
-                kindLabel="form"
-                publicUrl={publishedPublicUrl}
-                onSelect={handleSelectApplyReadinessItem}
-                onPreview={() => setPreviewOpen(true)}
-                onCopyLink={handleCopyPublicLink}
-              />
-            ) : null}
           </div>
+
+          <FlowStageFooter
+            index={applyStageIndex}
+            total={BUILDER_STAGE_IDS.length}
+            prevLabel={applyPrevStage ? stageInfo(applyPrevStage).label : null}
+            nextLabel={applyNextStage ? stageInfo(applyNextStage).label : null}
+            onPrev={() => applyPrevStage && goToApplyStage(applyPrevStage)}
+            onNext={() => applyNextStage && goToApplyStage(applyNextStage)}
+          />
         </div>
       ) : (
         <GardenCanvasSkeleton label="Loading form editor" />

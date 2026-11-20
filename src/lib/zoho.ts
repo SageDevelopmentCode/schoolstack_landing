@@ -230,6 +230,12 @@ export async function sendZohoEmail(opts: {
   content: string;
   discord?: OutboundEmailDiscordMeta;
   sendClass?: import("@/lib/outbound-email-unsubscribe").OutboundEmailSendClass;
+  /** Optional plain-text part. Sent over SMTP only; the REST API sends the HTML. */
+  text?: string;
+  /** Optional threading headers (SMTP only; the REST API ignores them). */
+  messageId?: string;
+  inReplyTo?: string;
+  references?: string[];
 }): Promise<SendZohoEmailResult> {
   const { isOutboundEmailDisabled } = await import("@/lib/outbound-email");
   if (isOutboundEmailDisabled()) {
@@ -244,6 +250,7 @@ export async function sendZohoEmail(opts: {
   const {
     normalizeOutboundEmail,
     appendUnsubscribeFooter,
+    appendUnsubscribeText,
     isTransactionalOutboundEmail,
     isOutboundEmailSuppressedForMarketing,
   } = await import("@/lib/outbound-email-unsubscribe");
@@ -292,6 +299,10 @@ export async function sendZohoEmail(opts: {
       toAddress: sendOpts.toAddress,
       subject: sendOpts.subject,
       html: sendOpts.content,
+      text: opts.text ? appendUnsubscribeText(opts.text, toAddress) : undefined,
+      messageId: opts.messageId,
+      inReplyTo: opts.inReplyTo,
+      references: opts.references,
     });
   } else {
     result = await sendViaRestApi(sendOpts);

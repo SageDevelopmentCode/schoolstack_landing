@@ -111,6 +111,17 @@ export function appendUnsubscribeFooter(html: string, email: string): string {
   return `${html}${footer}`;
 }
 
+/** Plain-text counterpart of appendUnsubscribeFooter. */
+export function appendUnsubscribeText(text: string, email: string): string {
+  let url: string;
+  try {
+    url = buildUnsubscribeUrl(email);
+  } catch {
+    return text;
+  }
+  return `${text}\n\nUnsubscribe from non-essential emails: ${url}`;
+}
+
 export function isTransactionalOutboundEmail(input: {
   sendClass?: OutboundEmailSendClass;
   discord?: OutboundEmailDiscordMeta;

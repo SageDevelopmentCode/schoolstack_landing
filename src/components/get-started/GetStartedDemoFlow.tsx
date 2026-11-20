@@ -31,6 +31,14 @@ import GardenBookingSteps from "@/components/get-started/garden/GardenBookingSte
 import { demoRequestRoleLabel } from "@/lib/demo-request-roles";
 import { MUDKITCHEN_MARKETING_BRIGHT_THEME } from "@/lib/marketing/mudkitchen-bright-marketing-theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import type { DemoPromoId } from "@/lib/marketing/gift-card-offer";
+import { readFirstTouch } from "@/lib/marketing/attribution";
+import {
+  BOOKING_STEP_EVENT,
+  clearPartialBookingDraft,
+  markLeadCaptured,
+  submitLead,
+} from "@/lib/marketing/submit-lead";
 
 type FormData = GetStartedIntroductionFormData;
 
@@ -88,6 +96,10 @@ type GetStartedDemoFlowProps = {
   introHeadingAs?: "h1" | "h2";
   /** MudKitchen Garden scheduler step; needs a `.sf-garden` ancestor. */
   garden?: boolean;
+  /** Promo id from a landing page (e.g. the /gift-card offer). The API adds its note to the request's prep notes. */
+  promo?: DemoPromoId;
+  /** Where this booking form is shown, stored as `demo_requests.source` (e.g. "home"). */
+  source?: string;
 };
 
 const SCHEDULER_STEP_COPY = {
@@ -123,6 +135,8 @@ export default function GetStartedDemoFlow({
   theme: themeProp,
   introHeadingAs = "h1",
   garden = false,
+  promo,
+  source,
 }: GetStartedDemoFlowProps) {
   const theme = useMemo(
     () => themeProp ?? MUDKITCHEN_MARKETING_BRIGHT_THEME,
@@ -176,6 +190,7 @@ export default function GetStartedDemoFlow({
     (next: GetStartedDemoStep) => {
       setStep(next);
       onStepChange?.(next);
+      window.dispatchEvent(new CustomEvent(BOOKING_STEP_EVENT, { detail: next }));
     },
     [onStepChange],
   );
@@ -252,6 +267,18 @@ export default function GetStartedDemoFlow({
 
   function handleContinue() {
     if (validate()) {
+      // Save the contact details now, so we can follow up if they never pick a time.
+      // Fire-and-forget: a failure here must never block booking.
+      void submitLead({
+        magnet: "partial_booking",
+        email: form.email.trim(),
+        name: form.name.trim(),
+        schoolName: form.schoolName.trim(),
+        role: form.role,
+        message: buildPrepNotes(form),
+        placement: source,
+        companyWebsite,
+      });
       setSubmitError(null);
       goToStep(1);
       scrollAfterStepChange();
@@ -279,6 +306,9 @@ export default function GetStartedDemoFlow({
           scheduledTime: selected.time,
           timezone: selected.displayTimezone,
           prepNotes,
+          ...(promo ? { promo } : {}),
+          ...(source ? { source } : {}),
+          attribution: readFirstTouch(),
           [PUBLIC_FORM_HONEYPOT_FIELD]: companyWebsite,
         }),
       });
@@ -301,6 +331,8 @@ export default function GetStartedDemoFlow({
         return;
       }
 
+      clearPartialBookingDraft();
+      markLeadCaptured();
       setBooking(selected);
       goToStep(2);
       scrollAfterStepChange();

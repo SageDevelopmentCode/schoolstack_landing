@@ -1,7 +1,7 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { BulletinListSkeleton } from '@/components/school-admin/bulletin/bulletin-list-skeleton';
 import { BulletinMetricRow } from '@/components/school-admin/bulletin/bulletin-metric-row';
@@ -15,6 +15,7 @@ import { useParentTheme } from '@/contexts/parent-theme-context';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Story, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
+import { calmEnter } from '@/lib/motion/portal-motion';
 import { resolveBulletinDisplayStatus } from '@/lib/school-bulletin/bulletin-audience';
 import { fetchBulletinPosts, formatBulletinApiError } from '@/lib/school-bulletin/bulletin-api';
 import type { BulletinPost, ProgramOption } from '@/lib/school-bulletin/types';
@@ -142,7 +143,7 @@ export function BulletinScreen({ organizationId: _organizationId, slug, schoolNa
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
-          <Animated.View entering={FadeInDown.duration(350)} style={styles.headerBlock}>
+          <Animated.View entering={calmEnter()} style={styles.headerBlock}>
             <BulletinStoryHeader schoolName={schoolName} />
             <View style={styles.actionsRow}>
               <StoryButton label="New post" onPress={openNewEditor} />

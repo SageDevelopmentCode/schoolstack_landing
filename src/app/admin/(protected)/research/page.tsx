@@ -5,17 +5,9 @@ import { createClient } from "@/utils/supabase/client";
 import { listSchoolDemoOptions } from "@/data/school-demos";
 import { SITE_NAME } from "@/lib/site";
 import { AdminSelect } from "@/components/admin/ui/AdminSelect";
+import { CRM, CRM_STATUSES, crmStatusLabel, type CrmStatus } from "@/lib/admin-crm/crm-status";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-
-type CrmStatus =
-  | "nurturing"
-  | "not_contacted"
-  | "contacted"
-  | "demo_scheduled"
-  | "proposal_sent"
-  | "not_interested"
-  | "won";
 
 type School = {
   id: string;
@@ -49,26 +41,10 @@ const SCHOOL_DEMO_OPTIONS = listSchoolDemoOptions();
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const CRM: Record<CrmStatus, { label: string; dot: string; pill: string }> = {
-  nurturing:      { label: "Nurturing ❤️",   dot: "bg-rose-400",    pill: "bg-rose-50 text-rose-700 border-rose-200" },
-  not_contacted:  { label: "Not Contacted",  dot: "bg-admin-faint",    pill: "bg-admin-neutral-bg text-admin-muted border-admin-border" },
-  contacted:      { label: "Contacted",      dot: "bg-blue-400",    pill: "bg-blue-50 text-blue-700 border-blue-200" },
-  demo_scheduled: { label: "Demo Scheduled", dot: "bg-violet-400",  pill: "bg-violet-50 text-violet-700 border-violet-200" },
-  proposal_sent:  { label: "Proposal Sent",  dot: "bg-amber-400",   pill: "bg-amber-50 text-amber-700 border-amber-200" },
-  not_interested: { label: "Not Interested", dot: "bg-red-400",     pill: "bg-red-50 text-red-600 border-red-200" },
-  won:            { label: "Won 🎉",         dot: "bg-emerald-400", pill: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-};
-
-const CRM_STATUSES = Object.keys(CRM) as CrmStatus[];
-
 const FILTER_CHIP_ACTIVE =
   "bg-admin-accent text-white border-admin-accent shadow-sm";
 const FILTER_CHIP_INACTIVE =
   "border-admin-border text-admin-muted bg-admin-surface hover:border-admin-border hover:text-admin-text";
-
-function crmStatusLabel(status: CrmStatus) {
-  return CRM[status].label.replace(" 🎉", "").replace(" ❤️", "");
-}
 
 const P_PILL: Record<number, string> = {
   5: "bg-emerald-100 text-emerald-700",

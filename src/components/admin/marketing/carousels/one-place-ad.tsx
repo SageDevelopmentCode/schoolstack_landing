@@ -12,6 +12,7 @@ export const ONE_PLACE_AD_CAROUSEL = {
   title: "Run your Microschool from one place",
   description: "Single ad post: classroom photo, tagline, Book a demo, and the crew row (one character per feature).",
   fileSlug: "mudkitchen-one-place-ad",
+  kind: "ad",
   slides: [
     {
       id: "one-place",

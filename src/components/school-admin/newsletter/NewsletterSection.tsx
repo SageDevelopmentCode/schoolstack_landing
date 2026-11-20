@@ -28,6 +28,7 @@ import {
   markNewsletterImportPrompted,
   wasNewsletterImportPrompted,
 } from "@/lib/school-admin/newsletter/newsletter-workspace-storage";
+import { adminToast } from "@/lib/school-admin/admin-toast";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import NewsletterOverviewPage from "./NewsletterOverviewPage";
@@ -36,6 +37,8 @@ import NewsletterEditorPageSkeleton from "./NewsletterEditorPageSkeleton";
 import NewsletterWorkspace from "./NewsletterWorkspace";
 
 export type NewsletterSaveState = "idle" | "saving" | "saved" | "error";
+
+const SAVE_ERROR_ID = "newsletter-save-error";
 
 function cloneNewsletterWorkspace(state: NewsletterWorkspaceState): NewsletterWorkspaceState {
   return structuredClone(state);
@@ -145,11 +148,12 @@ export default function NewsletterSection({
     setWorkspace(next);
   }, []);
 
-  const saveNow = useCallback(async () => {
-    if (!editionId) return;
+  const saveNowRef = useRef<() => Promise<boolean>>(() => Promise.resolve(false));
+  const saveNow = useCallback(async (): Promise<boolean> => {
+    if (!editionId) return false;
     const current = workspaceRef.current;
     const edition = current.editions.find((e) => e.id === editionId);
-    if (!edition) return;
+    if (!edition) return false;
 
     const submittedEdition = structuredClone(edition);
     const submittedTemplate = structuredClone(current.template);
@@ -165,7 +169,7 @@ export default function NewsletterSection({
         submittedEdition,
         submittedTemplate,
       );
-      if (generation !== saveGenerationRef.current) return;
+      if (generation !== saveGenerationRef.current) return false;
 
       const mergedEdition = mergeNewsletterEditionDisplayAfterSave(
         submittedEdition,
@@ -193,12 +197,31 @@ export default function NewsletterSection({
       setWorkspace(displayWorkspace);
       setSaveState("saved");
       setIsDirty(!workspaceStatesEqual(displayWorkspace, savedWorkspaceRef.current));
+      adminToast.dismiss(SAVE_ERROR_ID);
+      adminToast.success(submittedEdition.status === "published" ? "Changes saved." : "Draft saved.", {
+        id: "newsletter-save",
+        description:
+          submittedEdition.status === "published"
+            ? "Families see the updated newsletter now."
+            : "Families can't see it until you publish.",
+      });
+      return true;
     } catch (err: unknown) {
-      if (generation !== saveGenerationRef.current) return;
+      if (generation !== saveGenerationRef.current) return false;
+      const message = err instanceof Error ? err.message : "Could not save newsletter.";
       setSaveState("error");
-      setSaveError(err instanceof Error ? err.message : "Could not save newsletter.");
+      setSaveError(message);
+      adminToast.error("Couldn't save the newsletter.", {
+        id: SAVE_ERROR_ID,
+        description: `${message} Your edits are still here.`,
+        action: { label: "Retry", onClick: () => void saveNowRef.current() },
+      });
+      return false;
     }
   }, [editionId, slug, syncSavedBaseline]);
+  useEffect(() => {
+    saveNowRef.current = saveNow;
+  }, [saveNow]);
 
   const replaceWorkspaceEdition = useCallback(
     (edition: NewsletterEdition) => {
@@ -273,19 +296,17 @@ export default function NewsletterSection({
 
   if (editionId && !hydrated) {
     return (
-      <>
+      <AdminGardenPage theme={theme} containerClassName="!max-w-none !gap-0 !p-0">
         <NewsletterEditorPageSkeleton />
-        {leaveDialog}
-      </>
+      </AdminGardenPage>
     );
   }
 
   if (!hydrated) {
     return (
-      <>
+      <AdminGardenPage theme={theme}>
         <NewsletterOverviewSkeleton />
-        {leaveDialog}
-      </>
+      </AdminGardenPage>
     );
   }
 

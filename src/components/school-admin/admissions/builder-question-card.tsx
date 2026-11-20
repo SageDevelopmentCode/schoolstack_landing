@@ -64,23 +64,34 @@ export function BuilderSectionIntro({
   title,
   subtitle,
   eyebrow,
+  titleId,
+  level = "h2",
 }: {
   C: AdminThemeTokens;
   theme?: ParentThemeTokens;
   title: string;
   subtitle?: string;
   eyebrow?: string;
+  titleId?: string;
+  /** h3 for a sub-section inside a stage (smaller title). */
+  level?: "h2" | "h3";
 }) {
   const skin = useAdminGardenSkin();
+  const Heading = level;
   if (skin) {
     return (
       <div>
         {eyebrow ? (
           <p className="m-0 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[var(--sf-soft)]">{eyebrow}</p>
         ) : null}
-        <h2 className={`sf-display m-0 text-[1.4rem] leading-[1.08] text-[var(--sf-ink)] ${eyebrow ? "mt-1.5" : ""}`}>
+        <Heading
+          id={titleId}
+          className={`sf-display m-0 leading-[1.08] text-[var(--sf-ink)] ${
+            level === "h3" ? "text-[1.12rem]" : "text-[1.4rem]"
+          } ${eyebrow ? "mt-1.5" : ""}`}
+        >
           {title}
-        </h2>
+        </Heading>
         {subtitle ? (
           <p className="m-0 mt-1.5 max-w-[62ch] text-[13.5px] font-semibold leading-relaxed text-[var(--sf-soft)]">
             {subtitle}
@@ -95,7 +106,8 @@ export function BuilderSectionIntro({
         {eyebrow ? <AdminSectionKicker theme={theme}>{eyebrow}</AdminSectionKicker> : null}
         <AdminDisplayHeading
           theme={theme}
-          as="h2"
+          as={level}
+          id={titleId}
           size="canvas"
           className={eyebrow ? "mt-1.5" : ""}
         >
@@ -117,12 +129,13 @@ export function BuilderSectionIntro({
           {eyebrow}
         </p>
       ) : null}
-      <h2
-        className={`font-semibold ${eyebrow ? "mt-0.5" : ""} text-lg`}
+      <Heading
+        id={titleId}
+        className={`font-semibold ${eyebrow ? "mt-0.5" : ""} ${level === "h3" ? "text-base" : "text-lg"}`}
         style={{ color: C.textPrimary }}
       >
         {title}
-      </h2>
+      </Heading>
       {subtitle ? (
         <p className="mt-1 text-sm" style={{ color: C.textTertiary }}>
           {subtitle}

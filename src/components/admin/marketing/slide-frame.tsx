@@ -4,6 +4,8 @@
 import { Link2 } from "lucide-react";
 import { createContext, useContext, type CSSProperties, type ReactNode } from "react";
 import { gardenFontVariables } from "@/components/garden/fonts";
+import { MascotStickerProvider } from "@/components/admin/marketing/mascot/Mascot";
+import { defaultPatternFor, SlidePattern, type PatternKind } from "@/components/admin/marketing/sticker";
 
 type MarketingSlideChromeState = {
   hideCornerLogo: boolean;
@@ -15,6 +17,38 @@ const MarketingSlideChromeContext = createContext<MarketingSlideChromeState>({
 
 export const SLIDE_WIDTH = 1080;
 export const SLIDE_HEIGHT = 1350;
+
+/** Export sizes: 4:5 feed (every post) and 9:16 Stories/Reels (ads). */
+export const SLIDE_SIZES = {
+  feed: { width: SLIDE_WIDTH, height: SLIDE_HEIGHT, label: "Feed 4:5" },
+  story: { width: 1080, height: 1920, label: "Story 9:16" },
+} as const;
+
+export type SlideSize = keyof typeof SLIDE_SIZES;
+export type SlideDimensions = { size: SlideSize; width: number; height: number };
+
+const SlideSizeContext = createContext<SlideSize>("feed");
+
+/** Provides the canvas size to `MarketingSlideShell`, `SlideCanvas` and size-aware ad layouts. */
+export function SlideSizeProvider({ size, children }: { size: SlideSize; children: ReactNode }) {
+  return <SlideSizeContext.Provider value={size}>{children}</SlideSizeContext.Provider>;
+}
+
+export function useSlideSize(): SlideDimensions {
+  const size = useContext(SlideSizeContext);
+  return { size, width: SLIDE_SIZES[size].width, height: SLIDE_SIZES[size].height };
+}
+
+const AdOfferContext = createContext(true);
+
+/** Ads only: `false` hides the gift-card offer so a no-incentive control version can be exported. */
+export function AdOfferProvider({ show, children }: { show: boolean; children: ReactNode }) {
+  return <AdOfferContext.Provider value={show}>{children}</AdOfferContext.Provider>;
+}
+
+export function useAdOffer(): boolean {
+  return useContext(AdOfferContext);
+}
 
 export const SLIDE = {
   paper: "#F7F1E7",
@@ -67,9 +101,9 @@ export function CarouselAudienceBanner({ text }: { text: string }) {
           gap: 12,
           padding: "9px 26px 9px 14px",
           borderRadius: 999,
-          background: "rgba(255, 250, 244, 0.92)",
-          border: "2px solid rgba(43, 36, 29, 0.10)",
-          boxShadow: "0 10px 22px rgba(43, 36, 29, 0.14)",
+          background: "#FFFAF4",
+          border: "4px solid #FFFFFF",
+          boxShadow: "0 6px 0 0 rgba(43, 36, 29, 0.2)",
         }}
       >
         <img
@@ -104,14 +138,15 @@ type MarketingSlideShellProps = {
 
 export function MarketingSlideShell({ children, audienceBanner }: MarketingSlideShellProps) {
   const hideCornerLogo = Boolean(audienceBanner);
+  const { width, height } = useSlideSize();
 
   return (
     <MarketingSlideChromeContext.Provider value={{ hideCornerLogo }}>
       <div
         style={{
           position: "relative",
-          width: SLIDE_WIDTH,
-          height: SLIDE_HEIGHT,
+          width,
+          height,
           overflow: "hidden",
         }}
       >
@@ -125,6 +160,8 @@ export function MarketingSlideShell({ children, audienceBanner }: MarketingSlide
 type SlideCanvasProps = {
   children: ReactNode;
   background?: string;
+  /** Soft pastel pattern behind everything. Defaults to one picked from a flat hex `background`; "none" turns it off. */
+  pattern?: PatternKind | "none";
   logo?: "corner" | "none";
   logoTop?: number;
 };
@@ -134,24 +171,34 @@ export default function SlideCanvas({
   background = SLIDE.paper,
   logo = "corner",
   logoTop = 28,
+  pattern,
 }: SlideCanvasProps) {
   const { hideCornerLogo } = useContext(MarketingSlideChromeContext);
   const showCornerLogo = logo === "corner" && !hideCornerLogo;
+  const { width, height } = useSlideSize();
+  const patternKind = pattern === "none" ? null : (pattern ?? defaultPatternFor(background));
 
   return (
     <article
       className={gardenFontVariables}
       style={{
-        width: SLIDE_WIDTH,
-        height: SLIDE_HEIGHT,
+        width,
+        height,
         background,
         color: SLIDE.ink,
         position: "relative",
         overflow: "hidden",
+        // Own stacking context so the pattern (z -1) sits above the background but under all content.
+        isolation: "isolate",
         fontFamily: "var(--font-sf-body), Nunito, 'Avenir', sans-serif",
       }}
     >
-      {children}
+      {patternKind ? (
+        <div aria-hidden style={{ position: "absolute", inset: 0, zIndex: -1 }}>
+          <SlidePattern kind={patternKind} base={background} width={width} height={height} />
+        </div>
+      ) : null}
+      <MascotStickerProvider sticker>{children}</MascotStickerProvider>
       {showCornerLogo ? <CornerLogo top={logoTop} /> : null}
     </article>
   );
@@ -168,9 +215,9 @@ function CornerLogoPill() {
         gap: 12,
         padding: "10px 24px 10px 14px",
         borderRadius: 999,
-        background: "rgba(255, 250, 244, 0.92)",
-        border: "2px solid rgba(43, 36, 29, 0.10)",
-        boxShadow: "0 10px 22px rgba(43, 36, 29, 0.14)",
+        background: "#FFFAF4",
+        border: "4px solid #FFFFFF",
+        boxShadow: "0 6px 0 0 rgba(43, 36, 29, 0.2)",
       }}
     >
       <img

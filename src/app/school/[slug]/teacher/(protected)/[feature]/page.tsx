@@ -25,6 +25,11 @@ import {
   getCachedStaffUserProfile,
   getTeacherPortalPageUser,
 } from "@/lib/staff/teacher-portal-access-request";
+import {
+  isTeacherNewslettersFeatureEnabled,
+  loadParentNewsletterDetailBundleForOrganization,
+  loadParentNewslettersListBundle,
+} from "@/lib/parent-portal/newsletters/load-parent-newsletters";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { isSchoolGalleryEnabled } from "@/lib/school-gallery/gallery-enabled";
@@ -33,6 +38,10 @@ import { isSchoolGalleryFeatureKey } from "@/lib/school-gallery/gallery-nav";
 const dynamicFeaturePage = <P extends object>(
   importer: () => Promise<{ default: ComponentType<P> }>,
 ) => nextDynamic(importer, { loading: () => <TeacherFeaturePageFallback /> });
+
+const TeacherNewslettersPage = dynamicFeaturePage(
+  () => import("@/components/school-teacher/newsletters/TeacherNewslettersPage"),
+);
 
 const TeacherDashboardPage = dynamicFeaturePage(
   () => import("@/components/school-teacher/TeacherDashboardPage"),
@@ -284,6 +293,31 @@ export default async function SchoolTeacherFeaturePage({
         initialForms={pageData.forms}
         initialResponsesByFormId={pageData.responsesByFormId}
         classroomOptions={pageData.classroomOptions}
+      />
+    );
+  }
+
+  if (feature === "newsletters") {
+    await getTeacherPortalPageUser(org.id);
+    const admin = createAdminClient();
+    const editionId =
+      typeof resolvedSearchParams.edition === "string" ? resolvedSearchParams.edition : null;
+    const [initialList, detail] = await Promise.all([
+      loadParentNewslettersListBundle(admin, org.id),
+      editionId
+        ? loadParentNewsletterDetailBundleForOrganization(admin, org.id, editionId, {
+            isFeatureEnabled: isTeacherNewslettersFeatureEnabled,
+          })
+        : Promise.resolve(null),
+    ]);
+
+    return (
+      <TeacherNewslettersPage
+        organizationId={org.id}
+        slug={slug}
+        branding={org.branding}
+        initialList={initialList}
+        detailBundle={detail?.ok ? detail.bundle : null}
       />
     );
   }

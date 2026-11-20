@@ -3,6 +3,7 @@ import { schoolDemoRegistry } from "@/data/school-demos";
 import { isPastDate, SCHEDULER_TIMEZONE } from "@/lib/demo-scheduler";
 import { isValidIanaTimezone } from "@/lib/marketing/demo-timezone-options";
 import { logNotificationFailure } from "@/lib/admissions/notification-logging";
+import { reportOperationalError } from "@/lib/operational-errors";
 import { apiError } from "@/lib/api/route-errors";
 import { notifyDemoBooking } from "@/lib/discord";
 import { sendDemoBookingConfirmation } from "@/lib/emails";
@@ -24,6 +25,8 @@ import {
 } from "@/lib/public-forms/field-limits";
 import { demoRequestRoleLabel } from "@/lib/demo-request-roles";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { DEMO_PROMO_NOTES, isDemoPromoId } from "@/lib/marketing/gift-card-offer";
+import { sanitizeAttribution } from "@/lib/marketing/attribution";
 
 const ROUTE = "/api/demo-requests";
 
@@ -61,7 +64,15 @@ interface DemoRequestBody {
   scheduledTime?: string;
   timezone?: string;
   companyWebsite?: string;
+  /** Promo id from a landing page; unknown ids are ignored. */
+  promo?: string;
+  /** Where the booking form was shown (e.g. "home", "get-started", "gift-card"). */
+  source?: string;
+  /** First-touch attribution from `readFirstTouch()`. */
+  attribution?: unknown;
 }
+
+const SOURCE_PATTERN = /^[a-z0-9-]{1,40}$/;
 
 export async function POST(request: Request) {
   let body: DemoRequestBody;
@@ -165,6 +176,13 @@ export async function POST(request: Request) {
     });
   }
 
+  // Tag promo leads (e.g. /gift-card) at the top of the prep notes. The column is capped at
+  // MAX_PUBLIC_FORM_SHORT_TEXT_LENGTH, so very long notes are trimmed to make room for the tag.
+  const promoNote = isDemoPromoId(body.promo) ? DEMO_PROMO_NOTES[body.promo] : null;
+  const storedPrepNotes = promoNote
+    ? [promoNote, prepNotes.slice(0, MAX_PUBLIC_FORM_SHORT_TEXT_LENGTH - promoNote.length - 2)].filter(Boolean).join("\n\n")
+    : prepNotes;
+
   if (conceptDemoSlug && !schoolDemoRegistry[conceptDemoSlug]) {
     return apiError(ROUTE, { request, status: 400, error: "Invalid concept demo." });
   }
@@ -244,7 +262,15 @@ export async function POST(request: Request) {
     });
   }
 
-  const { error } = await admin.from("demo_requests").insert({
+  const rawSource = body.source?.trim() ?? "";
+  const source = conceptDemoSlug
+    ? "demo-walkthrough"
+    : SOURCE_PATTERN.test(rawSource)
+      ? rawSource
+      : "get-started";
+  const attribution = sanitizeAttribution(body.attribution);
+
+  const baseRow = {
     name,
     email,
     school_name: schoolName,
@@ -255,11 +281,34 @@ export async function POST(request: Request) {
     priorities,
     website_url: websiteUrl,
     current_tools: currentTools,
-    prep_notes: prepNotes,
+    prep_notes: storedPrepNotes,
     scheduled_date: scheduledDate,
     scheduled_time: scheduledTime,
     timezone,
-  });
+    source,
+  };
+  const trackingColumns = {
+    concept_demo_slug: conceptDemoSlug,
+    attribution: Object.keys(attribution).length ? attribution : null,
+  };
+
+  let { error } = await admin.from("demo_requests").insert({ ...baseRow, ...trackingColumns });
+  // Until 20261170_add_marketing_leads.sql is applied on a database, these columns don't
+  // exist (PostgREST PGRST204). Never lose a booking over tracking data: retry without them.
+  if (error?.code === "PGRST204") {
+    void reportOperationalError({
+      supabase: admin,
+      surface: "api",
+      operation: "demo_requests_tracking_columns_fallback",
+      error:
+        "demo_requests tracking columns missing; retried insert without attribution/concept_demo_slug. Apply 20261170_add_marketing_leads.sql.",
+      severity: "warning",
+      cause: error,
+      actor: { type: "system" },
+      metadata: { email: email.toLowerCase() },
+    });
+    ({ error } = await admin.from("demo_requests").insert(baseRow));
+  }
 
   if (error) {
     if (error.code === "23505") {
@@ -285,6 +334,28 @@ export async function POST(request: Request) {
     request,
   });
 
+  // The visitor finished booking: close out their unfinished-booking lead, if any.
+  void admin
+    .from("marketing_leads")
+    .update({ status: "booked" })
+    .eq("magnet", "partial_booking")
+    .eq("status", "new")
+    .eq("email", email.toLowerCase())
+    .then(({ error: leadError }) => {
+      if (leadError) {
+        void reportOperationalError({
+          supabase: admin,
+          surface: "api",
+          operation: "demo_request_mark_partial_booking_booked",
+          error: "Failed to mark partial_booking marketing lead as booked.",
+          severity: "warning",
+          cause: leadError,
+          actor: { type: "system" },
+          metadata: { email: email.toLowerCase() },
+        });
+      }
+    });
+
   try {
     await notifyDemoBooking({
       name,
@@ -297,7 +368,7 @@ export async function POST(request: Request) {
       priorities,
       websiteUrl,
       currentTools,
-      prepNotes,
+      prepNotes: storedPrepNotes,
       conceptDemoSlug,
       scheduledDate,
       scheduledTime,

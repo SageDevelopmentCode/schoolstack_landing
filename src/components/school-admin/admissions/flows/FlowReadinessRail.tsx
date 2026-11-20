@@ -79,7 +79,8 @@ function ItemIcon({ status }: { status: ReadinessItem["status"] }) {
   );
 }
 
-function ReadinessList({
+/** Readiness rows sorted todo → warning → done; rows with a target are buttons. */
+export function FlowReadinessList({
   readiness,
   onSelect,
 }: {
@@ -182,7 +183,7 @@ function RailBody({ readiness, isPublished, kindLabel, publicUrl, onSelect, onPr
         </div>
       </div>
 
-      <ReadinessList readiness={readiness} onSelect={onSelect} />
+      <FlowReadinessList readiness={readiness} onSelect={onSelect} />
 
       {onPreview || onCopyLink ? (
         <div className="flex flex-wrap gap-2 border-t-[1.5px] border-dashed border-[var(--sf-ink)]/12 pt-3">
@@ -223,6 +224,11 @@ function RailBody({ readiness, isPublished, kindLabel, publicUrl, onSelect, onPr
   );
 }
 
+/** The rail's content (heading, progress, rows, Preview / Copy link) for in-page use. */
+export function FlowReadinessSummary(props: RailProps) {
+  return <RailBody {...props} />;
+}
+
 /** Right-hand readiness rail for the builders (xl and up). */
 export function FlowReadinessRail(props: RailProps) {
   return (
@@ -236,8 +242,11 @@ export function FlowReadinessRail(props: RailProps) {
   );
 }
 
-/** Toolbar chip that opens the readiness list below xl. */
-export function FlowReadinessPopover(props: RailProps) {
+/**
+ * Toolbar chip that opens the readiness list. Below xl only, unless
+ * `alwaysVisible` (the apply builder has no rail, so it shows at every width).
+ */
+export function FlowReadinessPopover({ alwaysVisible = false, ...props }: RailProps & { alwaysVisible?: boolean }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -257,7 +266,7 @@ export function FlowReadinessPopover(props: RailProps) {
   }, [open]);
   const { readiness } = props;
   return (
-    <div className="relative xl:hidden" ref={ref}>
+    <div className={alwaysVisible ? "relative" : "relative xl:hidden"} ref={ref}>
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}

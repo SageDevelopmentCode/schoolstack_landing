@@ -3,6 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, BookOpen, Info, Layers, Users, Wrench } from "lucide-react";
+import { siFacebook, siInstagram } from "simple-icons";
+import { MUDKITCHEN_CONTACT } from "@/lib/site";
 import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
 import {
   FREE_TOOLS_HUB_PATH,
@@ -52,7 +54,14 @@ const focusRing =
 
 const chip = `inline-flex items-center gap-2 rounded-full border-2 border-[var(--sf-ink)] bg-white py-1.5 pl-1.5 pr-4 text-[15px] font-extrabold text-[var(--sf-ink)] shadow-[0_3px_0_0_var(--sf-ink)] transition-[rotate,translate,box-shadow] duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:!rotate-0 hover:-translate-y-0.5 hover:shadow-[0_5px_0_0_var(--sf-ink)] focus-visible:!rotate-0 focus-visible:-translate-y-0.5 focus-visible:shadow-[0_5px_0_0_var(--sf-ink)] active:translate-y-0.5 active:shadow-[0_1px_0_0_var(--sf-ink)] motion-reduce:transition-none ${focusRing}`;
 
-const legalLink = `rounded-md text-sm font-bold text-[var(--sf-soft)] transition-colors hover:text-[var(--sf-ink)] ${focusRing}`;
+const SOCIAL_LINKS = [
+  { label: "Instagram", href: MUDKITCHEN_CONTACT.instagram, icon: siInstagram },
+  { label: "Facebook", href: MUDKITCHEN_CONTACT.facebook, icon: siFacebook },
+];
+
+const socialButton = `grid h-11 w-11 place-items-center rounded-full border-2 border-[var(--sf-ink)] bg-white text-[var(--sf-ink)] shadow-[0_3px_0_0_var(--sf-ink)] transition-[rotate,translate,box-shadow,background-color,color] duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:!rotate-0 hover:-translate-y-0.5 hover:bg-[var(--sf-butter)] hover:shadow-[0_5px_0_0_var(--sf-ink)] focus-visible:!rotate-0 focus-visible:-translate-y-0.5 active:translate-y-0.5 active:shadow-[0_1px_0_0_var(--sf-ink)] motion-reduce:transition-none ${focusRing}`;
+
+const legalLink =`rounded-md text-sm font-bold text-[var(--sf-soft)] transition-colors hover:text-[var(--sf-ink)] ${focusRing}`;
 
 export default function Footer() {
   return (
@@ -89,6 +98,24 @@ export default function Footer() {
                 className="mt-5 flex flex-wrap items-center gap-3"
                 badgeClassName="h-10 w-auto object-contain sm:h-11"
               />
+              <ul aria-label="MudKitchen on social media" className="mt-5 flex items-center gap-3">
+                {SOCIAL_LINKS.map((social, i) => (
+                  <li key={social.href}>
+                    <a
+                      href={social.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`MudKitchen on ${social.label} (opens in a new tab)`}
+                      className={socialButton}
+                      style={{ rotate: i % 2 === 0 ? "-4deg" : "4deg" }}
+                    >
+                      <svg viewBox="0 0 24 24" width={20} height={20} aria-hidden="true" focusable="false">
+                        <path d={social.icon.path} fill="currentColor" />
+                      </svg>
+                    </a>
+                  </li>
+                ))}
+              </ul>
             </div>
 
             <div className="flex flex-col items-start gap-3 md:items-end">

@@ -2,10 +2,10 @@ import { Pressable, type PressableProps, type StyleProp, type ViewStyle } from '
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 
-import { CARD_PRESS_SPRING } from '@/lib/motion/portal-motion';
+import { PRESS_IN, PRESS_OUT, PRESSED_SCALE } from '@/lib/motion/portal-motion';
 import { isMobileE2e } from '@/lib/e2e';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -16,7 +16,7 @@ type ScalePressableProps = PressableProps & {
 };
 
 export function ScalePressable({
-  pressedScale = 0.98,
+  pressedScale = PRESSED_SCALE,
   style,
   disabled,
   onPressIn,
@@ -53,12 +53,12 @@ export function ScalePressable({
       style={[style, animatedStyle, disabled && { opacity: 0.5 }]}
       onPressIn={(event) => {
         if (!disabled) {
-          scale.value = withSpring(pressedScale, CARD_PRESS_SPRING);
+          scale.value = withTiming(pressedScale, PRESS_IN);
         }
         onPressIn?.(event);
       }}
       onPressOut={(event) => {
-        scale.value = withSpring(1, CARD_PRESS_SPRING);
+        scale.value = withTiming(1, PRESS_OUT);
         onPressOut?.(event);
       }}>
       {children}

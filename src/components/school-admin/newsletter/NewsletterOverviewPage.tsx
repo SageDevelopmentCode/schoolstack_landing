@@ -16,7 +16,6 @@ import type { NewsletterEdition, NewsletterWorkspaceState } from "@/lib/school-a
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import NewsletterMediaImage from "./NewsletterMediaImage";
 import NewsletterNewEditionModal from "./NewsletterNewEditionModal";
-import styles from "./newsletter-workspace.module.css";
 
 type NewsletterOverviewPageProps = {
   slug: string;
@@ -242,8 +241,6 @@ export default function NewsletterOverviewPage({
         </>
       )}
 
-      {/* The modal's styles read the editor's CSS variables (.workspace). */}
-      <div className={`${styles.workspace} !p-0`}>
       <NewsletterNewEditionModal
         open={newModalOpen}
         workspace={workspace}
@@ -252,7 +249,6 @@ export default function NewsletterOverviewPage({
         onClose={() => setNewModalOpen(false)}
         onCreate={handleEditionCreated}
       />
-      </div>
     </>
   );
 }

@@ -1,11 +1,10 @@
 "use client";
 
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 import AuthGatePromoColumn from "@/components/admissions/AuthGatePromoColumn";
-import {
-  buildAdminThemeTokens,
-  type AdminThemeTokens,
-} from "@/lib/organization-settings/theme";
+import ApplyAuthGardenFrame, {
+  APPLY_AUTH_CARD,
+} from "@/components/admissions/garden/ApplyAuthGardenFrame";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
 const ApplyFormRouteLoadingBrandingContext = createContext<
@@ -31,46 +30,37 @@ type ApplyFormRouteLoadingProps = {
   branding?: OrganizationBranding;
 };
 
-function NeutralPulse({ className }: { className: string }) {
+function Bar({ className }: { className: string }) {
   return (
     <div
-      className={`animate-pulse rounded-md bg-neutral-200/80 ${className}`}
+      className={`animate-pulse rounded-full bg-[var(--sf-ink)]/[0.07] ${className}`}
       aria-hidden
     />
   );
 }
 
-function BrandedPulse({
-  className,
-  C,
-  rounded = "md",
-}: {
-  className: string;
-  C: AdminThemeTokens;
-  rounded?: "md" | "xl";
-}) {
+/** Placeholder for one "Create an account" / "Log in" option row. */
+function OptionRowSkeleton() {
   return (
     <div
-      className={`animate-pulse opacity-50 ${rounded === "xl" ? "rounded-xl" : "rounded-md"} ${className}`}
-      style={{ backgroundColor: C.border }}
+      className="flex w-full items-center gap-4 rounded-[18px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white p-4"
       aria-hidden
-    />
+    >
+      <div className="h-11 w-11 shrink-0 animate-pulse rounded-full bg-[var(--sf-ink)]/[0.07]" />
+      <div className="min-w-0 flex-1 space-y-2">
+        <Bar className="h-4 w-2/5" />
+        <Bar className="h-3 w-4/5" />
+      </div>
+    </div>
   );
 }
 
-function ChoiceCardSkeleton({ C }: { C: AdminThemeTokens }) {
-  return (
-    <div
-      className="flex min-h-[76px] w-full animate-pulse rounded-xl border opacity-60 sm:min-h-[84px]"
-      style={{
-        borderColor: C.border,
-        backgroundColor: C.surface,
-      }}
-      aria-hidden
-    />
-  );
-}
-
+/**
+ * Route / dynamic-import skeleton for the apply sign-in gate: the same Garden
+ * frame, card and option rows as `ApplicationAuthGate`'s first step, so the
+ * swap doesn't jump. Works without branding (route `loading.tsx`), in which
+ * case it renders a neutral Garden scope.
+ */
 export default function ApplyFormRouteLoading({
   label = "Loading application form",
   branding: brandingProp,
@@ -78,66 +68,25 @@ export default function ApplyFormRouteLoading({
   const brandingFromContext = useContext(ApplyFormRouteLoadingBrandingContext);
   const branding = brandingProp ?? brandingFromContext;
 
-  const C = useMemo(
-    () => (branding ? buildAdminThemeTokens(branding) : null),
-    [branding],
-  );
-  const pageBg = branding?.colors.bg ?? "#fafafa";
-  const textPrimary = C?.textPrimary ?? "#171717";
-
   return (
-    <div className="flex min-h-dvh min-w-0 flex-col lg:flex-row">
-      <AuthGatePromoColumn immediate />
-
+    <ApplyAuthGardenFrame branding={branding} aside={<AuthGatePromoColumn immediate />}>
       <div
-        className="relative flex min-h-0 min-w-0 flex-1 flex-col lg:min-h-dvh"
-        style={{ backgroundColor: pageBg, color: textPrimary }}
+        className={APPLY_AUTH_CARD}
         aria-busy="true"
         aria-label={label}
         role="status"
       >
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 pb-20 sm:px-6 sm:py-8 sm:pb-24 lg:flex lg:items-center lg:justify-center lg:py-12">
-          <div className="mx-auto w-full min-w-0 max-w-md">
-            <div className="mb-8">
-              {C ? (
-                <BrandedPulse className="h-8 w-40 max-w-[200px]" C={C} />
-              ) : (
-                <NeutralPulse className="h-8 w-40 max-w-[200px]" />
-              )}
-            </div>
-
-            <div className="mb-8 space-y-3">
-              {C ? (
-                <>
-                  <BrandedPulse className="h-8 w-4/5 max-w-xs" C={C} />
-                  <BrandedPulse className="h-4 w-full" C={C} />
-                  <BrandedPulse className="h-4 w-11/12" C={C} />
-                </>
-              ) : (
-                <>
-                  <NeutralPulse className="h-8 w-4/5 max-w-xs" />
-                  <NeutralPulse className="h-4 w-full" />
-                  <NeutralPulse className="h-4 w-11/12" />
-                </>
-              )}
-            </div>
-
-            <div className="space-y-3">
-              {C ? (
-                <>
-                  <ChoiceCardSkeleton C={C} />
-                  <ChoiceCardSkeleton C={C} />
-                </>
-              ) : (
-                <>
-                  <NeutralPulse className="min-h-[76px] w-full rounded-xl sm:min-h-[84px]" />
-                  <NeutralPulse className="min-h-[76px] w-full rounded-xl sm:min-h-[84px]" />
-                </>
-              )}
-            </div>
-          </div>
+        <Bar className="h-3 w-32" />
+        <Bar className="mt-3 h-8 w-4/5 max-w-xs" />
+        <div className="mt-4 space-y-2">
+          <Bar className="h-4 w-full" />
+          <Bar className="h-4 w-11/12" />
+        </div>
+        <div className="mt-6 space-y-3">
+          <OptionRowSkeleton />
+          <OptionRowSkeleton />
         </div>
       </div>
-    </div>
+    </ApplyAuthGardenFrame>
   );
 }

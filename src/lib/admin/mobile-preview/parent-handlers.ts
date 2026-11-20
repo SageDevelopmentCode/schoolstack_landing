@@ -49,6 +49,11 @@ import { getFamilyNotificationEmailSettings } from "@/lib/notifications/family-n
 import { fetchOrganizationWithSettingsUncached } from "@/lib/organization-settings/fetch";
 import { loadParentPortalHomePreviewApiPayload } from "@/lib/parent-portal/load-parent-portal-home-preview-api-payload";
 import {
+  isParentNewslettersFeatureEnabled,
+  loadParentNewsletterDetailBundleForOrganization,
+  loadParentNewslettersListBundle,
+} from "@/lib/parent-portal/newsletters/load-parent-newsletters";
+import {
   createProgramCoopCurriculumSignedUrl,
   getProgramCoopCurriculumById,
   PROGRAM_COOP_CURRICULUM_BUCKET,
@@ -900,6 +905,52 @@ export async function handleParentMobilePreviewGet(
       }
 
       return NextResponse.json(detail);
+    }
+
+    if (segment === "newsletters") {
+      const editionId = pathSegments[1];
+      if (!editionId) {
+        if (!isParentNewslettersFeatureEnabled(org.features as never)) {
+          return apiError(route, {
+            request,
+            status: 403,
+            error: "Newsletters are not available for this school.",
+            code: "feature_disabled",
+          });
+        }
+        const bundle = await loadParentNewslettersListBundle(admin, organizationId);
+        return NextResponse.json(bundle);
+      }
+
+      const result = await loadParentNewsletterDetailBundleForOrganization(
+        admin,
+        organizationId,
+        editionId,
+      );
+      if (!result.ok) {
+        const notFound =
+          result.reason === "org_not_found" || result.reason === "not_found";
+        return apiError(route, {
+          request,
+          status: notFound ? 404 : 403,
+          error: notFound
+            ? "Newsletter not found."
+            : "Newsletters are not available for this school.",
+          code: notFound ? "not_found" : "feature_disabled",
+        });
+      }
+
+      if (pathSegments[2] === "document") {
+        return new Response(result.bundle.htmlDocument, {
+          status: 200,
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "private, no-store",
+          },
+        });
+      }
+
+      return NextResponse.json(result.bundle);
     }
 
     if (segment === "signups" && pathSegments[1] === "attention") {

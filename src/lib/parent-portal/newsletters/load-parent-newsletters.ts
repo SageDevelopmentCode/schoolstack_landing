@@ -41,6 +41,14 @@ const GALLERY_PHOTO_SELECT = `
   updated_at
 `;
 
+/** Staff portal: newsletters are readable when the teacher flag is on. */
+export function isTeacherNewslettersFeatureEnabled(
+  features: OrganizationFeatures | null | undefined,
+): boolean {
+  const merged = mergeFeatures(features as Record<string, unknown> | null | undefined);
+  return merged.teacher.newsletters === true;
+}
+
 export function isParentNewslettersFeatureEnabled(
   features: OrganizationFeatures | null | undefined,
 ): boolean {
@@ -207,10 +215,17 @@ export async function loadParentNewsletterDetailBundle(
   };
 }
 
+/**
+ * Loads a published edition for any reader. The feature gate defaults to the
+ * parent flag; the staff portal passes `isTeacherNewslettersFeatureEnabled`.
+ */
 export async function loadParentNewsletterDetailBundleForOrganization(
   admin: SupabaseClient,
   organizationId: string,
   editionId: string,
+  options: {
+    isFeatureEnabled?: (features: OrganizationFeatures | null | undefined) => boolean;
+  } = {},
 ): Promise<
   | { ok: true; bundle: ParentNewsletterDetailBundle }
   | { ok: false; reason: "not_found" | "feature_disabled" | "org_not_found" }
@@ -240,7 +255,8 @@ export async function loadParentNewsletterDetailBundleForOrganization(
     | null;
   const settingsRow = Array.isArray(settings) ? settings[0] : settings;
 
-  if (!isParentNewslettersFeatureEnabled(settingsRow?.features as never)) {
+  const isFeatureEnabled = options.isFeatureEnabled ?? isParentNewslettersFeatureEnabled;
+  if (!isFeatureEnabled(settingsRow?.features as never)) {
     return { ok: false, reason: "feature_disabled" };
   }
 

@@ -5,6 +5,7 @@ import { gardenFontVariables } from "@/components/garden/fonts";
 import SlideCanvas, { SLIDE_HEIGHT, SLIDE_WIDTH } from "@/components/admin/marketing/slide-frame";
 import { CarouselLaptopWindow, type CarouselDemoCrop } from "@/components/admin/marketing/carousels/carousel-product-slide";
 import { Mascot, type MascotName, type MascotView } from "@/components/admin/marketing/mascot/Mascot";
+import type { PatternKind } from "@/components/admin/marketing/sticker";
 
 /** Garden palette for the storybook crew carousels. */
 export const G = {
@@ -51,14 +52,17 @@ const placed = ({ x, y, rotate = 0, z = 3 }: Placed): CSSProperties => ({
 export function MascotSlide({
   background = G.cream,
   logo = "corner",
+  pattern,
   children,
 }: {
   background?: string;
   logo?: "corner" | "none";
+  /** Background pattern override ("none" for plain). */
+  pattern?: PatternKind | "none";
   children: ReactNode;
 }) {
   return (
-    <SlideCanvas background={background} logo={logo}>
+    <SlideCanvas background={background} logo={logo} pattern={pattern}>
       <div
         className={gardenFontVariables}
         style={{ position: "absolute", inset: 0, fontFamily: FONT.body, color: G.ink }}
@@ -430,12 +434,43 @@ function LaneGuide({ side, mascot, tip, laneWidth = LANE_WIDTH }: { side: LaneSi
   );
 }
 
-/** Kicker + headline + plain body + optional hand-written aside. */
-function CopyBlock({ kicker, title, body, aside, size = 64, maxWidth = 900 }: { kicker?: string; title: ReactNode; body?: string; aside?: ReactNode; size?: number; maxWidth?: number }) {
+/** Sticker character standing on top of a window's bottom corner, with an optional bubble above its head. */
+function CornerGuide({ side, mascot, tip, width = 300, inset = 20, tipWidth = 330 }: { side: LaneSide; mascot: SlideMascot; tip?: ReactNode; width?: number; inset?: number; tipWidth?: number }) {
+  const w = mascot.width ?? width;
+  const h = Math.round((w * 260) / 240);
+  // The art box has ~8% empty space under the feet: let the feet rest on the slide's bottom edge.
+  const top = SLIDE_HEIGHT - Math.round(h * 0.93);
+  const x = side === "left" ? inset : SLIDE_WIDTH - w - inset;
   return (
     <>
-      {kicker ? <Kicker style={{ alignSelf: "flex-start" }}>{kicker}</Kicker> : null}
-      <Headline size={size} style={{ marginTop: kicker ? 22 : 0, maxWidth }}>
+      {tip ? (
+        <div
+          style={{
+            position: "absolute",
+            width: tipWidth,
+            bottom: SLIDE_HEIGHT - top - Math.round(h * 0.06),
+            ...(side === "left" ? { left: inset + 10 } : { right: inset + 10 }),
+            zIndex: 9,
+          }}
+        >
+          <SpeechBubble size={30} tail={side === "left" ? "bottom-left" : "bottom-right"} style={{ padding: "20px 22px", borderRadius: 28 }}>
+            {tip}
+          </SpeechBubble>
+        </div>
+      ) : null}
+      <PlacedMascot name={mascot.name} view={mascot.view} flip={mascot.flip} width={w} x={mascot.x ?? x} y={mascot.y ?? top} z={8} />
+    </>
+  );
+}
+
+/** Window box that shows the whole demo width: body height follows the demo's own aspect ratio. */
+const fullWidthWindowHeight = (bodyWidth: number, contentHeight: number) => Math.round((bodyWidth * contentHeight) / 1100) + 49;
+
+/** Headline + plain body + optional hand-written aside. (No eyebrow label: `kicker` is accepted but not shown.) */
+function CopyBlock({ title, body, aside, size = 64, maxWidth = 900 }: { kicker?: string; title: ReactNode; body?: string; aside?: ReactNode; size?: number; maxWidth?: number }) {
+  return (
+    <>
+      <Headline size={size} style={{ maxWidth }}>
         {title}
       </Headline>
       {body ? (
@@ -452,8 +487,8 @@ function CopyBlock({ kicker, title, body, aside, size = 64, maxWidth = 900 }: { 
 
 /**
  * Real product slide: headline on top, the real demo app in a laptop window, the character and a sticky note.
- * With `lane`, a column on that side is kept clear for the character (and an optional `tip` bubble),
- * so it never covers the app; the window bleeds off the other edge.
+ * With `lane`, the window runs full width under the copy (showing the whole demo, uncropped) and the
+ * character stands as a sticker on top of its bottom corner on that side, with an optional `tip` bubble.
  */
 export function MascotProductSlide({
   kicker,
@@ -469,11 +504,11 @@ export function MascotProductSlide({
   background = G.cream,
   windowTop,
   contentHeight = 920,
-  crop,
   overlay,
   children,
 }: {
-  kicker: string;
+  /** Ignored: eyebrow labels were removed from slides. */
+  kicker?: string;
   title: ReactNode;
   body?: string;
   aside?: ReactNode;
@@ -488,23 +523,20 @@ export function MascotProductSlide({
   background?: string;
   windowTop?: number;
   contentHeight?: number;
+  /** Ignored: product windows now always show the whole demo. */
   crop?: CarouselDemoCrop;
   children: ReactNode;
 }) {
   // Lane slides flow: the window starts right under the copy, whatever its length.
   const flow = Boolean(lane) && windowTop === undefined;
   const top = windowTop ?? 420;
-  const left = lane === "left" ? LANE_WIDTH : lane === "right" ? 44 : 48;
-  const right = lane === "right" ? LANE_WIDTH : -100;
+  // Every product window runs full width and shows the whole demo (no side crop, no bleed).
+  const left = 48;
+  const right = 48;
   const bodyWidth = SLIDE_WIDTH - left - right;
+  const windowHeight = fullWidthWindowHeight(bodyWidth, contentHeight);
   const laptop = (
-    <CarouselLaptopWindow
-      contentHeight={contentHeight}
-      cropFocus="top"
-      crop={crop}
-      defaultBodyWidth={bodyWidth}
-      defaultBodyHeight={SLIDE_HEIGHT - (flow ? 560 : top)}
-    >
+    <CarouselLaptopWindow contentHeight={contentHeight} cropFocus="top" defaultBodyWidth={bodyWidth} defaultBodyHeight={windowHeight - 49}>
       {children}
     </CarouselLaptopWindow>
   );
@@ -515,14 +547,14 @@ export function MascotProductSlide({
           <div style={{ padding: "0 72px", flexShrink: 0, zIndex: 4 }}>
             <CopyBlock kicker={kicker} title={title} body={body} aside={aside} />
           </div>
-          <div style={{ position: "relative", flex: 1, minHeight: 0, marginTop: 44, marginLeft: left, marginRight: right, zIndex: 2 }}>{laptop}</div>
+          <div style={{ position: "relative", flexShrink: 0, height: windowHeight, marginTop: 40, marginLeft: left, marginRight: right, zIndex: 2 }}>{laptop}</div>
         </div>
       ) : (
         <>
           <div style={{ position: "absolute", left: 72, right: 72, top: 120, zIndex: 4 }}>
             <CopyBlock kicker={kicker} title={title} body={body} aside={aside} />
           </div>
-          <div style={{ position: "absolute", left, right, top, bottom: -72, zIndex: 2 }}>{laptop}</div>
+          <div style={{ position: "absolute", left, right, top, height: windowHeight, zIndex: 2 }}>{laptop}</div>
         </>
       )}
       {overlay}
@@ -534,7 +566,7 @@ export function MascotProductSlide({
         </At>
       ) : null}
       {lane ? (
-        <LaneGuide side={lane} mascot={mascot} tip={tip} />
+        <CornerGuide side={lane} mascot={mascot} tip={tip} />
       ) : (
         <PlacedMascot name={mascot.name} view={mascot.view} flip={mascot.flip} width={mascot.width ?? 380} x={mascot.x ?? 0} y={mascot.y ?? 900} z={8} />
       )}
@@ -649,20 +681,21 @@ export function MascotPromoSlide({
   body,
   cast,
   contentHeight = 920,
-  crop,
   children,
 }: {
   title: ReactNode;
   body?: string;
   cast: [SlideMascot] | [SlideMascot, SlideMascot];
   contentHeight?: number;
+  /** Ignored: the promo window now shows the whole demo. */
   crop?: CarouselDemoCrop;
   children: ReactNode;
 }) {
   const windowTop = 640;
-  const side = 230;
+  const side = 90;
   const [first, second] = cast;
-  const castWidth = 240;
+  const castWidth = 250;
+  const promoBody = SLIDE_WIDTH - side * 2;
   return (
     <MascotSlide background={G.forest}>
       <div style={{ position: "absolute", left: 80, right: 80, top: 130, zIndex: 4, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
@@ -677,28 +710,26 @@ export function MascotPromoSlide({
           <span style={{ fontFamily: FONT.body, fontWeight: 800, fontSize: 28, color: G.mint }}>{SITE_LABEL}</span>
         </div>
       </div>
-      <div style={{ position: "absolute", left: side, right: side, top: windowTop, bottom: -72, zIndex: 2 }}>
+      <div style={{ position: "absolute", left: side, right: side, top: windowTop, height: fullWidthWindowHeight(promoBody, contentHeight), zIndex: 2 }}>
         <CarouselLaptopWindow
           contentHeight={contentHeight}
           cropFocus="top"
-          crop={crop}
-          defaultBodyWidth={SLIDE_WIDTH - side * 2}
-          defaultBodyHeight={SLIDE_HEIGHT - windowTop}
+          defaultBodyWidth={promoBody}
+          defaultBodyHeight={fullWidthWindowHeight(promoBody, contentHeight) - 49}
         >
           {children}
         </CarouselLaptopWindow>
       </div>
-      <LaneGuide side="left" mascot={{ width: castWidth, ...first }} laneWidth={side + 20} />
-      {second ? <LaneGuide side="right" mascot={{ width: castWidth, ...second }} laneWidth={side + 20} /> : null}
+      <CornerGuide side="left" mascot={{ width: castWidth, ...first }} />
+      {second ? <CornerGuide side="right" mascot={{ width: castWidth, ...second }} /> : null}
     </MascotSlide>
   );
 }
 
 // ---------------------------------------------------------------- reusable story slides
 
-/** Slide 1: kicker + big joke headline, scene props (children), the character, an aside and "swipe →". */
+/** Slide 1: big joke headline, scene props (children), the character, an aside and "swipe →". */
 export function MascotHookSlide({
-  kicker,
   headline,
   name,
   view,
@@ -721,8 +752,7 @@ export function MascotHookSlide({
   return (
     <MascotSlide background={background}>
       <div style={{ position: "absolute", left: 72, right: 72, top: 128, zIndex: 5 }}>
-        {kicker ? <Kicker bg={G.paper}>{kicker}</Kicker> : null}
-        <Headline size={headlineSize} style={{ marginTop: kicker ? 22 : 0 }}>
+        <Headline size={headlineSize}>
           {headline}
         </Headline>
       </div>

@@ -2,12 +2,14 @@ import {
   composeEmail,
   emailBadge,
   emailBulletList,
+  emailContactCard,
   emailCta,
   emailDetailCard,
   emailDigestActivityCard,
   emailDigestSectionHeader,
   emailHeading,
   emailMutedParagraph,
+  emailNumberedSteps,
   emailParagraph,
   emailSignOff,
   escapeHtml,
@@ -210,7 +212,7 @@ export async function sendDemoBookingConfirmation(payload: {
   });
 
   if (!result.success) {
-    console.error("Demo booking confirmation email failed:", result.error);
+    throw new Error(result.error ?? "Demo booking confirmation email failed");
   }
 }
 
@@ -229,8 +231,141 @@ export async function sendHomepageQuestionConfirmation(payload: {
   });
 
   if (!result.success) {
-    console.error("Homepage question confirmation email failed:", result.error);
+    throw new Error(result.error ?? "Homepage question confirmation email failed");
   }
+}
+
+/** First name for headings: emailHeading escapes on its own, so this stays unescaped. */
+function plainFirstName(name: string | null | undefined): string {
+  const trimmed = name?.trim() ?? "";
+  return trimmed.split(/\s+/)[0] || "there";
+}
+
+export function customDemoRequestConfirmationSubject(schoolName: string): string {
+  return `We got it! Your ${SITE_NAME} preview for ${schoolName} is underway`;
+}
+
+export function buildCustomDemoRequestConfirmationHtml(payload: {
+  name: string;
+  schoolName: string;
+  websiteUrl?: string | null;
+}): string {
+  const school = escapeHtml(payload.schoolName);
+  const host = payload.websiteUrl?.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const buildStep = host
+    ? `We'll pull the logo, colours and programs from <strong>${escapeHtml(host)}</strong> and set everything up for ${school}.`
+    : `You didn't share a website, and that's fine. Reply with your logo or a few photos and we'll use them. If not, we'll pick a look that suits ${school}.`;
+
+  return composeEmail({
+    preheader: `We're building a private ${SITE_NAME} preview for ${payload.schoolName}. Here's what happens next.`,
+    contentHtml: `
+      ${emailBadge("Request Received")}
+      ${emailHeading(`Thanks, ${plainFirstName(payload.name)}. We got your request!`)}
+      ${emailParagraph(
+        `We're building a private, clickable ${escapeHtml(SITE_NAME)} preview for <strong>${school}</strong>. It's your own school, not a generic demo: a refreshed school website, the parent app, the teacher portal and the admin portal, all with your name and branding.`,
+      )}
+      ${emailParagraph(`<strong>Here's what happens next:</strong>`)}
+      ${emailNumberedSteps([
+        { title: "We build your preview by hand", bodyHtml: buildStep },
+        {
+          title: "Your link arrives within 2 business days",
+          bodyHtml: "We'll email you a private link. No login and nothing to install.",
+        },
+        {
+          title: "Click around on your own time",
+          bodyHtml:
+            "See enrollment, tuition, parent messages and daily operations the way your families and staff would. When you're ready, book a call right from the preview.",
+        },
+      ])}
+      ${emailParagraph(
+        "Want it to feel even more like your school? Just reply to this email with your programs, ages, tuition or your biggest headache right now. We read every reply.",
+      )}
+      ${emailMutedParagraph("Rather talk it through sooner? Grab a time that works for you.")}
+      ${emailCta({ label: "Book a Demo", href: `${getRuntimeSiteUrl()}/get-started` })}
+      ${emailContactCard()}
+      <p style="margin:0;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:15px;line-height:1.65;">
+        Talk soon,<br><strong>Julius</strong><br><span style="opacity:0.65;font-size:14px;">${escapeHtml(SITE_NAME)}</span>
+      </p>
+    `,
+  });
+}
+
+export async function sendCustomDemoRequestConfirmation(payload: {
+  name: string;
+  email: string;
+  schoolName: string;
+  websiteUrl?: string | null;
+}): Promise<void> {
+  if (!(await isZohoConfigured())) return;
+
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: customDemoRequestConfirmationSubject(payload.schoolName),
+    content: buildCustomDemoRequestConfirmationHtml(payload),
+    discord: prospectOutboundDiscord("custom_demo_request_confirmation"),
+  });
+
+  if (!result.success) {
+    throw new Error(result.error ?? "Custom demo request confirmation email failed");
+  }
+}
+
+/** `lines` must already be sanitized (`sanitizePlanLines`); they are escaped here. */
+export function buildFreeToolPlanHtml(payload: {
+  name: string | null;
+  toolName: string;
+  toolPath: string;
+  lines: string[];
+}): string {
+  const blocks: string[][] = [[]];
+  for (const line of payload.lines) {
+    if (line.trim() === "") {
+      if (blocks[blocks.length - 1].length) blocks.push([]);
+    } else {
+      blocks[blocks.length - 1].push(escapeHtml(line));
+    }
+  }
+  const body = blocks
+    .filter((b) => b.length)
+    .map((b) => emailParagraph(b.join("<br>")))
+    .join("");
+
+  return composeEmail({
+    preheader: `Your results from ${payload.toolName}.`,
+    contentHtml: `
+      ${emailBadge("Your Results")}
+      ${emailHeading(`Here's your plan, ${plainFirstName(payload.name)}.`)}
+      ${emailMutedParagraph(`You asked us to email your results from ${escapeHtml(payload.toolName)}. A copy is below.`)}
+      ${body}
+      ${emailCta({ label: "Open the tool again", href: `${getRuntimeSiteUrl()}${payload.toolPath}` })}
+      ${emailMutedParagraph(
+        `When you're ready to run all of this in one place, we're happy to show you ${escapeHtml(SITE_NAME)}. Just reply to this email.`,
+      )}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendFreeToolPlanEmail(payload: {
+  name: string | null;
+  email: string;
+  toolName: string;
+  toolPath: string;
+  lines: string[];
+}): Promise<boolean> {
+  if (!(await isZohoConfigured())) return false;
+
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `Your results: ${payload.toolName}`,
+    content: buildFreeToolPlanHtml(payload),
+    discord: prospectOutboundDiscord("free_tool_plan"),
+  });
+
+  if (!result.success) {
+    throw new Error(result.error ?? "Free tool plan email failed");
+  }
+  return true;
 }
 
 export function buildPublicSupportRequestConfirmationHtml(payload: {
@@ -268,7 +403,7 @@ export async function sendPublicSupportRequestConfirmation(payload: {
   });
 
   if (!result.success) {
-    console.error("Public support request confirmation email failed:", result.error);
+    throw new Error(result.error ?? "Public support request confirmation email failed");
   }
 }
 
@@ -288,7 +423,7 @@ export async function sendDemoFeedbackConfirmation(payload: {
   });
 
   if (!result.success) {
-    console.error("Demo feedback confirmation email failed:", result.error);
+    throw new Error(result.error ?? "Demo feedback confirmation email failed");
   }
 }
 

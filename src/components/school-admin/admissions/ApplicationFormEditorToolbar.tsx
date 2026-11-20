@@ -381,6 +381,7 @@ export default function ApplicationFormEditorToolbar({
           onCopyLink={onCopyPublicLink}
           onSelectReadinessItem={onSelectReadinessItem}
           menuItems={menuItems}
+          readinessAlwaysVisible
         />
         {guideModal}
       </>

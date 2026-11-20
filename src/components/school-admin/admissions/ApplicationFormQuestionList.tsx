@@ -13,6 +13,22 @@ import {
   createBlankField,
 } from "./ApplicationFormFieldEditor";
 
+/** Locked apply-form field (mapped to student records): can't move, delete or change required. */
+export function isLockedSystemField(field: ApplicationField, lockSystemFields: boolean): boolean {
+  return lockSystemFields && (field.system === true || isSystemFieldId(field.id));
+}
+
+/** On apply forms system fields always stay first; every reorder goes through this. */
+export function orderFieldsSystemFirst(
+  fields: ApplicationField[],
+  lockSystemFields: boolean,
+): ApplicationField[] {
+  if (!lockSystemFields) return fields;
+  const systemFields = fields.filter((field) => isLockedSystemField(field, true));
+  const customFields = fields.filter((field) => !isLockedSystemField(field, true));
+  return [...systemFields, ...customFields];
+}
+
 type ApplicationFormQuestionListProps = {
   C: AdminThemeTokens;
   stepId: string;
@@ -128,13 +144,7 @@ export default function ApplicationFormQuestionList({
   const isSystemStep = lockSystemFields && fields.some((field) => field.system || isSystemFieldId(field.id));
 
   const handleReorder = (next: ApplicationField[]) => {
-    if (!lockSystemFields) {
-      onReorderFields(next);
-      return;
-    }
-    const systemFields = next.filter((field) => field.system || isSystemFieldId(field.id));
-    const customFields = next.filter((field) => !field.system && !isSystemFieldId(field.id));
-    onReorderFields([...systemFields, ...customFields]);
+    onReorderFields(orderFieldsSystemFirst(next, lockSystemFields));
   };
 
   const handleAddPreset = (id: string, field: ApplicationField) => {

@@ -29,6 +29,8 @@ import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 /** Time allowed for the viewer to show the first page (pdf.js renders later pages on demand). */
 const LOAD_TIMEOUT_MS = 45_000;
+/** A second process termination within this window of a silent reload is a crash loop. */
+const TERMINATION_CRASH_LOOP_WINDOW_MS = 30_000;
 
 type ParentEmbeddedPdfWebViewProps = {
   url: string;
@@ -91,6 +93,12 @@ export function ParentEmbeddedPdfWebView({
   const viewerReadyRef = useRef(false);
   const firstPageShownRef = useRef(false);
   const reportedKeysRef = useRef<Set<string>>(new Set());
+  /** When the viewer was last remounted after its process was killed (ms). */
+  const lastTerminationReloadAtRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    lastTerminationReloadAtRef.current = null;
+  }, [url]);
 
   useEffect(() => {
     setPhase('loading');
@@ -229,13 +237,25 @@ export function ParentEmbeddedPdfWebView({
     [markError, reportViewerFailure],
   );
 
+  /**
+   * iOS kills a backgrounded app's web content process routinely, so the first
+   * termination remounts the viewer silently (Apple's documented recovery).
+   * Only a second one soon after that reload is reported as a crash loop.
+   */
   const handleRenderProcessGone = useCallback(
     (event: { nativeEvent?: object }) => {
+      const now = Date.now();
+      const lastReloadAt = lastTerminationReloadAtRef.current;
+      if (lastReloadAt === null || now - lastReloadAt > TERMINATION_CRASH_LOOP_WINDOW_MS) {
+        lastTerminationReloadAtRef.current = now;
+        setReloadKey((key) => key + 1);
+        return;
+      }
       const didCrash = (event?.nativeEvent as { didCrash?: boolean } | undefined)?.didCrash;
       reportViewerFailure(
         'parent_pdf_viewer_render_process_gone',
         new Error('The PDF viewer process was terminated (likely out of memory).'),
-        { stage: 'render_process_gone', didCrash },
+        { stage: 'render_process_gone', didCrash, autoReloaded: true },
       );
       markError();
     },
@@ -254,6 +274,7 @@ export function ParentEmbeddedPdfWebView({
   }, [reportEntityId, reportEntityType, reportError, url]);
 
   const retry = useCallback(() => {
+    lastTerminationReloadAtRef.current = null;
     setReloadKey((key) => key + 1);
   }, []);
 

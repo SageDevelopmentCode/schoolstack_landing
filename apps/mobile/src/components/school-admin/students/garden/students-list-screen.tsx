@@ -1,10 +1,10 @@
 import { StatusBar } from 'expo-status-bar';
 import { useMemo } from 'react';
 import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { GInlineBanner } from '@/components/parent/garden/fields';
-import { Garden, GardenFonts, PORTAL_EASE } from '@/components/parent/garden/tokens';
+import { Garden, GardenFonts } from '@/components/parent/garden/tokens';
 import { GLink, GSkeleton } from '@/components/parent/garden/ui';
 import {
   AdminEmptyPanel,
@@ -23,6 +23,7 @@ import {
   type StudentsListController,
 } from '@/components/school-admin/students/garden/use-students-list-controller';
 import { useStudentsListFeedback } from '@/components/school-admin/students/garden/use-students-list-feedback';
+import { calmEnter } from '@/lib/motion/portal-motion';
 import { formatEnrolledStudentName } from '@/lib/school-admin/enrolled-students';
 
 const KPI_BARS = { all: '#2E4A3C', attention: '#E2B33C', programs: '#7FA7D9', recent: '#B5577A' } as const;
@@ -81,7 +82,7 @@ function StudentsListContent({ controller }: { controller: StudentsListControlle
   const header = (
     <View style={styles.headerBlock}>
       {hasStudents ? (
-        <Animated.View entering={FadeInDown.delay(40).duration(320).easing(PORTAL_EASE)}>
+        <Animated.View entering={calmEnter({ delay: 40 })}>
           <AdminKpiTiles
             tiles={[
               {
@@ -122,7 +123,7 @@ function StudentsListContent({ controller }: { controller: StudentsListControlle
       ) : null}
 
       {metrics.unassignedCount > 0 && rosterFilter !== 'unassigned' ? (
-        <Animated.View entering={FadeInDown.delay(90).duration(320).easing(PORTAL_EASE)}>
+        <Animated.View entering={calmEnter({ delay: 90 })}>
           <AdminLeadStrip
             testID="students-show-unassigned"
             icon="people-outline"

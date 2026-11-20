@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import ApplicationSelectInput from "@/components/admissions/ApplicationSelectInput";
 import {
   parseApplicationAddressFieldValue,
@@ -9,6 +9,11 @@ import {
   type ApplicationAddressValue,
 } from "@/lib/admissions/application-address";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import {
+  applicationFieldClass,
+  applicationFocusRing,
+  useApplicationFieldAppearance,
+} from "@/components/admissions/application-field-appearance";
 
 type ApplicationAddressInputProps = {
   idPrefix: string;
@@ -18,10 +23,6 @@ type ApplicationAddressInputProps = {
   disabled?: boolean;
   error?: string | null;
 };
-
-function fieldClassName() {
-  return "w-full rounded-md border px-3 py-2.5 text-sm outline-none transition focus:ring-2";
-}
 
 function SubFieldLabel({
   children,
@@ -46,6 +47,7 @@ export default function ApplicationAddressInput({
   error = null,
 }: ApplicationAddressInputProps) {
   const address = parseApplicationAddressFieldValue(value);
+  const appearance = useApplicationFieldAppearance();
 
   const style = {
     borderColor: error ? C.errorBorder : C.border,
@@ -53,7 +55,7 @@ export default function ApplicationAddressInput({
     backgroundColor: "#FFFFFF",
   } as const;
 
-  const focusRing = { "--tw-ring-color": `${C.accent}40` } as CSSProperties;
+  const focusRing = applicationFocusRing(C.accent, appearance);
 
   const updateAddress = (patch: Partial<ApplicationAddressValue>) => {
     onChange(
@@ -68,7 +70,7 @@ export default function ApplicationAddressInput({
     <div
       className={
         error
-          ? "space-y-4 rounded-md border p-4"
+          ? `space-y-4 p-4 ${appearance === "garden" ? "rounded-[14px] border-2" : "rounded-md border"}`
           : "space-y-4"
       }
       style={error ? { borderColor: C.errorBorder } : undefined}
@@ -83,7 +85,7 @@ export default function ApplicationAddressInput({
           value={address.line1}
           onChange={(e) => updateAddress({ line1: e.target.value })}
           disabled={disabled}
-          className={fieldClassName()}
+          className={applicationFieldClass(appearance)}
           style={{ ...style, ...focusRing }}
         />
       </div>
@@ -98,7 +100,7 @@ export default function ApplicationAddressInput({
           value={address.line2 ?? ""}
           onChange={(e) => updateAddress({ line2: e.target.value })}
           disabled={disabled}
-          className={fieldClassName()}
+          className={applicationFieldClass(appearance)}
           style={{ ...style, ...focusRing }}
         />
       </div>
@@ -114,7 +116,7 @@ export default function ApplicationAddressInput({
             value={address.city}
             onChange={(e) => updateAddress({ city: e.target.value })}
             disabled={disabled}
-            className={fieldClassName()}
+            className={applicationFieldClass(appearance)}
             style={{ ...style, ...focusRing }}
           />
         </div>
@@ -146,7 +148,7 @@ export default function ApplicationAddressInput({
           value={address.zip}
           onChange={(e) => updateAddress({ zip: e.target.value })}
           disabled={disabled}
-          className={fieldClassName()}
+          className={applicationFieldClass(appearance)}
           style={{ ...style, ...focusRing }}
         />
       </div>

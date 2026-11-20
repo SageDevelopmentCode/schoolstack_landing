@@ -1,10 +1,10 @@
 import { StatusBar } from 'expo-status-bar';
 import { useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { GInlineBanner } from '@/components/parent/garden/fields';
-import { Garden, GardenFonts, PORTAL_EASE } from '@/components/parent/garden/tokens';
+import { Garden, GardenFonts } from '@/components/parent/garden/tokens';
 import { GKicker, GLink, GOutlineButton, GPressable, GSkeleton } from '@/components/parent/garden/ui';
 import { AdminPhotoPermissionsSheet } from '@/components/school-admin/gallery/garden/admin-photo-permissions-sheet';
 import { AdminPhotoUploadSheet } from '@/components/school-admin/gallery/garden/admin-photo-upload-sheet';
@@ -21,6 +21,7 @@ import { GalleryPhotoGridSkeleton } from '@/components/school-admin/gallery/gall
 import { GalleryPhotoViewerModal } from '@/components/school-admin/gallery/gallery-photo-viewer-modal';
 import { AdminTabHeader, useAdminTopBleed } from '@/components/school-admin/garden/admin-tab-header';
 import { AdminEmptyPanel, AdminToolbarButton } from '@/components/school-admin/garden/admin-ui';
+import { calmExit, calmRise } from '@/lib/motion/portal-motion';
 import { formatGalleryDateLabel } from '@/lib/school-gallery/format-gallery-date';
 import {
   deleteGalleryPhoto,
@@ -171,7 +172,7 @@ export function PhotosScreen({ organizationId, slug }: Props) {
       </ScrollView>
 
       {selectionMode ? (
-        <Animated.View entering={FadeInDown.duration(220).easing(PORTAL_EASE)} exiting={FadeOutDown.duration(160)} style={styles.selectBar}>
+        <Animated.View entering={calmRise()} exiting={calmExit()} style={styles.selectBar}>
           <Text style={styles.selectCount} accessibilityLiveRegion="polite">
             {bulkProgress ? `Deleting ${bulkProgress.done} of ${bulkProgress.total}…` : `${selectedIds.size} selected`}
           </Text>

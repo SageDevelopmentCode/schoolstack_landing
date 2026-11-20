@@ -671,6 +671,7 @@ function isRetryableActivityLogInsertFailure(error: unknown): boolean {
 }
 
 type ActivityEventInsertRow = {
+  id: string;
   organization_id: string | null;
   actor_type: ActivityEventInput["actorType"];
   actor_user_id: string | null;
@@ -689,6 +690,15 @@ async function insertActivityEventRow(
   writeClient: SupabaseClient,
   row: ActivityEventInsertRow,
 ): Promise<{ data: { id: string } | null; error: unknown }> {
+  // In the browser the write runs as the signed-in user. `INSERT … RETURNING`
+  // also has to pass the SELECT policy, which only platform admins have, so a
+  // school admin's insert fails with 42501. Insert without returning and use
+  // the id generated here.
+  if (typeof window !== "undefined") {
+    const { error } = await writeClient.from("activity_events").insert(row);
+    return { data: error ? null : { id: row.id }, error: error ?? null };
+  }
+
   const { data, error } = await writeClient
     .from("activity_events")
     .insert(row)
@@ -774,6 +784,7 @@ export async function logActivityEvent(
     }
 
     const row: ActivityEventInsertRow = {
+      id: crypto.randomUUID(),
       organization_id: event.organizationId ?? null,
       actor_type: event.actorType,
       actor_user_id: actorUserId,

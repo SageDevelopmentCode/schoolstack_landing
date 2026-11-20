@@ -13,11 +13,12 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
-  withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 
 import { Garden, GardenFonts, useGardenAccent } from '@/components/parent/garden/tokens';
 import { haptic } from '@/lib/haptics';
+import { GLIDE } from '@/lib/motion/portal-motion';
 
 export type GSegmentedItem<Id extends string> = {
   id: Id;
@@ -26,8 +27,6 @@ export type GSegmentedItem<Id extends string> = {
   badge?: number;
   testID?: string;
 };
-
-const PILL_SPRING = { damping: 22, stiffness: 380 } as const;
 
 /** Segmented tab bar with an accent pill that glides to the active tab. */
 export function GSegmented<Id extends string>({
@@ -62,8 +61,8 @@ export function GSegmented<Id extends string>({
       x.value = layout.x;
       width.value = layout.width;
     } else {
-      x.value = withSpring(layout.x, PILL_SPRING);
-      width.value = withSpring(layout.width, PILL_SPRING);
+      x.value = withTiming(layout.x, GLIDE);
+      width.value = withTiming(layout.width, GLIDE);
     }
     if (scrollable) {
       scrollRef.current?.scrollTo({ x: Math.max(0, layout.x - 32), animated: !reduceMotion });

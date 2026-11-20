@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, BackHandler, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { SchoolAdminFridayBranchBlockActionsSheet } from '@/components/school-admin/friday-branch/school-admin-friday-branch-block-actions-sheet';
 import { SchoolAdminFridayBranchBlockDetailsSheet } from '@/components/school-admin/friday-branch/school-admin-friday-branch-block-details-sheet';
@@ -16,6 +16,7 @@ import { StoryCard } from '@/components/story/story-card';
 import { StoryErrorBanner } from '@/components/story/story-error-banner';
 import { useSchoolAdminFridayBranch } from '@/contexts/school-admin-friday-branch-context';
 import { useParentTheme } from '@/contexts/parent-theme-context';
+import { calmEnter } from '@/lib/motion/portal-motion';
 import { confirmDiscardUnsavedChanges } from '@/lib/unsaved-changes';
 import {
   blockScheduleEntering,
@@ -301,7 +302,7 @@ export function SchoolAdminFridayBranchScreen({
             tintColor={theme.primary}
           />
         }>
-        <Animated.View entering={FadeInDown.duration(300)} style={styles.headerSection}>
+        <Animated.View entering={calmEnter()} style={styles.headerSection}>
           <SchoolAdminFridayBranchStoryHeader />
           {parentPortalPaused ? (
             <StoryCard compact style={styles.pausedBanner}>
@@ -331,7 +332,7 @@ export function SchoolAdminFridayBranchScreen({
           </View>
         ) : null}
 
-        <Animated.View entering={FadeInDown.duration(300)}>
+        <Animated.View entering={calmEnter()}>
           <SchoolAdminFridayBranchBlockStrip
             blocks={blocks}
             selectedId={selectedBlockId}

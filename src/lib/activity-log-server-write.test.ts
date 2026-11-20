@@ -21,9 +21,11 @@ function createActivityEventsMockSupabase(
   inserts: Array<Record<string, unknown>>;
   label: string;
   insertAttempts: number;
+  selectCalls: number;
 } {
   const inserts: Array<Record<string, unknown>> = [];
   let insertAttempts = 0;
+  let selectCalls = 0;
 
   const supabase = {
     auth: {
@@ -38,26 +40,33 @@ function createActivityEventsMockSupabase(
           if (table === "activity_events") {
             inserts.push(row);
           }
+          const runInsert = async (returning: boolean) => {
+            insertAttempts += 1;
+            if (
+              options?.failInsertAttempts != null &&
+              insertAttempts <= options.failInsertAttempts
+            ) {
+              throw options.failInsertError ?? new TypeError("fetch failed");
+            }
+            return {
+              data:
+                options?.insertError || !returning
+                  ? null
+                  : { id: `${label}-event-1` },
+              error: options?.insertError ?? null,
+            };
+          };
           return {
             select() {
-              return {
-                single: async () => {
-                  insertAttempts += 1;
-                  if (
-                    options?.failInsertAttempts != null &&
-                    insertAttempts <= options.failInsertAttempts
-                  ) {
-                    throw (
-                      options.failInsertError ??
-                      new TypeError("fetch failed")
-                    );
-                  }
-                  return {
-                    data: options?.insertError ? null : { id: `${label}-event-1` },
-                    error: options?.insertError ?? null,
-                  };
-                },
-              };
+              selectCalls += 1;
+              return { single: () => runInsert(true) };
+            },
+            // Awaiting the builder without .select() = return=minimal insert.
+            then<T>(
+              resolve: (value: Awaited<ReturnType<typeof runInsert>>) => T,
+              reject?: (reason: unknown) => T,
+            ) {
+              return runInsert(false).then(resolve, reject);
             },
           };
         },
@@ -65,7 +74,17 @@ function createActivityEventsMockSupabase(
     },
   } as unknown as SupabaseClient;
 
-  return { supabase, inserts, label, get insertAttempts() { return insertAttempts; } };
+  return {
+    supabase,
+    inserts,
+    label,
+    get insertAttempts() {
+      return insertAttempts;
+    },
+    get selectCalls() {
+      return selectCalls;
+    },
+  };
 }
 
 describe("resolveActivityWriteClient", () => {
@@ -224,6 +243,31 @@ describe("logActivityEvent browser failure reporting", () => {
     } else {
       globalThis.window = originalWindow;
     }
+  });
+
+  it("inserts without RETURNING in the browser and returns the generated id", async () => {
+    globalThis.window = originalWindow ?? ({} as Window & typeof globalThis);
+
+    const session = createActivityEventsMockSupabase("session");
+
+    const eventId = await logActivityEvent(session.supabase, {
+      organizationId: "org-1",
+      actorType: "school_admin",
+      actorUserId: "user-1",
+      surface: "school_admin",
+      action: ACTIVITY_ACTIONS.TUITION_RATE_PLAN_UPDATED,
+      entityType: "tuition_rate_plan",
+      entityId: "plan-1",
+      summary: "Updated rate plan",
+    });
+
+    assert.equal(session.inserts.length, 1);
+    assert.equal(session.selectCalls, 0);
+    const insertedId = session.inserts[0]?.id;
+    assert.equal(typeof insertedId, "string");
+    assert.match(String(insertedId), /^[0-9a-f-]{36}$/);
+    assert.equal(eventId, insertedId);
+    assert.equal(session.inserts[0]?.actor_user_id, "user-1");
   });
 
   it("does not throw when insert fails and service role env is unavailable", async () => {

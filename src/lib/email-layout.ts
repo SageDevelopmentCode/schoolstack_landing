@@ -2,7 +2,7 @@ import {
   buildAppleMapsAddressUrl,
   buildGoogleMapsSearchUrl,
 } from "@/lib/maps/navigation-links";
-import { getRuntimeSiteUrl, SITE_NAME } from "@/lib/site";
+import { getRuntimeSiteUrl, MUDKITCHEN_CONTACT, SITE_NAME } from "@/lib/site";
 
 const COLORS = {
   accent: "#2E4A3C",
@@ -42,6 +42,14 @@ const EMAIL_DARK_MODE_CSS = `<style>
     .email-digest-badge {
       background-color: rgba(197, 157, 132, 0.2) !important;
       color: #E8C4B0 !important;
+    }
+    .email-soft-card {
+      background-color: rgba(197, 213, 184, 0.08) !important;
+      border-color: rgba(197, 213, 184, 0.25) !important;
+    }
+    .email-step-number {
+      background-color: ${COLORS.accentDark} !important;
+      color: #1F2A24 !important;
     }
   }
 </style>`;
@@ -274,6 +282,60 @@ export function emailBulletList(items: string[]): string {
     .join("");
 
   return `<ul style="margin:0 0 16px 20px;padding:0;">${listItems}</ul>`;
+}
+
+/** Numbered "what happens next" steps. `bodyHtml` is inserted raw; escape it first. */
+export function emailNumberedSteps(steps: { title: string; bodyHtml: string }[]): string {
+  const rows = steps
+    .map(
+      (step, index) => `<tr>
+    <td valign="top" width="40" style="padding:${index === 0 ? "0" : "14px"} 12px 0 0;width:40px;">
+      <div class="email-step-number" style="width:28px;height:28px;line-height:28px;border-radius:14px;background-color:${COLORS.accent};color:#FFFFFF;text-align:center;font-family:${FONT_BODY};font-size:14px;font-weight:700;">${index + 1}</div>
+    </td>
+    <td valign="top" style="padding:${index === 0 ? "3px" : "17px"} 0 0;font-family:${FONT_BODY};font-size:15px;line-height:1.55;">
+      <strong>${escapeHtml(step.title)}</strong><br>
+      <span style="opacity:0.8;">${step.bodyHtml}</span>
+    </td>
+  </tr>`,
+    )
+    .join("");
+
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 24px;">
+  ${rows}
+</table>`;
+}
+
+/**
+ * MudKitchen's own contact details and socials, for prospect emails only. School-branded
+ * emails must not use this: it is MudKitchen's phone and inbox, not the school's.
+ */
+export function emailContactCard(siteUrl?: string): string {
+  const { url } = resolveEmailSiteUrl(siteUrl);
+  const c = MUDKITCHEN_CONTACT;
+  const label = `font-family:${FONT_BODY};font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;opacity:${MUTED_OPACITY};padding:0 0 4px;`;
+  const value = `font-family:${FONT_BODY};font-size:15px;line-height:1.5;padding:0 0 14px;`;
+  const social = (href: string, icon: string, name: string) =>
+    `<a class="email-link" href="${href}" style="${EMAIL_LINK_STYLE}font-weight:600;display:inline-block;margin:0 18px 0 0;">
+      <img src="${url}/images/email/${icon}" alt="" width="24" height="24" style="display:inline-block;vertical-align:middle;border:0;width:24px;height:24px;margin:0 6px 0 0;">${escapeHtml(name)}</a>`;
+
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 24px;">
+  <tr>
+    <td class="email-soft-card" style="padding:20px 22px 6px;border:1px solid rgba(46,74,60,0.18);border-radius:12px;background-color:rgba(46,74,60,0.04);">
+      <p class="email-accent" style="margin:0 0 14px;font-family:${FONT_BODY};font-size:16px;font-weight:600;color:${COLORS.accent};">
+        Questions? Talk to a real person.
+      </p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr><td style="${label}">Email</td></tr>
+        <tr><td style="${value}"><a class="email-link" href="mailto:${c.email}" style="${EMAIL_LINK_STYLE}font-weight:600;">${escapeHtml(c.email)}</a></td></tr>
+        <tr><td style="${label}">Call or text</td></tr>
+        <tr><td style="${value}"><a class="email-link" href="${c.phoneHref}" style="${EMAIL_LINK_STYLE}font-weight:600;">${escapeHtml(c.phoneDisplay)}</a>
+          <span style="opacity:${MUTED_OPACITY};font-size:14px;">&nbsp;·&nbsp;<a class="email-link" href="${c.smsHref}" style="${EMAIL_LINK_STYLE}">Send a text</a></span></td></tr>
+        <tr><td style="${label}">Follow along</td></tr>
+        <tr><td style="${value}">${social(c.instagram, "instagram.png", "Instagram")}${social(c.facebook, "facebook.png", "Facebook")}</td></tr>
+      </table>
+    </td>
+  </tr>
+</table>`;
 }
 
 export function emailCta(opts: { label: string; href: string }): string {

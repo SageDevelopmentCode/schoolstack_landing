@@ -19,6 +19,7 @@ import ApplicationFieldOptionsEditor, {
   createDefaultFieldOptions,
 } from "./ApplicationFieldOptionsEditor";
 import { BuilderQuestionCard } from "./builder-question-card";
+import { fieldHonoursWidth } from "@/components/admissions/application-field-layout";
 
 type ApplicationFormFieldEditorProps = {
   C: AdminThemeTokens;
@@ -163,6 +164,45 @@ export default function ApplicationFormFieldEditor({
           </div>
         }
       />
+
+      {fieldHonoursWidth(field) ? (
+        <BuilderQuestionCard
+          C={C}
+          tone="info"
+          question="How wide is it on the page?"
+          helper="Half-width questions sit side by side on wider screens, like first and last name."
+        >
+          <div role="radiogroup" aria-label="Question width" className="inline-flex gap-2">
+            {(
+              [
+                { value: "full", label: "Full width" },
+                { value: "half", label: "Half width" },
+              ] as const
+            ).map((option) => {
+              const checked = (field.width ?? "full") === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={checked}
+                  disabled={readOnly}
+                  onClick={() => onChange({ width: option.value })}
+                  className="rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors disabled:opacity-50"
+                  style={{
+                    borderColor: checked ? C.accent : C.border,
+                    backgroundColor: checked ? C.accentLight : C.surface,
+                    color: checked ? C.accent : C.textSecondary,
+                  }}
+                  data-testid={`field-width-${option.value}`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        </BuilderQuestionCard>
+      ) : null}
 
       {(field.type === "text" ||
         field.type === "email" ||

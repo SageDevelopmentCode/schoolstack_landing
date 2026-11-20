@@ -1,3 +1,7 @@
+import { ADS_CREW_HUMOR_CAROUSEL } from "@/components/admin/marketing/carousels/ads-crew-humor";
+import { ADS_HOLIDAY_GIFT_CAROUSEL } from "@/components/admin/marketing/carousels/ads-holiday-gift";
+import { ADS_PAIN_PROOF_CAROUSEL } from "@/components/admin/marketing/carousels/ads-pain-proof";
+import { ADS_WINTER_BREAK_CAROUSEL } from "@/components/admin/marketing/carousels/ads-winter-break";
 import { APPLICATION_FINISH_LINE_CAROUSEL } from "@/components/admin/marketing/carousels/application-finish-line";
 import { GETTING_READY_TO_ENROLL_CAROUSEL } from "@/components/admin/marketing/carousels/getting-ready-to-enroll";
 import { MASCOT_BRAMBLE_FORMS_CAROUSEL } from "@/components/admin/marketing/carousels/mascot-bramble-forms";
@@ -14,6 +18,23 @@ import { MASCOT_PIP_ENROLLMENT_CAROUSEL } from "@/components/admin/marketing/car
 import { ONE_PLACE_AD_CAROUSEL } from "@/components/admin/marketing/carousels/one-place-ad";
 import { TUITION_REVIEW_CAROUSEL } from "@/components/admin/marketing/carousels/tuition-review";
 import { WHERE_WAS_THAT_UPDATE_CAROUSEL } from "@/components/admin/marketing/carousels/where-was-that-update";
+import { ADS_FEATURE_SPOTLIGHT_CAROUSEL } from "@/components/admin/marketing/carousels/ads-feature-spotlight";
+import { ADS_NEW_YEAR_CAROUSEL } from "@/components/admin/marketing/carousels/ads-new-year";
+import { MASCOT_FAMILY_FIRST_WEEK_CAROUSEL } from "@/components/admin/marketing/carousels/mascot-family-first-week";
+import { MASCOT_FLICKER_TANSY_COMMUNITY_CAROUSEL } from "@/components/admin/marketing/carousels/mascot-flicker-tansy-community";
+import { MASCOT_FOUNDER_WEEK_CAROUSEL } from "@/components/admin/marketing/carousels/mascot-founder-week";
+import { MASCOT_GUIDED_SETUP_CAROUSEL } from "@/components/admin/marketing/carousels/mascot-guided-setup";
+import { POSTS_WEEKLY_SINGLES_CAROUSEL } from "@/components/admin/marketing/carousels/posts-weekly-singles";
+import { MASCOT_HOLIDAY_PROGRAM_CAROUSEL } from "@/components/admin/marketing/carousels/mascot-holiday-program";
+import { MASCOT_SPRING_ENROLLMENT_PLAN_CAROUSEL } from "@/components/admin/marketing/carousels/mascot-spring-enrollment-plan";
+import { POSTS_HOLIDAY_SINGLES_CAROUSEL } from "@/components/admin/marketing/carousels/posts-holiday-singles";
+import { ADS_FREE_PREVIEW_CAROUSEL } from "@/components/admin/marketing/carousels/ads-free-preview";
+import { MASCOT_FREE_PREVIEW_CAROUSEL } from "@/components/admin/marketing/carousels/mascot-free-preview";
+import { MASCOT_FREE_PREVIEW_BEFORE_AFTER_CAROUSEL } from "@/components/admin/marketing/carousels/mascot-free-preview-before-after";
+import { POSTS_FREE_PREVIEW_SINGLES_CAROUSEL } from "@/components/admin/marketing/carousels/posts-free-preview-singles";
+import { ADS_FOUNDER_NOTES_CAROUSEL } from "@/components/admin/marketing/carousels/ads-founder-notes";
+import { ADS_SCHOOL_OBJECTS_CAROUSEL } from "@/components/admin/marketing/carousels/ads-school-objects";
+import { MASCOT_FOUNDER_LETTER_CAROUSEL } from "@/components/admin/marketing/carousels/mascot-founder-letter";
 import type { MarketingCarousel } from "@/components/admin/marketing/carousels/types";
 
 export const MARKETING_CAROUSELS: MarketingCarousel[] = [
@@ -33,6 +54,27 @@ export const MARKETING_CAROUSELS: MarketingCarousel[] = [
   MASCOT_DOT_CALENDAR_CAROUSEL,
   MASCOT_BRAMBLE_FORMS_CAROUSEL,
   MASCOT_CREW_SINGLES_CAROUSEL,
+  MASCOT_GUIDED_SETUP_CAROUSEL,
+  MASCOT_FAMILY_FIRST_WEEK_CAROUSEL,
+  MASCOT_FOUNDER_WEEK_CAROUSEL,
+  MASCOT_FLICKER_TANSY_COMMUNITY_CAROUSEL,
+  MASCOT_HOLIDAY_PROGRAM_CAROUSEL,
+  MASCOT_SPRING_ENROLLMENT_PLAN_CAROUSEL,
+  MASCOT_FREE_PREVIEW_CAROUSEL,
+  MASCOT_FREE_PREVIEW_BEFORE_AFTER_CAROUSEL,
+  MASCOT_FOUNDER_LETTER_CAROUSEL,
+  POSTS_WEEKLY_SINGLES_CAROUSEL,
+  POSTS_HOLIDAY_SINGLES_CAROUSEL,
+  POSTS_FREE_PREVIEW_SINGLES_CAROUSEL,
+  ADS_HOLIDAY_GIFT_CAROUSEL,
+  ADS_WINTER_BREAK_CAROUSEL,
+  ADS_CREW_HUMOR_CAROUSEL,
+  ADS_PAIN_PROOF_CAROUSEL,
+  ADS_FEATURE_SPOTLIGHT_CAROUSEL,
+  ADS_NEW_YEAR_CAROUSEL,
+  ADS_FREE_PREVIEW_CAROUSEL,
+  ADS_FOUNDER_NOTES_CAROUSEL,
+  ADS_SCHOOL_OBJECTS_CAROUSEL,
 ];
 
 export const DEFAULT_CAROUSEL_ID = MARKETING_CAROUSELS[0]?.id ?? "tuition-review";

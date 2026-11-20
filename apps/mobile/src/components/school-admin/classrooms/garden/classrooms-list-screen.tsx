@@ -1,11 +1,11 @@
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useMemo, useState } from 'react';
 import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { closeThen, useGardenPullRefresh, useGardenReadOnlyGate } from '@/components/parent/garden/feedback';
 import { GInlineBanner } from '@/components/parent/garden/fields';
-import { Garden, GardenFonts, PORTAL_EASE } from '@/components/parent/garden/tokens';
+import { Garden, GardenFonts } from '@/components/parent/garden/tokens';
 import { GErrorCard, GLink, GSkeleton } from '@/components/parent/garden/ui';
 import {
   AdminClassroomFormSheet,
@@ -30,6 +30,7 @@ import {
 } from '@/components/school-admin/garden/admin-ui';
 import { useAdminAction } from '@/components/school-admin/garden/use-admin-action';
 import { haptic } from '@/lib/haptics';
+import { calmEnter } from '@/lib/motion/portal-motion';
 
 /** "6 classrooms · 48 rostered students" — built only from data. */
 export function classroomsStatusLine(count: number, students: number): string {
@@ -155,7 +156,7 @@ function ClassroomsListContent({ controller }: { controller: ClassroomsListContr
   const header = (
     <View style={styles.headerBlock}>
       {hasRooms ? (
-        <Animated.View entering={FadeInDown.delay(40).duration(320).easing(PORTAL_EASE)}>
+        <Animated.View entering={calmEnter({ delay: 40 })}>
           <AdminStatStrip
             stats={[
               { label: 'Classrooms', value: String(counts.all) },
@@ -167,7 +168,7 @@ function ClassroomsListContent({ controller }: { controller: ClassroomsListContr
       ) : null}
 
       {counts.no_lead > 0 && filter !== 'no_lead' ? (
-        <Animated.View entering={FadeInDown.delay(90).duration(320).easing(PORTAL_EASE)}>
+        <Animated.View entering={calmEnter({ delay: 90 })}>
           <AdminLeadStrip
             testID="classrooms-show-no-lead"
             icon="person-add-outline"
