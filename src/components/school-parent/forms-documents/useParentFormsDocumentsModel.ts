@@ -24,9 +24,15 @@ const FLASH_MS = 2600;
 export function useParentFormsDocumentsModel({
   initialItems,
   initialFormId,
+  syncFormToUrl = true,
 }: {
   initialItems: ParentFormListItem[];
   initialFormId?: string;
+  /**
+   * `false` keeps the open form in local state instead of `?form=` (marketing
+   * demos embed this page on pages whose URL must not change).
+   */
+  syncFormToUrl?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -45,7 +51,10 @@ export function useParentFormsDocumentsModel({
     [],
   );
 
-  const formParam = searchParams.get("form") ?? initialFormId ?? null;
+  const [localFormId, setLocalFormId] = useState<string | null>(initialFormId ?? null);
+  const formParam = syncFormToUrl
+    ? (searchParams.get("form") ?? initialFormId ?? null)
+    : localFormId;
 
   const selectedFormId = useMemo(() => {
     if (!formParam) return null;
@@ -54,13 +63,17 @@ export function useParentFormsDocumentsModel({
 
   const setFormParam = useCallback(
     (formId: string | null) => {
+      if (!syncFormToUrl) {
+        setLocalFormId(formId);
+        return;
+      }
       const params = new URLSearchParams(searchParams.toString());
       if (formId) params.set("form", formId);
       else params.delete("form");
       const qs = params.toString();
       router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     },
-    [pathname, router, searchParams],
+    [pathname, router, searchParams, syncFormToUrl],
   );
 
   const openForm = useCallback((formId: string) => setFormParam(formId), [setFormParam]);

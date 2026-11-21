@@ -22,7 +22,9 @@ import ParentGardenMoreMenu, {
 /*
  * Garden header nav: pill links with an accent pill that glides to the
  * active tab, plus the "More" trigger and grid. Renders the desktop row
- * (`variant="desktop"`) and the phone/tablet second row (`variant="mobile"`).
+ * (`variant="desktop"`), the phone/tablet second row (`variant="mobile"`) and
+ * the always-visible row for marketing demos (`variant="embedded"`): those sit
+ * in a scaled 1100px canvas, so a viewport breakpoint would hide the nav.
  */
 
 const pillBase = `relative inline-flex shrink-0 cursor-pointer items-center whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-extrabold transition-colors duration-200 ${G_FOCUS} focus-visible:ring-offset-0`;
@@ -163,7 +165,7 @@ export default function ParentGardenNav({
   isItemActive = isParentNavItemActive,
   testIdPrefix = "parent-header",
 }: {
-  variant: "desktop" | "mobile";
+  variant: "desktop" | "mobile" | "embedded";
   primary: ParentNavItem[];
   more: ParentNavItem[];
   pathname: string;
@@ -201,12 +203,16 @@ export default function ParentGardenNav({
   }, [pathname]);
 
   const isDesktop = variant === "desktop";
+  const isEmbedded = variant === "embedded";
+  const isDesktopRow = isDesktop || isEmbedded;
 
   return (
     <nav
       aria-label={ariaLabel}
       className={
-        isDesktop
+        isEmbedded
+          ? "flex min-w-0 max-w-[min(100%,54rem)] items-center gap-1"
+          : isDesktop
           ? "hidden min-w-0 max-w-[min(100%,54rem)] items-center gap-1 lg:flex"
           : "flex items-center gap-1 border-t-[1.5px] border-[var(--sf-ink)]/[0.07] px-3 py-2 sm:px-5 lg:hidden"
       }
@@ -229,7 +235,7 @@ export default function ParentGardenNav({
       </div>
 
       {more.length > 0 ? (
-        <div className={`shrink-0 ${isDesktop ? "relative" : "sm:relative"}`} ref={moreWrapRef}>
+        <div className={`shrink-0 ${isDesktopRow ? "relative" : "sm:relative"}`} ref={moreWrapRef}>
           <button
             ref={moreTriggerRef}
             type="button"
@@ -237,7 +243,7 @@ export default function ParentGardenNav({
             aria-expanded={moreOpen}
             aria-controls={menuId}
             aria-haspopup="dialog"
-            data-testid={isDesktop ? `${testIdPrefix}-more` : `${testIdPrefix}-more-mobile`}
+            data-testid={isDesktopRow ? `${testIdPrefix}-more` : `${testIdPrefix}-more-mobile`}
             className={`${pillBase} gap-1 ${
               moreActive
                 ? "text-white"

@@ -1,11 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   Calendar,
-  ChevronDown,
   ClipboardCheck,
   CreditCard,
   FileText,
@@ -15,7 +13,6 @@ import {
   Phone,
   Rss,
   Users,
-  type LucideIcon,
 } from "lucide-react";
 import type { SchoolParentDemoConfig } from "@/data/school-demos/demo-dashboard-types";
 import DemoParentBillingPage from "@/components/demo/shared/DemoParentBillingPage";
@@ -23,20 +20,19 @@ import DemoParentCalendarPage from "@/components/demo/shared/DemoParentCalendarP
 import DemoParentChildrenPage from "@/components/demo/shared/DemoParentChildrenPage";
 import DemoParentEnrollmentTab from "@/components/demo/shared/DemoParentEnrollmentTab";
 import DemoParentHomePage from "@/components/demo/shared/DemoParentHomePage";
+import DemoParentEmergencyContactsPage from "@/components/demo/shared/parent-garden/DemoParentEmergencyContactsPage";
+import DemoParentFeedPage from "@/components/demo/shared/parent-garden/DemoParentFeedPage";
+import DemoParentVolunteerPage from "@/components/demo/shared/parent-garden/DemoParentVolunteerPage";
+import DemoParentFormsDocumentsPage from "@/components/demo/shared/parent-garden/DemoParentFormsDocumentsPage";
+import DemoParentMessagesPage from "@/components/demo/shared/parent-garden/DemoParentMessagesPage";
+import DemoPortalGardenHeader, {
+  type DemoPortalNavEntry,
+} from "@/components/demo/shared/DemoPortalGardenHeader";
 import {
   PARENT_DEMO_STORY_THEME,
   applyParentDemoRuntime,
 } from "@/components/demo/shared/parent-demo-runtime";
 import { demoStoryShellStyle } from "@/components/demo/shared/demo-story-theme";
-import SchoolParentComingSoon from "@/components/school-parent/SchoolParentComingSoon";
-import {
-  buildDemoParentBranding,
-  DEMO_PARENT_FEATURES,
-  DEMO_PARENT_USER_PROFILE,
-  DEMO_PORTAL_ORG_ID,
-  DEMO_PORTAL_SLUG,
-  resolveDemoParentSchoolName,
-} from "@/data/school-demos/demo-portal-shared";
 import { getTourTargetCenter } from "@/components/demo/shared/tour-cursor-position";
 import { fraunces, dmSans } from "@/lib/fonts/local";
 
@@ -57,29 +53,22 @@ const DEMO_PARENT = {
   initials: "SM",
 };
 
-const PRIMARY_NAV: { label: string; icon: LucideIcon; tab: ParentDemoNavTab }[] = [
-  { label: "Home", icon: Home, tab: "home" },
-  { label: "Enrollment", icon: ClipboardCheck, tab: "enrollment" },
-  { label: "My Children", icon: Users, tab: "children" },
-  { label: "Tuition & Billing", icon: CreditCard, tab: "billing" },
-  { label: "Calendar", icon: Calendar, tab: "calendar" },
+const PRIMARY_NAV: DemoPortalNavEntry<ParentDemoNavTab>[] = [
+  { label: "Home", icon: Home, tab: "home", iconSlug: "home" },
+  { label: "Enrollment", icon: ClipboardCheck, tab: "enrollment", iconSlug: "clipboard-list" },
+  { label: "My Children", icon: Users, tab: "children", iconSlug: "users" },
+  { label: "Tuition & Billing", icon: CreditCard, tab: "billing", iconSlug: "credit-card" },
+  { label: "Calendar", icon: Calendar, tab: "calendar", iconSlug: "calendar-days" },
 ];
 
-const MORE_NAV: { label: string; icon: LucideIcon; tab: ParentDemoNavTab }[] = [
-  { label: "Messages", icon: MessageCircle, tab: "messages" },
-  { label: "Feed", icon: Rss, tab: "feed" },
-  { label: "Forms & Documents", icon: FileText, tab: "forms" },
-  { label: "Volunteer Opportunities", icon: Heart, tab: "volunteer" },
-  { label: "Emergency Contacts", icon: Phone, tab: "emergency-contacts" },
+const MORE_NAV: DemoPortalNavEntry<ParentDemoNavTab>[] = [
+  { label: "Messages", icon: MessageCircle, tab: "messages", iconSlug: "message-square" },
+  { label: "Feed", icon: Rss, tab: "feed", iconSlug: "megaphone" },
+  { label: "Forms & Documents", icon: FileText, tab: "forms", iconSlug: "file-text" },
+  { label: "Volunteer Opportunities", icon: Heart, tab: "volunteer", iconSlug: "heart" },
+  { label: "Emergency Contacts", icon: Phone, tab: "emergency-contacts", iconSlug: "heart-pulse" },
 ];
 
-const COMING_SOON_LABELS: Partial<Record<ParentDemoNavTab, string>> = {
-  messages: "Messages",
-  feed: "Feed",
-  forms: "Forms & Documents",
-  volunteer: "Volunteer Opportunities",
-  "emergency-contacts": "Emergency Contacts",
-};
 
 const TOUR_MOVE_MS = 950;
 const TOUR_RESUME_MS = 1500;
@@ -91,105 +80,6 @@ const PARENT_DEMO_TOUR_TABS: ParentDemoNavTab[] = [
   "calendar",
   "billing",
 ];
-
-function ParentDemoNav({
-  activeTab,
-  onTabChange,
-}: {
-  activeTab: ParentDemoNavTab;
-  onTabChange: (tab: ParentDemoNavTab) => void;
-}) {
-  const [moreOpen, setMoreOpen] = useState(false);
-  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
-  const moreRef = useRef<HTMLDivElement>(null);
-  const btnRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (moreRef.current && !moreRef.current.contains(event.target as Node)) {
-        setMoreOpen(false);
-      }
-    }
-    if (moreOpen) document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [moreOpen]);
-
-  function openMore() {
-    if (btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect();
-      setDropdownPos({ top: rect.bottom + 6, left: rect.left + rect.width / 2 });
-    }
-    setMoreOpen((value) => !value);
-  }
-
-  return (
-    <nav data-tour-nav="primary" className="flex flex-wrap items-center gap-1">
-      {PRIMARY_NAV.map(({ label, icon: Icon, tab }) => {
-        const isActive = activeTab === tab;
-        return (
-          <button
-            key={tab}
-            type="button"
-            data-tour-id={`nav-${tab}`}
-            onClick={() => onTabChange(tab)}
-            className="flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-xl px-2.5 py-1.5 text-xs transition-colors sm:px-3 sm:text-sm"
-            style={
-              isActive
-                ? {
-                    color: PARENT_DEMO_STORY_THEME.primaryDark,
-                    backgroundColor: PARENT_DEMO_STORY_THEME.primaryLight,
-                    fontWeight: 600,
-                  }
-                : { color: PARENT_DEMO_STORY_THEME.muted }
-            }
-          >
-            <Icon className="pointer-events-none h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            {label}
-          </button>
-        );
-      })}
-
-      <div ref={moreRef}>
-        <button
-          ref={btnRef}
-          type="button"
-          data-tour-id="nav-more"
-          onClick={openMore}
-          className="flex cursor-pointer items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-body text-gray-600 transition-colors hover:bg-gray-50 sm:px-3 sm:text-sm"
-        >
-          More
-          <ChevronDown
-            className={`h-3.5 w-3.5 transition-transform ${moreOpen ? "rotate-180" : ""}`}
-            strokeWidth={2.5}
-          />
-        </button>
-
-        {moreOpen ? (
-          <div
-            className="fixed z-[9999] w-52 -translate-x-1/2 overflow-hidden rounded-lg border border-gray-100 bg-white py-1.5 shadow-lg"
-            style={{ top: dropdownPos.top, left: dropdownPos.left }}
-          >
-            {MORE_NAV.map(({ label, icon: Icon, tab }) => (
-              <button
-                key={tab}
-                type="button"
-                data-tour-id={`nav-${tab}`}
-                onClick={() => {
-                  onTabChange(tab);
-                  setMoreOpen(false);
-                }}
-                className="flex w-full cursor-pointer items-center gap-1.5 px-4 py-2 text-left text-sm font-body text-gray-700 transition-colors hover:bg-gray-50"
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </div>
-    </nav>
-  );
-}
 
 export type SchoolParentDemoShellProps = {
   config: SchoolParentDemoConfig;
@@ -209,8 +99,6 @@ export default function SchoolParentDemoShell({
   onMount,
 }: SchoolParentDemoShellProps) {
   applyParentDemoRuntime(config);
-  const branding = buildDemoParentBranding();
-  const schoolName = resolveDemoParentSchoolName();
 
   const [activeTab, setActiveTab] = useState<ParentDemoNavTab>(initialTab);
   const [isTouring, setIsTouring] = useState(!disableTour);
@@ -230,7 +118,7 @@ export default function SchoolParentDemoShell({
     const root = containerRef.current;
     if (!root) return null;
     const target = root.querySelector(
-      `[data-tour-nav="primary"] [data-tour-id="${targetId}"]`,
+      `[data-tour-nav="primary"] [data-nav-key="${targetId}"]`,
     );
     if (!target) return null;
     return getTourTargetCenter(root, target);
@@ -250,7 +138,7 @@ export default function SchoolParentDemoShell({
     };
 
     schedule(() => {
-      const position = getTargetCenter(`nav-${tab}`);
+      const position = getTargetCenter(tab);
       if (position) {
         setCursorPos(position);
         setCursorVisible(true);
@@ -293,8 +181,6 @@ export default function SchoolParentDemoShell({
     }, TOUR_RESUME_MS);
   }, [disableTour]);
 
-  const comingSoonLabel = COMING_SOON_LABELS[activeTab];
-
   return (
     <div
       ref={containerRef}
@@ -324,39 +210,18 @@ export default function SchoolParentDemoShell({
       ) : null}
 
       {!hideNav ? (
-        <header
-          className="z-40 shrink-0 border-b px-4 py-3 sm:px-6"
-          style={{
-            backgroundColor: PARENT_DEMO_STORY_THEME.white,
-            borderColor: PARENT_DEMO_STORY_THEME.line,
-          }}
-        >
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 gap-y-2">
-            <div className="flex shrink-0 items-center">
-              <Image
-                src="/images/schoolstack-logo.png"
-                alt="MudKitchen"
-                width={40}
-                height={40}
-                priority
-                className="h-8 w-auto shrink-0 object-contain"
-              />
-            </div>
-
-            <div className="flex min-w-0 flex-1 justify-center overflow-x-auto">
-              <ParentDemoNav activeTab={activeTab} onTabChange={setActiveTab} />
-            </div>
-
-            <div
-              className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full"
-              style={{ backgroundColor: PARENT_DEMO_STORY_THEME.primary }}
-            >
-              <span className="text-xs font-semibold font-body text-white">
-                {DEMO_PARENT.initials}
-              </span>
-            </div>
-          </div>
-        </header>
+        <DemoPortalGardenHeader
+          theme={PARENT_DEMO_STORY_THEME}
+          primary={PRIMARY_NAV}
+          more={MORE_NAV}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          initials={DEMO_PARENT.initials}
+          personName={DEMO_PARENT.name}
+          ariaLabel="Parent portal"
+          testIdPrefix="parent-demo-header"
+          messagesUnreadCount={activeTab === "messages" ? 0 : 1}
+        />
       ) : null}
 
       <main
@@ -368,17 +233,11 @@ export default function SchoolParentDemoShell({
         {activeTab === "children" ? <DemoParentChildrenPage /> : null}
         {activeTab === "calendar" ? <DemoParentCalendarPage /> : null}
         {activeTab === "billing" ? <DemoParentBillingPage /> : null}
-        {comingSoonLabel ? (
-          <SchoolParentComingSoon
-            branding={branding}
-            schoolSlug={DEMO_PORTAL_SLUG}
-            schoolName={schoolName}
-            organizationId={DEMO_PORTAL_ORG_ID}
-            featureKey={activeTab}
-            featureLabel={comingSoonLabel}
-            userProfile={DEMO_PARENT_USER_PROFILE}
-          />
-        ) : null}
+        {activeTab === "messages" ? <DemoParentMessagesPage /> : null}
+        {activeTab === "forms" ? <DemoParentFormsDocumentsPage /> : null}
+        {activeTab === "feed" ? <DemoParentFeedPage onNavigate={setActiveTab} /> : null}
+        {activeTab === "volunteer" ? <DemoParentVolunteerPage /> : null}
+        {activeTab === "emergency-contacts" ? <DemoParentEmergencyContactsPage /> : null}
       </main>
     </div>
   );

@@ -4,13 +4,173 @@
 import type { CSSProperties, ReactNode } from "react";
 import { FONT, G, Hand } from "@/components/admin/marketing/ads/ad-kit";
 import { YOUR } from "@/components/admin/marketing/carousels/free-preview-mocks";
+import { FOUNDER_PORTRAITS } from "@/components/about-garden/about-copy";
 
 // Classroom-object art for the founder-note and school-object ads: letters, texts, slips, passes,
 // report cards, flyers, whiteboards. CSS shapes and gradients only (no filters, no inline SVG art),
 // so every export stays fast and never goes black.
 
-/** Signature used on every founder-voice ad (we don't name or quote a person). */
+/** Signature used on the anonymous founder-voice ads (Sets G and H). */
 export const FOUNDER_SIGNATURE = "— the MudKitchen founder";
+
+/** Named founder for the signed sets (Set J and the bundle note). The photo path has a space, so it is URL-encoded for html-to-image. */
+export const FOUNDER_JULIUS = {
+  name: "Julius",
+  fullName: FOUNDER_PORTRAITS.julius.name,
+  role: "Co-founder, MudKitchen",
+  photo: encodeURI(FOUNDER_PORTRAITS.julius.src),
+} as const;
+
+export const JULIUS_SIGNATURE = "— Julius, co-founder of MudKitchen";
+
+// ---------------------------------------------------------------- founder photo
+
+/** Round founder photo with an ink ring. */
+export function FounderAvatar({ size = 96, ring = 4, style }: { size?: number; ring?: number; style?: CSSProperties }) {
+  return (
+    <span
+      style={{
+        display: "block",
+        width: size,
+        height: size,
+        flexShrink: 0,
+        boxSizing: "border-box",
+        borderRadius: 999,
+        border: `${ring}px solid ${G.ink}`,
+        overflow: "hidden",
+        background: G.cream,
+        ...style,
+      }}
+    >
+      <img src={FOUNDER_JULIUS.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 28%", display: "block" }} />
+    </span>
+  );
+}
+
+/** Taped instant photo of the founder with a handwritten caption. */
+export function FounderPolaroid({
+  width = 280,
+  rotate = -4,
+  caption = "hi, I'm Julius 👋",
+  tape = G.butter,
+  style,
+}: {
+  width?: number;
+  rotate?: number;
+  caption?: ReactNode;
+  tape?: string | false;
+  style?: CSSProperties;
+}) {
+  const pad = Math.round(width * 0.06);
+  return (
+    <div style={{ position: "relative", width, transform: rotate ? `rotate(${rotate}deg)` : undefined, ...style }}>
+      <div
+        style={{
+          boxSizing: "border-box",
+          width,
+          padding: `${pad}px ${pad}px ${Math.round(pad * 0.6)}px`,
+          background: "#FFFFFF",
+          border: `4px solid ${G.ink}`,
+          borderRadius: 10,
+          boxShadow: `0 10px 0 ${G.ink}`,
+        }}
+      >
+        <div style={{ width: "100%", aspectRatio: "1 / 1", overflow: "hidden", borderRadius: 4, background: G.cream }}>
+          <img src={FOUNDER_JULIUS.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 30%", display: "block" }} />
+        </div>
+        <Hand size={Math.round(width * 0.12)} color={G.ink} rotate={0} style={{ textAlign: "center", marginTop: Math.round(pad * 0.5), lineHeight: 1.15 }}>
+          {caption}
+        </Hand>
+      </div>
+      {tape ? (
+        <span aria-hidden style={{ position: "absolute", top: -20, left: "50%", marginLeft: -Math.round(width * 0.26), width: Math.round(width * 0.52), height: 40, background: tape, opacity: 0.9, transform: "rotate(4deg)", borderRadius: 4 }} />
+      ) : null}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- notes app
+
+/** A phone "Notes" statement: amber back bar, date line, bold title, plain body. */
+export function NotesAppCard({ title, date = "Today at 9:41 PM", width = 780, rotate = 0, children, style }: { title: ReactNode; date?: string; width?: number; rotate?: number; children: ReactNode; style?: CSSProperties }) {
+  const amber = "#D9921F";
+  return (
+    <div
+      style={{
+        width,
+        boxSizing: "border-box",
+        background: "#FFFFFF",
+        border: `4px solid ${G.ink}`,
+        borderRadius: 40,
+        boxShadow: `0 12px 0 ${G.ink}`,
+        overflow: "hidden",
+        transform: rotate ? `rotate(${rotate}deg)` : undefined,
+        fontFamily: FONT.body,
+        color: G.ink,
+        ...style,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "22px 34px 10px", fontWeight: 700, fontSize: 28, color: amber }}>
+        <span>‹ Notes</span>
+        <span style={{ fontWeight: 800 }}>Done</span>
+      </div>
+      <p style={{ margin: 0, textAlign: "center", fontWeight: 600, fontSize: 20, color: "#9A9086" }}>{date}</p>
+      <div style={{ padding: "18px 40px 36px" }}>
+        <p style={{ margin: 0, fontWeight: 900, fontSize: 40, lineHeight: 1.15, letterSpacing: "-0.01em" }}>{title}</p>
+        <div style={{ marginTop: 16, fontWeight: 600, fontSize: 29, lineHeight: 1.38, color: G.ink }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- voice memo
+
+// Fixed bar heights so every export is identical.
+const WAVE = Array.from({ length: 40 }, (_, i) => 14 + Math.round(Math.abs(Math.sin(i * 1.7) * Math.cos(i * 0.55)) * 64));
+
+/** Voice memo from the founder: photo, play button, waveform, then the transcript. */
+export function VoiceMemoCard({ duration = "0:24", transcript, width = 900, rotate = 0, style }: { duration?: string; transcript: ReactNode; width?: number; rotate?: number; style?: CSSProperties }) {
+  return (
+    <div
+      style={{
+        width,
+        boxSizing: "border-box",
+        background: "#FFFFFF",
+        border: `4px solid ${G.ink}`,
+        borderRadius: 40,
+        boxShadow: `0 12px 0 ${G.ink}`,
+        overflow: "hidden",
+        transform: rotate ? `rotate(${rotate}deg)` : undefined,
+        fontFamily: FONT.body,
+        color: G.ink,
+        ...style,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 20, padding: "24px 30px", background: "#F6F3EE", borderBottom: "2px solid #E4D8C8" }}>
+        <FounderAvatar size={86} ring={3} />
+        <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+          <span style={{ fontWeight: 800, fontSize: 30 }}>{FOUNDER_JULIUS.name}</span>
+          <span style={{ fontWeight: 600, fontSize: 22, color: G.soft }}>{FOUNDER_JULIUS.role} · voice memo</span>
+        </span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 22, padding: "28px 30px 10px" }}>
+        <span style={{ width: 78, height: 78, flexShrink: 0, borderRadius: 999, background: G.forest, border: `4px solid ${G.ink}`, boxSizing: "border-box", display: "grid", placeItems: "center" }}>
+          <span aria-hidden style={{ width: 0, height: 0, marginLeft: 6, borderTop: "15px solid transparent", borderBottom: "15px solid transparent", borderLeft: `24px solid ${G.cream}` }} />
+        </span>
+        <span aria-hidden style={{ flex: 1, display: "flex", alignItems: "center", gap: 6, height: 84 }}>
+          {WAVE.map((h, i) => (
+            <span key={i} style={{ flex: 1, height: h, borderRadius: 999, background: i < 14 ? G.forest : "#CFC5B8" }} />
+          ))}
+        </span>
+        <span style={{ fontWeight: 800, fontSize: 26, color: G.soft, flexShrink: 0 }}>{duration}</span>
+      </div>
+      <div style={{ margin: "14px 30px 30px", padding: "20px 24px", borderRadius: 24, background: G.cream }}>
+        <p style={{ margin: 0, fontWeight: 800, fontSize: 19, letterSpacing: "0.14em", textTransform: "uppercase", color: G.soft }}>Transcript</p>
+        <div style={{ marginTop: 8, fontWeight: 600, fontSize: 29, lineHeight: 1.36, color: G.ink }}>{transcript}</div>
+      </div>
+    </div>
+  );
+}
 
 const RULE = "#B9D3EE";
 const MARGIN = "#E9897A";
@@ -74,8 +234,8 @@ export function LetterLine({ children, size = 44, color = G.ink, style }: { chil
 
 export type TextMessage = { from: "founder" | "you"; text: ReactNode };
 
-/** A phone-style text thread with the MudKitchen founder (grey bubbles) and you (blue bubbles). */
-export function TextThread({ messages, width = 700, children, style }: { messages: TextMessage[]; width?: number; children?: ReactNode; style?: CSSProperties }) {
+/** A phone-style text thread with the MudKitchen founder (grey bubbles) and you (blue bubbles). `named` shows Julius and his photo. */
+export function TextThread({ messages, width = 700, named = false, children, style }: { messages: TextMessage[]; width?: number; named?: boolean; children?: ReactNode; style?: CSSProperties }) {
   return (
     <div
       style={{
@@ -92,10 +252,14 @@ export function TextThread({ messages, width = 700, children, style }: { message
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "22px 0 16px", background: "#F6F3EE", borderBottom: "2px solid #E4D8C8" }}>
-        <span style={{ width: 66, height: 66, borderRadius: 999, background: G.cream, border: "3px solid #E4D8C8", display: "grid", placeItems: "center" }}>
-          <img src="/images/Logo.png" alt="" style={{ width: 46, height: 46, objectFit: "contain" }} />
-        </span>
-        <span style={{ fontWeight: 800, fontSize: 24 }}>MudKitchen founder</span>
+        {named ? (
+          <FounderAvatar size={66} ring={3} />
+        ) : (
+          <span style={{ width: 66, height: 66, borderRadius: 999, background: G.cream, border: "3px solid #E4D8C8", display: "grid", placeItems: "center" }}>
+            <img src="/images/Logo.png" alt="" style={{ width: 46, height: 46, objectFit: "contain" }} />
+          </span>
+        )}
+        <span style={{ fontWeight: 800, fontSize: 24 }}>{named ? `${FOUNDER_JULIUS.name} · MudKitchen` : "MudKitchen founder"}</span>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 14, padding: "24px 24px 28px" }}>
         {messages.map((m, i) => {
@@ -133,6 +297,7 @@ export function InboxEmail({
   body,
   from = "MudKitchen founder",
   width = 900,
+  named = false,
   attachment,
   style,
 }: {
@@ -140,15 +305,21 @@ export function InboxEmail({
   body: ReactNode;
   from?: string;
   width?: number;
+  /** Show the founder's photo instead of the MudKitchen logo. */
+  named?: boolean;
   attachment?: ReactNode;
   style?: CSSProperties;
 }) {
   return (
     <div style={{ width, boxSizing: "border-box", background: "#FFFFFF", border: `4px solid ${G.ink}`, borderRadius: 32, boxShadow: `0 12px 0 ${G.ink}`, fontFamily: FONT.body, color: G.ink, overflow: "hidden", ...style }}>
       <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "20px 28px", background: "#F6F3EE", borderBottom: "2px solid #E4D8C8" }}>
-        <span style={{ width: 54, height: 54, borderRadius: 999, background: G.cream, border: "2px solid #E4D8C8", display: "grid", placeItems: "center", flexShrink: 0 }}>
-          <img src="/images/Logo.png" alt="" style={{ width: 38, height: 38, objectFit: "contain" }} />
-        </span>
+        {named ? (
+          <FounderAvatar size={58} ring={3} />
+        ) : (
+          <span style={{ width: 54, height: 54, borderRadius: 999, background: G.cream, border: "2px solid #E4D8C8", display: "grid", placeItems: "center", flexShrink: 0 }}>
+            <img src="/images/Logo.png" alt="" style={{ width: 38, height: 38, objectFit: "contain" }} />
+          </span>
+        )}
         <span style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
           <span style={{ fontWeight: 800, fontSize: 24 }}>{from}</span>
           <span style={{ fontWeight: 600, fontSize: 19, color: G.soft }}>to you · Inbox</span>

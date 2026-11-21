@@ -1,22 +1,33 @@
 import type { CSSProperties, ReactNode } from "react";
+import { Lock } from "lucide-react";
 import { Tape } from "@/components/garden/ui";
 
-/** The paper browser bar: peach, butter and mint dots plus a centred label. */
-export function GardenFrameBar({ label }: { label: ReactNode }) {
+/**
+ * The paper browser bar: peach, butter and mint dots plus a centred label.
+ * `responsive`: below `sm` it becomes a phone browser's address bar (no dots,
+ * a full-width pill with a lock), to match the phone-sized demo canvas.
+ */
+export function GardenFrameBar({ label, responsive = false }: { label: ReactNode; responsive?: boolean }) {
+  const phoneHidden = responsive ? "max-sm:hidden" : "";
   return (
-    <div className="flex items-center gap-3 border-b-2 border-[var(--sf-ink)] bg-[var(--sf-paper)] px-4 py-2.5">
-      <div className="flex gap-1.5" aria-hidden="true">
+    <div
+      className={`flex items-center gap-3 border-b-2 border-[var(--sf-ink)] bg-[var(--sf-paper)] px-4 py-2.5 ${responsive ? "max-sm:px-3 max-sm:py-2" : ""}`}
+    >
+      <div className={`flex gap-1.5 ${phoneHidden}`} aria-hidden="true">
         <span className="h-3 w-3 rounded-full border-[1.5px] border-[var(--sf-ink)] bg-[var(--sf-peach)]" />
         <span className="h-3 w-3 rounded-full border-[1.5px] border-[var(--sf-ink)] bg-[var(--sf-butter)]" />
         <span className="h-3 w-3 rounded-full border-[1.5px] border-[var(--sf-ink)] bg-[var(--sf-mint)]" />
       </div>
       <span
-        className="mx-auto truncate rounded-full bg-white px-4 py-1 text-xs font-extrabold text-[var(--sf-soft)] ring-1 ring-[var(--sf-ink)]/10"
+        className={`mx-auto flex min-w-0 items-center justify-center gap-1.5 rounded-full bg-white px-4 py-1 text-xs font-extrabold text-[var(--sf-soft)] ring-1 ring-[var(--sf-ink)]/10 ${
+          responsive ? "max-sm:flex-1 max-sm:py-1.5" : ""
+        }`}
         style={{ fontFamily: "var(--font-sf-body)" }}
       >
-        {label}
+        {responsive ? <Lock className="h-3 w-3 shrink-0 sm:hidden" strokeWidth={2.75} aria-hidden="true" /> : null}
+        <span className="truncate">{label}</span>
       </span>
-      <span className="w-[54px]" aria-hidden="true" />
+      <span className={`w-[54px] ${phoneHidden}`} aria-hidden="true" />
     </div>
   );
 }

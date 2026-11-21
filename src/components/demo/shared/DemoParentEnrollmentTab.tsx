@@ -2,10 +2,7 @@
 
 import { useMemo, useState } from "react";
 import DemoParentEnrollmentPage from "@/components/demo/shared/DemoParentEnrollmentPage";
-import ParentCard from "@/components/school-parent/ui/ParentCard";
-import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
-import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
-import { PARENT_DEMO_STORY_THEME } from "@/components/demo/shared/parent-demo-runtime";
+import { GKicker } from "@/components/school-parent/garden/ui";
 import type { DemoParentChildId, DemoParentModalId } from "@/components/demo/shared/demo-parent-types";
 import {
   DEMO_PARENT_CHECKLIST_ITEMS,
@@ -14,25 +11,25 @@ import {
   DEMO_PARENT_ENROLLMENT_DETAIL_COPY,
 } from "@/data/school-demos/demo-parent-portal-fixtures";
 
+/** Body of the Garden detail card (the card itself comes from `DemoParentEnrollmentPage`). */
 function EnrollmentDetailPanel({ modalId }: { modalId: DemoParentModalId }) {
-  const theme = PARENT_DEMO_STORY_THEME;
   const copy = DEMO_PARENT_ENROLLMENT_DETAIL_COPY[modalId];
 
   if (!copy) return null;
 
   return (
-    <ParentCard theme={theme}>
-      <ParentSectionKicker theme={theme}>Enrollment step</ParentSectionKicker>
-      <ParentDisplayHeading theme={theme} as="h2" size="section" className="mt-1">
+    <div className="max-w-3xl">
+      <GKicker>Enrollment step</GKicker>
+      <h2 className="sf-display m-0 mt-1 text-[1.4rem] leading-[1.1] text-[var(--sf-ink)]">
         {copy.title}
-      </ParentDisplayHeading>
-      <p className="mt-3 text-sm leading-relaxed" style={{ color: theme.muted }}>
+      </h2>
+      <p className="m-0 mt-3 text-[14px] font-semibold leading-relaxed text-[var(--sf-soft)]">
         {copy.body}
       </p>
-      <p className="mt-4 text-xs" style={{ color: theme.muted }}>
+      <p className="m-0 mt-5 inline-block rounded-[14px] border-[1.5px] border-dashed border-[var(--sf-ink)]/15 bg-[var(--sf-paper)] px-3.5 py-2 text-[12.5px] font-semibold text-[var(--sf-soft)]">
         Preview mode — forms and signatures are read-only in this demo.
       </p>
-    </ParentCard>
+    </div>
   );
 }
 

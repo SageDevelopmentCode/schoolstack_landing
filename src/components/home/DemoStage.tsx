@@ -46,6 +46,11 @@ const PREFETCH: Record<DemoStageKey, () => void> = {
   website: prefetchWebsiteDemo,
 };
 
+/** Containers narrower than this (and, for portals, a viewport below `md`) use phone mode. */
+const PHONE_MAX_WIDTH = 640;
+const PHONE_CANVAS_WIDTH = 375;
+const PHONE_VIEWPORT_QUERY = "(max-width: 767px)";
+
 export function prefetchDemoStage(key: DemoStageKey) {
   PREFETCH[key]();
 }
@@ -123,6 +128,7 @@ export default function DemoStage({
   const measureRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [height, setHeight] = useState(0);
+  const [narrowViewport, setNarrowViewport] = useState(false);
   const [loaded, setLoaded] = useState<Set<DemoStageKey>>(
     () => new Set([active]),
   );
@@ -141,22 +147,36 @@ export default function DemoStage({
     update();
     const observer = new ResizeObserver(update);
     observer.observe(el);
-    return () => observer.disconnect();
+    const query = window.matchMedia(PHONE_VIEWPORT_QUERY);
+    const updateViewport = () => setNarrowViewport(query.matches);
+    updateViewport();
+    query.addEventListener("change", updateViewport);
+    return () => {
+      observer.disconnect();
+      query.removeEventListener("change", updateViewport);
+    };
   }, []);
 
-  // The school website is container-responsive, so on phones it renders its own
-  // narrow layout at near 1:1 instead of clipping a desktop canvas.
-  const fluidWebsite = active === "website" && width > 0 && width < 640;
-  const canvasWidth = fluidWebsite ? Math.max(375, width) : designWidth;
-  const scale = fluidWebsite
+  // Phone mode: render the demo on a phone-width canvas at near 1:1, the way a phone shows it.
+  // The website is container-responsive, so container width alone decides. The portals follow
+  // viewport breakpoints, so they also need a phone viewport, or a narrow tile on a desktop
+  // screen would draw the desktop layout on a phone-width canvas.
+  const narrowContainer = width > 0 && width < PHONE_MAX_WIDTH;
+  const phone = narrowContainer && (active === "website" || narrowViewport);
+  const canvasWidth = phone ? Math.max(PHONE_CANVAS_WIDTH, width) : designWidth;
+  const scale = phone
     ? width / canvasWidth
     : width > 0
       ? Math.min(maxScale, Math.max(minScale, width / designWidth))
       : minScale;
-  const canvasHeight = fluidWebsite && height > 0 ? height / scale : designHeight;
+  const canvasHeight = phone && height > 0 ? height / scale : designHeight;
   // Height is pure CSS (container query units) so it matches the scaled demo on first paint.
   // A JS-measured height changed after hydration and made `/#product` links land too high.
-  const visibleHeight = `clamp(${designHeight * minScale}px, ${(designHeight / designWidth) * 100}cqw, ${designHeight * maxScale}px)`;
+  // On a phone (viewport < md, container < 40rem) the window grows to phone proportions.
+  const heightVars = {
+    "--demo-h": `clamp(${designHeight * minScale}px, ${(designHeight / designWidth) * 100}cqw, ${designHeight * maxScale}px)`,
+    "--demo-phone-h": "clamp(380px, 165cqw, 75svh)",
+  } as React.CSSProperties;
 
   return (
     <div className={`overflow-hidden ${className}`} style={style}>
@@ -164,8 +184,8 @@ export default function DemoStage({
       <div className="w-full" style={{ containerType: "inline-size" }}>
         <div
           ref={measureRef}
-          className="relative w-full overflow-hidden"
-          style={{ height: visibleHeight }}
+          className="relative h-[var(--demo-h)] w-full overflow-hidden max-md:@max-[40rem]:h-[var(--demo-phone-h)]"
+          style={heightVars}
         >
           <InViewDemoGate
             className="absolute inset-0"

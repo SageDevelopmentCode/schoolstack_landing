@@ -26,6 +26,8 @@ type TeacherFormsDocumentsPageProps = {
   previewMode?: boolean;
   initialFormId?: string;
   uploadPreviewUrlsByFormId?: Record<string, string>;
+  /** `false`: the open form stays in local state, never in `?form=` (marketing demos). */
+  syncUrl?: boolean;
 };
 
 /**
@@ -61,6 +63,7 @@ function TeacherFormsDocumentsPageContent({
   previewMode = false,
   initialFormId,
   uploadPreviewUrlsByFormId,
+  syncUrl = true,
 }: TeacherFormsDocumentsPageProps) {
   const { theme } = useParentTheme();
 
@@ -78,6 +81,7 @@ function TeacherFormsDocumentsPageContent({
             initialFormId={initialFormId}
             category="general"
             apiBase={API_BASE}
+            syncUrl={syncUrl}
             fetchDownloadUrl={fetchTeacherFormDownloadUrl}
             surface="teacher_portal"
             previewMode={previewMode}

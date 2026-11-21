@@ -57,7 +57,7 @@ export default function GardenDemoFrame({
         designHeight={designHeight}
         minScale={minScale}
         deferUntilIdle={deferUntilIdle}
-        header={<GardenFrameBar label={<>MudKitchen · {DEMO_LABELS[active]}</>} />}
+        header={<GardenFrameBar responsive label={<>MudKitchen · {DEMO_LABELS[active]}</>} />}
       />
     </GardenBrowserFrame>
   );
