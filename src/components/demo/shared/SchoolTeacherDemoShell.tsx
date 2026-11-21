@@ -1,11 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   Calendar,
-  ChevronDown,
   ClipboardList,
   Clock,
   CreditCard,
@@ -14,13 +12,18 @@ import {
   MessageCircle,
   Rss,
   Users,
-  type LucideIcon,
 } from "lucide-react";
 import type { SchoolTeacherDemoConfig } from "@/data/school-demos/demo-dashboard-types";
 import DemoTeacherAttendancePage from "@/components/demo/shared/DemoTeacherAttendancePage";
 import DemoTeacherHoursPage from "@/components/demo/shared/DemoTeacherHoursPage";
+import DemoTeacherFormsDocumentsPage from "@/components/demo/shared/DemoTeacherFormsDocumentsPage";
+import DemoTeacherFeedPage from "@/components/demo/shared/teacher-garden/DemoTeacherFeedPage";
+import DemoTeacherPayrollPage from "@/components/demo/shared/teacher-garden/DemoTeacherPayrollPage";
 import DemoTeacherCalendarPage from "@/components/demo/shared/DemoTeacherCalendarPage";
 import DemoTeacherDashboardPage from "@/components/demo/shared/DemoTeacherDashboardPage";
+import DemoPortalGardenHeader, {
+  type DemoPortalNavEntry,
+} from "@/components/demo/shared/DemoPortalGardenHeader";
 import DemoTeacherMessagesPage from "@/components/demo/shared/DemoTeacherMessagesPage";
 import DemoTeacherMyStudentsPage from "@/components/demo/shared/DemoTeacherMyStudentsPage";
 import {
@@ -29,8 +32,6 @@ import {
   applyTeacherDemoRuntime,
 } from "@/components/demo/shared/teacher-demo-runtime";
 import { demoStoryShellStyle } from "@/components/demo/shared/demo-story-theme";
-import SchoolTeacherComingSoon from "@/components/school-teacher/SchoolTeacherComingSoon";
-import { buildDemoTeacherBranding } from "@/data/school-demos/demo-portal-shared";
 import { getTourTargetCenter } from "@/components/demo/shared/tour-cursor-position";
 import { fraunces, dmSans } from "@/lib/fonts/local";
 
@@ -50,26 +51,21 @@ const DEMO_TEACHER = {
   initials: "JT",
 };
 
-const PRIMARY_NAV: { label: string; icon: LucideIcon; tab: TeacherDemoNavTab }[] = [
-  { label: "Dashboard", icon: LayoutDashboard, tab: "dashboard" },
-  { label: "My Students", icon: Users, tab: "students" },
-  { label: "Messages", icon: MessageCircle, tab: "messages" },
-  { label: "Calendar", icon: Calendar, tab: "calendar" },
-  { label: "Attendance", icon: ClipboardList, tab: "attendance" },
+const PRIMARY_NAV: DemoPortalNavEntry<TeacherDemoNavTab>[] = [
+  { label: "Dashboard", icon: LayoutDashboard, tab: "dashboard", iconSlug: "layout-dashboard" },
+  { label: "My Students", icon: Users, tab: "students", iconSlug: "users" },
+  { label: "Messages", icon: MessageCircle, tab: "messages", iconSlug: "message-square" },
+  { label: "Calendar", icon: Calendar, tab: "calendar", iconSlug: "calendar-days" },
+  { label: "Attendance", icon: ClipboardList, tab: "attendance", iconSlug: "clipboard-list" },
 ];
 
-const MORE_NAV: { label: string; icon: LucideIcon; tab: TeacherDemoNavTab }[] = [
-  { label: "My Hours", icon: Clock, tab: "hours" },
-  { label: "Feed", icon: Rss, tab: "feed" },
-  { label: "Payroll", icon: CreditCard, tab: "payroll" },
-  { label: "Forms & Docs", icon: FileText, tab: "forms" },
+const MORE_NAV: DemoPortalNavEntry<TeacherDemoNavTab>[] = [
+  { label: "My Hours", icon: Clock, tab: "hours", iconSlug: "clock" },
+  { label: "Feed", icon: Rss, tab: "feed", iconSlug: "megaphone" },
+  { label: "Payroll", icon: CreditCard, tab: "payroll", iconSlug: "wallet" },
+  { label: "Forms & Docs", icon: FileText, tab: "forms", iconSlug: "file-text" },
 ];
 
-const COMING_SOON_LABELS: Partial<Record<TeacherDemoNavTab, string>> = {
-  feed: "Feed",
-  payroll: "Payroll",
-  forms: "Forms & Documents",
-};
 
 const TOUR_MOVE_MS = 900;
 const TOUR_RESUME_MS = 2500;
@@ -81,105 +77,6 @@ const TEACHER_DEMO_TOUR_TABS: TeacherDemoNavTab[] = [
   "calendar",
   "attendance",
 ];
-
-function TeacherDemoNav({
-  activeTab,
-  onTabChange,
-}: {
-  activeTab: TeacherDemoNavTab;
-  onTabChange: (tab: TeacherDemoNavTab) => void;
-}) {
-  const [moreOpen, setMoreOpen] = useState(false);
-  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
-  const moreRef = useRef<HTMLDivElement>(null);
-  const btnRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (moreRef.current && !moreRef.current.contains(event.target as Node)) {
-        setMoreOpen(false);
-      }
-    }
-    if (moreOpen) document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [moreOpen]);
-
-  function openMore() {
-    if (btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect();
-      setDropdownPos({ top: rect.bottom + 6, left: rect.left + rect.width / 2 });
-    }
-    setMoreOpen((value) => !value);
-  }
-
-  return (
-    <nav data-tour-nav="primary" className="flex flex-wrap items-center gap-2">
-      {PRIMARY_NAV.map(({ label, icon: Icon, tab }) => {
-        const isActive = activeTab === tab;
-        return (
-          <button
-            key={tab}
-            type="button"
-            data-tour-id={`nav-${tab}`}
-            onClick={() => onTabChange(tab)}
-            className="flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-1.5 text-sm transition-colors"
-            style={
-              isActive
-                ? {
-                    color: TEACHER_DEMO_STORY_THEME.primaryDark,
-                    backgroundColor: TEACHER_DEMO_STORY_THEME.primaryLight,
-                    fontWeight: 600,
-                  }
-                : { color: TEACHER_DEMO_STORY_THEME.muted }
-            }
-          >
-            <Icon className="pointer-events-none h-4 w-4" />
-            {label}
-          </button>
-        );
-      })}
-
-      <div ref={moreRef}>
-        <button
-          ref={btnRef}
-          type="button"
-          data-tour-id="nav-more"
-          onClick={openMore}
-          className="flex cursor-pointer items-center gap-1 rounded-md px-3 py-1.5 text-sm font-body text-gray-600 transition-colors hover:bg-gray-50 hover:text-[var(--parent-primary)]"
-        >
-          More
-          <ChevronDown
-            className={`h-3.5 w-3.5 transition-transform ${moreOpen ? "rotate-180" : ""}`}
-            strokeWidth={2.5}
-          />
-        </button>
-
-        {moreOpen ? (
-          <div
-            className="fixed z-[9999] w-52 -translate-x-1/2 overflow-hidden rounded-lg border border-gray-100 bg-white py-1.5 shadow-lg"
-            style={{ top: dropdownPos.top, left: dropdownPos.left }}
-          >
-            {MORE_NAV.map(({ label, icon: Icon, tab }) => (
-              <button
-                key={tab}
-                type="button"
-                data-tour-id={`nav-${tab}`}
-                onClick={() => {
-                  onTabChange(tab);
-                  setMoreOpen(false);
-                }}
-                className="flex w-full cursor-pointer items-center gap-1.5 px-4 py-2 text-left text-sm font-body text-gray-700 transition-colors hover:bg-gray-50 hover:text-[var(--parent-primary)]"
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </div>
-    </nav>
-  );
-}
 
 export type SchoolTeacherDemoShellProps = {
   config: SchoolTeacherDemoConfig;
@@ -203,7 +100,6 @@ export default function SchoolTeacherDemoShell({
   openInitialStudentDetailDelayMs,
 }: SchoolTeacherDemoShellProps) {
   applyTeacherDemoRuntime(config);
-  const branding = buildDemoTeacherBranding();
 
   const [activeTab, setActiveTab] = useState<TeacherDemoNavTab>(initialTab);
   const [isTouring, setIsTouring] = useState(!disableTour);
@@ -224,7 +120,7 @@ export default function SchoolTeacherDemoShell({
     const root = containerRef.current;
     if (!root) return null;
     const target = root.querySelector(
-      `[data-tour-nav="primary"] [data-tour-id="${targetId}"]`,
+      `[data-tour-nav="primary"] [data-nav-key="${targetId}"]`,
     );
     if (!target) return null;
     return getTourTargetCenter(root, target);
@@ -244,7 +140,7 @@ export default function SchoolTeacherDemoShell({
     };
 
     schedule(() => {
-      const position = getTargetCenter(`nav-${tab}`);
+      const position = getTargetCenter(tab);
       if (position) {
         setCursorPos(position);
         setCursorVisible(true);
@@ -287,8 +183,6 @@ export default function SchoolTeacherDemoShell({
     }, TOUR_RESUME_MS);
   }, [disableTour]);
 
-  const comingSoonLabel = COMING_SOON_LABELS[activeTab];
-
   return (
     <div
       ref={containerRef}
@@ -318,39 +212,17 @@ export default function SchoolTeacherDemoShell({
       ) : null}
 
       {!hideNav ? (
-        <header
-          className="z-40 shrink-0 border-b"
-          style={{
-            backgroundColor: TEACHER_DEMO_STORY_THEME.white,
-            borderColor: TEACHER_DEMO_STORY_THEME.line,
-          }}
-        >
-          <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-6 px-6">
-            <div className="flex shrink-0 items-center">
-              <Image
-                src="/images/schoolstack-logo.png"
-                alt="MudKitchen"
-                width={40}
-                height={40}
-                priority
-                className="h-8 w-auto shrink-0 object-contain"
-              />
-            </div>
-
-            <div className="flex flex-1 justify-center">
-              <TeacherDemoNav activeTab={activeTab} onTabChange={setActiveTab} />
-            </div>
-
-            <div
-              className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full"
-              style={{ backgroundColor: TEACHER_DEMO_ACCENT }}
-            >
-              <span className="text-xs font-semibold font-body text-white">
-                {DEMO_TEACHER.initials}
-              </span>
-            </div>
-          </div>
-        </header>
+        <DemoPortalGardenHeader
+          theme={TEACHER_DEMO_STORY_THEME}
+          primary={PRIMARY_NAV}
+          more={MORE_NAV}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          initials={DEMO_TEACHER.initials}
+          personName={DEMO_TEACHER.name}
+          ariaLabel="Staff portal"
+          testIdPrefix="teacher-demo-header"
+        />
       ) : null}
 
       <main className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-white">
@@ -367,9 +239,9 @@ export default function SchoolTeacherDemoShell({
         {activeTab === "calendar" ? <DemoTeacherCalendarPage /> : null}
         {activeTab === "attendance" ? <DemoTeacherAttendancePage /> : null}
         {activeTab === "hours" ? <DemoTeacherHoursPage /> : null}
-        {comingSoonLabel ? (
-          <SchoolTeacherComingSoon branding={branding} featureLabel={comingSoonLabel} />
-        ) : null}
+        {activeTab === "feed" ? <DemoTeacherFeedPage onNavigate={setActiveTab} /> : null}
+        {activeTab === "forms" ? <DemoTeacherFormsDocumentsPage openFormId={null} interactive /> : null}
+        {activeTab === "payroll" ? <DemoTeacherPayrollPage onNavigate={setActiveTab} /> : null}
       </main>
     </div>
   );

@@ -21,6 +21,8 @@ type ParentFormsDocumentsPageProps = {
   readOnly?: boolean;
   initialFormId?: string;
   uploadPreviewUrlsByFormId?: Record<string, string>;
+  /** `false`: open forms in local state, never via `?form=` (marketing demos). */
+  syncFormToUrl?: boolean;
 };
 
 function FormsPageSkeleton() {
@@ -58,11 +60,13 @@ function ParentFormsDocumentsPageContent({
   readOnly = false,
   initialFormId,
   uploadPreviewUrlsByFormId,
+  syncFormToUrl = true,
 }: ParentFormsDocumentsPageProps) {
   const { theme } = useParentTheme();
   const model = useParentFormsDocumentsModel({
     initialItems: initialBundle.items,
     initialFormId,
+    syncFormToUrl,
   });
   const { setFilter } = model;
 

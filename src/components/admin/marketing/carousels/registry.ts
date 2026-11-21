@@ -35,6 +35,13 @@ import { POSTS_FREE_PREVIEW_SINGLES_CAROUSEL } from "@/components/admin/marketin
 import { ADS_FOUNDER_NOTES_CAROUSEL } from "@/components/admin/marketing/carousels/ads-founder-notes";
 import { ADS_SCHOOL_OBJECTS_CAROUSEL } from "@/components/admin/marketing/carousels/ads-school-objects";
 import { MASCOT_FOUNDER_LETTER_CAROUSEL } from "@/components/admin/marketing/carousels/mascot-founder-letter";
+import { MASCOT_PREVIEW_IM_SO_SORRY_CAROUSEL } from "@/components/admin/marketing/carousels/mascot-preview-im-so-sorry";
+import { MASCOT_PREVIEW_EVERY_SEAT_CAROUSEL } from "@/components/admin/marketing/carousels/mascot-preview-every-seat";
+import { ADS_PREVIEW_BUNDLE_CAROUSEL } from "@/components/admin/marketing/carousels/ads-preview-bundle";
+import { ADS_FOUNDER_JULIUS_CAROUSEL } from "@/components/admin/marketing/carousels/ads-founder-julius";
+import { ADS_PREVIEW_SEASONAL_CAROUSEL } from "@/components/admin/marketing/carousels/ads-preview-seasonal";
+import { ADS_PREVIEW_THANKSGIVING_CAROUSEL } from "@/components/admin/marketing/carousels/ads-preview-thanksgiving";
+import { ADS_PREVIEW_THANKSGIVING_BREAK_CAROUSEL } from "@/components/admin/marketing/carousels/ads-preview-thanksgiving-break";
 import type { MarketingCarousel } from "@/components/admin/marketing/carousels/types";
 
 export const MARKETING_CAROUSELS: MarketingCarousel[] = [
@@ -63,6 +70,8 @@ export const MARKETING_CAROUSELS: MarketingCarousel[] = [
   MASCOT_FREE_PREVIEW_CAROUSEL,
   MASCOT_FREE_PREVIEW_BEFORE_AFTER_CAROUSEL,
   MASCOT_FOUNDER_LETTER_CAROUSEL,
+  MASCOT_PREVIEW_IM_SO_SORRY_CAROUSEL,
+  MASCOT_PREVIEW_EVERY_SEAT_CAROUSEL,
   POSTS_WEEKLY_SINGLES_CAROUSEL,
   POSTS_HOLIDAY_SINGLES_CAROUSEL,
   POSTS_FREE_PREVIEW_SINGLES_CAROUSEL,
@@ -75,6 +84,11 @@ export const MARKETING_CAROUSELS: MarketingCarousel[] = [
   ADS_FREE_PREVIEW_CAROUSEL,
   ADS_FOUNDER_NOTES_CAROUSEL,
   ADS_SCHOOL_OBJECTS_CAROUSEL,
+  ADS_PREVIEW_BUNDLE_CAROUSEL,
+  ADS_FOUNDER_JULIUS_CAROUSEL,
+  ADS_PREVIEW_SEASONAL_CAROUSEL,
+  ADS_PREVIEW_THANKSGIVING_CAROUSEL,
+  ADS_PREVIEW_THANKSGIVING_BREAK_CAROUSEL,
 ];
 
 export const DEFAULT_CAROUSEL_ID = MARKETING_CAROUSELS[0]?.id ?? "tuition-review";

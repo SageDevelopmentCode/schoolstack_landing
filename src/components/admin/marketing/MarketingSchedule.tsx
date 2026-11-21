@@ -8,15 +8,20 @@ import { MarketingSlideShell, SLIDE_HEIGHT, SLIDE_WIDTH } from "@/components/adm
 import { adminStatusBadgeClassName, type AdminStatusVariant } from "@/lib/admin-ui/admin-status-styles";
 import type { SchedulePostStatus } from "@/lib/marketing/schedule-post-status";
 import {
+  SCHEDULE_AD_OPTIONS,
   SCHEDULE_ITEMS,
   SCHEDULE_RHYTHM,
   SCHEDULE_SPARES,
   SCHEDULE_STATUSES,
   SOCIAL_SCHEDULE,
+  type ScheduleAdOption,
   type ScheduleItem,
   type ScheduleStatus,
   type ScheduleWeek,
 } from "@/lib/marketing/social-schedule";
+
+/** Anything with a status row: an organic post or a paid ad option. */
+type Schedulable = { id: string; label: string; carouselId: ScheduleItem["carouselId"]; slideId?: string };
 
 const STATUS_LABEL: Record<ScheduleStatus, string> = { planned: "Planned", scheduled: "Scheduled", posted: "Posted" };
 const STATUS_VARIANT: Record<ScheduleStatus, AdminStatusVariant> = { planned: "neutral", scheduled: "scheduled", posted: "success" };
@@ -53,7 +58,7 @@ function addDays(iso: string, days: number) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-function studioHref(item: ScheduleItem) {
+function studioHref(item: Pick<Schedulable, "carouselId" | "slideId">) {
   const params = new URLSearchParams({ carousel: item.carouselId });
   if (item.slideId) params.set("slide", item.slideId);
   return `/admin/marketing?${params.toString()}`;
@@ -100,7 +105,7 @@ export default function MarketingSchedule() {
   const statusOf = useCallback((id: string): ScheduleStatus => statuses[id] ?? "planned", [statuses]);
 
   const setStatus = useCallback(
-    async (item: ScheduleItem, status: ScheduleStatus) => {
+    async (item: Schedulable, status: ScheduleStatus) => {
       const previous = statuses[item.id] ?? "planned";
       if (previous === status) return;
       if (inFlightRef.current.has(item.id)) return;
@@ -134,7 +139,7 @@ export default function MarketingSchedule() {
 
   const counts = useMemo(() => {
     const result: Record<ScheduleStatus, number> = { planned: 0, scheduled: 0, posted: 0 };
-    for (const item of SCHEDULE_ITEMS) result[statusOf(item.id)] += 1;
+    for (const item of [...SCHEDULE_ITEMS, ...SCHEDULE_AD_OPTIONS]) result[statusOf(item.id)] += 1;
     return result;
   }, [statusOf]);
 
@@ -149,9 +154,11 @@ export default function MarketingSchedule() {
       <div className="mx-auto max-w-6xl px-6 py-6">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-lg font-semibold text-admin-text">Posting schedule · Nov 23 – Jan 3</h1>
+            <h1 className="text-lg font-semibold text-admin-text">Posting schedule · Nov 23 – Jan 3 · ads Nov 21 – Jan 30</h1>
             <p className="mt-1 text-sm text-admin-muted">{SCHEDULE_RHYTHM}</p>
-            <p className="mt-0.5 text-xs text-admin-faint">Times are the audience&apos;s local time. Captions are ready to paste.</p>
+            <p className="mt-0.5 text-xs text-admin-faint">
+              Times are the audience&apos;s local time. Captions are ready to paste. Free-preview ad options: several per day, pick any.
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {SCHEDULE_STATUSES.map((status) => (
@@ -218,9 +225,11 @@ function WeekSection({
   statusOf: (id: string) => ScheduleStatus;
   savingIds: Set<string>;
   rowErrors: Record<string, string>;
-  onStatus: (item: ScheduleItem, status: ScheduleStatus) => void;
+  onStatus: (item: Schedulable, status: ScheduleStatus) => void;
 }) {
   const posted = week.items.filter((item) => statusOf(item.id) === "posted").length;
+  const adOptions = week.adOptions ?? [];
+  const adsLive = adOptions.filter((item) => statusOf(item.id) === "posted").length;
   return (
     <section id={week.id} aria-labelledby={`${week.id}-title`} className="scroll-mt-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -229,7 +238,8 @@ function WeekSection({
           {isCurrent ? <span className="rounded-admin-sm bg-admin-accent px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">This week</span> : null}
         </h2>
         <span className="text-xs text-admin-muted">
-          {posted} of {week.items.length} posted
+          {week.adOnly ? "Ads only" : `${posted} of ${week.items.length} posted`}
+          {adOptions.length ? ` · ${adsLive} of ${adOptions.length} ads live` : ""}
         </span>
       </div>
       <p className="mt-1 text-sm text-admin-muted">{week.note}</p>
@@ -247,20 +257,47 @@ function WeekSection({
         </p>
       </div>
 
-      <ol className={`mt-3 flex flex-col gap-2 ${isCurrent ? "rounded-admin-md ring-2 ring-admin-accent/30 ring-offset-4 ring-offset-transparent" : ""}`}>
-        {week.items.map((item) => (
-          <ScheduleRow
-            key={item.id}
-            item={item}
-            past={today != null && item.date < today}
-            isToday={today === item.date}
-            status={statusOf(item.id)}
-            saving={savingIds.has(item.id)}
-            error={rowErrors[item.id]}
-            onStatus={onStatus}
-          />
-        ))}
-      </ol>
+      {adOptions.length ? (
+        <div className="mt-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-admin-faint">
+            Free-preview ad options · <span className="normal-case tracking-normal text-admin-muted">pick any for the day; mark Posted once it&apos;s live</span>
+          </p>
+          <ol className="mt-2 flex flex-col gap-2">
+            {adOptions.map((item) => (
+              <AdOptionRow
+                key={item.id}
+                item={item}
+                past={today != null && item.date < today}
+                isToday={today === item.date}
+                status={statusOf(item.id)}
+                saving={savingIds.has(item.id)}
+                error={rowErrors[item.id]}
+                onStatus={onStatus}
+              />
+            ))}
+          </ol>
+        </div>
+      ) : null}
+
+      {week.items.length ? (
+        <>
+          {adOptions.length ? <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-admin-faint">Organic posts</p> : null}
+          <ol className={`mt-3 flex flex-col gap-2 ${isCurrent ? "rounded-admin-md ring-2 ring-admin-accent/30 ring-offset-4 ring-offset-transparent" : ""}`}>
+            {week.items.map((item) => (
+              <ScheduleRow
+                key={item.id}
+                item={item}
+                past={today != null && item.date < today}
+                isToday={today === item.date}
+                status={statusOf(item.id)}
+                saving={savingIds.has(item.id)}
+                error={rowErrors[item.id]}
+                onStatus={onStatus}
+              />
+            ))}
+          </ol>
+        </>
+      ) : null}
     </section>
   );
 }
@@ -282,7 +319,7 @@ function ScheduleRow({
   status: ScheduleStatus;
   saving: boolean;
   error?: string;
-  onStatus: (item: ScheduleItem, status: ScheduleStatus) => void;
+  onStatus: (item: Schedulable, status: ScheduleStatus) => void;
 }) {
   const day = dayLabel(item.date);
   const dim = past && status !== "posted";
@@ -321,35 +358,126 @@ function ScheduleRow({
         </div>
       </div>
 
-      <div className="col-span-3 flex flex-col gap-1 md:col-span-1 md:items-end">
-        <div role="radiogroup" aria-label={`Status for ${item.label}`} className="inline-flex rounded-admin-md border border-admin-border bg-admin-canvas p-0.5">
-          {SCHEDULE_STATUSES.map((option) => (
-            <button
-              key={option}
-              type="button"
-              role="radio"
-              aria-checked={status === option}
-              disabled={saving}
-              onClick={() => onStatus(item, option)}
-              className={`rounded-admin-md px-2.5 py-1 text-xs font-medium transition-colors disabled:cursor-wait ${
-                status === option ? `border ${adminStatusBadgeClassName(STATUS_VARIANT[option])}` : "border border-transparent text-admin-muted hover:text-admin-text"
-              }`}
-            >
-              {STATUS_LABEL[option]}
-            </button>
-          ))}
-        </div>
-        {saving ? (
-          <span className="inline-flex items-center gap-1 text-[11px] text-admin-muted">
-            <Loader2 className="h-3 w-3 animate-spin" aria-hidden /> Saving…
-          </span>
-        ) : null}
-        {error ? (
-          <span role="alert" className="text-[11px] text-admin-error md:text-right">
-            {error}
-          </span>
-        ) : null}
+      <StatusControl item={item} status={status} saving={saving} error={error} onStatus={onStatus} />
+    </li>
+  );
+}
+
+function StatusControl({
+  item,
+  status,
+  saving,
+  error,
+  onStatus,
+}: {
+  item: Schedulable;
+  status: ScheduleStatus;
+  saving: boolean;
+  error?: string;
+  onStatus: (item: Schedulable, status: ScheduleStatus) => void;
+}) {
+  return (
+    <div className="col-span-3 flex flex-col gap-1 md:col-span-1 md:items-end">
+      <div role="radiogroup" aria-label={`Status for ${item.label}`} className="inline-flex rounded-admin-md border border-admin-border bg-admin-canvas p-0.5">
+        {SCHEDULE_STATUSES.map((option) => (
+          <button
+            key={option}
+            type="button"
+            role="radio"
+            aria-checked={status === option}
+            disabled={saving}
+            onClick={() => onStatus(item, option)}
+            className={`rounded-admin-md px-2.5 py-1 text-xs font-medium transition-colors disabled:cursor-wait ${
+              status === option ? `border ${adminStatusBadgeClassName(STATUS_VARIANT[option])}` : "border border-transparent text-admin-muted hover:text-admin-text"
+            }`}
+          >
+            {STATUS_LABEL[option]}
+          </button>
+        ))}
       </div>
+      {saving ? (
+        <span className="inline-flex items-center gap-1 text-[11px] text-admin-muted">
+          <Loader2 className="h-3 w-3 animate-spin" aria-hidden /> Saving…
+        </span>
+      ) : null}
+      {error ? (
+        <span role="alert" className="text-[11px] text-admin-error md:text-right">
+          {error}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- ad option row
+
+function AdOptionRow({
+  item,
+  past,
+  isToday,
+  status,
+  saving,
+  error,
+  onStatus,
+}: {
+  item: ScheduleAdOption;
+  past: boolean;
+  isToday: boolean;
+  status: ScheduleStatus;
+  saving: boolean;
+  error?: string;
+  onStatus: (item: Schedulable, status: ScheduleStatus) => void;
+}) {
+  const day = dayLabel(item.date);
+  const dim = past && status !== "posted";
+  const carousel = getMarketingCarousel(item.carouselId);
+  const slide = (item.slideId ? carousel?.slides.find((s) => s.id === item.slideId) : undefined) ?? carousel?.slides[0];
+  const copy = slide?.adCopy;
+  return (
+    <li
+      className={`grid grid-cols-[88px_96px_minmax(0,1fr)] gap-4 rounded-admin-md border bg-admin-surface p-3 md:grid-cols-[88px_96px_minmax(0,1fr)_200px] ${
+        isToday ? "border-admin-accent/50" : "border-admin-border"
+      } ${past && status === "posted" ? "opacity-70" : ""}`}
+    >
+      <div className="flex flex-col">
+        <span className={`text-xs font-semibold uppercase tracking-wide ${isToday ? "text-admin-accent" : "text-admin-faint"}`}>{isToday ? "Today" : day.weekday}</span>
+        <span className="text-sm font-semibold text-admin-text">{day.date}</span>
+        <span className="mt-1 text-xs text-admin-muted">{item.runs}</span>
+      </div>
+
+      <Thumbnail item={item} />
+
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="rounded-admin-sm border border-orange-200 bg-orange-50 px-1.5 py-0.5 text-[11px] font-medium text-orange-800">Paid ad</span>
+          <span className="rounded-admin-sm border border-admin-border bg-admin-canvas px-1.5 py-0.5 text-[11px] text-admin-muted">Meta · Instagram + Facebook</span>
+        </div>
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <p className="text-sm font-medium text-admin-text">{item.label}</p>
+          <Link href={studioHref(item)} className="inline-flex items-center gap-1 text-xs font-medium text-admin-accent hover:underline">
+            Open in Studio <ExternalLink className="h-3 w-3" aria-hidden />
+          </Link>
+        </div>
+        {copy ? (
+          <>
+            <div className="mt-2 flex items-start gap-2">
+              <p className={`min-w-0 flex-1 text-sm leading-snug ${dim ? "text-admin-muted" : "text-admin-text"}`}>{copy.primaryText}</p>
+              <CopyButton text={copy.primaryText} label="Copy primary text" />
+            </div>
+            <div className="mt-1.5 flex items-start gap-2">
+              <p className="min-w-0 flex-1 text-xs text-admin-muted">
+                Headline: <span className="font-medium text-admin-text">{copy.headline}</span>
+                {copy.description ? <> · Description: <span className="text-admin-text">{copy.description}</span></> : null}
+              </p>
+              <CopyButton text={copy.headline} label="Copy headline" />
+            </div>
+          </>
+        ) : (
+          <p className="mt-2 text-sm text-admin-muted">Ad copy is in the Studio.</p>
+        )}
+      </div>
+
+      <StatusControl item={item} status={status} saving={saving} error={error} onStatus={onStatus} />
     </li>
   );
 }
@@ -395,7 +523,7 @@ const THUMB_SCALE = THUMB_WIDTH / SLIDE_WIDTH;
 const THUMB_HEIGHT = Math.round(SLIDE_HEIGHT * THUMB_SCALE);
 
 /** The real slide, rendered small and only once it scrolls near the viewport. */
-function Thumbnail({ item }: { item: ScheduleItem }) {
+function Thumbnail({ item }: { item: Schedulable }) {
   const ref = useRef<HTMLAnchorElement>(null);
   const [visible, setVisible] = useState(false);
 

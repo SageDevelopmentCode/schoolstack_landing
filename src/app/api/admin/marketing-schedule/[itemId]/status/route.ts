@@ -42,8 +42,9 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     // A whole carousel goes out once, so posting it also flips its Posted badge in the Studio.
     // Sets of singles keep their own badge: one single going out doesn't mean the set has.
+    // Paid ad options don't touch the organic Posted badge.
     let carouselPosted = false;
-    if (!item.slideId && saved.status === "posted") {
+    if (item.kind !== "ad" && !item.slideId && saved.status === "posted") {
       await setMarketingCarouselPosted(admin, item.carouselId, true);
       carouselPosted = true;
     }

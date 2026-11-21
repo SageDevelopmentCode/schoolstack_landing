@@ -436,6 +436,137 @@ export function FreeTag({ text = "Free · private · no obligation" }: { text?: 
   );
 }
 
+// ---------------------------------------------------------------- roles (the full bundle)
+
+export type PreviewRole = "Admin" | "Teacher" | "Parent";
+
+/** Each role's colour in the bundle ads (the placeholder school's blue, forest, orange). */
+export const ROLE_COLOR: Record<PreviewRole, string> = { Admin: YOUR.primary, Teacher: G.forest, Parent: YOUR.accent };
+
+/** Tapping finger on the active view (an emoji, so no SVG nodes to slow the export). */
+function Pointer({ size, style }: { size: number; style?: CSSProperties }) {
+  return (
+    <span aria-hidden style={{ position: "absolute", fontSize: Math.round(size * 1.5), lineHeight: 1, transform: "rotate(-18deg)", ...style }}>
+      👆
+    </span>
+  );
+}
+
+/** "Admin | Teacher | Parent" view switch with the active view filled and a pointer on it. */
+export function RoleSwitch({ active = "Parent", pointer = true, size = 34, style }: { active?: PreviewRole; pointer?: boolean; size?: number; style?: CSSProperties }) {
+  const roles: PreviewRole[] = ["Admin", "Teacher", "Parent"];
+  return (
+    <div
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: 8,
+        background: "#FFFFFF",
+        border: `4px solid ${G.ink}`,
+        borderRadius: 999,
+        boxShadow: `0 8px 0 ${G.ink}`,
+        fontFamily: FONT.display,
+        fontWeight: 800,
+        fontSize: size,
+        letterSpacing: "-0.02em",
+        whiteSpace: "nowrap",
+        ...style,
+      }}
+    >
+      {roles.map((role) => {
+        const on = role === active;
+        return (
+          <span
+            key={role}
+            style={{
+              position: "relative",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 10,
+              padding: `${Math.round(size * 0.36)}px ${Math.round(size * 0.8)}px`,
+              borderRadius: 999,
+              background: on ? ROLE_COLOR[role] : "transparent",
+              color: on ? "#FFFFFF" : G.soft,
+            }}
+          >
+            <span style={{ width: Math.round(size * 0.36), height: Math.round(size * 0.36), borderRadius: 999, background: on ? "#FFFFFF" : ROLE_COLOR[role] }} />
+            {role} view
+            {on && pointer ? <Pointer size={size} style={{ right: -4, bottom: -Math.round(size * 1.2) }} /> : null}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+/** A lanyard badge for one role in the placeholder school. */
+export function RoleBadge({ role, line, width = 290, rotate = 0, strap = 140 }: { role: PreviewRole; line: string; width?: number; rotate?: number; strap?: number }) {
+  const color = ROLE_COLOR[role];
+  return (
+    <div style={{ width, display: "flex", flexDirection: "column", alignItems: "center", transform: rotate ? `rotate(${rotate}deg)` : undefined, transformOrigin: "top center" }}>
+      <span style={{ width: 44, height: strap, boxSizing: "border-box", background: color, border: `4px solid ${G.ink}`, borderBottom: "none" }} />
+      <span style={{ width: 84, height: 34, boxSizing: "border-box", marginTop: -2, background: "#C9CED3", border: `4px solid ${G.ink}`, borderRadius: 8 }} />
+      <div style={{ width, marginTop: -6, boxSizing: "border-box", background: "#FFFFFF", border: `4px solid ${G.ink}`, borderRadius: 26, boxShadow: `0 10px 0 ${G.ink}`, overflow: "hidden", fontFamily: FONT.body, color: G.ink }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "16px 12px", background: color, borderBottom: `4px solid ${G.ink}` }}>
+          <YourSchoolMark size={42} ring="#FFFFFF" />
+          <span style={{ fontFamily: FONT.display, fontWeight: 800, fontSize: 26, color: "#FFFFFF", whiteSpace: "nowrap" }}>{YOUR.name}</span>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "22px 18px 24px", textAlign: "center" }}>
+          <span style={{ width: 104, height: 104, borderRadius: 999, background: YOUR.soft, border: `4px solid ${G.ink}`, boxSizing: "border-box", display: "grid", placeItems: "center", fontFamily: FONT.display, fontWeight: 800, fontSize: 52, color }}>
+            {role[0]}
+          </span>
+          <span style={{ marginTop: 14, fontFamily: FONT.display, fontWeight: 800, fontSize: 44, lineHeight: 1, letterSpacing: "0.02em", textTransform: "uppercase" }}>{role}</span>
+          <span style={{ marginTop: 10, fontWeight: 700, fontSize: 22, lineHeight: 1.25, color: G.soft }}>{line}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- what you get
+
+/**
+ * "What you get" strip: four tiles (website, admin portal, teacher portal, parent app), each with a
+ * role-coloured top bar, a real mini screen and a bold label. Answers "what do I get when I send my website?".
+ */
+export function PreviewBundleTiles({ width = 952, title, titleColor = G.soft, style }: { width?: number; title?: ReactNode; titleColor?: string; style?: CSSProperties }) {
+  const gap = 14;
+  const tileW = Math.floor((width - gap * 3) / 4);
+  const screenH = Math.round(tileW * 0.8);
+  // Browser windows fill the whole screen area (scaled to its height, cropped on the right, outer border hidden).
+  const windowScale = (screenH + 10) / (BROWSER_H + 12);
+  const phoneScale = (tileW * 0.52) / PHONE_W;
+  const tiles: Array<{ label: string; color: string; screen: ReactNode; fill?: boolean }> = [
+    { label: "Website", color: G.clay, screen: <YourWebsiteWindow scale={windowScale} />, fill: true },
+    { label: "Admin portal", color: ROLE_COLOR.Admin, screen: <YourAdminWindow scale={windowScale} />, fill: true },
+    { label: "Teacher portal", color: ROLE_COLOR.Teacher, screen: <YourTeacherPhone scale={phoneScale} /> },
+    { label: "Parent app", color: ROLE_COLOR.Parent, screen: <YourParentPhone scale={phoneScale} /> },
+  ];
+  return (
+    <div style={{ width, ...style }}>
+      {title ? (
+        <p style={{ margin: "0 0 12px", fontFamily: FONT.body, fontWeight: 800, fontSize: 22, letterSpacing: "0.14em", textTransform: "uppercase", color: titleColor }}>{title}</p>
+      ) : null}
+      <div style={{ display: "flex", gap }}>
+        {tiles.map((t) => (
+          <div key={t.label} style={{ width: tileW, boxSizing: "border-box", background: "#FFFFFF", border: `4px solid ${G.ink}`, borderRadius: 20, boxShadow: `0 6px 0 ${G.ink}`, overflow: "hidden" }}>
+            <div style={{ height: 14, background: t.color, borderBottom: `3px solid ${G.ink}` }} />
+            {t.fill ? (
+              <div style={{ position: "relative", height: screenH, overflow: "hidden", background: "#FFFFFF" }}>
+                <div style={{ position: "absolute", left: -5, top: -5 }}>{t.screen}</div>
+              </div>
+            ) : (
+              <div style={{ height: screenH, display: "flex", justifyContent: "center", alignItems: "flex-start", paddingTop: 14, overflow: "hidden", background: YOUR.soft, boxSizing: "border-box" }}>{t.screen}</div>
+            )}
+            <p style={{ margin: 0, padding: "10px 8px 12px", borderTop: `3px solid ${G.ink}`, textAlign: "center", fontFamily: FONT.display, fontWeight: 800, fontSize: Math.round(tileW * 0.105), letterSpacing: "-0.01em", color: G.ink, whiteSpace: "nowrap" }}>{t.label}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------- swipe carousel CTA
 
 type CastMember = { name: MascotName; view: MascotView; x: number; y: number; width: number; flip?: boolean };
