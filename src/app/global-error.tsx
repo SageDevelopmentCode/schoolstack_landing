@@ -2,7 +2,12 @@
 
 import * as Sentry from "@sentry/nextjs";
 import NextError from "next/error";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import {
+  canReloadForChunkError,
+  isChunkLoadError,
+  reloadForChunkError,
+} from "@/lib/chunk-load-recovery";
 import { reportPublicSiteClientError } from "@/lib/public-site/report-client-error";
 
 export default function GlobalError({
@@ -10,7 +15,21 @@ export default function GlobalError({
 }: {
   error: Error & { digest?: string };
 }) {
+  // A stale chunk after a deploy heals with one reload: show a blank page while it reloads,
+  // not an error page. A second failure within 30 s is reported like any other crash.
+  const [reloading, setReloading] = useState(
+    () => isChunkLoadError(error) && canReloadForChunkError(),
+  );
+
   useEffect(() => {
+    if (reloading) {
+      if (reloadForChunkError()) return;
+      // The reload did not start (storage full): fall back to the error page. That re-runs
+      // this effect with `reloading` false, which reports the crash below.
+      queueMicrotask(() => setReloading(false));
+      return;
+    }
+
     Sentry.captureException(error);
     // The whole page went blank: alert Discord too when it was a public page.
     reportPublicSiteClientError({
@@ -18,13 +37,11 @@ export default function GlobalError({
       message: error.message || "Page crashed while rendering",
       stack: error.stack,
     });
-  }, [error]);
+  }, [error, reloading]);
 
   return (
     <html>
-      <body>
-        <NextError statusCode={0} />
-      </body>
+      <body>{reloading ? null : <NextError statusCode={0} />}</body>
     </html>
   );
 }

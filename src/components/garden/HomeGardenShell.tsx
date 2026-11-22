@@ -28,10 +28,16 @@ const LeadMagnetPopup = dynamic(() => import("@/components/lead-magnets/LeadMagn
 export default function HomeGardenShell({
   children,
   bookDemoHref,
+  mobileBottomBar,
 }: {
   children: ReactNode;
   /** Overrides the navbar's "Book a Demo" link (defaults to /get-started). */
   bookDemoHref?: string;
+  /**
+   * A fixed bar for phones (below md). When set it replaces the "Questions?"
+   * button on phones (desktop keeps it) and the footer gets room underneath.
+   */
+  mobileBottomBar?: ReactNode;
 }) {
   useCaptureFirstTouch();
 
@@ -43,8 +49,18 @@ export default function HomeGardenShell({
         <InViewSectionGate minHeight="12rem">
           <Footer />
         </InViewSectionGate>
+        {mobileBottomBar ? <div className="h-24 md:hidden" aria-hidden="true" /> : null}
       </div>
-      <FloatingQuestionButton />
+      {mobileBottomBar ? (
+        <>
+          <div className="hidden md:block">
+            <FloatingQuestionButton />
+          </div>
+          {mobileBottomBar}
+        </>
+      ) : (
+        <FloatingQuestionButton />
+      )}
       <LeadMagnetPopup />
     </SmoothScroll>
   );

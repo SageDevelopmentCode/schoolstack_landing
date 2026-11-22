@@ -3,8 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ExternalLink } from "lucide-react";
-import { BOOK_DEMO_HASH_HREF, GET_STARTED_DEMO_SECTION_ID } from "@/lib/marketing/book-demo";
-import { scrollToBookDemoSection } from "@/lib/marketing/book-demo-hash-context";
+import { BOOK_DEMO_HASH_HREF } from "@/lib/marketing/book-demo";
+import { scrollToBookDemoSection, scrollToGetStartedDemoSection } from "@/lib/marketing/book-demo-hash-context";
 import { Reveal } from "@/components/garden/motion";
 import { Draw, Leaf, Squiggle, Sun, Tape, btnForest, btnOutline, btnPop } from "@/components/garden/ui";
 import SectionIntro from "@/components/home-garden/SectionIntro";
@@ -25,13 +25,6 @@ const CHIP_TINTS = [
 /** Deterministic tilt so server and client match (recipe 8). */
 const chipTilt = (i: number) => (((i * 37) % 9) - 4) * 1.1;
 
-function scrollToGetStartedDemo() {
-  const el = document.getElementById(GET_STARTED_DEMO_SECTION_ID);
-  if (!el) return;
-  const top = el.getBoundingClientRect().top + window.scrollY - 100;
-  window.scrollTo({ top, behavior: "smooth" });
-}
-
 function DemoCta({ variant }: { variant: OurStoryCtaVariant }) {
   const { ctas } = OUR_STORY_COPY;
   if (variant === "about") {
@@ -43,7 +36,7 @@ function DemoCta({ variant }: { variant: OurStoryCtaVariant }) {
     );
   }
   return (
-    <button type="button" onClick={variant === "get-started" ? scrollToGetStartedDemo : scrollToBookDemoSection} className={btnPop}>
+    <button type="button" onClick={variant === "get-started" ? scrollToGetStartedDemoSection : scrollToBookDemoSection} className={btnPop}>
       {ctas.scheduleDemo}
       <ArrowRight size={18} strokeWidth={2.6} aria-hidden />
     </button>

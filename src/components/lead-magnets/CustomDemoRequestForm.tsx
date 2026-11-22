@@ -1,10 +1,11 @@
 "use client";
 
-import { useId, useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent, type MouseEvent } from "react";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { Tick, btnOutline, btnPop } from "@/components/garden/ui";
 import { GARDEN_FIELD } from "@/components/get-started/GetStartedStoryTextField";
 import { GET_STARTED_PAGE_PATH } from "@/lib/marketing/book-demo";
+import { scrollToSectionById } from "@/lib/marketing/book-demo-hash-context";
 import { normalizeWebsiteUrl } from "@/lib/marketing/lead-magnets";
 import { submitLead } from "@/lib/marketing/submit-lead";
 import LeadHoneypot from "./LeadHoneypot";
@@ -95,6 +96,15 @@ export default function CustomDemoRequestForm({
       return next;
     });
 
+  // A same-page hash scrolls to that section below the fixed navbar.
+  const onBookDemoClick = (e: MouseEvent<HTMLAnchorElement>) => {
+    if (!bookDemoHref.startsWith("#")) return;
+    const id = bookDemoHref.slice(1);
+    if (!document.getElementById(id)) return;
+    e.preventDefault();
+    scrollToSectionById(id);
+  };
+
   if (done) {
     return (
       <div role="status" className="py-4 text-center">
@@ -105,7 +115,7 @@ export default function CustomDemoRequestForm({
         <p className="mx-auto mt-3 max-w-md text-[15px] leading-relaxed text-[var(--sf-soft)]">
           {CUSTOM_DEMO_COPY.success.body}
         </p>
-        <a href={bookDemoHref} className={`${btnOutline} mt-6 !px-6 !py-3 !text-sm`}>
+        <a href={bookDemoHref} onClick={onBookDemoClick} className={`${btnOutline} mt-6 !px-6 !py-3 !text-sm`}>
           {CUSTOM_DEMO_COPY.success.bookLabel}
         </a>
       </div>
