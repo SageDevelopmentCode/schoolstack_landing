@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { GET_STARTED_PAGE_PATH } from "@/lib/marketing/book-demo";
+import { scrollToSectionById } from "@/lib/marketing/book-demo-hash-context";
 import { NAV_CTA_LABEL, NAV_CTA_PATH, NAV_CTA_SHORT_LABEL } from "@/lib/marketing/free-tools";
 import { MARKETING_NAV_LINKS } from "@/lib/marketing/nav-links";
 
@@ -38,6 +39,16 @@ export default function GardenNavbar({
   }, [open]);
 
   const solid = scrolled || open;
+
+  // A same-page hash (e.g. "#get-started-demo") scrolls to the booking flow
+  // below the fixed navbar instead of navigating.
+  const bookDemoHash = bookDemoHref.startsWith("#") ? bookDemoHref.slice(1) : null;
+  const onBookDemoClick = (e: MouseEvent<HTMLAnchorElement>) => {
+    setOpen(false);
+    if (!bookDemoHash) return;
+    e.preventDefault();
+    scrollToSectionById(bookDemoHash);
+  };
 
   return (
     <header className="fixed inset-x-0 top-0 z-[200] px-3 pt-3 sm:px-5">
@@ -79,6 +90,7 @@ export default function GardenNavbar({
         <div className="hidden items-center gap-2 md:flex">
           <Link
             href={bookDemoHref}
+            onClick={onBookDemoClick}
             className="hidden h-10 items-center rounded-full border-2 border-[var(--sf-ink)]/15 bg-white px-4 text-sm font-extrabold text-[var(--sf-ink)] transition-colors hover:border-[var(--sf-ink)]/40 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-ink)]/15 lg:inline-flex"
           >
             Book a Demo
@@ -133,7 +145,7 @@ export default function GardenNavbar({
           </Link>
           <Link
             href={bookDemoHref}
-            onClick={() => setOpen(false)}
+            onClick={onBookDemoClick}
             className="mt-3 flex h-12 items-center justify-center rounded-full border-2 border-[var(--sf-ink)]/15 bg-white text-base font-extrabold text-[var(--sf-ink)]"
           >
             Book a Demo

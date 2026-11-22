@@ -1,9 +1,10 @@
 "use client";
 
-import { Draw, Star, Tape, Tick } from "@/components/garden/ui";
+import { Draw, Star, Tape, Tick, btnOutline } from "@/components/garden/ui";
 import { Reveal } from "@/components/garden/motion";
 import SectionIntro from "@/components/home-garden/SectionIntro";
-import { BOOK_DEMO_HASH_HREF, GET_STARTED_PAGE_PATH } from "@/lib/marketing/book-demo";
+import { BOOK_DEMO_HASH_HREF, GET_STARTED_DEMO_SECTION_ID } from "@/lib/marketing/book-demo";
+import { scrollToGetStartedDemoSection } from "@/lib/marketing/book-demo-hash-context";
 import CustomDemoRequestForm from "./CustomDemoRequestForm";
 import { CUSTOM_DEMO_COPY, GET_STARTED_CUSTOM_DEMO_COPY } from "./lead-magnet-copy";
 
@@ -14,7 +15,8 @@ export const CUSTOM_DEMO_SECTION_ID = "custom-preview";
  * "See MudKitchen built for your school": the custom preview lead magnet. The copy is on
  * the left and the request form sits on notebook paper on the right.
  * - variant "home": sits between Setup and Pricing on the home page.
- * - variant "get-started": the "not ready to book?" alternative under the booking flow.
+ * - variant "get-started": the "not ready to book?" alternative below the booking flow,
+ *   with a Book a Demo button that scrolls back up to it.
  */
 export default function CustomDemoOffer({
   variant = "home",
@@ -25,7 +27,7 @@ export default function CustomDemoOffer({
 }) {
   const isHome = variant === "home";
   const heading = isHome ? CUSTOM_DEMO_COPY : GET_STARTED_CUSTOM_DEMO_COPY;
-  const bookDemoHref = isHome ? BOOK_DEMO_HASH_HREF : GET_STARTED_PAGE_PATH;
+  const bookDemoHref = isHome ? BOOK_DEMO_HASH_HREF : `#${GET_STARTED_DEMO_SECTION_ID}`;
 
   return (
     <section
@@ -63,6 +65,13 @@ export default function CustomDemoOffer({
           <p className="mt-6 inline-block -rotate-1 rounded-md bg-[var(--sf-butter)] px-3 py-1.5 text-sm font-extrabold text-[var(--sf-ink)] shadow-[0_3px_0_0_var(--sf-ink)] ring-2 ring-[var(--sf-ink)]">
             {CUSTOM_DEMO_COPY.promise}
           </p>
+          {isHome ? null : (
+            <div className="mt-8">
+              <button type="button" onClick={scrollToGetStartedDemoSection} className={`${btnOutline} !px-6 !py-3 !text-sm`}>
+                Book a Demo <span aria-hidden="true">↑</span>
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="relative" style={{ rotate: "0.6deg" }}>

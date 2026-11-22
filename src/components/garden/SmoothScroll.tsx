@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import Lenis from "lenis";
 import "lenis/dist/lenis.css";
 import { gsap, ScrollTrigger } from "./gsap";
+import { setActiveLenis } from "./lenis-instance";
 
 /**
  * Lenis smooth scrolling driven by GSAP's ticker so ScrollTrigger scrubs stay
@@ -79,6 +80,7 @@ export default function SmoothScroll({ children }: { children: ReactNode }) {
       prevent: (node) => !!node.closest(".fixed, [role='dialog'], [data-lenis-prevent]"),
     });
     lenisRef.current = lenis;
+    setActiveLenis(lenis);
     lenis.on("scroll", ScrollTrigger.update);
     const tick = (time: number) => lenis.raf(time * 1000);
     gsap.ticker.add(tick);
@@ -87,6 +89,7 @@ export default function SmoothScroll({ children }: { children: ReactNode }) {
 
     return () => {
       lenisRef.current = null;
+      setActiveLenis(null);
       stopObserving();
       gsap.ticker.remove(tick);
       lenis.destroy();
