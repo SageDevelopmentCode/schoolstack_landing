@@ -75,6 +75,7 @@ export function DemoMeetingLinkSection({
   async function openPreview() {
     setError(null);
     setPreviewOpen(true);
+    setPreview(null);
     setLoadingPreview(true);
     try {
       setPreview(await postJson<Preview>(`${base}/preview`, { meetingLink: link.trim() }));
@@ -213,7 +214,7 @@ export function DemoMeetingLinkSection({
               <AdminButton
                 type="button"
                 variant="primary"
-                disabled={!preview || sending}
+                disabled={!preview || sending || loadingPreview}
                 onClick={() => void send(true)}
               >
                 {sending ? "Sending…" : "Send this email"}

@@ -3,6 +3,7 @@ import { readJsonBody, withDemoOutreachAdmin } from "@/lib/admin-crm/demo-outrea
 import { loadDemoRequestForMeetingLink, parseMeetingLink } from "@/lib/admin/demo-meeting-link";
 import { apiError } from "@/lib/api/route-errors";
 import { sendDemoMeetingLinkEmail } from "@/lib/emails";
+import { reportOperationalError } from "@/lib/operational-errors";
 
 const ROUTE = "/api/admin/demo-requests/[id]/meeting-link/send";
 
@@ -12,7 +13,7 @@ type RouteContext = { params: Promise<{ id: string }> };
 export async function POST(request: Request, context: RouteContext) {
   const { id } = await context.params;
 
-  return withDemoOutreachAdmin(ROUTE, request, "Failed to send the meeting link.", async ({ admin }) => {
+  return withDemoOutreachAdmin(ROUTE, request, "Failed to send the meeting link.", async ({ admin, user }) => {
     const body = await readJsonBody(request);
     const meetingLink = parseMeetingLink(body?.meetingLink);
     if (!meetingLink) {
@@ -54,6 +55,23 @@ export async function POST(request: Request, context: RouteContext) {
       .eq("id", id);
     if (error) {
       // The email is out; only the bookkeeping failed (e.g. the meeting_link migration isn't applied yet).
+      await reportOperationalError({
+        supabase: admin,
+        surface: "api",
+        operation: "demo_request_meeting_link_save_after_email",
+        error: "Meeting link email sent but failed to save meeting_link on demo_requests.",
+        code: "meeting_link_save_failed",
+        entityType: "demo_request",
+        entityId: id,
+        cause: error,
+        severity: "warning",
+        actor: {
+          type: "platform_admin",
+          userId: user.id,
+          email: user.email ?? undefined,
+        },
+        api: { route: ROUTE, method: "POST", status: 500 },
+      });
       return NextResponse.json({
         meetingLink,
         meetingLinkSentAt: sentAt,

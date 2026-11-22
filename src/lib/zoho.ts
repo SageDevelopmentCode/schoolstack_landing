@@ -167,10 +167,87 @@ export async function getAuthorizationUrl(): Promise<string> {
   return `${ACCOUNTS_BASE}/oauth/v2/auth?${params.toString()}`;
 }
 
+/** An attachment already uploaded to Zoho, as the send-email API expects it. */
+export type ZohoUploadedAttachmentRef = {
+  storeName: string;
+  attachmentPath: string;
+  attachmentName: string;
+};
+
+/**
+ * Parse the multipart upload response (`data` is one entry per file).
+ * Returns null unless every file came back with the fields the send API needs.
+ */
+export function parseZohoUploadedAttachments(
+  json: unknown,
+  expectedCount: number,
+): ZohoUploadedAttachmentRef[] | null {
+  const data = (json as { data?: unknown } | null)?.data;
+  if (!Array.isArray(data) || data.length !== expectedCount) return null;
+
+  const refs: ZohoUploadedAttachmentRef[] = [];
+  for (const entry of data) {
+    const e = entry as Record<string, unknown> | null;
+    if (
+      !e ||
+      typeof e.storeName !== "string" ||
+      typeof e.attachmentPath !== "string" ||
+      typeof e.attachmentName !== "string"
+    ) {
+      return null;
+    }
+    refs.push({
+      storeName: e.storeName,
+      attachmentPath: e.attachmentPath,
+      attachmentName: e.attachmentName,
+    });
+  }
+  return refs;
+}
+
+async function uploadZohoAttachments(
+  accessToken: string,
+  accountId: string,
+  attachments: import("@/lib/zoho-smtp").EmailAttachment[],
+): Promise<
+  | { ok: true; refs: ZohoUploadedAttachmentRef[] }
+  | { ok: false; status?: number; error: string }
+> {
+  const form = new FormData();
+  for (const a of attachments) {
+    form.append(
+      "attach",
+      new Blob([a.content], { type: a.contentType ?? "application/octet-stream" }),
+      a.filename,
+    );
+  }
+
+  // No Content-Type header: fetch sets the multipart boundary itself.
+  const res = await fetch(
+    `${MAIL_BASE}/api/accounts/${accountId}/messages/attachments?uploadType=multipart`,
+    {
+      method: "POST",
+      headers: { Authorization: `Zoho-oauthtoken ${accessToken}` },
+      body: form,
+    },
+  );
+
+  if (!res.ok) {
+    return { ok: false, status: res.status, error: await res.text() };
+  }
+
+  const refs = parseZohoUploadedAttachments(await res.json(), attachments.length);
+  if (!refs) {
+    return { ok: false, error: "Unexpected attachment upload response from Zoho" };
+  }
+  return { ok: true, refs };
+}
+
 async function sendViaRestApi(opts: {
   toAddress: string;
   subject: string;
   content: string;
+  attachments?: import("@/lib/zoho-smtp").EmailAttachment[];
 }): Promise<{ success: boolean; error?: string }> {
   const MAX_ATTEMPTS = 3;
   let lastError = "";
@@ -179,6 +256,28 @@ async function sendViaRestApi(opts: {
     try {
       const accessToken = await getValidAccessToken();
       const accountId = await getZohoAccountId();
+
+      // Upload on every attempt so a retry never reuses refs from a failed one.
+      let attachmentRefs: ZohoUploadedAttachmentRef[] | undefined;
+      if (opts.attachments?.length) {
+        const upload = await uploadZohoAttachments(
+          accessToken,
+          accountId,
+          opts.attachments,
+        );
+        if (!upload.ok) {
+          lastError = `Attachment upload failed: ${upload.error}`;
+          if (upload.status === 401 || upload.status === 403) {
+            cachedAccessToken = null;
+            break;
+          }
+          if (attempt < MAX_ATTEMPTS) {
+            await new Promise((r) => setTimeout(r, attempt * 1000));
+          }
+          continue;
+        }
+        attachmentRefs = upload.refs;
+      }
 
       const res = await fetch(`${MAIL_BASE}/api/accounts/${accountId}/messages`, {
         method: "POST",
@@ -192,6 +291,7 @@ async function sendViaRestApi(opts: {
           subject: opts.subject,
           content: opts.content,
           mailFormat: "html",
+          ...(attachmentRefs ? { attachments: attachmentRefs } : {}),
         }),
       });
 
@@ -236,7 +336,10 @@ export async function sendZohoEmail(opts: {
   messageId?: string;
   inReplyTo?: string;
   references?: string[];
-  /** File attachments (SMTP only; the REST API sends without them). */
+  /**
+   * File attachments. Sent over SMTP or the REST API; if they can't be
+   * uploaded, the send fails rather than going out without them.
+   */
   attachments?: import("@/lib/zoho-smtp").EmailAttachment[];
 }): Promise<SendZohoEmailResult> {
   const { isOutboundEmailDisabled } = await import("@/lib/outbound-email");
@@ -308,11 +411,6 @@ export async function sendZohoEmail(opts: {
       attachments: opts.attachments,
     });
   } else {
-    if (opts.attachments?.length) {
-      console.warn(
-        `sendZohoEmail: SMTP not configured; sending "${opts.subject}" without ${opts.attachments.length} attachment(s)`,
-      );
-    }
     result = await sendViaRestApi(sendOpts);
   }
 
