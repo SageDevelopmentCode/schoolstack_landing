@@ -134,20 +134,27 @@ export function LazyWebsiteDashboardDemo(props: ComponentProps<typeof WebsiteDas
   return <WebsiteDashboardDemo {...props} />
 }
 
+/**
+ * A hover/near-viewport prefetch is only a head start: when it fails (stale chunk after a
+ * deploy, flaky network) the cache is cleared and the real render retries and reports. Its
+ * rejection must not reach `unhandledrejection`, which on public pages reloads the tab.
+ */
+function ignorePrefetchFailure() {}
+
 export function prefetchAdminDemo() {
-  void loadAdminCached()
+  void loadAdminCached().catch(ignorePrefetchFailure)
 }
 
 export function prefetchTeacherDemo() {
-  void loadTeacherCached()
+  void loadTeacherCached().catch(ignorePrefetchFailure)
 }
 
 export function prefetchParentDemo() {
-  void loadParentCached()
+  void loadParentCached().catch(ignorePrefetchFailure)
 }
 
 export function prefetchWebsiteDemo() {
-  void loadWebsiteCached()
+  void loadWebsiteCached().catch(ignorePrefetchFailure)
 }
 
 /** The real Garden enrollment checklist (DemoStage "enrollment"). */
@@ -156,7 +163,7 @@ export function LazyGardenEnrollmentDemo() {
 }
 
 export function prefetchGardenEnrollmentDemo() {
-  void loadGardenEnrollmentCached()
+  void loadGardenEnrollmentCached().catch(ignorePrefetchFailure)
 }
 
 /** The real Garden admin Dashboard (DemoStage "admin"). */
@@ -165,7 +172,7 @@ export function LazyGardenAdminDashboardDemo() {
 }
 
 export function prefetchGardenAdminDashboardDemo() {
-  void loadGardenAdminDashboardCached()
+  void loadGardenAdminDashboardCached().catch(ignorePrefetchFailure)
 }
 
 /** The Garden marketing automations demo (DemoStage "marketing"). */
@@ -174,5 +181,5 @@ export function LazyGardenAdminMarketingDemo() {
 }
 
 export function prefetchGardenAdminMarketingDemo() {
-  void loadGardenAdminMarketingCached()
+  void loadGardenAdminMarketingCached().catch(ignorePrefetchFailure)
 }

@@ -100,18 +100,25 @@ export function LazyRootedMeadowsTeacherDashboardDemo(
   return <RootedMeadowsTeacherDashboardDemo {...props} />
 }
 
+/**
+ * A hover/near-viewport prefetch is only a head start: when it fails (stale chunk after a
+ * deploy, flaky network) the cache is cleared and the real render retries and reports. Its
+ * rejection must not reach `unhandledrejection`, which on public pages reloads the tab.
+ */
+function ignorePrefetchFailure() {}
+
 export function prefetchRootedMeadowsAdminDemo() {
-  void loadRootedMeadowsAdminCached()
+  void loadRootedMeadowsAdminCached().catch(ignorePrefetchFailure)
 }
 
 export function prefetchRootedMeadowsWebsiteDemo() {
-  void loadRootedMeadowsWebsiteCached()
+  void loadRootedMeadowsWebsiteCached().catch(ignorePrefetchFailure)
 }
 
 export function prefetchRootedMeadowsParentDemo() {
-  void loadRootedMeadowsParentCached()
+  void loadRootedMeadowsParentCached().catch(ignorePrefetchFailure)
 }
 
 export function prefetchRootedMeadowsTeacherDemo() {
-  void loadRootedMeadowsTeacherCached()
+  void loadRootedMeadowsTeacherCached().catch(ignorePrefetchFailure)
 }

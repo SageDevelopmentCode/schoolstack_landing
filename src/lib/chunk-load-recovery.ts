@@ -45,13 +45,19 @@ export function canReloadForChunkError(): boolean {
   }
 }
 
-/** Records the reload time, then reloads. Call only after `canReloadForChunkError()`. */
-export function reloadForChunkError(): void {
+/**
+ * Records the reload time, then reloads. Call only after `canReloadForChunkError()`.
+ * Returns true when the reload started, false when it did not (the caller should show and
+ * report the error instead).
+ */
+export function reloadForChunkError(): boolean {
   try {
     window.sessionStorage.setItem(CHUNK_RELOAD_STORAGE_KEY, String(Date.now()));
     window.location.reload();
+    return true;
   } catch {
-    // Storage blocked between check and write: skip the reload rather than risk a loop.
+    // Storage full or blocked: we could not record the reload, so skip it rather than risk a loop.
+    return false;
   }
 }
 
@@ -60,7 +66,30 @@ export function reloadForChunkError(): void {
  * false when the caller should report the error instead.
  */
 export function reloadOnceForChunkError(): boolean {
-  if (!canReloadForChunkError()) return false;
-  reloadForChunkError();
-  return true;
+  return canReloadForChunkError() && reloadForChunkError();
+}
+
+/** The parts of an `<input>`, `<textarea>` or `<select>` that tell us whether it holds work. */
+export type EditedFieldLike = {
+  isConnected: boolean;
+  type?: string;
+  value?: string;
+  checked?: boolean;
+};
+
+/**
+ * True when a field the visitor edited is still on the page and still holds something:
+ * typed text, a picked option, a ticked box. Form state lives only in React, so a reload
+ * would throw it away. Fields removed from the page (form submitted, visitor navigated on)
+ * and fields cleared back to blank do not count.
+ */
+export function hasUnsavedFieldValues(fields: Iterable<EditedFieldLike>): boolean {
+  for (const field of fields) {
+    if (!field.isConnected) continue;
+    const type = field.type?.toLowerCase();
+    if (type === "hidden") continue;
+    if (type === "checkbox" || type === "radio") return true;
+    if ((field.value ?? "").trim() !== "") return true;
+  }
+  return false;
 }

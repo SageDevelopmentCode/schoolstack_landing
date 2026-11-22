@@ -17,11 +17,16 @@ export default function GlobalError({
 }) {
   // A stale chunk after a deploy heals with one reload: show a blank page while it reloads,
   // not an error page. A second failure within 30 s is reported like any other crash.
-  const [reloading] = useState(() => isChunkLoadError(error) && canReloadForChunkError());
+  const [reloading, setReloading] = useState(
+    () => isChunkLoadError(error) && canReloadForChunkError(),
+  );
 
   useEffect(() => {
     if (reloading) {
-      reloadForChunkError();
+      if (reloadForChunkError()) return;
+      // The reload did not start (storage full): fall back to the error page. That re-runs
+      // this effect with `reloading` false, which reports the crash below.
+      queueMicrotask(() => setReloading(false));
       return;
     }
 
