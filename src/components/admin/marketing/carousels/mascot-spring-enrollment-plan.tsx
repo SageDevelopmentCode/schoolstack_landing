@@ -42,10 +42,23 @@ export const MASCOT_SPRING_ENROLLMENT_PLAN_CAROUSEL = {
         />
       ),
       adCopy: {
+        label: "Game plan",
         primaryText:
           "Spring enrollment opens in January. Here's the game plan, in 5 steps. 📋\n\nSave it now, thank yourself in February. Swipe →\n\n#microschool #enrollment #schoolfounder",
         headline: "Your spring enrollment game plan",
       },
+      adCopyVariants: [
+        {
+          label: "Which step",
+          primaryText: "Spring enrollment in 5 steps. Which one are you already done with? Comment the number. 👇\n\nSwipe for the full plan →\n\n#microschool #enrollment #schoolfounder",
+          headline: "Which step are you on?",
+        },
+        {
+          label: "Tag a co-founder",
+          primaryText: "Send this to whoever runs enrollment at your school. 📋 Five steps to a calm spring enrollment. Swipe →\n\n#microschool #enrollment",
+          headline: "Send this to your enrollment person",
+        },
+      ],
     },
     {
       id: "steps",
@@ -60,9 +73,9 @@ export const MASCOT_SPRING_ENROLLMENT_PLAN_CAROUSEL = {
           }
           headlineSize={60}
           rows={[
-            { label: "Freshen your website", detail: "Make the Apply button impossible to miss." },
+            { label: "Freshen your website", detail: "Make Apply impossible to miss." },
             { label: "Open applications", detail: "One online form, not a PDF." },
-            { label: "Invite families to an open house", detail: "Then follow up with everyone who came." },
+            { label: "Host an open house", detail: "Then follow up with everyone." },
             { label: "Review by stage", detail: "Inquiry, tour, applied, enrolled." },
             { label: "Send the enrollment checklist", detail: "Forms, agreements, fees, done." },
           ]}

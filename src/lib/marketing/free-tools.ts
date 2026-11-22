@@ -38,5 +38,8 @@ export const MARKETING_FREE_TOOLS: MarketingFreeTool[] = [
 
 export const FREE_TOOLS_NAV_LABEL = "Free tools";
 
-export const TRY_FREE_PATH = "/try";
-export const TRY_FREE_NAV_LABEL = "Try for free";
+/** Navbar CTA: sends visitors to the free custom preview funnel. Keep in step with FREE_PREVIEW_PAGE_PATH. */
+export const NAV_CTA_PATH = "/free-preview";
+export const NAV_CTA_LABEL = "Get my free preview";
+/** Shown on the desktop bar below `lg`, where the full label would crowd the links. */
+export const NAV_CTA_SHORT_LABEL = "Free preview";

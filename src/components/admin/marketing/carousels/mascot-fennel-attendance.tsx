@@ -29,6 +29,23 @@ export const MASCOT_FENNEL_ATTENDANCE_CAROUSEL = {
     {
       id: "hook",
       fileName: "01-roll-call-three-kids-said-here.png",
+      adCopy: {
+        label: "Roll call",
+        primaryText: "Fennel takes roll call. The clipboard has a coffee ring, a mystery student named \"Mxx\" and a goldfish smell. 🐸\n\nSwipe for the attendance roster teachers can use in about a minute →\n\n#microschool #attendance #teacherlife",
+        headline: "Fennel takes roll call",
+      },
+      adCopyVariants: [
+        {
+          label: "Clipboard review",
+          primaryText: "An honest review of the attendance clipboard: ⭐ Found in the snack bin. Smells like goldfish. Swipe for what replaced it →\n\n#microschool #teacherlife",
+          headline: "Clipboard: found in the snack bin",
+        },
+        {
+          label: "Question",
+          primaryText: "Where's your school's attendance clipboard right now? Wrong answers only. 👇 Swipe →\n\n#microschool #attendance #teacherlife",
+          headline: "Clipboard location? Wrong answers only.",
+        },
+      ],
       render: () => (
         <MascotHookSlide
           kicker="Meet Fennel, who takes attendance"

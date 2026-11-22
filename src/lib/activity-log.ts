@@ -39,6 +39,7 @@ export const ACTIVITY_ACTIONS = {
   AVAILABILITY_SLOT_TOGGLED: "availability.slot_toggled",
   PAYMENTS_STRIPE_CONNECTED: "payments.stripe_connected",
   API_ERROR: "api.error",
+  PUBLIC_SITE_CLIENT_ERROR: "public_site.client_error",
   ADMIN_OPERATION_FAILED: "admin.operation_failed",
   NOTIFICATION_FAILED: "notification.failed",
   AUTH_OTP_REQUESTED: "auth.otp_requested",
@@ -165,6 +166,7 @@ export type ActivitySurface =
   | "school_admin"
   | "platform_admin"
   | "public_apply"
+  | "public_site"
   | "login"
   | "api"
   | "system";
@@ -286,6 +288,7 @@ const ACTION_LABELS: Record<string, string> = {
   [ACTIVITY_ACTIONS.AVAILABILITY_SLOT_TOGGLED]: "Availability updated",
   [ACTIVITY_ACTIONS.PAYMENTS_STRIPE_CONNECTED]: "Stripe connected",
   [ACTIVITY_ACTIONS.API_ERROR]: "API error",
+  [ACTIVITY_ACTIONS.PUBLIC_SITE_CLIENT_ERROR]: "Public page error",
   [ACTIVITY_ACTIONS.ADMIN_OPERATION_FAILED]: "Admin operation failed",
   [ACTIVITY_ACTIONS.NOTIFICATION_FAILED]: "Notification failed",
   [ACTIVITY_ACTIONS.AUTH_OTP_REQUESTED]: "Verification code sent",

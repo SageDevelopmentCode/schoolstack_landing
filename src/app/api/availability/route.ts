@@ -6,17 +6,40 @@ import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/availability";
 
+/** PostgREST caps each response (1000 rows by default), so read open slots page by page. */
+const SLOT_PAGE_SIZE = 1000;
+const MAX_SLOT_PAGES = 20;
+
+type SlotRow = { date: string; time_slot: string };
+
+async function fetchOpenSlots(
+  supabase: ReturnType<typeof createClient>,
+  fromDate: string,
+): Promise<{ data: SlotRow[]; error: unknown }> {
+  const rows: SlotRow[] = [];
+  for (let page = 0; page < MAX_SLOT_PAGES; page++) {
+    const from = page * SLOT_PAGE_SIZE;
+    const { data, error } = await supabase
+      .from("demo_availability_slots")
+      .select("date, time_slot")
+      .gte("date", fromDate)
+      .order("date")
+      .order("time_slot")
+      .order("id")
+      .range(from, from + SLOT_PAGE_SIZE - 1);
+    if (error) return { data: rows, error };
+    rows.push(...((data ?? []) as SlotRow[]));
+    if (!data || data.length < SLOT_PAGE_SIZE) break;
+  }
+  return { data: rows, error: null };
+}
+
 export async function GET(request: Request) {
   const today = todayKey();
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
-  const { data: openSlots, error: slotsError } = await supabase
-    .from("demo_availability_slots")
-    .select("date, time_slot")
-    .gte("date", today)
-    .order("date")
-    .order("time_slot");
+  const { data: openSlots, error: slotsError } = await fetchOpenSlots(supabase, today);
 
   if (slotsError) {
     return apiError(ROUTE, {

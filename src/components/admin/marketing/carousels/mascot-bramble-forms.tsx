@@ -41,6 +41,23 @@ export const MASCOT_BRAMBLE_FORMS_CAROUSEL = {
     {
       id: "hook",
       fileName: "01-41-unsigned-permission-slips.png",
+      adCopy: {
+        label: "Bramble's backpack",
+        primaryText: "Bramble's backpack: 41 unsigned permission slips. And a banana. From October. 🍌\n\nSwipe for forms families sign online and a checklist that shows what's left →\n\n#microschool #schoolforms #schoolfounder",
+        headline: "41 unsigned slips and a banana",
+      },
+      adCopyVariants: [
+        {
+          label: "Ranked",
+          primaryText: "School forms, ranked by how fast they get lost. Signed forms: a myth, a legend. 📄 Swipe for the ranking (and the fix) →\n\n#microschool #schoolforms",
+          headline: "Signed forms: a myth, a legend",
+        },
+        {
+          label: "Question",
+          primaryText: "What's the oldest thing in your school's lost-forms pile? Bramble's is a banana from October. 👇 Swipe →\n\n#microschool #schoolforms",
+          headline: "What's in your lost-forms pile?",
+        },
+      ],
       render: () => (
         <MascotHookSlide
           kicker="Meet Bramble, who handles the forms"

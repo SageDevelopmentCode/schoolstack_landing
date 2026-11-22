@@ -21,9 +21,9 @@ import {
 // Pip (enrollment) walks a family from application to first day; Bramble (forms) takes over the checklist.
 
 const STEPS = [
-  { label: "Apply", detail: "The family sends their answers in one place." },
-  { label: "Decide", detail: "Your team reviews and says yes, or not yet." },
-  { label: "Enroll", detail: "The family finishes forms, agreements and fees." },
+  { label: "Apply", detail: "Answers in one place." },
+  { label: "Decide", detail: "Yes, or not yet." },
+  { label: "Enroll", detail: "Forms, agreements and fees." },
 ];
 
 const DEMO_HEIGHT = 920;
@@ -41,7 +41,24 @@ export const APPLICATION_FINISH_LINE_CAROUSEL = {
   description: "LinkedIn carousel for the path from application to enrollment, guided by Pip and Bramble.",
   fileSlug: "mudkitchen-application-finish-line",
   slides: [
-    { id: "submitted", fileName: "01-application-submitted-who-owns-the-next-step.png", render: () => <SubmittedSlide /> },
+    { id: "submitted", fileName: "01-application-submitted-who-owns-the-next-step.png",
+      adCopy: {
+        label: "Not the finish line",
+        primaryText: "The application isn't the finish line. It's step one. 🏁\n\nPip and Bramble walk through what comes next: review, decide, enroll. Swipe →\n\n#microschool #enrollment #admissions",
+        headline: "The application is only step one",
+      },
+      adCopyVariants: [
+        {
+          label: "Whose turn?",
+          primaryText: "\"Wait, are we waiting on them or are they waiting on us?\" 🤔 How to always know whose turn it is. Swipe →\n\n#microschool #admissions",
+          headline: "Always know whose turn it is",
+        },
+        {
+          label: "Three steps",
+          primaryText: "From application to first day, in 3 steps:\n1. Review: the whole application on one screen\n2. Decide: always know the next step\n3. Enroll: one checklist for forms, agreements and fees\nSwipe →\n\n#microschool #enrollment",
+          headline: "Review, decide, enroll",
+        },
+      ], render: () => <SubmittedSlide /> },
     { id: "stages", fileName: "02-three-stages-one-connected-path.png", render: () => <StagesSlide /> },
     { id: "review", fileName: "03-review-the-application-in-one-place.png", render: () => <ReviewSlide /> },
     { id: "next-action", fileName: "04-make-the-next-action-clear.png", render: () => <NextActionSlide /> },
@@ -60,7 +77,7 @@ function SubmittedSlide() {
           A family applied to your <Accent>Microschool.</Accent> Now what?
         </>
       }
-      body="Get them from application to first day without anyone guessing the next step."
+      body="From application to first day, no guessing."
       lane="right"
       mascot={{ name: "pip", view: "curious" }}
       tip="I'm Pip. I'll walk you through it."
@@ -95,7 +112,7 @@ function ReviewSlide() {
     <MascotProductSlide
       kicker="Step 1 · Review"
       title="See the whole application on one screen."
-      body="Answers, contact details and status together. No digging through email."
+      body="Answers, contacts and status. No email digging."
       lane="left"
       mascot={{ name: "pip", view: "thinking" }}
       tip="Everything I need, in one spot."
@@ -112,7 +129,7 @@ function NextActionSlide() {
     <MascotProductSlide
       kicker="Step 2 · Decide"
       title="Always know whose turn it is."
-      body="Each application shows the next step, and whether it’s on your team or the family."
+      body="Each one shows the next step, and who owns it."
       lane="right"
       mascot={{ name: "pip", view: "point", flip: true }}
       tip="Here, it’s on us. Got it!"
@@ -130,7 +147,7 @@ function ChecklistBuilderSlide() {
     <MascotProductSlide
       kicker="Step 3 · Enroll"
       title="Accepted? Send one checklist."
-      body="Agreements, forms, uploads and fees, all in one list."
+      body="Agreements, forms, uploads and fees in one list."
       lane="left"
       mascot={{ name: "bramble", view: "hold" }}
       tip="Bramble here. I handle the forms."
@@ -148,7 +165,7 @@ function FamilyProgressSlide() {
     <MascotProductSlide
       kicker="For families"
       title="Families can see what’s left."
-      body="Finished items get checked off. Nothing slips through."
+      body="Done items get checked off."
       lane="right"
       mascot={{ name: "bramble", view: "thumbs", flip: true }}
       tip="No lost forms this year."

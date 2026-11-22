@@ -21,6 +21,8 @@ import {
 import { demoRequestRoleLabel } from "@/lib/demo-request-roles";
 import { formatOrganizationTimezoneLabel } from "@/lib/admissions/admissions-availability";
 import { formatSelectedDate } from "@/lib/demo-scheduler";
+import { demoCanonicalSlotToInstant } from "@/lib/demo-scheduler-timezone";
+import { DemoMeetingLinkSection } from "@/components/admin/demo-requests/DemoMeetingLinkSection";
 
 type DemoRequest = {
   id: string;
@@ -39,6 +41,9 @@ type DemoRequest = {
   scheduled_time: string;
   timezone: string;
   status: DemoRequestStatus;
+  /** Null until the meeting-link migration is applied / the link email is sent. */
+  meeting_link?: string | null;
+  meeting_link_sent_at?: string | null;
   source: string;
   created_at: string;
   updated_at: string;
@@ -53,6 +58,17 @@ function formatScheduledDemo(request: DemoRequest) {
   return `${canonical} · Visitor viewed times in ${visitorLabel}`;
 }
 
+const NEEDS_LINK_WINDOW_MS = 48 * 60 * 60 * 1000;
+
+/** Scheduled, still ahead, starts within 48h, and no link email sent yet. */
+function needsMeetingLink(request: DemoRequest, now: number) {
+  if (request.status !== "scheduled" || request.meeting_link_sent_at) return false;
+  const start = demoCanonicalSlotToInstant(request.scheduled_date, request.scheduled_time);
+  if (!start) return false;
+  const msUntil = start.getTime() - now;
+  return msUntil > 0 && msUntil <= NEEDS_LINK_WINDOW_MS;
+}
+
 export default function DemoRequestsPage() {
   const supabase = createClient();
   const [requests, setRequests] = useState<DemoRequest[]>([]);
@@ -60,6 +76,8 @@ export default function DemoRequestsPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<DemoRequestStatus | "">("");
+  const [needsLinkOnly, setNeedsLinkOnly] = useState(false);
+  const [now] = useState(() => Date.now());
 
   useEffect(() => {
     async function load() {
@@ -94,8 +112,25 @@ export default function DemoRequestsPage() {
     [supabase]
   );
 
+  const handleMeetingLinkSent = useCallback(
+    (id: string, meetingLink: string, sentAt: string) => {
+      setRequests((prev) =>
+        prev.map((r) =>
+          r.id === id
+            ? { ...r, meeting_link: meetingLink, meeting_link_sent_at: sentAt }
+            : r
+        )
+      );
+    },
+    []
+  );
+
+  const needsLinkCount = requests.filter((r) => needsMeetingLink(r, now)).length;
+
   const filtered = requests.filter(
-    (r) => !statusFilter || r.status === statusFilter
+    (r) =>
+      (!statusFilter || r.status === statusFilter) &&
+      (!needsLinkOnly || needsMeetingLink(r, now))
   );
 
   const selected = requests.find((r) => r.id === selectedId) ?? null;
@@ -130,6 +165,12 @@ export default function DemoRequestsPage() {
                   />
                 )
               )}
+              <AdminFilterChip
+                label="Needs link"
+                count={needsLinkCount}
+                active={needsLinkOnly}
+                onClick={() => setNeedsLinkOnly(!needsLinkOnly)}
+              />
             </div>
           </AdminListPanelHeader>
 
@@ -145,12 +186,16 @@ export default function DemoRequestsPage() {
                   title={r.name}
                   subtitle={r.school_name}
                   badge={
-                    <AdminStatusBadge
-                      label={DEMO_REQUEST_STATUS[r.status].label}
-                      variant={DEMO_REQUEST_STATUS[r.status].variant}
-                    />
+                    needsMeetingLink(r, now) ? (
+                      <AdminStatusBadge label="Needs link" variant="warning" />
+                    ) : (
+                      <AdminStatusBadge
+                        label={DEMO_REQUEST_STATUS[r.status].label}
+                        variant={DEMO_REQUEST_STATUS[r.status].variant}
+                      />
+                    )
                   }
-                  footer={new Date(r.created_at).toLocaleDateString()}
+                  footer={`Demo ${formatSelectedDate(r.scheduled_date)} · ${r.scheduled_time} CT`}
                 />
               ))
             )}
@@ -220,6 +265,16 @@ export default function DemoRequestsPage() {
                 {formatScheduledDemo(selected)}
               </p>
             </AdminDetailSection>
+
+            {selected.status === "scheduled" ? (
+              <DemoMeetingLinkSection
+                key={selected.id}
+                request={selected}
+                onSent={(link, sentAt) =>
+                  handleMeetingLinkSent(selected.id, link, sentAt)
+                }
+              />
+            ) : null}
 
             {selected.launch_timeline ||
             selected.student_count ||

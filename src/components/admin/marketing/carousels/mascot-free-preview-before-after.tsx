@@ -51,6 +51,26 @@ export const MASCOT_FREE_PREVIEW_BEFORE_AFTER_CAROUSEL = {
     {
       id: "hook",
       fileName: "01-your-school-runs-on-9-tools.png",
+      adCopy: {
+        label: "9 tools → 1 link",
+        primaryText: "From 9 tools (and 9 passwords) to one link. 🔑\n\nSwipe to see your whole school behind one private preview link, built free →\n\ntrymudkitchen.com/free-preview\n\n#microschool #schoolfounder",
+        headline: "From 9 tools to one link",
+        description: "Free in 2 business days.",
+      },
+      adCopyVariants: [
+        {
+          label: "Nine places",
+          primaryText: "Nine places families have to look. One link that replaces them. Swipe for the before and after, then get yours free →\n\ntrymudkitchen.com/free-preview\n\n#microschool #parentcommunication",
+          headline: "Nine places to look → one link",
+          description: "Free. No call needed.",
+        },
+        {
+          label: "Password count",
+          primaryText: "How many school passwords do you have saved? 🔐 Swipe to see what it looks like with one free preview link instead →\n\ntrymudkitchen.com/free-preview\n\n#microschool #schooladmin",
+          headline: "How many passwords are you at?",
+          description: "Free in 2 business days.",
+        },
+      ],
       render: () => (
         <MascotHookSlide
           kicker="From 9 tools to one link"
@@ -186,9 +206,9 @@ export const MASCOT_FREE_PREVIEW_BEFORE_AFTER_CAROUSEL = {
           }
           rows={[
             { label: "Send us your website", detail: "Just the link." },
-            { label: "We build your preview", detail: "Your logo, colours and programs." },
-            { label: "Check your inbox", detail: "Within 2 business days." },
-            { label: "Click around", detail: "Free. No call, no obligation." },
+            { label: "We build your preview", detail: "With your logo." },
+            { label: "Check your inbox", detail: "In 2 business days." },
+            { label: "Click around", detail: "Free. No call." },
           ]}
           mascot={{ name: "loam", view: "thumbs" }}
           tip="I'll bring it to your inbox."

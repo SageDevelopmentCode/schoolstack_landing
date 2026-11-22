@@ -31,7 +31,6 @@ import {
 // "real person, not a polished ad" angle: an instant photo, a Notes-app statement, a voice memo, a
 // sticky note and an email. Same claims as Sets F–H; every screen is the "Your School" placeholder.
 
-const AUDIENCE = "for microschool founders";
 const noOffer = (node: ReactNode) => <AdOfferProvider show={false}>{node}</AdOfferProvider>;
 
 function Footer({ tone = "light" }: { tone?: "light" | "dark" }) {
@@ -53,66 +52,156 @@ export const ADS_FOUNDER_JULIUS_CAROUSEL = {
       fileName: "ad-j01-a-note-from-julius.png",
       render: () => noOffer(<PolaroidLetterAd />),
       adCopy: {
+        label: "Hi, I'm Julius",
         primaryText:
-          "Hi, I'm Julius, co-founder of MudKitchen. Send me your school's website and we'll build you a private preview: your admin portal, teacher portal and parent app, with your logo. Free, no call needed.",
+          "Hi, I'm Julius from MudKitchen. 👋 Send me your school's website. I'll build a free, private preview with your logo.",
         headline: "A note from our co-founder, Julius",
-        description: "Free, private, within 2 business days.",
+        description: "Free in 2 business days.",
       },
+      adCopyVariants: [
+        {
+          label: "Real person",
+          primaryText: "Not a bot. Not an agency. Just Julius, MudKitchen's co-founder. 👋 Send your website and get a free preview of your school.",
+          headline: "Not a bot. A co-founder.",
+          description: "Free in 2 business days.",
+        },
+        {
+          label: "Short",
+          primaryText: "Julius here. Free preview of your school, no call, your logo on it. Send your website. 📸",
+          headline: "Julius here. Send your website.",
+          description: "Free. No call needed.",
+        },
+      ],
     },
     {
       id: "notes-app",
       fileName: "ad-j02-a-quick-note-from-our-founder.png",
       render: () => noOffer(<NotesAppAd />),
       adCopy: {
+        label: "Notes app",
         primaryText:
-          "A quick note from our co-founder to every microschool founder: send us your website and we'll build a free, private preview of your school. Admin portal, teacher portal and parent app, with your logo.",
+          "A quick note from our co-founder: send us your website and we'll build a free, private preview of your school. 📝",
         headline: "A quick note from our founder",
-        description: "Free. No call. 2 business days.",
+        description: "Free. No call.",
       },
+      adCopyVariants: [
+        {
+          label: "Bullet notes",
+          primaryText: "Notes app, from our co-founder Julius: 📝\n• free preview of your school\n• your logo on it\n• no call, 2 business days\n• just send your website",
+          headline: "Notes: free, no call, 2 days",
+          description: "Free. No call.",
+        },
+        {
+          label: "Honest",
+          primaryText: "The fastest way to know if MudKitchen fits? See your school in it. 📝 Send your website for a free, private preview.",
+          headline: "The fastest way to know if it fits",
+          description: "Free and private.",
+        },
+      ],
     },
     {
       id: "voice-memo",
       fileName: "ad-j03-a-voice-memo-from-julius.png",
       render: () => noOffer(<VoiceMemoAd />),
       adCopy: {
+        label: "Voice memo",
         primaryText:
-          "Microschool founders, Julius here (co-founder of MudKitchen). Send me your website and we'll build you a private preview of your school, admin, teacher and parent views included. Free, within 2 business days.",
+          "Julius here, from MudKitchen. 🎙️ Send me your website and I'll build a free preview of your school in 2 business days.",
         headline: "Our founder left you a voice memo",
-        description: "Free, private, no obligation.",
+        description: "Free and private.",
       },
+      adCopyVariants: [
+        {
+          label: "Transcript",
+          primaryText: "Voice memo, 0:14 🎙️\n\"Hey, it's Julius. Send me your school's website and I'll build you a free MudKitchen preview. That's it. Talk soon.\"",
+          headline: "0:14 voice memo from Julius",
+          description: "Free and private.",
+        },
+        {
+          label: "Short",
+          primaryText: "Press play: our co-founder Julius has a 14-second ask. Send your website, get a free MudKitchen preview of your school. 🎙️",
+          headline: "A 14-second ask from Julius",
+          description: "Free in 2 business days.",
+        },
+      ],
     },
     {
       id: "sticky-monitor",
       fileName: "ad-j04-send-me-your-website.png",
       render: () => noOffer(<StickyMonitorAd />),
       adCopy: {
+        label: "Send me your website",
         primaryText:
-          "\"Send me your website.\" That's it. Our co-founder Julius and the team will set up a private MudKitchen preview of your school: admin, teacher and parent portals with your logo. Free, no call needed.",
+          "\"Send me your website.\" That's the whole ask. 📌 We'll build a free, private MudKitchen preview of your school, with your logo.",
         headline: "Send me your website",
-        description: "We'll build your preview for free.",
+        description: "We build it, free.",
       },
+      adCopyVariants: [
+        {
+          label: "Post-it",
+          primaryText: "The note on Julius's monitor says one thing: \"Send me your website.\" 📌 Do it and get a free preview of your school.",
+          headline: "One Post-it. One free preview.",
+          description: "We build it, free.",
+        },
+        {
+          label: "Short",
+          primaryText: "Four words from Julius: send me your website. 📌 Five from us: we'll build your free preview.",
+          headline: "Four words: send me your website",
+          description: "Free. No call needed.",
+        },
+      ],
     },
     {
       id: "ps-all-three",
       fileName: "ad-j05-ps-your-teachers-and-parents-too.png",
       render: () => noOffer(<PsAllThreeAd />),
       adCopy: {
+        label: "P.S. all three",
         primaryText:
-          "Dear microschool founder: we'll build you a free, private MudKitchen preview of your admin portal. P.S. Your teachers get their own portal and your families get the parent app, in the same preview.",
+          "Dear founder: we'll build you a free preview of your admin portal. ✉️ P.S. Teachers and families get theirs too. Same preview.",
         headline: "P.S. Your teachers and parents too.",
-        description: "Free, within 2 business days.",
+        description: "Free in 2 business days.",
       },
+      adCopyVariants: [
+        {
+          label: "Three P.S.",
+          primaryText: "Dear founder, your free MudKitchen preview includes your admin portal. ✉️\nP.S. And a teacher portal.\nP.P.S. And a parent app.\nP.P.P.S. And your website. Send it over.",
+          headline: "P.P.P.S. Your website too.",
+          description: "Free in 2 business days.",
+        },
+        {
+          label: "Short",
+          primaryText: "Most previews show the admin side. Ours shows everyone's: admin, teacher and parent. Free. ✉️ Send your website. (Julius)",
+          headline: "Everyone's side, not just admin",
+          description: "Free and private.",
+        },
+      ],
     },
     {
       id: "email-from-julius",
       fileName: "ad-j06-an-email-from-julius.png",
       render: () => noOffer(<EmailFromJuliusAd />),
       adCopy: {
+        label: "An email",
         primaryText:
-          "An email from our co-founder, Julius, to microschool founders: send us your website and we'll set up your admin portal, teacher portal and parent app with your logo and colours. Free and private.",
+          "An email from Julius, our co-founder: ✉️ send us your website and we'll set up your admin, teacher and parent portals. Free.",
         headline: "An email from our co-founder",
-        description: "No call needed. 2 business days.",
+        description: "No call. 2 business days.",
       },
+      adCopyVariants: [
+        {
+          label: "The email",
+          primaryText: "From: Julius (MudKitchen co-founder)\nSubject: your free preview ✉️\nSend me your school's website. I'll set up all three portals with your logo. Free.",
+          headline: "Subject: your free preview",
+          description: "No call. 2 business days.",
+        },
+        {
+          label: "Reply",
+          primaryText: "Reply to Julius with one thing: your school's website. ✉️ Get a free, private preview of all three portals back.",
+          headline: "Reply with one thing: your website",
+          description: "Free in 2 business days.",
+        },
+      ],
     },
   ] satisfies MarketingSlide[],
 } satisfies MarketingCarousel;
@@ -121,7 +210,7 @@ export const ADS_FOUNDER_JULIUS_CAROUSEL = {
 
 function PolaroidLetterAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.cream} pattern="grid">
+    <AdFrame background={G.cream} pattern="grid">
       <AdCopy
         title={
           <>
@@ -139,8 +228,8 @@ function PolaroidLetterAd() {
             <LetterLine size={50} color={G.clayDeep}>
               Hi, I&rsquo;m Julius.
             </LetterLine>
-            <LetterLine size={41}>Send me your school&rsquo;s website. We&rsquo;ll build you a private MudKitchen preview: admin, teacher and parent portals, with your logo.</LetterLine>
-            <LetterLine size={41}>Free. No call needed. Within 2 business days.</LetterLine>
+            <LetterLine size={44}>Send me your school&rsquo;s website.</LetterLine>
+            <LetterLine size={44}>I&rsquo;ll build a free preview with your logo.</LetterLine>
             <LetterLine size={34} color={G.clayDeep} style={{ textAlign: "right", marginTop: 4 }}>
               {JULIUS_SIGNATURE}
             </LetterLine>
@@ -160,7 +249,7 @@ function PolaroidLetterAd() {
 
 function NotesAppAd() {
   return (
-    <AdFrame audience={AUDIENCE} background="#FFF7DA">
+    <AdFrame background="#FFF7DA">
       <AdCopy
         title={
           <>
@@ -174,10 +263,10 @@ function NotesAppAd() {
           <YourParentPhone scale={0.56} />
         </Pin>
         <Pin left={0} top={40} z={4}>
-          <NotesAppCard width={790} rotate={-1.5} title="to every microschool founder">
-            <p style={{ margin: 0 }}>You&rsquo;re running admissions, tuition, forms and parent texts from a lot of different places.</p>
-            <p style={{ margin: "16px 0 0" }}>So here&rsquo;s my offer: send me your website and we&rsquo;ll build a private MudKitchen preview of your school. Admin portal, teacher portal and parent app, with your logo.</p>
-            <p style={{ margin: "16px 0 0", fontWeight: 800 }}>Free. No call. Within 2 business days.</p>
+          <NotesAppCard width={790} rotate={-1.5} title="to you">
+            <p style={{ margin: 0 }}>Send me your school&rsquo;s website.</p>
+            <p style={{ margin: "16px 0 0" }}>I&rsquo;ll build a private preview with your logo.</p>
+            <p style={{ margin: "16px 0 0", fontWeight: 800 }}>Free. No call. 2 business days.</p>
             <p style={{ margin: "16px 0 0" }}>— Julius</p>
           </NotesAppCard>
         </Pin>
@@ -200,7 +289,7 @@ function NotesAppAd() {
 
 function VoiceMemoAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.sky} tag={<FreeTag text="Free · private" />}>
+    <AdFrame background={G.sky} tag={<FreeTag text="Free · private" />}>
       <AdCopy
         title={
           <>
@@ -216,7 +305,7 @@ function VoiceMemoAd() {
             rotate={-1}
             transcript={
               <>
-                &ldquo;Hey, it&rsquo;s Julius. If you run a microschool, send me your website. We&rsquo;ll build you a private preview of MudKitchen: your admin portal, teacher portal and parent app, all with your logo. It&rsquo;s free, and it&rsquo;s in your inbox within 2 business days.&rdquo;
+                &ldquo;Hey, it&rsquo;s Julius. Send me your website and I&rsquo;ll build a free preview of your school, with your logo.&rdquo;
               </>
             }
           />
@@ -234,7 +323,7 @@ function VoiceMemoAd() {
 
 function StickyMonitorAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.peach}>
+    <AdFrame background={G.peach}>
       <AdCopy
         title={
           <>
@@ -254,7 +343,7 @@ function StickyMonitorAd() {
         <Pin right={110} top={0} z={6}>
           <StickyNote width={380} rotate={5} color={G.butter} style={{ padding: "32px 28px 24px" }}>
             <Hand size={36} color={G.ink} rotate={0} style={{ lineHeight: 1.22 }}>
-              Send me your website. We&rsquo;ll set up your admin, teacher and parent portals. Free.
+              All three portals, with your logo. Free.
             </Hand>
             <Hand size={28} color={G.clayDeep} rotate={0} style={{ marginTop: 10, textAlign: "right" }}>
               — Julius
@@ -278,7 +367,7 @@ function StickyMonitorAd() {
 
 function PsAllThreeAd() {
   return (
-    <AdFrame audience={AUDIENCE} background="#EEF5E9">
+    <AdFrame background="#EEF5E9">
       <AdCopy
         title={
           <>
@@ -299,9 +388,9 @@ function PsAllThreeAd() {
             <LetterLine size={44} color={G.clayDeep}>
               Dear founder,
             </LetterLine>
-            <LetterLine size={38}>We&rsquo;ll build you a free, private preview of your admin portal, with your logo.</LetterLine>
+            <LetterLine size={38}>Your free admin preview, with your logo.</LetterLine>
             <LetterLine size={38} color={G.clay}>
-              P.S. Your teachers get their own portal, and your families get the parent app. Same preview.
+              P.S. Teachers and parents get theirs too.
             </LetterLine>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 14, marginTop: 6 }}>
               <FounderAvatar size={58} ring={3} />
@@ -322,7 +411,7 @@ function PsAllThreeAd() {
 
 function EmailFromJuliusAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.lav}>
+    <AdFrame background={G.lav}>
       <AdCopy
         title={
           <>
@@ -338,7 +427,7 @@ function EmailFromJuliusAd() {
           width={940}
           style={{ transform: "rotate(-1deg)" }}
           subject="Your school, all three views 👋"
-          body="Hi! Send me your school's website and we'll set up your admin portal, teacher portal and parent app with your logo and colours. Free, private, within 2 business days. — Julius"
+          body="Hi! Send me your school's website. I'll set up all three portals with your logo. Free. — Julius"
           attachment={
             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 24 }}>
               <YourAdminWindow scale={0.42} label="Admin view" />

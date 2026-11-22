@@ -29,6 +29,23 @@ export const MASCOT_DOT_CALENDAR_CAROUSEL = {
     {
       id: "hook",
       fileName: "01-picture-day-on-picture-day.png",
+      adCopy: {
+        label: "Picture day",
+        primaryText: "Nobody told Dot it was picture day. 📸 The event lived in one email. The flyer was \"attached.\"\n\nSwipe for a family calendar everyone actually checks →\n\n#microschool #schoolcalendar #schoolfounder",
+        headline: "Nobody told Dot it was picture day",
+      },
+      adCopyVariants: [
+        {
+          label: "Calendar crimes",
+          primaryText: "Calendar crimes: \"see attached flyer\" (no flyer), \"the usual time\" (there is no usual time). Which one has your school committed? 👇 Swipe →\n\n#microschool #schoolcalendar",
+          headline: "Which calendar crime is yours?",
+        },
+        {
+          label: "Short",
+          primaryText: "One calendar. Every family. No surprises on picture day. 🗓️ Swipe →\n\n#microschool #schoolcalendar",
+          headline: "No surprises on picture day",
+        },
+      ],
       render: () => (
         <MascotHookSlide
           kicker="Meet Dot, who keeps the calendar"
@@ -71,7 +88,6 @@ export const MASCOT_DOT_CALENDAR_CAROUSEL = {
           rows={[
             { label: "The event that lived in one email", view: "oops" },
             { label: "“See attached flyer”", aside: "no flyer was attached", view: "confused" },
-            { label: "“The usual time”", aside: "there is no usual time", view: "thinking" },
             { label: "Two dates, one field trip", aside: "pick one. please.", view: "surprised" },
             { label: "The reminder, the morning of", view: "tears" },
           ]}

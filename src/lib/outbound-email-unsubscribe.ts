@@ -10,6 +10,7 @@ const FONT_BODY =
 /** Channels that bypass marketing unsubscribe (receipts, confirmations, critical payment notices). */
 export const TRANSACTIONAL_OUTBOUND_EMAIL_CHANNELS = new Set<string>([
   "demo_booking_confirmation",
+  "demo_meeting_link",
   "homepage_question_confirmation",
   "public_support_request_confirmation",
   "demo_feedback_confirmation",

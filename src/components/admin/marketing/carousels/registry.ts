@@ -1,5 +1,6 @@
 import { ADS_CREW_HUMOR_CAROUSEL } from "@/components/admin/marketing/carousels/ads-crew-humor";
 import { ADS_HOLIDAY_GIFT_CAROUSEL } from "@/components/admin/marketing/carousels/ads-holiday-gift";
+import { ADS_GIFT_THANKSGIVING_BREAK_CAROUSEL } from "@/components/admin/marketing/carousels/ads-gift-thanksgiving-break";
 import { ADS_PAIN_PROOF_CAROUSEL } from "@/components/admin/marketing/carousels/ads-pain-proof";
 import { ADS_WINTER_BREAK_CAROUSEL } from "@/components/admin/marketing/carousels/ads-winter-break";
 import { APPLICATION_FINISH_LINE_CAROUSEL } from "@/components/admin/marketing/carousels/application-finish-line";
@@ -42,6 +43,8 @@ import { ADS_FOUNDER_JULIUS_CAROUSEL } from "@/components/admin/marketing/carous
 import { ADS_PREVIEW_SEASONAL_CAROUSEL } from "@/components/admin/marketing/carousels/ads-preview-seasonal";
 import { ADS_PREVIEW_THANKSGIVING_CAROUSEL } from "@/components/admin/marketing/carousels/ads-preview-thanksgiving";
 import { ADS_PREVIEW_THANKSGIVING_BREAK_CAROUSEL } from "@/components/admin/marketing/carousels/ads-preview-thanksgiving-break";
+import { ADS_CREW_CHAT_CAROUSEL } from "@/components/admin/marketing/carousels/ads-crew-chat";
+import { POSTS_CREW_CHAT_CAROUSEL } from "@/components/admin/marketing/carousels/posts-crew-chat";
 import type { MarketingCarousel } from "@/components/admin/marketing/carousels/types";
 
 export const MARKETING_CAROUSELS: MarketingCarousel[] = [
@@ -75,6 +78,8 @@ export const MARKETING_CAROUSELS: MarketingCarousel[] = [
   POSTS_WEEKLY_SINGLES_CAROUSEL,
   POSTS_HOLIDAY_SINGLES_CAROUSEL,
   POSTS_FREE_PREVIEW_SINGLES_CAROUSEL,
+  POSTS_CREW_CHAT_CAROUSEL,
+  ADS_GIFT_THANKSGIVING_BREAK_CAROUSEL,
   ADS_HOLIDAY_GIFT_CAROUSEL,
   ADS_WINTER_BREAK_CAROUSEL,
   ADS_CREW_HUMOR_CAROUSEL,
@@ -89,6 +94,7 @@ export const MARKETING_CAROUSELS: MarketingCarousel[] = [
   ADS_PREVIEW_SEASONAL_CAROUSEL,
   ADS_PREVIEW_THANKSGIVING_CAROUSEL,
   ADS_PREVIEW_THANKSGIVING_BREAK_CAROUSEL,
+  ADS_CREW_CHAT_CAROUSEL,
 ];
 
 export const DEFAULT_CAROUSEL_ID = MARKETING_CAROUSELS[0]?.id ?? "tuition-review";

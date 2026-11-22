@@ -18,6 +18,12 @@ export function isSmtpConfigured(): boolean {
   return !!(env.user && env.password && env.fromAddress);
 }
 
+export type EmailAttachment = {
+  filename: string;
+  content: string;
+  contentType?: string;
+};
+
 export async function sendViaSmtp(opts: {
   toAddress: string;
   subject: string;
@@ -29,6 +35,7 @@ export async function sendViaSmtp(opts: {
   /** Threading headers for a reply in the same conversation. */
   inReplyTo?: string;
   references?: string[];
+  attachments?: EmailAttachment[];
 }): Promise<{ success: boolean; error?: string }> {
   const env = readSmtpEnv();
   if (!isSmtpConfigured()) {
@@ -58,6 +65,7 @@ export async function sendViaSmtp(opts: {
       ...(opts.messageId ? { messageId: opts.messageId } : {}),
       ...(opts.inReplyTo ? { inReplyTo: opts.inReplyTo } : {}),
       ...(opts.references?.length ? { references: opts.references } : {}),
+      ...(opts.attachments?.length ? { attachments: opts.attachments } : {}),
     });
 
     return { success: true };

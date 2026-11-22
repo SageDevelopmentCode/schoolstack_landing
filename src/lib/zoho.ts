@@ -236,6 +236,8 @@ export async function sendZohoEmail(opts: {
   messageId?: string;
   inReplyTo?: string;
   references?: string[];
+  /** File attachments (SMTP only; the REST API sends without them). */
+  attachments?: import("@/lib/zoho-smtp").EmailAttachment[];
 }): Promise<SendZohoEmailResult> {
   const { isOutboundEmailDisabled } = await import("@/lib/outbound-email");
   if (isOutboundEmailDisabled()) {
@@ -303,8 +305,14 @@ export async function sendZohoEmail(opts: {
       messageId: opts.messageId,
       inReplyTo: opts.inReplyTo,
       references: opts.references,
+      attachments: opts.attachments,
     });
   } else {
+    if (opts.attachments?.length) {
+      console.warn(
+        `sendZohoEmail: SMTP not configured; sending "${opts.subject}" without ${opts.attachments.length} attachment(s)`,
+      );
+    }
     result = await sendViaRestApi(sendOpts);
   }
 

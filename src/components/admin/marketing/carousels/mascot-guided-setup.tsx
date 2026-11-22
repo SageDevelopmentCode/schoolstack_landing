@@ -19,9 +19,9 @@ import { WORKFLOW_COPY } from "@/components/home/home-copy";
 // its step bodies so they fit the rows. Jokes are original.
 
 const STEP_DETAILS = [
-  "We review your forms, spreadsheets and payments.",
-  "We set it up with you and help migrate what matters.",
-  "We walk you through it and answer questions.",
+  "Your forms, spreadsheets and payments.",
+  "We help move what matters.",
+  "We answer every question.",
 ];
 
 const H = 920;
@@ -50,10 +50,23 @@ export const MASCOT_GUIDED_SETUP_CAROUSEL = {
         />
       ),
       adCopy: {
+        label: "How it works",
         primaryText:
           "Switching your school's software sounds like a whole semester of pain. Here's how guided setup actually works, in 3 steps (swipe →). #microschool #schooladmin",
         headline: "How switching actually works",
       },
+      adCopyVariants: [
+        {
+          label: "Myth vs. reality",
+          primaryText: "Myth: switching software takes a whole semester. 😩\nReality: guided setup, in 3 steps. Swipe →\n\n(Dig made it to stage 5 of grief before reading this.)\n\n#microschool #schooladmin #schoolfounder",
+          headline: "Myth: switching takes a semester",
+        },
+        {
+          label: "Question",
+          primaryText: "What's stopping you from switching your school's software? Be honest. 👇 Then swipe for how guided setup works in 3 steps →\n\n#microschool #schooladmin",
+          headline: "What's stopping you from switching?",
+        },
+      ],
     },
     {
       id: "stages",

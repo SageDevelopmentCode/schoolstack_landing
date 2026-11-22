@@ -43,10 +43,23 @@ export const MASCOT_HOLIDAY_PROGRAM_CAROUSEL = {
         />
       ),
       adCopy: {
+        label: "Survival guide",
         primaryText:
           "The holiday program is in 9 days. Who has the costumes? 🎄\n\nA survival guide for school founders: dates, permission slips and volunteers, all in one place. Swipe →\n\n#microschool #holidayprogram #schoolfounder",
         headline: "Holiday program survival guide",
       },
+      adCopyVariants: [
+        {
+          label: "Countdown",
+          primaryText: "9 days to the holiday program. 🎄 Costumes: missing. Permission slips: half back. Volunteers: \"maybe.\"\n\nSwipe for the survival guide →\n\n#microschool #holidayprogram #schoolfounder",
+          headline: "9 days. Costumes missing.",
+        },
+        {
+          label: "Save it",
+          primaryText: "Save this before the holiday program sneaks up on you. 📌 Dates, permission slips and volunteers, sorted. Swipe →\n\n#microschool #holidayprogram",
+          headline: "Save before it sneaks up on you",
+        },
+      ],
     },
     {
       id: "ranked",
@@ -153,7 +166,6 @@ export const MASCOT_HOLIDAY_PROGRAM_CAROUSEL = {
 const SLOTS: Array<{ job: string; who?: string }> = [
   { job: "Costume crew", who: "the Parks" },
   { job: "Cookie table", who: "Maya’s mom" },
-  { job: "Set-up, 5pm", who: "the Okafors" },
   { job: "Photos", who: "Flicker (supervised)" },
   { job: "Clean-up" },
 ];

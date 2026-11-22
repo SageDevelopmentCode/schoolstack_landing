@@ -41,66 +41,156 @@ export const ADS_WINTER_BREAK_CAROUSEL = {
       fileName: "ad-b1-dot-halls-are-quiet.png",
       render: () => <HallsQuietAd />,
       adCopy: {
+        label: "Calmest two weeks",
         primaryText:
-          "Microschool founders: winter break is the calmest two weeks of the school year. Use it to get MudKitchen set up, so enrollment, tuition and parent messages are ready when families come back. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Winter break is the calmest two weeks of the school year. ❄️ Use it to set up MudKitchen before families come back. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Set up over break, open January ready",
-        description: "Guided setup for microschools.",
+        description: "Guided setup included.",
       },
+      adCopyVariants: [
+        {
+          label: "Quiet halls",
+          primaryText: "Empty classrooms, quiet inbox, two calm weeks. ❄️ The best time to set up MudKitchen is while students are out. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Quiet halls. Perfect setup time.",
+          description: "Guided setup included.",
+        },
+        {
+          label: "By January",
+          primaryText: "Ready when families come back: ❄️\n✅ Enrollment\n✅ Tuition\n✅ Parent messages\nSet it up with MudKitchen over winter break. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Ready by the time they're back",
+          description: "Guided setup included.",
+        },
+      ],
     },
     {
       id: "december-january",
       fileName: "ad-b2-december-vs-january.png",
       render: () => <DecemberJanuaryAd />,
       adCopy: {
+        label: "Dec → Jan",
         primaryText:
-          "Running a microschool? December: a demo, then we set things up with you. January: families apply, pay and get updates in one place. Book a demo before the break, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "December: a demo, then we set it up with you. 🗓️ January: families apply, pay and get updates in one place. Book a demo before the break, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Open January with it running",
-        description: "We help move the important pieces over.",
+        description: "We help you move over.",
       },
+      adCopyVariants: [
+        {
+          label: "Timeline",
+          primaryText: "Your winter timeline with MudKitchen: 🗓️\nDecember: a demo, then setup together\nJanuary: families apply, pay and get updates in one place\nBook a demo before the break, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "December setup. January running.",
+          description: "We help you move over.",
+        },
+        {
+          label: "Short",
+          primaryText: "Set up in December, open January running. ⛄ Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Set up in December",
+          description: "Guided setup included.",
+        },
+      ],
     },
     {
       id: "spring-forms",
       fileName: "ad-b3-pip-spring-enrollment.png",
       render: () => <SpringFormsAd />,
       adCopy: {
+        label: "Spring enrollment",
         primaryText:
-          "Microschool directors: spring enrollment opens in January. Are your application, enrollment forms and tuition plans ready? We'll set them up with you over break. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Spring enrollment opens in January. 📋 Are your forms and tuition plans ready? We'll set them up with you over break. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Spring enrollment, ready by January",
-        description: "Online applications, forms and tuition.",
+        description: "Apply, forms, tuition.",
       },
+      adCopyVariants: [
+        {
+          label: "Ready check",
+          primaryText: "Spring enrollment opens in January. Ready check: 📋\n☐ Online application\n☐ Enrollment forms\n☐ Tuition plans\nWe'll set them up with you over break. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Spring enrollment ready check",
+          description: "Apply, forms, tuition.",
+        },
+        {
+          label: "Short",
+          primaryText: "January families won't wait for paper forms. 📄 Get online applications, forms and tuition set up over break. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "January won't wait for paper forms",
+          description: "Apply, forms, tuition.",
+        },
+      ],
     },
     {
       id: "setup-crew",
       fileName: "ad-b4-setup-crew.png",
       render: () => <SetupCrewAd />,
       adCopy: {
+        label: "Setup crew",
         primaryText:
-          "Microschool owners: students are out. Your setup crew is in. We review how your school runs today, build your setup inside MudKitchen and help you go live, without starting over. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Students are out. Your setup crew is in. 🛠️ We build your setup inside MudKitchen and help you go live. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Guided setup, without starting over",
-        description: "Website, enrollment, tuition and families.",
+        description: "Website to tuition.",
       },
+      adCopyVariants: [
+        {
+          label: "Three steps",
+          primaryText: "Guided setup over winter break, in 3 steps: 🛠️\n1. We review how your school runs today\n2. We build your setup inside MudKitchen\n3. We help you go live\nNo starting over. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Three steps. No starting over.",
+          description: "Website to tuition.",
+        },
+        {
+          label: "Short",
+          primaryText: "You rest. The setup crew works. 🧑‍🔧 MudKitchen moves your school over during break, without starting over. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "You rest. The setup crew works.",
+          description: "Guided setup included.",
+        },
+      ],
     },
     {
       id: "march-vs-december",
       fileName: "ad-b5-clover-march-vs-december.png",
       render: () => <MarchDecemberAd />,
       adCopy: {
+        label: "Switch while quiet",
         primaryText:
-          "Microschool founders: switching systems mid-semester is chaos. Switching over winter break is a cozy afternoon. Book a MudKitchen demo now, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Switching systems mid-semester is chaos. Switching over winter break is a cozy afternoon. Book a MudKitchen demo now, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Switch while it's quiet",
-        description: "Built for founder-led microschools.",
+        description: "Built for microschools.",
       },
+      adCopyVariants: [
+        {
+          label: "Compare",
+          primaryText: "Switching systems in March: 22 families mid-semester, forms half done. 😬\nSwitching in December: a cozy afternoon with the setup crew. ☕\nPick December. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "March: chaos. December: cocoa.",
+          description: "Built for microschools.",
+        },
+        {
+          label: "Short",
+          primaryText: "The best time to switch is when nobody's in the building. ❄️ Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Switch when nobody's in the building",
+          description: "Built for microschools.",
+        },
+      ],
     },
     {
       id: "break-todo",
       fileName: "ad-b6-winter-break-todo.png",
       render: () => <BreakTodoAd />,
       adCopy: {
+        label: "Break to-do",
         primaryText:
-          "Microschool directors, your winter break to-do list: sleep in, eat too many cookies, and take a look at MudKitchen. Start a paid plan within 30 days of your demo and we'll send a $200 Amazon gift card. Terms apply.",
+          "Your winter break to-do list: sleep in, too many cookies, a look at MudKitchen. 🍪 Start a paid plan within 30 days of your demo and we'll send a $200 Amazon gift card. Terms apply.",
         headline: "One small item for your break",
-        description: "Sign up, get a $200 Amazon gift card.",
+        description: "Get a $200 gift card.",
       },
+      adCopyVariants: [
+        {
+          label: "The list",
+          primaryText: "Winter break to-do list: 🎄\n☑️ Sleep in\n☑️ Too many cookies\n☐ Take a look at MudKitchen\nStart a paid plan within 30 days of your demo and we'll send a $200 Amazon gift card. Terms apply.",
+          headline: "Sleep in. Cookies. One quick look.",
+          description: "Get a $200 gift card.",
+        },
+        {
+          label: "Short",
+          primaryText: "Between cookies, take a 30-minute look at a calmer spring semester. 🍪 Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "A calmer spring, between cookies",
+          description: "Built for microschools.",
+        },
+      ],
     },
   ] satisfies MarketingSlide[],
 } satisfies MarketingCarousel;
@@ -248,7 +338,7 @@ function SpringFormsAd() {
             <Accent>Are your forms ready?</Accent>
           </>
         }
-        hand="we'll set them up with you over break."
+        hand="we'll set them up with you."
         size={78}
       />
       <Scene>

@@ -30,66 +30,156 @@ export const ADS_FEATURE_SPOTLIGHT_CAROUSEL = {
       fileName: "ad-e1-pip-enrollment.png",
       render: () => <EnrollmentAd />,
       adCopy: {
+        label: "Inquiry to enrolled",
         primaryText:
-          "Microschool directors: see every family from first inquiry to enrolled, sorted by stage, without digging through one email chain. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Every family from first inquiry to enrolled, sorted by stage. 🌱 No digging through email chains. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Applied → enrolled, in one place",
-        description: "Admissions for microschools.",
+        description: "Admissions, simplified.",
       },
+      adCopyVariants: [
+        {
+          label: "Stages",
+          primaryText: "Every family, by stage, in MudKitchen: 🌱\nInquiry → Applied → Accepted → Enrolled\nNo digging through email chains. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Inquiry → enrolled, by stage",
+          description: "Admissions, simplified.",
+        },
+        {
+          label: "Short",
+          primaryText: "Where's that family in enrollment? One click, not one email chain. 🔎 Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "One click, not one email chain",
+          description: "Admissions, simplified.",
+        },
+      ],
     },
     {
       id: "tuition",
       fileName: "ad-e2-nutmeg-tuition.png",
       render: () => <TuitionAd />,
       adCopy: {
+        label: "Autopay",
         primaryText:
-          "School owners: families see every bill in one place and set up autopay once, so tuition arrives on time without the reminder texts. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Families see every bill in one place and set up autopay once. 💸 Tuition arrives without the reminder texts. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Tuition on autopay",
-        description: "Billing and payments for microschools.",
+        description: "Tuition and autopay.",
       },
+      adCopyVariants: [
+        {
+          label: "No reminders",
+          primaryText: "Reminder texts sent this month: 0. 💸 Families set up autopay once in MudKitchen and see every bill in one place. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Reminder texts sent: 0",
+          description: "Tuition and autopay.",
+        },
+        {
+          label: "What families see",
+          primaryText: "What families see in MudKitchen billing: 💳\n✅ Every bill in one place\n✅ Autopay, set up once\n✅ Payment history\nBook a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Every bill. Autopay. History.",
+          description: "Tuition and autopay.",
+        },
+      ],
     },
     {
       id: "messages",
       fileName: "ad-e3-loam-messages.png",
       render: () => <MessagesAd />,
       adCopy: {
+        label: "One inbox",
         primaryText:
-          "Microschool directors: every parent message in one inbox, threaded by family, instead of across texts, email and three group chats. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Every parent message in one inbox, threaded by family. 💬 Not across texts, email and three group chats. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "One inbox for every family",
-        description: "Messages for microschools.",
+        description: "One family inbox.",
       },
+      adCopyVariants: [
+        {
+          label: "Group chats",
+          primaryText: "Three group chats, two email threads and a text from a grandparent. 📱 Or one MudKitchen inbox, threaded by family. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Three group chats → one inbox",
+          description: "One family inbox.",
+        },
+        {
+          label: "Short",
+          primaryText: "Every parent message, in one inbox, sorted by family. 💬 Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Sorted by family, not by app",
+          description: "One family inbox.",
+        },
+      ],
     },
     {
       id: "attendance",
       fileName: "ad-e4-fennel-attendance.png",
       render: () => <AttendanceAd />,
       adCopy: {
+        label: "Roll call",
         primaryText:
-          "Microschool owners: roll call in about a minute: present, absent and picked up, on one screen your teachers can use. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Roll call in about a minute: present, absent and picked up. ⏱️ One screen your teachers can use. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Roll call, done in a minute",
-        description: "Attendance for microschools.",
+        description: "Roll call in a minute.",
       },
+      adCopyVariants: [
+        {
+          label: "Stopwatch",
+          primaryText: "Roll call in about a minute. ⏱️ Present, absent and picked up, on one screen your teachers can use. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "About a minute. Done.",
+          description: "Roll call in a minute.",
+        },
+        {
+          label: "Clipboard",
+          primaryText: "Retire the clipboard. 📋 Teachers take roll call in MudKitchen; you see who's here. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Retire the clipboard",
+          description: "Roll call in a minute.",
+        },
+      ],
     },
     {
       id: "hours",
       fileName: "ad-e5-clover-hours.png",
       render: () => <HoursAd />,
       adCopy: {
+        label: "Timesheets",
         primaryText:
-          "Microschool founders: staff clock in and out, and the weekly totals add themselves up before payroll day. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Staff clock in and out, and the weekly totals add themselves up before payroll day. 🧮 Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Timesheets that add themselves up",
-        description: "Staff hours for microschools.",
+        description: "Staff hours, tracked.",
       },
+      adCopyVariants: [
+        {
+          label: "Payroll day",
+          primaryText: "Payroll day, minus the timesheet math. 🧮 Staff clock in and out in MudKitchen, and the weekly totals are ready before you need them. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Payroll day, minus the math",
+          description: "Staff hours, tracked.",
+        },
+        {
+          label: "Short",
+          primaryText: "Clock in. Clock out. Totals add up. ⏰ Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Clock in. Clock out. Done.",
+          description: "Staff hours, tracked.",
+        },
+      ],
     },
     {
       id: "marketing",
       fileName: "ad-e6-marigold-marketing.png",
       render: () => <MarketingAd />,
       adCopy: {
+        label: "Follow-ups",
         primaryText:
-          "Microschool admins: open-house invites and follow-up emails that send themselves, so interested families hear from you while they're still deciding. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Open-house invites and follow-ups that send themselves, 📨 so families hear from you while they're still deciding. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Follow-ups that send themselves",
-        description: "Marketing automations for microschools.",
+        description: "Marketing on autopilot.",
       },
+      adCopyVariants: [
+        {
+          label: "While they decide",
+          primaryText: "Families decide fast. Your follow-up should be faster. 📨 MudKitchen sends open-house invites and follow-up emails for you. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Follow up while they're deciding",
+          description: "Marketing on autopilot.",
+        },
+        {
+          label: "Short",
+          primaryText: "Open-house invite: sent. Follow-up: sent. You: teaching. 📨 Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Invites sent. You're teaching.",
+          description: "Marketing on autopilot.",
+        },
+      ],
     },
   ] satisfies MarketingSlide[],
 } satisfies MarketingCarousel;

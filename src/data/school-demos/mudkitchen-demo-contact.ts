@@ -20,7 +20,8 @@ export const mudkitchenDemoContact = {
     emailPlaceholder: "you@school.com",
     contactHint: "Enter your name and email above to confirm a time slot.",
     successTitle: "You're booked.",
-    successMessage: "We'll see you on {date} at {time} Central (CT).",
+    successMessage:
+      "We'll see you on {date} at {time} Central (CT). We'll email your meeting link 24 hours before.",
   },
   feedback: {
     heading: "Got any questions or comments?",

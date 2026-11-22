@@ -36,66 +36,156 @@ export const ADS_CREW_HUMOR_CAROUSEL = {
       fileName: "ad-c1-dig-ninth-tab.png",
       render: () => <NinthTabAd />,
       adCopy: {
+        label: "The 9th tab",
         primaryText:
-          "Microschool directors: opening the 9th tab to check whether a family paid tuition? MudKitchen puts enrollment, billing and messages in one workspace. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Opening the 9th tab to check if a family paid tuition? 😵 MudKitchen puts enrollment, billing and messages in one workspace. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "47 tabs → 1",
-        description: "The admin portal for microschools.",
+        description: "Your admin portal.",
       },
+      adCopyVariants: [
+        {
+          label: "Tab count",
+          primaryText: "Tab 1: enrollment. Tab 4: Venmo. Tab 9: \"did they pay?\" 😵 MudKitchen puts enrollment, billing and messages in one workspace. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Tab 9 of 47: \"did they pay?\"",
+          description: "Your admin portal.",
+        },
+        {
+          label: "Dig's take",
+          primaryText: "Dig has 47 tabs open and refuses to close any. Don't be Dig. 🙃 Run enrollment, billing and messages from one MudKitchen workspace. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Don't be Dig",
+          description: "Your admin portal.",
+        },
+      ],
     },
     {
       id: "new-rule",
       fileName: "ad-c2-nutmeg-new-rule.png",
       render: () => <NewRuleAd />,
       adCopy: {
+        label: "Nutmeg's rule",
         primaryText:
-          "For microschool owners, Nutmeg's new rule: no chasing tuition over winter break. Families set up autopay once and tuition gets paid on time. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Nutmeg's new rule: no chasing tuition over winter break. 💸 Families set up autopay once. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "No more chasing tuition",
-        description: "Bills, autopay and payment history in one place.",
+        description: "Bills and autopay.",
       },
+      adCopyVariants: [
+        {
+          label: "House rules",
+          primaryText: "Nutmeg's house rules for winter break: 💸\n1. No chasing tuition\n2. Families set up autopay once\n3. See rule 1\nBook a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Rule 1: no chasing tuition",
+          description: "Bills and autopay.",
+        },
+        {
+          label: "Short",
+          primaryText: "Nutmeg is done chasing tuition. So are you. 💸 Autopay, every bill and payment history in one place. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Nutmeg's done chasing. You too.",
+          description: "Bills and autopay.",
+        },
+      ],
     },
     {
       id: "quick-question",
       fileName: "ad-c3-loam-quick-question.png",
       render: () => <QuickQuestionAd />,
       adCopy: {
+        label: "\"Quick question\"",
         primaryText:
-          "Microschool founders know this one. 9:47pm on Christmas Eve: \"quick question\". MudKitchen keeps every parent message in one inbox, so nothing gets lost in a group chat. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "You know this one. 9:47pm on Christmas Eve: \"quick question\". 🎄 MudKitchen keeps every parent message in one inbox. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Every message, in the right place",
-        description: "One inbox for every family.",
+        description: "One family inbox.",
       },
+      adCopyVariants: [
+        {
+          label: "Timestamp",
+          primaryText: "Dec 24, 9:47pm: \"quick question\" 🎄 Loam caught it. MudKitchen keeps every parent message in one inbox, so you can answer on Dec 26. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Answer on Dec 26. It'll be there.",
+          description: "One family inbox.",
+        },
+        {
+          label: "Short",
+          primaryText: "\"Quick question\" is never quick. But it can at least be in one place. 💬 Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "\"Quick question\": now in one place",
+          description: "One family inbox.",
+        },
+      ],
     },
     {
       id: "in-the-car",
       fileName: "ad-c4-bramble-in-the-car.png",
       render: () => <InTheCarAd />,
       adCopy: {
+        label: "\"In the car\"",
         primaryText:
-          "POV: you run a microschool, it's January and 22 enrollment forms are \"in the car.\" With MudKitchen, families fill in and sign forms online, and you see what's still missing. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "POV: it's January and 22 enrollment forms are \"in the car.\" 🚗 With MudKitchen, families sign forms online. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Forms that don't live in the car",
-        description: "Online forms and signatures.",
+        description: "Forms and e-signatures.",
       },
+      adCopyVariants: [
+        {
+          label: "Where forms go",
+          primaryText: "Where enrollment forms go to hide: 🚗\nThe car\nThe backpack\nUnder a juice box\nWith MudKitchen: online, signed, and you see what's missing. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Forms can't hide online",
+          description: "Forms and e-signatures.",
+        },
+        {
+          label: "Short",
+          primaryText: "22 forms \"in the car\" → 22 forms signed online. 📝 Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "22 forms, signed online",
+          description: "Forms and e-signatures.",
+        },
+      ],
     },
     {
       id: "pick-your-fighter",
       fileName: "ad-c5-pick-your-fighter.png",
       render: () => <PickFighterAd />,
       adCopy: {
+        label: "Pick your fighter",
         primaryText:
-          "Microschool founders, pick your fighter for spring enrollment. Plot twist: you get the whole crew. Website, enrollment, tuition, attendance, messages and more in one place. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Pick your fighter for spring enrollment. 🎮 Plot twist: you get the whole crew. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Plot twist: you get all 12",
-        description: "Everything your microschool needs.",
+        description: "Your school, one place.",
       },
+      adCopyVariants: [
+        {
+          label: "Roster",
+          primaryText: "Your spring roster: 🎮\nPip: enrollment\nNutmeg: tuition\nLoam: messages\nFennel: attendance\n…and 8 more. You don't pick one; you get the whole crew. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Your roster: all 12",
+          description: "Your school, one place.",
+        },
+        {
+          label: "Short",
+          primaryText: "Why pick one fighter when the whole crew shows up? 🎮 Website, enrollment, tuition, attendance and messages in one place. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "The whole crew shows up",
+          description: "Your school, one place.",
+        },
+      ],
     },
     {
       id: "pip-resolution",
       fileName: "ad-c6-pip-resolution.png",
       render: () => <ResolutionAd />,
       adCopy: {
+        label: "Pip's resolution",
         primaryText:
-          "For microschool directors: Pip's only New Year's resolution: no more paper applications. Families apply online, and you see every application by stage. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Pip's only New Year's resolution: no more paper applications. 🎆 Families apply online; you see each one by stage. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "New year, no paper applications",
-        description: "Online applications for microschools.",
+        description: "Online applications.",
       },
+      adCopyVariants: [
+        {
+          label: "Pip's list",
+          primaryText: "Pip's New Year's resolutions: 🎆\n1. No paper applications\n2. Every application by stage\n3. Smile at every new family\nBook a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Resolution 1: no paper applications",
+          description: "Online applications.",
+        },
+        {
+          label: "Short",
+          primaryText: "Pip's 2027 resolution is already done: families apply online. 📝 Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Resolution already done",
+          description: "Online applications.",
+        },
+      ],
     },
   ] satisfies MarketingSlide[],
 } satisfies MarketingCarousel;

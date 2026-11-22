@@ -29,6 +29,23 @@ export const MASCOT_LOAM_MESSAGES_CAROUSEL = {
     {
       id: "hook",
       fileName: "01-wrong-group-chat-again.png",
+      adCopy: {
+        label: "Wrong group chat",
+        primaryText: "Loam sent it to the wrong group chat. \"Class parents 2\" will never recover. 🫣\n\nSwipe for every parent message in one inbox, one thread per family →\n\n#microschool #parentcommunication #schoolfounder",
+        headline: "Loam and the wrong group chat",
+      },
+      adCopyVariants: [
+        {
+          label: "9pm",
+          primaryText: "9pm: \"quick question\" (it is not quick). 11:48pm: \"sorry for the late text!\" Swipe for what Loam did about it →\n\n#microschool #parentcommunication",
+          headline: "\"Quick question\" at 9pm",
+        },
+        {
+          label: "Confess",
+          primaryText: "Confess: have you ever sent a school message to the wrong group chat? 👇 Loam has. Swipe →\n\n#microschool #schoollife",
+          headline: "Ever sent it to the wrong chat?",
+        },
+      ],
       render: () => (
         <MascotHookSlide
           kicker="Meet Loam, who delivers the messages"
@@ -69,7 +86,6 @@ export const MASCOT_LOAM_MESSAGES_CAROUSEL = {
           name="loam"
           rows={[
             { label: "“quick question”", aside: "(it is not quick)", view: "thinking" },
-            { label: "“is tomorrow pajama day??”", aside: "it was today", view: "surprised" },
             { label: "“sorry for the late text!”", aside: "sent at 11:48pm", view: "shy" },
             { label: "The 14-paragraph email", aside: "with a PS. and a PPS.", view: "sleepy" },
             { label: "Just a thumbs up", aside: "to what. to what.", view: "confused" },

@@ -461,7 +461,7 @@ function AdOptionRow({
         {copy ? (
           <>
             <div className="mt-2 flex items-start gap-2">
-              <p className={`min-w-0 flex-1 text-sm leading-snug ${dim ? "text-admin-muted" : "text-admin-text"}`}>{copy.primaryText}</p>
+              <p className={`min-w-0 flex-1 whitespace-pre-line text-sm leading-snug ${dim ? "text-admin-muted" : "text-admin-text"}`}>{copy.primaryText}</p>
               <CopyButton text={copy.primaryText} label="Copy primary text" />
             </div>
             <div className="mt-1.5 flex items-start gap-2">
@@ -471,6 +471,11 @@ function AdOptionRow({
               </p>
               <CopyButton text={copy.headline} label="Copy headline" />
             </div>
+            {slide?.adCopyVariants?.length ? (
+              <Link href={studioHref(item)} className="mt-1.5 inline-block text-xs text-admin-muted hover:text-admin-accent hover:underline">
+                +{slide.adCopyVariants.length} more caption {slide.adCopyVariants.length === 1 ? "version" : "versions"} in Studio
+              </Link>
+            ) : null}
           </>
         ) : (
           <p className="mt-2 text-sm text-admin-muted">Ad copy is in the Studio.</p>

@@ -29,6 +29,23 @@ export const MASCOT_MARIGOLD_MARKETING_CAROUSEL = {
     {
       id: "hook",
       fileName: "01-posted-once-in-2023.png",
+      adCopy: {
+        label: "Waiting for results",
+        primaryText: "Marigold is still waiting for results. 1 post, 3 likes (2 are mom). The algorithm has not called back. 📉\n\nSwipe for open-house invites and follow-ups that send themselves →\n\n#microschool #schoolmarketing #schoolfounder",
+        headline: "Marigold is still waiting for results",
+      },
+      adCopyVariants: [
+        {
+          label: "Relatable",
+          primaryText: "\"Post every day!\" became \"post every week\" became open_house_flyer_FINAL.png. 😅 Sound familiar? Swipe →\n\n#microschool #schoolmarketing",
+          headline: "\"Post every day!\" (Narrator: no.)",
+        },
+        {
+          label: "Tag them",
+          primaryText: "Tag whoever does the marketing at your school. They deserve more than 3 likes. 💛 Swipe →\n\n#microschool #schoolmarketing",
+          headline: "Tag your school's marketer",
+        },
+      ],
       render: () => (
         <MascotHookSlide
           kicker="Meet Marigold, who does the marketing"

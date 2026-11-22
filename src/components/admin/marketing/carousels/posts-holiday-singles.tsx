@@ -38,73 +38,217 @@ export const POSTS_HOLIDAY_SINGLES_CAROUSEL = {
       id: "thankful",
       fileName: "holiday-01-thankful-for.png",
       render: () => <ThankfulPost />,
-      adCopy: { primaryText: `Things we're thankful for this year, in order:\n\nAutopay. Forms that come back signed. A quiet inbox.\nAnd you, obviously. Happy Thanksgiving to every founder who teaches, bills and answers the 9pm texts. 🧡\n\n${TAGS} #thanksgiving`, headline: "Things we're thankful for" },
+      adCopy: { label: "Thankful list", primaryText: `Things we're thankful for this year, in order:\n\nAutopay. Forms that come back signed. A quiet inbox.\nAnd you, obviously. Happy Thanksgiving to every founder who teaches, bills and answers the 9pm texts. 🧡\n\n${TAGS} #thanksgiving`, headline: "Things we're thankful for" },
+      adCopyVariants: [
+        {
+          label: "Your turn",
+          primaryText: `We're thankful for autopay, signed forms and a quiet inbox. 🧡\n\nWhat's one thing you're thankful for at your school this year? Tell us below. 👇\n\n${TAGS} #thanksgiving`,
+          headline: "What are you thankful for this year?",
+        },
+        {
+          label: "To founders",
+          primaryText: `Happy Thanksgiving to every founder who teaches, bills, plans and still answers the 9pm texts.\n\nWe see you. Eat the second slice. 🥧\n\n${TAGS} #thanksgiving`,
+          headline: "Eat the second slice",
+        },
+      ],
     },
     {
       id: "black-friday",
       fileName: "holiday-02-black-friday-haul.png",
       render: () => <BlackFridayPost />,
-      adCopy: { primaryText: `Our Black Friday haul: one calm spring semester. No checkout, no line at 5am.\n\nWhat's the one thing you'd add to your school's cart? 👇\n\n${TAGS} #blackfriday`, headline: "Black Friday haul: 1 calm semester" },
+      adCopy: { label: "Black Friday haul", primaryText: `Our Black Friday haul: one calm spring semester. No checkout, no line at 5am.\n\nWhat's the one thing you'd add to your school's cart? 👇\n\n${TAGS} #blackfriday`, headline: "Black Friday haul: 1 calm semester" },
+      adCopyVariants: [
+        {
+          label: "Fill the cart",
+          primaryText: `If your school had a Black Friday cart, what's in it? 🛒\n\nOurs: one calm spring semester. Comment yours.\n\n${TAGS} #blackfriday`,
+          headline: "What's in your school's cart?",
+        },
+        {
+          label: "Skip the line",
+          primaryText: `Skipping the 5am line this year. Staying in, leftovers, slippers. 🛋️\n\nWho else is sitting Black Friday out?\n\n${TAGS} #blackfriday`,
+          headline: "Skipping the 5am line",
+        },
+      ],
     },
     {
       id: "december-crew",
       fileName: "holiday-03-which-crew-member-december.png",
       render: () => <DecemberCrewPost />,
-      adCopy: { primaryText: `Which crew member is getting you through December? Comment a letter.\n\nWe're a solid E. Someone has to answer "is there school on the 23rd?"\n\n${TAGS} #schoollife`, headline: "Which crew member are you this December?" },
+      adCopy: { label: "Comment a letter", primaryText: `Which crew member is getting you through December? Comment a letter.\n\nWe're a solid E. Someone has to answer "is there school on the 23rd?"\n\n${TAGS} #schoollife`, headline: "Which crew member are you this December?" },
+      adCopyVariants: [
+        {
+          label: "Tag them",
+          primaryText: `Tag the founder who's definitely a B this December. 👇\n\nNo judgment. We've all been a B.\n\n${TAGS} #schoollife`,
+          headline: "Tag the founder who's a B",
+        },
+        {
+          label: "Honest",
+          primaryText: `Honest question: which crew member is carrying you through December?\n\nComment the letter. Bonus points for explaining why. 🎄\n\n${TAGS} #schoollife`,
+          headline: "Who's carrying you through December?",
+        },
+      ],
     },
     {
       id: "december-timeline",
       fileName: "holiday-04-december-as-told-by-a-founder.png",
       render: () => <DecemberTimelinePost />,
-      adCopy: { primaryText: `December, as told by a microschool founder. Week 4 is a lifestyle.\n\nTag the founder who's currently in week 2. 🎄\n\n${TAGS} #founderlife`, headline: "December, as told by a founder" },
+      adCopy: { label: "Week 4", primaryText: `December, as told by a microschool founder. Week 4 is a lifestyle.\n\nTag the founder who's currently in week 2. 🎄\n\n${TAGS} #founderlife`, headline: "December, as told by a founder" },
+      adCopyVariants: [
+        {
+          label: "Which week",
+          primaryText: `December for a microschool founder, week by week. Which week are you in right now? Comment 1, 2, 3 or 4. 🎄\n\n${TAGS} #founderlife`,
+          headline: "Which week are you in?",
+        },
+        {
+          label: "Relatable",
+          primaryText: `Week 1: "I've got this." Week 4: see image. 😅\n\nSend this to the founder who needs a laugh today.\n\n${TAGS} #founderlife`,
+          headline: "Week 1: \"I've got this.\"",
+        },
+      ],
     },
     {
       id: "holiday-program-checklist",
       fileName: "holiday-05-holiday-program-checklist.png",
       render: () => <ProgramChecklistPost />,
-      adCopy: { primaryText: `Holiday program in two weeks? Save this checklist.\n\nPermission slips, costumes, volunteers, photos, programs: tick them off now and enjoy the show later.\n\n${TAGS} #holidayprogram`, headline: "Holiday program checklist" },
+      adCopy: { label: "Save this", primaryText: `Holiday program in two weeks? Save this checklist.\n\nPermission slips, costumes, volunteers, photos, programs: tick them off now and enjoy the show later.\n\n${TAGS} #holidayprogram`, headline: "Holiday program checklist" },
+      adCopyVariants: [
+        {
+          label: "Tag a volunteer",
+          primaryText: `Tag the parent volunteer who's going to save your holiday program. 🙌\n\nThen save this checklist so nothing slips.\n\n${TAGS} #holidayprogram`,
+          headline: "Tag your holiday program hero",
+        },
+        {
+          label: "Missing one?",
+          primaryText: `Holiday program checklist: what's the one thing that always gets forgotten at your school? 👇\n\n(Ours is the extension cord.)\n\n${TAGS} #holidayprogram`,
+          headline: "What always gets forgotten?",
+        },
+      ],
     },
     {
       id: "two-truths",
       fileName: "holiday-06-two-truths-and-a-lie.png",
       render: () => <TwoTruthsPost />,
-      adCopy: { primaryText: `Two truths and a lie, microschool founder edition. Which one's the lie? 1, 2 or 3?\n\n(Loam knows. Loam is not telling.)\n\n${TAGS}`, headline: "Two truths and a lie: founder edition" },
+      adCopy: { label: "Which is the lie?", primaryText: `Two truths and a lie, microschool founder edition. Which one's the lie? 1, 2 or 3?\n\n(Loam knows. Loam is not telling.)\n\n${TAGS}`, headline: "Two truths and a lie: founder edition" },
+      adCopyVariants: [
+        {
+          label: "Guess",
+          primaryText: `Guess the lie. 🤔 Wrong answers only in the replies, right answers get a crew high-five.\n\n${TAGS}`,
+          headline: "Guess the lie",
+        },
+        {
+          label: "Your turn",
+          primaryText: `Your turn: give us two truths and a lie about running a microschool. We'll guess. 👇\n\n${TAGS}`,
+          headline: "Your turn: two truths and a lie",
+        },
+      ],
     },
     {
       id: "out-of-office",
       fileName: "holiday-07-winter-break-out-of-office.png",
       render: () => <OutOfOfficePost />,
-      adCopy: { primaryText: `Your winter break out-of-office, written for you. Copy it, fill in the brackets, close the laptop.\n\nYou are allowed to not reply until January. We checked.\n\n${TAGS} #winterbreak`, headline: "A winter break auto-reply template" },
+      adCopy: { label: "Auto-reply", primaryText: `Your winter break out-of-office, written for you. Copy it, fill in the brackets, close the laptop.\n\nYou are allowed to not reply until January. We checked.\n\n${TAGS} #winterbreak`, headline: "A winter break auto-reply template" },
+      adCopyVariants: [
+        {
+          label: "Permission",
+          primaryText: `Official permission to set an out-of-office this winter break. ✅\n\nTemplate's in the post. Copy it, close the laptop, go.\n\n${TAGS} #winterbreak`,
+          headline: "Official permission to log off",
+        },
+        {
+          label: "Save it",
+          primaryText: `Save this auto-reply for December 19. 📌 Future you will be very grateful.\n\n${TAGS} #winterbreak`,
+          headline: "Save this for December 19",
+        },
+      ],
     },
     {
       id: "gift-guide",
       fileName: "holiday-08-gift-guide-for-founders.png",
       render: () => <GiftGuidePost />,
-      adCopy: { primaryText: `The only gift guide a microschool founder needs.\n\n1. A printer that works. 2. A second coffee. 3. Three more hours. 4. One system for everything else.\n\nWhich one are you asking for? 🎁\n\n${TAGS} #giftguide`, headline: "A gift guide for microschool founders" },
+      adCopy: { label: "Gift guide", primaryText: `The only gift guide a microschool founder needs.\n\n1. A printer that works. 2. A second coffee. 3. Three more hours. 4. One system for everything else.\n\nWhich one are you asking for? 🎁\n\n${TAGS} #giftguide`, headline: "Gift guide: microschool edition" },
+      adCopyVariants: [
+        {
+          label: "Pick one",
+          primaryText: `If you could only unwrap one thing on this list, which would it be? 1, 2, 3 or 4? 🎁\n\n(We would pick 3.)\n\n${TAGS} #giftguide`,
+          headline: "Pick one. Just one.",
+        },
+        {
+          label: "Send it",
+          primaryText: `Send this gift guide to whoever's buying you a present this year. Subtle hint. 🎁\n\n${TAGS} #giftguide`,
+          headline: "Send this as a subtle hint",
+        },
+      ],
     },
     {
       id: "real-break",
       fileName: "holiday-09-you-deserve-a-real-break.png",
       render: () => <RealBreakPost />,
-      adCopy: { primaryText: `Unpopular opinion: you deserve a real break this year.\n\nNot a "check email once a day" break. A real one. Clover is already practicing.\n\n${TAGS} #winterbreak`, headline: "You deserve a real break" },
+      adCopy: { label: "Unpopular opinion", primaryText: `Unpopular opinion: you deserve a real break this year.\n\nNot a "check email once a day" break. A real one. Clover is already practicing.\n\n${TAGS} #winterbreak`, headline: "You deserve a real break" },
+      adCopyVariants: [
+        {
+          label: "Promise",
+          primaryText: `Promise us one thing this winter break: one full day with no school email. Just one. 🛌\n\nComment "promise" if you're in.\n\n${TAGS} #winterbreak`,
+          headline: "One full day, no school email",
+        },
+        {
+          label: "Clover",
+          primaryText: `Clover has been practicing doing nothing for weeks. Join Clover. ❄️\n\nYou've earned a real break.\n\n${TAGS} #winterbreak`,
+          headline: "Be like Clover this break",
+        },
+      ],
     },
     {
       id: "resolution-bingo",
       fileName: "holiday-10-resolution-bingo.png",
       render: () => <BingoPost />,
-      adCopy: { primaryText: `New Year's resolution bingo, school founder edition. How many squares are you going for?\n\nScreenshot it, circle yours, and check back in March. 😅\n\n${TAGS} #newyear`, headline: "New Year's resolution bingo" },
+      adCopy: { label: "Bingo", primaryText: `New Year's resolution bingo, school founder edition. How many squares are you going for?\n\nScreenshot it, circle yours, and check back in March. 😅\n\n${TAGS} #newyear`, headline: "New Year's resolution bingo" },
+      adCopyVariants: [
+        {
+          label: "Comment squares",
+          primaryText: `Comment the squares you're going for in 2027. We'll check in with you in March. 😅\n\n${TAGS} #newyear`,
+          headline: "Which squares are you going for?",
+        },
+        {
+          label: "Tag a buddy",
+          primaryText: `Tag an accountability buddy and play resolution bingo together. First to a line wins bragging rights. 🎉\n\n${TAGS} #newyear`,
+          headline: "Find a bingo buddy",
+        },
+      ],
     },
     {
       id: "year-wrapped",
       fileName: "holiday-11-school-year-wrapped.png",
       render: () => <WrappedPost />,
-      adCopy: { primaryText: `Your school year, wrapped. Top phrase: "quick question." Top app: Venmo. Top genre: permission slips.\n\nWhat would be on yours? 👇\n\n${TAGS} #wrapped`, headline: "Your school year, wrapped" },
+      adCopy: { label: "Wrapped", primaryText: `Your school year, wrapped. Top phrase: "quick question." Top app: Venmo. Top genre: permission slips.\n\nWhat would be on yours? 👇\n\n${TAGS} #wrapped`, headline: "Your school year, wrapped" },
+      adCopyVariants: [
+        {
+          label: "Your top phrase",
+          primaryText: `Your school's top phrase of the year: "quick question"? "Where's the form?" Something else? Comment yours. 👇\n\n${TAGS} #wrapped`,
+          headline: "Your school's top phrase this year?",
+        },
+        {
+          label: "Share it",
+          primaryText: `Your school year, wrapped. Share it with a founder friend who will relate to every line. 🎁\n\n${TAGS} #wrapped`,
+          headline: "Share with a founder who'll relate",
+        },
+      ],
     },
     {
       id: "break-mode",
       fileName: "holiday-12-winter-break-mode-on.png",
       render: () => <BreakModePost />,
-      adCopy: { primaryText: `Winter break mode: on. The crew is off until January, and we hope you are too.\n\nSee you in the new year. ❄️\n\n${TAGS}`, headline: "Winter break mode: on" },
+      adCopy: { label: "Break mode", primaryText: `Winter break mode: on. The crew is off until January, and we hope you are too.\n\nSee you in the new year. ❄️\n\n${TAGS}`, headline: "Winter break mode: on" },
+      adCopyVariants: [
+        {
+          label: "Thank you",
+          primaryText: `That's a wrap on the year. Thank you for teaching, building and showing up. The crew is resting until January. You should too. ❄️\n\n${TAGS}`,
+          headline: "That's a wrap. Rest up.",
+        },
+        {
+          label: "Short",
+          primaryText: `Out of office: ✅\nCocoa: ✅\nBack in January. ❄️\n\n${TAGS}`,
+          headline: "Out of office. Back in January.",
+        },
+      ],
     },
   ] satisfies MarketingSlide[],
 } satisfies MarketingCarousel;
@@ -307,10 +451,9 @@ function ProgramChecklistPost() {
               size={36}
               rows={[
                 { label: "Permission slips signed" },
-                { label: "Costumes sorted (and labeled)" },
+                { label: "Costumes labeled" },
                 { label: "Volunteer sign-ups full" },
                 { label: "Someone on photos" },
-                { label: "Programs printed" },
               ]}
             />
           </InkCard>
@@ -411,7 +554,7 @@ function GiftGuidePost() {
       <AdCopy
         title={
           <>
-            Gift guide for <Accent>microschool founders.</Accent>
+            Gift guide: <Accent>microschool edition.</Accent>
           </>
         }
         size={82}

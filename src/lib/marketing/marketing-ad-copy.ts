@@ -31,14 +31,20 @@ export function marketingAdCopyWithoutOffer(copy: MarketingAdCopy): MarketingAdC
   const primaryText = primaryTextWithoutOffer(copy.primaryText);
   const description = descriptionWithoutOffer(copy.description);
   return {
+    ...(copy.label ? { label: copy.label } : {}),
     primaryText,
     headline: copy.headline,
     ...(description ? { description } : {}),
   };
 }
 
+/** Every caption version for a slide (`adCopy` first, then `adCopyVariants`), offer-free when the offer is off. */
+export function resolveMarketingAdCopyVersions(slide: MarketingSlide, offerOff: boolean): MarketingAdCopy[] {
+  if (!slide.adCopy) return [];
+  const versions = [slide.adCopy, ...(slide.adCopyVariants ?? [])];
+  return offerOff ? versions.map(marketingAdCopyWithoutOffer) : versions;
+}
+
 export function resolveMarketingAdCopy(slide: MarketingSlide, offerOff: boolean): MarketingAdCopy | undefined {
-  if (!slide.adCopy) return undefined;
-  if (!offerOff) return slide.adCopy;
-  return marketingAdCopyWithoutOffer(slide.adCopy);
+  return resolveMarketingAdCopyVersions(slide, offerOff)[0];
 }

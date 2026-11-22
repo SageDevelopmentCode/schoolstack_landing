@@ -1,4 +1,5 @@
 import NavigationRestoreInit from "@/components/NavigationRestoreInit";
+import PublicSiteErrorReporter from "@/components/PublicSiteErrorReporter";
 import CookieConsentBanner from "@/components/legal/CookieConsentBanner";
 import ConditionalAnalytics from "@/components/legal/ConditionalAnalytics";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -20,6 +21,7 @@ export default function RootLayout({
       <html lang="en" className={`${geist.variable} ${lora.variable} ${fragmentMono.variable} ${poppins.variable}`}>
       <body className="antialiased">
         <NavigationRestoreInit />
+        <PublicSiteErrorReporter />
         {children}
         <CookieConsentBanner />
         <ConditionalAnalytics />

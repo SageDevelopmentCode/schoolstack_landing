@@ -3,7 +3,7 @@ import Image from "next/image";
 import { BookOpen, Info, Layers, Users } from "lucide-react";
 import NavbarFrame from "./NavbarFrame";
 import { GET_STARTED_PAGE_PATH } from "@/lib/marketing/book-demo";
-import { TRY_FREE_NAV_LABEL, TRY_FREE_PATH } from "@/lib/marketing/free-tools";
+import { NAV_CTA_LABEL, NAV_CTA_PATH, NAV_CTA_SHORT_LABEL } from "@/lib/marketing/free-tools";
 
 const NAV_LINKS = [
   { label: "About", href: "/about", icon: Info },
@@ -69,10 +69,12 @@ export default function Navbar() {
             Book a Demo
           </Link>
           <Link
-            href={TRY_FREE_PATH}
+            href={NAV_CTA_PATH}
+            aria-label={NAV_CTA_LABEL}
             className="inline-flex items-center gap-1.5 whitespace-nowrap bg-clay text-white text-sm font-medium rounded-pill px-[18px] h-9 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
           >
-            {TRY_FREE_NAV_LABEL}
+            <span className="lg:hidden">{NAV_CTA_SHORT_LABEL}</span>
+            <span className="hidden lg:inline">{NAV_CTA_LABEL}</span>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
               <path
                 d="M2.5 7H11.5M11.5 7L7.5 3M11.5 7L7.5 11"

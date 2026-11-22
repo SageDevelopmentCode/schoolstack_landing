@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { BookOpen, Info, Layers, Menu, Users, X } from "lucide-react";
 import { GET_STARTED_PAGE_PATH } from "@/lib/marketing/book-demo";
-import { TRY_FREE_NAV_LABEL, TRY_FREE_PATH } from "@/lib/marketing/free-tools";
+import { NAV_CTA_LABEL, NAV_CTA_PATH } from "@/lib/marketing/free-tools";
 
 const MOBILE_LINKS = [
   { label: "About", href: "/about", icon: Info },
@@ -88,11 +88,11 @@ export default function NavbarFrame({ children }: { children: React.ReactNode })
             ))}
 
             <Link
-              href={TRY_FREE_PATH}
+              href={NAV_CTA_PATH}
               onClick={() => setMenuOpen(false)}
               className="mt-2 flex h-12 items-center justify-center gap-2 rounded-pill bg-clay text-sm font-medium text-white transition-all duration-200 hover:opacity-90"
             >
-              {TRY_FREE_NAV_LABEL}
+              {NAV_CTA_LABEL}
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                 <path
                   d="M2.5 7H11.5M11.5 7L7.5 3M11.5 7L7.5 11"

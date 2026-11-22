@@ -26,7 +26,6 @@ export const MASCOT_PREVIEW_EVERY_SEAT_CAROUSEL = {
   title: "The three-seat tour (Free preview)",
   description: `Swipe carousel touring the whole free-preview bundle: the founder's desk (admin portal), the teacher's phone (teacher portal), the parent's app, then the website and the CTA. Link: ${FREE_PREVIEW_UTM}`,
   fileSlug: "mudkitchen-free-preview-every-seat",
-  audienceBanner: "Built for microschool owners",
   slides: [
     {
       id: "three-seats",
@@ -54,17 +53,32 @@ export const MASCOT_PREVIEW_EVERY_SEAT_CAROUSEL = {
         </MascotSlide>
       ),
       adCopy: {
+        label: "Three-seat tour",
         primaryText:
-          "Microschool owners: your free MudKitchen preview isn't just an admin demo. Sit in every seat: your admin portal, teacher portal and parent app, plus your website. Swipe for the tour →",
+          "Your free MudKitchen preview isn't just an admin demo. 🪑 Sit in every seat: admin, teacher and parent. Swipe for the tour →",
         headline: "Take the three-seat tour",
-        description: "Free, private, within 2 business days.",
+        description: "Free in 2 business days.",
       },
+      adCopyVariants: [
+        {
+          label: "Tour stops",
+          primaryText: "Your free MudKitchen preview, seat by seat: 🪑\n1. The founder's desk (admin portal)\n2. The teacher's phone (teacher portal)\n3. The parent's app\nBonus: your website. Swipe for the tour →",
+          headline: "Founder, teacher, parent, website",
+          description: "Free in 2 business days.",
+        },
+        {
+          label: "Short",
+          primaryText: "Not just the admin side. Every seat at your school, in one free MudKitchen preview. Swipe →",
+          headline: "Every seat at your school",
+          description: "Free. No call needed.",
+        },
+      ],
     },
     {
       id: "seat-admin",
       fileName: "02-seat-1-the-founders-desk.png",
       render: () => (
-        <SeatSlide n="Seat 1" color={ROLE_COLOR.Admin} title="The founder's desk." body="Your admin portal: the whole school at a glance, with your logo and colours." background={G.sky}>
+        <SeatSlide n="Seat 1" color={ROLE_COLOR.Admin} title="The founder's desk." body="The whole school at a glance, with your logo." background={G.sky}>
           <At x={66} y={540} z={2} rotate={-1}>
             <YourAdminWindow scale={0.98} label="Your admin portal" />
           </At>
@@ -75,7 +89,7 @@ export const MASCOT_PREVIEW_EVERY_SEAT_CAROUSEL = {
       id: "seat-teacher",
       fileName: "03-seat-2-the-teachers-phone.png",
       render: () => (
-        <SeatSlide n="Seat 2" color={ROLE_COLOR.Teacher} title="The teacher's phone." body="Your teachers get their own portal: roll call and their class day." background="#EEF5E9">
+        <SeatSlide n="Seat 2" color={ROLE_COLOR.Teacher} title="The teacher's phone." body="Roll call and the class day, in their own portal." background="#EEF5E9">
           <At x={450} y={600} z={2} rotate={3}>
             <YourTeacherWindow scale={0.6} label="Your teacher portal" />
           </At>
@@ -90,7 +104,7 @@ export const MASCOT_PREVIEW_EVERY_SEAT_CAROUSEL = {
       id: "seat-parent",
       fileName: "04-seat-3-the-parents-app.png",
       render: () => (
-        <SeatSlide n="Seat 3" color={ROLE_COLOR.Parent} title="The parent's app." body="What your families see: tuition, forms, messages and the calendar." background={YOUR.tint}>
+        <SeatSlide n="Seat 3" color={ROLE_COLOR.Parent} title="The parent's app." body="Tuition, forms, messages and the calendar." background={YOUR.tint}>
           <At x={80} y={520} z={4} rotate={-3}>
             <YourParentPhone scale={0.8} />
           </At>
@@ -107,7 +121,7 @@ export const MASCOT_PREVIEW_EVERY_SEAT_CAROUSEL = {
       id: "bonus-website",
       fileName: "05-bonus-your-website.png",
       render: () => (
-        <SeatSlide n="Bonus" color={G.clay} title="Your website, made over." body="With your logo, colours and programs, linked to all three seats." background={G.peach}>
+        <SeatSlide n="Bonus" color={G.clay} title="Your website, made over." body="Linked to all three seats." background={G.peach}>
           <At x={66} y={540} z={2} rotate={1}>
             <YourWebsiteWindow scale={0.98} label="Your website" />
           </At>

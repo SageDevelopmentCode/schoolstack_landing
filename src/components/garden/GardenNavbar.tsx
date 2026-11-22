@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { GET_STARTED_PAGE_PATH } from "@/lib/marketing/book-demo";
-import { TRY_FREE_NAV_LABEL, TRY_FREE_PATH } from "@/lib/marketing/free-tools";
+import { NAV_CTA_LABEL, NAV_CTA_PATH, NAV_CTA_SHORT_LABEL } from "@/lib/marketing/free-tools";
 import { MARKETING_NAV_LINKS } from "@/lib/marketing/nav-links";
 
 /**
@@ -84,10 +84,12 @@ export default function GardenNavbar({
             Book a Demo
           </Link>
           <Link
-            href={TRY_FREE_PATH}
+            href={NAV_CTA_PATH}
+            aria-label={NAV_CTA_LABEL}
             className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[var(--sf-clay)] px-5 text-sm font-extrabold text-white shadow-[0_4px_0_0_var(--sf-clay-deep)] transition-all hover:-translate-y-0.5 hover:shadow-[0_6px_0_0_var(--sf-clay-deep)] active:translate-y-0.5 active:shadow-[0_1px_0_0_var(--sf-clay-deep)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/35"
           >
-            {TRY_FREE_NAV_LABEL}
+            <span className="lg:hidden">{NAV_CTA_SHORT_LABEL}</span>
+            <span className="hidden lg:inline">{NAV_CTA_LABEL}</span>
             <ArrowRight size={14} aria-hidden />
           </Link>
         </div>
@@ -122,11 +124,11 @@ export default function GardenNavbar({
             </a>
           ))}
           <Link
-            href={TRY_FREE_PATH}
+            href={NAV_CTA_PATH}
             onClick={() => setOpen(false)}
             className="mt-4 flex h-12 items-center justify-center gap-2 rounded-full bg-[var(--sf-clay)] text-base font-extrabold text-white shadow-[0_4px_0_0_var(--sf-clay-deep)]"
           >
-            {TRY_FREE_NAV_LABEL}
+            {NAV_CTA_LABEL}
             <ArrowRight size={14} aria-hidden />
           </Link>
           <Link

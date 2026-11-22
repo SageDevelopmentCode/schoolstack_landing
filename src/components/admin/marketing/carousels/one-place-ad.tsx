@@ -17,6 +17,26 @@ export const ONE_PLACE_AD_CAROUSEL = {
     {
       id: "one-place",
       fileName: "01-run-your-school-from-one-place.png",
+      adCopy: {
+        label: "One place",
+        primaryText: "Run your microschool from one place: enrollment, tuition, messages, attendance, staff hours and your website, with one crew member for each. Book a MudKitchen demo.",
+        headline: "Run your microschool from one place",
+        description: "Built for microschools.",
+      },
+      adCopyVariants: [
+        {
+          label: "The crew",
+          primaryText: "Pip on enrollment. Nutmeg on tuition. Loam on messages. Fennel on attendance. One MudKitchen crew for every job at your microschool. 👋 Book a demo to meet them.",
+          headline: "A crew member for every job",
+          description: "Built for microschools.",
+        },
+        {
+          label: "Short",
+          primaryText: "One login for your whole microschool. Book a MudKitchen demo. 🏫",
+          headline: "One login. Whole school.",
+          description: "Built for microschools.",
+        },
+      ],
       render: () => <OnePlaceAdSlide />,
     },
   ] satisfies MarketingSlide[],

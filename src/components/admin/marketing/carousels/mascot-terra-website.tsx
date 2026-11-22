@@ -32,6 +32,23 @@ export const MASCOT_TERRA_WEBSITE_CAROUSEL = {
     {
       id: "hook",
       fileName: "01-updating-the-website-since-2019.png",
+      adCopy: {
+        label: "Updating the website",
+        primaryText: "Terra is \"updating the website.\" It's on the list. It's been on the list since 2019. 🙃\n\nSwipe for the school website that actually stays up to date →\n\n#microschool #schoolwebsite #schoolfounder",
+        headline: "Terra is updating the website",
+      },
+      adCopyVariants: [
+        {
+          label: "The stages",
+          primaryText: "The stages of editing your own school website: \"how hard can it be,\" 14 plugins installed, the font incident, and the phone view. 😅 Which stage are you in? Swipe →\n\n#microschool #schoolwebsite",
+          headline: "Which website stage are you in?",
+        },
+        {
+          label: "Tag them",
+          primaryText: "Tag the person who's been \"updating the website\" since 2019. 👀 Then swipe for the version Terra is proud of →\n\n#microschool #schoolwebsite",
+          headline: "Tag your website person",
+        },
+      ],
       render: () => (
         <MascotHookSlide
           kicker="Meet Terra, who runs the website"

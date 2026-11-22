@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { requirePlatformAdminUser } from "@/lib/admin/require-platform-admin-api";
 import { AuthError } from "@/lib/admissions/application-auth";
 import { apiError } from "@/lib/api/route-errors";
-import { setMarketingCarouselPosted } from "@/lib/marketing/carousel-post-status";
+import { setMarketingCarouselPosted, SLIDE_ID_PATTERN } from "@/lib/marketing/carousel-post-status";
 import { isMarketingCarouselId } from "@/lib/marketing/marketing-carousel-ids";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -31,9 +31,9 @@ export async function PATCH(request: Request, context: RouteContext) {
   try {
     await requirePlatformAdminUser(supabase, request);
 
-    let body: { posted?: boolean };
+    let body: { posted?: boolean; slideId?: unknown };
     try {
-      body = (await request.json()) as { posted?: boolean };
+      body = (await request.json()) as { posted?: boolean; slideId?: unknown };
     } catch {
       return apiError(ROUTE, {
         request,
@@ -52,9 +52,20 @@ export async function PATCH(request: Request, context: RouteContext) {
       });
     }
 
+    // Optional: one slide of an ad set or post set. Omitted = the whole entry.
+    const slideId = body.slideId ?? "";
+    if (typeof slideId !== "string" || (slideId !== "" && !SLIDE_ID_PATTERN.test(slideId))) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: "slideId must be a slide id.",
+        code: "invalid_slide_id",
+      });
+    }
+
     const admin = createAdminClient();
-    const status = await setMarketingCarouselPosted(admin, carouselId, body.posted);
-    return NextResponse.json({ carouselId, ...status });
+    const status = await setMarketingCarouselPosted(admin, carouselId, body.posted, slideId);
+    return NextResponse.json({ carouselId, slideId, ...status });
   } catch (error) {
     if (error instanceof AuthError) {
       return apiError(ROUTE, {

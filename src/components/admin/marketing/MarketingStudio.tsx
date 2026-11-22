@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, ChevronLeft, ChevronRight, Copy, Download, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Loader2 } from "lucide-react";
 import JSZip from "jszip";
 import { downloadUrl, nodeToPng } from "@/components/admin/marketing/export-png";
 import { MarketingCarouselSidebar } from "@/components/admin/marketing/MarketingCarouselSidebar";
@@ -12,8 +12,9 @@ import {
   MARKETING_CAROUSELS,
   resolveMarketingCarouselId,
 } from "@/components/admin/marketing/carousels/registry";
-import type { MarketingAdCopy, MarketingSlide } from "@/components/admin/marketing/carousels/types";
-import { resolveMarketingAdCopy } from "@/lib/marketing/marketing-ad-copy";
+import type { MarketingSlide } from "@/components/admin/marketing/carousels/types";
+import { resolveMarketingAdCopyVersions } from "@/lib/marketing/marketing-ad-copy";
+import { AdCopyPanel } from "@/components/admin/marketing/AdCopyPanel";
 import {
   AdOfferProvider,
   DEFAULT_CAROUSEL_AUDIENCE_BANNER,
@@ -23,7 +24,13 @@ import {
   type SlideSize,
 } from "@/components/admin/marketing/slide-frame";
 import { AdminSwitch } from "@/components/admin/ui/AdminSwitch";
-import type { MarketingCarouselPostStatus } from "@/lib/marketing/carousel-post-status";
+import {
+  countPostedSlides,
+  emptyCarouselPostStatus,
+  isSlidePosted,
+  type MarketingCarouselPostStatus,
+  type MarketingPostedFlag,
+} from "@/lib/marketing/carousel-post-status";
 import {
   isMarketingCarouselId,
   MARKETING_CAROUSEL_IDS,
@@ -33,7 +40,7 @@ import {
 function emptyPostedByCarouselId(): Record<MarketingCarouselId, MarketingCarouselPostStatus> {
   return MARKETING_CAROUSEL_IDS.reduce(
     (acc, id) => {
-      acc[id] = { posted: false, postedAt: null };
+      acc[id] = emptyCarouselPostStatus();
       return acc;
     },
     {} as Record<MarketingCarouselId, MarketingCarouselPostStatus>,
@@ -83,7 +90,7 @@ export default function MarketingStudio() {
   const activeDims = SLIDE_SIZES[activeSize];
   const hasOfferToggle = isAd && Boolean(carousel?.offerToggle);
   const offerOff = hasOfferToggle && !showOffer;
-  const panelCopy = slide ? resolveMarketingAdCopy(slide, offerOff) : undefined;
+  const panelVersions = slide ? resolveMarketingAdCopyVersions(slide, offerOff) : [];
   const firstSlideAudienceBanner =
     slides.length > 1 && !carousel?.kind ? (carousel?.audienceBanner ?? DEFAULT_CAROUSEL_AUDIENCE_BANNER) : undefined;
 
@@ -138,18 +145,18 @@ export default function MarketingStudio() {
     };
   }, []);
 
-  const setCarouselPosted = useCallback(async (id: MarketingCarouselId, posted: boolean) => {
-    let previous: MarketingCarouselPostStatus = { posted: false, postedAt: null };
+  /** Marks a whole entry, or one slide of an ad set / post set when `slideId` is given. */
+  const setCarouselPosted = useCallback(async (id: MarketingCarouselId, posted: boolean, slideId?: string) => {
+    let previous: MarketingCarouselPostStatus = emptyCarouselPostStatus();
+    const withFlag = (status: MarketingCarouselPostStatus, flag: MarketingPostedFlag): MarketingCarouselPostStatus =>
+      slideId ? { ...status, slides: { ...status.slides, [slideId]: flag } } : { ...status, ...flag };
     setPostStatusSaving(true);
     setPostStatusError(null);
     setPostedByCarouselId((current) => {
-      previous = current[id] ?? { posted: false, postedAt: null };
+      previous = current[id] ?? emptyCarouselPostStatus();
       return {
         ...current,
-        [id]: {
-          posted,
-          postedAt: posted ? new Date().toISOString() : null,
-        },
+        [id]: withFlag(previous, { posted, postedAt: posted ? new Date().toISOString() : null }),
       };
     });
 
@@ -157,18 +164,18 @@ export default function MarketingStudio() {
       const response = await fetch(`/api/admin/marketing-carousels/${id}/post-status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ posted }),
+        body: JSON.stringify(slideId ? { posted, slideId } : { posted }),
       });
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { error?: string } | null;
         throw new Error(payload?.error ?? "Could not update posted status.");
       }
-      const payload = (await response.json()) as MarketingCarouselPostStatus & {
+      const payload = (await response.json()) as MarketingPostedFlag & {
         carouselId: MarketingCarouselId;
       };
       setPostedByCarouselId((current) => ({
         ...current,
-        [id]: { posted: payload.posted, postedAt: payload.postedAt },
+        [id]: withFlag(current[id] ?? emptyCarouselPostStatus(), { posted: payload.posted, postedAt: payload.postedAt }),
       }));
     } catch (error) {
       setPostedByCarouselId((current) => ({
@@ -281,8 +288,11 @@ export default function MarketingStudio() {
     }
   }
 
-  const currentCarouselPosted =
-    isMarketingCarouselId(carouselId) && (postedByCarouselId[carouselId]?.posted ?? false);
+  // Ad sets and post sets are separate posts, so "Posted" is per slide; a swipe carousel goes out as one post.
+  const isSet = carousel?.kind === "ad" || carousel?.kind === "post";
+  const currentStatus = isMarketingCarouselId(carouselId) ? postedByCarouselId[carouselId] : undefined;
+  const postedSlideCount = countPostedSlides(currentStatus, slides.map((item) => item.id));
+  const currentCarouselPosted = isSet && slide ? isSlidePosted(currentStatus, slide.id) : (currentStatus?.posted ?? false);
 
   if (!carousel) {
     return (
@@ -343,15 +353,17 @@ export default function MarketingStudio() {
               <AdminSwitch
                 checked={currentCarouselPosted}
                 disabled={postStatusLoading || postStatusSaving || !isMarketingCarouselId(carouselId)}
-                label="Mark carousel as posted"
+                label={isSet ? "Mark this slide as posted" : "Mark carousel as posted"}
                 onChange={(posted) => {
                   if (!isMarketingCarouselId(carouselId)) return;
-                  void setCarouselPosted(carouselId, posted);
+                  void setCarouselPosted(carouselId, posted, isSet ? slide?.id : undefined);
                 }}
               />
               <div>
                 <p className="text-sm font-medium text-admin-text">Posted</p>
-                <p className="text-[11px] text-admin-muted">Mark when this is live on social</p>
+                <p className="text-[11px] text-admin-muted">
+                  {isSet ? `This slide · ${postedSlideCount} of ${slides.length} posted` : "Mark when this is live on social"}
+                </p>
               </div>
             </div>
             <button
@@ -436,11 +448,15 @@ export default function MarketingStudio() {
             <button
               key={item.id}
               type="button"
-              aria-label={`Slide ${itemIndex + 1}`}
+              aria-label={`Slide ${itemIndex + 1}${isSet && isSlidePosted(currentStatus, item.id) ? " (posted)" : ""}`}
               aria-current={itemIndex === index}
               onClick={() => setIndex(itemIndex)}
               className={`h-2 rounded-full transition-all ${
-                itemIndex === index ? "w-6 bg-admin-accent" : "w-2 bg-admin-border-strong"
+                itemIndex === index
+                  ? "w-6 bg-admin-accent"
+                  : isSet && isSlidePosted(currentStatus, item.id)
+                    ? "w-2 bg-emerald-500"
+                    : "w-2 bg-admin-border-strong"
               }`}
             />
           ))}
@@ -449,7 +465,7 @@ export default function MarketingStudio() {
           </span>
         </div>
 
-        {panelCopy ? <AdCopyPanel copy={panelCopy} /> : null}
+        {panelVersions.length ? <AdCopyPanel key={`${carousel.id}:${slide?.id}`} versions={panelVersions} /> : null}
 
         <div key={carousel.id} aria-hidden className="pointer-events-none fixed top-0 -left-[4000px]">
           {sizes.map((size) =>
@@ -486,53 +502,4 @@ export default function MarketingStudio() {
 
 function SlideView({ slide }: { slide: MarketingSlide }) {
   return slide.render();
-}
-
-/** Text to paste into the ad manager next to this image. */
-function AdCopyPanel({ copy }: { copy: MarketingAdCopy }) {
-  const fields: Array<{ key: string; label: string; value: string }> = [
-    { key: "primary", label: "Primary text", value: copy.primaryText },
-    { key: "headline", label: "Headline", value: copy.headline },
-    ...(copy.description ? [{ key: "description", label: "Description", value: copy.description }] : []),
-  ];
-  return (
-    <section
-      aria-label="Ad copy"
-      className="grid shrink-0 gap-2 border-t border-admin-border px-6 py-3 md:grid-cols-[2fr_1fr_1fr]"
-    >
-      {fields.map((field) => (
-        <AdCopyField key={field.key} label={field.label} value={field.value} />
-      ))}
-    </section>
-  );
-}
-
-function AdCopyField({ label, value }: { label: string; value: string }) {
-  const [copied, setCopied] = useState(false);
-  useEffect(() => {
-    if (!copied) return;
-    const timer = window.setTimeout(() => setCopied(false), 1600);
-    return () => window.clearTimeout(timer);
-  }, [copied]);
-
-  return (
-    <div className="min-w-0 rounded-admin-md border border-admin-border bg-admin-surface px-3 py-2">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-admin-faint">
-          {label} <span className="font-normal normal-case">· {value.length} chars</span>
-        </p>
-        <button
-          type="button"
-          onClick={() => {
-            void navigator.clipboard?.writeText(value).then(() => setCopied(true));
-          }}
-          className="inline-flex items-center gap-1 text-[11px] font-medium text-admin-accent"
-        >
-          {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-          {copied ? "Copied" : "Copy"}
-        </button>
-      </div>
-      <p className="mt-1 text-xs leading-snug text-admin-text">{value}</p>
-    </div>
-  );
 }
