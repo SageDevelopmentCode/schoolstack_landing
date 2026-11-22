@@ -58,9 +58,9 @@ export const hiltonHorizonsAcademyOutreach: OutreachPlan = {
   ],
   snapshot: {
     token: "G6Zs3wsPn-vdJBYQU51cCQ",
-    preparedOn: "2026-11-22",
-    summary: "We read all 16 pages of hiltonhorizonsacademy.com on Nov 22, 2026, from each campus page to Enrollment and the FAQ, plus the enrollment form.",
-    pageSpeed: { mobileScore: 55, url: "https://www.hiltonhorizonsacademy.com/", checkedOn: "2026-11-22" },
+    preparedOn: "2026-12-01",
+    summary: "We read all 16 pages of hiltonhorizonsacademy.com on Dec 1, 2026, from each campus page to Enrollment and the FAQ, plus the enrollment form.",
+    pageSpeed: { mobileScore: 55, url: "https://www.hiltonhorizonsacademy.com/", checkedOn: "2026-12-01" },
     toolStack: [
       { name: "Calendly", usedFor: "Booking a tour or call", url: "https://www.hiltonhorizonsacademy.com/enrollment" },
       { name: "Jotform", usedFor: "Contact form", url: "https://www.hiltonhorizonsacademy.com/contact", network: "KaiPod" },
@@ -77,7 +77,7 @@ export const hiltonHorizonsAcademyOutreach: OutreachPlan = {
         impact: "A family ready to join this year can't tell whether they can, or which year the form is for.",
         source: "Hilton Horizons Enrollment",
         url: "https://www.hiltonhorizonsacademy.com/enrollment",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["website-service"],
@@ -91,7 +91,7 @@ export const hiltonHorizonsAcademyOutreach: OutreachPlan = {
         impact: "Each step opens a new site, and you piece every family together from four places.",
         source: "Hilton Horizons Enrollment",
         url: "https://www.hiltonhorizonsacademy.com/enrollment",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["online-application", "admissions-pipeline"],
@@ -105,7 +105,7 @@ export const hiltonHorizonsAcademyOutreach: OutreachPlan = {
         impact: "A family's first payment comes with a fee note and a tip prompt for another company, before their child has started.",
         source: "Hilton Horizons Enrollment",
         url: "https://www.hiltonhorizonsacademy.com/enrollment",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["enrollment-fees", "card-and-ach"],
@@ -119,7 +119,7 @@ export const hiltonHorizonsAcademyOutreach: OutreachPlan = {
         impact: "Families ask how to pay each month, and you chase installments across four campuses.",
         source: "Hilton Horizons Kingsport Hybrid Microschool",
         url: "https://www.hiltonhorizonsacademy.com/kingsport-hybrid-microschool",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["parent-plan-choice", "parent-billing", "autopay", "card-and-ach"],
@@ -133,7 +133,7 @@ export const hiltonHorizonsAcademyOutreach: OutreachPlan = {
         impact: "Families can't check their own balance against the scholarship, so those questions come to you.",
         source: "Hilton Horizons Kingsport Private School",
         url: "https://www.hiltonhorizonsacademy.com/kingsport-private-school",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["third-party-payer-billing", "parent-billing"],
@@ -147,7 +147,7 @@ export const hiltonHorizonsAcademyOutreach: OutreachPlan = {
         impact: "Answers live outside each student's record, and you check several sheets to know who chose what.",
         source: "Hilton Horizons Our Program",
         url: "https://www.hiltonhorizonsacademy.com/program",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["forms-documents"],
@@ -161,7 +161,7 @@ export const hiltonHorizonsAcademyOutreach: OutreachPlan = {
         impact: "Families at the newer campuses, and everyone this year, check each campus page or ask for dates.",
         source: "Hilton Horizons Calendar",
         url: "https://www.hiltonhorizonsacademy.com/calendar",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["calendar", "multi-location"],
@@ -175,7 +175,7 @@ export const hiltonHorizonsAcademyOutreach: OutreachPlan = {
         impact: "A family looking for who runs the school hits a dead end from any page.",
         source: "Hilton Horizons About Us link",
         url: "https://www.hiltonhorizonsacademy.com/about",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["website-service"],

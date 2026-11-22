@@ -57,10 +57,10 @@ export const luffLearningOutreach: OutreachPlan = {
   ],
   snapshot: {
     token: "LHwGrMS3hOV3tnp1amqu-g",
-    preparedOn: "2026-11-22",
+    preparedOn: "2026-12-01",
     summary:
-      "We read lufflearning.org on Nov 22, 2026: the homepage, every link in its menu, Our Programs, the events calendar and the Stories posts.",
-    pageSpeed: { mobileScore: 62, url: "https://lufflearning.org/", checkedOn: "2026-11-22" },
+      "We read lufflearning.org on Dec 1, 2026: the homepage, every link in its menu, Our Programs, the events calendar and the Stories posts.",
+    pageSpeed: { mobileScore: 62, url: "https://lufflearning.org/", checkedOn: "2026-12-01" },
     toolStack: [
       { name: "Sawyer", usedFor: "Class schedule and registration", url: "https://lufflearning.org/programs/" },
       { name: "Zelle", usedFor: "Show tickets", url: "https://lufflearning.org/event/they-eat-sunshine-not-zebras/" },
@@ -73,7 +73,7 @@ export const luffLearningOutreach: OutreachPlan = {
         impact: "A family who likes the homepage can't see what Luff costs or how to reach you, except the email and phone in the footer.",
         source: "Luff Learning homepage menu",
         url: "https://lufflearning.org/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["website-service"],
@@ -87,7 +87,7 @@ export const luffLearningOutreach: OutreachPlan = {
         impact: "The program you lead with is the one families can learn the least about, so every interested parent has to write in first.",
         source: "Luff Learning homepage",
         url: "https://lufflearning.org/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["website-service", "online-application", "admissions-pipeline"],
@@ -101,7 +101,7 @@ export const luffLearningOutreach: OutreachPlan = {
         impact: "Families can't see which classes run, on what days or for which ages, or sign up from the site.",
         source: "Luff Learning Our Programs",
         url: "https://lufflearning.org/programs/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["website-service", "programs-capacity", "online-application"],
@@ -115,7 +115,7 @@ export const luffLearningOutreach: OutreachPlan = {
         impact: "A parent ready to visit has to email or call and wait for a reply before they can see the classroom.",
         source: "Luff Learning open house event",
         url: "https://lufflearning.org/event/luff-learnings-open-house-event/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["tour-self-booking"],
@@ -129,7 +129,7 @@ export const luffLearningOutreach: OutreachPlan = {
         impact: "Families can't plan for the cost before they write in, and payments that do happen arrive by hand, one family at a time.",
         source: "Luff Learning: They Eat Sunshine, Not Zebras",
         url: "https://lufflearning.org/event/they-eat-sunshine-not-zebras/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["parent-billing", "parent-plan-choice", "autopay", "card-and-ach"],
@@ -143,7 +143,7 @@ export const luffLearningOutreach: OutreachPlan = {
         impact: "Families can't tell whether Luff is running this year, and current parents have no one place to check dates.",
         source: "Luff Learning Events",
         url: "https://lufflearning.org/events/list/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["calendar", "bulletin"],
@@ -157,7 +157,7 @@ export const luffLearningOutreach: OutreachPlan = {
         impact: "Parents searching on a phone may leave before the page finishes loading.",
         source: "Google PageSpeed Insights (mobile)",
         url: "https://lufflearning.org/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["website-service"],

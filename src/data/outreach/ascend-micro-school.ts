@@ -62,9 +62,9 @@ export const ascendMicroSchoolOutreach: OutreachPlan = {
   ],
   snapshot: {
     token: "Wae8WdLjDxp4WroO_S5DGw",
-    preparedOn: "2026-11-22",
-    summary: "We read every main page of ascendmicroschool.com on Nov 22, 2026, from Admissions and the FAQs to Our Team, plus both application forms.",
-    pageSpeed: { mobileScore: 95, url: "https://ascendmicroschool.com/", checkedOn: "2026-11-22" },
+    preparedOn: "2026-12-01",
+    summary: "We read every main page of ascendmicroschool.com on Dec 1, 2026, from Admissions and the FAQs to Our Team, plus both application forms.",
+    pageSpeed: { mobileScore: 95, url: "https://ascendmicroschool.com/", checkedOn: "2026-12-01" },
     toolStack: [
       { name: "Google Forms", usedFor: "Application and reference form", url: "https://ascendmicroschool.com/admissions/" },
       { name: "Google Docs", usedFor: "Application checklist", url: "https://ascendmicroschool.com/admissions/" },
@@ -78,7 +78,7 @@ export const ascendMicroSchoolOutreach: OutreachPlan = {
         impact: "Every family has to email before they know whether Ascend fits their budget, and some won't ask.",
         source: "Ascend Admissions",
         url: "https://ascendmicroschool.com/admissions/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["website-service", "tuition-rate-plans", "discounts"],
@@ -92,7 +92,7 @@ export const ascendMicroSchoolOutreach: OutreachPlan = {
         impact: "Families start with an email and wait for a reply before they can take the first step.",
         source: "Ascend Admissions",
         url: "https://ascendmicroschool.com/admissions/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["tour-self-booking"],
@@ -106,7 +106,7 @@ export const ascendMicroSchoolOutreach: OutreachPlan = {
         impact: "Families without access can't see the full list of steps, so they piece it together from the page or email to ask.",
         source: "Ascend Admissions",
         url: "https://ascendmicroschool.com/admissions/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["online-application", "admissions-pipeline"],
@@ -120,7 +120,7 @@ export const ascendMicroSchoolOutreach: OutreachPlan = {
         impact: "Answers arrive in two places, and you match each reference to its family by hand before a decision.",
         source: "AMS Application (Google Forms)",
         url: "https://docs.google.com/forms/d/e/1FAIpQLSenc38RS43m61Y1XoN3bVuYy4gcoIAOEU7Kv5npo6QIaAUvvA/viewform",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["online-application", "admissions-pipeline"],
@@ -134,7 +134,7 @@ export const ascendMicroSchoolOutreach: OutreachPlan = {
         impact: "Families can miss the week while they ask how, and you track each deposit and form yourself.",
         source: "Ascend Admissions",
         url: "https://ascendmicroschool.com/admissions/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["enrollment-checklist", "enrollment-agreements", "enrollment-fees"],
@@ -148,7 +148,7 @@ export const ascendMicroSchoolOutreach: OutreachPlan = {
         impact: "A family with a scholarship can't see what they still owe, and the office reconciles each payer by hand.",
         source: "Ascend Admissions",
         url: "https://ascendmicroschool.com/admissions/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["third-party-payer-billing", "parent-billing", "autopay"],
@@ -162,7 +162,7 @@ export const ascendMicroSchoolOutreach: OutreachPlan = {
         impact: "New families don't know where else to look for what they need on home days.",
         source: "Ascend FAQs",
         url: "https://ascendmicroschool.com/faqs/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["learning-plans", "photos", "parent-portal"],
@@ -176,7 +176,7 @@ export const ascendMicroSchoolOutreach: OutreachPlan = {
         impact: "A family landing on the home page can wonder whether the school is still running.",
         source: "Ascend home page",
         url: "https://ascendmicroschool.com/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["website-service"],

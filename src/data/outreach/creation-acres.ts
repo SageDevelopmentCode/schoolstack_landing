@@ -63,9 +63,9 @@ export const creationAcresOutreach: OutreachPlan = {
   ],
   snapshot: {
     token: "0HHKqSRrnJ4Q3syL677ZvA",
-    preparedOn: "2026-11-22",
-    summary: "We read 36 pages of creationacres.com on Nov 22, 2026, from Admissions and Tuition to the Hybrid program, plus the information request form and both applications.",
-    pageSpeed: { mobileScore: 66, url: "https://www.creationacres.com/", checkedOn: "2026-11-22" },
+    preparedOn: "2026-12-01",
+    summary: "We read 36 pages of creationacres.com on Dec 1, 2026, from Admissions and Tuition to the Hybrid program, plus the information request form and both applications.",
+    pageSpeed: { mobileScore: 66, url: "https://www.creationacres.com/", checkedOn: "2026-12-01" },
     toolStack: [
       { name: "Playground", usedFor: "Information request form", url: "https://www.creationacres.com/admissions/request-information" },
       { name: "Jotform", usedFor: "Microschool and hybrid applications, with the fee", url: "https://www.creationacres.com/admissions" },
@@ -78,7 +78,7 @@ export const creationAcresOutreach: OutreachPlan = {
         impact: "Every tour takes a form, a call and an email before it's on the calendar, and families wait between each one.",
         source: "Creation Acres Tours & Open House Events",
         url: "https://www.creationacres.com/admissions/tours-open-house-events",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["tour-self-booking"],
@@ -92,7 +92,7 @@ export const creationAcresOutreach: OutreachPlan = {
         impact: "Families repeat themselves, and you piece each family together from two tools before the interview.",
         source: "Creation Acres Request Information",
         url: "https://www.creationacres.com/admissions/request-information",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["online-application", "admissions-pipeline"],
@@ -106,7 +106,7 @@ export const creationAcresOutreach: OutreachPlan = {
         impact: "Families ask how before they can finish, and you track each form and payment against the 10-day window yourself.",
         source: "Creation Acres Admissions",
         url: "https://www.creationacres.com/admissions",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["enrollment-checklist", "enrollment-agreements", "enrollment-fees"],
@@ -120,7 +120,7 @@ export const creationAcresOutreach: OutreachPlan = {
         impact: "A scholarship family can't see what they still owe, and you match NCSEAA payments to each family's balance by hand.",
         source: "Creation Acres Opportunity Scholarship page",
         url: "https://www.creationacres.com/admissions/opportunity-scholarship",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["third-party-payer-billing", "parent-billing", "autopay"],
@@ -134,7 +134,7 @@ export const creationAcresOutreach: OutreachPlan = {
         impact: "Add-ons are tracked apart from tuition, so each week's charge is one more thing to bill and remember.",
         source: "Creation Acres 2026-2027 Schedule",
         url: "https://www.creationacres.com/daily-life/2026-2027-schedule",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["class-billing"],
@@ -148,7 +148,7 @@ export const creationAcresOutreach: OutreachPlan = {
         impact: "Families can't see open opportunities when they have time, and you match volunteers to needs by email.",
         source: "Creation Acres Family Commitment",
         url: "https://www.creationacres.com/admissions/family-commitment",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["committees", "parent-portal"],
@@ -162,7 +162,7 @@ export const creationAcresOutreach: OutreachPlan = {
         impact: "A family comparing Montessori schools hits a dead end on the page that explains your approach.",
         source: "Creation Acres Homeschool Programs",
         url: "https://www.creationacres.com/homeschool-classes",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["website-service"],

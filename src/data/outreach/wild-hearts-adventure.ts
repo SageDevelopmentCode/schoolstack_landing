@@ -61,8 +61,8 @@ export const wildHeartsAdventureOutreach: OutreachPlan = {
   ],
   snapshot: {
     token: "VZhnWICb5flDSfQaDeziCQ",
-    preparedOn: "2026-11-22",
-    summary: "We read 60 pages of wildheartsadventure.co on Nov 22, 2026, including every enrollment and release form.",
+    preparedOn: "2026-12-01",
+    summary: "We read 60 pages of wildheartsadventure.co on Dec 1, 2026, including every enrollment and release form.",
     toolStack: [
       { name: "Shop checkout", usedFor: "Application fee, classes and other payments", url: "https://wildheartsadventure.co/product/application/" },
       { name: "Monthly invoices", usedFor: "Tuition, September to May", url: "https://wildheartsadventure.co/enrollment-form/" },
@@ -76,7 +76,7 @@ export const wildHeartsAdventureOutreach: OutreachPlan = {
         impact: "A parent on a phone, or searching for \"Visalia microschool price\", can't find what a program costs without starting an application.",
         source: "Wild Hearts Program Options",
         url: "https://wildheartsadventure.co/program-options/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["website-service"],
@@ -90,7 +90,7 @@ export const wildHeartsAdventureOutreach: OutreachPlan = {
         impact: "Interested families have to wait for a reply to see the program, and may head to the wrong address.",
         source: "Wild Hearts Contact",
         url: "https://wildheartsadventure.co/contact/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["tour-self-booking"],
@@ -104,7 +104,7 @@ export const wildHeartsAdventureOutreach: OutreachPlan = {
         impact: "Families with two or more children repeat the steps and hunt for the right code, and you match payments to applications yourself.",
         source: "Wild Hearts Application",
         url: "https://wildheartsadventure.co/product/application/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["online-application", "application-fee", "admissions-pipeline"],
@@ -118,7 +118,7 @@ export const wildHeartsAdventureOutreach: OutreachPlan = {
         impact: "Families can't finish enrolling without emailing you, and you check five places to see who's done.",
         source: "Wild Hearts Registration Forms",
         url: "https://wildheartsadventure.co/registration-forms/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["enrollment-checklist", "enrollment-agreements"],
@@ -132,7 +132,7 @@ export const wildHeartsAdventureOutreach: OutreachPlan = {
         impact: "Families aren't sure when a payment is late, and you send and chase eight invoices per family each year.",
         source: "Wild Hearts Enrollment Form",
         url: "https://wildheartsadventure.co/enrollment-form/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["parent-billing", "autopay", "card-and-ach"],
@@ -146,7 +146,7 @@ export const wildHeartsAdventureOutreach: OutreachPlan = {
         impact: "Each family's bill is split between a charter and the family, and both sides are reconciled by hand.",
         source: "Wild Hearts Enrollment Form",
         url: "https://wildheartsadventure.co/enrollment-form/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["third-party-payer-billing"],
@@ -160,7 +160,7 @@ export const wildHeartsAdventureOutreach: OutreachPlan = {
         impact: "Families can't look up 2026–27 dates, and the shared password can't be taken back from a family who leaves.",
         source: "Wild Hearts Calendar",
         url: "https://wildheartsadventure.co/calendar/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["parent-portal", "calendar", "mobile-app"],
@@ -174,7 +174,7 @@ export const wildHeartsAdventureOutreach: OutreachPlan = {
         impact: "Parents can't tell if they can still join or what they'll be charged, and each class is billed outside tuition.",
         source: "Wild Hearts Afternoon Classes",
         url: "https://wildheartsadventure.co/product/afternoon-class-reg/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["website-service", "class-billing"],

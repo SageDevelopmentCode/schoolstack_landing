@@ -55,9 +55,9 @@ export const monarchHillsEducationOutreach: OutreachPlan = {
   ],
   snapshot: {
     token: "h6nMN2hWEa-Fmv9BGhvkzw",
-    preparedOn: "2026-11-22",
+    preparedOn: "2026-12-01",
     summary:
-      "We read all 14 pages of monarchhills.org and the 2024–25 Parent Handbook on Nov 22, 2026, from Programs and Tuition to the Calendar and Summer Camps.",
+      "We read all 14 pages of monarchhills.org and the 2024–25 Parent Handbook on Dec 1, 2026, from Programs and Tuition to the Calendar and Summer Camps.",
     toolStack: [
       { name: "Brightwheel", usedFor: "Waitlist, enrollment forms and contracts", url: "https://www.monarchhills.org/" },
       { name: "Google Doc", usedFor: "Gatherings and events", url: "https://www.monarchhills.org/s/Parent-Handbook-2024-25-2.pdf" },
@@ -70,7 +70,7 @@ export const monarchHillsEducationOutreach: OutreachPlan = {
         impact: "A family who only wants to add their name has to make an account and a password first, and some will stop there.",
         source: "Monarch Hills home page",
         url: "https://www.monarchhills.org/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["online-application", "admissions-pipeline"],
@@ -84,7 +84,7 @@ export const monarchHillsEducationOutreach: OutreachPlan = {
         impact: "A family planning for this year can't tell whether $9,000 for five days is still the price, so they write in to ask.",
         source: "Monarch Hills Tuition",
         url: "https://www.monarchhills.org/new-page",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["website-service"],
@@ -98,7 +98,7 @@ export const monarchHillsEducationOutreach: OutreachPlan = {
         impact: "A family who finds you now has no way to see the farm until the next open house is announced.",
         source: "Monarch Hills Open House",
         url: "https://www.monarchhills.org/events/open-house",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["tour-self-booking"],
@@ -112,7 +112,7 @@ export const monarchHillsEducationOutreach: OutreachPlan = {
         impact: "New families learn the steps one email at a time, and fees and forms are tracked in different places.",
         source: "Monarch Hills Parent Handbook 2024–2025 (PDF)",
         url: "https://www.monarchhills.org/s/Parent-Handbook-2024-25-2.pdf",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["enrollment-checklist", "enrollment-agreements", "enrollment-fees"],
@@ -126,7 +126,7 @@ export const monarchHillsEducationOutreach: OutreachPlan = {
         impact: "Families ask how and when to pay, and monthly payments, fees and sibling discounts are worked out by hand.",
         source: "Monarch Hills Tuition",
         url: "https://www.monarchhills.org/new-page",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["parent-plan-choice", "parent-billing", "autopay", "card-and-ach"],
@@ -140,7 +140,7 @@ export const monarchHillsEducationOutreach: OutreachPlan = {
         impact: "Families have to know which inbox to write to and where to look for dates, and news is spread across several places.",
         source: "Monarch Hills Parent Handbook 2024–2025 (PDF)",
         url: "https://www.monarchhills.org/s/Parent-Handbook-2024-25-2.pdf",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["messaging", "bulletin", "calendar"],
@@ -154,7 +154,7 @@ export const monarchHillsEducationOutreach: OutreachPlan = {
         impact: "A family reading about the program hits a dead end halfway through.",
         source: "Monarch Hills home page",
         url: "https://www.monarchhills.org/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["website-service"],

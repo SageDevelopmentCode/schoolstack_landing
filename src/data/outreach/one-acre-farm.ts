@@ -56,10 +56,10 @@ export const oneAcreFarmOutreach: OutreachPlan = {
   ],
   snapshot: {
     token: "byyA7tyVpnof-wdsqtC62g",
-    preparedOn: "2026-11-22",
+    preparedOn: "2026-12-01",
     summary:
-      "We read 19 pages of oneacrefarmtx.com on Nov 22, 2026, plus both Farm School pages, the tour application and the activity sign-ups.",
-    pageSpeed: { mobileScore: 58, url: "https://oneacrefarmtx.com/", checkedOn: "2026-11-22" },
+      "We read 19 pages of oneacrefarmtx.com on Dec 1, 2026, plus both Farm School pages, the tour application and the activity sign-ups.",
+    pageSpeed: { mobileScore: 58, url: "https://oneacrefarmtx.com/", checkedOn: "2026-12-01" },
     toolStack: [
       { name: "Canva websites", usedFor: "Farm School tuition and enrollment steps", url: "https://oneacrefarmtx.my.canva.site/elementaryfarmschool" },
       { name: "Google Forms", usedFor: "Farm School tour application", url: "https://oneacrefarmtx.com/farm-school-learning-pods.html" },
@@ -73,7 +73,7 @@ export const oneAcreFarmOutreach: OutreachPlan = {
         impact: "Families searching for farm school prices in Porter won't find them, and a phone shows each picture shrunk to fit.",
         source: "One Acre Farm Farm School Learning Pods",
         url: "https://oneacrefarmtx.com/farm-school-learning-pods.html",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["website-service"],
@@ -87,7 +87,7 @@ export const oneAcreFarmOutreach: OutreachPlan = {
         impact: "A family with two children fills in the form twice, and each tour still needs a round of calls or emails during your teaching day.",
         source: "Farm School Learning Pod Tour Application",
         url: "https://docs.google.com/forms/d/e/1FAIpQLSdwzd9GFVvjfAHphg1z6tQj_y2D7Im2i2afQyMHSj3MPuca2A/viewform",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["tour-self-booking", "admissions-pipeline"],
@@ -101,7 +101,7 @@ export const oneAcreFarmOutreach: OutreachPlan = {
         impact: "Families who toured have to ask how to apply and how to pay the fee, and you send it out by hand each time.",
         source: "One Acre Farm Elementary Farm School page",
         url: "https://oneacrefarmtx.my.canva.site/elementaryfarmschool",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["online-application", "application-fee"],
@@ -115,7 +115,7 @@ export const oneAcreFarmOutreach: OutreachPlan = {
         impact: "You track by hand who has paid the $100 deposit and $100 supply fee and who still owes forms.",
         source: "One Acre Farm Early Childhood Farm School page",
         url: "https://oneacrefarmtx.my.canva.site/early-childhood",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["enrollment-checklist", "enrollment-agreements", "enrollment-fees"],
@@ -129,7 +129,7 @@ export const oneAcreFarmOutreach: OutreachPlan = {
         impact: "Each month you collect 10 installments per family by hand, and families can't see what they've paid.",
         source: "One Acre Farm Elementary Farm School page",
         url: "https://oneacrefarmtx.my.canva.site/elementaryfarmschool",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["parent-plan-choice", "parent-billing", "autopay", "card-and-ach"],
@@ -143,7 +143,7 @@ export const oneAcreFarmOutreach: OutreachPlan = {
         impact: "A family of a child with autism can't tell whether Strides costs anything until they ask.",
         source: "One Acre Farm About Us",
         url: "https://oneacrefarmtx.com/about-us.html",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["website-service"],
@@ -157,7 +157,7 @@ export const oneAcreFarmOutreach: OutreachPlan = {
         impact: "Parents reading on a phone have to pinch and zoom to see dates, prices and the PayPal buttons.",
         source: "Google PageSpeed Insights (mobile)",
         url: "https://oneacrefarmtx.com/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["website-service"],

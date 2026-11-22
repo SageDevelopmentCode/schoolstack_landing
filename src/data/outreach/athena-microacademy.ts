@@ -57,8 +57,8 @@ export const athenaMicroacademyOutreach: OutreachPlan = {
   ],
   snapshot: {
     token: "_4S10rn8WeKBduMSheKCcg",
-    preparedOn: "2026-11-22",
-    summary: "We read 49 pages of amaustin.org on Nov 22, 2026, from Admissions and Tuition to the Parents and Summer Camps pages.",
+    preparedOn: "2026-12-01",
+    summary: "We read 49 pages of amaustin.org on Dec 1, 2026, from Admissions and Tuition to the Parents and Summer Camps pages.",
     toolStack: [
       { name: "Google Calendar booking", usedFor: "Booking a discovery call", url: "https://www.amaustin.org/contact-us.html" },
       { name: "Jotform", usedFor: "Inquiry form", url: "https://www.amaustin.org/admissions.html", network: "KaiPod" },
@@ -74,7 +74,7 @@ export const athenaMicroacademyOutreach: OutreachPlan = {
         impact: "A family with a rising 12th grader can't tell whether to apply, and has to email to find out.",
         source: "Athena FAQs",
         url: "https://www.amaustin.org/faqs.html",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["website-service"],
@@ -88,7 +88,7 @@ export const athenaMicroacademyOutreach: OutreachPlan = {
         impact: "Each visit takes a round of calls or emails, and interested families wait on you to find a time.",
         source: "Athena Admissions",
         url: "https://www.amaustin.org/admissions.html",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["tour-self-booking"],
@@ -102,7 +102,7 @@ export const athenaMicroacademyOutreach: OutreachPlan = {
         impact: "Families stop to ask how to pay, and you chase fees by hand before a spot is held.",
         source: "Athena Admissions",
         url: "https://www.amaustin.org/admissions.html",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["online-application", "application-fee"],
@@ -116,7 +116,7 @@ export const athenaMicroacademyOutreach: OutreachPlan = {
         impact: "Every family gets their forms a different way, and you track who has finished what yourself.",
         source: "Athena Admissions",
         url: "https://www.amaustin.org/admissions.html",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["enrollment-checklist", "enrollment-agreements", "enrollment-fees"],
@@ -130,7 +130,7 @@ export const athenaMicroacademyOutreach: OutreachPlan = {
         impact: "A family choosing the 12-month plan can't see how they'll pay each month, or set it up themselves.",
         source: "Athena store: Full-time Program",
         url: "https://www.amaustin.org/store/p1/Full-time_Program.html",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["parent-plan-choice", "parent-billing", "autopay", "card-and-ach"],
@@ -144,7 +144,7 @@ export const athenaMicroacademyOutreach: OutreachPlan = {
         impact: "A TEFA family can't see their own share, and you reconcile Odyssey payments against each family by hand.",
         source: "Athena Tuition/Pricing",
         url: "https://www.amaustin.org/tuitionpricing.html",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["third-party-payer-billing"],
@@ -158,7 +158,7 @@ export const athenaMicroacademyOutreach: OutreachPlan = {
         impact: "Prices can't be found by search or read on some phones, and sign-ups for camps and clubs happen outside the site.",
         source: "Athena Summer Camps",
         url: "https://www.amaustin.org/summer-camps.html",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["website-service", "class-billing"],

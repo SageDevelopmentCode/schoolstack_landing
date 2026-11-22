@@ -50,9 +50,9 @@ export const wonderhereLakelandOutreach: OutreachPlan = {
   ],
   snapshot: {
     token: "9q-RknNHkfySvBDC4K2--Q",
-    preparedOn: "2026-11-22",
+    preparedOn: "2026-12-01",
     summary:
-      "We read wonderherelakeland.com on Nov 22, 2026, from the Schoolhouse and South Lakeland Programs pages to the class sign-ups, Contact page and the Schoolhouse application.",
+      "We read wonderherelakeland.com on Dec 1, 2026, from the Schoolhouse and South Lakeland Programs pages to the class sign-ups, Contact page and the Schoolhouse application.",
     toolStack: [
       { name: "WooCommerce checkout", usedFor: "Friday School registration fee and event tickets", url: "https://wonderherelakeland.com/product/friday-school-south-lakeland-2026-27-registration-fee/" },
       { name: "Brightwheel", usedFor: "Monthly tuition payments and autopay", url: "https://wonderhere.com/lakeland-schoolhouse-application-2026-27/" },
@@ -65,7 +65,7 @@ export const wonderhereLakelandOutreach: OutreachPlan = {
         impact: "A family planning for this year sees last year's schedule and has to ask which months they'll pay.",
         source: "WonderHere Lakeland Schoolhouse",
         url: "https://wonderherelakeland.com/schoolhouse/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["website-service", "tuition-rate-plans"],
@@ -79,7 +79,7 @@ export const wonderhereLakelandOutreach: OutreachPlan = {
         impact: "A Lakeland family can't tell whether they're applying for this year or joining a waitlist for last year.",
         source: "WonderHere Lakeland Schoolhouse Application 2026-27",
         url: "https://wonderhere.com/lakeland-schoolhouse-application-2026-27/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["online-application", "admissions-pipeline"],
@@ -93,7 +93,7 @@ export const wonderhereLakelandOutreach: OutreachPlan = {
         impact: "One enrollment runs through three places, and Step Up families can't sign up online at all.",
         source: "Friday School (South Lakeland) 2026-27 Registration Fee",
         url: "https://wonderherelakeland.com/product/friday-school-south-lakeland-2026-27-registration-fee/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["enrollment-checklist", "enrollment-fees", "enrollment-agreements", "autopay"],
@@ -107,7 +107,7 @@ export const wonderhereLakelandOutreach: OutreachPlan = {
         impact: "A Step Up family can front up to $1,200 a month and track their own reimbursements, and credits are easy to lose sight of.",
         source: "WonderHere Lakeland Schoolhouse Application 2026-27",
         url: "https://wonderhere.com/lakeland-schoolhouse-application-2026-27/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["third-party-payer-billing", "parent-billing"],
@@ -121,7 +121,7 @@ export const wonderhereLakelandOutreach: OutreachPlan = {
         impact: "A Lakeland family picks another location or skips the question, and their inquiry starts out in the wrong place.",
         source: "Contact WonderHere Lakeland",
         url: "https://wonderherelakeland.com/contact-2/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["website-service", "admissions-pipeline"],
@@ -135,7 +135,7 @@ export const wonderhereLakelandOutreach: OutreachPlan = {
         impact: "A written cancellation, which starts the 2-week notice before the next payment, may never reach Lakeland.",
         source: "WonderHere South Lakeland Programs",
         url: "https://wonderherelakeland.com/south-lakeland-programs/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["website-service"],

@@ -61,8 +61,8 @@ export const zoeLearningHouseOutreach: OutreachPlan = {
   ],
   snapshot: {
     token: "DfesH8NjzQOQQW3tNPowOQ",
-    preparedOn: "2026-11-22",
-    summary: "We read 45 pages of zoelearninghouse.com on Nov 22, 2026, including every program page, Admissions, Camps and the intro packet.",
+    preparedOn: "2026-12-01",
+    summary: "We read 45 pages of zoelearninghouse.com on Dec 1, 2026, including every program page, Admissions, Camps and the intro packet.",
     toolStack: [
       { name: "Text messages", usedFor: "Setting up the call and Family Tour", url: "https://zoelearninghouse.com/interest-form" },
       { name: "Google Drive", usedFor: "Intro packet with program costs", url: "https://zoelearninghouse.com/intro-packet" },
@@ -77,7 +77,7 @@ export const zoeLearningHouseOutreach: OutreachPlan = {
         impact: "A parent comparing schools on a phone has to open a flipbook to learn the cost, and may find last year's numbers first.",
         source: "Zoe 1-Day Spark Enrichment",
         url: "https://zoelearninghouse.com/spark",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["website-service"],
@@ -91,7 +91,7 @@ export const zoeLearningHouseOutreach: OutreachPlan = {
         impact: "Each new family takes a few back-and-forth texts before they can visit, and some cool off while they wait.",
         source: "Zoe interest form",
         url: "https://zoelearninghouse.com/interest-form",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["tour-self-booking", "observation-booking"],
@@ -105,7 +105,7 @@ export const zoeLearningHouseOutreach: OutreachPlan = {
         impact: "Accepted families wait to hear what's next, and you send forms, fees and the Welcome Packet one family at a time.",
         source: "Zoe Admissions",
         url: "https://zoelearninghouse.com/admissions",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["enrollment-checklist", "enrollment-agreements", "enrollment-fees"],
@@ -119,7 +119,7 @@ export const zoeLearningHouseOutreach: OutreachPlan = {
         impact: "Families ask before they commit, and GATOR families can't see what they'll owe on their own.",
         source: "Zoe Admissions",
         url: "https://zoelearninghouse.com/admissions",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["parent-billing", "parent-plan-choice", "autopay", "card-and-ach"],
@@ -133,7 +133,7 @@ export const zoeLearningHouseOutreach: OutreachPlan = {
         impact: "School families keep two logins and two sets of receipts, and you track camp balances apart from tuition.",
         source: "Zoe Camps",
         url: "https://zoelearninghouse.com/camps",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["class-billing", "late-fees-reminders"],
@@ -147,7 +147,7 @@ export const zoeLearningHouseOutreach: OutreachPlan = {
         impact: "Parents check several places for the week's plan, photos and dates, and the public Events page looks empty.",
         source: "Zoe Admissions",
         url: "https://zoelearninghouse.com/admissions",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["photos", "calendar", "learning-plans"],
@@ -161,7 +161,7 @@ export const zoeLearningHouseOutreach: OutreachPlan = {
         impact: "A parent who lands on one from a search sees old dates or a product that isn't Zoe's, which can make them unsure what's current.",
         source: "Zoe test page",
         url: "https://zoelearninghouse.com/test",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["website-service"],
@@ -172,10 +172,10 @@ export const zoeLearningHouseOutreach: OutreachPlan = {
         area: "website",
         gap: "Registration dates that have passed",
         saw: "The homepage and program pages still say 2026–2027 registration \"opens January 30, 2026\".",
-        impact: "A family reading it in November can't tell if there's still room for this year.",
+        impact: "A family reading it now can't tell if there's still room for this year.",
         source: "Zoe homepage",
         url: "https://zoelearninghouse.com/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["website-service", "programs-capacity"],

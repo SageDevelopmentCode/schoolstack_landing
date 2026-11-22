@@ -49,9 +49,9 @@ export const lighthouseHomeschoolOutreach: OutreachPlan = {
   ],
   snapshot: {
     token: "qYbOOGVpH2f2SNk6oXHEnw",
-    preparedOn: "2026-11-22",
+    preparedOn: "2026-12-01",
     summary:
-      "We read every public page of lighthousehomeschool.com on Nov 22, 2026, including the Family Application and the Admission Application form listed in its sitemap.",
+      "We read every public page of lighthousehomeschool.com on Dec 1, 2026, including the Family Application and the Admission Application form listed in its sitemap.",
     toolStack: [
       { name: "Homeschool-Life", usedFor: "Family Application and member account", url: "https://www.lighthousehomeschool.com/application" },
       { name: "Google Forms", usedFor: "Admission Application (listed in the site's sitemap)", url: "https://www.lighthousehomeschool.com/sitemap.xml" },
@@ -64,7 +64,7 @@ export const lighthouseHomeschoolOutreach: OutreachPlan = {
         impact: "A parent of a middle schooler has to call or email just to find out whether to keep reading.",
         source: "Lighthouse Homeschool Hybrid Program",
         url: "https://www.lighthousehomeschool.com/custom/93028",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["website-service"],
@@ -78,7 +78,7 @@ export const lighthouseHomeschoolOutreach: OutreachPlan = {
         impact: "Each visit takes a few messages to set up, and a family reading the site at night waits until someone answers.",
         source: "Admissions for Lighthouse Homeschool Academy",
         url: "https://www.lighthousehomeschool.com/custom/93072",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["tour-self-booking"],
@@ -92,7 +92,7 @@ export const lighthouseHomeschoolOutreach: OutreachPlan = {
         impact: "Applications can arrive in two places, and a new family sets up a co-op member account before they know they're accepted.",
         source: "Lighthouse Homeschool Academy - Family Application",
         url: "https://www.lighthousehomeschool.com/application",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["online-application", "admissions-pipeline"],
@@ -106,7 +106,7 @@ export const lighthouseHomeschoolOutreach: OutreachPlan = {
         impact: "You send and chase an invoice for each new family before you can move them forward.",
         source: "Lighthouse Homeschool Academy - Family Application",
         url: "https://www.lighthousehomeschool.com/application",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["application-fee"],
@@ -120,7 +120,7 @@ export const lighthouseHomeschoolOutreach: OutreachPlan = {
         impact: "Each approved family asks what to do next, and you track who has paid and who has the book list yourself.",
         source: "Admissions for Lighthouse Homeschool Academy",
         url: "https://www.lighthousehomeschool.com/custom/93072",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["enrollment-checklist", "enrollment-fees", "enrollment-agreements"],
@@ -134,7 +134,7 @@ export const lighthouseHomeschoolOutreach: OutreachPlan = {
         impact: "Ten times a year you check which families have paid, and families keep track of the due date themselves.",
         source: "How Hybrid Homeschooling Works at Lighthouse",
         url: "https://www.lighthousehomeschool.com/custom/93067",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["parent-billing", "autopay", "card-and-ach"],

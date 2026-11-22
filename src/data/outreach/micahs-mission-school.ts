@@ -56,9 +56,9 @@ export const micahsMissionSchoolOutreach: OutreachPlan = {
   ],
   snapshot: {
     token: "VgV1bgUGF8q99KGLqY0xuQ",
-    preparedOn: "2026-11-22",
+    preparedOn: "2026-12-01",
     summary:
-      "We read all 10 pages of micahsmissionschool.org on Nov 22, 2026, from Enrollment and About Us to Sponsor a Student and Fundraisers.",
+      "We read all 10 pages of micahsmissionschool.org on Dec 1, 2026, from Enrollment and About Us to Sponsor a Student and Fundraisers.",
     observations: [
       {
         area: "find",
@@ -67,7 +67,7 @@ export const micahsMissionSchoolOutreach: OutreachPlan = {
         impact: "A family can't tell whether they'd pay by the day or by the semester, so they email to ask before going further.",
         source: "Micah's Mission Enrollment",
         url: "https://micahsmissionschool.org/enrol.html",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["website-service", "parent-plan-choice"],
@@ -81,7 +81,7 @@ export const micahsMissionSchoolOutreach: OutreachPlan = {
         impact: "A family who wants to see the school before enrolling has to write in and wait for a time.",
         source: "Micah's Mission Contact Us",
         url: "https://micahsmissionschool.org/contact.html",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["tour-self-booking"],
@@ -95,7 +95,7 @@ export const micahsMissionSchoolOutreach: OutreachPlan = {
         impact: "Every family waits for a reply before they can start, and you send each packet by hand.",
         source: "Micah's Mission Enrollment",
         url: "https://micahsmissionschool.org/enrol.html",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["online-application", "admissions-pipeline"],
@@ -109,7 +109,7 @@ export const micahsMissionSchoolOutreach: OutreachPlan = {
         impact: "Every family gets their forms a different way, and you track who has finished what yourself.",
         source: "Micah's Mission About Us",
         url: "https://micahsmissionschool.org/about_us.html",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["enrollment-checklist", "enrollment-agreements", "enrollment-fees"],
@@ -123,7 +123,7 @@ export const micahsMissionSchoolOutreach: OutreachPlan = {
         impact: "Families ask how to pay, and each semester's payments are collected and recorded by hand.",
         source: "Micah's Mission Enrollment",
         url: "https://micahsmissionschool.org/enrol.html",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["parent-plan-choice", "parent-billing", "autopay", "card-and-ach"],
@@ -137,7 +137,7 @@ export const micahsMissionSchoolOutreach: OutreachPlan = {
         impact: "A sponsored family can't see what's covered and what they still owe, and you match PayPal gifts to students yourself.",
         source: "Micah's Mission Sponsor a Student",
         url: "https://micahsmissionschool.org/donate",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["third-party-payer-billing"],
@@ -151,7 +151,7 @@ export const micahsMissionSchoolOutreach: OutreachPlan = {
         impact: "A family checking whether the school is active finds dates from two years ago and social links that lead nowhere.",
         source: "Micah's Mission Contact Us",
         url: "https://micahsmissionschool.org/contact.html",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["website-service"],

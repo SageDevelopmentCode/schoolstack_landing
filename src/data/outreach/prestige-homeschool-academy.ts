@@ -60,9 +60,9 @@ export const prestigeHomeschoolAcademyOutreach: OutreachPlan = {
   ],
   snapshot: {
     token: "8crm_ASDXBm9HHhg-hmeyA",
-    preparedOn: "2026-11-22",
+    preparedOn: "2026-12-01",
     summary:
-      "We read all 6 pages of prestigehomeschoolacademy.com and both registration forms it links to on Nov 22, 2026.",
+      "We read all 6 pages of prestigehomeschoolacademy.com and both registration forms it links to on Dec 1, 2026.",
     toolStack: [
       { name: "Jotform", usedFor: "Registration form", url: "https://prestigehomeschoolacademy.com/" },
       { name: "Brightwheel", usedFor: "Check-in and check-out", url: "https://prestigehomeschoolacademy.com/frequently-asked-%3F" },
@@ -75,7 +75,7 @@ export const prestigeHomeschoolAcademyOutreach: OutreachPlan = {
         impact: "A family weighing the 4-day program has to email to learn what it costs before they can compare.",
         source: "Prestige Frequently Asked ?",
         url: "https://prestigehomeschoolacademy.com/frequently-asked-%3F",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["website-service", "programs-capacity"],
@@ -89,7 +89,7 @@ export const prestigeHomeschoolAcademyOutreach: OutreachPlan = {
         impact: "Each tour takes a few emails to find a Monday that works, and a family who writes in the evening waits for an answer.",
         source: "Prestige Contact Us",
         url: "https://prestigehomeschoolacademy.com/contact-us",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["tour-self-booking"],
@@ -103,7 +103,7 @@ export const prestigeHomeschoolAcademyOutreach: OutreachPlan = {
         impact: "New registrations land in two places, so you check both, and a family sees last year's form name in their browser tab.",
         source: "Prestige home page",
         url: "https://prestigehomeschoolacademy.com/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["online-application", "admissions-pipeline"],
@@ -117,7 +117,7 @@ export const prestigeHomeschoolAcademyOutreach: OutreachPlan = {
         impact: "A spot isn't held until a second message is paid, and you track which accepted families have paid yourself.",
         source: "Prestige Homeschool Academy 2026/2027 Registration Form",
         url: "https://form.jotform.com/260774644105154",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["enrollment-checklist", "enrollment-fees"],
@@ -131,7 +131,7 @@ export const prestigeHomeschoolAcademyOutreach: OutreachPlan = {
         impact: "Every month you send bills and check who has paid, and a family who misses one risks their child's spot.",
         source: "Prestige Frequently Asked ?",
         url: "https://prestigehomeschoolacademy.com/frequently-asked-%3F",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["parent-billing", "autopay", "card-and-ach"],
@@ -145,7 +145,7 @@ export const prestigeHomeschoolAcademyOutreach: OutreachPlan = {
         impact: "A Step Up family can't see their own share, and you match scholarship payments to each family by hand.",
         source: "Prestige Frequently Asked ?",
         url: "https://prestigehomeschoolacademy.com/frequently-asked-%3F",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["third-party-payer-billing"],

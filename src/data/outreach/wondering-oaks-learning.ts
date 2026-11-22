@@ -56,10 +56,10 @@ export const wonderingOaksLearningOutreach: OutreachPlan = {
   ],
   snapshot: {
     token: "5r3KO_M4yh3E_B28kzk5Fg",
-    preparedOn: "2026-11-22",
+    preparedOn: "2026-12-01",
     summary:
-      "We read all 11 pages of wonderingoakslearning.com on Nov 22, 2026, plus the registration form, the tuition sheet, the calendar and the 10-page health forms packet.",
-    pageSpeed: { mobileScore: 82, url: "https://www.wonderingoakslearning.com/", checkedOn: "2026-11-22" },
+      "We read all 11 pages of wonderingoakslearning.com on Dec 1, 2026, plus the registration form, the tuition sheet, the calendar and the 10-page health forms packet.",
+    pageSpeed: { mobileScore: 82, url: "https://www.wonderingoakslearning.com/", checkedOn: "2026-12-01" },
     toolStack: [
       { name: "Google Forms", usedFor: "Student registration", url: "https://www.wonderingoakslearning.com/registration" },
       {
@@ -81,7 +81,7 @@ export const wonderingOaksLearningOutreach: OutreachPlan = {
         impact: "A family can register and never hear back, because there's no way to reply to them unless they also email you.",
         source: "Wondering Oaks Student Registration Form",
         url: "https://forms.gle/EShfwCpT5F9nAkiN7",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["online-application", "admissions-pipeline"],
@@ -95,7 +95,7 @@ export const wonderingOaksLearningOutreach: OutreachPlan = {
         impact: "A family on the monthly plan can't tell whether they owe $4,125 or $4,500 for the year until they ask.",
         source: "Wondering Oaks Tuition",
         url: "https://www.wonderingoakslearning.com/tuition",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["tuition-rate-plans", "discounts"],
@@ -109,7 +109,7 @@ export const wonderingOaksLearningOutreach: OutreachPlan = {
         impact: "Each visit takes a few messages to set up, and a family can't see when you're free.",
         source: "Wondering Oaks homepage",
         url: "https://www.wonderingoakslearning.com/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["tour-self-booking"],
@@ -123,7 +123,7 @@ export const wonderingOaksLearningOutreach: OutreachPlan = {
         impact: "Each family prints, signs and returns ten pages, and you check every packet by hand before day one.",
         source: "Wondering Oaks Registration",
         url: "https://www.wonderingoakslearning.com/registration",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["enrollment-checklist", "enrollment-agreements", "enrollment-fees"],
@@ -137,7 +137,7 @@ export const wonderingOaksLearningOutreach: OutreachPlan = {
         impact: "Payments arrive in different apps with no invoice, so you match each one to a family by hand and families keep their own records.",
         source: "Wondering Oaks Tuition and Fees 2022–2023 (PDF)",
         url: "https://www.wonderingoakslearning.com/_files/ugd/fc27d2_535e943a70724c94b09f3eb821bef48f.pdf",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["parent-plan-choice", "parent-billing", "autopay", "card-and-ach"],
@@ -151,7 +151,7 @@ export const wonderingOaksLearningOutreach: OutreachPlan = {
         impact: "A family checking dates for this year can't tell whether Wondering Oaks is open or what it costs now.",
         source: "Wondering Oaks About",
         url: "https://www.wonderingoakslearning.com/about",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["calendar", "website-service"],

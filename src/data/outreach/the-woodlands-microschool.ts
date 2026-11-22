@@ -56,10 +56,10 @@ export const theWoodlandsMicroschoolOutreach: OutreachPlan = {
   ],
   snapshot: {
     token: "ThrKeWDSyIQAPTNgSbvS1A",
-    preparedOn: "2026-11-22",
+    preparedOn: "2026-12-01",
     summary:
-      "We read all 11 pages of thewoodlandsmicroschool.com on Nov 22, 2026, and the 38-page Student Handbook linked from the Calendar.",
-    pageSpeed: { mobileScore: 77, url: "https://thewoodlandsmicroschool.com/", checkedOn: "2026-11-22" },
+      "We read all 11 pages of thewoodlandsmicroschool.com on Dec 1, 2026, and the 38-page Student Handbook linked from the Calendar.",
+    pageSpeed: { mobileScore: 77, url: "https://thewoodlandsmicroschool.com/", checkedOn: "2026-12-01" },
     observations: [
       {
         area: "find",
@@ -68,7 +68,7 @@ export const theWoodlandsMicroschoolOutreach: OutreachPlan = {
         impact: "TEFA is the reason many families are looking right now, and the one button about it leaves them where they started.",
         source: "The Woodlands Microschool homepage",
         url: "https://thewoodlandsmicroschool.com/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["website-service"],
@@ -82,7 +82,7 @@ export const theWoodlandsMicroschoolOutreach: OutreachPlan = {
         impact: "Every family's first step waits on an email back and forth to find a time, during a four-hour teaching day.",
         source: "The Woodlands Microschool 3rd to 6th Gr and Jr High",
         url: "https://thewoodlandsmicroschool.com/3rd-to-6th-gr-and-jr-high",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["tour-self-booking"],
@@ -96,7 +96,7 @@ export const theWoodlandsMicroschoolOutreach: OutreachPlan = {
         impact: "After the tour, families wait for you to send the application, and you track who has it and who sent it back.",
         source: "The Woodlands Microschool Admissions",
         url: "https://thewoodlandsmicroschool.com/admissions",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["online-application", "admissions-pipeline"],
@@ -110,7 +110,7 @@ export const theWoodlandsMicroschoolOutreach: OutreachPlan = {
         impact: "New families sign policies that don't match today's four-hour day, and each signed page is paper you file by hand.",
         source: "The Woodlands Microschool Calendar (Student Handbook PDF)",
         url: "https://thewoodlandsmicroschool.com/calendar",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["enrollment-checklist", "enrollment-agreements", "enrollment-fees"],
@@ -124,7 +124,7 @@ export const theWoodlandsMicroschoolOutreach: OutreachPlan = {
         impact: "A TEFA family can't see their own share, and you match TEFA payments against each family by hand.",
         source: "Texas Education Freedom Accounts: Schools",
         url: "https://educationfreedom.texas.gov/schools/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["third-party-payer-billing"],
@@ -138,7 +138,7 @@ export const theWoodlandsMicroschoolOutreach: OutreachPlan = {
         impact: "Monthly payments for every family come in by hand, and families can't see what they've paid or what's next.",
         source: "The Woodlands Microschool High School",
         url: "https://thewoodlandsmicroschool.com/high-school",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["parent-plan-choice", "parent-billing", "autopay", "card-and-ach"],

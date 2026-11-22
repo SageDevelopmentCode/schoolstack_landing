@@ -63,9 +63,9 @@ export const homeworkHubOutreach: OutreachPlan = {
   ],
   snapshot: {
     token: "DO7MiMG1zTVz_7sMDNML1w",
-    preparedOn: "2026-11-22",
+    preparedOn: "2026-12-01",
     summary:
-      "We read 60 pages of homeworkhubtutoring.com on Nov 22, 2026, from HwH Academy and The Learning Pod to the registration forms and payment pages.",
+      "We read 60 pages of homeworkhubtutoring.com on Dec 1, 2026, from HwH Academy and The Learning Pod to the registration forms and payment pages.",
     toolStack: [
       { name: "PayTrace", usedFor: "Card on file and Make a Payment", url: "https://www.homeworkhubtutoring.com/copy-of-paytrace-gateway-2222222" },
       { name: "PayPal (online class store)", usedFor: "Class sign-up and payment", url: "https://www.homeworkhubtutoring.com/enroll-now-homework-hub" },
@@ -82,7 +82,7 @@ export const homeworkHubOutreach: OutreachPlan = {
         impact: "A family comparing schools has to find the page first, then call before they know the cost or can start applying.",
         source: "Homework Hub, HwH Academy",
         url: "https://www.homeworkhubtutoring.com/hwh-academy",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["website-service", "online-application", "admissions-pipeline"],
@@ -96,7 +96,7 @@ export const homeworkHubOutreach: OutreachPlan = {
         impact: "Each visit takes a round of calls or texts to find a time, and interested families wait on you to set it up.",
         source: "Homework Hub, HwH Academy",
         url: "https://www.homeworkhubtutoring.com/hwh-academy",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["tour-self-booking"],
@@ -110,7 +110,7 @@ export const homeworkHubOutreach: OutreachPlan = {
         impact: "Registration isn't complete until every form and the first payment are in, so you check each family's submissions one by one.",
         source: "Homework Hub, Student Registration Forms",
         url: "https://www.homeworkhubtutoring.com/our-registration-forms",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["enrollment-checklist", "enrollment-agreements", "enrollment-fees"],
@@ -124,7 +124,7 @@ export const homeworkHubOutreach: OutreachPlan = {
         impact: "Every schedule is typed a little differently, and you check each payment against it before the $10 late fee applies.",
         source: "The Learning Pod Membership Enrollment Agreement",
         url: "https://www.homeworkhubtutoring.com/learning-pod-membership-enrollment-agreement",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["parent-plan-choice", "parent-billing", "autopay"],
@@ -138,7 +138,7 @@ export const homeworkHubOutreach: OutreachPlan = {
         impact: "Payments land in several places, and staff match each one to a student from a text.",
         source: "Homework Hub, Pay Now",
         url: "https://www.homeworkhubtutoring.com/temp-pay-now",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["parent-billing", "card-and-ach"],
@@ -152,7 +152,7 @@ export const homeworkHubOutreach: OutreachPlan = {
         impact: "A parent reading on an iPhone has to wait until they're at a computer to sign up, and may not come back to finish.",
         source: "Homework Hub, Enroll Now",
         url: "https://www.homeworkhubtutoring.com/enroll-now-homework-hub",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["website-service", "class-billing"],
@@ -166,7 +166,7 @@ export const homeworkHubOutreach: OutreachPlan = {
         impact: "Families can't search the dates or add recesses to their own calendar, and every change means a new image.",
         source: "Homework Hub, The Learning Pod",
         url: "https://www.homeworkhubtutoring.com/learning-pods",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["calendar", "calendar-sync"],

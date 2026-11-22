@@ -58,9 +58,9 @@ export const paradiseEarthAcademyOutreach: OutreachPlan = {
   ],
   snapshot: {
     token: "J68y1Y38emxCMUQYr4gD9A",
-    preparedOn: "2026-11-22",
+    preparedOn: "2026-12-01",
     summary:
-      "We read all 21 pages of paradiseearthacademy.com on Nov 22, 2026, from Enroll Now and Rules & FAQs to every staff page, plus the forms they link to.",
+      "We read all 21 pages of paradiseearthacademy.com on Dec 1, 2026, from Enroll Now and Rules & FAQs to every staff page, plus the forms they link to.",
     toolStack: [
       { name: "School Cues", usedFor: "Gilbert admission inquiry and quarterly tuition", url: "https://paradiseearthacademy.com/enrollment/" },
       { name: "Omella", usedFor: "New-campus waitlists, Nature Day registration, school tee orders", url: "https://paradiseearthacademy.com/enrollment/" },
@@ -73,7 +73,7 @@ export const paradiseEarthAcademyOutreach: OutreachPlan = {
         impact: "You keep four lists in two systems, and new-campus families are moved by hand once enrollment opens.",
         source: "Paradise Earth Academy, Enroll Now",
         url: "https://paradiseearthacademy.com/enrollment/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["online-application", "admissions-pipeline", "multi-location"],
@@ -87,7 +87,7 @@ export const paradiseEarthAcademyOutreach: OutreachPlan = {
         impact: "Interested families wait to hear back before they can see the school, and each tour takes a round of messages to set.",
         source: "Paradise Earth Academy, Rules & FAQs",
         url: "https://paradiseearthacademy.com/rules-faqs/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["tour-self-booking"],
@@ -101,7 +101,7 @@ export const paradiseEarthAcademyOutreach: OutreachPlan = {
         impact: "A family can't see what ESA covered and what they still owe, and you reconcile ClassWallet payments against each account by hand.",
         source: "Paradise Earth Academy, Rules & FAQs",
         url: "https://paradiseearthacademy.com/rules-faqs/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["third-party-payer-billing", "parent-billing"],
@@ -115,7 +115,7 @@ export const paradiseEarthAcademyOutreach: OutreachPlan = {
         impact: "Families pay for one school year in several places, and you match each extra to the right student.",
         source: "Paradise Earth Academy, Programs",
         url: "https://paradiseearthacademy.com/classrooms/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["class-billing", "parent-billing"],
@@ -129,7 +129,7 @@ export const paradiseEarthAcademyOutreach: OutreachPlan = {
         impact: "Each week's plan sits in a parent's inbox, and it's hard to look back at what a child missed or still has to finish.",
         source: "Paradise Earth Academy, Rules & FAQs",
         url: "https://paradiseearthacademy.com/rules-faqs/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["learning-plans", "newsletters"],
@@ -143,7 +143,7 @@ export const paradiseEarthAcademyOutreach: OutreachPlan = {
         impact: "A parent who emails a teacher from the site gets a bounce, and may think the message went through.",
         source: "Paradise Earth Academy, Mrs. Joanna White",
         url: "https://paradiseearthacademy.com/teacher-white/",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["website-service"],

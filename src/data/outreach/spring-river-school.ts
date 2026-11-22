@@ -57,9 +57,9 @@ export const springRiverSchoolOutreach: OutreachPlan = {
   ],
   snapshot: {
     token: "dguhHruvW7Mk5lHzy8jW-Q",
-    preparedOn: "2026-11-22",
+    preparedOn: "2026-12-01",
     summary:
-      "We read 60 pages of springriverschool.org on Nov 22, 2026, from Admissions and Tuition & Fees to the camp, enrichment and Open House pages.",
+      "We read 60 pages of springriverschool.org on Dec 1, 2026, from Admissions and Tuition & Fees to the camp, enrichment and Open House pages.",
     toolStack: [
       { name: "FACTS", usedFor: "Inquiry, application, fees and tuition payments", url: "https://www.springriverschool.org/copy-of-admissions-process" },
       { name: "Wix Bookings", usedFor: "School tour booking", url: "https://www.springriverschool.org/booking-calendar/school-tour" },
@@ -75,7 +75,7 @@ export const springRiverSchoolOutreach: OutreachPlan = {
         impact: "A parent on a phone can miss a column of prices, and a search for the 2-Day price won't find it.",
         source: "Spring River 2026-27 K-12 Tuition & Fees",
         url: "https://www.springriverschool.org/tuitionandfees2026-27",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "in_demo",
           capabilities: ["website-service"],
@@ -89,7 +89,7 @@ export const springRiverSchoolOutreach: OutreachPlan = {
         impact: "Families who could pick a time themselves email or call instead, and wait for a reply.",
         source: "Spring River Admissions",
         url: "https://www.springriverschool.org/copy-of-admissions-process",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["tour-self-booking", "admissions-pipeline"],
@@ -103,7 +103,7 @@ export const springRiverSchoolOutreach: OutreachPlan = {
         impact: "A family without a Google account stops at the sign-in, and you work out each family's price and discount by hand.",
         source: "Spring River Summer Camp 2026",
         url: "https://www.springriverschool.org/summercamp2026",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["class-billing", "discounts", "card-and-ach"],
@@ -117,7 +117,7 @@ export const springRiverSchoolOutreach: OutreachPlan = {
         impact: "Payments for one class sit in two systems plus Step Up, and families outside the school wait on an invoice before their child's spot is confirmed.",
         source: "Spring River Middle School Enrichment",
         url: "https://www.springriverschool.org/enrichment",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["class-billing", "parent-billing", "card-and-ach"],
@@ -131,7 +131,7 @@ export const springRiverSchoolOutreach: OutreachPlan = {
         impact: "A Step Up family can't see their own share, and you match scholarship payments to each family's plan by hand.",
         source: "Spring River 2026-27 K-12 Tuition & Fees",
         url: "https://www.springriverschool.org/tuitionandfees2026-27",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["third-party-payer-billing"],
@@ -145,7 +145,7 @@ export const springRiverSchoolOutreach: OutreachPlan = {
         impact: "A family planning for next year can't tell when the next Open House is, or whether winter camp runs this December.",
         source: "Spring River Open House Registration",
         url: "https://www.springriverschool.org/open-house-registration",
-        readOn: "2026-11-22",
+        readOn: "2026-12-01",
         fix: {
           label: "set_up",
           capabilities: ["website-service", "programs-capacity"],
