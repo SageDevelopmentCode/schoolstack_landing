@@ -31,7 +31,7 @@ export default function GetStartedMobileBookBar({ step }: { step: GetStartedDemo
     return () => observer.disconnect();
   }, []);
 
-  const hidden = formInView;
+  const hidden = formInView || step === 2;
   const copy = step > 0 ? COPY.inProgress : COPY.start;
 
   return (
