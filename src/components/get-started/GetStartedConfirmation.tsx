@@ -68,7 +68,7 @@ export default function GetStartedConfirmation({
             {roleLabel ? ` — ${roleLabel}.` : "."}
           </p>
           <p className="mx-auto mt-2 max-w-[44ch] text-[15px] leading-relaxed text-[var(--sf-soft)]">
-            We sent a confirmation to the email you provided.
+            We sent a confirmation and calendar invite to your email. We&apos;ll email your meeting link 24 hours before the call.
           </p>
         </div>
 
@@ -148,7 +148,7 @@ export default function GetStartedConfirmation({
         className="mx-auto mb-4 max-w-[44ch] text-[14px] leading-relaxed"
         style={{ color: theme.muted, fontFamily: theme.fontBody }}
       >
-        We sent a confirmation to the email you provided.
+        We sent a confirmation and calendar invite to your email. We&apos;ll email your meeting link 24 hours before the call.
       </p>
 
       {booking && visitorWhen ? (

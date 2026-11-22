@@ -31,6 +31,23 @@ export const MASCOT_CLOVER_TIMECLOCK_CAROUSEL = {
     {
       id: "hook",
       fileName: "01-monday-worked-tuesday-also-worked.png",
+      adCopy: {
+        label: "Creative timesheets",
+        primaryText: "Clover's timesheet, submitted with confidence: \"a lot.\" \"8ish (vibes).\" \"see attached\" (nothing was attached). 🐝\n\nSwipe for staff hours that add themselves up →\n\n#microschool #schooladmin #payroll",
+        headline: "Clover's timesheet: \"8ish (vibes)\"",
+      },
+      adCopyVariants: [
+        {
+          label: "Which one",
+          primaryText: "Which timesheet entry have you received? \"The usual\"? \"Ask the other bee\"? 👇 Swipe for Clover's glow-up →\n\n#microschool #schooladmin",
+          headline: "\"The usual\" is not a number",
+        },
+        {
+          label: "Payroll day",
+          primaryText: "Payroll day shouldn't start with decoding \"a lot.\" 🧮 Swipe to see staff clock in, clock out and get weekly totals →\n\n#microschool #payroll #schoolfounder",
+          headline: "Decoding \"a lot\" on payroll day",
+        },
+      ],
       render: () => (
         <MascotHookSlide
           kicker="Meet Clover, who logs staff hours"
@@ -77,7 +94,6 @@ export const MASCOT_CLOVER_TIMECLOCK_CAROUSEL = {
           name="clover"
           rows={[
             { label: "“a lot”", aside: "technically true", view: "laughing" },
-            { label: "“the usual”", aside: "nobody knows the usual", view: "wink" },
             { label: "“8ish (vibes)”", aside: "the vibes were strong", view: "thinking" },
             { label: "“see attached”", aside: "nothing was attached", view: "oops" },
             { label: "“ask the other bee”", aside: "there is no other bee", view: "confused" },

@@ -32,7 +32,6 @@ import {
 // PAIN_COPY / ADMIN_COPY in src/components/home/home-copy.ts. Screens are the real Garden demos
 // branded "Your School". Signed anonymously: no names, no quotes.
 
-const AUDIENCE = "for microschool founders";
 const noOffer = (node: ReactNode) => <AdOfferProvider show={false}>{node}</AdOfferProvider>;
 
 function Footer({ tone = "light" }: { tone?: "light" | "dark" }) {
@@ -52,88 +51,208 @@ export const ADS_FOUNDER_NOTES_CAROUSEL = {
       fileName: "ad-g01-dear-microschool-founder.png",
       render: () => noOffer(<DearFounderAd />),
       adCopy: {
+        label: "A letter",
         primaryText:
-          "Dear microschool founder: send me your school's website and we'll build you a private MudKitchen preview with your logo, colours and programs. Free, no call needed, in your inbox within 2 business days.",
-        headline: "A letter for microschool founders",
-        description: "Free, private, no obligation.",
+          "Dear founder: send me your school's website and I'll build a private MudKitchen preview with your logo. Free, no call. 💌",
+        headline: "A short letter about your school",
+        description: "Free and private.",
       },
+      adCopyVariants: [
+        {
+          label: "P.S.",
+          primaryText: "Dear founder, I'll keep it short: send me your website and get a free, private preview of your school. 💌 P.S. No call.",
+          headline: "Short letter: send your website",
+          description: "Free and private.",
+        },
+        {
+          label: "What you'll get",
+          primaryText: "Dear founder, here's what you'll get in your free MudKitchen preview: 💌\n✅ Your website, refreshed\n✅ A parent app for families\n✅ A teacher portal\n✅ An admin portal for you\nIn your inbox within 2 business days. Just send your website.",
+          headline: "Dear founder: here's what you get",
+          description: "Free and private.",
+        },
+      ],
     },
     {
       id: "text-thread",
       fileName: "ad-g02-a-text-from-our-founder.png",
       render: () => noOffer(<TextThreadAd />),
       adCopy: {
+        label: "\"Wait, it's free?\"",
         primaryText:
-          "Microschool founders, a quick text from ours: send us your school's website and we'll build your free MudKitchen preview. Your logo, colours and programs, ready within 2 business days.",
+          "A quick text from our founder: send your school's website and get a free MudKitchen preview with your logo. 💬",
         headline: "Wait, it's free? Yes.",
-        description: "Your free preview, in 2 business days.",
+        description: "Free in 2 business days.",
       },
+      adCopyVariants: [
+        {
+          label: "The thread",
+          primaryText: "You: what's the catch?\nUs: no catch. Send your website.\nYou: and I get…?\nUs: a free MudKitchen preview of your school, with your logo, in 2 business days. 💬",
+          headline: "\"What's the catch?\" None.",
+          description: "Free in 2 business days.",
+        },
+        {
+          label: "Short",
+          primaryText: "Text-length version: send your website, get a free MudKitchen preview of your school. 📱 That's it.",
+          headline: "Send website. Get preview. Done.",
+          description: "Free in 2 business days.",
+        },
+      ],
     },
     {
       id: "inbox",
       fileName: "ad-g03-check-your-inbox.png",
       render: () => noOffer(<InboxAd />),
       adCopy: {
+        label: "In your inbox",
         primaryText:
-          "Microschool founders: picture this in your inbox. Your website, parent app, teacher portal and admin portal, built in MudKitchen with your logo and colours. Send your website to get it, free.",
+          "Picture this in your inbox: your school, built in MudKitchen with your logo and colours. 📬 Send your website to get it, free.",
         headline: "Your school, in MudKitchen",
-        description: "A private link, within 2 business days.",
+        description: "Free in 2 business days.",
       },
+      adCopyVariants: [
+        {
+          label: "Subject line",
+          primaryText: "Subject: Your school, in MudKitchen 📬\nA free, private preview with your logo and colours. Send your website to get it.",
+          headline: "Subject: your school, in MudKitchen",
+          description: "Free in 2 business days.",
+        },
+        {
+          label: "Inbox zero",
+          primaryText: "One email worth keeping: a free MudKitchen preview of your school. 📬 Send your website. It arrives in 2 business days.",
+          headline: "One email worth keeping",
+          description: "Free and private.",
+        },
+      ],
     },
     {
       id: "ps-free",
       fileName: "ad-g04-ps-its-free.png",
       render: () => noOffer(<PsFreeAd />),
       adCopy: {
+        label: "P.S. It's free",
         primaryText:
-          "Microschool owners: we'll set up a private MudKitchen admin portal with your school's details so you can click around before you decide. P.S. It's free, and there's no obligation.",
+          "Your admin portal, set up with your school's details so you can click around first. P.S. It's free. No obligation.",
         headline: "P.S. It's free.",
-        description: "Free, private, within 2 business days.",
+        description: "Free in 2 business days.",
       },
+      adCopyVariants: [
+        {
+          label: "Fine print",
+          primaryText: "The fine print on our free preview: 🔍 it's free, private, and there's no call. That's all of it. Send your website.",
+          headline: "The fine print: there isn't any",
+          description: "Free in 2 business days.",
+        },
+        {
+          label: "Short",
+          primaryText: "Click around before you decide. 🖱️ Get a free MudKitchen admin portal preview set up with your school's details. Send your website.",
+          headline: "Click first. Decide later.",
+          description: "No obligation.",
+        },
+      ],
     },
     {
       id: "monday-list",
       fileName: "ad-g05-a-founders-monday.png",
       render: () => noOffer(<MondayListAd />),
       adCopy: {
+        label: "Cross it off",
         primaryText:
-          "Running a microschool? Enrollment lives in a form builder, parent updates in texts and email, student details in spreadsheets. See yours in one place: send your website for a free MudKitchen preview.",
+          "Running a microschool? Forms in one app, parent texts in another, records in a spreadsheet. See it in one place: free preview.",
         headline: "Cross it all off. See it in one place.",
-        description: "Free preview with your school's name.",
+        description: "Free, with your logo.",
       },
+      adCopyVariants: [
+        {
+          label: "Monday list",
+          primaryText: "Monday to-do for a microschool founder, and one free fix: ✏️\n☐ Check the form builder\n☐ Answer parent texts\n☐ Update the spreadsheet\n☑️ Send your website for a free MudKitchen preview of it all in one place",
+          headline: "One item that clears the rest",
+          description: "Free, with your logo.",
+        },
+        {
+          label: "Short",
+          primaryText: "Forms, texts, spreadsheets: three places. Your free MudKitchen preview: one. 📋 Send your website and see it with your school's name.",
+          headline: "Three places into one",
+          description: "Free in 2 business days.",
+        },
+      ],
     },
     {
       id: "admin-grows",
       fileName: "ad-g06-the-admin-grows-faster.png",
       render: () => noOffer(<AdminGrowsAd />),
       adCopy: {
+        label: "The admin grows",
         primaryText:
-          "Microschool founders: as enrollment grows, the admin grows faster. Forms, reminders, onboarding, records and follow-ups. See them in one MudKitchen workspace, set up for your school. Free preview.",
+          "As enrollment grows, the admin grows faster. 📈 See forms, reminders and records in one MudKitchen workspace. Free preview.",
         headline: "The admin grows faster",
-        description: "See it in one place, free.",
+        description: "See it all, free.",
       },
+      adCopyVariants: [
+        {
+          label: "By the numbers",
+          primaryText: "More students means more of everything, and a free MudKitchen preview shows it in one place: 📈\nMore forms\nMore reminders\nMore onboarding\nMore follow-ups\nOne workspace, set up for your school. Send your website.",
+          headline: "More students, one workspace",
+          description: "See it all, free.",
+        },
+        {
+          label: "Before it grows",
+          primaryText: "Set up one place before enrollment grows, not after. 🌱 Get a free MudKitchen preview of your school. Send your website.",
+          headline: "Set it up before you grow",
+          description: "Free and private.",
+        },
+      ],
     },
     {
       id: "founder-to-founder",
       fileName: "ad-g07-from-one-founder-to-another.png",
       render: () => noOffer(<FounderToFounderAd />),
       adCopy: {
+        label: "Founder to founder",
         primaryText:
-          "From one founder to another: see MudKitchen with your school's name on it before you decide anything. Send your website and we'll build your free, private preview within 2 business days.",
+          "From one founder to another: see MudKitchen with your school's name on it before you decide. Free, private preview. 🤝",
         headline: "See it before you decide",
-        description: "Website, parent app, teacher and admin portals.",
+        description: "Website, apps, portals.",
       },
+      adCopyVariants: [
+        {
+          label: "We get it",
+          primaryText: "Founder to founder: you shouldn't have to commit before you see it. 🤝 So we'll build a free preview of your school first.",
+          headline: "See it first. Decide later.",
+          description: "Website, apps, portals.",
+        },
+        {
+          label: "Short",
+          primaryText: "One founder's tip for another: see the software with your school's name on it first. 🤝 Free preview. Send your website.",
+          headline: "Founder tip: see it with your name",
+          description: "Free and private.",
+        },
+      ],
     },
     {
       id: "your-name-here",
       fileName: "ad-g08-your-schools-name-goes-here.png",
       render: () => noOffer(<YourNameHereAd />),
       adCopy: {
+        label: "Your name here",
         primaryText:
-          "Microschool founders: your school's name goes on all of it. Your website, parent app, teacher portal and admin portal, built as a free private MudKitchen preview. Just send your website.",
+          "Your school's name goes on all of it: website, parent app, teacher and admin portals. ✍️ Free preview. Send your website.",
         headline: "Your school's name goes here",
-        description: "Free, private, no obligation.",
+        description: "Free and private.",
       },
+      adCopyVariants: [
+        {
+          label: "Name everywhere",
+          primaryText: "Your school's name, in a free MudKitchen preview: ✍️\nOn the website\nOn the parent app\nOn the teacher portal\nOn the admin portal\nNot ours. Yours. Send your website.",
+          headline: "Your name on every screen",
+          description: "Free and private.",
+        },
+        {
+          label: "Short",
+          primaryText: "[Your school's name here] 👈 That's where it goes, on every screen of your free MudKitchen preview. Send your website and we'll fill it in.",
+          headline: "[Your school's name here]",
+          description: "Free in 2 business days.",
+        },
+      ],
     },
   ] satisfies MarketingSlide[],
 } satisfies MarketingCarousel;
@@ -142,11 +261,11 @@ export const ADS_FOUNDER_NOTES_CAROUSEL = {
 
 function DearFounderAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.cream} pattern="grid">
+    <AdFrame background={G.cream} pattern="grid">
       <AdCopy
         title={
           <>
-            A letter for <Accent>microschool founders.</Accent>
+            A short letter <Accent>about your school.</Accent>
           </>
         }
         size={80}
@@ -158,10 +277,10 @@ function DearFounderAd() {
         <Pin left={-6} top={60} z={4}>
           <NotebookPaper width={770} rotate={-2} lineGap={68} padding="44px 44px 38px 116px">
             <LetterLine size={50} color={G.clayDeep}>
-              Dear microschool founder,
+              Dear founder,
             </LetterLine>
-            <LetterLine size={43}>Send me your school&rsquo;s website. We&rsquo;ll build you a private MudKitchen preview: your logo, your colours, your programs.</LetterLine>
-            <LetterLine size={43}>Free. No call needed. In your inbox within 2 business days.</LetterLine>
+            <LetterLine size={44}>Send me your school&rsquo;s website.</LetterLine>
+            <LetterLine size={44}>I&rsquo;ll build a free preview with your logo.</LetterLine>
             <LetterLine size={38} color={G.clayDeep} style={{ textAlign: "right", marginTop: 4 }}>
               {FOUNDER_SIGNATURE}
             </LetterLine>
@@ -178,7 +297,7 @@ function DearFounderAd() {
 
 function TextThreadAd() {
   return (
-    <AdFrame audience={AUDIENCE} background="#E3EDFB" tag={<FreeTag text="Free · private" />}>
+    <AdFrame background="#E3EDFB" tag={<FreeTag text="Free · private" />}>
       <AdCopy
         title={
           <>
@@ -196,9 +315,9 @@ function TextThreadAd() {
             width={640}
             messages={[
               { from: "founder", text: "Send me your school’s website 👋" },
-              { from: "founder", text: "I’ll build you a private preview: your logo, colours and programs." },
+              { from: "founder", text: "I’ll build you a private preview with your logo." },
               { from: "you", text: "wait, is it free?" },
-              { from: "founder", text: "Free. In your inbox within 2 business days." },
+              { from: "founder", text: "Free. 2 business days." },
             ]}
           />
         </Pin>
@@ -213,11 +332,11 @@ function TextThreadAd() {
 
 function InboxAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.peach}>
+    <AdFrame background={G.peach}>
       <AdCopy
         title={
           <>
-            Check your inbox, <Accent>microschool founder.</Accent>
+            Check your inbox. <Accent>Your school&rsquo;s in it.</Accent>
           </>
         }
         size={80}
@@ -227,7 +346,7 @@ function InboxAd() {
           width={900}
           style={{ transform: "rotate(-1deg)" }}
           subject="Your school, in MudKitchen 🎉"
-          body="Here’s your private preview: your website, parent app, teacher portal and admin portal, with your logo and colours."
+          body="Here’s your private preview, with your logo and colours."
           attachment={
             <div style={{ display: "flex", justifyContent: "center" }}>
               <YourAdminWindow scale={0.66} />
@@ -245,7 +364,7 @@ function InboxAd() {
 
 function PsFreeAd() {
   return (
-    <AdFrame audience={AUDIENCE} background="#EEF5E9">
+    <AdFrame background="#EEF5E9">
       <AdCopy
         title={
           <>
@@ -261,7 +380,7 @@ function PsFreeAd() {
         <Pin right={130} top={0} z={6}>
           <StickyNote width={330} rotate={6} color={G.butter} style={{ padding: "34px 26px 26px" }}>
             <Hand size={40} color={G.ink} rotate={0} style={{ lineHeight: 1.2 }}>
-              P.S. free, private, no obligation.
+              no obligation.
             </Hand>
             <Hand size={30} color={G.clayDeep} rotate={0} style={{ marginTop: 12 }}>
               {FOUNDER_SIGNATURE}
@@ -277,15 +396,15 @@ function PsFreeAd() {
 
 // ---------------------------------------------------------------- G5 Monday list
 
-const MONDAY = ["Check the form builder", "Answer parent texts", "Answer parent emails", "Update the spreadsheet", "Remember everything else"];
+const MONDAY = ["Check the form builder", "Answer parent texts", "Update the spreadsheet", "Remember everything else"];
 
 function MondayListAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.cream} pattern="grid">
+    <AdFrame background={G.cream} pattern="grid">
       <AdCopy
         title={
           <>
-            A microschool founder&rsquo;s <Accent>Monday list.</Accent>
+            A founder&rsquo;s <Accent>Monday list.</Accent>
           </>
         }
         size={82}
@@ -327,14 +446,13 @@ const ADMIN_PILE: Array<{ label: string; bg: string; left: number; top: number; 
 
 function AdminGrowsAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.sky}>
+    <AdFrame background={G.sky}>
       <AdCopy
         title={
           <>
             As enrollment grows, <Accent>the admin grows faster.</Accent>
           </>
         }
-        hand="from one founder to another."
         size={80}
       />
       <Scene>
@@ -348,7 +466,7 @@ function AdminGrowsAd() {
         <Pin right={-20} top={60} z={5}>
           <StickyNote width={330} rotate={4} color="#FFFFFF" style={{ padding: "30px 26px 24px" }}>
             <Hand size={38} color={G.forest} rotate={0} style={{ lineHeight: 1.2 }}>
-              see them all in one place, set up for your school →
+              all in one place →
             </Hand>
           </StickyNote>
         </Pin>
@@ -365,12 +483,12 @@ function AdminGrowsAd() {
 
 function FounderToFounderAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.forest} tone="dark">
+    <AdFrame background={G.forest} tone="dark">
       <AdCopy
         tone="dark"
         title={
           <>
-            From one founder to another: <Accent color={G.butter}>see it before you decide.</Accent>
+            Founder to founder: <Accent color={G.butter}>see it before you decide.</Accent>
           </>
         }
         size={76}
@@ -406,7 +524,7 @@ function FounderToFounderAd() {
 
 function YourNameHereAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.cream} tag={<FreeTag text="Free · private" />}>
+    <AdFrame background={G.cream} tag={<FreeTag text="Free · private" />}>
       <AdCopy
         title={
           <>
@@ -427,7 +545,7 @@ function YourNameHereAd() {
         <Pin right={-10} bottom={0} z={6}>
           <InkCard bg={G.butter} rotate={3} width={430} style={{ padding: "24px 28px" }}>
             <Hand size={34} color={G.ink} rotate={0} style={{ lineHeight: 1.25 }}>
-              Send me your website and I&rsquo;ll put your name on all of it.
+              Send your website. I&rsquo;ll do the rest.
             </Hand>
             <Hand size={28} color={G.clayDeep} rotate={0} style={{ marginTop: 10, textAlign: "right" }}>
               {FOUNDER_SIGNATURE}

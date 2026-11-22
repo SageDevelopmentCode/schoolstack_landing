@@ -37,66 +37,156 @@ export const ADS_PAIN_PROOF_CAROUSEL = {
       fileName: "ad-d1-dig-six-places.png",
       render: () => <SixPlacesAd />,
       adCopy: {
+        label: "Scattered tools",
         primaryText:
-          "Running a microschool? Enrollment in a form builder. Tuition in Venmo. Updates in a group text. Student details in a spreadsheet. MudKitchen pulls them into one shared system for your microschool. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Running a microschool? Enrollment in a form builder. Tuition in Venmo. Updates in a group text. 🗂️ MudKitchen makes it one place. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Run your school from one place",
         description: "Built for microschools.",
       },
+      adCopyVariants: [
+        {
+          label: "Where it lives",
+          primaryText: "Where things live at most microschools: 🗂️\nEnrollment: a form builder\nTuition: Venmo\nUpdates: a group text\nStudent details: a spreadsheet\nWith MudKitchen: one shared system. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Four places into one",
+          description: "Built for microschools.",
+        },
+        {
+          label: "Short",
+          primaryText: "Four apps that don't talk to each other, or one that does. 🔗 MudKitchen runs your microschool from one place. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Apps that actually talk to each other",
+          description: "Built for microschools.",
+        },
+      ],
     },
     {
       id: "sage-field",
       fileName: "ad-d2-sage-field-story.png",
       render: () => <SageFieldAd />,
       adCopy: {
+        label: "Sage Field story",
         primaryText:
-          "Microschool founders: Sage Field went from 0 to 35 students in under 3 months, with their website, enrollment, tuition and family communication all running on MudKitchen. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Sage Field went from 0 to 35 students in under 3 months, all running on MudKitchen. 📈 Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "0 → 35 students in under 3 months",
-        description: "Read how Sage Field launched.",
+        description: "How Sage Field launched.",
       },
+      adCopyVariants: [
+        {
+          label: "How they did it",
+          primaryText: "How Sage Field went from 0 to 35 students in under 3 months: 📈\n✅ Website on MudKitchen\n✅ Enrollment on MudKitchen\n✅ Tuition on MudKitchen\n✅ Family communication on MudKitchen\nBook a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "0 to 35, on one system",
+          description: "How Sage Field launched.",
+        },
+        {
+          label: "Short",
+          primaryText: "35 students. Under 3 months. One system. 📈 That's Sage Field on MudKitchen. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "35 students. Under 3 months.",
+          description: "How Sage Field launched.",
+        },
+      ],
     },
     {
       id: "one-screen",
       fileName: "ad-d3-dig-one-screen.png",
       render: () => <OneScreenAd />,
       adCopy: {
+        label: "One screen",
         primaryText:
-          "Microschool directors: applications, tuition and messages at a glance. MudKitchen gives you one workspace to run your microschool. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Applications, tuition and messages at a glance. 👀 One workspace to run your microschool. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Your whole school on one screen",
-        description: "The admin portal for microschools.",
+        description: "Your admin portal.",
       },
+      adCopyVariants: [
+        {
+          label: "At a glance",
+          primaryText: "Your microschool at a glance, on one MudKitchen screen: 👀\n✅ New applications\n✅ Tuition status\n✅ Parent messages\nBook a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Applications, tuition, messages: 1 view",
+          description: "Your admin portal.",
+        },
+        {
+          label: "Short",
+          primaryText: "Open one screen. Know how your school is doing. 🖥️ Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "One screen. Whole school.",
+          description: "Your admin portal.",
+        },
+      ],
     },
     {
       id: "families-one-app",
       fileName: "ad-d4-nutmeg-families.png",
       render: () => <FamiliesAd />,
       adCopy: {
+        label: "One app for families",
         primaryText:
-          "School owners: families see every bill, sign forms and get updates in one place, and tuition gets paid on autopay. Fewer \"did you get my check?\" texts. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Families see every bill, sign forms and get updates in one place. Fewer \"did you get my check?\" texts. 📵 Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Families pay, sign and stay in the loop",
-        description: "A parent portal with your school's name on it.",
+        description: "Your parent portal.",
       },
+      adCopyVariants: [
+        {
+          label: "Texts you won't get",
+          primaryText: "Texts you'll stop getting with MudKitchen: 📵\n\"Did you get my check?\"\n\"Where's the form?\"\n\"What time is pickup Friday?\"\nBook a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "\"Did you get my check?\" Retired.",
+          description: "Your parent portal.",
+        },
+        {
+          label: "Short",
+          primaryText: "Autopay on. Forms signed. Families in the loop. ✅ All in one parent app with your school's name. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Autopay on. Forms signed.",
+          description: "Your parent portal.",
+        },
+      ],
     },
     {
       id: "founder-led",
       fileName: "ad-d5-terra-founder-led.png",
       render: () => <FounderLedAd />,
       adCopy: {
+        label: "Founder-led",
         primaryText:
-          "MudKitchen is built for founder-led microschools: a branded website, enrollment, a parent portal, tuition and admin tools in one plan, with guided setup. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
-        headline: "Built for founder-led microschools",
+          "Built for microschools, not districts: 🌱 website, enrollment, parent portal and tuition in one plan, with guided setup. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+        headline: "Built for microschools",
         description: "One plan. Guided setup.",
       },
+      adCopyVariants: [
+        {
+          label: "One plan",
+          primaryText: "One plan for microschools: 🌱\n✅ A branded website\n✅ Enrollment\n✅ A parent portal\n✅ Tuition\nWith guided setup. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "One plan. Everything. Guided setup.",
+          description: "One plan. Guided setup.",
+        },
+        {
+          label: "Short",
+          primaryText: "Not built for districts. Built for founders who also teach. 🌱 Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Built for founders who also teach",
+          description: "One plan. Guided setup.",
+        },
+      ],
     },
     {
       id: "duct-tape",
       fileName: "ad-d6-duct-tape-stack.png",
       render: () => <DuctTapeAd />,
       adCopy: {
+        label: "Duct-taped stack",
         primaryText:
-          "Six tools, six logins, one tired director. Or: MudKitchen. Website, enrollment, tuition, messages, attendance and staff hours in one place. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Six tools, six logins, one tired director. 🔐 Or one MudKitchen login for all of it. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Retire the duct-taped stack",
-        description: "Everything your microschool needs, in one place.",
+        description: "Your school, one place.",
       },
+      adCopyVariants: [
+        {
+          label: "Login count",
+          primaryText: "Count your school's logins. 🔐 Website, enrollment, tuition, messages, attendance, staff hours. MudKitchen makes it one. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Six logins → one",
+          description: "Your school, one place.",
+        },
+        {
+          label: "Retire it",
+          primaryText: "The duct-taped stack, retired: 🧰\n❌ Form builder\n❌ Venmo screenshots\n❌ Group texts\n❌ Timesheet spreadsheet\n✅ MudKitchen\nBook a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Put the duct tape away",
+          description: "Your school, one place.",
+        },
+      ],
     },
   ] satisfies MarketingSlide[],
 } satisfies MarketingCarousel;
@@ -239,7 +329,7 @@ function FamiliesAd() {
 
 // ---------------------------------------------------------------- D5
 
-const INCLUDED = PRICING_COPY.features.slice(0, 5);
+const INCLUDED = PRICING_COPY.features.slice(0, 4);
 
 function FounderLedAd() {
   return (
@@ -247,7 +337,7 @@ function FounderLedAd() {
       <AdCopy
         title={
           <>
-            Built for founder-led microschools. <Accent>Not shrunk-down district software.</Accent>
+            Built for microschools. <Accent>Not shrunk-down district software.</Accent>
           </>
         }
         size={76}
@@ -285,8 +375,6 @@ const STACK: Array<{ job: string; tool: string }> = [
   { job: "Enrollment", tool: "Google Forms" },
   { job: "Tuition", tool: "Venmo + spreadsheet" },
   { job: "Parent updates", tool: "Group text" },
-  { job: "Attendance", tool: "Clipboard" },
-  { job: "Staff hours", tool: "Honor system" },
 ];
 
 function DuctTapeAd() {

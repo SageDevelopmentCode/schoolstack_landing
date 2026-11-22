@@ -25,7 +25,6 @@ import { Annotation, FormHeader, LetterLine, NotebookPaper, PaperForm, Stamp, St
 // date means editing text, not re-exporting. No "% off" or price language: the preview is free.
 // Same guardrails as Sets F–H (no gift card, no customer names, quotes or stats, "Your School" only).
 
-const AUDIENCE = "for microschool founders";
 const noOffer = (node: ReactNode) => <AdOfferProvider show={false}>{node}</AdOfferProvider>;
 
 function Footer({ tone = "light" }: { tone?: "light" | "dark" }) {
@@ -47,132 +46,312 @@ export const ADS_PREVIEW_SEASONAL_CAROUSEL = {
       fileName: "ad-k01-thanksgiving-thankful-for-one-login.png",
       render: () => noOffer(<GratefulListAd />),
       adCopy: {
+        label: "One login",
         primaryText:
-          "Happy Thanksgiving, microschool founders. 🧡 This year, be thankful for one login: send us your website and we'll build a free preview of your admin portal, teacher portal and parent app.",
+          "Happy Thanksgiving. 🧡 This year, be thankful for one login. Send your website and we'll build a free preview of your school.",
         headline: "This year, be thankful for one login",
-        description: "Free, private, within 2 business days.",
+        description: "Free in 2 business days.",
       },
+      adCopyVariants: [
+        {
+          label: "Gratitude list",
+          primaryText: "Grateful this year for teachers, families and (soon) one login. 🧡 Send your website for a free MudKitchen preview.",
+          headline: "Grateful: teachers, families, one login",
+          description: "Free in 2 business days.",
+        },
+        {
+          label: "Short",
+          primaryText: "Thankful for fewer logins this year? 🦃 Send your website and get a free MudKitchen preview of your school, all in one place.",
+          headline: "Thankful for fewer logins",
+          description: "Free. No call needed.",
+        },
+      ],
     },
     {
       id: "doorbuster",
       fileName: "ad-k02-black-friday-doorbuster.png",
       render: () => noOffer(<DoorbusterAd />),
       adCopy: {
+        label: "Doorbuster",
         primaryText:
-          "Black Friday doorbuster for microschool founders: a free, private MudKitchen preview of your school. Admin, teacher and parent portals with your logo. No line at 5am, just send your website.",
+          "Black Friday doorbuster: a free, private MudKitchen preview of your school, with your logo. 🛍️ No 5am line. Send your website.",
         headline: "The only doorbuster that's free",
-        description: "One per school. No call needed.",
+        description: "One per school. No call.",
       },
+      adCopyVariants: [
+        {
+          label: "Doors open",
+          primaryText: "Doors open whenever you are. 🚪 This Black Friday doorbuster: a free, private MudKitchen preview of your school.",
+          headline: "Doors open whenever you are",
+          description: "One per school. No call.",
+        },
+        {
+          label: "What you get",
+          primaryText: "Black Friday doorbuster: a free MudKitchen preview. 🛍️\n✅ Your website\n✅ Admin portal\n✅ Teacher portal\n✅ Parent app\nSend your website.",
+          headline: "Doorbuster: four things, $0",
+          description: "Free in 2 business days.",
+        },
+      ],
     },
     {
       id: "while-they-shop",
       fileName: "ad-k03-black-friday-while-they-shop.png",
       render: () => noOffer(<WhileTheyShopAd />),
       adCopy: {
+        label: "While they shop",
         primaryText:
-          "While everyone's out Black Friday shopping, click through your school's admin, teacher and parent portals instead. Microschool founders: send your website for a free MudKitchen preview.",
+          "While everyone's out Black Friday shopping, click through your own school instead. 🛋️ Send your website for a free preview.",
         headline: "While they shop, you preview your school",
-        description: "Free, private, no obligation.",
+        description: "Free and private.",
       },
+      adCopyVariants: [
+        {
+          label: "From the couch",
+          primaryText: "Skip the mall. Click around your own school from the couch. 🛋️ Send your website for a free MudKitchen preview.",
+          headline: "Skip the mall. Tour your school.",
+          description: "Free and private.",
+        },
+        {
+          label: "Leftovers",
+          primaryText: "Leftovers in one hand, your school's new parent app in the other. 🥪 Send your website for a free MudKitchen preview.",
+          headline: "Leftovers in hand. Your app on screen.",
+          description: "Free in 2 business days.",
+        },
+      ],
     },
     {
       id: "cyber-cart",
       fileName: "ad-k04-cyber-monday-cart.png",
       render: () => noOffer(<CyberCartAd />),
       adCopy: {
+        label: "Cyber cart",
         primaryText:
-          "Cyber Monday cart for microschool founders: your website, admin portal, teacher portal and parent app, all built as a free MudKitchen preview with your logo. Checkout = send us your website.",
+          "Cyber Monday cart: your website, admin portal, teacher portal and parent app. 🛒 Total: $0. Checkout = send your website.",
         headline: "Cyber Monday cart: $0.00",
-        description: "Free, within 2 business days.",
+        description: "Free in 2 business days.",
       },
+      adCopyVariants: [
+        {
+          label: "Checkout",
+          primaryText: "Cyber Monday checkout steps: 🛒\n1. Send your website\n2. That's it\nIn 2 business days, a free MudKitchen preview of your school.",
+          headline: "Checkout step 1: send your website",
+          description: "Free. No card. No call.",
+        },
+        {
+          label: "Short",
+          primaryText: "Add to cart: one whole school, free. 🛒 Send your website and get a MudKitchen preview with your logo.",
+          headline: "Add to cart: your whole school",
+          description: "Free in 2 business days.",
+        },
+      ],
     },
     {
       id: "giving-tuesday",
       fileName: "ad-k05-giving-tuesday.png",
       render: () => noOffer(<GivingTuesdayAd />),
       adCopy: {
+        label: "We're giving",
         primaryText:
-          "It's Giving Tuesday, and we're giving microschool founders a free, private preview of their school in MudKitchen: website, admin portal, teacher portal and parent app, with your logo.",
+          "It's Giving Tuesday, and we're giving every microschool a free, private preview of their school in MudKitchen. 🎁",
         headline: "Giving Tuesday: we're giving previews",
-        description: "Send your website. No call needed.",
+        description: "Just send your website.",
       },
+      adCopyVariants: [
+        {
+          label: "You give a lot",
+          primaryText: "You give all year. 🧡 This Giving Tuesday, it's our turn: a free MudKitchen preview of your school. Send your website.",
+          headline: "You give all year. Our turn.",
+          description: "Just send your website.",
+        },
+        {
+          label: "What we're giving",
+          primaryText: "What we're giving this Giving Tuesday: 🎁\n✅ A refreshed website\n✅ An admin portal\n✅ A teacher portal\n✅ A parent app\nA free MudKitchen preview. Send your website.",
+          headline: "Giving Tuesday: four gifts, one school",
+          description: "Free in 2 business days.",
+        },
+      ],
     },
     {
       id: "preview-wrapped",
       fileName: "ad-k06-your-school-wrapped.png",
       render: () => noOffer(<WrappedAd />),
       adCopy: {
+        label: "Wrapped early",
         primaryText:
-          "Everyone's sharing their year, wrapped. Microschool founders, here's yours, early: your logo, your colours and your admin, teacher and parent portals, built as a free MudKitchen preview.",
+          "Everyone's sharing their year, wrapped. 🎁 Here's your school's, early: a free MudKitchen preview with your logo and colours.",
         headline: "Your school, wrapped early",
-        description: "Free, private, within 2 business days.",
+        description: "Free in 2 business days.",
       },
+      adCopyVariants: [
+        {
+          label: "Your year in review",
+          primaryText: "Your school's year, wrapped: 🎁\nTop app: the group chat\nMost texted: \"is there school Monday?\"\nNext year: one place for all of it\nSend your website for a free preview.",
+          headline: "Top app this year: the group chat",
+          description: "Free in 2 business days.",
+        },
+        {
+          label: "Short",
+          primaryText: "Wrapped, but make it your whole school. 🎁 Send your website for a free MudKitchen preview with your logo and colours.",
+          headline: "Wrapped: your whole school",
+          description: "Free. No call needed.",
+        },
+      ],
     },
     {
       id: "twelve-days",
       fileName: "ad-k07-on-the-first-day-of-break.png",
       render: () => noOffer(<TwelveDaysAd />),
       adCopy: {
+        label: "First day of break",
         primaryText:
-          "On the first day of break, my inbox gave to me… a preview of my own school. 🎄 Microschool founders: send your website before break and we'll build your free MudKitchen preview.",
+          "On the first day of break, my inbox gave to me… a preview of my own school. 🎄 Send your website before break.",
         headline: "On the first day of break…",
-        description: "Admin, teacher and parent portals.",
+        description: "Admin, teacher, parent.",
       },
+      adCopyVariants: [
+        {
+          label: "The full song",
+          primaryText: "On the 12 days of break, MudKitchen gave to me: 🎄\n4 school portals\n3 sets of logins\n2 business days\n1 free school preview\nSend your website before break.",
+          headline: "4 portals, 2 days, 1 free preview",
+          description: "Admin, teacher, parent.",
+        },
+        {
+          label: "Before break",
+          primaryText: "Send your website before break, and on day one a free MudKitchen preview of your school is waiting. 🎄",
+          headline: "Send before break. Open on day one.",
+          description: "Free in 2 business days.",
+        },
+      ],
     },
     {
       id: "advent-door",
       fileName: "ad-k08-behind-door-24.png",
       render: () => noOffer(<AdventDoorAd />),
       adCopy: {
+        label: "Door 24",
         primaryText:
-          "Behind door 24: your own school app. Microschool founders, send us your website and we'll build a free preview of your parent app, teacher portal and admin portal, with your logo.",
+          "Behind door 24: your own school app. 🎄 Send your website and we'll build a free preview with your logo.",
         headline: "Open door 24: your own school app",
-        description: "Free, private, no obligation.",
+        description: "Free and private.",
       },
+      adCopyVariants: [
+        {
+          label: "No waiting",
+          primaryText: "Why wait for door 24? 🎄 Send your website today and get a free MudKitchen preview of your school in 2 business days.",
+          headline: "Skip to door 24",
+          description: "Free and private.",
+        },
+        {
+          label: "Every door",
+          primaryText: "Behind every advent door, a piece of your free MudKitchen preview: 🚪\nDoor 1: a parent app\nDoor 2: a teacher portal\nDoor 3: an admin portal\nDoor 4: your website",
+          headline: "Four doors. One free preview.",
+          description: "Free in 2 business days.",
+        },
+      ],
     },
     {
       id: "letter-to-santa",
       fileName: "ad-k09-a-founders-letter-to-santa.png",
       render: () => noOffer(<LetterToSantaAd />),
       adCopy: {
+        label: "Letter to Santa",
         primaryText:
-          "Dear Santa, all I want is one login for admin, teachers and parents. 🎅 Microschool founders, no chimney needed: send your website and we'll build your free MudKitchen preview.",
+          "Dear Santa, all I want is one login for admin, teachers and parents. 🎅 No chimney needed: send your website for a free preview.",
         headline: "A founder's letter to Santa",
-        description: "Free, within 2 business days.",
+        description: "Free in 2 business days.",
       },
+      adCopyVariants: [
+        {
+          label: "Wish list",
+          primaryText: "Dear Santa, all I want is: 🎅\n✅ An app parents actually check\n✅ A portal for my teachers\n✅ One admin view for me\n✅ A website that matches\nSkip the North Pole. Send your website.",
+          headline: "Skip the North Pole. Send your website.",
+          description: "Free in 2 business days.",
+        },
+        {
+          label: "Faster than Santa",
+          primaryText: "Santa takes 24 days. We take 2 business days. 🎅 Send your website and get a free MudKitchen preview of your school.",
+          headline: "Faster than Santa: 2 business days",
+          description: "Free. No call needed.",
+        },
+      ],
     },
     {
       id: "january-families",
       fileName: "ad-k10-january-families.png",
       render: () => noOffer(<JanuaryFamiliesAd />),
       adCopy: {
+        label: "January families",
         primaryText:
-          "New families tour microschools in January. Microschool founders: see what they'd see. Your website and parent app, plus your admin and teacher portals, in a free MudKitchen preview.",
+          "New families tour microschools in January. 👀 See what they'd see: your website and parent app, in a free MudKitchen preview.",
         headline: "See what January families would see",
-        description: "Free, private, no obligation.",
+        description: "Free and private.",
       },
+      adCopyVariants: [
+        {
+          label: "First impression",
+          primaryText: "A January family finds your school online. What do they see first? 👀 Send your website for a free MudKitchen preview.",
+          headline: "What January families see first",
+          description: "Free and private.",
+        },
+        {
+          label: "Tour season",
+          primaryText: "January tour season, in a free MudKitchen preview: 🏫\n✅ A website families apply on\n✅ A parent app for after\n✅ An admin portal for you\n✅ A teacher portal\nSend your website.",
+          headline: "Ready for January tours",
+          description: "Free in 2 business days.",
+        },
+      ],
     },
     {
       id: "re-enrollment",
       fileName: "ad-k11-re-enrollment-season.png",
       render: () => noOffer(<ReEnrollmentAd />),
       adCopy: {
+        label: "Re-enrollment",
         primaryText:
-          "Re-enrollment season is coming. Microschool founders: see how families would fill in forms in your own parent app, next to your admin and teacher portals. Free MudKitchen preview, your logo on it.",
+          "Re-enrollment season is coming. 📄 See families fill in forms in your own parent app. Free MudKitchen preview, your logo on it.",
         headline: "Re-enrollment, with your name on it",
-        description: "Free, within 2 business days.",
+        description: "Free in 2 business days.",
       },
+      adCopyVariants: [
+        {
+          label: "No paper chase",
+          primaryText: "Re-enrollment without the paper chase. 📄 Families fill in forms in their app; you track them in admin. Free preview.",
+          headline: "Re-enrollment, minus the paper chase",
+          description: "Free in 2 business days.",
+        },
+        {
+          label: "Who does what",
+          primaryText: "Re-enrollment by role, in a free MudKitchen preview: 📝\nParents: fill in forms in their app\nYou: see who's done\nTeachers: know who's coming back\nSend your website.",
+          headline: "Re-enrollment, by role",
+          description: "Free. No call needed.",
+        },
+      ],
     },
     {
       id: "choice-week",
       fileName: "ad-k12-school-choice-week.png",
       render: () => noOffer(<ChoiceWeekAd />),
       adCopy: {
+        label: "Choose your tools",
         primaryText:
-          "Happy School Choice Week (Jan 24–30). You chose to start a school. Now choose your tools: see your admin portal, teacher portal and parent app in a free MudKitchen preview of your school.",
+          "Happy School Choice Week (Jan 24–30). You chose to start a school. Now choose your tools. 🧡 Free MudKitchen preview.",
         headline: "You chose a school. Choose your tools.",
-        description: "Free, private, no obligation.",
+        description: "Free and private.",
       },
+      adCopyVariants: [
+        {
+          label: "Your choice",
+          primaryText: "Families choose your school. Choose what they open every day. 📱 Get a free MudKitchen preview this School Choice Week.",
+          headline: "Families chose you. Now choose the app.",
+          description: "Free and private.",
+        },
+        {
+          label: "Short",
+          primaryText: "Happy School Choice Week (Jan 24–30)! 🧡 To everyone who chose to build a school: a free MudKitchen preview of yours.",
+          headline: "To the founders who chose to build",
+          description: "Free in 2 business days.",
+        },
+      ],
     },
   ] satisfies MarketingSlide[],
 } satisfies MarketingCarousel;
@@ -194,7 +373,7 @@ function ListRow({ children, done, struck }: { children: ReactNode; done?: boole
 
 function GratefulListAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.peach}>
+    <AdFrame background={G.peach}>
       <AdCopy
         title={
           <>
@@ -214,8 +393,7 @@ function GratefulListAd() {
             </LetterLine>
             <ListRow struck>nine open tabs</ListRow>
             <ListRow struck>9pm parent texts</ListRow>
-            <ListRow struck>chasing paper forms</ListRow>
-            <ListRow done>my school&rsquo;s own app</ListRow>
+                        <ListRow done>my school&rsquo;s own app</ListRow>
             <ListRow done>one login for everyone</ListRow>
           </NotebookPaper>
         </Pin>
@@ -244,7 +422,7 @@ function PriceTag({ children, width = 600, rotate = -6, style }: { children: Rea
 
 function DoorbusterAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.butter} pattern="none">
+    <AdFrame background={G.butter} pattern="none">
       <AdCopy
         title={
           <>
@@ -283,14 +461,14 @@ function DoorbusterAd() {
 
 function WhileTheyShopAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.cream} pattern="grid">
+    <AdFrame background={G.cream} pattern="grid">
       <AdCopy
         title={
           <>
             While they&rsquo;re out <Accent>Black Friday shopping&hellip;</Accent>
           </>
         }
-        hand="…I'm clicking through my school's admin, teacher and parent portals."
+        hand="…I'm clicking through my own school."
         size={78}
       />
       <Scene>
@@ -320,7 +498,7 @@ const CART = [
 
 function CyberCartAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.sky}>
+    <AdFrame background={G.sky}>
       <AdCopy
         title={
           <>
@@ -367,7 +545,7 @@ function CyberCartAd() {
 
 function GivingTuesdayAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.lav}>
+    <AdFrame background={G.lav}>
       <AdCopy
         title={
           <>
@@ -432,7 +610,7 @@ function WrapCard({ label, value, bg, color = G.ink, rotate, children }: { label
 
 function WrappedAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.forest} tone="dark">
+    <AdFrame background={G.forest} tone="dark">
       <AdCopy
         tone="dark"
         title={
@@ -468,7 +646,7 @@ function WrappedAd() {
 
 function TwelveDaysAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.cream} garland snow>
+    <AdFrame background={G.cream} garland snow>
       <AdCopy
         title={
           <>
@@ -504,7 +682,7 @@ const DOORS = [7, 15, 2, 19, 11, 4, 22, 9, 13, 1, 17, 6, 20, 3, 10, 16, 8, 23, 5
 
 function AdventDoorAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.forest} tone="dark" snow>
+    <AdFrame background={G.forest} tone="dark" snow>
       <AdCopy
         tone="dark"
         title={
@@ -555,7 +733,7 @@ function AdventDoorAd() {
 
 function LetterToSantaAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.sky} snow>
+    <AdFrame background={G.sky} snow>
       <AdCopy
         title={
           <>
@@ -570,10 +748,10 @@ function LetterToSantaAd() {
             <LetterLine size={54} color={G.clayDeep}>
               Dear Santa,
             </LetterLine>
-            <LetterLine size={44}>I&rsquo;ve been very good this year (I answered every parent text).</LetterLine>
+            <LetterLine size={44}>I answered every parent text this year.</LetterLine>
             <LetterLine size={44}>All I want is one login for admin, teachers and parents.</LetterLine>
             <LetterLine size={40} color={G.clay}>
-              P.S. MudKitchen will build me a free preview, so no chimney needed.
+              P.S. No chimney needed.
             </LetterLine>
             <LetterLine size={36} color={G.clayDeep} style={{ textAlign: "right" }}>
               — a microschool founder
@@ -594,7 +772,7 @@ function LetterToSantaAd() {
 
 function JanuaryFamiliesAd() {
   return (
-    <AdFrame audience={AUDIENCE} background="#EEF5E9">
+    <AdFrame background="#EEF5E9">
       <AdCopy
         title={
           <>
@@ -631,7 +809,7 @@ function JanuaryFamiliesAd() {
 
 function ReEnrollmentAd() {
   return (
-    <AdFrame audience={AUDIENCE} background="#FFF7DA" tag={<FreeTag text="Free · private" />}>
+    <AdFrame background="#FFF7DA" tag={<FreeTag text="Free · private" />}>
       <AdCopy
         title={
           <>
@@ -672,7 +850,7 @@ function ReEnrollmentAd() {
 
 function ChoiceWeekAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.forest} tone="dark">
+    <AdFrame background={G.forest} tone="dark">
       <AdCopy
         tone="dark"
         title={

@@ -16,7 +16,6 @@ import { Leaf } from "@/components/admin/marketing/carousels/ads-preview-thanksg
 // Same guardrails as the other free-preview sets (no gift card, "% off" or codes; "Your School" only;
 // claims stay inside the offer).
 
-const AUDIENCE = "for microschool founders";
 const noOffer = (node: ReactNode) => <AdOfferProvider show={false}>{node}</AdOfferProvider>;
 
 function Footer({ tone = "light" }: { tone?: "light" | "dark" }) {
@@ -36,99 +35,234 @@ export const ADS_PREVIEW_THANKSGIVING_BREAK_CAROUSEL = {
       fileName: "ad-b01-thanksgiving-break-to-do.png",
       render: () => noOffer(<BreakToDoAd />),
       adCopy: {
+        label: "To-do list",
         primaryText:
-          "Thanksgiving break to-do for microschool founders: sleep in, pie, nap… and send your website. You'll get a free MudKitchen preview: your website, admin portal, teacher portal and parent app.",
+          "Thanksgiving break to-do: sleep in, pie, nap… and send your website. 🦃 You'll get a free MudKitchen preview of your school.",
         headline: "Break to-do: send your website.",
-        description: "Free, within 2 business days.",
+        description: "Free in 2 business days.",
       },
+      adCopyVariants: [
+        {
+          label: "Five minutes",
+          primaryText: "One 5-minute task this Thanksgiving break: send us your website. 🦃 We'll build a free preview while you rest:\n✅ Your website\n✅ An admin portal\n✅ A teacher portal\n✅ A parent app",
+          headline: "5 minutes now. A whole school preview.",
+          description: "Free. No call needed.",
+        },
+        {
+          label: "Short",
+          primaryText: "Sleep in. Eat pie. Send your website. 🥧 That's the whole Thanksgiving break plan. We'll build your free preview.",
+          headline: "Sleep in. Eat pie. Send your website.",
+          description: "Free in 2 business days.",
+        },
+      ],
     },
     {
       id: "dinner-questions",
       fileName: "ad-b02-thanksgiving-break-dinner-questions.png",
       render: () => noOffer(<DinnerQuestionsAd />),
       adCopy: {
+        label: "Dinner question",
         primaryText:
-          "\"So… how's the school going?\" This Thanksgiving, show them. Microschool founders: send your website and get a free MudKitchen preview of your website, admin, teacher and parent portals.",
+          "\"So… how's the school going?\" This Thanksgiving, show them. 📱 Send your website for a free MudKitchen preview.",
         headline: "“So… how's the school going?”",
-        description: "Free, private, within 2 business days.",
+        description: "Free in 2 business days.",
       },
+      adCopyVariants: [
+        {
+          label: "Show, don't tell",
+          primaryText: "Your aunt asks how the school is going. Instead of explaining, hand her your phone. 📱 Free preview: send your website.",
+          headline: "Don't explain the school. Show it.",
+          description: "Free in 2 business days.",
+        },
+        {
+          label: "Every question",
+          primaryText: "Thanksgiving dinner questions, answered by your free preview: 🦃\n\"How many families?\" Admin portal.\n\"What do teachers use?\" Teacher portal.\n\"How do parents pay?\" Parent app.",
+          headline: "Every dinner question, answered",
+          description: "Free. No call needed.",
+        },
+      ],
     },
     {
       id: "parent-texts-on-break",
       fileName: "ad-b03-thanksgiving-break-parent-texts.png",
       render: () => noOffer(<ParentTextsAd />),
       adCopy: {
+        label: "Who gets what",
         primaryText:
-          "It's Thanksgiving break, but the parent texts didn't get the memo. 😅 See how the calendar, tuition and messages live in your own parent app: a free MudKitchen preview. Send your website.",
-        headline: "The parent texts didn't get the memo",
-        description: "Admin, teacher and parent portals, free.",
+          "The parent texts didn't get the memo. 📌 Who gets what in your free MudKitchen preview:\n✅ Parents: one app\n✅ Teachers: their own portal\n✅ You: an admin portal\n✅ Your website, refreshed",
+        headline: "One home for parents, teachers and you",
+        description: "Free. No call needed.",
       },
+      adCopyVariants: [
+        {
+          label: "Here's the memo",
+          primaryText: "It's Thanksgiving break, but the parent texts didn't get the memo. 😅 Here's one: a free preview with an app parents can check.",
+          headline: "Here's the memo: one app for all of it",
+          description: "Free in 2 business days.",
+        },
+        {
+          label: "The three texts",
+          primaryText: "Is there school Monday? Did tuition go out? Where's the calendar? 😅 Get a free preview where parents check their own app.",
+          headline: "Parents check the app. Not your phone.",
+          description: "Website, apps, portals.",
+        },
+      ],
     },
     {
       id: "teachers-vs-founders",
       fileName: "ad-b04-thanksgiving-break-teachers-vs-founders.png",
       render: () => noOffer(<TeachersVsFoundersAd />),
       adCopy: {
+        label: "Teachers vs. founders",
         primaryText:
-          "Teachers on Thanksgiving break: pie and naps. Founders on break: re-enrollment, tuition and parent texts. 😅 See it all in one place with a free MudKitchen preview of your school.",
+          "Teachers on break: pie and naps. Founders on break: re-enrollment, tuition and parent texts. 😅 See it all in one place, free.",
         headline: "Teachers on break vs. founders on break",
-        description: "Send your website. No call needed.",
+        description: "Just send your website.",
       },
+      adCopyVariants: [
+        {
+          label: "Your break too",
+          primaryText: "Your teachers get a real break this Thanksgiving. You deserve one too. 🥧 See your school in one place with a free preview.",
+          headline: "Founders deserve a break too",
+          description: "Just send your website.",
+        },
+        {
+          label: "Who has what",
+          primaryText: "Thanksgiving break, by role:\n🧑‍🏫 Teachers: pie, naps\n👨‍👩‍👧 Parents: still texting\n🙋 You: all of the above\nMudKitchen gives each their own place. Free preview.",
+          headline: "Teachers nap. Parents text. You?",
+          description: "Free. No call needed.",
+        },
+      ],
     },
     {
       id: "crew-enjoy-the-break",
       fileName: "ad-b05a-thanksgiving-break-crew.png",
       render: () => noOffer(<CrewEnjoyTheBreakAd />),
       adCopy: {
+        label: "Enjoy the break",
         primaryText:
-          "Enjoy Thanksgiving break, microschool founders. 🦃 Send us your website and the MudKitchen crew will build your free preview: website, admin portal, teacher portal and parent app.",
+          "Enjoy Thanksgiving break. 🦃 Send us your website and the MudKitchen crew will build your free preview while you rest.",
         headline: "Enjoy the break. We'll build it.",
-        description: "In your inbox within 2 business days.",
+        description: "In 2 business days.",
       },
+      adCopyVariants: [
+        {
+          label: "We've got it",
+          primaryText: "Put the laptop down this Thanksgiving. 🦃 Send your website and the MudKitchen crew builds a free preview while you rest.",
+          headline: "Laptop down. We've got it.",
+          description: "Free in 2 business days.",
+        },
+        {
+          label: "Short",
+          primaryText: "You take the break. We take the build. 🧡 Send your website and get a free preview of your whole school. No call.",
+          headline: "You take the break. We take the build.",
+          description: "Free. No call needed.",
+        },
+      ],
     },
     {
       id: "preview-in-the-oven",
       fileName: "ad-b05b-thanksgiving-break-oven.png",
       render: () => noOffer(<PreviewInTheOvenAd />),
       adCopy: {
+        label: "You rest, we cook",
         primaryText:
-          "Thanksgiving break: you rest, we cook. 🥧 Send your website and your free MudKitchen preview comes out of the oven within 2 business days: website, admin, teacher and parent portals.",
+          "Thanksgiving break: you rest, we cook. 🥧 Send your website and your free preview comes out of the oven in 2 business days.",
         headline: "You rest. We cook.",
         description: "Free. No call needed.",
       },
+      adCopyVariants: [
+        {
+          label: "On the menu",
+          primaryText: "On the menu this Thanksgiving break, your free MudKitchen preview: 🥧\n🍽️ Your website\n🍽️ An admin portal\n🍽️ A teacher portal\n🍽️ A parent app",
+          headline: "On the menu: your school, four ways",
+          description: "Free. No call needed.",
+        },
+        {
+          label: "Timer's set",
+          primaryText: "Turkey: 4 hours. Your free MudKitchen preview: 2 business days. ⏲️ Send your website and we'll start cooking.",
+          headline: "Turkey: 4 hours. Your preview: 2 days.",
+          description: "Free and private.",
+        },
+      ],
     },
     {
       id: "do-not-disturb",
       fileName: "ad-b05c-thanksgiving-break-do-not-disturb.png",
       render: () => noOffer(<DoNotDisturbAd />),
       adCopy: {
+        label: "Do not disturb",
         primaryText:
-          "Do not disturb: enjoying Thanksgiving break. 🦃 Meanwhile, the MudKitchen crew is at work on your free preview: website, admin portal, teacher portal and parent app. Just send your website.",
+          "Do not disturb: enjoying Thanksgiving break. 🦃 Meanwhile, the MudKitchen crew builds your free preview. Send your website.",
         headline: "Do not disturb. Crew at work.",
-        description: "Free, within 2 business days.",
+        description: "Free in 2 business days.",
       },
+      adCopyVariants: [
+        {
+          label: "Out of office",
+          primaryText: "Out of office this Thanksgiving? Good. 🦃 The MudKitchen crew is in. Send your website and come back to a free preview.",
+          headline: "You're out of office. We're in.",
+          description: "Free in 2 business days.",
+        },
+        {
+          label: "Short",
+          primaryText: "Phone on silent. Preview in progress. 🤫 Send your website and we'll quietly build a free MudKitchen preview of your school.",
+          headline: "Phone on silent. Preview in progress.",
+          description: "Free. No call needed.",
+        },
+      ],
     },
     {
       id: "send-monday",
       fileName: "ad-b06-thanksgiving-break-send-monday.png",
       render: () => noOffer(<SendMondayAd />),
       adCopy: {
+        label: "Send Monday",
         primaryText:
-          "Thanksgiving week plan for microschool founders: send your website link Monday; by Wednesday you get a free MudKitchen preview of your school: website, admin, teacher and parent portals. Show the family Thursday.",
+          "Thanksgiving week plan: send your website Monday. Get a free preview of your school by Wednesday. Show the family Thursday. 🦃",
         headline: "Send Monday. Get your preview Wednesday.",
-        description: "Within 2 business days. No call needed.",
+        description: "No call. 2 business days.",
       },
+      adCopyVariants: [
+        {
+          label: "The week plan",
+          primaryText: "Your Thanksgiving week, planned:\nMon: send your website\nTue: relax\nWed: your free MudKitchen preview arrives\nThu: show the family 🦃",
+          headline: "Mon: send it. Thu: show it off.",
+          description: "No call. 2 business days.",
+        },
+        {
+          label: "Before Thursday",
+          primaryText: "Want something to show the family on Thursday? 🦃 Send your website today. Your free preview lands in 2 business days.",
+          headline: "Something to show off on Thursday",
+          description: "Free. No call needed.",
+        },
+      ],
     },
     {
       id: "december-tuition",
       fileName: "ad-b07-thanksgiving-break-december-tuition.png",
       render: () => noOffer(<DecemberTuitionAd />),
       adCopy: {
+        label: "December tuition",
         primaryText:
-          "December tuition lands right after Thanksgiving break. Microschool founders: see how tuition looks in your own parent app, plus your admin and teacher portals, in a free MudKitchen preview.",
+          "December tuition lands right after Thanksgiving break. 💸 See how it looks in your own parent app: free MudKitchen preview.",
         headline: "Dec 1 tuition, in your own app",
-        description: "Free, within 2 business days.",
+        description: "Free in 2 business days.",
       },
+      adCopyVariants: [
+        {
+          label: "Before Dec 1",
+          primaryText: "Before December tuition lands, see how families would pay in your own parent app. 💸 Free MudKitchen preview.",
+          headline: "See tuition in your app before Dec 1",
+          description: "Free in 2 business days.",
+        },
+        {
+          label: "Who sees what",
+          primaryText: "December tuition, in your free MudKitchen preview: 💳\n✅ Parents see the bill in their app\n✅ You see who's paid\n✅ Teachers stay out of the money talk",
+          headline: "December tuition, without the texts",
+          description: "Free. No call needed.",
+        },
+      ],
     },
   ] satisfies MarketingSlide[],
 } satisfies MarketingCarousel;
@@ -157,7 +291,7 @@ function ToDoRow({ children, done, highlight }: { children: ReactNode; done: boo
 
 function BreakToDoAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.peach}>
+    <AdFrame background={G.peach}>
       <AdCopy
         title={
           <>
@@ -207,7 +341,7 @@ function DinnerQuestionsAd() {
     </SpeechBubble>
   );
   return (
-    <AdFrame audience={AUDIENCE} background={G.peach}>
+    <AdFrame background={G.peach}>
       <AdCopy
         title={
           <>
@@ -261,7 +395,7 @@ const BREAK_TEXTS = [
 
 function ParentTextsAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.forest} tone="dark">
+    <AdFrame background={G.forest} tone="dark">
       <AdCopy
         tone="dark"
         title={
@@ -288,7 +422,7 @@ function ParentTextsAd() {
         <Pin right={0} top={120} z={3}>
           <Crew name="loam" view="tears" width={230} flip />
         </Pin>
-        <Bundle title="What you're missing: one app parents can check" tone="dark" />
+        <Bundle title="One app parents can check" tone="dark" />
       </Scene>
       <Footer tone="dark" />
     </AdFrame>
@@ -315,7 +449,7 @@ function SplitPanel({ label, bg, headerBg, children }: { label: string; bg: stri
 
 function TeachersVsFoundersAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.forest} tone="dark">
+    <AdFrame background={G.forest} tone="dark">
       <AdCopy
         tone="dark"
         title={
@@ -345,7 +479,7 @@ function TeachersVsFoundersAd() {
             ))}
           </SplitPanel>
         </Pin>
-        <Bundle title="What you need: all of it, in one place" tone="dark" />
+        <Bundle title="All of it, in one place" tone="dark" />
       </Scene>
       <Footer tone="dark" />
     </AdFrame>
@@ -375,7 +509,7 @@ const CREW_LINES: Array<{ text: string; bg: string; name: "pip" | "loam" | "terr
 
 function CrewEnjoyTheBreakAd() {
   return (
-    <AdFrame audience={AUDIENCE} background="#EEF5E9">
+    <AdFrame background="#EEF5E9">
       <EnjoyTitle />
       <Scene>
         {CREW_LINES.map((line, i) => (
@@ -399,7 +533,7 @@ function CrewEnjoyTheBreakAd() {
 
 function PreviewInTheOvenAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.peach}>
+    <AdFrame background={G.peach}>
       <EnjoyTitle />
       <Scene>
         <Pin left={0} top={14} z={3} rotate={-1}>
@@ -428,7 +562,7 @@ function PreviewInTheOvenAd() {
         <Pin left={640} top={170} z={4}>
           <Crew name="dig" view="hold" width={230} />
         </Pin>
-        <Bundle title="Out of the oven: your free preview" />
+        <Bundle title="Out of the oven" />
       </Scene>
       <Footer />
     </AdFrame>
@@ -450,7 +584,7 @@ function DoorHanger({ bg, color, title, note, rotate }: { bg: string; color: str
 
 function DoNotDisturbAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.lav}>
+    <AdFrame background={G.lav}>
       <EnjoyTitle />
       <Scene>
         <Pin left={30} top={20} z={3}>
@@ -479,7 +613,7 @@ const PLAN = [
 
 function SendMondayAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.cream} pattern="grid">
+    <AdFrame background={G.cream} pattern="grid">
       <AdCopy
         title={
           <>
@@ -512,7 +646,7 @@ function SendMondayAd() {
         </div>
         <Pin left={10} top={400} z={4}>
           <Hand size={40} color={G.clayDeep} rotate={-2}>
-            within 2 business days. no call needed.
+            no call needed.
           </Hand>
         </Pin>
         <Bundle title="Wednesday, you get all four" />
@@ -526,7 +660,7 @@ function SendMondayAd() {
 
 function DecemberTuitionAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.sky}>
+    <AdFrame background={G.sky}>
       <AdCopy
         title={
           <>

@@ -36,73 +36,217 @@ export const POSTS_WEEKLY_SINGLES_CAROUSEL = {
       id: "poll-tabs",
       fileName: "post-01-poll-how-many-tabs.png",
       render: () => <PollTabsPost />,
-      adCopy: { primaryText: "Be honest: how many tabs does your school run in? A, B or C in the comments. Dig is a C. 🙃 #microschool #schooladmin", headline: "How many tabs does your school run in?" },
+      adCopy: { label: "Be honest", primaryText: "Be honest: how many tabs does your school run in? A, B or C in the comments. Dig is a C. 🙃 #microschool #schooladmin", headline: "How many tabs does your school run in?" },
+      adCopyVariants: [
+        {
+          label: "Confession",
+          primaryText: "Confession time: how many browser tabs are open right now for your school? Drop the number. Closest to 47 wins nothing but our respect. 🙃 #microschool #schooladmin",
+          headline: "How many tabs are open right now?",
+        },
+        {
+          label: "Tag a founder",
+          primaryText: "A, B or C: which one is your school? Tag the founder who's definitely a C. Dig says hi. 🙃 #microschool #schoolfounder",
+          headline: "Tag the founder who's a C",
+        },
+      ],
     },
     {
       id: "this-or-that",
       fileName: "post-02-this-or-that-forms.png",
       render: () => <ThisOrThatPost />,
-      adCopy: { primaryText: "This or that: paper forms or online forms? Bramble has strong feelings. Tell us yours. #microschool #enrollment", headline: "Paper forms or online forms?" },
+      adCopy: { label: "This or that", primaryText: "This or that: paper forms or online forms? Bramble has strong feelings. Tell us yours. #microschool #enrollment", headline: "Paper forms or online forms?" },
+      adCopyVariants: [
+        {
+          label: "Hot take",
+          primaryText: "Hot take: paper forms are fine until one goes through the wash. 🧺 Paper or online? Defend your answer below. #microschool #enrollment",
+          headline: "Paper forms: fine until laundry day",
+        },
+        {
+          label: "Vote",
+          primaryText: "Vote with an emoji: 📄 for paper forms, 💻 for online forms. Bramble is watching the count closely. #microschool #schoolforms",
+          headline: "📄 or 💻? Vote below",
+        },
+      ],
     },
     {
       id: "enrollment-packet",
       fileName: "post-03-enrollment-packet-tip.png",
       render: () => <PacketTipPost />,
-      adCopy: { primaryText: "Save this for spring enrollment: 3 things every enrollment packet needs, so you're not chasing them in week one. #microschool #enrollment #schoolfounder", headline: "3 things every enrollment packet needs" },
+      adCopy: { label: "Save this", primaryText: "Save this for spring enrollment: 3 things every enrollment packet needs, so you're not chasing them in week one. #microschool #enrollment #schoolfounder", headline: "3 things every enrollment packet needs" },
+      adCopyVariants: [
+        {
+          label: "Week one",
+          primaryText: "Week one of spring enrollment shouldn't be spent chasing paperwork. 📌 These 3 things go in every packet. Save it for January. #microschool #enrollment #schoolfounder",
+          headline: "Don't spend week one chasing forms",
+        },
+        {
+          label: "Tag a co-founder",
+          primaryText: "Tag the person who puts your enrollment packets together. They'll want this one. 📌 3 things every packet needs. #microschool #enrollment",
+          headline: "Send this to whoever does enrollment",
+        },
+      ],
     },
     {
       id: "tuition-template",
       fileName: "post-04-tuition-reminder-template.png",
       render: () => <TuitionTemplatePost />,
-      adCopy: { primaryText: "A tuition reminder that isn't awkward. Copy it, fill in the brackets, send. (Or set up autopay and never send it again.) #microschool #tuition", headline: "A tuition reminder template" },
+      adCopy: { label: "Template", primaryText: "A tuition reminder that isn't awkward. Copy it, fill in the brackets, send. (Or set up autopay and never send it again.) #microschool #tuition", headline: "A tuition reminder template" },
+      adCopyVariants: [
+        {
+          label: "Not awkward",
+          primaryText: "Asking families about late tuition is the most awkward email you'll write all month. So we wrote it for you. Copy, fill in, send. 💌 #microschool #tuition #schoolfounder",
+          headline: "We wrote the awkward email for you",
+        },
+        {
+          label: "Save it",
+          primaryText: "Save this tuition reminder for the 3rd of next month. You'll thank yourself. (Or skip it forever with autopay.) 📌 #microschool #tuition",
+          headline: "Save this for the 3rd of the month",
+        },
+      ],
     },
     {
       id: "job-description",
       fileName: "post-05-founder-job-description.png",
       render: () => <JobDescriptionPost />,
-      adCopy: { primaryText: "Microschool founder, official job description. What did we miss? #microschool #founderlife", headline: "Microschool founder: job description" },
+      adCopy: { label: "Job description", primaryText: "Microschool founder, official job description. What did we miss? #microschool #founderlife", headline: "Microschool founder: job description" },
+      adCopyVariants: [
+        {
+          label: "Hiring",
+          primaryText: "Now hiring: microschool founder. Must teach, bill, plan, clean, and reply to texts at 9pm. Salary: vibes. Apply within. 😅 What would you add? #microschool #founderlife",
+          headline: "Now hiring: microschool founder",
+        },
+        {
+          label: "Tag them",
+          primaryText: "Tag a microschool founder who does every job on this list (and three that aren't). 👇 #microschool #founderlife #schoolfounder",
+          headline: "Tag the founder who does it all",
+        },
+      ],
     },
     {
       id: "rate-your-week",
       fileName: "post-06-rate-your-week-fennels.png",
       render: () => <RateWeekPost />,
-      adCopy: { primaryText: "Rate your week from 1 to 5 Fennels. No judgment. Fennel is a 2 today. #microschool #teacherlife", headline: "Rate your week: 1 to 5 Fennels" },
+      adCopy: { label: "1 to 5 Fennels", primaryText: "Rate your week from 1 to 5 Fennels. No judgment. Fennel is a 2 today. #microschool #teacherlife", headline: "Rate your week: 1 to 5 Fennels" },
+      adCopyVariants: [
+        {
+          label: "Emoji only",
+          primaryText: "Rate your week with Fennels only. 🐸🐸🐸 is a perfectly respectable Wednesday. Comment yours. #microschool #teacherlife",
+          headline: "Comment your Fennel count",
+        },
+        {
+          label: "Honest",
+          primaryText: "Honest check-in: how's your week, from 1 to 5 Fennels? If it's a 1, we hope the weekend is a 5. 🐸 #microschool #founderlife",
+          headline: "Honest check-in: how's your week?",
+        },
+      ],
     },
     {
       id: "sage-field",
       fileName: "post-07-sage-field-story.png",
       render: () => <SageFieldPost />,
-      adCopy: { primaryText: `${STORY_COPY.school.name} went from 0 to 35 students in under 3 months, running enrollment, tuition and family communication from one place. Read the story at trymudkitchen.com/customers/sagefield. #microschool`, headline: "0 → 35 students in under 3 months" },
+      adCopy: { label: "Customer story", primaryText: `${STORY_COPY.school.name} went from 0 to 35 students in under 3 months, running enrollment, tuition and family communication from one place. Read the story at trymudkitchen.com/customers/sagefield. #microschool`, headline: "0 → 35 students in under 3 months" },
+      adCopyVariants: [
+        {
+          label: "The number",
+          primaryText: `0 to 35 students in under 3 months. 📈 That's ${STORY_COPY.school.name}, running enrollment, tuition and family communication from one place. Full story at trymudkitchen.com/customers/sagefield. #microschool #schoolfounder`,
+          headline: "35 students in under 3 months",
+        },
+        {
+          label: "Question",
+          primaryText: `What does it take to go from 0 to 35 students in under 3 months? For ${STORY_COPY.school.name}, part of it was running everything from one place. Read how: trymudkitchen.com/customers/sagefield #microschool`,
+          headline: `How ${STORY_COPY.school.name} grew to 35`,
+        },
+      ],
     },
     {
       id: "january-checklist",
       fileName: "post-08-january-checklist.png",
       render: () => <JanuaryChecklistPost />,
-      adCopy: { primaryText: "Your January checklist for a calm spring semester. Save it, screenshot it, tape it to the fridge next to the volunteer sheet. #microschool #schoolfounder", headline: "Your January checklist" },
+      adCopy: { label: "Fridge-worthy", primaryText: "Your January checklist for a calm spring semester. Save it, screenshot it, tape it to the fridge next to the volunteer sheet. #microschool #schoolfounder", headline: "Your January checklist" },
+      adCopyVariants: [
+        {
+          label: "Save it",
+          primaryText: "📌 Save this now, thank yourself in January. Your checklist for a calm spring semester. #microschool #schoolfounder #newsemester",
+          headline: "Save now. Thank yourself in January.",
+        },
+        {
+          label: "Which first",
+          primaryText: "Your January checklist for a calm spring semester. Which one are you tackling first? Comment the number. 👇 #microschool #schoolfounder",
+          headline: "Which one are you doing first?",
+        },
+      ],
     },
     {
       id: "meet-the-crew",
       fileName: "post-09-meet-the-crew.png",
       render: () => <MeetCrewPost />,
-      adCopy: { primaryText: "Meet the MudKitchen crew: twelve tiny coworkers, one for every job at your school. Which one are you this week? #microschool", headline: "Meet the MudKitchen crew" },
+      adCopy: { label: "Meet the crew", primaryText: "Meet the MudKitchen crew: twelve tiny coworkers, one for every job at your school. Which one are you this week? #microschool", headline: "Meet the MudKitchen crew" },
+      adCopyVariants: [
+        {
+          label: "Which one",
+          primaryText: "Twelve crew members, one for every job at your school. Comment the one you'd hire first. 👇 #microschool #schoolfounder",
+          headline: "Which crew member would you hire?",
+        },
+        {
+          label: "Tag a teammate",
+          primaryText: "Every school has a Pip (enrollment), a Nutmeg (tuition) and a Loam (the 9pm texts). Tag yours. 👋 #microschool #schoollife",
+          headline: "Tag your school's Pip",
+        },
+      ],
     },
     {
       id: "caption-this",
       fileName: "post-10-caption-this.png",
       render: () => <CaptionThisPost />,
-      adCopy: { primaryText: "Caption this. Best one gets pinned (and Flicker gets a new camera strap). #microschool #pictureday", headline: "Caption this" },
+      adCopy: { label: "Caption this", primaryText: "Caption this. Best one gets pinned (and Flicker gets a new camera strap). #microschool #pictureday", headline: "Caption this" },
+      adCopyVariants: [
+        {
+          label: "Best caption",
+          primaryText: "We need a caption and we're out of ideas. 📸 Best one gets pinned. Go. #microschool #pictureday #schoollife",
+          headline: "We need a caption. Go.",
+        },
+        {
+          label: "Picture day",
+          primaryText: "Picture day energy, in one photo. What's the caption? 📸 (Flicker is accepting submissions.) #microschool #pictureday",
+          headline: "Picture day, in one photo",
+        },
+      ],
     },
     {
       id: "only-founders",
       fileName: "post-11-only-founders-understand.png",
       render: () => <OnlyFoundersPost />,
-      adCopy: { primaryText: "Things only microschool founders understand. Add yours below. #microschool #founderlife", headline: "Things only microschool founders understand" },
+      adCopy: { label: "Only founders", primaryText: "Things only microschool founders understand. Add yours below. #microschool #founderlife", headline: "Things only founders understand" },
+      adCopyVariants: [
+        {
+          label: "Relatable",
+          primaryText: "If you laughed at more than two of these, you're definitely a microschool founder. 😅 Add the one we missed. #microschool #founderlife #schoolfounder",
+          headline: "Laughed at two? You're a founder.",
+        },
+        {
+          label: "Tag them",
+          primaryText: "Tag the microschool founder who will feel personally seen by this. 👇 #microschool #founderlife",
+          headline: "Tag a founder who'll feel seen",
+        },
+      ],
     },
     {
       id: "happy-holidays",
       fileName: "post-12-happy-holidays.png",
       render: () => <HolidayPost />,
-      adCopy: { primaryText: "Happy holidays from the MudKitchen crew. Thank you for everything you do for your students. Rest up. ❄️", headline: "Happy holidays from the crew" },
+      adCopy: { label: "Happy holidays", primaryText: "Happy holidays from the MudKitchen crew. Thank you for everything you do for your students. Rest up. ❄️", headline: "Happy holidays from the crew" },
+      adCopyVariants: [
+        {
+          label: "Thank you",
+          primaryText: "To every founder and teacher who made a school happen this year: thank you. Happy holidays from the MudKitchen crew. Go rest. 🧡",
+          headline: "Thank you. Go rest.",
+        },
+        {
+          label: "Short",
+          primaryText: "Laptops closed. Crew off. Happy holidays. ❄️ See you in the new year.",
+          headline: "Laptops closed. Happy holidays.",
+        },
+      ],
     },
   ] satisfies MarketingSlide[],
 } satisfies MarketingCarousel;
@@ -199,9 +343,9 @@ function Side({ label, sub, bg, name, view, children }: { label: string; sub: st
 // ---------------------------------------------------------------- 3 packet tip
 
 const PACKET: Array<{ label: string; detail: string }> = [
-  { label: "Health info + emergency contacts", detail: "allergies, meds, two people to call" },
-  { label: "Your tuition agreement, signed", detail: "rate, schedule, what happens if it's late" },
-  { label: "Pickup authorizations", detail: "who can take each child home" },
+  { label: "Health + emergency contacts", detail: "allergies, meds, who to call" },
+  { label: "A signed tuition agreement", detail: "rate, schedule, late policy" },
+  { label: "Pickup authorizations", detail: "who can take each child" },
 ];
 
 function PacketTipPost() {
@@ -284,7 +428,7 @@ function Mark({ children }: { children: ReactNode }) {
 
 // ---------------------------------------------------------------- 5 job description
 
-const DUTIES = ["Teacher", "CFO", "IT support", "School nurse", "Event planner", "Janitor", "Parent hotline"];
+const DUTIES = ["Teacher", "CFO", "School nurse", "Parent hotline"];
 
 function JobDescriptionPost() {
   return (
@@ -413,9 +557,8 @@ function JanuaryChecklistPost() {
               rows={[
                 { label: "Share the spring calendar" },
                 { label: "Open spring applications" },
-                { label: "Confirm tuition for the new term" },
+                { label: "Confirm spring tuition" },
                 { label: "Remind families about forms" },
-                { label: "Plan one open house" },
               ]}
             />
           </InkCard>
@@ -515,7 +658,7 @@ function CaptionThisPost() {
 const ONLY: string[] = [
   "“I’ll just do it myself” (9× a day)",
   "A “quick question” is never quick",
-  "Knowing every kid’s allergy and every parent’s Venmo",
+  "Knowing every kid’s allergy by heart",
   "Your car is also the supply closet",
 ];
 
@@ -570,7 +713,7 @@ function HolidayPost() {
             <Accent color={G.butter}>from the crew.</Accent>
           </>
         }
-        sub="Thank you for everything you do for your students this year. Rest up."
+        sub="Thank you for this year. Rest up."
         size={96}
       />
       <Scene>

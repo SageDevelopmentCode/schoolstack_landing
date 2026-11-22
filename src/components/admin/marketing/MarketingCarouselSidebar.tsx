@@ -2,7 +2,8 @@
 
 import { AdminStatusBadge } from "@/components/admin/ui/AdminStatusBadge";
 import type { MarketingCarousel } from "@/components/admin/marketing/carousels/types";
-import type { MarketingCarouselPostStatus } from "@/lib/marketing/carousel-post-status";
+import { countPostedSlides, type MarketingCarouselPostStatus } from "@/lib/marketing/carousel-post-status";
+import type { AdminStatusVariant } from "@/lib/admin-ui/admin-status-styles";
 
 type MarketingCarouselSidebarProps = {
   carousels: MarketingCarousel[];
@@ -40,7 +41,7 @@ export function MarketingCarouselSidebar({
                 const slideLabel =
                   carousel.slides.length === 1 ? "1 slide" : `${carousel.slides.length} slides`;
                 const sizeLabel = (carousel.sizes?.length ?? 1) > 1 ? " · feed + story" : "";
-                const posted = postedByCarouselId[carousel.id]?.posted ?? false;
+                const badge = postedBadge(carousel, postedByCarouselId[carousel.id]);
 
                 return (
                   <button
@@ -56,10 +57,7 @@ export function MarketingCarouselSidebar({
                   >
                     <div className="flex items-start justify-between gap-2">
                       <p className="min-w-0 text-sm font-medium text-admin-text">{carousel.title}</p>
-                      <AdminStatusBadge
-                        label={posted ? "Posted" : "Not posted"}
-                        variant={posted ? "success" : "warning"}
-                      />
+                      <AdminStatusBadge label={badge.label} variant={badge.variant} />
                     </div>
                     {carousel.description ? (
                       <p className="mt-1 text-xs leading-snug text-admin-muted">{carousel.description}</p>
@@ -77,4 +75,20 @@ export function MarketingCarouselSidebar({
       </nav>
     </aside>
   );
+}
+
+/** Ad sets and post sets count posted slides ("3/12 posted"); a swipe carousel is posted or not as a whole. */
+function postedBadge(
+  carousel: MarketingCarousel,
+  status: MarketingCarouselPostStatus | undefined,
+): { label: string; variant: AdminStatusVariant } {
+  const isSet = carousel.kind === "ad" || carousel.kind === "post";
+  if (!isSet) {
+    return status?.posted ? { label: "Posted", variant: "success" } : { label: "Not posted", variant: "warning" };
+  }
+  const total = carousel.slides.length;
+  const posted = countPostedSlides(status, carousel.slides.map((slide) => slide.id));
+  if (posted === 0) return { label: "Not posted", variant: "warning" };
+  if (posted === total) return { label: "Posted", variant: "success" };
+  return { label: `${posted}/${total} posted`, variant: "neutral" };
 }

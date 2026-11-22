@@ -55,10 +55,23 @@ export const MASCOT_FOUNDER_WEEK_CAROUSEL = {
         </MascotHookSlide>
       ),
       adCopy: {
+        label: "Five jobs",
         primaryText:
           "A microschool founder's week: admissions officer on Monday, payroll on Friday. Here's the same week with one screen per day. Swipe →. #microschool #founder",
         headline: "Five jobs. One place.",
       },
+      adCopyVariants: [
+        {
+          label: "Tag them",
+          primaryText: "Monday: admissions officer. Friday: payroll. Every day: founder. 🫠 Swipe for the same week with one screen per day →\n\nTag the founder who does all five jobs.\n\n#microschool #founderlife #schoolfounder",
+          headline: "Monday: admissions. Friday: payroll.",
+        },
+        {
+          label: "Which day",
+          primaryText: "Which day of the founder week is the hardest for you? Mon, Tue, Wed, Thu or Fri? 👇 Swipe for how each day looks in one place →\n\n#microschool #founderlife",
+          headline: "Which day is the hardest?",
+        },
+      ],
     },
     {
       id: "job-titles",

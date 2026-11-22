@@ -41,7 +41,6 @@ export const MASCOT_PREVIEW_IM_SO_SORRY_CAROUSEL = {
   title: "I'm so sorry, this is my school (Free preview)",
   description: `Swipe carousel on the "I'm so sorry" slideshow trend: my school on the website, then (sorry) on a Monday, then the 9pm inbox, then the real version in the free preview with admin, teacher and parent views. Link: ${FREE_PREVIEW_UTM}`,
   fileSlug: "mudkitchen-free-preview-im-so-sorry",
-  audienceBanner: "Built for microschool founders",
   slides: [
     {
       id: "this-is-my-school",
@@ -64,11 +63,26 @@ export const MASCOT_PREVIEW_IM_SO_SORRY_CAROUSEL = {
         </MascotSlide>
       ),
       adCopy: {
+        label: "I'm so sorry",
         primaryText:
-          "This is my school. 😌 I'm so sorry, this is my school on a Monday. 😅 Microschool founders: swipe to see the version with your admin, teacher and parent views in one place, as a free preview.",
+          "This is my school. 😌 I'm so sorry, this is my school on a Monday. 😅 Swipe for the version with everything in one place, as a free preview.",
         headline: "My school vs. my school on a Monday",
-        description: "Free, private, within 2 business days.",
+        description: "Free in 2 business days.",
       },
+      adCopyVariants: [
+        {
+          label: "The trend",
+          primaryText: "This is my school. ✨\nI'm so sorry, this is my school at 9pm. 📱\nSwipe for the real fix: a free MudKitchen preview with your admin, teacher and parent views in one place →",
+          headline: "This is my school. (I'm so sorry.)",
+          description: "Free in 2 business days.",
+        },
+        {
+          label: "Relatable",
+          primaryText: "Every microschool founder has two versions of their school: the website version and the Monday version. 😅 Swipe to see how a free MudKitchen preview brings them together →",
+          headline: "The website version vs. Monday",
+          description: "Free and private.",
+        },
+      ],
     },
     {
       id: "on-a-monday",

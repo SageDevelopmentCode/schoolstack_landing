@@ -27,7 +27,24 @@ export const MASCOT_NUTMEG_TUITION_CAROUSEL = {
   description: "Mascot carousel: Nutmeg dreads chasing tuition, then shows the real tuition dashboard and family billing.",
   fileSlug: "mudkitchen-nutmeg-tuition",
   slides: [
-    { id: "hook", fileName: "01-rehearsing-the-reminder.png", render: () => <HookSlide /> },
+    { id: "hook", fileName: "01-rehearsing-the-reminder.png",
+      adCopy: {
+        label: "Reminder rehearsal",
+        primaryText: "Nutmeg is rehearsing the tuition reminder. \"Just floating this to the top of your inbox!\" \"No rush!! (there is a rush)\" 😬\n\nSwipe for the version where families set up autopay once →\n\n#microschool #tuition #schoolfounder",
+        headline: "Nutmeg rehearses the tuition reminder",
+      },
+      adCopyVariants: [
+        {
+          label: "Which one",
+          primaryText: "Which tuition reminder have you sent? \"Per my last email (affectionate)\" or \"friendly reminder that this is a friendly reminder\"? 👇 Swipe for how Nutmeg retired the script →\n\n#microschool #tuition",
+          headline: "Which reminder have you sent?",
+        },
+        {
+          label: "Happy ending",
+          primaryText: "Spoiler: Nutmeg retires the reminder script. 🥲 Swipe for the happy ending: autopay, every bill in one place and tuition paid on time →\n\n#microschool #tuition #schoolfounder",
+          headline: "Spoiler: Nutmeg retires the script",
+        },
+      ], render: () => <HookSlide /> },
     { id: "said", fileName: "02-things-nutmeg-has-said.png", render: () => <SaidSlide /> },
     { id: "turn", fileName: "03-what-if-it-just-happened.png", render: () => <TurnSlide /> },
     { id: "dashboard", fileName: "04-tuition-in-one-place.png", render: () => <DashboardSlide /> },

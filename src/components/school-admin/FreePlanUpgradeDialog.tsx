@@ -508,7 +508,7 @@ export default function FreePlanUpgradeDialog({
                       ) : null}
                       <p className="m-0 mt-4 max-w-[44ch] text-[15px] leading-relaxed text-[var(--sf-soft)]">
                         We&rsquo;ll walk through {featureName} and set it up for {school}. A confirmation is on its way to{" "}
-                        <span className="font-extrabold text-[var(--sf-ink)]">{userEmail}</span>.
+                        <span className="font-extrabold text-[var(--sf-ink)]">{userEmail}</span>, and we&rsquo;ll send your meeting link 24 hours before.
                       </p>
                       <button type="button" onClick={onClose} className={`${gBtnPop} mt-7`}>
                         Done

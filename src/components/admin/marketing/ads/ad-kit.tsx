@@ -116,7 +116,7 @@ export function AdFrame({
   );
 }
 
-/** Default audience line on every paid ad; founder-voice sets pass "for microschool founders". */
+/** Audience line on every paid ad and post. Keep it "for microschools" (not founders/owners) everywhere. */
 export const DEFAULT_AD_AUDIENCE = "for microschools";
 
 function AdLogo({ tone, audience }: { tone: "light" | "dark"; audience: string | false }) {

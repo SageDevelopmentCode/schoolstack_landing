@@ -44,10 +44,23 @@ export const MASCOT_FAMILY_FIRST_WEEK_CAROUSEL = {
         />
       ),
       adCopy: {
+        label: "First week",
         primaryText:
           "What a new family's first week looks like when everything lives in one place: apply, enroll, pay, plan. Swipe →. #microschool #enrollment",
         headline: "A family's first week, organized",
       },
+      adCopyVariants: [
+        {
+          label: "11 questions",
+          primaryText: "A family finds your school. They have 11 questions. 😅 Here's their first week when everything lives in one place: apply, enroll, pay, plan. Swipe →\n\n#microschool #enrollment #schoolfounder",
+          headline: "A new family, 11 questions",
+        },
+        {
+          label: "From their side",
+          primaryText: "Ever seen your enrollment from the family's side? 👀 Swipe through a new family's first week: apply, checklist, billing and calendar →\n\n#microschool #enrollment",
+          headline: "Enrollment, from the family's side",
+        },
+      ],
     },
     {
       id: "old-way",

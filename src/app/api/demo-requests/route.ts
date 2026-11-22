@@ -270,7 +270,11 @@ export async function POST(request: Request) {
       : "get-started";
   const attribution = sanitizeAttribution(body.attribution);
 
+  // Chosen here so the confirmation's calendar invite and the later meeting-link
+  // invite share one UID (calendar apps then update the same event).
+  const demoRequestId = crypto.randomUUID();
   const baseRow = {
+    id: demoRequestId,
     name,
     email,
     school_name: schoolName,
@@ -384,6 +388,7 @@ export async function POST(request: Request) {
 
   try {
     await sendDemoBookingConfirmation({
+      id: demoRequestId,
       name,
       email,
       schoolName,

@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { GET_STARTED_PAGE_PATH } from "@/lib/marketing/book-demo";
-import { TRY_FREE_NAV_LABEL, TRY_FREE_PATH } from "@/lib/marketing/free-tools";
+import { NAV_CTA_LABEL, NAV_CTA_PATH, NAV_CTA_SHORT_LABEL } from "@/lib/marketing/free-tools";
 import { MARKETING_NAV_LINKS } from "@/lib/marketing/nav-links";
 
 const LINKS = MARKETING_NAV_LINKS;
@@ -81,10 +81,12 @@ export default function BrightNavbar() {
             Book a Demo
           </Link>
           <Link
-            href={TRY_FREE_PATH}
+            href={NAV_CTA_PATH}
+            aria-label={NAV_CTA_LABEL}
             className={`inline-flex h-10 items-center gap-1.5 rounded-pill px-5 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 ${t.cta}`}
           >
-            {TRY_FREE_NAV_LABEL}
+            <span className="lg:hidden">{NAV_CTA_SHORT_LABEL}</span>
+            <span className="hidden lg:inline">{NAV_CTA_LABEL}</span>
             <ArrowRight size={14} aria-hidden />
           </Link>
         </div>
@@ -118,11 +120,11 @@ export default function BrightNavbar() {
             </a>
           ))}
           <Link
-            href={TRY_FREE_PATH}
+            href={NAV_CTA_PATH}
             onClick={() => setOpen(false)}
             className={`mt-2 flex h-12 items-center justify-center gap-2 rounded-pill text-sm font-semibold ${t.cta}`}
           >
-            {TRY_FREE_NAV_LABEL}
+            {NAV_CTA_LABEL}
             <ArrowRight size={14} aria-hidden />
           </Link>
           <Link

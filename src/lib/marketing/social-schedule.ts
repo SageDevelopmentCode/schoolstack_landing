@@ -81,7 +81,7 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
     ads: {
       sets: "Free preview: Thanksgiving break",
       primaryText:
-        "Thanksgiving break to-do for microschool founders: sleep in, pie, nap… and send your website. You'll get a free MudKitchen preview: your website, admin portal, teacher portal and parent app.",
+        "Thanksgiving break to-do: sleep in, pie, nap… and send your website. 🦃 You'll get a free MudKitchen preview of your school.",
       headline: "Break to-do: send your website.",
     },
     items: [],
@@ -94,6 +94,9 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
       ad("2026-11-22", "runs Nov 21–29", "ads-preview-thanksgiving-break", "crew-enjoy-the-break", "Thanksgiving break: enjoy the break (crew)"),
       ad("2026-11-22", "runs Nov 21–29", "ads-preview-thanksgiving-break", "preview-in-the-oven", "Thanksgiving break: enjoy the break (oven)"),
       ad("2026-11-22", "runs Nov 21–29", "ads-preview-thanksgiving-break", "do-not-disturb", "Thanksgiving break: enjoy the break (do not disturb)"),
+      ad("2026-11-22", "runs Nov 22–29", "ads-gift-thanksgiving-break", "break-todo", "Gift card, Thanksgiving break: pie, nap, $200"),
+      ad("2026-11-22", "runs Nov 22–29", "ads-gift-thanksgiving-break", "thankful-for", "Gift card, Thanksgiving break: thankful for $200"),
+      ad("2026-11-22", "runs Nov 22–29", "ads-gift-thanksgiving-break", "out-for-break", "Gift card, Thanksgiving break: your $200 isn't on break"),
     ],
   },
   {
@@ -102,27 +105,30 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
     title: "Week 1 · Nov 23–29 (Thanksgiving)",
     note: "Open by introducing the crew, then keep Thanksgiving week warm and light: no product posts on Thursday or Black Friday morning.",
     ads: {
-      sets: "Holiday gift card 60% · Crew voice 40%",
+      sets: "Thanksgiving break gift card 60% · Crew voice 40%",
       primaryText:
-        "Teachers get apples. Microschools get $200. Book a MudKitchen demo this holiday season, start a paid plan within 30 days, and the Amazon gift card is yours. 🍎 Terms apply.",
-      headline: "Sign up, your school gets $200",
+        "Thanksgiving break to-do: pie, nap, $200. 🥧 Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+      headline: "Pie, nap, $200",
     },
     adOptions: [
       ad("2026-11-23", "runs Nov 23 only", "ads-preview-thanksgiving-break", "send-monday", "Thanksgiving break: send Monday, preview by Wednesday"),
       ad("2026-11-23", "runs Nov 23–26", "ads-preview-seasonal", "grateful-list", "Seasonal: thankful for one login"),
       ad("2026-11-23", "runs Nov 23–26", "ads-preview-thanksgiving", "recipe-card", "Thanksgiving: recipe card"),
       ad("2026-11-23", "runs Nov 23–26", "ads-preview-thanksgiving", "hand-turkey", "Thanksgiving: hand turkey"),
+      ad("2026-11-23", "runs Nov 23–29", "ads-gift-thanksgiving-break", "pip-chat", "Gift card, Thanksgiving break: Pip asks about break plans"),
       ad("2026-11-24", "runs Nov 23–26", "ads-preview-thanksgiving", "place-cards", "Thanksgiving: a seat at the table"),
       ad("2026-11-24", "runs Nov 23–26", "ads-preview-thanksgiving", "pie-chart", "Thanksgiving: week as a pie chart"),
       ad("2026-11-25", "runs Nov 24–26", "ads-preview-thanksgiving", "crew-thanksgiving-note", "Thanksgiving: note from the MudKitchen crew"),
       ad("2026-11-25", EVERGREEN, "ads-founder-julius", "polaroid-letter", "From Julius: a note from our co-founder"),
       ad("2026-11-26", "runs Nov 26–28", "ads-preview-seasonal", "doorbuster", "Black Friday: the only free doorbuster"),
       ad("2026-11-26", "runs Nov 26–29", "ads-preview-seasonal", "while-they-shop", "Black Friday: while they shop"),
+      ad("2026-11-26", "runs Nov 26–29", "ads-gift-thanksgiving-break", "leftovers", "Gift card, Thanksgiving break: leftovers for days"),
       ad("2026-11-27", "runs Nov 27 – Dec 1", "ads-preview-thanksgiving-break", "december-tuition", "Thanksgiving break: Dec 1 tuition, in your own app"),
       ad("2026-11-27", "runs Nov 27–28", "ads-preview-thanksgiving", "receipt", "Black Friday: $0.00 receipt"),
       ad("2026-11-27", "runs Nov 27–29", "ads-preview-thanksgiving", "shopping-list", "Black Friday: shopping list"),
       ad("2026-11-27", "runs Nov 27–29", "ads-preview-thanksgiving", "in-stock", "Black Friday: in stock"),
       ad("2026-11-27", "runs Nov 27–29", "ads-preview-thanksgiving", "always-free", "Black Friday: always free (Julius text)"),
+      ad("2026-11-27", "runs Nov 27–29", "ads-gift-thanksgiving-break", "black-friday", "Gift card, Black Friday: skip the 5am line"),
       ad("2026-11-28", "runs Nov 28", "ads-preview-thanksgiving", "small-business-saturday", "Small Business Saturday"),
       ad("2026-11-28", "runs Nov 28", "ads-preview-thanksgiving", "shop-small-bag", "Small Business Saturday: shop small bag"),
       ad("2026-11-28", "runs Nov 28", "ads-preview-thanksgiving", "chalkboard-special", "Small Business Saturday: today's special"),
@@ -141,7 +147,7 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
         slideId: "meet-the-crew",
         label: "Weekly singles #9: Meet the crew (pin it)",
         caption:
-          "Meet the MudKitchen crew: twelve tiny coworkers, one for every job at your school. 👋 Pip runs enrollment, Nutmeg chases tuition (politely), Loam takes the 9pm texts. Which one are you this week? #microschool #schoolfounder #microschooling",
+          "Meet the MudKitchen crew: twelve tiny coworkers, one for every job at your school. 👋 Which one are you this week? #microschool #schoolfounder #microschooling",
       },
       {
         id: "2026-11-24-poll-tabs",
@@ -163,7 +169,7 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
         carouselId: "mascot-founder-week",
         label: "Carousel: A founder's week, Mon–Fri",
         caption:
-          "A microschool founder's week: admissions officer on Monday, payroll on Friday. 🫠 Here's the same week with one screen per day. Swipe → and tag the founder who does all five jobs. #microschool #founderlife #schoolfounder",
+          "A microschool founder's week: admissions on Monday, payroll on Friday. 🫠 Swipe for the same week, one screen per day → #microschool #founderlife #schoolfounder",
       },
       {
         id: "2026-11-26-thankful",
@@ -175,7 +181,7 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
         slideId: "thankful",
         label: "Holiday singles #1: Things we're thankful for",
         caption:
-          "Things we're thankful for this year, in order: autopay, forms that come back signed, a quiet inbox. And you, obviously. Happy Thanksgiving to every founder who teaches, bills and answers the 9pm texts. 🧡 #microschool #schoolfounder #thanksgiving",
+          "Things we're thankful for this year: autopay, forms that come back signed, a quiet inbox. And you, obviously. 🧡 #microschool #schoolfounder #thanksgiving",
       },
       {
         id: "2026-11-27-black-friday",
@@ -200,6 +206,17 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
         label: "Crew singles #6: Monday Dig vs Friday Dig",
         caption: "Monday Dig vs Friday Dig. We all contain both. Which one are you right now? 👇 #microschool #founderlife #teacherlife",
       },
+      {
+        id: "2026-11-29-running-a-microschool",
+        date: "2026-11-29",
+        time: "6pm",
+        platforms: IG_FB,
+        pillar: "Brand",
+        carouselId: "posts-crew-chat",
+        slideId: "running",
+        label: "Crew chat #4: Running a microschool?",
+        caption: "Running a microschool means doing all of this before 9am. You teach. The crew handles the rest. 🌱 Which one takes your mornings? #microschool #schoolfounder",
+      },
     ],
   },
   {
@@ -210,7 +227,7 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
     ads: {
       sets: "Holiday gift card 50% · Pain → proof 50% (offer 25% / no-offer 25%)",
       primaryText:
-        "Enrollment in a form builder. Tuition in Venmo. Updates in a group text. MudKitchen pulls them into one shared system for your microschool. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+        "Running a microschool? Enrollment in a form builder. Tuition in Venmo. Updates in a group text. 🗂️ MudKitchen makes it one place. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
       headline: "Run your school from one place",
     },
     adOptions: [
@@ -218,8 +235,10 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
       ad("2026-11-30", "runs Nov 30", "ads-preview-thanksgiving", "order-confirmed", "Cyber Monday: order confirmed"),
       ad("2026-11-30", "runs Nov 30", "ads-preview-thanksgiving", "no-code-needed", "Cyber Monday: no code needed"),
       ad("2026-11-30", "runs Nov 30 – Dec 1", "ads-preview-thanksgiving", "close-the-tabs", "Cyber Monday: close the tabs"),
+      ad("2026-11-30", EVERGREEN, "ads-crew-chat", "hello", "Crew chat: your school's admin, handled (Terra)"),
       ad("2026-12-01", "runs Dec 1", "ads-preview-seasonal", "giving-tuesday", "Giving Tuesday: we're giving previews"),
       ad("2026-12-02", "runs Dec 2–8", "ads-preview-seasonal", "preview-wrapped", "Year-end: your school, wrapped early"),
+      ad("2026-12-02", EVERGREEN, "ads-crew-chat", "opening", "Crew chat: opening a microschool?"),
       ad("2026-12-03", EVERGREEN, "ads-preview-bundle", "every-seat", "Full bundle: sit in every seat"),
       ad("2026-12-03", EVERGREEN, "ads-founder-julius", "notes-app", "From Julius: Notes-app note"),
       ad("2026-12-04", EVERGREEN, "mascot-preview-every-seat", undefined, "Swipe carousel: the three-seat tour"),
@@ -257,7 +276,7 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
         carouselId: "mascot-guided-setup",
         label: "Carousel: How switching actually works",
         caption:
-          "Switching your school's software sounds like a whole semester of pain. It isn't. Here's how guided setup actually works, in 3 steps. Swipe → (Dig made it to stage 5.) #microschool #schooladmin #schoolfounder",
+          "Switching software sounds like a semester of pain. It isn't. 😩 Guided setup, in 3 steps. Swipe → #microschool #schooladmin #schoolfounder",
       },
       {
         id: "2026-12-03-enrollment-packet",
@@ -280,7 +299,7 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
         slideId: "sage-field",
         label: "Weekly singles #7: Sage Field story",
         caption:
-          "Sage Field went from 0 to 35 students in under 3 months, running enrollment, tuition and family communication from one place. Read the story at trymudkitchen.com/customers/sagefield. #microschool #schoolfounder #microschooling",
+          "Sage Field went from 0 to 35 students in under 3 months, running everything from one place. 📈 trymudkitchen.com/customers/sagefield #microschool #schoolfounder #microschooling",
       },
       {
         id: "2026-12-05-job-description",
@@ -314,14 +333,16 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
     ads: {
       sets: "Holiday gift card 50% · Feature spotlight 50%",
       primaryText:
-        "School owners: families see every bill in one place and set up autopay once, so tuition arrives on time without the reminder texts. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+        "Families see every bill in one place and set up autopay once. 💸 Tuition arrives without the reminder texts. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
       headline: "Tuition on autopay",
     },
     adOptions: [
       ad("2026-12-07", EVERGREEN, "ads-preview-bundle", "unboxing", "Full bundle: unboxed"),
+      ad("2026-12-07", EVERGREEN, "ads-crew-chat", "nutmeg-tuition", "Crew chat: let Nutmeg chase tuition"),
       ad("2026-12-08", "runs Dec 8–20", "ads-preview-seasonal", "twelve-days", "Holidays: first day of break"),
       ad("2026-12-08", "runs Dec 8–24", "ads-preview-seasonal", "advent-door", "Holidays: behind door 24"),
       ad("2026-12-09", EVERGREEN, "ads-founder-julius", "voice-memo", "From Julius: voice memo"),
+      ad("2026-12-09", EVERGREEN, "ads-crew-chat", "reframe", "Crew chat: not bad at admin, just six places"),
       ad("2026-12-10", "runs Dec 10–24", "ads-preview-seasonal", "letter-to-santa", "Holidays: a founder's letter to Santa"),
       ad("2026-12-11", EVERGREEN, "mascot-preview-im-so-sorry", undefined, "Swipe carousel: I'm so sorry, this is my school"),
       ad("2026-12-12", EVERGREEN, "ads-preview-bundle", "parent-eyes", "Full bundle: see it the way parents will"),
@@ -359,7 +380,7 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
         carouselId: "mascot-family-first-week",
         label: "Carousel: A family's first week",
         caption:
-          "A family finds your school. They have 11 questions. 😅 Here's what their first week looks like when everything lives in one place: apply, enroll, pay, plan. Swipe → #microschool #enrollment #schoolfounder",
+          "A family finds your school. They have 11 questions. 😅 Swipe for their first week when everything lives in one place → #microschool #enrollment #schoolfounder",
       },
       {
         id: "2026-12-10-program-checklist",
@@ -371,7 +392,7 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
         slideId: "holiday-program-checklist",
         label: "Holiday singles #5: Holiday program checklist",
         caption:
-          "Holiday program in two weeks? Save this checklist. Permission slips, costumes, volunteers, photos, programs: tick them off now, enjoy the show later. #microschool #holidayprogram #schoolfounder",
+          "Holiday program in two weeks? 📌 Save this checklist. Tick it off now, enjoy the show later. #microschool #holidayprogram #schoolfounder",
       },
       {
         id: "2026-12-11-only-founders",
@@ -395,6 +416,17 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
         label: "Weekly singles #6: Rate your week, 1–5 Fennels",
         caption: "Rate your week from 1 to 5 Fennels. No judgment. Fennel is a 2 today. 🐸 #microschool #teacherlife #founderlife",
       },
+      {
+        id: "2026-12-13-dot-calendar",
+        date: "2026-12-13",
+        time: "6pm",
+        platforms: IG_FB,
+        pillar: "Show",
+        carouselId: "posts-crew-chat",
+        slideId: "dot-calendar",
+        label: "Crew chat #2: Dot moves the field trip",
+        caption: "The field trip moved to Thursday. Dot updated the calendar, and every family sees the new date. No \"wait, which day?\" texts. 🗓️ #microschool #schoolcalendar",
+      },
     ],
   },
   {
@@ -405,13 +437,15 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
     ads: {
       sets: "Winter break 50% · Holiday gift card 50%",
       primaryText:
-        "Winter break is the calmest two weeks of the school year. Use it to get MudKitchen set up, so enrollment, tuition and parent messages are ready when families come back. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+        "Winter break is the calmest two weeks of the school year. ❄️ Use it to set up MudKitchen before families come back. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
       headline: "Set up over break, open January ready",
     },
     adOptions: [
       ad("2026-12-14", EVERGREEN, "ads-preview-bundle", "hand-to-teacher", "Full bundle: hand your teacher the phone"),
+      ad("2026-12-14", EVERGREEN, "ads-crew-chat", "reminders", "Crew chat: tuition reminders that send themselves"),
       ad("2026-12-15", EVERGREEN, "ads-founder-julius", "sticky-monitor", "From Julius: send me your website"),
       ad("2026-12-16", EVERGREEN, "ads-preview-bundle", "overthinking", "Full bundle: a parent texted \u201cok.\u201d"),
+      ad("2026-12-16", EVERGREEN, "ads-crew-chat", "fennel-attendance", "Crew chat: let Fennel take roll"),
       ad("2026-12-17", EVERGREEN, "ads-founder-julius", "ps-all-three", "From Julius: P.S. teachers and parents too"),
     ],
     items: [
@@ -425,7 +459,7 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
         slideId: "gift-guide",
         label: "Holiday singles #8: Gift guide for founders",
         caption:
-          "The only gift guide a microschool founder needs. A printer that works, a second coffee, three more hours, one system for everything else. Which one are you asking for? 🎁 #microschool #schoolfounder #giftguide",
+          "The only gift guide a microschool founder needs. 🎁 Which one are you asking for? #microschool #schoolfounder #giftguide",
       },
       {
         id: "2026-12-15-caption-this",
@@ -447,7 +481,7 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
         carouselId: "mascot-nutmeg-tuition",
         label: "Carousel: Nutmeg rehearses the tuition reminder",
         caption:
-          "Things Nutmeg has said instead of \"please pay tuition\": a thread. 🌰 Then the part where autopay takes over and nobody has to say it. Swipe → #microschool #tuition #schoolfounder",
+          "Things Nutmeg has said instead of \"please pay tuition\": a thread. 🌰 Swipe for the autopay ending → #microschool #tuition #schoolfounder",
       },
       {
         id: "2026-12-17-tuition-template",
@@ -522,7 +556,7 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
         slideId: "out-of-office",
         label: "Holiday singles #7: Winter break out-of-office",
         caption:
-          "Your winter break out-of-office, written for you. Copy it, fill in the brackets, close the laptop. You're allowed to not reply until January. We checked. #microschool #schoolfounder #winterbreak",
+          "Your winter break out-of-office, written for you. Copy it, fill in the brackets, close the laptop. ❄️ #microschool #schoolfounder #winterbreak",
       },
       {
         id: "2026-12-22-real-break",
@@ -580,10 +614,11 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
     ads: {
       sets: "New year 60% · Winter break 40% (no-offer exports from Jan 1)",
       primaryText:
-        "Microschool directors: new year, same six tabs? MudKitchen puts enrollment, tuition, messages and attendance in one place. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+        "New year, same six tabs? 🎆 MudKitchen puts enrollment, tuition, messages and attendance in one place. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
       headline: "Not this year, tabs",
     },
     adOptions: [
+      ad("2026-12-28", EVERGREEN, "ads-crew-chat", "until-now", "Crew chat: school software never fit. Until now."),
       ad("2026-12-29", EVERGREEN, "ads-preview-bundle", "three-logins", "Full bundle: three logins, one preview"),
       ad("2027-01-02", "runs Jan 2–15", "ads-preview-seasonal", "january-families", "January: see what new families would see"),
     ],
@@ -632,18 +667,29 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
         slideId: "january-checklist",
         label: "Weekly singles #8: Your January checklist",
         caption:
-          "Your January checklist for a calm spring semester. Save it, screenshot it, tape it to the fridge next to the volunteer sheet. #microschool #schoolfounder #newyear",
+          "Your January checklist for a calm spring semester. 📌 Save it, screenshot it, tape it to the fridge. #microschool #schoolfounder #newyear",
       },
       {
-        id: "2027-01-02-flicker-one-photo",
+        id: "2027-01-01-not-disorganized",
+        date: "2027-01-01",
+        time: "11am",
+        platforms: IG_FB,
+        pillar: "Talk",
+        carouselId: "posts-crew-chat",
+        slideId: "reframe",
+        label: "Crew chat #3: You're not disorganized",
+        caption: "You're not disorganized. Your school just lives in nine apps. 💛 Which one would you delete first? #microschool #founderlife",
+      },
+      {
+        id: "2027-01-02-loam-picture-day",
         date: "2027-01-02",
         time: "9am",
-        platforms: IG,
-        pillar: "Laugh",
-        carouselId: "mascot-crew-singles",
-        slideId: "flicker-attempts",
-        label: "Crew singles #1: Flicker's one good photo",
-        caption: "Flicker just wanted one good group photo. How many tries does yours usually take? 📸 #microschool #pictureday #schoollife",
+        platforms: IG_FB,
+        pillar: "Show",
+        carouselId: "posts-crew-chat",
+        slideId: "loam-picture-day",
+        label: "Crew chat #1: Loam's picture-day message",
+        caption: "Picture day is Friday. Loam asks once, you say \"yes please\", and every family gets the message. 📸 #microschool #parentcommunication",
       },
       {
         id: "2027-01-03-bramble-forms",
@@ -666,12 +712,15 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
     ads: {
       sets: "Free preview: re-enrollment + evergreen (bundle, From Julius)",
       primaryText:
-        "Re-enrollment season is coming. Microschool founders: see how families would fill in forms in your own parent app, next to your admin and teacher portals. Free MudKitchen preview, your logo on it.",
+        "Re-enrollment season is coming. 📄 See families fill in forms in your own parent app. Free MudKitchen preview, your logo on it.",
       headline: "Re-enrollment, with your name on it",
     },
     items: [],
     adOnly: true,
-    adOptions: [ad("2027-01-05", "runs Jan 5–31", "ads-preview-seasonal", "re-enrollment", "January: re-enrollment season")],
+    adOptions: [
+      ad("2027-01-04", EVERGREEN, "ads-crew-chat", "pip-enrollment", "Crew chat: let Pip watch enrollment"),
+      ad("2027-01-05", "runs Jan 5–31", "ads-preview-seasonal", "re-enrollment", "January: re-enrollment season"),
+    ],
   },
   {
     id: "week-9",
@@ -681,7 +730,7 @@ export const SOCIAL_SCHEDULE: ScheduleWeek[] = [
     ads: {
       sets: "Free preview: School Choice Week + evergreen",
       primaryText:
-        "Happy School Choice Week (Jan 24–30). You chose to start a school. Now choose your tools: see your admin portal, teacher portal and parent app in a free MudKitchen preview of your school.",
+        "Happy School Choice Week (Jan 24–30). You chose to start a school. Now choose your tools. 🧡 Free MudKitchen preview.",
       headline: "You chose a school. Choose your tools.",
     },
     items: [],

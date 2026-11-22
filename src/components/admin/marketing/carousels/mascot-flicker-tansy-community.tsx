@@ -48,10 +48,23 @@ export const MASCOT_FLICKER_TANSY_COMMUNITY_CAROUSEL = {
         </MascotHookSlide>
       ),
       adCopy: {
+        label: "Picture day, sorted",
         primaryText:
           "Picture day and the volunteer sign-up sheet: two things every microschool does and nobody can find afterward. Meet Flicker and Tansy. Swipe →. #microschool",
         headline: "Picture day, sorted",
       },
+      adCopyVariants: [
+        {
+          label: "Where are they?",
+          primaryText: "Where are last year's picture day photos? Where's the volunteer sheet? 📸 Flicker and Tansy have answers. Swipe →\n\n#microschool #pictureday #schoollife",
+          headline: "Where are last year's photos?",
+        },
+        {
+          label: "Tag a volunteer",
+          primaryText: "Tag the parent who always signs up first. 🙌 Then swipe to meet Flicker (photos) and Tansy (the sign-up sheet) →\n\n#microschool #schoolcommunity",
+          headline: "Tag the parent who signs up first",
+        },
+      ],
     },
     {
       id: "ranked",
@@ -102,7 +115,7 @@ export const MASCOT_FLICKER_TANSY_COMMUNITY_CAROUSEL = {
               Sign-ups families <Accent>can actually find.</Accent>
             </>
           }
-          body="Committees and volunteer slots live in the parent portal, next to everything else."
+          body="Volunteer slots live in the parent portal."
           mascot={{ name: "tansy", view: "happy" }}
           tip="tansy filled the bake sale."
         >

@@ -52,6 +52,8 @@ const FIELD_LABELS: Record<string, string> = {
   Code: "🔢 Code",
   Digest: "🔑 Digest",
   Stack: "📜 Stack",
+  Browser: "🧭 Browser",
+  "Sentry event": "🔎 Sentry event",
   Operation: "⚙️ Operation",
   Actor: "👤 Actor",
   Details: "📋 Details",
@@ -722,6 +724,38 @@ export async function notifyWebsiteApiError(payload: {
     },
     { content: "@everyone" },
   );
+}
+
+/** Browser error on a public marketing page (no signed-in user). Posts quietly: no @everyone. */
+export async function notifyPublicSiteClientError(payload: {
+  path: string;
+  message: string;
+  source: string;
+  browser: string;
+  stack?: string;
+  sentryEventId?: string;
+}) {
+  const fields: DiscordEmbedField[] = [
+    embedField("Page", truncate(`\`${payload.path}\``), true),
+    embedField("Source", payload.source.replace(/_/g, " "), true),
+    embedField("Browser", truncate(payload.browser), true),
+    embedField("Error", truncate(payload.message)),
+  ];
+
+  if (payload.sentryEventId) {
+    fields.push(embedField("Sentry event", formatId(payload.sentryEventId), true));
+  }
+
+  if (payload.stack) {
+    fields.push(embedField("Stack", truncate(`\`\`\`\n${truncate(payload.stack, 880)}\n\`\`\``, 1024)));
+  }
+
+  await sendWebsiteNotificationDiscordEmbed({
+    title: truncate(`🌐 Public page error · ${payload.path}`, 256),
+    description: truncate(payload.message, 200),
+    color: DISCORD_EMBED_COLORS.error,
+    fields,
+  });
 }
 
 export async function notifyStripeWebhookCriticalError(payload: {

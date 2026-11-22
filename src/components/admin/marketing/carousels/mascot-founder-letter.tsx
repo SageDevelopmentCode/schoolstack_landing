@@ -26,7 +26,6 @@ export const MASCOT_FOUNDER_LETTER_CAROUSEL = {
   title: "Dear microschool founder (Free preview letter)",
   description: `Swipe carousel written as a letter from the MudKitchen founder to microschool founders: one page per part of the free preview (website, parent app, teacher portal, admin portal) on the real "Your School" screens, then the CTA. Link: ${FREE_PREVIEW_UTM}`,
   fileSlug: "mudkitchen-founder-letter",
-  audienceBanner: "Built for microschool founders",
   slides: [
     {
       id: "dear-founder",
@@ -36,13 +35,13 @@ export const MASCOT_FOUNDER_LETTER_CAROUSEL = {
           <At x={60} y={150} z={4}>
             <NotebookPaper width={900} rotate={-1.5} lineGap={74} padding="40px 50px 36px 124px">
               <LetterLine size={60} color={G.clayDeep}>
-                Dear microschool founder,
+                Dear founder,
               </LetterLine>
               <LetterLine size={48} style={{ lineHeight: "74px" }}>
-                Send me your school&rsquo;s website, and we&rsquo;ll build you a private MudKitchen preview of your school.
+                Send me your school&rsquo;s website.
               </LetterLine>
               <LetterLine size={48} style={{ lineHeight: "74px" }}>
-                Your logo, your colours, your programs. Free, and in your inbox within 2 business days.
+                I&rsquo;ll build a free preview with your logo.
               </LetterLine>
               <LetterLine size={48} style={{ lineHeight: "74px" }}>
                 Here&rsquo;s what&rsquo;s inside&hellip;
@@ -54,11 +53,26 @@ export const MASCOT_FOUNDER_LETTER_CAROUSEL = {
         </MascotSlide>
       ),
       adCopy: {
+        label: "A letter",
         primaryText:
-          "Dear microschool founder: send us your school's website and we'll build you a private MudKitchen preview with your logo, colours and programs. Free, within 2 business days. Swipe to see what's inside →",
+          "Dear founder: send us your school's website and we'll build a free, private MudKitchen preview. 💌 Swipe to see what's inside →",
         headline: "A letter for microschool founders",
-        description: "Free, private, no obligation.",
+        description: "Free and private.",
       },
+      adCopyVariants: [
+        {
+          label: "Page by page",
+          primaryText: "A letter, one page per part of your free MudKitchen preview: 📄\nPage 1: your website\nPage 2: the parent app\nPage 3: the teacher portal\nPage 4: your admin portal\nSwipe to read →",
+          headline: "Four pages, one free preview",
+          description: "Free and private.",
+        },
+        {
+          label: "Short",
+          primaryText: "Dear founder, send us your website. Love, MudKitchen. 💌 Swipe to see the free preview we'll build for you →",
+          headline: "Dear founder: send your website",
+          description: "Free in 2 business days.",
+        },
+      ],
     },
     {
       id: "website",
@@ -108,7 +122,7 @@ export const MASCOT_FOUNDER_LETTER_CAROUSEL = {
       id: "admin-portal",
       fileName: "05-and-your-admin-portal.png",
       render: () => (
-        <LetterPage page={5} line="And your admin portal." aside="admissions, tuition and messages, set up with your details." background={G.peach}>
+        <LetterPage page={5} line="And your admin portal." aside="admissions, tuition and messages." background={G.peach}>
           <At x={60} y={560} z={2} rotate={1}>
             <YourAdminWindow scale={1} label={`${YOUR.name} · admin`} />
           </At>

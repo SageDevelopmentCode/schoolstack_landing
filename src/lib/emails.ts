@@ -24,6 +24,7 @@ import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import { getRuntimeSiteUrl, SITE_NAME } from "@/lib/site";
 import { SCHEDULER_TIMEZONE } from "@/lib/demo-scheduler";
 import { formatDemoWhenInTimezone } from "@/lib/demo-scheduler-timezone";
+import { DEMO_CALL_MINUTES, demoBookingIcsAttachments } from "@/lib/demo-booking-ics";
 import type { SchoolVisitEmailDetailRow } from "@/lib/school-admin/school-profile/school-visit-email-details";
 import type {
   OutboundEmailAudience,
@@ -127,7 +128,9 @@ export function buildDemoBookingConfirmationHtml(payload: {
 }): string {
   const when = formatDemoBookingWhenHtml(payload);
   const detailRows = [
-    { label: "When", value: when },
+    // `when` is assembled from escaped parts (it holds a <br/> for two timezones).
+    { label: "When", value: "", valueHtml: when },
+    { label: "Length", value: `${DEMO_CALL_MINUTES}-minute video call` },
     { label: "School / program", value: payload.schoolName },
   ];
   if (payload.roleLabel?.trim()) {
@@ -138,7 +141,7 @@ export function buildDemoBookingConfirmationHtml(payload: {
   }
 
   return composeEmail({
-    preheader: "Your demo is confirmed — we'll be in touch soon.",
+    preheader: "Your demo is confirmed. We'll email your meeting link 24 hours before.",
     contentHtml: `
       ${emailBadge("Demo Confirmed")}
       ${emailHeading(`You're all set, ${firstName(payload.name)}.`)}
@@ -147,7 +150,7 @@ export function buildDemoBookingConfirmationHtml(payload: {
       )}
       ${emailDetailCard(detailRows)}
       ${emailParagraph(
-        "We'll send a calendar invite or follow up shortly if we need anything else before your session."
+        "<strong>We'll email you a meeting link 24 hours before your demo.</strong> A calendar invite is attached so it's already on your calendar."
       )}
       ${emailCta({ label: "Visit MudKitchen", href: getRuntimeSiteUrl() })}
       ${emailSignOff()}
@@ -192,6 +195,8 @@ export function buildDemoFeedbackConfirmationHtml(payload: {
 }
 
 export async function sendDemoBookingConfirmation(payload: {
+  /** demo_requests.id, used for the calendar invite's UID. */
+  id?: string;
   name: string;
   email: string;
   schoolName: string;
@@ -209,11 +214,92 @@ export async function sendDemoBookingConfirmation(payload: {
     subject: `Your ${SITE_NAME} demo is confirmed`,
     content,
     discord: prospectOutboundDiscord("demo_booking_confirmation"),
+    attachments: demoBookingIcsAttachments({
+      id: payload.id ?? `${payload.scheduledDate}-${payload.scheduledTime.replace(/\W+/g, "")}`,
+      scheduledDate: payload.scheduledDate,
+      scheduledTime: payload.scheduledTime,
+      schoolName: payload.schoolName,
+    }),
   });
 
   if (!result.success) {
     throw new Error(result.error ?? "Demo booking confirmation email failed");
   }
+}
+
+export type DemoMeetingLinkEmailPayload = {
+  id: string;
+  name: string;
+  email: string;
+  schoolName: string;
+  scheduledDate: string;
+  scheduledTime: string;
+  visitorTimezone?: string;
+  meetingLink: string;
+};
+
+export function demoMeetingLinkEmailSubject(
+  payload: Pick<DemoMeetingLinkEmailPayload, "scheduledDate" | "scheduledTime" | "visitorTimezone">,
+): string {
+  const tz = payload.visitorTimezone?.trim() || SCHEDULER_TIMEZONE;
+  const when =
+    formatDemoWhenInTimezone(payload.scheduledDate, payload.scheduledTime, tz) ??
+    `${formatSelectedDate(payload.scheduledDate)} at ${payload.scheduledTime} CT`;
+  return `Your ${SITE_NAME} demo link for ${when}`;
+}
+
+export function buildDemoMeetingLinkHtml(payload: DemoMeetingLinkEmailPayload): string {
+  const when = formatDemoBookingWhenHtml(payload);
+  const link = payload.meetingLink.trim();
+  const safeLink = escapeHtml(link);
+
+  return composeEmail({
+    preheader: "Here's the link for your demo. See you soon.",
+    contentHtml: `
+      ${emailBadge("Your Demo Link")}
+      ${emailHeading(`See you soon, ${firstName(payload.name)}.`)}
+      ${emailParagraph(
+        `Here's the link for your ${escapeHtml(SITE_NAME)} demo. Just click it a minute or two before we start. Nothing to install.`
+      )}
+      ${emailDetailCard([
+        { label: "When", value: "", valueHtml: when },
+        { label: "Length", value: `${DEMO_CALL_MINUTES}-minute video call` },
+        { label: "School / program", value: payload.schoolName },
+        {
+          label: "Meeting link",
+          value: link,
+          valueHtml: `<a href="${safeLink}" style="color:inherit;word-break:break-all;">${safeLink}</a>`,
+        },
+      ])}
+      ${emailCta({ label: "Join the demo", href: safeLink })}
+      ${emailParagraph(
+        "The updated calendar invite is attached with the link included. If the time no longer works, just reply to this email and we'll find another one."
+      )}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendDemoMeetingLinkEmail(
+  payload: DemoMeetingLinkEmailPayload,
+): Promise<SendZohoEmailResult> {
+  if (!(await isZohoConfigured())) {
+    return { success: false, error: "Email sending is not configured" };
+  }
+
+  return sendZohoEmail({
+    toAddress: payload.email,
+    subject: demoMeetingLinkEmailSubject(payload),
+    content: buildDemoMeetingLinkHtml(payload),
+    discord: prospectOutboundDiscord("demo_meeting_link"),
+    attachments: demoBookingIcsAttachments({
+      id: payload.id,
+      scheduledDate: payload.scheduledDate,
+      scheduledTime: payload.scheduledTime,
+      schoolName: payload.schoolName,
+      meetingLink: payload.meetingLink,
+    }),
+  });
 }
 
 export async function sendHomepageQuestionConfirmation(payload: {

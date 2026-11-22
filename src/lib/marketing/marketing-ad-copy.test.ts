@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { marketingAdCopyWithoutOffer, resolveMarketingAdCopy } from "@/lib/marketing/marketing-ad-copy";
+import { marketingAdCopyWithoutOffer, resolveMarketingAdCopy, resolveMarketingAdCopyVersions } from "@/lib/marketing/marketing-ad-copy";
 import type { MarketingSlide } from "@/components/admin/marketing/carousels/types";
 
 function assertNoOfferLanguage(copy: { primaryText: string; headline: string; description?: string }) {
@@ -98,5 +98,41 @@ describe("resolveMarketingAdCopy", () => {
   it("returns undefined when slide has no adCopy", () => {
     const bare = { id: "y", fileName: "b.png", render: () => null } satisfies MarketingSlide;
     assert.equal(resolveMarketingAdCopy(bare, true), undefined);
+  });
+});
+describe("resolveMarketingAdCopyVersions", () => {
+  const slide = {
+    id: "v",
+    fileName: "v.png",
+    render: () => null,
+    adCopy: { label: "One", primaryText: "First version.", headline: "H1" },
+    adCopyVariants: [
+      {
+        label: "Two",
+        primaryText: "Second version. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+        headline: "H2",
+        description: "Sign up, get a $200 Amazon gift card.",
+      },
+      { label: "Three", primaryText: "Third version.", headline: "H3" },
+    ],
+  } satisfies MarketingSlide;
+
+  it("lists adCopy first, then the variants in order", () => {
+    const out = resolveMarketingAdCopyVersions(slide, false);
+    assert.deepEqual(out.map((copy) => copy.headline), ["H1", "H2", "H3"]);
+    assert.equal(out[0], slide.adCopy);
+  });
+
+  it("strips the offer from every version and keeps labels", () => {
+    const out = resolveMarketingAdCopyVersions(slide, true);
+    assert.deepEqual(out.map((copy) => copy.label), ["One", "Two", "Three"]);
+    out.forEach(assertNoOfferLanguage);
+    assert.match(out[1].primaryText, /Book a MudKitchen demo\.\s*$/);
+    assert.equal(out[1].description, undefined);
+  });
+
+  it("returns an empty list when the slide has no adCopy", () => {
+    const bare = { id: "y", fileName: "b.png", render: () => null, adCopyVariants: [{ primaryText: "x", headline: "y" }] } satisfies MarketingSlide;
+    assert.deepEqual(resolveMarketingAdCopyVersions(bare, false), []);
   });
 });

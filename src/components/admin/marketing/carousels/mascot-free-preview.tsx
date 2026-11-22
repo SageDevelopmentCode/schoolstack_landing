@@ -43,6 +43,26 @@ export const MASCOT_FREE_PREVIEW_CAROUSEL = {
     {
       id: "hook",
       fileName: "01-what-happens-after-you-send-your-website.png",
+      adCopy: {
+        label: "What happens next",
+        primaryText: "What happens after you send us your website? The crew drops everything. 🛠️ Swipe to watch them build your free preview →\n\ntrymudkitchen.com/free-preview\n\n#microschool #schoolfounder",
+        headline: "What happens after you send your website",
+        description: "Free in 2 business days.",
+      },
+      adCopyVariants: [
+        {
+          label: "Behind the scenes",
+          primaryText: "Behind the scenes of your free MudKitchen preview, one crew member per step. Swipe to watch them build it →\n\ntrymudkitchen.com/free-preview\n\n#microschool #schoolfounder",
+          headline: "Behind the scenes of your free preview",
+          description: "Free. No call needed.",
+        },
+        {
+          label: "Short",
+          primaryText: "You send a link. The crew builds your whole school. Free. 📬 Swipe →\n\ntrymudkitchen.com/free-preview\n\n#microschool",
+          headline: "You send a link. The crew builds.",
+          description: "Free in 2 business days.",
+        },
+      ],
       render: () => (
         <MascotHookSlide
           kicker="Free custom preview"
@@ -81,7 +101,7 @@ export const MASCOT_FREE_PREVIEW_CAROUSEL = {
               Terra pulls <Accent>your logo and colours.</Accent>
             </>
           }
-          body="Straight from your website, so the preview already looks like your school."
+          body="Straight from your website."
           background={G.cream}
           swipeLeft
         >
@@ -108,7 +128,7 @@ export const MASCOT_FREE_PREVIEW_CAROUSEL = {
               Dig builds <Accent>your admin portal.</Accent>
             </>
           }
-          body="Admissions, tuition and messages, set up with your school's details."
+          body="Set up with your school's details."
           background={G.sky}
         >
           <At x={200} y={560} z={2}>
@@ -157,7 +177,7 @@ export const MASCOT_FREE_PREVIEW_CAROUSEL = {
               Fennel sets up <Accent>your teacher portal.</Accent>
             </>
           }
-          body="Roll call, their class, messages to families and their hours, for your staff."
+          body="Roll call, the class day and staff hours."
           background="#ECE2F3"
           swipeLeft
         >
@@ -204,7 +224,7 @@ export const MASCOT_FREE_PREVIEW_CAROUSEL = {
               Then you <Accent>click around.</Accent>
             </>
           }
-          body="Your website, parent app, teacher portal and admin portal. No call needed, no obligation."
+          body="No call needed. No obligation."
           background="#EEF5E9"
         >
           <At x={40} y={590} rotate={-3} z={2}>

@@ -35,7 +35,6 @@ import {
 // stats). Pain lines are PAIN_COPY in src/components/home/home-copy.ts; "autopay" and "sign forms"
 // are existing product features. Screens are the real Garden demos branded "Your School".
 
-const AUDIENCE = "for microschool founders";
 const noOffer = (node: ReactNode) => <AdOfferProvider show={false}>{node}</AdOfferProvider>;
 
 function Footer({ tone = "light" }: { tone?: "light" | "dark" }) {
@@ -55,103 +54,223 @@ export const ADS_SCHOOL_OBJECTS_CAROUSEL = {
       fileName: "ad-h01-permission-slip.png",
       render: () => noOffer(<PermissionSlipAd />),
       adCopy: {
+        label: "Permission slip",
         primaryText:
-          "Microschool founders, here's your permission slip: let us build a free, private MudKitchen preview of your school. Your website, parent app, teacher and admin portals, within 2 business days.",
+          "Here's your permission slip ✍️ to let us build a free, private MudKitchen preview of your school. Ready in 2 business days.",
         headline: "Sign here for your free preview",
-        description: "No obligation. No call needed.",
+        description: "No call. No obligation.",
       },
+      adCopyVariants: [
+        {
+          label: "Signed",
+          primaryText: "Permission slip for a free MudKitchen preview ✍️\n☑️ My school, all four views\n☑️ With my logo\n☑️ In 2 business days\nSigned: me. Send your website.",
+          headline: "Signed: one free preview, please",
+          description: "No call. No obligation.",
+        },
+        {
+          label: "Short",
+          primaryText: "This permission slip actually comes back signed. 😄 Send your website and get a free, private MudKitchen preview of your school within 2 business days.",
+          headline: "The one slip that comes back signed",
+          description: "Free and private.",
+        },
+      ],
     },
     {
       id: "report-card",
       fileName: "ad-h02-admin-week-report-card.png",
       render: () => noOffer(<ReportCardAd />),
       adCopy: {
+        label: "Needs one place",
         primaryText:
-          "Microschool directors: enrollment in a form builder, updates in texts and email, student details in spreadsheets. See it all in one place instead: send your website for a free MudKitchen preview.",
+          "Enrollment in a form builder. Updates by text. Records in spreadsheets. 📝 See it all in one place: free MudKitchen preview.",
         headline: "Teacher's comment: needs one place",
-        description: "Free preview with your school's name.",
+        description: "Free, with your logo.",
       },
+      adCopyVariants: [
+        {
+          label: "The grades",
+          primaryText: "Your school's tools, graded: 📝\nForm builder: C\nGroup texts: D\nSpreadsheets: see me\nOne place for all of it: A+\nSend your website for a free preview.",
+          headline: "Spreadsheets: see me",
+          description: "Free, with your logo.",
+        },
+        {
+          label: "Short",
+          primaryText: "Teacher's comment: \"Great school. Needs one place.\" 📝 Send your website and see it all in one place with a free, private MudKitchen preview.",
+          headline: "Great school. Needs one place.",
+          description: "Free in 2 business days.",
+        },
+      ],
     },
     {
       id: "hall-pass",
       fileName: "ad-h03-hall-pass.png",
       render: () => noOffer(<HallPassAd />),
       adCopy: {
+        label: "Skip the sales call",
         primaryText:
-          "Microschool owners: here's your hall pass out of the sales call. Send your website and a private MudKitchen preview of your school lands in your inbox within 2 business days. Free.",
+          "Here's your hall pass out of the sales call. 🎫 Send your website and a free MudKitchen preview of your school lands in your inbox.",
         headline: "Hall pass: skip the sales call",
-        description: "Free, private, no obligation.",
+        description: "Free and private.",
       },
+      adCopyVariants: [
+        {
+          label: "Where to?",
+          primaryText: "Hall pass to: your own free MudKitchen preview. 🎫\nFrom: the sales call you didn't want\nTime out: 2 business days\nSend your website.",
+          headline: "Hall pass to your own preview",
+          description: "Free and private.",
+        },
+        {
+          label: "Short",
+          primaryText: "Excused from the sales call. 🎫 Send your website and a free, private MudKitchen preview of your school lands in your inbox instead.",
+          headline: "Excused from the sales call",
+          description: "Within 2 business days.",
+        },
+      ],
     },
     {
       id: "field-trip",
       fileName: "ad-h04-field-trip.png",
       render: () => noOffer(<FieldTripAd />),
       adCopy: {
+        label: "Field trip",
         primaryText:
-          "Microschool founders: take a field trip through your own school. Four stops: your website, parent app, teacher portal and admin portal, all built as a free private MudKitchen preview.",
+          "Take a field trip through your own school. 🚌 Four stops: website, parent app, teacher portal, admin portal. Free preview.",
         headline: "A field trip through your school",
-        description: "Free, within 2 business days.",
+        description: "Free in 2 business days.",
       },
+      adCopyVariants: [
+        {
+          label: "Itinerary",
+          primaryText: "Field trip itinerary for your free MudKitchen preview: 🚌\nStop 1: your website\nStop 2: the parent app\nStop 3: the teacher portal\nStop 4: your admin portal\nNo permission slip needed. Send your website.",
+          headline: "Four stops. No permission slip.",
+          description: "Free in 2 business days.",
+        },
+        {
+          label: "Short",
+          primaryText: "The only field trip with no bus, no lunches and no headcount. 🚌 Tour your own school in a free, private MudKitchen preview. Send your website.",
+          headline: "No bus. No headcount. Just your school.",
+          description: "Free and private.",
+        },
+      ],
     },
     {
       id: "lunchbox-note",
       fileName: "ad-h05-lunchbox-note.png",
       render: () => noOffer(<LunchboxAd />),
       adCopy: {
+        label: "Love, your school",
         primaryText:
-          "Microschool owners: tuition on autopay and forms signed online, in an app with your school's name on it. See it for your families: send your website for a free MudKitchen preview.",
+          "Forms signed online, in an app with your school's name on it. 💌 See it for your families: free MudKitchen preview.",
         headline: "Tuition on autopay. Love, your school.",
-        description: "Part of your free, private preview.",
+        description: "In your free preview.",
       },
+      adCopyVariants: [
+        {
+          label: "Notes home",
+          primaryText: "Notes your families would get, in a free preview of your parent app: 💌\n\"The field trip form is ready to sign.\"\n\"Here's this week's calendar.\"\nSend your website.",
+          headline: "Notes home, without the backpack",
+          description: "In your free preview.",
+        },
+        {
+          label: "Short",
+          primaryText: "No more forms crumpled at the bottom of a lunchbox. 🥪 See forms signed online in a free preview of your parent app.",
+          headline: "No more crumpled forms",
+          description: "Free in 2 business days.",
+        },
+      ],
     },
     {
       id: "annotated",
       fileName: "ad-h06-the-preview-we-would-build.png",
       render: () => noOffer(<AnnotatedAd />),
       adCopy: {
+        label: "What we'd build",
         primaryText:
-          "Microschool admins: here's the kind of preview we'd build for you. Your logo, your programs and your school's details in a MudKitchen admin portal you can click around. Free.",
+          "Here's the preview we'd build you: your logo, programs and details in an admin portal you can click around. ✏️ Free.",
         headline: "The preview we'd build for you",
-        description: "Free, private, within 2 business days.",
+        description: "Free in 2 business days.",
       },
+      adCopyVariants: [
+        {
+          label: "Circled",
+          primaryText: "Free MudKitchen preview, annotated: ✏️\n⭕ Your logo, here\n⭕ Your programs, here\n⭕ Your school's details, here\nSend your website to get yours.",
+          headline: "Your logo here. Your programs here.",
+          description: "Free in 2 business days.",
+        },
+        {
+          label: "Click around",
+          primaryText: "Screenshots are nice. Clicking around your own admin portal is better. 🖱️ Send your website for a free preview.",
+          headline: "Don't look at screenshots. Click.",
+          description: "Free, no obligation.",
+        },
+      ],
     },
     {
       id: "whiteboard",
       fileName: "ad-h07-whiteboard-to-real.png",
       render: () => noOffer(<WhiteboardAd />),
       adCopy: {
+        label: "Whiteboard",
         primaryText:
-          "Microschool founders: still sketching how it all fits together? Send your website and we'll build the real thing as a free private MudKitchen preview: website, parent app, teacher and admin portals.",
+          "Still sketching how it all fits together? 🧑‍🏫 Send your website and we'll build the real thing as a free MudKitchen preview.",
         headline: "From whiteboard to the real thing",
         description: "Free, no obligation.",
       },
+      adCopyVariants: [
+        {
+          label: "Arrows everywhere",
+          primaryText: "Whiteboard full of arrows? ➡️ Erase it. Send your website and see it all in one place: a free MudKitchen preview.",
+          headline: "Erase the arrows",
+          description: "Free, no obligation.",
+        },
+        {
+          label: "The real diagram",
+          primaryText: "The diagram, in a free MudKitchen preview: 🧑‍🏫\nWebsite → families apply\nAdmin portal → you run it\nTeacher portal → class runs\nParent app → families stay in the loop",
+          headline: "The real diagram: one place",
+          description: "Free in 2 business days.",
+        },
+      ],
     },
     {
       id: "no-meeting",
       fileName: "ad-h08-the-meeting-you-dont-need.png",
       render: () => noOffer(<NoMeetingAd />),
       adCopy: {
+        label: "No meeting",
         primaryText:
-          "Microschool owners: no discovery call needed. Send your website and click around a private MudKitchen preview of your school, teacher portal included. Free, within 2 business days.",
+          "No discovery call needed. 📅 Send your website and click around a free, private MudKitchen preview of your school.",
         headline: "The meeting you don't need",
-        description: "Free, private, no obligation.",
+        description: "Free and private.",
       },
+      adCopyVariants: [
+        {
+          label: "Cancelled",
+          primaryText: "Meeting cancelled: \"MudKitchen discovery call.\" 📅 Replaced with a free preview of your school you can click around.",
+          headline: "Meeting cancelled. Preview sent.",
+          description: "Free and private.",
+        },
+        {
+          label: "Short",
+          primaryText: "This could've been an email. So it is. ✉️ Send your website and get a free MudKitchen preview of your school in your inbox within 2 business days.",
+          headline: "This could've been an email. It is.",
+          description: "Free. No call needed.",
+        },
+      ],
     },
   ] satisfies MarketingSlide[],
 } satisfies MarketingCarousel;
 
 // ---------------------------------------------------------------- H1 permission slip
 
-const SLIP_ROWS = ["Use our logo and colours", "Set up our programs", "Build our website, parent app, teacher and admin portals"];
+const SLIP_ROWS = ["Use our logo and colours", "Set up our programs", "Build all four views"];
 
 function PermissionSlipAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.cream} pattern="grid">
+    <AdFrame background={G.cream} pattern="grid">
       <AdCopy
         title={
           <>
-            Your permission slip, <Accent>microschool founder.</Accent>
+            Your permission slip <Accent>is here.</Accent>
           </>
         }
         size={80}
@@ -160,7 +279,7 @@ function PermissionSlipAd() {
         <PaperForm width={880} rotate={-1.5}>
           <FormHeader label="Permission slip" title="Free MudKitchen preview" />
           <div style={{ padding: "24px 32px 28px" }}>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: 29, lineHeight: 1.35 }}>I give MudKitchen permission to build a free, private preview of my school:</p>
+            <p style={{ margin: 0, fontWeight: 700, fontSize: 29, lineHeight: 1.35 }}>I give MudKitchen permission to:</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 14, margin: "18px 0 20px" }}>
               {SLIP_ROWS.map((row) => (
                 <span key={row} style={{ display: "flex", alignItems: "center", gap: 18, fontWeight: 800, fontSize: 28 }}>
@@ -171,7 +290,7 @@ function PermissionSlipAd() {
             </div>
             <TearLine />
             <div style={{ display: "flex", gap: 30, marginTop: 14 }}>
-              <SignatureLine caption="School founder / director" width="62%">
+              <SignatureLine caption="School director" width="62%">
                 <Hand size={44} color="#24507A" rotate={-3}>
                   your name here
                 </Hand>
@@ -201,12 +320,11 @@ const REPORT: Array<{ subject: string; today: string }> = [
   { subject: "Enrollment", today: "a form builder" },
   { subject: "Parent updates", today: "texts and email" },
   { subject: "Student details", today: "spreadsheets" },
-  { subject: "Important tasks", today: "memory" },
 ];
 
 function ReportCardAd() {
   return (
-    <AdFrame audience={AUDIENCE} background="#EEF5E9">
+    <AdFrame background="#EEF5E9">
       <AdCopy
         title={
           <>
@@ -262,7 +380,7 @@ function HallPassAd() {
     ["Back in", "2 business days"],
   ];
   return (
-    <AdFrame audience={AUDIENCE} background={G.sky} tag={<FreeTag text="Free · private" />}>
+    <AdFrame background={G.sky} tag={<FreeTag text="Free · private" />}>
       <AdCopy
         title={
           <>
@@ -322,7 +440,7 @@ function FieldTripAd() {
     { label: "Your admin portal", node: <YourAdminWindow scale={0.39} /> },
   ];
   return (
-    <AdFrame audience={AUDIENCE} background={G.peach}>
+    <AdFrame background={G.peach}>
       <AdCopy
         title={
           <>
@@ -357,14 +475,14 @@ function FieldTripAd() {
 
 function LunchboxAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={YOUR.soft}>
+    <AdFrame background={YOUR.soft}>
       <AdCopy
         title={
           <>
             Tuition&rsquo;s on autopay. <Accent>Love, your school.</Accent>
           </>
         }
-        sub="The note your families will actually read: an app with your school's name on it. We'll build you a free preview."
+        sub="An app with your school's name on it. Free preview."
         size={80}
       />
       <Scene>
@@ -384,7 +502,7 @@ function LunchboxAd() {
             }}
           >
             <Hand size={36} color={G.ink} rotate={0} style={{ lineHeight: "50px" }}>
-              Have a great day! Tuition&rsquo;s on autopay, and the photo release form is ready to sign. ♥
+              Have a great day! Your photo form is ready to sign. ♥
             </Hand>
             <Hand size={30} color="#24507A" rotate={0} style={{ textAlign: "right", lineHeight: "50px" }}>
               — Your School
@@ -402,7 +520,7 @@ function LunchboxAd() {
 
 function AnnotatedAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.cream} pattern="grid">
+    <AdFrame background={G.cream} pattern="grid">
       <AdCopy
         title={
           <>
@@ -450,14 +568,14 @@ const SKETCH: Array<{ label: string; color: string; left: number; top: number; w
 
 function WhiteboardAd() {
   return (
-    <AdFrame audience={AUDIENCE} background="#F3EEF8">
+    <AdFrame background="#F3EEF8">
       <AdCopy
         title={
           <>
             From whiteboard <Accent>to the real thing.</Accent>
           </>
         }
-        sub="Send your website. We'll build your school a private MudKitchen preview, free."
+        sub="Send your website. We'll build it, free."
         size={84}
       />
       <Scene>
@@ -490,7 +608,7 @@ function WhiteboardAd() {
 
 function NoMeetingAd() {
   return (
-    <AdFrame audience={AUDIENCE} background="#EEF5E9">
+    <AdFrame background="#EEF5E9">
       <AdCopy
         title={
           <>

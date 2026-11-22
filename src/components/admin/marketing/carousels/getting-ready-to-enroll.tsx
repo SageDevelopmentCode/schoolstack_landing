@@ -34,7 +34,24 @@ export const GETTING_READY_TO_ENROLL_CAROUSEL = {
   description: "Five things to set up before families enroll, one crew member per step.",
   fileSlug: "mudkitchen-getting-ready-to-enroll",
   slides: [
-    { id: "ready", fileName: "01-getting-ready-to-enroll-families.png", render: () => <ReadySlide /> },
+    { id: "ready", fileName: "01-getting-ready-to-enroll-families.png",
+      adCopy: {
+        label: "5 things first",
+        primaryText: "Getting ready to enroll families? Set up these 5 things first. 📋 One crew member per step. Swipe →\n\n#microschool #enrollment #schoolfounder",
+        headline: "5 things to set up before you enroll",
+      },
+      adCopyVariants: [
+        {
+          label: "Save it",
+          primaryText: "📌 Save this before enrollment opens. Five setup steps so families aren't stuck emailing you questions in week one. Swipe →\n\n#microschool #enrollment",
+          headline: "Save this before enrollment opens",
+        },
+        {
+          label: "Which is missing?",
+          primaryText: "Application, visits, checklist, preview, tuition. Which one is your school still missing? Be honest. 👇 Swipe for how to set up each →\n\n#microschool #enrollment #schoolfounder",
+          headline: "Which one are you missing?",
+        },
+      ], render: () => <ReadySlide /> },
     { id: "application", fileName: "02-build-the-application.png", render: () => <ApplicationSlide /> },
     { id: "visits", fileName: "03-set-up-visits.png", render: () => <VisitsSlide /> },
     { id: "checklist", fileName: "04-prepare-the-enrollment-checklist.png", render: () => <ChecklistSlide /> },
@@ -89,7 +106,7 @@ function VisitsSlide() {
     <MascotProductSlide
       kicker="2 of 5 · Visits"
       title="Let families book a visit."
-      body="Post times for tours, interviews or shadow days. Families pick one."
+      body="Post tour times. Families pick one."
       lane="right"
       mascot={{ name: "terra", view: "wave", flip: true }}
       tip="Terra here. No more back-and-forth emails."
@@ -143,7 +160,7 @@ function TuitionSlide() {
     <MascotProductSlide
       kicker="5 of 5 · Tuition"
       title="Set up tuition."
-      body="Add rates, fees and payment options before the first bill is due."
+      body="Rates, fees and payment options, before the first bill."
       lane="left"
       mascot={{ name: "nutmeg", view: "point" }}
       tip="Nutmeg here. Bills go out on time."

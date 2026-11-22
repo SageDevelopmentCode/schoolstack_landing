@@ -26,7 +26,6 @@ import { Annotation, FounderPolaroid, JULIUS_SIGNATURE } from "@/components/admi
 // and claims stay inside the offer (free, private, no obligation, no call needed, within 2 business
 // days; website, parent app, teacher portal and admin portal with your logo, colours and programs).
 
-const AUDIENCE = "for microschool owners";
 const noOffer = (node: ReactNode) => <AdOfferProvider show={false}>{node}</AdOfferProvider>;
 
 function Footer({ tone = "light" }: { tone?: "light" | "dark" }) {
@@ -48,88 +47,208 @@ export const ADS_PREVIEW_BUNDLE_CAROUSEL = {
       fileName: "ad-i01-three-logins-one-preview.png",
       render: () => noOffer(<ThreeLoginsAd />),
       adCopy: {
+        label: "Three logins",
         primaryText:
-          "Microschool owners: your free preview comes with three views. Try it as the admin, a teacher and a parent, all set up with your school's logo and colours. Send your website to get yours.",
+          "Your free preview comes with three views. 🔑 Try it as the admin, a teacher and a parent, all with your school's logo.",
         headline: "Three logins. One free preview.",
-        description: "Admin, teacher and parent views.",
+        description: "Admin, teacher, parent.",
       },
+      adCopyVariants: [
+        {
+          label: "Try each",
+          primaryText: "Your free MudKitchen preview has three ways in: 🔑\n👩‍💼 Admin: run the school\n🧑‍🏫 Teacher: run the class\n👨‍👩‍👧 Parent: pay, sign, check the calendar\nSend your website to get yours.",
+          headline: "Admin, teacher, parent: try all three",
+          description: "Admin, teacher, parent.",
+        },
+        {
+          label: "Short",
+          primaryText: "One free preview. Three hats to try on. 🎩 Be the admin, a teacher and a parent in a MudKitchen preview of your school. Send your website.",
+          headline: "One preview. Three hats.",
+          description: "Free in 2 business days.",
+        },
+      ],
     },
     {
       id: "every-seat",
       fileName: "ad-i02-sit-in-every-seat.png",
       render: () => noOffer(<EverySeatAd />),
       adCopy: {
+        label: "Every seat",
         primaryText:
-          "Running a microschool? Sit in every seat before you decide: your admin portal, your teachers' portal and your families' parent app. All in one free, private MudKitchen preview of your school.",
+          "Running a microschool? Sit in every seat before you decide: 🪑 admin, teacher and parent, in one free MudKitchen preview.",
         headline: "Sit in every seat at your school",
-        description: "Free, private, within 2 business days.",
+        description: "Free in 2 business days.",
       },
+      adCopyVariants: [
+        {
+          label: "Musical chairs",
+          primaryText: "Musical chairs at your school, in a free MudKitchen preview: 🪑\nSit in the admin chair\nSit in the teacher's chair\nSit in the parent's chair\nSend your website.",
+          headline: "Musical chairs, but useful",
+          description: "Free in 2 business days.",
+        },
+        {
+          label: "Before you decide",
+          primaryText: "Don't decide from one screenshot. 🪑 See your school from the admin, teacher and parent side first. Free preview.",
+          headline: "See every side before you decide",
+          description: "Free and private.",
+        },
+      ],
     },
     {
       id: "switch-views",
       fileName: "ad-i03-admin-to-parent-in-one-click.png",
       render: () => noOffer(<SwitchViewsAd />),
       adCopy: {
+        label: "One click",
         primaryText:
-          "Microschool admins: inside your free MudKitchen preview, switch from the admin view to the teacher and parent views in one click. Your logo and colours on every screen. Send your website to start.",
+          "Inside your free MudKitchen preview, switch from admin to teacher to parent in one click. 🖱️ Your logo on every screen.",
         headline: "Admin to parent in one click",
-        description: "Your whole school, in one preview.",
+        description: "Your whole school.",
       },
+      adCopyVariants: [
+        {
+          label: "Click, click, click",
+          primaryText: "Click: admin view. Click: teacher view. Click: parent view. 🖱️ That's your free MudKitchen preview. Send your website.",
+          headline: "Click. Click. Click. Whole school.",
+          description: "Your whole school.",
+        },
+        {
+          label: "Short",
+          primaryText: "Be the admin at 9, the teacher at 10 and the parent at 11. ⏰ Switch views in your free MudKitchen preview. Send your website to start.",
+          headline: "Admin at 9. Parent at 11.",
+          description: "Free in 2 business days.",
+        },
+      ],
     },
     {
       id: "unboxing",
       fileName: "ad-i04-the-whole-bundle-unboxed.png",
       render: () => noOffer(<UnboxingAd />),
       adCopy: {
+        label: "Unboxed",
         primaryText:
-          "Microschool owners, here's what's in the box: your website, admin portal, teacher portal and parent app, built as a free MudKitchen preview with your logo and colours. No call needed.",
+          "What's in the box: 📦 your website, admin portal, teacher portal and parent app, as a free MudKitchen preview. No call.",
         headline: "The whole bundle, unboxed",
-        description: "Free, private, no obligation.",
+        description: "Free and private.",
       },
+      adCopyVariants: [
+        {
+          label: "Box contents",
+          primaryText: "Box contents of your free MudKitchen preview: 📦\n1 × website\n1 × admin portal\n1 × teacher portal\n1 × parent app\nSend your website.",
+          headline: "Box contents: your whole school",
+          description: "Free and private.",
+        },
+        {
+          label: "Short",
+          primaryText: "Unboxing video energy, no video needed. 📦 Send your website and unbox a free preview of your whole school.",
+          headline: "Unbox your whole school",
+          description: "Free. No call needed.",
+        },
+      ],
     },
     {
       id: "parent-eyes",
       fileName: "ad-i05-see-it-the-way-parents-will.png",
       render: () => noOffer(<ParentEyesAd />),
       adCopy: {
+        label: "The parent's view",
         primaryText:
-          "Microschool owners: be the parent for a minute. Your free preview includes the parent app your families would use: tuition, forms, messages and the calendar, with your school's name on it.",
+          "Be the parent for a minute. 📱 Your free preview includes the parent app your families would use, with your school's name.",
         headline: "See it the way your parents will",
-        description: "Plus your admin and teacher portals.",
+        description: "Plus admin and teacher.",
       },
+      adCopyVariants: [
+        {
+          label: "Parent checklist",
+          primaryText: "What a parent would do in your free MudKitchen preview: 👨‍👩‍👧\n✅ Pay tuition\n✅ Sign a form\n✅ Read your message\n✅ Check the calendar",
+          headline: "Pay, sign, read, check. One app.",
+          description: "Plus admin and teacher.",
+        },
+        {
+          label: "Short",
+          primaryText: "Ever wonder what your school looks like from the parent's phone? 📱 Find out with a free MudKitchen preview of your parent app. Send your website.",
+          headline: "Your school, from the parent's phone",
+          description: "Free in 2 business days.",
+        },
+      ],
     },
     {
       id: "hand-to-teacher",
       fileName: "ad-i06-hand-your-teacher-the-phone.png",
       render: () => noOffer(<HandToTeacherAd />),
       adCopy: {
+        label: "Teacher's turn",
         primaryText:
-          "Microschool owners: your teachers get their own portal too. Your free MudKitchen preview includes the teacher view, roll call and all, next to your admin portal and parent app.",
+          "Your teachers get their own portal too. 🧑‍🏫 Your free MudKitchen preview includes the teacher view, roll call and all.",
         headline: "Hand your teacher the phone",
-        description: "Free preview with your school's name.",
+        description: "Free, with your logo.",
       },
+      adCopyVariants: [
+        {
+          label: "Roll call",
+          primaryText: "Hand your teacher the phone. 🧑‍🏫 Your free MudKitchen preview includes their own portal. See what they think.",
+          headline: "Roll call, on their own portal",
+          description: "Free, with your logo.",
+        },
+        {
+          label: "Ask them",
+          primaryText: "Don't pick software for your teachers. Pick it with them. 🤝 Get a free preview and let them click around.",
+          headline: "Pick it with your teachers",
+          description: "Free and private.",
+        },
+      ],
     },
     {
       id: "overthinking",
       fileName: "ad-i07-stop-guessing-what-parents-see.png",
       render: () => noOffer(<OverthinkingAd />),
       adCopy: {
+        label: "\"ok.\"",
         primaryText:
-          "A parent texted \"ok.\" and now you're overthinking it. 😅 Microschool owners: see exactly what your families see. Your free preview includes the parent app, plus your admin and teacher portals.",
+          "A parent texted \"ok.\" and now you're overthinking it. 😅 See exactly what your families see, in a free preview.",
         headline: "Stop guessing what parents see",
-        description: "Free, private, no obligation.",
+        description: "Free and private.",
       },
+      adCopyVariants: [
+        {
+          label: "Decoded",
+          primaryText: "\"ok.\" from a parent could mean anything. 😅 Get a free MudKitchen preview and see what families see.",
+          headline: "\"ok.\" Decoded.",
+          description: "Free and private.",
+        },
+        {
+          label: "Short",
+          primaryText: "Less guessing, more knowing. 🧠 See your school through your parents' eyes in a free MudKitchen preview.",
+          headline: "Less guessing. More knowing.",
+          description: "Free in 2 business days.",
+        },
+      ],
     },
     {
       id: "julius-bundle",
       fileName: "ad-i08-not-just-the-admin-side.png",
       render: () => noOffer(<JuliusBundleAd />),
       adCopy: {
+        label: "From Julius",
         primaryText:
-          "A note from Julius, our co-founder: your free preview isn't just the admin side. You get the admin portal, teacher portal and parent app, with your logo. Click through all three.",
+          "A note from Julius, our co-founder: 👋 your free preview isn't just the admin side. You get all three views, with your logo.",
         headline: "Not just the admin side. All of it.",
-        description: "Free, within 2 business days.",
+        description: "Free in 2 business days.",
       },
+      adCopyVariants: [
+        {
+          label: "All three",
+          primaryText: "Julius here, from MudKitchen. 👋 Your free preview isn't one screen. It's three: admin, teacher and parent. Send me your website.",
+          headline: "Not one screen. Three.",
+          description: "Free in 2 business days.",
+        },
+        {
+          label: "Why the bundle",
+          primaryText: "Why does the free preview include the teacher and parent side? Because that's where your school lives. 🏫 (Julius)",
+          headline: "Your school lives on every side",
+          description: "Free and private.",
+        },
+      ],
     },
   ] satisfies MarketingSlide[],
 } satisfies MarketingCarousel;
@@ -138,7 +257,7 @@ export const ADS_PREVIEW_BUNDLE_CAROUSEL = {
 
 function ThreeLoginsAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.cream} pattern="grid" tag={<FreeTag text="Free · private" />}>
+    <AdFrame background={G.cream} pattern="grid" tag={<FreeTag text="Free · private" />}>
       <AdCopy
         title={
           <>
@@ -195,7 +314,7 @@ function SeatTag({ n, label, style }: { n: number; label: string; style?: CSSPro
 
 function EverySeatAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.sky}>
+    <AdFrame background={G.sky}>
       <AdCopy
         title={
           <>
@@ -238,7 +357,7 @@ function EverySeatAd() {
 
 function SwitchViewsAd() {
   return (
-    <AdFrame audience={AUDIENCE} background="#EEF5E9">
+    <AdFrame background="#EEF5E9">
       <AdCopy
         title={
           <>
@@ -285,7 +404,7 @@ function OpenBox({ width = 640, height = 280, label }: { width?: number; height?
 
 function UnboxingAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.peach}>
+    <AdFrame background={G.peach}>
       <AdCopy
         title={
           <>
@@ -333,7 +452,7 @@ function UnboxingAd() {
 
 function ParentEyesAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={YOUR.soft}>
+    <AdFrame background={YOUR.soft}>
       <AdCopy
         title={
           <>
@@ -376,7 +495,7 @@ function ParentEyesAd() {
 
 function HandToTeacherAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.cream} pattern="grid">
+    <AdFrame background={G.cream} pattern="grid">
       <AdCopy
         title={
           <>
@@ -396,7 +515,7 @@ function HandToTeacherAd() {
         <Pin left={420} top={500} z={5}>
           <StickyNote width={330} rotate={4} color={G.butter} style={{ padding: "30px 26px 24px" }}>
             <Hand size={36} color={G.ink} rotate={0} style={{ lineHeight: 1.2 }}>
-              roll call, class days and messages, with your logo
+              roll call and class days
             </Hand>
           </StickyNote>
         </Pin>
@@ -413,7 +532,7 @@ function HandToTeacherAd() {
 
 function OverthinkingAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.lav}>
+    <AdFrame background={G.lav}>
       <AdCopy
         title={
           <>
@@ -467,7 +586,7 @@ function OverthinkingAd() {
 
 function JuliusBundleAd() {
   return (
-    <AdFrame audience={AUDIENCE} background={G.forest} tone="dark">
+    <AdFrame background={G.forest} tone="dark">
       <AdCopy
         tone="dark"
         title={
@@ -484,7 +603,7 @@ function JuliusBundleAd() {
         <Pin left={290} top={10} z={4}>
           <InkCard bg={G.butter} rotate={1.5} width={640} style={{ padding: "26px 32px" }}>
             <Hand size={36} color={G.ink} rotate={0} style={{ lineHeight: 1.28 }}>
-              Your preview has all three: the admin portal, the teacher portal and the parent app. Click through each one.
+              Admin, teacher and parent. Click through all three.
             </Hand>
             <Hand size={28} color={G.clayDeep} rotate={0} style={{ marginTop: 10, textAlign: "right" }}>
               {JULIUS_SIGNATURE}

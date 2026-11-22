@@ -29,7 +29,24 @@ export const MASCOT_DIG_ADMIN_CAROUSEL = {
   description: "Mascot carousel: Dig drowns in tabs, then shows the Garden admin dashboard and admissions pipeline.",
   fileSlug: "mudkitchen-dig-admin",
   slides: [
-    { id: "hook", fileName: "01-dig-has-47-tabs-open.png", render: () => <HookSlide /> },
+    { id: "hook", fileName: "01-dig-has-47-tabs-open.png",
+      adCopy: {
+        label: "47 tabs",
+        primaryText: "Dig has 47 tabs open. forms_FINAL_v3.pdf. tuition (2).xlsx. group chat (99+). 😵\n\nSwipe for the only tab Dig needs now: enrollment, billing and daily tasks in one workspace →\n\n#microschool #schooladmin #schoolfounder",
+        headline: "Dig has 47 tabs open",
+      },
+      adCopyVariants: [
+        {
+          label: "Tab count",
+          primaryText: "Be honest: how many tabs are open for your school right now? Dig's at 47. Swipe to see Dig close them all →\n\n#microschool #schooladmin",
+          headline: "How many tabs are you at?",
+        },
+        {
+          label: "Dig's day",
+          primaryText: "Dig's day, as planned: coffee, peace, birdsong. Dig's day, as lived: \"someone needs a form,\" \"someone needs a different form,\" lunch (theoretically). ☕ Swipe →\n\n#microschool #founderlife",
+          headline: "Coffee. Peace. Birdsong. (Not quite.)",
+        },
+      ], render: () => <HookSlide /> },
     { id: "day", fileName: "02-a-day-in-the-life.png", render: () => <DaySlide /> },
     { id: "turn", fileName: "03-what-if-one-place.png", render: () => <TurnSlide /> },
     { id: "dashboard", fileName: "04-one-workspace.png", render: () => <DashboardSlide /> },

@@ -27,14 +27,182 @@ export const MASCOT_CREW_SINGLES_CAROUSEL = {
   description: "Standalone mascot posts — download each with “Download current”.",
   fileSlug: "mudkitchen-crew-singles",
   slides: [
-    { id: "flicker-attempts", fileName: "single-01-flicker-one-photo.png", render: () => <FlickerAttempts /> },
-    { id: "flicker-one-more", fileName: "single-02-flicker-just-one-more.png", render: () => <FlickerOneMore /> },
-    { id: "tansy-meeting", fileName: "single-03-tansy-meeting.png", render: () => <TansyMeeting /> },
-    { id: "tansy-signup", fileName: "single-04-tansy-signup-sheet.png", render: () => <TansySignup /> },
-    { id: "crew-this-week", fileName: "single-05-which-crew-member-are-you.png", render: () => <CrewThisWeek /> },
-    { id: "dig-monday-friday", fileName: "single-06-monday-dig-vs-friday-dig.png", render: () => <DigMondayFriday /> },
-    { id: "pick-your-fighter", fileName: "single-07-pick-your-fighter.png", render: () => <PickYourFighter /> },
-    { id: "quick-question", fileName: "single-08-quick-question.png", render: () => <QuickQuestion /> },
+    {
+      id: "flicker-attempts",
+      fileName: "single-01-flicker-one-photo.png",
+      adCopy: {
+        label: "One photo",
+        primaryText: "Flicker trying to get one photo where all 12 kids look at the camera. Flicker does not give up. 📸 #microschool #pictureday #teacherlife",
+        headline: "One photo. All 12 kids. Please.",
+      },
+      adCopyVariants: [
+        {
+          label: "Question",
+          primaryText: "How many tries did your last class photo take? Flicker is at 47 and counting. 📸 #microschool #pictureday",
+          headline: "How many tries did yours take?",
+        },
+        {
+          label: "Tag them",
+          primaryText: "Tag the teacher who always gets the class photo eventually. Flicker salutes you. 📸 #microschool #teacherlife",
+          headline: "Tag your class-photo hero",
+        },
+      ],
+      render: () => <FlickerAttempts />,
+    },
+    {
+      id: "flicker-one-more",
+      fileName: "single-02-flicker-just-one-more.png",
+      adCopy: {
+        label: "Just one more",
+        primaryText: "\"Just one more.\" - Flicker, 40 photos ago. 📸 #microschool #pictureday #schoollife",
+        headline: "\"Just one more\"",
+      },
+      adCopyVariants: [
+        {
+          label: "Relatable",
+          primaryText: "Picture day: \"just one more\" turns into a whole camera roll. Who else? 🙋 #microschool #pictureday",
+          headline: "One more becomes the camera roll",
+        },
+        {
+          label: "Short",
+          primaryText: "Flicker needs a nap after picture day. Same. 😴 #microschool #teacherlife",
+          headline: "Picture day needs a nap after",
+        },
+      ],
+      render: () => <FlickerOneMore />,
+    },
+    {
+      id: "tansy-meeting",
+      fileName: "single-03-tansy-meeting.png",
+      adCopy: {
+        label: "Could've been a message",
+        primaryText: "Tansy at a committee meeting that could have been a message. \"Let's circle back.\" \"Quick round of intros.\" \"Any other business?\" 😴 #microschool #schoolcommunity",
+        headline: "This could have been a message",
+      },
+      adCopyVariants: [
+        {
+          label: "Bingo",
+          primaryText: "Committee meeting bingo: \"let's circle back,\" \"quick round of intros,\" \"any other business?\" How many did you get at your last one? 👇 #microschool #schoollife",
+          headline: "Committee meeting bingo",
+        },
+        {
+          label: "Tag them",
+          primaryText: "Tag the volunteer who always says \"any other business?\" at 8:58pm. Tansy needs to know. 😅 #microschool #schoolcommunity",
+          headline: "\"Any other business?\"",
+        },
+      ],
+      render: () => <TansyMeeting />,
+    },
+    {
+      id: "tansy-signup",
+      fileName: "single-04-tansy-signup-sheet.png",
+      adCopy: {
+        label: "Minute 1 vs. 3",
+        primaryText: "Tansy's volunteer sign-up sheet. Minute 1: excited. Minute 3: tears. 🥲 #microschool #schoolcommunity #volunteers",
+        headline: "Sign-up sheet: minute 1 vs. minute 3",
+      },
+      adCopyVariants: [
+        {
+          label: "Question",
+          primaryText: "How long does your volunteer sign-up sheet stay full? Be honest. 👇 #microschool #volunteers",
+          headline: "How long does it stay full?",
+        },
+        {
+          label: "Thank you",
+          primaryText: "To every parent who signs up first and actually shows up: thank you. Tansy (and every founder) loves you. 🧡 #microschool #volunteers",
+          headline: "To the parents who show up",
+        },
+      ],
+      render: () => <TansySignup />,
+    },
+    {
+      id: "crew-this-week",
+      fileName: "single-05-which-crew-member-are-you.png",
+      adCopy: {
+        label: "Which one are you",
+        primaryText: "Which crew member are you this week? Be honest. Nobody is a Clover in December. Drop yours below. 👇 #microschool #schoolfounder #microschooling",
+        headline: "Which crew member are you this week?",
+      },
+      adCopyVariants: [
+        {
+          label: "Tag a teammate",
+          primaryText: "Tag a teammate and tell them which crew member they are this week. Choose kindly. 😄 #microschool #schoollife",
+          headline: "Tag a teammate's crew member",
+        },
+        {
+          label: "Short",
+          primaryText: "Crew check-in: who are you today? 👇 #microschool #founderlife",
+          headline: "Crew check-in",
+        },
+      ],
+      render: () => <CrewThisWeek />,
+    },
+    {
+      id: "dig-monday-friday",
+      fileName: "single-06-monday-dig-vs-friday-dig.png",
+      adCopy: {
+        label: "Monday vs. Friday",
+        primaryText: "Monday Dig vs Friday Dig. We all contain both. Which one are you right now? 👇 #microschool #founderlife #teacherlife",
+        headline: "Monday Dig vs Friday Dig",
+      },
+      adCopyVariants: [
+        {
+          label: "Tag them",
+          primaryText: "Tag someone who's a Monday Dig in the morning and a Friday Dig by 3pm. 😅 #microschool #founderlife",
+          headline: "Monday Dig by 9. Friday Dig by 3.",
+        },
+        {
+          label: "Short",
+          primaryText: "It's Friday. Dig has left the building. 🙃 #microschool #teacherlife",
+          headline: "Dig has left the building",
+        },
+      ],
+      render: () => <DigMondayFriday />,
+    },
+    {
+      id: "pick-your-fighter",
+      fileName: "single-07-pick-your-fighter.png",
+      adCopy: {
+        label: "Pick your fighter",
+        primaryText: "Pick your fighter for spring semester. Comment the name. 👇 (Plot twist: you get the whole crew.) #microschool #schoolfounder",
+        headline: "Pick your fighter",
+      },
+      adCopyVariants: [
+        {
+          label: "Explain",
+          primaryText: "Pick your fighter and tell us why in the comments. Best reasoning gets pinned. 🎮 #microschool #schoollife",
+          headline: "Pick one. Explain yourself.",
+        },
+        {
+          label: "Tag them",
+          primaryText: "Tag your school's real-life version of each crew member. We'll wait. 😄 #microschool #schoolfounder",
+          headline: "Tag your real-life crew",
+        },
+      ],
+      render: () => <PickYourFighter />,
+    },
+    {
+      id: "quick-question",
+      fileName: "single-08-quick-question.png",
+      adCopy: {
+        label: "\"Quick question\"",
+        primaryText: "\"Quick question\" at 9:47pm. It is never quick. 😅 Which one's the worst time you've gotten one? 👇 #microschool #founderlife #parentcommunication",
+        headline: "\"Quick question\" (it is not quick)",
+      },
+      adCopyVariants: [
+        {
+          label: "Relatable",
+          primaryText: "Every founder knows: \"quick question\" means clear your evening. 🫠 #microschool #founderlife",
+          headline: "\"Quick question\" = clear your evening",
+        },
+        {
+          label: "Tag them",
+          primaryText: "Tag the founder who answers every \"quick question\" no matter the time. They deserve a nap. 🧡 #microschool #schoolfounder",
+          headline: "Tag a founder who needs a nap",
+        },
+      ],
+      render: () => <QuickQuestion />,
+    },
   ] satisfies MarketingSlide[],
 } satisfies MarketingCarousel;
 

@@ -35,132 +35,312 @@ export const ADS_HOLIDAY_GIFT_CAROUSEL = {
       fileName: "ad-a1-nutmeg-gift-tag.png",
       render: () => <GiftTagAd />,
       adCopy: {
+        label: "Apples vs. this",
         primaryText:
-          "Microschool directors: teachers get apples, you get this. Book a MudKitchen demo before the new year, start a paid plan within 30 days, and get a $200 Amazon gift card. 🎁 Terms apply.",
+          "Teachers get apples. You get this. 🎁 Book a MudKitchen demo before the new year, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Sign up, get a $200 Amazon gift card",
-        description: "Enrollment, tuition and families in one place.",
+        description: "Enrollment to tuition.",
       },
+      adCopyVariants: [
+        {
+          label: "To/From",
+          primaryText: "To: your microschool. From: MudKitchen. 🎁 Inside: your whole school in one place, plus a $200 Amazon gift card. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "To: you. From: MudKitchen. $200.",
+          description: "Enrollment to tuition.",
+        },
+        {
+          label: "Short",
+          primaryText: "A gift tag with your name on it. 🎁 Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "This one's got your name on it",
+          description: "Built for microschools.",
+        },
+      ],
     },
     {
       id: "stocking",
       fileName: "ad-a2-pip-stocking.png",
       render: () => <StockingAd />,
       adCopy: {
+        label: "Stocking",
         primaryText:
-          "School owners, a little something for your stocking: book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. A calmer spring semester comes with it. Terms apply.",
+          "A little something for your stocking. 🧦 Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "$200 for you. A calmer spring.",
         description: "Built for microschools.",
       },
+      adCopyVariants: [
+        {
+          label: "What's inside",
+          primaryText: "In your stocking this year: 🧦\n✅ A $200 Amazon gift card\n✅ Tuition that isn't chased by text\n✅ Enrollment in one place\nBook a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Stocking stuffer: $200 + a calm spring",
+          description: "Built for microschools.",
+        },
+        {
+          label: "Short",
+          primaryText: "Coal for the spreadsheets. $200 for you. 🧦 Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Coal for the spreadsheets. $200 for you.",
+          description: "Enrollment to tuition.",
+        },
+      ],
     },
     {
       id: "dear-santa",
       fileName: "ad-a3-dig-dear-santa.png",
       render: () => <DearSantaAd />,
       adCopy: {
+        label: "Dear Santa",
         primaryText:
-          "Every microschool director's letter to Santa: one school system instead of six spreadsheets, please. MudKitchen puts your website, enrollment, tuition and parent messages in one place. Book a demo this month, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Every director's letter to Santa: one school system, not six spreadsheets. 🎅 Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "One system, not six spreadsheets",
-        description: "Sign up, get a $200 Amazon gift card.",
+        description: "Get a $200 gift card.",
       },
+      adCopyVariants: [
+        {
+          label: "The list",
+          primaryText: "Dear Santa, for my microschool I'd like a $200 Amazon gift card and: 🎅\n✅ One login, not six\n✅ Tuition that arrives on time\n✅ Parent updates in one place\nSanta says: book a MudKitchen demo this month, start a paid plan within 30 days, and the card is yours. Terms apply.",
+          headline: "Dear Santa: one login and $200",
+          description: "Get a $200 gift card.",
+        },
+        {
+          label: "Short",
+          primaryText: "Santa can't fix six spreadsheets. MudKitchen can. 🎅 Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Santa can't fix six spreadsheets",
+          description: "Website to messages.",
+        },
+      ],
     },
     {
       id: "holiday-list",
       fileName: "ad-a4-bramble-holiday-list.png",
       render: () => <HolidayListAd />,
       adCopy: {
+        label: "One less thing",
         primaryText:
-          "School directors: one less thing on your list. See how MudKitchen runs enrollment, tuition and family updates for your microschool in a demo. Start a paid plan within 30 days and get a $200 Amazon gift card. Terms apply.",
+          "One less thing on your holiday list. 🎄 Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Demo. Sign up. $200.",
-        description: "A demo built around your school.",
+        description: "Built around your school.",
       },
+      adCopyVariants: [
+        {
+          label: "Checked off",
+          primaryText: "Holiday to-do list for school directors: ✏️\n✅ Gifts for the teachers\n✅ Holiday program\n✅ Book a MudKitchen demo\n🎁 Get a $200 Amazon gift card\nStart a paid plan within 30 days of your demo to get the card. Terms apply.",
+          headline: "Last item on the list: $200",
+          description: "Built around your school.",
+        },
+        {
+          label: "Short",
+          primaryText: "Three steps, one $200 gift card: book a demo, pick a plan, relax. 🎄 Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Book. Sign up. Get $200.",
+          description: "Built around your school.",
+        },
+      ],
     },
     {
       id: "treat-yourself",
       fileName: "ad-a5-marigold-treat-yourself.png",
       render: () => <TreatYourselfAd />,
       adCopy: {
+        label: "You earned it",
         primaryText:
-          "Microschool founders, you survived fall semester. Treat yourself: book a MudKitchen demo, start a paid plan within 30 days, and we'll send you a $200 Amazon gift card. Terms apply.",
+          "You survived fall semester. Treat yourself. 🎉 Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "You earned this one",
-        description: "$200 Amazon gift card when you sign up.",
+        description: "Get a $200 gift card.",
       },
+      adCopyVariants: [
+        {
+          label: "Fall recap",
+          primaryText: "Fall semester recap: 1 founder, 0 days off, too many parent texts. 😮‍💨 Treat yourself to a calmer spring and $200. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "0 days off. Here's $200.",
+          description: "Get a $200 gift card.",
+        },
+        {
+          label: "Short",
+          primaryText: "You made it through fall. That deserves $200. 🎉 Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "You made it through fall",
+          description: "Built for microschools.",
+        },
+      ],
     },
     {
       id: "crew-wrapped",
       fileName: "ad-a6-crew-wrapped.png",
       render: () => <CrewWrappedAd />,
       adCopy: {
+        label: "Crew wrapped it",
         primaryText:
-          "For microschool owners, the crew wrapped something: enrollment, tuition, messages and attendance in one place, plus a $200 Amazon gift card when you start a paid plan within 30 days of your demo. Terms apply.",
+          "The crew wrapped something for you: 🎁 your whole school in one place, plus a $200 Amazon gift card when you start a paid plan within 30 days of your demo. Terms apply.",
         headline: "Unwrap a calmer school year",
-        description: "Sign up, get a $200 Amazon gift card.",
+        description: "Get a $200 gift card.",
       },
+      adCopyVariants: [
+        {
+          label: "Unwrapped",
+          primaryText: "The crew wrapped two things for your microschool: 🎁\n1. Enrollment, tuition, messages and attendance in one place\n2. A $200 Amazon gift card\nBook a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Two gifts: one system, $200",
+          description: "Get a $200 gift card.",
+        },
+        {
+          label: "Short",
+          primaryText: "Pip, Nutmeg and Loam wrapped you something. Hint: it's $200. 🎁 Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Hint: it's $200",
+          description: "From the MudKitchen crew.",
+        },
+      ],
     },
     {
       id: "apple",
       fileName: "ad-a7-dig-apple.png",
       render: () => <AppleAd />,
       adCopy: {
+        label: "Apples vs. $200",
         primaryText:
           "Teachers get apples. Microschools get $200. Book a MudKitchen demo this holiday season, start a paid plan within 30 days, and the Amazon gift card is yours. 🍎 Terms apply.",
         headline: "Sign up, your school gets $200",
-        description: "Book a demo of MudKitchen.",
+        description: "Book a demo.",
       },
+      adCopyVariants: [
+        {
+          label: "Upgrade",
+          primaryText: "Teachers get apples. 🍎 Founders get an upgrade: enrollment, tuition and families in one place, and a $200 Amazon gift card. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Apples for teachers. $200 for you.",
+          description: "Book a demo.",
+        },
+        {
+          label: "Math",
+          primaryText: "Holiday math for microschools: 1 demo + 1 paid plan = $200. 🍎 Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "1 demo + 1 plan = $200",
+          description: "Book a demo.",
+        },
+      ],
     },
     {
       id: "report-card",
       fileName: "ad-a8-fennel-report-card.png",
       render: () => <ReportCardAd />,
       adCopy: {
+        label: "Report card",
         primaryText:
-          "School directors: your fall report card is in. Enrollment A+, tuition chasing needs work. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card (teacher's orders). Terms apply.",
+          "Your fall report card is in: enrollment A+, tuition chasing needs work. 📝 Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Teacher's note: sign up, get $200",
-        description: "Enrollment, tuition and families in one place.",
+        description: "Enrollment to tuition.",
       },
+      adCopyVariants: [
+        {
+          label: "Teacher's comments",
+          primaryText: "Extra credit: a $200 Amazon gift card. 📝 Teacher's comments on your fall semester:\nEnrollment: A+\nParent comms: A (very responsive at 9pm)\nTuition chasing: see me\nBook a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Extra credit: $200",
+          description: "Enrollment to tuition.",
+        },
+        {
+          label: "Short",
+          primaryText: "Gold star for surviving fall. 🌟 Now claim your $200. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Gold star. Plus $200.",
+          description: "Built for microschools.",
+        },
+      ],
     },
     {
       id: "permission-slip",
       fileName: "ad-a9-bramble-permission-slip.png",
       render: () => <PermissionSlipAd />,
       adCopy: {
+        label: "Permission slip",
         primaryText:
-          "Microschool founders, this is your permission slip: take a MudKitchen demo. Start a paid plan within 30 days and get a $200 Amazon gift card. Signed, everyone who wants you to rest over break. Terms apply.",
+          "This is your permission slip to rest over break. ✍️ Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Signed: a demo, a plan, $200",
         description: "Built for microschools.",
       },
+      adCopyVariants: [
+        {
+          label: "Signed",
+          primaryText: "Permission slip ✍️\nI, a microschool founder, am allowed to: take a break, look at MudKitchen and get a $200 Amazon gift card.\nSigned: your teachers, your family, your future self.\nBook a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Signed by your future self",
+          description: "Built for microschools.",
+        },
+        {
+          label: "Short",
+          primaryText: "Permission granted: rest over break and get $200 for it. ✍️ Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Permission granted: rest, plus $200",
+          description: "Book a demo over break.",
+        },
+      ],
     },
     {
       id: "snow-day",
       fileName: "ad-a10-tansy-snow-day.png",
       render: () => <SnowDayAd />,
       adCopy: {
+        label: "Snow day",
         primaryText:
-          "Microschool founders: school's out for winter. Your $200 isn't. Grab a cocoa, take a look at MudKitchen for your microschool, and get a $200 Amazon gift card when you start a paid plan within 30 days. ☕ Terms apply.",
+          "School's out for winter. Your $200 isn't. ☕ Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "School's out. Your $200 isn't.",
         description: "Book a demo over break.",
       },
+      adCopyVariants: [
+        {
+          label: "Cocoa plan",
+          primaryText: "Snow day plan: ☕\n1. Cocoa\n2. Blanket\n3. A MudKitchen demo\n4. $200 Amazon gift card when you start a paid plan within 30 days\nSchool's out for winter. Your $200 isn't. Terms apply.",
+          headline: "Cocoa, blanket, demo, $200",
+          description: "Book a demo over break.",
+        },
+        {
+          label: "Short",
+          primaryText: "It's cold out. $200 is warm. ❄️ Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "It's cold out. $200 is warm.",
+          description: "Built for microschools.",
+        },
+      ],
     },
     {
       id: "gift-swap",
       fileName: "ad-a11-staff-room-gift-swap.png",
       render: () => <GiftSwapAd />,
       adCopy: {
+        label: "You drew yourself",
         primaryText:
-          "Staff-room gift swap, microschool director edition: you drew yourself. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Your staff can keep the mugs. Terms apply.",
+          "Staff-room gift swap: you drew yourself. 🎁 Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "You drew yourself. Nice.",
-        description: "$200 Amazon gift card when you sign up.",
+        description: "Get a $200 gift card.",
       },
+      adCopyVariants: [
+        {
+          label: "Better than mugs",
+          primaryText: "Staff gift swap results: 4 mugs, 2 candles, 1 microschool director with a $200 Amazon gift card. ☕ Be the one. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "4 mugs, 2 candles, 1 winner",
+          description: "Get a $200 gift card.",
+        },
+        {
+          label: "Short",
+          primaryText: "Secret Santa says: this one's for you, director. 🎁 Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Secret Santa picked you",
+          description: "Built for microschools.",
+        },
+      ],
     },
     {
       id: "founders-unwrapped",
       fileName: "ad-a12-founders-unwrapped.png",
       render: () => <UnwrappedAd />,
       adCopy: {
+        label: "Unwrap something better",
         primaryText:
-          "Things microschool founders unwrapped this year: 37 late-night 'quick questions', a folder of Venmo screenshots, one lost enrollment form. Make the last one a $200 Amazon gift card: book a MudKitchen demo and start a paid plan within 30 days. Terms apply.",
+          "This year you unwrapped 9pm \"quick questions\" and Venmo screenshots. 🎁 Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Unwrap something better",
-        description: "Sign up, get a $200 Amazon gift card.",
+        description: "Get a $200 gift card.",
       },
+      adCopyVariants: [
+        {
+          label: "Return policy",
+          primaryText: "Return this year's chaos, get $200: 🧾\n↩️ 37 \"quick questions\" at 10pm\n↩️ A folder of Venmo screenshots\n↩️ One lost enrollment form\nBook a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Return the chaos. Get $200.",
+          description: "Get a $200 gift card.",
+        },
+        {
+          label: "Short",
+          primaryText: "This year you unwrapped late-night texts. Next, unwrap $200. 🎁 Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Next up: unwrap $200",
+          description: "Built for microschools.",
+        },
+      ],
     },
   ] satisfies MarketingSlide[],
 } satisfies MarketingCarousel;
@@ -180,7 +360,7 @@ function GiftTagAd() {
             <Accent>Amazon gift card.</Accent>
           </>
         }
-        hand="teachers get apples. your microschool gets this."
+        hand="teachers get apples. you get this."
         size={80}
       />
       <Scene>
@@ -229,7 +409,7 @@ function StockingAd() {
             for your <Accent color={G.butter}>stocking.</Accent>
           </>
         }
-        sub="$200 Amazon gift card when you start a paid plan. A calmer spring for your microschool."
+        sub="$200 Amazon gift card when you start a paid plan."
         size={88}
       />
       <Scene>
@@ -274,7 +454,7 @@ function DearSantaAd() {
               Dear Santa,
             </Hand>
             <Hand size={40} color={G.ink} rotate={0} style={{ marginTop: 16, lineHeight: 1.25 }}>
-              I&apos;ve been very good this semester. All I want is enrollment, tuition and parent messages in one place.
+              All I want is enrollment, tuition and messages in one place.
             </Hand>
             <Hand size={36} color={G.clay} rotate={0} style={{ marginTop: 22 }}>
               love, every school director
@@ -320,7 +500,7 @@ function HolidayListAd() {
               rows={[
                 { label: "Finish 14 report cards", done: true },
                 { label: "Plan spring enrollment", done: true },
-                { label: "Book a MudKitchen demo", note: "+ $200 gift card when you sign up*", highlight: true },
+                { label: "Book a MudKitchen demo", note: "+ $200 gift card*", highlight: true },
               ]}
             />
           </InkCard>
@@ -353,7 +533,7 @@ function TreatYourselfAd() {
             <Accent color={G.butter}>Treat yourself.</Accent>
           </>
         }
-        sub="Book a demo, start a paid plan within 30 days, and we'll send you a $200 Amazon gift card.*"
+        sub="Book a demo, sign up, get a $200 Amazon gift card.*"
         size={84}
       />
       <Scene>
@@ -585,8 +765,7 @@ function PermissionSlipAd() {
               rows={[
                 { label: "take a MudKitchen demo", done: true },
                 { label: "sign up, accept a $200 Amazon gift card*", done: true, highlight: true },
-                { label: "not check email for an hour", done: true },
-              ]}
+                              ]}
             />
             <div style={{ display: "flex", alignItems: "flex-end", gap: 16, marginTop: 24 }}>
               <span style={{ fontFamily: FONT.body, fontWeight: 700, fontSize: 24, color: G.soft }}>Signed</span>
@@ -701,7 +880,7 @@ function UnwrappedAd() {
       <AdCopy
         title={
           <>
-            Things microschool founders <Accent>unwrapped this year:</Accent>
+            What you <Accent>unwrapped this year:</Accent>
           </>
         }
         size={80}

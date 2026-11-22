@@ -26,7 +26,7 @@ const CALENDAR_CROP: CarouselDemoCrop = { zoom: 1.18, originX: 0, originY: 0 };
 const CHECKS = [
   { label: "What’s happening?", detail: "Say it in the first line." },
   { label: "When?", detail: "Date, time and place." },
-  { label: "What do families need to do?", detail: "Reply, sign, pay, or nothing at all." },
+  { label: "What should families do?", detail: "Reply, sign, pay, or nothing." },
 ];
 
 export const WHERE_WAS_THAT_UPDATE_CAROUSEL = {
@@ -35,7 +35,24 @@ export const WHERE_WAS_THAT_UPDATE_CAROUSEL = {
   description: "LinkedIn carousel for bulletin, messages, forms and the school calendar, guided by Loam.",
   fileSlug: "mudkitchen-where-was-that-update",
   slides: [
-    { id: "parent-home", fileName: "01-parents-shouldnt-have-to-ask.png", render: () => <ParentHomeSlide /> },
+    { id: "parent-home", fileName: "01-parents-shouldnt-have-to-ask.png",
+      adCopy: {
+        label: "Right place",
+        primaryText: "Parents shouldn't have to ask, \"Where was that update?\" 📬\n\nGive every kind of update one right place. Loam explains. Swipe →\n\n#microschool #parentcommunication",
+        headline: "Families always know where to look",
+      },
+      adCopyVariants: [
+        {
+          label: "Cheat sheet",
+          primaryText: "A cheat sheet for school updates:\nNews for everyone → bulletin\nNeed a reply → message\nNeed a signature → form\nGot a date → calendar\nSave it for your staff. Swipe →\n\n#microschool #schoolcommunication",
+          headline: "Where each school update goes",
+        },
+        {
+          label: "Question",
+          primaryText: "How many times this month has a parent asked where an update was? 🙃 Swipe for the simple fix: one right place for every kind of update →\n\n#microschool #parentcommunication",
+          headline: "\"Where was that update?\" Never again.",
+        },
+      ], render: () => <ParentHomeSlide /> },
     { id: "bulletin", fileName: "02-use-an-announcement.png", render: () => <BulletinSlide /> },
     { id: "messages", fileName: "03-use-a-message.png", render: () => <MessagesSlide /> },
     { id: "forms", fileName: "04-use-a-form.png", render: () => <FormsSlide /> },
@@ -54,7 +71,7 @@ function ParentHomeSlide() {
           Parents shouldn’t have to ask, <Accent>“Where was that update?”</Accent>
         </>
       }
-      body="Put each update in the right place, and families always know where to look."
+      body="One right place for each kind of update."
       lane="right"
       mascot={{ name: "loam", view: "confused", flip: true }}
       tip="I'm Loam. I deliver the school's news."
@@ -90,7 +107,7 @@ function MessagesSlide() {
     <MascotProductSlide
       kicker="Messages"
       title="Need a reply? Send a message."
-      body="Family, teacher and office conversations stay in one thread."
+      body="Family conversations stay in one thread."
       lane="right"
       mascot={{ name: "loam", view: "point", flip: true }}
       tip="One family, one thread."
@@ -157,7 +174,7 @@ function PromoSlide() {
   return (
     <MascotPromoSlide
       title="Give every update a home."
-      body="Bulletin, messages, forms and the calendar, so families know where to look."
+      body="So families always know where to look."
       cast={[{ name: "loam", view: "celebrate" }, { name: "dot", view: "wave", flip: true }]}
       contentHeight={DEMO_HEIGHT}
     >

@@ -19,7 +19,7 @@ import {
 
 const HOOK_NUMBERS = ["What it costs", "Who will pay", "Room above break-even", "What tuition covers", "Discounts you can afford"];
 
-const COST_ROWS = ["Payroll", "Rent", "Insurance", "Supplies", "Software", "Field trips & programs"];
+const COST_ROWS = ["Payroll", "Rent", "Insurance", "Supplies"];
 
 const EXAMPLE_ROWS: Array<{ label: string; value: string; color: string }> = [
   { label: "Yearly costs", value: "$180,000", color: G.clay },
@@ -44,7 +44,24 @@ export const TUITION_REVIEW_CAROUSEL = {
   description: "LinkedIn carousel for schools planning a tuition increase, guided by Nutmeg.",
   fileSlug: "mudkitchen-tuition-review",
   slides: [
-    { id: "intro", fileName: "01-pressure-test-these-5-numbers.png", render: () => <CoverSlide /> },
+    { id: "intro", fileName: "01-pressure-test-these-5-numbers.png",
+      adCopy: {
+        label: "Check 5 numbers",
+        primaryText: "Thinking about raising tuition next year? Check these 5 numbers first. A full class can still leave you short. 🧮 Swipe →\n\n#microschool #tuition #schoolfounder",
+        headline: "Raising tuition? Check 5 numbers first",
+      },
+      adCopyVariants: [
+        {
+          label: "Save for budgeting",
+          primaryText: "Save this for budget season. 📌 Five numbers to check before you set next year's tuition. Swipe →\n\n#microschool #tuition",
+          headline: "5 numbers before you set tuition",
+        },
+        {
+          label: "Question",
+          primaryText: "Do you know your break-even number? Most of us guess. Here's how to work it out. Swipe →\n\n#microschool #tuition #schoolfounder",
+          headline: "Do you know your break-even number?",
+        },
+      ], render: () => <CoverSlide /> },
     { id: "costs", fileName: "02-operating-costs.png", render: () => <CostsSlide /> },
     { id: "enrollment", fileName: "03-realistic-paid-enrollment.png", render: () => <EnrollmentSlide /> },
     { id: "margin", fileName: "04-sustainable-margin.png", render: () => <MarginSlide /> },
@@ -64,7 +81,7 @@ function CoverSlide() {
           Thinking about raising tuition at your <Accent>Microschool?</Accent>
         </>
       }
-      body="Check these 5 numbers first. A full class can still leave you short."
+      body="Check these 5 numbers first."
       rows={HOOK_NUMBERS.map((label) => ({ label }))}
       mascot={{ name: "nutmeg", view: "thinking" }}
       tip="I'm Nutmeg. Let's do the math together."
@@ -80,7 +97,7 @@ function CostsSlide() {
       kicker="1 of 5"
       title="Add up what it really costs to run your school."
       rows={COST_ROWS.map((label) => ({ label }))}
-      aside="and the surprise costs: repairs, turnover, new supplies"
+      aside="plus the surprise costs"
       mascot={{ name: "nutmeg", view: "hold" }}
       tip="Start with last year's real spending."
     />
@@ -92,7 +109,7 @@ function EnrollmentSlide() {
     <MascotProductSlide
       kicker="2 of 5"
       title="Count the students who will actually pay."
-      body="Use enrolled and re-enrolled families, plus a careful guess. Not every empty seat."
+      body="Signed families, plus a careful guess."
       lane="left"
       mascot={{ name: "pip", view: "point" }}
       tip="Pip here. Count signed families only!"
@@ -108,7 +125,7 @@ function MarginSlide() {
     <MascotListSlide
       kicker="3 of 5"
       title="Leave room above break-even."
-      body="Build in a cushion for surprises, growth and savings."
+      body="A cushion for surprises and growth."
       mascot={{ name: "nutmeg", view: "determined" }}
       tip="Break-even is not a plan."
     >
@@ -139,7 +156,7 @@ function IncludedSlide() {
     <MascotProductSlide
       kicker="4 of 5"
       title="Spell out what tuition covers."
-      body="Meals, materials, field trips, after-care, fees: included, optional or extra?"
+      body="Meals, materials, trips: included, optional or extra?"
       lane="right"
       mascot={{ name: "nutmeg", view: "point" }}
       tip="No surprise bills for families."
@@ -155,7 +172,7 @@ function OptionsSlide() {
     <MascotProductSlide
       kicker="5 of 5"
       title="Decide which discounts you can afford."
-      body="Sibling discounts, scholarships and payment plans lower what you collect. Plan for them first."
+      body="Siblings, scholarships, payment plans: plan for them first."
       lane="left"
       mascot={{ name: "nutmeg", view: "thinking" }}
       tip="Every discount comes out of the budget."
@@ -193,7 +210,7 @@ function HomePromoSlide() {
   return (
     <MascotPromoSlide
       title="Turn your tuition plan into clear family bills."
-      body="Rates, payment plans, discounts and family payments in one place."
+      body="Rates, discounts and payments in one place."
       cast={[{ name: "nutmeg", view: "celebrate" }, { name: "pip", view: "wave", flip: true }]}
       contentHeight={DEMO_HEIGHT}
     >

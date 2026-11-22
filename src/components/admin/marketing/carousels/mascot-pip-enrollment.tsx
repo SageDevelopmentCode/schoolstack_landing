@@ -31,7 +31,24 @@ export const MASCOT_PIP_ENROLLMENT_CAROUSEL = {
   description: "Mascot carousel: Pip survives enrollment season, then shows the real apply, inbox and checklist screens.",
   fileSlug: "mudkitchen-pip-enrollment",
   slides: [
-    { id: "hook", fileName: "01-pov-already-sent-the-form.png", render: () => <HookSlide /> },
+    { id: "hook", fileName: "01-pov-already-sent-the-form.png",
+      adCopy: {
+        label: "Pip has seen things",
+        primaryText: "Pip has seen things. \"Already sent the form.\" The spreadsheet. Chasing signatures at 10pm. 😵\n\nSwipe for enrollment season with every application in one inbox →\n\n#microschool #enrollment #schoolfounder",
+        headline: "Pip has seen things",
+      },
+      adCopyVariants: [
+        {
+          label: "Relatable",
+          primaryText: "\"This year we'll be so organized.\" - every founder, every August. 😅 Swipe to see enrollment season the way Pip wishes it went →\n\n#microschool #enrollment",
+          headline: "\"This year we'll be so organized\"",
+        },
+        {
+          label: "Tag them",
+          primaryText: "Tag the person who chases enrollment forms at your school. Pip sees you. 🫡 Swipe →\n\n#microschool #enrollment #schoollife",
+          headline: "Tag your school's form chaser",
+        },
+      ], render: () => <HookSlide /> },
     { id: "stages", fileName: "02-five-stages-of-enrollment-season.png", render: () => <StagesSlide /> },
     { id: "turn", fileName: "03-what-if.png", render: () => <TurnSlide /> },
     { id: "apply", fileName: "04-families-apply-in-one-place.png", render: () => <ApplySlide /> },

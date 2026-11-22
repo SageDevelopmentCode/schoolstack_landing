@@ -39,66 +39,156 @@ export const ADS_NEW_YEAR_CAROUSEL = {
       fileName: "ad-f1-dig-same-tabs.png",
       render: () => <SameTabsAd />,
       adCopy: {
+        label: "Same six tabs",
         primaryText:
-          "Microschool directors: new year, same six tabs? MudKitchen puts enrollment, tuition, messages and attendance in one place. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "New year, same six tabs? 🎆 MudKitchen puts enrollment, tuition, messages and attendance in one place. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Not this year, tabs",
-        description: "One system for your microschool.",
+        description: "One system, one login.",
       },
+      adCopyVariants: [
+        {
+          label: "Resolution",
+          primaryText: "New Year's resolution: close the tabs. 🎆 MudKitchen puts your whole school in one place. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Resolution: close the tabs",
+          description: "One system, one login.",
+        },
+        {
+          label: "Short",
+          primaryText: "New year. One tab. 🎉 Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "New year. One tab.",
+          description: "One system, one login.",
+        },
+      ],
     },
     {
       id: "year-calling",
       fileName: "ad-f2-crew-2027-calling.png",
       render: () => <YearCallingAd />,
       adCopy: {
+        label: "2027 called",
         primaryText:
-          "Microschool founders, 2027 called. It wants one system for your school: website, enrollment, tuition and families together. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "2027 called. 📞 It wants one system for your school. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "2027 wants one system",
         description: "Built for microschools.",
       },
+      adCopyVariants: [
+        {
+          label: "Voicemail",
+          primaryText: "1 new voicemail from 2027: 📞 \"Hi, it's the new year. Can your website, enrollment, tuition and families all be in one place this time? Thanks.\" Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "1 new voicemail from 2027",
+          description: "Built for microschools.",
+        },
+        {
+          label: "Short",
+          primaryText: "2026: six systems. 2027: one. 🎆 Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "2026: six systems. 2027: one.",
+          description: "Built for microschools.",
+        },
+      ],
     },
     {
       id: "spring-organized",
       fileName: "ad-f3-pip-spring-organized.png",
       render: () => <SpringOrganizedAd />,
       adCopy: {
+        label: "Spring, organized",
         primaryText:
-          "Microschool directors: start spring semester organized: applications open, forms online, tuition plans set and families invited, all from one place. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Start spring semester organized: 🌷 applications open, forms online, tuition set, families invited. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Spring semester, organized",
-        description: "Enrollment for microschools.",
+        description: "Enrollment, simplified.",
       },
+      adCopyVariants: [
+        {
+          label: "Checklist",
+          primaryText: "Spring semester, organized from one place: 🌷\n✅ Applications open\n✅ Forms online\n✅ Tuition plans set\n✅ Families invited\nBook a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Four boxes, ticked from one place",
+          description: "Enrollment, simplified.",
+        },
+        {
+          label: "Short",
+          primaryText: "Start spring the way you wish you'd started fall: organized. 🌷 Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Start spring organized",
+          description: "Enrollment, simplified.",
+        },
+      ],
     },
     {
       id: "tuition-run",
       fileName: "ad-f4-nutmeg-tuition-run.png",
       render: () => <TuitionRunAd />,
       adCopy: {
+        label: "January tuition",
         primaryText:
-          "School owners: your January tuition run, minus the reminder texts. Families set up autopay once and see every bill in one place. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Your January tuition run, minus the reminder texts. 💸 Families set up autopay once. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "January tuition, minus the reminders",
         description: "Billing for microschools.",
       },
+      adCopyVariants: [
+        {
+          label: "Before & after",
+          primaryText: "January tuition, before: 12 reminder texts and a Venmo search. 😮‍💨\nJanuary tuition, after: families set up autopay once and see every bill in one place.\nBook a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "12 reminder texts → 0",
+          description: "Billing for microschools.",
+        },
+        {
+          label: "Short",
+          primaryText: "Set up autopay once. Stop chasing all year. 💸 Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Set autopay once. Stop chasing.",
+          description: "Billing for microschools.",
+        },
+      ],
     },
     {
       id: "zero-slips",
       fileName: "ad-f5-bramble-zero-slips.png",
       render: () => <ZeroSlipsAd />,
       adCopy: {
+        label: "No paper slips",
         primaryText:
-          "Microschool directors, the one resolution you'll actually keep: zero paper permission slips. Families fill in and sign forms online. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "The one resolution you'll actually keep: zero paper permission slips. ✍️ Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Resolution kept: no paper slips",
-        description: "Online forms and signatures.",
+        description: "Forms and e-signatures.",
       },
+      adCopyVariants: [
+        {
+          label: "Resolutions",
+          primaryText: "New Year's resolutions, ranked by how likely you are to keep them: 📝\n3. Go to the gym\n2. Read more\n1. Zero paper permission slips (families sign online)\nBook a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "The one resolution you'll keep",
+          description: "Forms and e-signatures.",
+        },
+        {
+          label: "Short",
+          primaryText: "Paper permission slips: left in 2026. ✍️ Families fill in and sign forms online. Book a MudKitchen demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "Paper slips: left in 2026",
+          description: "Forms and e-signatures.",
+        },
+      ],
     },
     {
       id: "setup-crew",
       fileName: "ad-f6-setup-crew-ready.png",
       render: () => <SetupReadyAd />,
       adCopy: {
+        label: "Guided setup",
         primaryText:
-          "Running a microschool? Switching systems doesn't mean starting over. We review how your school runs, build your setup inside MudKitchen and help you go live. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          "Switching systems doesn't mean starting over. 🛠️ We build your setup inside MudKitchen and help you go live. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
         headline: "Guided setup, when you're ready",
-        description: "Built for founder-led microschools.",
+        description: "Built for microschools.",
       },
+      adCopyVariants: [
+        {
+          label: "No restart",
+          primaryText: "New system doesn't mean new start. 🛠️ We build your setup and keep what works. Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "New system, not a new start",
+          description: "Built for microschools.",
+        },
+        {
+          label: "Short",
+          primaryText: "You run the school. We run the setup. 🛠️ Book a demo, start a paid plan within 30 days, and get a $200 Amazon gift card. Terms apply.",
+          headline: "You run the school. We run setup.",
+          description: "Built for microschools.",
+        },
+      ],
     },
   ] satisfies MarketingSlide[],
 } satisfies MarketingCarousel;
