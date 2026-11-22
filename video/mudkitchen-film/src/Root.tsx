@@ -4,6 +4,8 @@ import { Film, type FilmProps } from "./Film";
 import { ACTS, DURATION, FPS } from "./timeline";
 import { Ad27, type AdProps } from "./ad27/Ad27";
 import { AD_DURATION, AD_FPS } from "./ad27/timeline";
+import { Dream, dreamDuration, type DreamProps } from "./dream/Dream";
+import { DREAM_FPS } from "./dream/edl";
 
 const defaults: FilmProps = { captions: true, grain: true, startAt: 0, audio: [] };
 
@@ -25,6 +27,26 @@ const withAudio: CalculateMetadataFunction<FilmProps> = async ({ props }) => ({
 const adWithAudio: CalculateMetadataFunction<AdProps> = async ({ props }) => ({
   props: { ...props, audio: await loadAudioManifest() },
 });
+
+// public/footage/manifest.json (also from sync-assets) lists the clips on disk;
+// missing Dream clips render as labelled slates.
+const loadFootageManifest = async () => {
+  try {
+    const res = await fetch(staticFile("footage/manifest.json"));
+    return res.ok ? ((await res.json()) as string[]) : [];
+  } catch {
+    return [];
+  }
+};
+
+const dreamWithMedia: CalculateMetadataFunction<DreamProps> = async ({ props }) => ({
+  props: { ...props, audio: await loadAudioManifest(), footage: await loadFootageManifest() },
+});
+
+const DREAM_CUTS = [
+  { id: "Dream-9x16-40s", cut: "40" as const },
+  { id: "Dream-9x16-15s", cut: "15" as const },
+];
 
 const AD_VARIANTS = [
   { id: "MudKitchenAd27-9x16", width: 1080, height: 1920, captions: true },
@@ -77,6 +99,21 @@ export const Root: React.FC = () => (
           height={v.height}
           defaultProps={{ captions: v.captions, grain: true, audio: [] }}
           calculateMetadata={adWithAudio}
+        />
+      ))}
+    </Folder>
+    <Folder name="Dream">
+      {DREAM_CUTS.map((d) => (
+        <Composition
+          key={d.id}
+          id={d.id}
+          component={Dream}
+          durationInFrames={dreamDuration(d.cut)}
+          fps={DREAM_FPS}
+          width={1080}
+          height={1920}
+          defaultProps={{ cut: d.cut, grain: true, footage: [], audio: [] }}
+          calculateMetadata={dreamWithMedia}
         />
       ))}
     </Folder>

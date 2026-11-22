@@ -1,6 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { compressImageForUpload } from "@/lib/images/compress-image";
 import {
+  assertUploadFileSize,
+  normalizeUploadFile,
+} from "@/lib/uploads/normalize-upload-mime-type";
+import {
   MAX_MESSAGE_ATTACHMENTS,
   MAX_MESSAGE_ATTACHMENT_BYTES,
 } from "@/lib/messages/message-attachment-storage";
@@ -45,17 +49,14 @@ export function buildCommitteeMessageAttachmentStoragePath(
   return `${organizationId}/committee-messages/${committeeId}/${messageId}/${fileId}_${safeName}`;
 }
 
-export function validateCommitteeMessageAttachmentFile(file: File): void {
-  if (file.size > MAX_MESSAGE_ATTACHMENT_BYTES) {
-    throw new Error(`"${file.name}" exceeds the 10 MB limit.`);
-  }
-  if (file.type && !ALLOWED_MIME_TYPES.has(file.type)) {
-    throw new Error(`"${file.name}" is not a supported file type.`);
-  }
+/** Checks size and type; returns the file retyped from its extension if needed. */
+export function validateCommitteeMessageAttachmentFile(file: File): File {
+  assertUploadFileSize(file, MAX_MESSAGE_ATTACHMENT_BYTES);
+  return normalizeUploadFile(file, ALLOWED_MIME_TYPES);
 }
 
-async function prepareCommitteeMessageAttachmentUpload(file: File): Promise<File> {
-  validateCommitteeMessageAttachmentFile(file);
+async function prepareCommitteeMessageAttachmentUpload(input: File): Promise<File> {
+  const file = validateCommitteeMessageAttachmentFile(input);
 
   if (file.type === "image/jpeg" || file.type === "image/png") {
     return compressImageForUpload(file, {

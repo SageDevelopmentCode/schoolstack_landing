@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import OrganizationProgressLogList from "@/components/mudkitchen-portal/OrganizationProgressLogList";
+import MudKitchenBuildLogPage from "@/components/mudkitchen-portal/MudKitchenBuildLogPage";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { fetchOrganizationProgressLog } from "@/lib/organization-progress";
 import { createClient } from "@/utils/supabase/server";
@@ -38,7 +38,7 @@ export default async function MudKitchenPortalBuildLogPage({ params }: PageProps
   const progressEntries = await fetchOrganizationProgressLog(supabase, slug);
 
   return (
-    <OrganizationProgressLogList
+    <MudKitchenBuildLogPage
       entries={progressEntries}
       schoolName={org.name}
     />

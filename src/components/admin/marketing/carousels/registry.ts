@@ -45,6 +45,7 @@ import { ADS_PREVIEW_THANKSGIVING_CAROUSEL } from "@/components/admin/marketing/
 import { ADS_PREVIEW_THANKSGIVING_BREAK_CAROUSEL } from "@/components/admin/marketing/carousels/ads-preview-thanksgiving-break";
 import { ADS_CREW_CHAT_CAROUSEL } from "@/components/admin/marketing/carousels/ads-crew-chat";
 import { POSTS_CREW_CHAT_CAROUSEL } from "@/components/admin/marketing/carousels/posts-crew-chat";
+import { APP_STORE_SCREENS_CAROUSEL } from "@/components/admin/marketing/carousels/app-store-screens";
 import type { MarketingCarousel } from "@/components/admin/marketing/carousels/types";
 
 export const MARKETING_CAROUSELS: MarketingCarousel[] = [
@@ -95,6 +96,7 @@ export const MARKETING_CAROUSELS: MarketingCarousel[] = [
   ADS_PREVIEW_THANKSGIVING_CAROUSEL,
   ADS_PREVIEW_THANKSGIVING_BREAK_CAROUSEL,
   ADS_CREW_CHAT_CAROUSEL,
+  APP_STORE_SCREENS_CAROUSEL,
 ];
 
 export const DEFAULT_CAROUSEL_ID = MARKETING_CAROUSELS[0]?.id ?? "tuition-review";

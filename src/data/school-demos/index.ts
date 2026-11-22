@@ -151,6 +151,11 @@ const DEMO_ROUTE_SLUG_OVERRIDES: Record<string, string> = {
   "monarch-hills-education": "monarch-hills",
 };
 
+/** Public path of a demo (`/demo/<route>`), honouring route folders that differ from the slug. */
+export function schoolDemoHref(slug: string): string {
+  return `/demo/${DEMO_ROUTE_SLUG_OVERRIDES[slug] ?? slug}`;
+}
+
 export function listSchoolDemos() {
   return Object.values(schoolDemoRegistry).map((config) => ({
     slug: config.slug,

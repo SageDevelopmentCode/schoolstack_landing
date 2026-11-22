@@ -49,7 +49,7 @@ flowchart TD
 3. Reconcile brand colors — cross-check guide hex values against logo + live CSS. WP/Kadence scrapes often mislabel roles (e.g. `#efad1f` labeled "purple" but is gold). Then map them to the **Garden roles** the demo uses (see [reference.md](reference.md#color-reconciliation)):
    - `theme.dark` → the **action colour**: every CTA button, accent words in headings, and the one dark panel. It must read with white text (deep navy, forest, plum…). `readableOn()` in `site-garden-theme.ts` falls back to ink text for light colours, but a light `dark` makes the whole site look washed out — pick a dark brand colour.
    - `theme.primary` → the **brand tint**: sticky notes, washi tape and marker highlights (mixed with paper, so bright yellows/oranges work well).
-4. Logo handling — the website nav and footer are light paper, so pick a logo that reads on light backgrounds (white/reverse logos need `logoOnLightClassName`, e.g. `brightness-0`). Set width/height in config.
+4. Logo handling — the website nav and footer are light paper, and the walkthrough sidebar's co-brand card (MudKitchen | school logo) is white, so pick a logo that reads on light backgrounds (white/reverse logos need `logoOnLightClassName`, e.g. `brightness-0`; `SchoolDemoWordmark` applies it everywhere). Set width/height in config.
 5. Document live-site fonts in the redesign guide for **copy tone only**. Every demo uses the Garden fonts (Bricolage Grotesque display, Nunito body, a little Gochi Hand), applied by the website template's own scope (`SITE_SCOPE_CLASS` in `site-garden-theme.ts`) and by the real Garden portals. Copy `layout.tsx` from an existing demo unchanged; do not add per-school fonts.
 
 ## Phase 1 — Data layer
@@ -103,7 +103,7 @@ Walkthrough steps 3–7 show the **real** school portal components (the same cod
 |---|---|---|
 | 3 view-lead, 4 send-application-link | `DemoAdminGardenAdmissions` (inside `DemoAdminGardenShell`) | `SchoolAdminBaseline` (Garden sidebar, preview mode) + `ApplicationSubmissionsPageShell` (`preview` prop) + `ApplicationSubmissionDetailPanel` (`previewDetail`), `StartEnrollmentModal` (preview) |
 | 5 parent-enrollment | `DemoParentEnrollmentChecklist` | `ApplyPortalPageShell` + `EnrollmentChecklistExperience` (`mode="preview"`) |
-| 6 parent-pays-tuition | `DemoParentGardenPortal` | `SchoolParentBaseline` (`embeddedPreview`) + `ParentBillingPageShell` (`initialPreviewData`) |
+| 6 parent-pays-tuition (also any `home` parent tab) | `DemoParentGardenPortal` | `SchoolParentBaseline` (`embeddedPreview`) + `ParentBillingPageShell` (`initialPreviewData`) |
 | 7 teacher-attendance | `DemoTeacherGardenPortal` | `SchoolTeacherHeader` (`embeddedPreview`) + `TeacherAttendancePage` (`initialRoster`, `syncDateToUrl={false}`) |
 
 Fixtures live in `src/data/school-demos/demo-*-fixtures.ts` (`demo-admin-admissions-fixtures.ts`, `demo-admin-submission-detail-fixtures.ts`, `demo-parent-portal-fixtures.ts`, `demo-teacher-portal-fixtures.ts`). The demo attendance roster is always dated today.
@@ -113,7 +113,7 @@ Rules:
 - Feed data through the real components' `previewMode` / `initial*` / preview props. **Never** stub `window.fetch` in a demo, and never import route files from `src/app/school/`.
 - Need a new portal moment in the walkthrough? Add a preview seam to the **real** component (as `previewDetail`, `embeddedPreview` and `initialRoster` were added) — don't build a demo copy. Follow the portal's Garden skill: `admin-portal-garden-design`, `parent-portal-garden-design`, `teacher-portal-garden-design`.
 - Dialogs and toasts must render inside the scaled preview card (`GDialog` `portalContainer`), not over the walkthrough page.
-- Other admin walkthrough steps (committees, tuition, My School) still use the older Story `SchoolAdminDashboardDemo` from the same configs. **Rooted Meadows** keeps its own custom portal forks (`src/components/demo/rootedmeadows/`); don't copy that pattern.
+- Which parent tabs go to the Garden wrappers is decided by `usesGardenParentDemo` in `ScaledParentDemoPreview.tsx` (`enrollment`, `home`, `billing`); the other parent and teacher tabs use the shared `SchoolParentDashboardDemo` / `SchoolTeacherDashboardDemo`. Those shells now have a Garden header (`DemoPortalGardenHeader`) and a mix of Garden pages (`shared/parent-garden/*`, `shared/teacher-garden/*`, `garden-feed/`) and older Story pages. Other admin walkthrough steps (committees, tuition, My School) still use the Story `SchoolAdminDashboardDemo`. All of these read the same configs, so new schools need no changes there. **Rooted Meadows** keeps its own custom portal forks (`src/components/demo/rootedmeadows/`); don't copy that pattern.
 
 ## Phase 3c — Website step: school-branded Garden
 
@@ -142,7 +142,9 @@ Append `{camelCase}WalkthroughPlaceholder` to `src/data/school-demos/walkthrough
 8. mobile-app (mobile) — only when the school has a mobile showcase
 9. get-in-touch (contact)
 
-Use `createMobileAppWalkthroughStep(theme)` for step 8 (before contact). Theme steps with school primary + accent colors. Copy structure from `luffLearningWalkthroughPlaceholder`.
+Use `createMobileAppWalkthroughStep()` for step 8 (before contact). Copy structure from `luffLearningWalkthroughPlaceholder`.
+
+**Walkthrough chrome is Garden and needs no per-school work.** `SchoolDemoShell` → `DemoWalkthroughPanel` (desktop) / `DemoWalkthroughMobileSheet` (mobile) draw the co-brand card, butter progress bar, sticky-note hint and taped step cards from Garden tokens. The school accent comes from `config.theme` via `buildSchoolConceptWalkthroughTheme` (`src/lib/marketing/school-concept-walkthrough-theme.ts`, `theme.primary`). Steps carry no colours: `DemoWalkthroughStepList` reads only each step's `icon`, title and description (the old per-step `theme` field was removed).
 
 ## Phase 5 — Scaled preview wiring (required)
 
@@ -177,6 +179,7 @@ Shared data lives in `src/components/demo/mobile/mobileDemoData.ts`. Slide compo
 ## Phase 6 — Verify
 
 - [ ] `npm run build` — route appears as `/demo/{slug}`
+- [ ] Walkthrough sidebar (desktop panel and mobile sheet): the co-brand card shows the school logo clearly on white, and the progress bar and step cards use the Garden look
 - [ ] Website step: headings in Bricolage (not Lora/Poppins), CTAs in the school's `theme.dark`, logo readable on the paper nav, testimonials render (correct shape)
 - [ ] Website at 375 / 1024 / 1440 frame widths: no horizontal scroll inside the site; step 2 CTA scrolls to the form
 - [ ] Step 3: the Garden admin sidebar + Submissions page in the school colour; the new application slides in and the counts tick up

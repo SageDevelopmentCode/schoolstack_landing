@@ -16,7 +16,11 @@
     "split-vo:ad27": "node scripts/split-vo.mjs --ad27",
     "stills": "npm run sync-assets && node scripts/render-stills.mjs",
     "shotlist": "node --experimental-strip-types scripts/print-shotlist.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "audio:dream": "node scripts/make-dream-audio.mjs",
+    "conform:dream": "node scripts/conform-dream.mjs",
+    "shotlist:dream": "node --experimental-strip-types scripts/print-dream-shotlist.ts",
+    "render:dream": "npm run sync-assets && remotion render Dream-9x16-40s out/dream-9x16-40s.mp4 && remotion render Dream-9x16-15s out/dream-9x16-15s.mp4"
   },
   "dependencies": {
     "@remotion/bundler": "4.0.529",

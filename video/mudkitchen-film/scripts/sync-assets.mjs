@@ -44,6 +44,11 @@ const FILES = [
   "people/staff/clay-elliot-mpDV4xaFP8c-unsplash.jpg",
   "people/staff/tony-luginsland-OswNOXPNU1k-unsplash.jpg",
   "people/staff/linkedin-sales-solutions-pAtA8xe_iVM-unsplash.jpg",
+  // Dream ad: customer logo on the end card and the product flashes.
+  "SageFieldLogo.png",
+  "marketing/app-screens/parent-billing.png",
+  "marketing/app-screens/teacher-roll-call.png",
+  "marketing/app-screens/parent-forms.png",
 ];
 
 // Live-action footage for the 27s ad (public/videos on the site). Source clips are
@@ -66,7 +71,10 @@ for (const file of FILES) {
   mkdirSync(dirname(to), { recursive: true });
   // Staff photos are full-size Unsplash originals (up to 6000px) shown as small
   // avatars; headless Chrome intermittently fails to decode them mid-render.
-  if (file.startsWith("people/staff/")) {
+  if (file === "SageFieldLogo.png") {
+    // The source is a 2000px canvas with the mark in the middle; trim the transparent margin.
+    execFileSync("ffmpeg", ["-v", "error", "-y", "-i", from, "-vf", "crop=1120:962:440:510", to]);
+  } else if (file.startsWith("people/staff/")) {
     execFileSync("ffmpeg", ["-v", "error", "-y", "-i", from, "-vf", "scale=320:-2:flags=lanczos", "-q:v", "3", to]);
   } else {
     copyFileSync(from, to);
@@ -110,6 +118,13 @@ const audio = walk(audioDir)
   .map((f) => relative(audioDir, f).split("\\").join("/"))
   .filter((f) => /\.(wav|mp3|m4a|aac)$/i.test(f));
 writeFileSync(join(audioDir, "manifest.json"), JSON.stringify(audio, null, 2));
+
+// Footage on disk, as public-relative paths (the Dream ad slates any clip not listed).
+const clips = walk(footageDir)
+  .map((f) => relative(filmPublic, f).split("\\").join("/"))
+  .filter((f) => f.endsWith(".mp4"));
+writeFileSync(join(footageDir, "manifest.json"), JSON.stringify(clips, null, 2));
+console.log(`[sync-assets] ${clips.length} footage clips listed in footage/manifest.json`);
 
 console.log(`[sync-assets] copied ${copied}/${FILES.length} brand assets, ${audio.length} audio files found`);
 

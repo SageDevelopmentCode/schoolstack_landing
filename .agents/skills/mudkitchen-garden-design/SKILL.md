@@ -317,7 +317,7 @@ All tokens are CSS variables on `.sf-garden`. Write them in Tailwind as `bg-[var
   - The photos are about 1024px. Don't stretch them past about 1200px wide, and keep wide bands inside rounded containers.
 - **Product:**
   - Prefer the live `GardenDemoFrame`.
-  - For static product shots use the app slides (`/images/mobileapp/*.webp`, aspect 960×2078) in `PhoneCard` or a bordered rounded rect.
+  - For static product shots use the app slides (`/images/mobileapp/*.webp`, aspect 960×2087) in `PhoneCard` or a bordered rounded rect.
 - **Illustrations:** `/images/illustrations/*.webp` (`ILLUSTRATIONS`) are transparent cut-outs. Use them in blobs, on spines, or as a prop, like the folder in the messy desk.
 - **Tool logos:** `/images/competitors/*` via `PAIRS`. Only use them in "tools you replace" contexts.
 - **Icons:**

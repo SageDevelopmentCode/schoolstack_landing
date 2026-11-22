@@ -288,3 +288,24 @@ export async function deleteDemoOutreachTouch(
   const schoolId = ((data ?? []) as { school_id: string }[])[0]?.school_id;
   return schoolId ? loadOutreach(supabase, schoolId) : null;
 }
+
+/**
+ * Every school's sent steps and logged touches, keyed by `schools.id` (for /admin/research).
+ * Both tables stay small (a handful of rows per contacted school), so this reads them whole.
+ */
+export async function listSchoolOutreachLogs(
+  supabase: SupabaseClient,
+): Promise<Record<string, { emails: OutreachEmailRecord[]; touches: DemoOutreachTouch[] }>> {
+  const [emailsResult, touchesResult] = await Promise.all([
+    supabase.from("crm_outreach_emails").select(EMAIL_COLUMNS).order("sent_at", { ascending: false }),
+    supabase.from("crm_outreach_touches").select(TOUCH_COLUMNS).order("occurred_at", { ascending: false }),
+  ]);
+  if (emailsResult.error) throw emailsResult.error;
+  if (touchesResult.error) throw touchesResult.error;
+
+  const result: Record<string, { emails: OutreachEmailRecord[]; touches: DemoOutreachTouch[] }> = {};
+  const entry = (schoolId: string) => (result[schoolId] ??= { emails: [], touches: [] });
+  for (const row of (emailsResult.data ?? []) as EmailRow[]) entry(row.school_id).emails.push(toEmailRecord(row));
+  for (const row of (touchesResult.data ?? []) as TouchRow[]) entry(row.school_id).touches.push(toTouch(row));
+  return result;
+}

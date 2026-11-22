@@ -88,10 +88,45 @@ Daily `add_organization_progress_log_*.sql` seeds insert into **both** slugs. If
 | `add_organization_progress_log_2026_09_20.sql` | September 20 — attendance, push notifications, and activity inbox |
 | `add_organization_progress_log_2026_09_21.sql` | September 21 — committee attachments and parent attendance history |
 | `add_organization_progress_log_2026_09_22.sql` | September 22 — Friday Branch pricing, flyers, and schedule polish |
+| `add_organization_progress_log_2026_09_23.sql` | September 23 — Friday Branch in the mobile app and account controls |
+| `add_organization_progress_log_2026_09_24.sql` | September 24 — clearer payments in the mobile app |
+| `add_organization_progress_log_2026_09_27.sql` | September 27 — edit and delete messages |
+| `add_organization_progress_log_2026_09_28.sql` | September 28 — public campus tours and linked portal accounts |
+| `add_organization_progress_log_2026_09_29.sql` | September 29 — bulletin emails and autopay reminders |
+| `add_organization_progress_log_2026_09_30.sql` | September 30 — co-op program in the mobile app |
+| `add_organization_progress_log_2026_10_01.sql` | October 1 — autopay with saved payment methods |
+| `add_organization_progress_log_2026_10_03.sql` | October 3 — bank payment verification and more co-op screens |
+| `add_organization_progress_log_2026_10_05.sql` | October 5 — pause Friday Branch sign-ups and rate catalog assignment |
+| `add_organization_progress_log_2026_10_06.sql` | October 6 — failed bank payment alerts and in-app PDFs |
+| `add_organization_progress_log_2026_10_15.sql` | October 15 — faster apply page and safer bank payment handling |
+| `add_organization_progress_log_2026_10_18.sql` | October 18 — School Photos |
+| `add_organization_progress_log_2026_10_19.sql` | October 19 — School Profile and smarter visit reminders |
+| `add_organization_progress_log_2026_10_20.sql` | October 20 — admissions next steps, Communication section, and MudKitchen Support |
+| `add_organization_progress_log_2026_10_21.sql` | October 21 — Photos in the mobile app |
+| `add_organization_progress_log_2026_10_22.sql` | October 22 — co-op curriculum and teaching schedule in the app |
+| `add_organization_progress_log_2026_10_25.sql` | October 25 — dashboard tabs, enrollment flows, and a newsletter workspace |
+| `add_organization_progress_log_2026_10_27.sql` | October 27 — photo and media permissions |
+| `add_organization_progress_log_2026_10_28.sql` | October 28 — new push notifications for families and teachers |
+| `add_organization_progress_log_2026_10_29.sql` | October 29 — newsletters saved with version history |
+| `add_organization_progress_log_2026_11_01.sql` | November 1 — families can read newsletters, plus committee projects |
+| `add_organization_progress_log_2026_11_03.sql` | November 3 — staff time clock |
+| `add_organization_progress_log_2026_11_07.sql` | November 7 — family privacy, a faster parent portal, and safer sign-ups |
+| `add_organization_progress_log_2026_11_08.sql` | November 8 — adjust hours |
+| `add_organization_progress_log_2026_11_10.sql` | November 10 — approval for hour changes |
+| `add_organization_progress_log_2026_11_12.sql` | November 12 — hours polish and application PDF fix |
+| `add_organization_progress_log_2026_11_13.sql` | November 13 — parent portal redesign begins |
+| `add_organization_progress_log_2026_11_14.sql` | November 14 — new parent navigation and admin Dashboard |
+| `add_organization_progress_log_2026_11_15.sql` | November 15 — My School redesign and a new parent app |
+| `add_organization_progress_log_2026_11_16.sql` | November 16 — teacher portal and admin app redesign |
+| `add_organization_progress_log_2026_11_17.sql` | November 17 — My Hours refresh and a new app intro |
+| `add_organization_progress_log_2026_11_18.sql` | November 18 — redesigned apply experience and a Family view builder |
+| `add_organization_progress_log_2026_11_19.sql` | November 19 — newsletters for teachers and a new reader |
 
 Batch paste for Sep 5–10: [`migrations_manual/rooted_meadows_progress_log_2026_09_05_to_2026_09_10.sql`](../migrations_manual/rooted_meadows_progress_log_2026_09_05_to_2026_09_10.sql)
 
 Batch paste for Sep 14–22: [`migrations_manual/rooted_meadows_progress_log_2026_09_14_to_2026_09_22.sql`](../migrations_manual/rooted_meadows_progress_log_2026_09_14_to_2026_09_22.sql)
+
+Batch paste for Sep 23 – Nov 19: [`migrations_manual/rooted_meadows_progress_log_2026_09_23_to_2026_11_19.sql`](../migrations_manual/rooted_meadows_progress_log_2026_09_23_to_2026_11_19.sql)
 
 ## Enrollment checklist seeds
 

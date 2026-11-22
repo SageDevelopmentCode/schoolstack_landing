@@ -133,3 +133,22 @@ and their site returned 404, so the plan has `doNotEmail` and no steps.
 - [ ] Facebook / Instagram / LinkedIn: recent news
 - [ ] State funding programs that apply (TEFA in Texas, charter enrichment funds in California, ESAs elsewhere)
 - [ ] What the demo actually shows (so the email doesn't over-claim)
+
+## Re-contact and the snapshot (Nov 2026)
+
+Why the re-contact sequence looks the way it does:
+
+- **Offer, don't link, in the first email.** An Overloop A/B test found a URL in email 1 cut replies from
+  9.4% to 5.1%, and Gong found interest-based asks book about 2x the meetings of meeting asks. So the
+  first email offers the snapshot ("Want me to send the snapshot?") and follow-up 2 sends it anyway.
+- **A new reason, honestly framed.** These schools already got the demo link by hand months ago. Vendor
+  guidance says wait about 3 months and bring something new; the snapshot is that. Say once that you
+  wrote before; never pretend it's a first email, and never "just following up".
+- **No hard data on free reports in cold email** (only templates), so make the snapshot earn its place:
+  4–8 real gaps found by auditing the whole site, each sourced, direct but kind, with what it costs a
+  family and what we'd do. Judge it by replies after 30 schools.
+- **Fixes can go beyond the demo.** If MudKitchen could solve a gap (shipped but not in their demo, or
+  custom work we'd build), include it as "We can set this up for you", and list custom work in
+  `checkBeforeSending`. Never present unbuilt work as existing.
+- **Proof:** Sage Field 0 → 35 students in under 3 months (always fine). Rooted Meadows opened on
+  MudKitchen in August 2026 (keep in `checkBeforeSending` until confirmed).

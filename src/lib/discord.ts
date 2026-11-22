@@ -984,6 +984,24 @@ export async function notifyMobileOperationalError(payload: {
   );
 }
 
+/** A prospect school opened its free outreach snapshot: the best moment to follow up. */
+export async function notifyOutreachSnapshotViewed(payload: {
+  schoolName: string;
+  slug: string;
+  adminUrl: string;
+}) {
+  await sendDiscordEmbed({
+    title: "👀 Snapshot opened",
+    description: `${payload.schoolName} opened their family experience snapshot.`,
+    color: DISCORD_EMBED_COLORS.sales,
+    fields: [
+      embedField("School", truncate(payload.schoolName), true),
+      embedField("Demo", truncate(payload.slug), true),
+      embedField("Outreach", payload.adminUrl),
+    ],
+  });
+}
+
 export async function notifyMobileAppDownloadLead(payload: {
   leadId: string;
   name: string;

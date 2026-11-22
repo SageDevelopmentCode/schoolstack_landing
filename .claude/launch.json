@@ -18,6 +18,15 @@
         "start"
       ],
       "port": 3000
+    },
+    {
+      "name": "dream-studio",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd video/mudkitchen-film && npx remotion studio --port 3123 --no-open"
+      ],
+      "port": 3123
     }
   ]
 }

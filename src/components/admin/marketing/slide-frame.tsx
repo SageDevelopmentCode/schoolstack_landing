@@ -18,10 +18,15 @@ const MarketingSlideChromeContext = createContext<MarketingSlideChromeState>({
 export const SLIDE_WIDTH = 1080;
 export const SLIDE_HEIGHT = 1350;
 
-/** Export sizes: 4:5 feed (every post) and 9:16 Stories/Reels (ads). */
+/**
+ * Export sizes: 4:5 feed (every post), 9:16 Stories/Reels (ads), and the app store screenshots
+ * (App Store 6.3" portrait, which takes 1206×2622 or 1179×2556, and Google Play phone, which rejects anything longer than 2:1).
+ */
 export const SLIDE_SIZES = {
   feed: { width: SLIDE_WIDTH, height: SLIDE_HEIGHT, label: "Feed 4:5" },
   story: { width: 1080, height: 1920, label: "Story 9:16" },
+  appStore: { width: 1206, height: 2622, label: "App Store 6.3\"" },
+  playStore: { width: 1080, height: 1920, label: "Play 9:16" },
 } as const;
 
 export type SlideSize = keyof typeof SLIDE_SIZES;
@@ -205,7 +210,7 @@ export default function SlideCanvas({
 }
 
 /** Garden logo pill, matching the mobile login badge (apps/mobile/src/components/mudkitchen-logo.tsx). */
-function CornerLogoPill() {
+export function CornerLogoPill() {
   return (
     <div
       className={gardenFontVariables}

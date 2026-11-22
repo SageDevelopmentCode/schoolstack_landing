@@ -3,7 +3,12 @@
  * Shared by the admin UI, the send API and the plan validator test.
  */
 import type { CrmStatus } from "@/lib/admin-crm/crm-status";
-import { OUTREACH_FILL_IN_TOKENS, type OutreachPlan, type OutreachStep } from "@/data/outreach/types";
+import {
+  OUTREACH_FILL_IN_TOKENS,
+  SNAPSHOT_LINK_TOKEN,
+  type OutreachPlan,
+  type OutreachStep,
+} from "@/data/outreach/types";
 
 // ── Footer and rendering ──────────────────────────────────────────────────────
 
@@ -94,7 +99,23 @@ export function countWords(text: string): number {
 }
 
 function countLinks(text: string): number {
-  return (text.match(/https?:\/\/\S+|\{loom link\}/gi) ?? []).length;
+  return (text.match(/https?:\/\/\S+|\{loom link\}|\{snapshot link\}/gi) ?? []).length;
+}
+
+/** Path of a plan's free snapshot page, or null when it has none. */
+export function snapshotPath(plan: Pick<OutreachPlan, "slug" | "snapshot"> | null): string | null {
+  if (!plan?.snapshot) return null;
+  return `/snapshot/${plan.slug}/${plan.snapshot.token}`;
+}
+
+/**
+ * Replaces `{snapshot link}` with the plan's snapshot URL. Left as-is when the plan has no
+ * snapshot, so the placeholder check blocks the send.
+ */
+export function fillSnapshotLink(body: string, plan: Pick<OutreachPlan, "slug" | "snapshot"> | null, siteUrl: string): string {
+  const path = snapshotPath(plan);
+  if (!path || !body.includes(SNAPSHOT_LINK_TOKEN)) return body;
+  return body.split(SNAPSHOT_LINK_TOKEN).join(`${siteUrl.replace(/\/+$/, "")}${path}`);
 }
 
 /** Leftover `{…}` tokens. `allowFillIns` keeps the known send-time tokens (for plan files). */

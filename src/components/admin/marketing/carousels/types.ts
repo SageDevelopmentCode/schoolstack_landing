@@ -49,9 +49,10 @@ export type MarketingCarousel = {
   /**
    * Leave unset for a swipe carousel (slide 1 gets the audience banner).
    * "ad" = a set of standalone paid ads (grouped under Ads); "post" = a set of standalone organic posts.
-   * Neither gets the carousel banner.
+   * "store" = app store / Play store screenshots (grouped under App store; export sizes `appStore` / `playStore`).
+   * None of these get the carousel banner.
    */
-  kind?: "post" | "ad";
+  kind?: "post" | "ad" | "store";
   /** Ads only: show the Offer on/off switch (for ads where the gift card is a callout, not the whole message). */
   offerToggle?: boolean;
   /** Sizes this entry can export. Defaults to `["feed"]`. */

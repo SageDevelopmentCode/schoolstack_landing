@@ -1,10 +1,11 @@
 import { COVER_MARKS } from "@/components/admin/marketing/brand-marks/marks-covers";
 import { CREW_MARKS } from "@/components/admin/marketing/brand-marks/marks-crew";
+import { IOS_HEADER_MARKS } from "@/components/admin/marketing/brand-marks/marks-ios-headers";
 import { EVERYDAY_MARKS } from "@/components/admin/marketing/brand-marks/marks-everyday";
 import { SEASONAL_MARKS } from "@/components/admin/marketing/brand-marks/marks-seasonal";
-import type { BrandMark, BrandMarkKind, BrandMarkSeason, CoverFormat } from "@/components/admin/marketing/brand-marks/types";
+import type { BrandMark, BrandMarkKind, BrandMarkSeason, CoverFormat, IosHeaderFormat } from "@/components/admin/marketing/brand-marks/types";
 
-export const BRAND_MARKS: BrandMark[] = [...EVERYDAY_MARKS, ...CREW_MARKS, ...SEASONAL_MARKS, ...COVER_MARKS];
+export const BRAND_MARKS: BrandMark[] = [...EVERYDAY_MARKS, ...CREW_MARKS, ...SEASONAL_MARKS, ...COVER_MARKS, ...IOS_HEADER_MARKS];
 
 export const DEFAULT_BRAND_MARK_ID = "mint-dots";
 
@@ -21,10 +22,17 @@ export function coverInFormat(mark: BrandMark, format: CoverFormat): BrandMark |
   return BRAND_MARKS.find((m) => m.kind === "cover" && m.concept === mark.concept && m.format === format);
 }
 
-/** How many distinct designs a kind has (covers count once per concept). */
+/** The same App Store concept at another size and/or with text switched on or off. */
+export function iosHeaderSibling(mark: BrandMark, next: { format?: IosHeaderFormat; textless?: boolean }): BrandMark | undefined {
+  const format = next.format ?? mark.iosFormat;
+  const textless = next.textless ?? mark.textless ?? false;
+  return BRAND_MARKS.find((m) => m.kind === "ios-header" && m.concept === mark.concept && m.iosFormat === format && (m.textless ?? false) === textless);
+}
+
+/** How many distinct designs a kind has (covers and App Store art count once per concept). */
 export function designCount(kind: BrandMarkKind) {
   const marks = brandMarksOfKind(kind);
-  return kind === "cover" ? new Set(marks.map((m) => m.concept)).size : marks.length;
+  return kind === "cover" || kind === "ios-header" ? new Set(marks.map((m) => m.concept)).size : marks.length;
 }
 
 /** "now" while the window is open, "soon" if it opens within `soonDays`, else "later". */

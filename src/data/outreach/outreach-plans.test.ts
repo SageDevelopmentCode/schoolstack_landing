@@ -1,7 +1,32 @@
 import assert from "node:assert/strict";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it } from "node:test";
-import { schoolDemoRegistry } from "@/data/school-demos";
+import { schoolDemoHref, schoolDemoRegistry } from "@/data/school-demos";
 import { listOutreachPlans, outreachPlanRegistry } from "@/data/outreach";
+import {
+  MUDKITCHEN_CAPABILITIES,
+  isCapabilityId,
+  isCustomCapability,
+  walkthroughCapabilities,
+  type CapabilityId,
+} from "@/data/outreach/mudkitchen-capabilities";
+import { SNAPSHOT_AREAS, SNAPSHOT_LINK_TOKEN } from "@/data/outreach/types";
+import * as walkthroughs from "@/data/school-demos/walkthrough-placeholder";
+import type { DemoWalkthroughStep } from "@/data/school-demos/walkthrough-placeholder";
+
+/** Judgement words that make a snapshot read as an attack rather than a helpful look. */
+const JUDGEMENT_WORDS = /\b(bad|outdated|ugly|poor|terrible|awful|confusing|clunky|broken|amateur|messy|old-fashioned)\b/i;
+
+/** The walkthrough a demo page imports (e.g. `athenaWalkthroughPlaceholder`), or null. */
+function demoWalkthrough(slug: string): readonly DemoWalkthroughStep[] | null {
+  // Some demos live in a route folder that differs from their slug (e.g. monarch-hills-education → /demo/monarch-hills).
+  const page = join(process.cwd(), "src/app", schoolDemoHref(slug).slice(1), "page.tsx");
+  if (!existsSync(page)) return null;
+  const name = readFileSync(page, "utf8").match(/\b(\w+WalkthroughPlaceholder)\b/)?.[1];
+  const steps = name ? (walkthroughs as Record<string, unknown>)[name] : null;
+  return Array.isArray(steps) ? (steps as DemoWalkthroughStep[]) : null;
+}
 import { outreachWarnings } from "@/lib/admin-crm/outreach-email";
 
 // Every researched plan must pass the same checks the send screen runs, so the
@@ -71,6 +96,91 @@ describe("outreach plans", () => {
         assert.ok(first?.body.includes("MudKitchen"), "first email should say what Julius built: MudKitchen");
       });
 
+      it("only links the snapshot when the plan has one", () => {
+        const usesLink = plan.steps.some((s) => s.body.includes(SNAPSHOT_LINK_TOKEN));
+        if (usesLink) assert.ok(plan.snapshot, "{snapshot link} used but the plan has no snapshot");
+        const first = plan.steps.find((s) => s.id === "first");
+        assert.ok(!first?.body.includes(SNAPSHOT_LINK_TOKEN), "no links in a first email: offer the snapshot instead");
+      });
+
+      if (plan.priorContact) {
+        it("acknowledges the earlier email in the first email", () => {
+          const first = plan.steps.find((s) => s.id === "first");
+          assert.ok(plan.priorContact?.when.trim(), "priorContact.when missing");
+          assert.ok(first?.body.includes(plan.priorContact!.when), `first email should mention "${plan.priorContact!.when}"`);
+        });
+      }
+
+      if (plan.snapshot) {
+        const snapshot = plan.snapshot;
+        it("has a private, sourced snapshot", () => {
+          assert.match(snapshot.token, /^[A-Za-z0-9_-]{16,}$/, "snapshot token must be 16+ url-safe characters");
+          assert.match(snapshot.preparedOn, /^\d{4}-\d{2}-\d{2}$/);
+          assert.ok(snapshot.observations.length >= 4 && snapshot.observations.length <= 8, "4–8 observations");
+          for (const o of snapshot.observations) {
+            assert.ok((SNAPSHOT_AREAS as readonly string[]).includes(o.area), `unknown area ${o.area}`);
+            assert.match(o.url, /^https:\/\//, `observation without an https source: ${o.gap}`);
+            assert.match(o.readOn, /^\d{4}-\d{2}-\d{2}$/);
+            assert.ok(o.gap.trim() && o.saw.trim() && o.impact.trim() && o.fix.text.trim(), `observation text missing: ${o.gap}`);
+            assert.ok(o.gap.length <= 90, `gap headline too long: ${o.gap}`);
+            for (const text of [o.gap, o.saw, o.impact]) {
+              assert.doesNotMatch(text, JUDGEMENT_WORDS, `judgement word in "${text}": say what a family sees instead`);
+            }
+          }
+          if (snapshot.pageSpeed) {
+            assert.ok(snapshot.pageSpeed.mobileScore >= 0 && snapshot.pageSpeed.mobileScore <= 100);
+            assert.match(snapshot.pageSpeed.url, /^https:\/\//);
+            assert.match(snapshot.pageSpeed.checkedOn, /^\d{4}-\d{2}-\d{2}$/);
+          }
+        });
+
+        if (snapshot.toolStack) {
+          const tools = snapshot.toolStack;
+          it("lists 2+ sourced tools, with network tools flagged for review", () => {
+            assert.ok(tools.length >= 2, "only show a tool stack with 2 or more tools");
+            const names = tools.map((t) => t.name.toLowerCase());
+            assert.equal(new Set(names).size, names.length, "duplicate tool in toolStack");
+            const checks = plan.checkBeforeSending.join("\n").toLowerCase();
+            for (const tool of tools) {
+              assert.ok(tool.name.trim() && tool.usedFor.trim(), "tool name and usedFor are required");
+              assert.match(tool.url, /^https:\/\//, `tool without an https source: ${tool.name}`);
+              if (tool.network) {
+                assert.ok(
+                  checks.includes(`uses ${tool.network.toLowerCase()}'s ${tool.name.toLowerCase()}`),
+                  `add "Uses ${tool.network}'s ${tool.name}: decide whether to pitch replacing it" to checkBeforeSending`,
+                );
+              }
+            }
+          });
+        }
+
+        it("only claims what MudKitchen and their demo really have", () => {
+          const steps = demoWalkthrough(plan.slug);
+          const inDemo = steps ? walkthroughCapabilities(steps) : new Set<CapabilityId>();
+          const checks = plan.checkBeforeSending.join("\n").toLowerCase();
+          for (const o of snapshot.observations) {
+            assert.ok(o.fix.capabilities.length > 0, `fix without capabilities: ${o.gap}`);
+            for (const id of o.fix.capabilities) {
+              assert.ok(isCapabilityId(id), `unknown capability "${id}" (see mudkitchen-capabilities.ts)`);
+              if (isCustomCapability(id)) {
+                assert.equal(o.fix.label, "set_up", `"${id}" is custom work, so label it set_up: ${o.gap}`);
+                assert.ok(
+                  checks.includes(`we'd build: ${MUDKITCHEN_CAPABILITIES[id].label.toLowerCase()}`),
+                  `add "We'd build: ${MUDKITCHEN_CAPABILITIES[id].label}" to checkBeforeSending`,
+                );
+              }
+            }
+            if (o.fix.label === "in_demo") {
+              assert.ok(steps, `no demo walkthrough found for ${plan.slug}`);
+              const missing = o.fix.capabilities.filter((id) => !inDemo.has(id));
+              assert.deepEqual(missing, [], `"${o.gap}" is labelled In your demo, but the demo doesn't show ${missing.join(", ")}`);
+            } else {
+              assert.equal(o.fix.demoPath, undefined, "demoPath only applies to in_demo fixes");
+            }
+          }
+        });
+      }
+
       it("only gives the first email a subject", () => {
         for (const step of plan.steps) {
           if (step.kind !== "email") continue;
@@ -80,4 +190,22 @@ describe("outreach plans", () => {
       });
     });
   }
+});
+
+describe("demoWalkthrough", () => {
+  it("finds demos whose route folder differs from their slug", () => {
+    assert.ok(demoWalkthrough("monarch-hills-education"), "monarch-hills-education should resolve to /demo/monarch-hills");
+  });
+});
+
+describe("walkthroughCapabilities", () => {
+  it("reads the standard 8-step demo conservatively", () => {
+    const found = walkthroughCapabilities(walkthroughs.athenaWalkthroughPlaceholder);
+    for (const id of ["website-service", "admissions-pipeline", "enrollment-checklist", "parent-billing", "autopay", "attendance"] as const) {
+      assert.ok(found.has(id), `expected ${id}`);
+    }
+    for (const id of ["tour-self-booking", "calendar", "messaging", "mobile-app"] as const) {
+      assert.ok(!found.has(id), `did not expect ${id}`);
+    }
+  });
 });

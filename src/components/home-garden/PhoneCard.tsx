@@ -24,7 +24,7 @@ export default function PhoneCard({
       style={{ rotate: `${tilt}deg` }}
     >
       {tape ? <Tape color={tape} className="-top-3 left-1/2 -translate-x-1/2 rotate-2" /> : null}
-      <div className="relative aspect-[960/2078] overflow-hidden rounded-[20px]">
+      <div className="relative aspect-[960/2087] overflow-hidden rounded-[20px]">
         <Image src={slide.src} alt={slide.alt} fill className="object-cover" sizes={sizes} />
       </div>
       {showCaption ? (

@@ -16,17 +16,29 @@ import {
   designCount,
   formatMonthDay,
   getBrandMark,
+  iosHeaderSibling,
   seasonTiming,
   type SeasonTiming,
 } from "@/components/admin/marketing/brand-marks/registry";
-import { COVER_FORMAT_ORDER, COVER_FORMATS, type BrandMark, type BrandMarkKind } from "@/components/admin/marketing/brand-marks/types";
+import {
+  COVER_FORMAT_ORDER,
+  COVER_FORMATS,
+  IOS_HEADER_FORMAT_ORDER,
+  IOS_HEADER_FORMATS,
+  type BrandMark,
+  type BrandMarkKind,
+} from "@/components/admin/marketing/brand-marks/types";
 
-const KIND_LABEL: Record<BrandMarkKind, string> = { avatar: "Avatars", "app-icon": "App icons", cover: "Covers" };
+const KIND_ORDER: BrandMarkKind[] = ["avatar", "app-icon", "cover", "ios-header"];
+const KIND_LABEL: Record<BrandMarkKind, string> = { avatar: "Avatars", "app-icon": "App icons", cover: "Covers", "ios-header": "App Store" };
 const ZIP_NAME: Record<BrandMarkKind, string> = {
   avatar: "mudkitchen-profile-pictures.zip",
   "app-icon": "mudkitchen-app-icons.zip",
   cover: "mudkitchen-covers.zip",
+  "ios-header": "mudkitchen-app-store-artwork.zip",
 };
+/** Wide banners (covers, App Store art) vs square marks. */
+const isWide = (kind: BrandMarkKind) => kind === "cover" || kind === "ios-header";
 /** iOS-style continuous-corner approximation. */
 const SQUIRCLE = "22.37%";
 
@@ -40,7 +52,7 @@ function MarkView({ mark, size }: { mark: BrandMark; size: number }) {
 
 /** A mark clipped to how platforms show it: a circle for avatars, a rounded square for icons. */
 function Masked({ mark, size, ring = false }: { mark: BrandMark; size: number; ring?: boolean }) {
-  if (mark.kind === "cover") {
+  if (isWide(mark.kind)) {
     return (
       <div className={`shrink-0 overflow-hidden rounded-[4px] ${ring ? "ring-1 ring-black/10" : ""}`}>
         <MarkView mark={mark} size={size} />
@@ -77,10 +89,15 @@ export default function BrandMarkStudio() {
   const selected = getBrandMark(searchParams.get("mark")) ?? getBrandMark(DEFAULT_BRAND_MARK_ID) ?? BRAND_MARKS[0];
   const kind = selected.kind;
   const allOfKind = useMemo(() => brandMarksOfKind(kind), [kind]);
-  /** Covers list one row per concept, in the selected format. */
+  /** Covers and App Store art list one row per concept, in the selected format (and text mode). */
   const marks = useMemo(
-    () => (kind === "cover" ? allOfKind.filter((m) => m.format === selected.format) : allOfKind),
-    [allOfKind, kind, selected.format],
+    () =>
+      kind === "cover"
+        ? allOfKind.filter((m) => m.format === selected.format)
+        : kind === "ios-header"
+          ? allOfKind.filter((m) => m.iosFormat === selected.iosFormat && !!m.textless === !!selected.textless)
+          : allOfKind,
+    [allOfKind, kind, selected.format, selected.iosFormat, selected.textless],
   );
 
   const [showCrop, setShowCrop] = useState(true);
@@ -102,8 +119,14 @@ export default function BrandMarkStudio() {
 
   function switchKind(next: BrandMarkKind) {
     if (next === kind) return;
-    if (next === "cover" || kind === "cover") {
-      select(next === "cover" ? (brandMarksOfKind("cover")[0]?.id ?? DEFAULT_BRAND_MARK_ID) : next === "avatar" ? DEFAULT_BRAND_MARK_ID : `${DEFAULT_BRAND_MARK_ID}-icon`);
+    if (isWide(next) || isWide(kind)) {
+      select(
+        isWide(next)
+          ? (brandMarksOfKind(next)[0]?.id ?? DEFAULT_BRAND_MARK_ID)
+          : next === "avatar"
+            ? DEFAULT_BRAND_MARK_ID
+            : `${DEFAULT_BRAND_MARK_ID}-icon`,
+      );
       return;
     }
     const base = selected.id.replace(/-icon$/, "");
@@ -156,7 +179,8 @@ export default function BrandMarkStudio() {
       for (let i = 0; i < allOfKind.length; i += 1) {
         const mark = allOfKind[i];
         setProgress(`${i + 1} / ${allOfKind.length}`);
-        const folder = mark.kind === "cover" ? mark.format : mark.group;
+        const folder =
+          mark.kind === "cover" ? mark.format : mark.kind === "ios-header" ? `${mark.iosFormat}/${mark.textless ? "art-only" : "text"}` : mark.group;
         zip.file(`${folder}/${mark.fileName}`, dataUrlBase64(await capture(mark)), { base64: true });
       }
       const blob = await zip.generateAsync({ type: "blob" });
@@ -178,8 +202,8 @@ export default function BrandMarkStudio() {
     <div className="flex h-[calc(100vh-3rem)] min-h-0 overflow-hidden">
       <aside className="flex w-80 shrink-0 flex-col overflow-hidden border-r border-admin-border bg-admin-surface">
         <div className="shrink-0 border-b border-admin-border px-4 py-3">
-          <div role="tablist" aria-label="Design type" className="grid grid-cols-3 gap-1 rounded-admin-md bg-admin-canvas p-1">
-            {(["avatar", "app-icon", "cover"] as const).map((option) => (
+          <div role="tablist" aria-label="Design type" className="grid grid-cols-2 gap-1 rounded-admin-md bg-admin-canvas p-1">
+            {KIND_ORDER.map((option) => (
               <button
                 key={option}
                 type="button"
@@ -216,7 +240,7 @@ export default function BrandMarkStudio() {
                           : "border-transparent hover:border-admin-border hover:bg-admin-canvas/50"
                       }`}
                     >
-                      <Masked mark={mark} size={kind === "cover" ? 92 : 44} ring />
+                      <Masked mark={mark} size={isWide(kind) ? 92 : 44} ring />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium text-admin-text">{mark.title}</span>
                         <span className="block truncate text-[11px] text-admin-muted">
@@ -260,7 +284,9 @@ export default function BrandMarkStudio() {
                 ? " · square, no transparency (the phone rounds the corners)"
                 : kind === "cover" && selected.format
                   ? ` · ${COVER_FORMATS[selected.format].label}`
-                  : " · shown as a circle on most platforms"}
+                  : kind === "ios-header" && selected.iosFormat
+                    ? ` · ${IOS_HEADER_FORMATS[selected.iosFormat].label}${selected.textless ? " · art only" : ""}`
+                    : " · shown as a circle on most platforms"}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -284,6 +310,31 @@ export default function BrandMarkStudio() {
                   </button>
                 ))}
               </div>
+            ) : null}
+            {kind === "ios-header" ? (
+              <>
+                <Segmented
+                  label="Artwork size"
+                  options={IOS_HEADER_FORMAT_ORDER.map((format) => ({ value: format, label: IOS_HEADER_FORMATS[format].short }))}
+                  value={selected.iosFormat}
+                  onChange={(format) => {
+                    const sibling = iosHeaderSibling(selected, { format });
+                    if (sibling) select(sibling.id);
+                  }}
+                />
+                <Segmented
+                  label="Text"
+                  options={[
+                    { value: "text", label: "With text" },
+                    { value: "art", label: "Art only" },
+                  ]}
+                  value={selected.textless ? "art" : "text"}
+                  onChange={(mode) => {
+                    const sibling = iosHeaderSibling(selected, { textless: mode === "art" });
+                    if (sibling) select(sibling.id);
+                  }}
+                />
+              </>
             ) : null}
             <label className="flex items-center gap-2">
               <AdminSwitch checked={showCrop} onChange={setShowCrop} label="Show crop" />
@@ -317,6 +368,8 @@ export default function BrandMarkStudio() {
           <div className="mx-auto flex max-w-6xl flex-wrap items-start justify-center gap-8 px-6 py-8">
             {kind === "cover" ? (
               <CoverPreview mark={selected} showCrop={showCrop} />
+            ) : kind === "ios-header" ? (
+              <IosHeaderPreview mark={selected} showCrop={showCrop} />
             ) : (
               <figure className="flex flex-col items-center gap-3">
                 <div className="relative overflow-hidden rounded-admin-md shadow-sm ring-1 ring-black/5" style={{ width: 460, height: 460 }}>
@@ -340,18 +393,48 @@ export default function BrandMarkStudio() {
               </figure>
             )}
 
-            <div className={`flex flex-col gap-6 ${kind === "cover" ? "w-[820px]" : "w-[360px]"}`}>
-              {kind === "avatar" ? <AvatarMocks mark={selected} /> : kind === "app-icon" ? <IconMocks mark={selected} /> : <CoverMocks mark={selected} />}
+            <div className={`flex flex-col gap-6 ${isWide(kind) ? "w-[820px]" : "w-[360px]"}`}>
+              {kind === "avatar" ? (
+                <AvatarMocks mark={selected} />
+              ) : kind === "app-icon" ? (
+                <IconMocks mark={selected} />
+              ) : kind === "ios-header" ? (
+                <IosHeaderMocks mark={selected} />
+              ) : (
+                <CoverMocks mark={selected} />
+              )}
             </div>
           </div>
         </div>
 
-        <div aria-hidden className="pointer-events-none fixed top-0 -left-[4000px]">
+        {/* Parked fully off-screen to the left, however wide the design (App Store art is 5244px). */}
+        <div aria-hidden className="pointer-events-none fixed top-0" style={{ left: -(exportMark.width + 200) }}>
           <div ref={exportRef} style={{ width: exportMark.width, height: exportMark.height, overflow: "hidden", position: "relative" }}>
             <MarkView mark={exportMark} size={exportSize} />
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Segmented<T extends string>({ label, options, value, onChange }: { label: string; options: Array<{ value: T; label: string }>; value: T | undefined; onChange: (value: T) => void }) {
+  return (
+    <div role="tablist" aria-label={label} className="flex gap-1 rounded-admin-md bg-admin-canvas p-1">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          role="tab"
+          aria-selected={value === option.value}
+          onClick={() => onChange(option.value)}
+          className={`rounded-admin-md px-2.5 py-1 text-xs font-medium transition-colors ${
+            value === option.value ? "bg-admin-surface text-admin-text shadow-sm" : "text-admin-muted hover:text-admin-text"
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -535,5 +618,84 @@ function CoverMocks({ mark }: { mark: BrandMark }) {
         Platforms move the photo around between layouts, so keep words and faces out of the shaded areas in the preview.
       </p>
     </MockCard>
+  );
+}
+
+/** App Store artwork with the safe zone outlined and Apple's title band shaded. */
+function IosHeaderPreview({ mark, showCrop }: { mark: BrandMark; showCrop: boolean }) {
+  const spec = mark.iosFormat ? IOS_HEADER_FORMATS[mark.iosFormat] : null;
+  const k = PREVIEW_W / (spec?.stage.w ?? mark.width);
+  return (
+    <figure className="flex flex-col items-center gap-3">
+      <div className="relative overflow-hidden rounded-admin-md shadow-sm ring-1 ring-black/5" style={{ width: PREVIEW_W, height: Math.round((mark.height * PREVIEW_W) / mark.width) }}>
+        <MarkView mark={mark} size={PREVIEW_W} />
+        {showCrop && spec ? (
+          <>
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0"
+              style={{ top: Math.round(spec.overlay.y * k), height: Math.round(spec.overlay.h * k) + 1, background: "linear-gradient(to bottom, rgba(20,16,12,.15), rgba(20,16,12,.6))" }}
+            />
+            <span
+              aria-hidden
+              className="pointer-events-none absolute"
+              style={{
+                left: Math.round(spec.safe.x * k),
+                top: Math.round(spec.safe.y * k),
+                width: Math.round(spec.safe.w * k),
+                height: Math.round(spec.safe.h * k),
+                outline: "2px dashed rgba(255,255,255,.9)",
+                boxShadow: "0 0 0 2000px rgba(20,16,12,.28)",
+              }}
+            />
+          </>
+        ) : null}
+      </div>
+      <figcaption className="text-xs text-admin-muted">
+        {showCrop ? "Keep faces and words inside the dashed box. Apple may crop the edges and put the title in the bottom band." : "Full image, as downloaded"}
+      </figcaption>
+    </figure>
+  );
+}
+
+/** A featured App Store card, plus a centred 4:3 crop to check nothing important is lost. */
+function IosHeaderMocks({ mark }: { mark: BrandMark }) {
+  const icon = getBrandMark(`${DEFAULT_BRAND_MARK_ID}-icon`);
+  const w = 520;
+  const h = Math.round((mark.height * w) / mark.width);
+  const cropH = 240;
+  const cropW = Math.round((cropH * 4) / 3);
+  const fullW = Math.round((cropH * mark.width) / mark.height);
+  return (
+    <>
+      <MockCard title="Featured card">
+        <div className="relative overflow-hidden rounded-[22px] shadow-sm" style={{ width: w, height: h }}>
+          <MarkView mark={mark} size={w} />
+          <div className="absolute inset-x-0 bottom-0 flex items-center gap-3 px-4 pb-3 pt-10" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,.55))" }}>
+            {icon ? (
+              <div className="overflow-hidden ring-1 ring-white/30" style={{ width: 40, height: 40, borderRadius: SQUIRCLE, flexShrink: 0 }}>
+                <MarkView mark={icon} size={40} />
+              </div>
+            ) : null}
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-white">MudKitchen</p>
+              <p className="text-xs text-white/80">Microschools, families &amp; staff</p>
+            </div>
+            <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-[#0A84FF]">Get</span>
+          </div>
+        </div>
+      </MockCard>
+      <MockCard title="If cropped to 4:3">
+        <div className="relative overflow-hidden rounded-[18px] ring-1 ring-black/10" style={{ width: cropW, height: cropH }}>
+          <div className="absolute top-0" style={{ left: -Math.round((fullW - cropW) / 2) }}>
+            <MarkView mark={mark} size={fullW} />
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-admin-muted">
+          The safe zone is our own conservative guess, not Apple&apos;s template. If Apple sends a template, update <code>IOS_HEADER_FORMATS</code> in{" "}
+          <code>brand-marks/types.ts</code>.
+        </p>
+      </MockCard>
+    </>
   );
 }

@@ -20,7 +20,8 @@ export function MarketingCarouselSidebar({
 }: MarketingCarouselSidebarProps) {
   const groups = [
     { label: "Ads", items: carousels.filter((carousel) => carousel.kind === "ad") },
-    { label: "Posts", items: carousels.filter((carousel) => carousel.kind !== "ad") },
+    { label: "Posts", items: carousels.filter((carousel) => carousel.kind !== "ad" && carousel.kind !== "store") },
+    { label: "App store", items: carousels.filter((carousel) => carousel.kind === "store") },
   ];
 
   return (
@@ -40,7 +41,8 @@ export function MarketingCarouselSidebar({
                 const selected = carousel.id === selectedId;
                 const slideLabel =
                   carousel.slides.length === 1 ? "1 slide" : `${carousel.slides.length} slides`;
-                const sizeLabel = (carousel.sizes?.length ?? 1) > 1 ? " · feed + story" : "";
+                const sizeLabel =
+                  carousel.kind === "store" ? " · App Store + Play" : (carousel.sizes?.length ?? 1) > 1 ? " · feed + story" : "";
                 const badge = postedBadge(carousel, postedByCarouselId[carousel.id]);
 
                 return (

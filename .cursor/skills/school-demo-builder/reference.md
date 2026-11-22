@@ -17,7 +17,8 @@ Given school **Luff Learning Fine Arts Academy** and slug **`luff-learning`**:
 | Walkthrough admin (steps 3–4) | `src/components/demo/shared/DemoAdminGardenAdmissions.tsx` (real Garden admin portal) |
 | Walkthrough parent (steps 5–6) | `DemoParentEnrollmentChecklist.tsx`, `DemoParentGardenPortal.tsx` (real Garden parent pages) |
 | Walkthrough teacher (step 7) | `DemoTeacherGardenPortal.tsx` (real Garden staff portal) |
-| Older Story demos | `SchoolAdminDashboardDemo.tsx` / `SchoolParentDashboardDemo.tsx` / `SchoolTeacherDashboardDemo.tsx` — still used for the other admin steps (committees, tuition, My School) and `/demo-school` |
+| Walkthrough chrome (Garden, no per-school edits) | `src/components/demo/DemoWalkthroughPanel.tsx`, `DemoWalkthroughStepList.tsx`, `DemoWalkthroughMobileSheet.tsx`, `src/lib/marketing/school-concept-walkthrough-theme.ts` |
+| Shared portal demos | `SchoolAdminDashboardDemo.tsx` (Story) — other admin steps (committees, tuition, My School); `SchoolParentDashboardDemo.tsx` / `SchoolTeacherDashboardDemo.tsx` — Garden header (`DemoPortalGardenHeader`) with a mix of Garden and Story pages, for the non-Garden parent/teacher tabs and `/demo-school` |
 | Shared loaders | `lazySchoolAdminDemo.tsx`, `lazySchoolParentDemo.tsx`, `lazySchoolParentGardenDemo.tsx`, `lazySchoolTeacherDemo.tsx` |
 | Website template | `src/components/sections/WebsiteDashboardDemo.tsx` + `website-demo/site-garden-theme.ts` + `website-demo/garden/SiteKit.tsx` |
 | Config types | `src/data/school-demos/demo-dashboard-types.ts` |
@@ -96,7 +97,7 @@ Shared roster/leads: `src/components/demo/mobile/mobileDemoData.ts`.
 
 ### Walkthrough (1 touch point)
 
-- [ ] `src/data/school-demos/walkthrough-placeholder.ts` — append `{camelCase}WalkthroughPlaceholder` (9 steps, including `mobile-app` before contact)
+- [ ] `src/data/school-demos/walkthrough-placeholder.ts` — append `{camelCase}WalkthroughPlaceholder` (9 steps, including `mobile-app` before contact). Steps have no colour fields; the sidebar is themed from `config.theme`
 
 ### Assets
 
@@ -123,7 +124,7 @@ Redesign guides scraped from WordPress/Kadence often mislabel hex roles. Always 
 | `DemoTheme` field | What it drives on the Garden website |
 |---|---|
 | `theme.dark` | **Action colour**: every CTA button, accent words in headings, the one dark panel. Must pass white text (`readableOn` falls back to ink if not, but choose a dark brand colour). |
-| `theme.primary` | **Brand tint**: sticky notes, washi tape, marker highlights (mixed ~30% into paper). Bright yellows/oranges work well. |
+| `theme.primary` | **Brand tint**: sticky notes, washi tape, marker highlights (mixed ~30% into paper). Bright yellows/oranges work well. Also the walkthrough sidebar accent (`buildSchoolConceptWalkthroughTheme`). |
 | `theme.primaryHover`, `darkHover` | Not used by the site; keep them sensible for older surfaces |
 | `theme.accentText`, `lightBg`, `lightBorder`, `muted`, `badgeBg`, `pageBg` | Not used by the Garden site (cream/paper/ink come from Garden); still required by the type |
 | `*_ADMIN_COLORS.clay` | Walkthrough gold/warm accent |
