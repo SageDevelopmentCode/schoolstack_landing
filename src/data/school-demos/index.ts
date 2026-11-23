@@ -43,6 +43,10 @@ export { riverOakAcademyConfig } from "./river-oak-academy";
 export { brazosValleyHonorAcademyConfig } from "./brazos-valley-honor-academy";
 export { inspiredLearningConfig } from "./inspired-learning-academy";
 export { wildcatMicroschoolConfig } from "./wildcat-microschool";
+export { meadowsBeeFarmConfig } from "./meadows-bee-farm";
+export { heartsongCottageSchoolConfig } from "./heartsong-cottage-school";
+export { honeycombCottageSchoolConfig } from "./honeycomb-cottage-school";
+export { madronaSchoolConfig } from "./madrona-school";
 
 import type { SchoolWebsiteDemoConfig } from "./types";
 import { athenaMicroacademyConfig } from "./athena-microacademy";
@@ -88,6 +92,10 @@ import { riverOakAcademyConfig } from "./river-oak-academy";
 import { brazosValleyHonorAcademyConfig } from "./brazos-valley-honor-academy";
 import { inspiredLearningConfig } from "./inspired-learning-academy";
 import { wildcatMicroschoolConfig } from "./wildcat-microschool";
+import { meadowsBeeFarmConfig } from "./meadows-bee-farm";
+import { heartsongCottageSchoolConfig } from "./heartsong-cottage-school";
+import { honeycombCottageSchoolConfig } from "./honeycomb-cottage-school";
+import { madronaSchoolConfig } from "./madrona-school";
 
 export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "athena-microacademy": athenaMicroacademyConfig,
@@ -133,6 +141,10 @@ export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "brazos-valley-honor-academy": brazosValleyHonorAcademyConfig,
   "inspired-learning-academy": inspiredLearningConfig,
   "wildcat-microschool": wildcatMicroschoolConfig,
+  "meadows-bee-farm": meadowsBeeFarmConfig,
+  "heartsong-cottage-school": heartsongCottageSchoolConfig,
+  "honeycomb-cottage-school": honeycombCottageSchoolConfig,
+  "madrona-school": madronaSchoolConfig,
 };
 
 export function getSchoolDemoConfig(slug: string): SchoolWebsiteDemoConfig | undefined {

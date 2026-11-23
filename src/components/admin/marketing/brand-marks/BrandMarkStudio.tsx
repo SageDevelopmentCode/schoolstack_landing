@@ -1,13 +1,14 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Download, Loader2 } from "lucide-react";
 import JSZip from "jszip";
 import { AdminSwitch } from "@/components/admin/ui/AdminSwitch";
 import { dataUrlBase64, downloadUrl, nodeToPng } from "@/components/admin/marketing/export-png";
-import { MarkStage } from "@/components/admin/marketing/brand-marks/mark-kit";
+import { MarkStage, svgSrc } from "@/components/admin/marketing/brand-marks/mark-kit";
+import { BOWL_VECTOR } from "@/components/admin/marketing/brand-marks/bowl-vector";
 import {
   BRAND_MARKS,
   brandMarksOfKind,
@@ -27,17 +28,40 @@ import {
   IOS_HEADER_FORMATS,
   type BrandMark,
   type BrandMarkKind,
+  type LogoSection,
 } from "@/components/admin/marketing/brand-marks/types";
 
-const KIND_ORDER: BrandMarkKind[] = ["avatar", "app-icon", "cover", "ios-header", "link-preview"];
-const KIND_LABEL: Record<BrandMarkKind, string> = { avatar: "Avatars", "app-icon": "App icons", cover: "Covers", "ios-header": "App Store", "link-preview": "Link previews" };
+const KIND_ORDER: BrandMarkKind[] = ["avatar", "app-icon", "cover", "ios-header", "link-preview", "logo"];
+const KIND_LABEL: Record<BrandMarkKind, string> = { avatar: "Avatars", "app-icon": "App icons", cover: "Covers", "ios-header": "App Store", "link-preview": "Link previews", logo: "Logos" };
 const ZIP_NAME: Record<BrandMarkKind, string> = {
   avatar: "mudkitchen-profile-pictures.zip",
   "app-icon": "mudkitchen-app-icons.zip",
   cover: "mudkitchen-covers.zip",
   "ios-header": "mudkitchen-app-store-artwork.zip",
   "link-preview": "mudkitchen-link-previews.zip",
+  logo: "mudkitchen-logo-stickers.zip",
 };
+const LOGO_SECTIONS: Array<{ section: LogoSection; label: string }> = [
+  { section: "bowl", label: "Bowl only" },
+  { section: "wordmark", label: "Bowl + MudKitchen" },
+  { section: "badge", label: "Badges & seals" },
+];
+/** Print resolution the Logos tab quotes sizes against. */
+const PRINT_DPI = 300;
+
+type Backdrop = "checker" | "white" | "kraft" | "dark";
+const BACKDROPS: Array<{ value: Backdrop; label: string }> = [
+  { value: "checker", label: "Transparent" },
+  { value: "white", label: "White" },
+  { value: "kraft", label: "Kraft" },
+  { value: "dark", label: "Dark" },
+];
+function backdropStyle(backdrop: Backdrop, cell = 16): CSSProperties {
+  if (backdrop === "white") return { background: "#FFFFFF" };
+  if (backdrop === "kraft") return { background: "#C9A878" };
+  if (backdrop === "dark") return { background: "#2B2F33" };
+  return { background: `repeating-conic-gradient(#E6E2DC 0% 25%, #FFFFFF 0% 50%) 0 0 / ${cell}px ${cell}px` };
+}
 /** Wide banners (covers, App Store art) vs square marks. */
 const isWide = (kind: BrandMarkKind) => kind === "cover" || kind === "ios-header" || kind === "link-preview";
 /** iOS-style continuous-corner approximation. */
@@ -53,6 +77,7 @@ function MarkView({ mark, size }: { mark: BrandMark; size: number }) {
 
 /** A mark clipped to how platforms show it: a circle for avatars, a rounded square for icons. */
 function Masked({ mark, size, ring = false }: { mark: BrandMark; size: number; ring?: boolean }) {
+  if (mark.kind === "logo") return <LogoFit mark={mark} size={size} backdrop="checker" ring={ring} />;
   if (isWide(mark.kind)) {
     return (
       <div className={`shrink-0 overflow-hidden rounded-[4px] ${ring ? "ring-1 ring-black/10" : ""}`}>
@@ -66,6 +91,19 @@ function Masked({ mark, size, ring = false }: { mark: BrandMark; size: number; r
       style={{ width: size, height: size, overflow: "hidden", borderRadius: mark.kind === "avatar" ? "50%" : SQUIRCLE, flexShrink: 0 }}
     >
       <MarkView mark={mark} size={size} />
+    </div>
+  );
+}
+
+/** A logo sticker fitted into a size×size box over a backdrop (bumpers sit centred). */
+function LogoFit({ mark, size, backdrop, ring = false, rounded = 6 }: { mark: BrandMark; size: number; backdrop: Backdrop; ring?: boolean; rounded?: number }) {
+  const w = mark.width >= mark.height ? size : Math.round((size * mark.width) / mark.height);
+  return (
+    <div
+      className={ring ? "ring-1 ring-black/10" : undefined}
+      style={{ ...backdropStyle(backdrop, Math.max(6, Math.round(size / 24))), width: size, height: size, borderRadius: rounded, overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+    >
+      <MarkView mark={mark} size={w} />
     </div>
   );
 }
@@ -102,6 +140,7 @@ export default function BrandMarkStudio() {
   );
 
   const [showCrop, setShowCrop] = useState(true);
+  const [backdrop, setBackdrop] = useState<Backdrop>("checker");
   const [exportMark, setExportMark] = useState<BrandMark>(selected);
   const [exporting, setExporting] = useState<"one" | "all" | null>(null);
   const [progress, setProgress] = useState<string | null>(null);
@@ -120,7 +159,11 @@ export default function BrandMarkStudio() {
 
   function switchKind(next: BrandMarkKind) {
     if (next === kind) return;
-    if (isWide(next) || isWide(kind)) {
+    if (next === "logo") {
+      select(brandMarksOfKind("logo")[0]?.id ?? DEFAULT_BRAND_MARK_ID);
+      return;
+    }
+    if (isWide(next) || isWide(kind) || kind === "logo") {
       select(
         isWide(next)
           ? (brandMarksOfKind(next)[0]?.id ?? DEFAULT_BRAND_MARK_ID)
@@ -136,6 +179,12 @@ export default function BrandMarkStudio() {
   }
 
   const groups = useMemo(() => {
+    if (kind === "logo") {
+      return LOGO_SECTIONS.map(({ section, label }) => ({
+        label,
+        items: marks.filter((m) => m.section === section).map((mark) => ({ mark, timing: null as SeasonTiming | null })),
+      }));
+    }
     const timed = marks
       .filter((mark) => mark.season)
       .map((mark) => ({ mark, timing: seasonTiming(mark.season!, today) }))
@@ -146,7 +195,7 @@ export default function BrandMarkStudio() {
       { label: "The crew", items: marks.filter((m) => m.group === "crew").map((mark) => ({ mark, timing: null })) },
       { label: "Later this year", items: timed.filter((t) => t.timing.state === "later") },
     ];
-  }, [marks, today]);
+  }, [kind, marks, today]);
 
   const selectedTiming = selected.season ? seasonTiming(selected.season, today) : null;
 
@@ -188,7 +237,9 @@ export default function BrandMarkStudio() {
               ? `${mark.iosFormat}/${mark.textless ? "art-only" : "text"}/`
               : mark.kind === "link-preview"
                 ? ""
-                : `${mark.group}/`;
+                : mark.kind === "logo"
+                  ? `${mark.section ?? "other"}/`
+                  : `${mark.group}/`;
         zip.file(`${folder}${mark.fileName}`, dataUrlBase64(await capture(mark)), { base64: true });
       }
       const blob = await zip.generateAsync({ type: "blob" });
@@ -296,7 +347,9 @@ export default function BrandMarkStudio() {
                     ? ` · ${IOS_HEADER_FORMATS[selected.iosFormat].label}${selected.textless ? " · art only" : ""}`
                     : kind === "link-preview"
                       ? ` · link preview for ${selected.pages?.join(", ") ?? ""} · save into public/og/`
-                      : " · shown as a circle on most platforms"}
+                      : kind === "logo"
+                        ? ` · transparent · prints sharp up to ${(selected.width / PRINT_DPI).toFixed(1)}×${(selected.height / PRINT_DPI).toFixed(1)} in at ${PRINT_DPI} dpi`
+                        : " · shown as a circle on most platforms"}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -346,10 +399,14 @@ export default function BrandMarkStudio() {
                 />
               </>
             ) : null}
-            <label className="flex items-center gap-2">
-              <AdminSwitch checked={showCrop} onChange={setShowCrop} label="Show crop" />
-              <span className="text-sm text-admin-text">Show crop</span>
-            </label>
+            {kind === "logo" ? (
+              <Segmented label="Preview on" options={BACKDROPS} value={backdrop} onChange={setBackdrop} />
+            ) : (
+              <label className="flex items-center gap-2">
+                <AdminSwitch checked={showCrop} onChange={setShowCrop} label="Show crop" />
+                <span className="text-sm text-admin-text">Show crop</span>
+              </label>
+            )}
             <button
               type="button"
               onClick={() => void downloadOne()}
@@ -382,6 +439,15 @@ export default function BrandMarkStudio() {
               <IosHeaderPreview mark={selected} showCrop={showCrop} />
             ) : kind === "link-preview" ? (
               <LinkPreviewPreview mark={selected} showCrop={showCrop} />
+            ) : kind === "logo" ? (
+              <figure className="flex flex-col items-center gap-3">
+                <div className="rounded-admin-md shadow-sm ring-1 ring-black/5">
+                  <LogoFit mark={selected} size={460} backdrop={backdrop} rounded={8} />
+                </div>
+                <figcaption className="text-xs text-admin-muted">
+                  {backdrop === "checker" ? "Checks = transparent. The printer cuts along the outer border." : "Full image, as downloaded"}
+                </figcaption>
+              </figure>
             ) : (
               <figure className="flex flex-col items-center gap-3">
                 <div className="relative overflow-hidden rounded-admin-md shadow-sm ring-1 ring-black/5" style={{ width: 460, height: 460 }}>
@@ -414,6 +480,8 @@ export default function BrandMarkStudio() {
                 <IosHeaderMocks mark={selected} />
               ) : kind === "link-preview" ? (
                 <LinkPreviewMocks mark={selected} />
+              ) : kind === "logo" ? (
+                <LogoMocks mark={selected} />
               ) : (
                 <CoverMocks mark={selected} />
               )}
@@ -786,6 +854,63 @@ function LinkPreviewMocks({ mark }: { mark: BrandMark }) {
           </div>
         </div>
         <p className="mt-2 text-[11px] text-admin-muted">{h}px tall in a 300px chat bubble.</p>
+      </MockCard>
+    </>
+  );
+}
+
+/** Where the sticker ends up, how big it prints, and the redraw next to the original bowl. */
+function LogoMocks({ mark }: { mark: BrandMark }) {
+  const wide = mark.width > mark.height;
+  const inch = 30;
+  return (
+    <>
+      <MockCard title="On a laptop lid">
+        <div className="relative flex h-[200px] items-center justify-center overflow-hidden rounded-[18px]" style={{ background: "linear-gradient(150deg, #4A4F55, #2E3236)" }}>
+          <span className="absolute h-7 w-7 rounded-full bg-white/10" style={{ left: "50%", top: "50%", transform: "translate(-50%, -50%)" }} />
+          <div style={{ position: "absolute", right: 34, bottom: 22, transform: "rotate(-8deg)" }}>
+            <MarkView mark={mark} size={wide ? 150 : 110} />
+          </div>
+          <div style={{ position: "absolute", left: 30, top: 26, transform: "rotate(6deg)", opacity: 0.9 }}>
+            <MarkView mark={mark} size={wide ? 110 : 76} />
+          </div>
+        </div>
+      </MockCard>
+      <MockCard title="Real size">
+        <div className="flex items-end gap-5 rounded-admin-md p-3" style={backdropStyle("kraft")}>
+          {(wide ? [3, 4.5] : [2, 3, 4]).map((inches) => (
+            <div key={inches} className="flex flex-col items-center gap-1">
+              <MarkView mark={mark} size={Math.round(inches * inch)} />
+              <span className="text-[10px] font-medium text-white/90">{inches}&quot; wide</span>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-xs leading-relaxed text-admin-muted">
+          Shown roughly to scale. A 4&quot; sticker needs {4 * PRINT_DPI}px at {PRINT_DPI} dpi; this file is {mark.width}px wide, so it stays sharp up to{" "}
+          {(mark.width / PRINT_DPI).toFixed(1)}&quot; wide.
+        </p>
+      </MockCard>
+      <MockCard title="Redraw vs original">
+        <div className="flex items-center justify-around gap-4">
+          <figure className="flex flex-col items-center gap-1">
+            {/* eslint-disable-next-line @next/next/no-img-element -- comparing the raw source files */}
+            <img src="/images/Logo.png" alt="Original bowl logo" width={130} height={130} style={{ width: 130, height: 130, objectFit: "cover", objectPosition: "50% 50%" }} />
+            <figcaption className="text-[10px] text-admin-faint">Original (Logo.png, 308px art)</figcaption>
+          </figure>
+          <figure className="flex flex-col items-center gap-1">
+            {/* eslint-disable-next-line @next/next/no-img-element -- comparing the raw source files */}
+            <img src={svgSrc(BOWL_VECTOR)} alt="Vector redraw of the bowl" width={100} height={101} style={{ width: 100, height: 101, margin: "15px" }} />
+            <figcaption className="text-[10px] text-admin-faint">Vector redraw (any size)</figcaption>
+          </figure>
+        </div>
+      </MockCard>
+      <MockCard title="Printing">
+        <ul className="list-disc space-y-1 pl-4 text-xs leading-relaxed text-admin-muted">
+          <li>Upload the PNG as-is. The background is transparent and the sticker printer draws its die-cut line around the outer border.</li>
+          <li>Pick &ldquo;die cut&rdquo; (or &ldquo;contour cut&rdquo;). Badges and circles also work as plain circle stickers.</li>
+          <li>The white border is part of the art, so ask for no extra border or bleed.</li>
+          <li>&ldquo;Download all&rdquo; gives every design, sorted into bowl, wordmark and badge folders.</li>
+        </ul>
       </MockCard>
     </>
   );

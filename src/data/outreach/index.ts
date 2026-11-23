@@ -11,8 +11,10 @@ import { creationAcresOutreach } from "./creation-acres";
 import { familyLyceumOutreach } from "./family-lyceum";
 import { freedomPrepAcademyOutreach } from "./freedom-prep-academy";
 import { gatheredOakFarmOutreach } from "./gathered-oak-farm";
+import { heartsongCottageSchoolOutreach } from "./heartsong-cottage-school";
 import { hiltonHorizonsAcademyOutreach } from "./hilton-horizons-academy";
 import { homeworkHubOutreach } from "./homework-hub";
+import { honeycombCottageSchoolOutreach } from "./honeycomb-cottage-school";
 import { inspiredLearningAcademyOutreach } from "./inspired-learning-academy";
 import { katsCommunityMicroschoolOutreach } from "./kats-community-microschool";
 import { kinderAcademyPrepSchoolOutreach } from "./kinder-academy-prep-school";
@@ -21,6 +23,8 @@ import { labLearningOutreach } from "./lab-learning";
 import { lighthouseHomeschoolOutreach } from "./lighthouse-homeschool";
 import { littleSprigsTampaOutreach } from "./little-sprigs-tampa";
 import { luffLearningOutreach } from "./luff-learning";
+import { madronaSchoolOutreach } from "./madrona-school";
+import { meadowsBeeFarmOutreach } from "./meadows-bee-farm";
 import { micahsMissionSchoolOutreach } from "./micahs-mission-school";
 import { monarchHillsEducationOutreach } from "./monarch-hills-education";
 import { naplesMicroschoolsOutreach } from "./naples-microschools";
@@ -60,8 +64,10 @@ export const outreachPlanRegistry: Record<string, OutreachPlan> = {
   [familyLyceumOutreach.slug]: familyLyceumOutreach,
   [freedomPrepAcademyOutreach.slug]: freedomPrepAcademyOutreach,
   [gatheredOakFarmOutreach.slug]: gatheredOakFarmOutreach,
+  [heartsongCottageSchoolOutreach.slug]: heartsongCottageSchoolOutreach,
   [hiltonHorizonsAcademyOutreach.slug]: hiltonHorizonsAcademyOutreach,
   [homeworkHubOutreach.slug]: homeworkHubOutreach,
+  [honeycombCottageSchoolOutreach.slug]: honeycombCottageSchoolOutreach,
   [inspiredLearningAcademyOutreach.slug]: inspiredLearningAcademyOutreach,
   [katsCommunityMicroschoolOutreach.slug]: katsCommunityMicroschoolOutreach,
   [kinderAcademyPrepSchoolOutreach.slug]: kinderAcademyPrepSchoolOutreach,
@@ -70,6 +76,8 @@ export const outreachPlanRegistry: Record<string, OutreachPlan> = {
   [lighthouseHomeschoolOutreach.slug]: lighthouseHomeschoolOutreach,
   [littleSprigsTampaOutreach.slug]: littleSprigsTampaOutreach,
   [luffLearningOutreach.slug]: luffLearningOutreach,
+  [madronaSchoolOutreach.slug]: madronaSchoolOutreach,
+  [meadowsBeeFarmOutreach.slug]: meadowsBeeFarmOutreach,
   [micahsMissionSchoolOutreach.slug]: micahsMissionSchoolOutreach,
   [monarchHillsEducationOutreach.slug]: monarchHillsEducationOutreach,
   [naplesMicroschoolsOutreach.slug]: naplesMicroschoolsOutreach,

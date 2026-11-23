@@ -38,6 +38,10 @@ import { brazosValleyHonorAcademyAdminDemoConfig } from "./brazos-valley-honor-a
 import { theWoodlandsMicroschoolAdminDemoConfig } from "./the-woodlands-admin-demo";
 import { trueNorthAdminDemoConfig } from "./truenorth-admin-demo";
 import { wildcatMicroschoolAdminDemoConfig } from "./wildcat-microschool-admin-demo";
+import { meadowsBeeFarmAdminDemoConfig } from "./meadows-bee-farm-admin-demo";
+import { heartsongCottageSchoolAdminDemoConfig } from "./heartsong-cottage-school-admin-demo";
+import { honeycombCottageSchoolAdminDemoConfig } from "./honeycomb-cottage-school-admin-demo";
+import { madronaSchoolAdminDemoConfig } from "./madrona-school-admin-demo";
 import { wildHeartsAdventureAdminDemoConfig } from "./wild-hearts-admin-demo";
 import { wonderhereLakelandAdminDemoConfig } from "./wonderhere-admin-demo";
 import { wonderingOaksLearningAdminDemoConfig } from "./wondering-oaks-admin-demo";
@@ -82,6 +86,10 @@ export const schoolAdminDemoConfigs: Record<string, SchoolAdminDemoConfig> = {
   "the-woodlands-microschool": theWoodlandsMicroschoolAdminDemoConfig,
   "true-north": trueNorthAdminDemoConfig,
   "wildcat-microschool": wildcatMicroschoolAdminDemoConfig,
+  "meadows-bee-farm": meadowsBeeFarmAdminDemoConfig,
+  "heartsong-cottage-school": heartsongCottageSchoolAdminDemoConfig,
+  "honeycomb-cottage-school": honeycombCottageSchoolAdminDemoConfig,
+  "madrona-school": madronaSchoolAdminDemoConfig,
   "wild-hearts-adventure": wildHeartsAdventureAdminDemoConfig,
   "wonderhere-lakeland": wonderhereLakelandAdminDemoConfig,
   "wondering-oaks-learning": wonderingOaksLearningAdminDemoConfig,
@@ -127,6 +135,10 @@ import { brazosValleyHonorAcademyParentDemoConfig } from "./brazos-valley-honor-
 import { theWoodlandsMicroschoolParentDemoConfig } from "./the-woodlands-parent-demo";
 import { trueNorthParentDemoConfig } from "./truenorth-parent-demo";
 import { wildcatMicroschoolParentDemoConfig } from "./wildcat-microschool-parent-demo";
+import { meadowsBeeFarmParentDemoConfig } from "./meadows-bee-farm-parent-demo";
+import { heartsongCottageSchoolParentDemoConfig } from "./heartsong-cottage-school-parent-demo";
+import { honeycombCottageSchoolParentDemoConfig } from "./honeycomb-cottage-school-parent-demo";
+import { madronaSchoolParentDemoConfig } from "./madrona-school-parent-demo";
 import { wildHeartsAdventureParentDemoConfig } from "./wild-hearts-parent-demo";
 import { wonderhereLakelandParentDemoConfig } from "./wonderhere-parent-demo";
 import { wonderingOaksLearningParentDemoConfig } from "./wondering-oaks-parent-demo";
@@ -171,6 +183,10 @@ export const schoolParentDemoConfigs: Record<string, SchoolParentDemoConfig> = {
   "the-woodlands-microschool": theWoodlandsMicroschoolParentDemoConfig,
   "true-north": trueNorthParentDemoConfig,
   "wildcat-microschool": wildcatMicroschoolParentDemoConfig,
+  "meadows-bee-farm": meadowsBeeFarmParentDemoConfig,
+  "heartsong-cottage-school": heartsongCottageSchoolParentDemoConfig,
+  "honeycomb-cottage-school": honeycombCottageSchoolParentDemoConfig,
+  "madrona-school": madronaSchoolParentDemoConfig,
   "wild-hearts-adventure": wildHeartsAdventureParentDemoConfig,
   "wonderhere-lakeland": wonderhereLakelandParentDemoConfig,
   "wondering-oaks-learning": wonderingOaksLearningParentDemoConfig,
@@ -215,6 +231,10 @@ import { brazosValleyHonorAcademyTeacherDemoConfig } from "./brazos-valley-honor
 import { theWoodlandsMicroschoolTeacherDemoConfig } from "./the-woodlands-teacher-demo";
 import { trueNorthTeacherDemoConfig } from "./truenorth-teacher-demo";
 import { wildcatMicroschoolTeacherDemoConfig } from "./wildcat-microschool-teacher-demo";
+import { meadowsBeeFarmTeacherDemoConfig } from "./meadows-bee-farm-teacher-demo";
+import { heartsongCottageSchoolTeacherDemoConfig } from "./heartsong-cottage-school-teacher-demo";
+import { honeycombCottageSchoolTeacherDemoConfig } from "./honeycomb-cottage-school-teacher-demo";
+import { madronaSchoolTeacherDemoConfig } from "./madrona-school-teacher-demo";
 import { wildHeartsAdventureTeacherDemoConfig } from "./wild-hearts-teacher-demo";
 import { wonderhereLakelandTeacherDemoConfig } from "./wonderhere-teacher-demo";
 import { wonderingOaksLearningTeacherDemoConfig } from "./wondering-oaks-teacher-demo";
@@ -259,6 +279,10 @@ export const schoolTeacherDemoConfigs: Record<string, SchoolTeacherDemoConfig> =
   "the-woodlands-microschool": theWoodlandsMicroschoolTeacherDemoConfig,
   "true-north": trueNorthTeacherDemoConfig,
   "wildcat-microschool": wildcatMicroschoolTeacherDemoConfig,
+  "meadows-bee-farm": meadowsBeeFarmTeacherDemoConfig,
+  "heartsong-cottage-school": heartsongCottageSchoolTeacherDemoConfig,
+  "honeycomb-cottage-school": honeycombCottageSchoolTeacherDemoConfig,
+  "madrona-school": madronaSchoolTeacherDemoConfig,
   "wild-hearts-adventure": wildHeartsAdventureTeacherDemoConfig,
   "wonderhere-lakeland": wonderhereLakelandTeacherDemoConfig,
   "wondering-oaks-learning": wonderingOaksLearningTeacherDemoConfig,

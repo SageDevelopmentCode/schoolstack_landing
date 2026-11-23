@@ -6,8 +6,15 @@ import type { ReactNode } from "react";
  * cover: wide social banner (see COVER_FORMATS).
  * ios-header: App Store artwork (see IOS_HEADER_FORMATS).
  * link-preview: 1200×630 Open Graph card for one public page (see src/lib/marketing/link-previews.ts).
+ * logo: transparent die-cut logo sticker for print (exported at LOGO_SCALE × its stage).
  */
-export type BrandMarkKind = "avatar" | "app-icon" | "cover" | "ios-header" | "link-preview";
+export type BrandMarkKind = "avatar" | "app-icon" | "cover" | "ios-header" | "link-preview" | "logo";
+
+/** Logo stickers: which list they sit in (also the folder in the zip). */
+export type LogoSection = "bowl" | "wordmark" | "badge";
+
+/** Logo stickers are drawn on a 1080-unit stage and exported at 3× (3240px ≈ 10.8 in at 300 dpi). */
+export const LOGO_SCALE = 3;
 
 export type BrandMarkGroup = "everyday" | "crew" | "seasonal";
 
@@ -132,5 +139,7 @@ export type BrandMark = {
   textless?: boolean;
   /** Link previews: the routes that use this card. */
   pages?: string[];
+  /** Logo stickers: which list they sit in. */
+  section?: LogoSection;
   render: () => ReactNode;
 };

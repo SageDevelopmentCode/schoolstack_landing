@@ -145,6 +145,22 @@ const WEBSITE_DEMO_LOADERS: Record<
     import(
       "@/components/demo/wildcatmicroschool/WildcatMicroschoolWebsiteDashboardDemo"
     ),
+  "meadows-bee-farm": () =>
+    import(
+      "@/components/demo/meadowsbeefarm/MeadowsBeeFarmWebsiteDashboardDemo"
+    ),
+  "heartsong-cottage-school": () =>
+    import(
+      "@/components/demo/heartsongcottageschool/HeartsongCottageSchoolWebsiteDashboardDemo"
+    ),
+  "honeycomb-cottage-school": () =>
+    import(
+      "@/components/demo/honeycombcottageschool/HoneycombCottageSchoolWebsiteDashboardDemo"
+    ),
+  "madrona-school": () =>
+    import(
+      "@/components/demo/madronaschool/MadronaSchoolWebsiteDashboardDemo"
+    ),
   "wild-hearts-adventure": () =>
     import(
       "@/components/demo/wildheartsadventure/WildHeartsAdventureWebsiteDashboardDemo"
