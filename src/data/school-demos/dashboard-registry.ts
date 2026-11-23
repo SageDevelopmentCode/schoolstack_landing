@@ -43,6 +43,12 @@ import { heartsongCottageSchoolAdminDemoConfig } from "./heartsong-cottage-schoo
 import { honeycombCottageSchoolAdminDemoConfig } from "./honeycomb-cottage-school-admin-demo";
 import { madronaSchoolAdminDemoConfig } from "./madrona-school-admin-demo";
 import { morganPrepAcademyAdminDemoConfig } from "./morgan-prep-academy-admin-demo";
+import { giftedCollectiveMicroschoolAdminDemoConfig } from "./gifted-collective-microschool-admin-demo";
+import { foothillChristianAcademyAdminDemoConfig } from "./foothill-christian-academy-admin-demo";
+import { exodusAcademyAdminDemoConfig } from "./exodus-academy-admin-demo";
+import { elitePerformancePrepFreeportAdminDemoConfig } from "./elite-performance-prep-freeport-admin-demo";
+import { desertSunRanchAcademyAdminDemoConfig } from "./desert-sun-ranch-academy-admin-demo";
+import { desertDragonSchoolAdminDemoConfig } from "./desert-dragon-school-admin-demo";
 import { choiceActonAcademyAdminDemoConfig } from "./choice-acton-academy-admin-demo";
 import { brightMindsFutureLeadersAdminDemoConfig } from "./bright-minds-future-leaders-admin-demo";
 import { bmfMicroschoolsAdminDemoConfig } from "./bmf-microschools-admin-demo";
@@ -125,6 +131,12 @@ export const schoolAdminDemoConfigs: Record<string, SchoolAdminDemoConfig> = {
   "honeycomb-cottage-school": honeycombCottageSchoolAdminDemoConfig,
   "madrona-school": madronaSchoolAdminDemoConfig,
   "morgan-prep-academy": morganPrepAcademyAdminDemoConfig,
+  "gifted-collective-microschool": giftedCollectiveMicroschoolAdminDemoConfig,
+  "foothill-christian-academy": foothillChristianAcademyAdminDemoConfig,
+  "exodus-academy": exodusAcademyAdminDemoConfig,
+  "elite-performance-prep-freeport": elitePerformancePrepFreeportAdminDemoConfig,
+  "desert-sun-ranch-academy": desertSunRanchAcademyAdminDemoConfig,
+  "desert-dragon-school": desertDragonSchoolAdminDemoConfig,
   "choice-acton-academy": choiceActonAcademyAdminDemoConfig,
   "bright-minds-future-leaders": brightMindsFutureLeadersAdminDemoConfig,
   "bmf-microschools": bmfMicroschoolsAdminDemoConfig,
@@ -208,6 +220,12 @@ import { heartsongCottageSchoolParentDemoConfig } from "./heartsong-cottage-scho
 import { honeycombCottageSchoolParentDemoConfig } from "./honeycomb-cottage-school-parent-demo";
 import { madronaSchoolParentDemoConfig } from "./madrona-school-parent-demo";
 import { morganPrepAcademyParentDemoConfig } from "./morgan-prep-academy-parent-demo";
+import { giftedCollectiveMicroschoolParentDemoConfig } from "./gifted-collective-microschool-parent-demo";
+import { foothillChristianAcademyParentDemoConfig } from "./foothill-christian-academy-parent-demo";
+import { exodusAcademyParentDemoConfig } from "./exodus-academy-parent-demo";
+import { elitePerformancePrepFreeportParentDemoConfig } from "./elite-performance-prep-freeport-parent-demo";
+import { desertSunRanchAcademyParentDemoConfig } from "./desert-sun-ranch-academy-parent-demo";
+import { desertDragonSchoolParentDemoConfig } from "./desert-dragon-school-parent-demo";
 import { choiceActonAcademyParentDemoConfig } from "./choice-acton-academy-parent-demo";
 import { brightMindsFutureLeadersParentDemoConfig } from "./bright-minds-future-leaders-parent-demo";
 import { bmfMicroschoolsParentDemoConfig } from "./bmf-microschools-parent-demo";
@@ -290,6 +308,12 @@ export const schoolParentDemoConfigs: Record<string, SchoolParentDemoConfig> = {
   "honeycomb-cottage-school": honeycombCottageSchoolParentDemoConfig,
   "madrona-school": madronaSchoolParentDemoConfig,
   "morgan-prep-academy": morganPrepAcademyParentDemoConfig,
+  "gifted-collective-microschool": giftedCollectiveMicroschoolParentDemoConfig,
+  "foothill-christian-academy": foothillChristianAcademyParentDemoConfig,
+  "exodus-academy": exodusAcademyParentDemoConfig,
+  "elite-performance-prep-freeport": elitePerformancePrepFreeportParentDemoConfig,
+  "desert-sun-ranch-academy": desertSunRanchAcademyParentDemoConfig,
+  "desert-dragon-school": desertDragonSchoolParentDemoConfig,
   "choice-acton-academy": choiceActonAcademyParentDemoConfig,
   "bright-minds-future-leaders": brightMindsFutureLeadersParentDemoConfig,
   "bmf-microschools": bmfMicroschoolsParentDemoConfig,
@@ -372,6 +396,12 @@ import { heartsongCottageSchoolTeacherDemoConfig } from "./heartsong-cottage-sch
 import { honeycombCottageSchoolTeacherDemoConfig } from "./honeycomb-cottage-school-teacher-demo";
 import { madronaSchoolTeacherDemoConfig } from "./madrona-school-teacher-demo";
 import { morganPrepAcademyTeacherDemoConfig } from "./morgan-prep-academy-teacher-demo";
+import { giftedCollectiveMicroschoolTeacherDemoConfig } from "./gifted-collective-microschool-teacher-demo";
+import { foothillChristianAcademyTeacherDemoConfig } from "./foothill-christian-academy-teacher-demo";
+import { exodusAcademyTeacherDemoConfig } from "./exodus-academy-teacher-demo";
+import { elitePerformancePrepFreeportTeacherDemoConfig } from "./elite-performance-prep-freeport-teacher-demo";
+import { desertSunRanchAcademyTeacherDemoConfig } from "./desert-sun-ranch-academy-teacher-demo";
+import { desertDragonSchoolTeacherDemoConfig } from "./desert-dragon-school-teacher-demo";
 import { choiceActonAcademyTeacherDemoConfig } from "./choice-acton-academy-teacher-demo";
 import { brightMindsFutureLeadersTeacherDemoConfig } from "./bright-minds-future-leaders-teacher-demo";
 import { bmfMicroschoolsTeacherDemoConfig } from "./bmf-microschools-teacher-demo";
@@ -454,6 +484,12 @@ export const schoolTeacherDemoConfigs: Record<string, SchoolTeacherDemoConfig> =
   "honeycomb-cottage-school": honeycombCottageSchoolTeacherDemoConfig,
   "madrona-school": madronaSchoolTeacherDemoConfig,
   "morgan-prep-academy": morganPrepAcademyTeacherDemoConfig,
+  "gifted-collective-microschool": giftedCollectiveMicroschoolTeacherDemoConfig,
+  "foothill-christian-academy": foothillChristianAcademyTeacherDemoConfig,
+  "exodus-academy": exodusAcademyTeacherDemoConfig,
+  "elite-performance-prep-freeport": elitePerformancePrepFreeportTeacherDemoConfig,
+  "desert-sun-ranch-academy": desertSunRanchAcademyTeacherDemoConfig,
+  "desert-dragon-school": desertDragonSchoolTeacherDemoConfig,
   "choice-acton-academy": choiceActonAcademyTeacherDemoConfig,
   "bright-minds-future-leaders": brightMindsFutureLeadersTeacherDemoConfig,
   "bmf-microschools": bmfMicroschoolsTeacherDemoConfig,

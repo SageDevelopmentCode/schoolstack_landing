@@ -165,6 +165,30 @@ const WEBSITE_DEMO_LOADERS: Record<
     import(
       "@/components/demo/morganprepacademy/MorganPrepAcademyWebsiteDashboardDemo"
     ),
+  "gifted-collective-microschool": () =>
+    import(
+      "@/components/demo/giftedcollectivemicroschool/GiftedCollectiveMicroschoolWebsiteDashboardDemo"
+    ),
+  "foothill-christian-academy": () =>
+    import(
+      "@/components/demo/foothillchristianacademy/FoothillChristianAcademyWebsiteDashboardDemo"
+    ),
+  "exodus-academy": () =>
+    import(
+      "@/components/demo/exodusacademy/ExodusAcademyWebsiteDashboardDemo"
+    ),
+  "elite-performance-prep-freeport": () =>
+    import(
+      "@/components/demo/eliteperformanceprepfreeport/ElitePerformancePrepFreeportWebsiteDashboardDemo"
+    ),
+  "desert-sun-ranch-academy": () =>
+    import(
+      "@/components/demo/desertsunranchacademy/DesertSunRanchAcademyWebsiteDashboardDemo"
+    ),
+  "desert-dragon-school": () =>
+    import(
+      "@/components/demo/desertdragonschool/DesertDragonSchoolWebsiteDashboardDemo"
+    ),
   "choice-acton-academy": () =>
     import(
       "@/components/demo/choiceactonacademy/ChoiceActonAcademyWebsiteDashboardDemo"

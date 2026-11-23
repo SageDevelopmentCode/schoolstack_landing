@@ -20,13 +20,19 @@ import { choiceActonAcademyOutreach } from "./choice-acton-academy";
 import { coastalSageMontessoriOutreach } from "./coastal-sage-montessori";
 import { coysCampsAndClassesOutreach } from "./coys-camps-and-classes";
 import { creationAcresOutreach } from "./creation-acres";
+import { desertDragonSchoolOutreach } from "./desert-dragon-school";
+import { desertSunRanchAcademyOutreach } from "./desert-sun-ranch-academy";
 import { downToEarthHomeschoolOutreach } from "./down-to-earth-homeschool";
+import { elitePerformancePrepFreeportOutreach } from "./elite-performance-prep-freeport";
 import { esteamAcademyRoundRockOutreach } from "./esteam-academy-round-rock";
 import { everrootAcademyOutreach } from "./everroot-academy";
+import { exodusAcademyOutreach } from "./exodus-academy";
 import { familyLyceumOutreach } from "./family-lyceum";
+import { foothillChristianAcademyOutreach } from "./foothill-christian-academy";
 import { freedomPrepAcademyOutreach } from "./freedom-prep-academy";
 import { gardenSchoolMariettaOutreach } from "./garden-school-marietta";
 import { gatheredOakFarmOutreach } from "./gathered-oak-farm";
+import { giftedCollectiveMicroschoolOutreach } from "./gifted-collective-microschool";
 import { godsLittlePeopleLearningAcademyOutreach } from "./gods-little-people-learning-academy";
 import { heartsongCottageSchoolOutreach } from "./heartsong-cottage-school";
 import { hiltonHorizonsAcademyOutreach } from "./hilton-horizons-academy";
@@ -107,13 +113,19 @@ export const outreachPlanRegistry: Record<string, OutreachPlan> = {
   [coastalSageMontessoriOutreach.slug]: coastalSageMontessoriOutreach,
   [coysCampsAndClassesOutreach.slug]: coysCampsAndClassesOutreach,
   [creationAcresOutreach.slug]: creationAcresOutreach,
+  [desertDragonSchoolOutreach.slug]: desertDragonSchoolOutreach,
+  [desertSunRanchAcademyOutreach.slug]: desertSunRanchAcademyOutreach,
   [downToEarthHomeschoolOutreach.slug]: downToEarthHomeschoolOutreach,
+  [elitePerformancePrepFreeportOutreach.slug]: elitePerformancePrepFreeportOutreach,
   [esteamAcademyRoundRockOutreach.slug]: esteamAcademyRoundRockOutreach,
   [everrootAcademyOutreach.slug]: everrootAcademyOutreach,
+  [exodusAcademyOutreach.slug]: exodusAcademyOutreach,
   [familyLyceumOutreach.slug]: familyLyceumOutreach,
+  [foothillChristianAcademyOutreach.slug]: foothillChristianAcademyOutreach,
   [freedomPrepAcademyOutreach.slug]: freedomPrepAcademyOutreach,
   [gardenSchoolMariettaOutreach.slug]: gardenSchoolMariettaOutreach,
   [gatheredOakFarmOutreach.slug]: gatheredOakFarmOutreach,
+  [giftedCollectiveMicroschoolOutreach.slug]: giftedCollectiveMicroschoolOutreach,
   [godsLittlePeopleLearningAcademyOutreach.slug]: godsLittlePeopleLearningAcademyOutreach,
   [heartsongCottageSchoolOutreach.slug]: heartsongCottageSchoolOutreach,
   [hiltonHorizonsAcademyOutreach.slug]: hiltonHorizonsAcademyOutreach,

@@ -48,6 +48,12 @@ export { heartsongCottageSchoolConfig } from "./heartsong-cottage-school";
 export { honeycombCottageSchoolConfig } from "./honeycomb-cottage-school";
 export { madronaSchoolConfig } from "./madrona-school";
 export { morganPrepAcademyConfig } from "./morgan-prep-academy";
+export { giftedCollectiveMicroschoolConfig } from "./gifted-collective-microschool";
+export { foothillChristianAcademyConfig } from "./foothill-christian-academy";
+export { exodusAcademyConfig } from "./exodus-academy";
+export { elitePerformancePrepFreeportConfig } from "./elite-performance-prep-freeport";
+export { desertSunRanchAcademyConfig } from "./desert-sun-ranch-academy";
+export { desertDragonSchoolConfig } from "./desert-dragon-school";
 export { choiceActonAcademyConfig } from "./choice-acton-academy";
 export { brightMindsFutureLeadersConfig } from "./bright-minds-future-leaders";
 export { bmfMicroschoolsConfig } from "./bmf-microschools";
@@ -131,6 +137,12 @@ import { heartsongCottageSchoolConfig } from "./heartsong-cottage-school";
 import { honeycombCottageSchoolConfig } from "./honeycomb-cottage-school";
 import { madronaSchoolConfig } from "./madrona-school";
 import { morganPrepAcademyConfig } from "./morgan-prep-academy";
+import { giftedCollectiveMicroschoolConfig } from "./gifted-collective-microschool";
+import { foothillChristianAcademyConfig } from "./foothill-christian-academy";
+import { exodusAcademyConfig } from "./exodus-academy";
+import { elitePerformancePrepFreeportConfig } from "./elite-performance-prep-freeport";
+import { desertSunRanchAcademyConfig } from "./desert-sun-ranch-academy";
+import { desertDragonSchoolConfig } from "./desert-dragon-school";
 import { choiceActonAcademyConfig } from "./choice-acton-academy";
 import { brightMindsFutureLeadersConfig } from "./bright-minds-future-leaders";
 import { bmfMicroschoolsConfig } from "./bmf-microschools";
@@ -214,6 +226,12 @@ export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "honeycomb-cottage-school": honeycombCottageSchoolConfig,
   "madrona-school": madronaSchoolConfig,
   "morgan-prep-academy": morganPrepAcademyConfig,
+  "gifted-collective-microschool": giftedCollectiveMicroschoolConfig,
+  "foothill-christian-academy": foothillChristianAcademyConfig,
+  "exodus-academy": exodusAcademyConfig,
+  "elite-performance-prep-freeport": elitePerformancePrepFreeportConfig,
+  "desert-sun-ranch-academy": desertSunRanchAcademyConfig,
+  "desert-dragon-school": desertDragonSchoolConfig,
   "choice-acton-academy": choiceActonAcademyConfig,
   "bright-minds-future-leaders": brightMindsFutureLeadersConfig,
   "bmf-microschools": bmfMicroschoolsConfig,
