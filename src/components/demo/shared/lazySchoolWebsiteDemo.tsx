@@ -165,6 +165,54 @@ const WEBSITE_DEMO_LOADERS: Record<
     import(
       "@/components/demo/morganprepacademy/MorganPrepAcademyWebsiteDashboardDemo"
     ),
+  "choice-acton-academy": () =>
+    import(
+      "@/components/demo/choiceactonacademy/ChoiceActonAcademyWebsiteDashboardDemo"
+    ),
+  "bright-minds-future-leaders": () =>
+    import(
+      "@/components/demo/brightmindsfutureleaders/BrightMindsFutureLeadersWebsiteDashboardDemo"
+    ),
+  "bmf-microschools": () =>
+    import(
+      "@/components/demo/bmfmicroschools/BmfMicroschoolsWebsiteDashboardDemo"
+    ),
+  "blue-horizon-studio": () =>
+    import(
+      "@/components/demo/bluehorizonstudio/BlueHorizonStudioWebsiteDashboardDemo"
+    ),
+  "apogee-la-microschool": () =>
+    import(
+      "@/components/demo/apogeelamicroschool/ApogeeLaMicroschoolWebsiteDashboardDemo"
+    ),
+  "ahb-community-school": () =>
+    import(
+      "@/components/demo/ahbcommunityschool/AhbCommunitySchoolWebsiteDashboardDemo"
+    ),
+  "adelphia-classical-christian-academy": () =>
+    import(
+      "@/components/demo/adelphiaclassicalchristianacademy/AdelphiaClassicalChristianAcademyWebsiteDashboardDemo"
+    ),
+  "a-mind-of-magic-and-reason": () =>
+    import(
+      "@/components/demo/amindofmagicandreason/AMindOfMagicAndReasonWebsiteDashboardDemo"
+    ),
+  "book-hooks-schoolhouse": () =>
+    import(
+      "@/components/demo/bookhooksschoolhouse/BookHooksSchoolhouseWebsiteDashboardDemo"
+    ),
+  "spyrja-academy-new-braunfels": () =>
+    import(
+      "@/components/demo/spyrjaacademynewbraunfels/SpyrjaAcademyNewBraunfelsWebsiteDashboardDemo"
+    ),
+  "south-oc-hybrid-homeschool": () =>
+    import(
+      "@/components/demo/southochybridhomeschool/SouthOcHybridHomeschoolWebsiteDashboardDemo"
+    ),
+  "praxis-elite-sports-academy": () =>
+    import(
+      "@/components/demo/praxiselitesportsacademy/PraxisEliteSportsAcademyWebsiteDashboardDemo"
+    ),
   "mirus-academy": () =>
     import(
       "@/components/demo/mirusacademy/MirusAcademyWebsiteDashboardDemo"

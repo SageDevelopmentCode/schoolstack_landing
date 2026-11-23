@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Printer } from "lucide-react";
 import GardenToaster from "@/components/school-parent/garden/GardenToaster";
 import { gBtnOutlineSm } from "@/components/school-parent/garden/ui";
 import { AdminGardenPage, AdminGardenPageHeader, GardenEmptyState, GardenLoadError } from "@/components/school-admin/garden/kit";
@@ -62,10 +62,22 @@ export function ResearchWorkspace({ initial, loadError }: { initial: ResearchWor
             label: "Refresh the CRM",
           }}
           actions={
-            <button type="button" className={gBtnOutlineSm} onClick={() => setAdding(true)} data-testid="research-add-school-open">
-              <Plus className="h-4 w-4" aria-hidden />
-              Add school
-            </button>
+            <>
+              <a
+                href="/admin/research/letter/all"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={gBtnOutlineSm}
+                data-testid="research-letter-print-all"
+              >
+                <Printer className="h-4 w-4" aria-hidden />
+                Print all QR cards
+              </a>
+              <button type="button" className={gBtnOutlineSm} onClick={() => setAdding(true)} data-testid="research-add-school-open">
+                <Plus className="h-4 w-4" aria-hidden />
+                Add school
+              </button>
+            </>
           }
         />
 

@@ -28,7 +28,7 @@ const LETTER_CARD_COPY = {
 } as const;
 
 /** One A2 insert card (4.25 × 5.5 in): the QR, the typed short link and what it opens. */
-function LetterQrCard({
+export function LetterQrCard({
   letter,
   schoolShortName,
   qrSvg,

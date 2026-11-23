@@ -48,6 +48,18 @@ export { heartsongCottageSchoolConfig } from "./heartsong-cottage-school";
 export { honeycombCottageSchoolConfig } from "./honeycomb-cottage-school";
 export { madronaSchoolConfig } from "./madrona-school";
 export { morganPrepAcademyConfig } from "./morgan-prep-academy";
+export { choiceActonAcademyConfig } from "./choice-acton-academy";
+export { brightMindsFutureLeadersConfig } from "./bright-minds-future-leaders";
+export { bmfMicroschoolsConfig } from "./bmf-microschools";
+export { blueHorizonStudioConfig } from "./blue-horizon-studio";
+export { apogeeLaMicroschoolConfig } from "./apogee-la-microschool";
+export { ahbCommunitySchoolConfig } from "./ahb-community-school";
+export { adelphiaClassicalChristianAcademyConfig } from "./adelphia-classical-christian-academy";
+export { aMindOfMagicAndReasonConfig } from "./a-mind-of-magic-and-reason";
+export { bookHooksSchoolhouseConfig } from "./book-hooks-schoolhouse";
+export { spyrjaAcademyNewBraunfelsConfig } from "./spyrja-academy-new-braunfels";
+export { southOcHybridHomeschoolConfig } from "./south-oc-hybrid-homeschool";
+export { praxisEliteSportsAcademyConfig } from "./praxis-elite-sports-academy";
 export { mirusAcademyConfig } from "./mirus-academy";
 export { mcpAcademyConfig } from "./mcp-academy";
 export { journeyAcademyConfig } from "./journey-academy";
@@ -119,6 +131,18 @@ import { heartsongCottageSchoolConfig } from "./heartsong-cottage-school";
 import { honeycombCottageSchoolConfig } from "./honeycomb-cottage-school";
 import { madronaSchoolConfig } from "./madrona-school";
 import { morganPrepAcademyConfig } from "./morgan-prep-academy";
+import { choiceActonAcademyConfig } from "./choice-acton-academy";
+import { brightMindsFutureLeadersConfig } from "./bright-minds-future-leaders";
+import { bmfMicroschoolsConfig } from "./bmf-microschools";
+import { blueHorizonStudioConfig } from "./blue-horizon-studio";
+import { apogeeLaMicroschoolConfig } from "./apogee-la-microschool";
+import { ahbCommunitySchoolConfig } from "./ahb-community-school";
+import { adelphiaClassicalChristianAcademyConfig } from "./adelphia-classical-christian-academy";
+import { aMindOfMagicAndReasonConfig } from "./a-mind-of-magic-and-reason";
+import { bookHooksSchoolhouseConfig } from "./book-hooks-schoolhouse";
+import { spyrjaAcademyNewBraunfelsConfig } from "./spyrja-academy-new-braunfels";
+import { southOcHybridHomeschoolConfig } from "./south-oc-hybrid-homeschool";
+import { praxisEliteSportsAcademyConfig } from "./praxis-elite-sports-academy";
 import { mirusAcademyConfig } from "./mirus-academy";
 import { mcpAcademyConfig } from "./mcp-academy";
 import { journeyAcademyConfig } from "./journey-academy";
@@ -190,6 +214,18 @@ export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "honeycomb-cottage-school": honeycombCottageSchoolConfig,
   "madrona-school": madronaSchoolConfig,
   "morgan-prep-academy": morganPrepAcademyConfig,
+  "choice-acton-academy": choiceActonAcademyConfig,
+  "bright-minds-future-leaders": brightMindsFutureLeadersConfig,
+  "bmf-microschools": bmfMicroschoolsConfig,
+  "blue-horizon-studio": blueHorizonStudioConfig,
+  "apogee-la-microschool": apogeeLaMicroschoolConfig,
+  "ahb-community-school": ahbCommunitySchoolConfig,
+  "adelphia-classical-christian-academy": adelphiaClassicalChristianAcademyConfig,
+  "a-mind-of-magic-and-reason": aMindOfMagicAndReasonConfig,
+  "book-hooks-schoolhouse": bookHooksSchoolhouseConfig,
+  "spyrja-academy-new-braunfels": spyrjaAcademyNewBraunfelsConfig,
+  "south-oc-hybrid-homeschool": southOcHybridHomeschoolConfig,
+  "praxis-elite-sports-academy": praxisEliteSportsAcademyConfig,
   "mirus-academy": mirusAcademyConfig,
   "mcp-academy": mcpAcademyConfig,
   "journey-academy": journeyAcademyConfig,
