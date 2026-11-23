@@ -59,6 +59,13 @@ export function getOutreachPlan(slug: string): OutreachPlan | null {
 export function listOutreachPlans(): OutreachPlan[] {
   return Object.values(outreachPlanRegistry);
 }
+
+/** The plan whose handwritten letter uses this short code (\`/hi/<code>\`), or null. */
+export function getOutreachPlanByLetterCode(code: string): OutreachPlan | null {
+  const wanted = code.trim().toLowerCase();
+  if (!wanted) return null;
+  return listOutreachPlans().find((plan) => plan.letter?.shortCode.toLowerCase() === wanted) ?? null;
+}
 `;
 }
 

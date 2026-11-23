@@ -110,8 +110,6 @@ export default function GardenOurStory({
       <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
         {heading === "get-started" ? (
           <SectionIntro
-            pill={`🌱 ${GET_STARTED_STORY_HEADER.kicker}`}
-            tint="forest"
             lead={GET_STARTED_STORY_HEADER.headlineLead}
             accent={GET_STARTED_STORY_HEADER.headlineAccent}
             accentColor="text-[var(--sf-forest)]"

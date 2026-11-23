@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { piedmontForestSchoolConfig } from "@/data/school-demos/piedmont-forest-school";
-import { piedmontForestSchoolWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { piedmontForestSchoolWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/piedmont-forest-school";
 
 export default function PiedmontForestSchoolDemoPage() {
   return (

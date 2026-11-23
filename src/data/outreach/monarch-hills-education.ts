@@ -163,22 +163,83 @@ export const monarchHillsEducationOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Monarch Hills",
+    founder: {
+      fullName: "Cat Placencia",
+      firstName: "Cat",
+      role: "Board President",
+      source: "Monarch Hills Our Team page (Board Of Directors: \"Cat Placencia: President\")",
+      url: "https://www.monarchhills.org/educators",
+    },
+    mailTo: {
+      lines: ["Monarch Hills Education", "PO Box 1136", "Boulder Creek, CA 95006"],
+      source: "Monarch Hills Donate page (\"Mail to our Treasurer\")",
+      url: "https://www.monarchhills.org/donate",
+    },
+    founderFacts: [
+      {
+        fact: "The 2026–2027 Program Calendar has Fridays off-site at rotating San Luis Obispo locations, announced the week of, and a Winter Solstice celebration hike on December 18.",
+        source: "Monarch Hills 2026-2027 Program Calendar",
+        url: "https://www.monarchhills.org/2026-2027-1",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Monarch Hills describes itself as an outdoor enrichment program in San Luis Obispo for grades TK-6, and says time outside should be more than just recess: an integral and plentiful daily experience.",
+        source: "Monarch Hills home page",
+        url: "https://www.monarchhills.org/",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Monarch Hills partners with the Cal Poly Child Development Department on an internship program: interns work alongside educators for 1-2 quarters so smaller groups of children can dive deeply into their work.",
+        source: "Monarch Hills Our Team page",
+        url: "https://www.monarchhills.org/educators",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Cat Placencia is President of the Monarch Hills Board of Directors; board meetings are held monthly by Zoom, and the page asks anyone who wants to attend to contact the board president.",
+        source: "Monarch Hills Our Team page",
+        url: "https://www.monarchhills.org/educators",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "The 2026–2027 Program Calendar has Fridays off-site at rotating San Luis Obispo locations, announced the week of, and a Winter Solstice celebration hike on December 18.",
+    body: `Hi Cat,
+
+I was looking at the Monarch Hills calendar for this year. I liked that Fridays are spent off-site at a different spot around San Luis Obispo each week, and that December has a Winter Solstice hike.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how the Friday days come together. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Monarch Hills I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Cat, a note from an outdoor microschool in Round Rock, Texas. J",
+    shortCode: "monarch-8mq5",
+    checkBeforeMailing: [
+      "Cat Placencia is not a confirmed founder: the site names no founder, director or head of school, and the board has final legal and fiduciary responsibility (2024–25 Parent Handbook), so the letter goes to her as Board President (Our Team page). A Cal Poly page for a Cat Placencia doesn't mention the school and wasn't used.",
+      "The PO box is the mailing address the Donate page gives (\"Mail to our Treasurer\"), so it reaches the treasurer in Boulder Creek, about 200 miles from San Luis Obispo, not Cat directly. Write \"Attn: Cat Placencia\" on the envelope.",
+      "The other published address, 1221 Calle Joaquin, San Luis Obispo, CA 93405 (every page footer), is City Farm SLO, a city farm reserve rather than a home; the Events page calls it \"the farm\". It's closer to the school, but it's unclear Monarch Hills gets mail there. Use it instead only if you confirm they do.",
+      "The hook is from the 2026–27 calendar: if the letter goes out after December 18, change \"December has a Winter Solstice hike\" to \"you had a Winter Solstice hike in December\".",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "Re-intro: acknowledge the June email, give a new reason (the snapshot), one proof number",
+      purpose: "Mention last week's handwritten note and the June email, one snapshot detail, one proof number",
       subject: "Monarch Hills waitlist sign-up",
       body: `Hi Cat,
 
-I wrote in June about a version of MudKitchen I set up for Monarch Hills. Since then I put together a one-page snapshot of what a family sees on your site today, from finding tuition to paying it.
+I mailed you a handwritten note last week with a card for Monarch Hills. It has a QR code for the version of MudKitchen I set up for you (I first wrote about it in June) and a one-page snapshot of what a family sees on your site today, from finding tuition to paying it.
 
 One thing stood out: Join Our Waitlist asks a new family to create a Brightwheel account before they can add their name, and the Tuition page still shows 2025–2026.
 
 I run Sage Field, a microschool in Round Rock. We went from 0 to 35 students in under 3 months on MudKitchen.
 
-Want me to send the snapshot?
+Want me to send the snapshot link here too?
 
 Julius`,
     },

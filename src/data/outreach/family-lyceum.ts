@@ -158,7 +158,7 @@ export const familyLyceumOutreach: OutreachPlan = {
         fix: {
           label: "set_up",
           capabilities: ["committees", "parent-portal"],
-          text: "Families see open volunteer spots and sign up in their own login, and you see each family's hours in one place.",
+          text: "Families see the open committees and roles and ask to join from their own login, and you see who's on each one and which tasks are done.",
         },
       },
       {
@@ -191,6 +191,57 @@ export const familyLyceumOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Family Lyceum",
+    founder: {
+      fullName: "Renae Zentz",
+      firstName: "Renae",
+      role: "Founder and Director",
+      source: "Family Lyceum Contact Us page (\"Renae Zentz: Founder & Director\") and Faculty & Staff page",
+      url: "https://www.familylyceum.com/contact-us.html",
+    },
+    mailTo: null,
+    founderFacts: [
+      {
+        fact: "On the Dimond Education Podcast (episode 22, \"Family Centered Education\", February 14, 2023), Renae Zentz talked about Family Lyceum, the part-time private school she founded and directs, and its mission to ignite the FIRE (Freedom, Individuals, Respect, Excellence) in each student while respecting the family's role in a child's education.",
+        source: "Dimond Education Podcast, Family Centered Education - Renae Zentz - Episode 22 (Apple Podcasts)",
+        url: "https://podcasts.apple.com/us/podcast/family-centered-education-renae-zentz-episode-22/id1643610685?i=1000599546742",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Family Lyceum is a hybrid private school in Clearfield, Utah, with an elementary building for K–5 and a junior high building for grades 6–9 next to each other.",
+        source: "Family Lyceum homepage",
+        url: "https://www.familylyceum.com/",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Family Lyceum's Our Name page says the school supports parents as the primary mentors in their families, and that families learn together because every class follows Leadership Education and a parallel study of chronological history.",
+        source: "Family Lyceum, Our Name",
+        url: "https://www.familylyceum.com/our-name.html",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "On the Dimond Education Podcast (episode 22, \"Family Centered Education\", February 14, 2023), Renae Zentz talked about Family Lyceum, the part-time private school she founded and directs, and its mission to ignite the FIRE (Freedom, Individuals, Respect, Excellence) in each student while respecting the family's role in a child's education.",
+    body: `Hi Renae,
+
+I listened to your Dimond Education Podcast episode. I liked how you set Family Lyceum's goal, to ignite the FIRE in each student, right next to respect for the family's role in a child's education.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how families take to the campus days and the home days. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Family Lyceum I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Renae, a note from a microschool in Round Rock, Texas. J",
+    shortCode: "lyceum-gmtj",
+    checkBeforeMailing: [
+      "Find a mailing address: familylyceum.com publishes none (homepage, Contact Us and Our Name pages and the footer give only Clearfield, Utah and two neighboring buildings with I-15 access). Lead: 295 E 200 S, Clearfield, UT is in the CRM and shows in third-party records as a commercial private-school parcel; confirm it's the school's building (not a home) before using it, and address it to Renae Zentz, Family Lyceum.",
+      "Listen to the Dimond Education episode (Feb 14, 2023, about 29 minutes) before mailing: the hook is from the episode description, so make sure it matches what she says.",
+      "Possible second source: an Epoch Times piece on Family Lyceum's founding (\"A Hybrid Homeschool That Gives Control to Parents…\", April 2024). Not read (likely paywalled), so not used.",
+      "The Faculty & Staff bio includes family details; none of it is used. Keep it that way.",
+    ],
+  },
   steps: [
     {
       id: "first",
@@ -200,13 +251,13 @@ export const familyLyceumOutreach: OutreachPlan = {
       subject: "Utah Fits All at Family Lyceum",
       body: `Hi Renae,
 
-I wrote in September about a version of MudKitchen I set up for Family Lyceum. Since then I put together a one-page snapshot of what a family sees on your site today, from applying to paying tuition.
+I mailed you a handwritten note last week with a card for Family Lyceum. I first wrote in September about a version of MudKitchen I set up for you. Since then I put together a one-page snapshot of what a family sees on your site today, from applying to paying tuition.
 
 One thing stood out: your tuition page lists Utah Fits All, Children's First and up to $2,225 in online-school credits, so one family's $5,200 can come from several places.
 
 I run Sage Field, a microschool in Round Rock. We went from 0 to 35 students in under 3 months on MudKitchen.
 
-Want me to send the snapshot?
+Want me to email the snapshot too?
 
 Julius`,
     },

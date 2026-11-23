@@ -205,6 +205,50 @@ export const freedomPrepAcademyOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Freedom Prep",
+    founder: {
+      fullName: "Sterling Kellis",
+      firstName: "Sterling",
+      role: "Founder, Principal and board chairman",
+      source: "Freedom Prep About page (quote signed \"Sterling Kellis, Founder\"); the Board of Directors page lists him as Chairman of both governing boards, and he signs the 2025–26 Student Handbook as Principal",
+      url: "https://freedomk12.org/about",
+    },
+    mailTo: null,
+    founderFacts: [
+      {
+        fact: "Freedom Prep's About page quotes its founder, Sterling Kellis: \"Students need more freedom in their learning, more spark to pursue their passion, and more guidance and encouragement along the way.\"",
+        source: "Freedom Prep Academy, About",
+        url: "https://freedomk12.org/about",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Freedom Prep's Find A Microschool map lists 29 microschools and learning centers across Arizona; the in-person microschools are run by independent partners such as Liberty.",
+        source: "Freedom Prep Academy, Microschools",
+        url: "https://freedomk12.org/microschools/",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "Freedom Prep's About page quotes its founder, Sterling Kellis: \"Students need more freedom in their learning, more spark to pursue their passion, and more guidance and encouragement along the way.\"",
+    body: `Hi Sterling,
+
+I read your line on Freedom Prep's About page, that students need more freedom in their learning, more spark to pursue their passion, and more guidance and encouragement along the way.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how you keep that guidance going across so many microschools. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Freedom Prep I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Sterling, a note from a microschool in Round Rock, Texas. J",
+    shortCode: "freedomprep-gzdk",
+    checkBeforeMailing: [
+      "Find a mailing address: freedomk12.org publishes no office or mailing address (About, Microschools and Learning Center pages and the footer list only phone, fax and a records email; /contact is a 404). Non-home leads: the Gilbert Learning Center (Power & Elliot) and Mesa Learning Center (Ellsworth & Pecos), given as cross streets only; the charter's address of record in the Arizona Department of Education or State Board for Charter Schools directory. The microschool partner sites (e.g. Mission Community Church, Gilbert) are \"not owned or operated by Freedom Prep Academy\", so don't mail there. A guide's Payson microschool page carries an address in its page data; it's a guide's site and may be a home, so it isn't used.",
+      "The hook is a quote on the About page, not an interview; no podcast or press piece turned up for him.",
+      "Freedom Prep is a tuition-free public charter with partner-run microschools, so \"enrollment and tuition\" in the us line is our story, not a claim about them. Fine as is, but confirm the card's snapshot fits a charter before mailing.",
+    ],
+  },
   steps: [
     {
       id: "first",
@@ -214,11 +258,13 @@ export const freedomPrepAcademyOutreach: OutreachPlan = {
       subject: "Freedom Prep's two-step enrollment",
       body: `Hi Sterling,
 
+I mailed you a handwritten note last week with a card for Freedom Prep.
+
 Your Enroll Now Typeform describes joining Freedom Prep as two steps: the form with the residency upload, then registration documents, with instructions sent by email afterwards.
 
 I run Sage Field, a microschool in Round Rock, TX, and built MudKitchen to keep steps like that in one place for each family. We went from 0 to 35 students in under 3 months on it.
 
-I put together a one-page snapshot of what a family sees on your site today, from the microschool map to the Mesa Learning Center's enroll button. Want me to send it?
+I put together a one-page snapshot of what a family sees on your site today, from the microschool map to the Mesa Learning Center's enroll button; the card opens it. Want me to email it too?
 
 Julius`,
     },

@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { lighthouseHomeschoolConfig } from "@/data/school-demos/lighthouse-homeschool";
-import { lighthouseHomeschoolWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { lighthouseHomeschoolWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/lighthouse-homeschool";
 
 export default function LighthouseHomeschoolDemoPage() {
   return (

@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { labLearningConfig } from "@/data/school-demos/lab-learning";
-import { labLearningWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { labLearningWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/lab-learning";
 
 export default function LabLearningDemoPage() {
   return (

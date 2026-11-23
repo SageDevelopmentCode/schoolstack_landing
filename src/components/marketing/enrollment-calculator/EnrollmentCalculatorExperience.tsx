@@ -153,7 +153,6 @@ export default function EnrollmentCalculatorExperience() {
 
       <div className="mb-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <MarketingToolHero
-          eyebrow="🧮 Free tool"
           lead="Can your school"
           accent="pay you?"
           description={CALCULATOR_COPY.subtitle}

@@ -75,6 +75,8 @@ export type OutreachPlan = {
   };
   /** The free "Family experience snapshot" page at /snapshot/<slug>/<token>. */
   snapshot?: OutreachSnapshot;
+  /** A handwritten letter to the founder, mailed before the first email. */
+  letter?: OutreachLetter;
   steps: OutreachStep[];
 };
 
@@ -159,3 +161,48 @@ export const OUTREACH_FILL_IN_TOKENS = ["{loom link}", "{snapshot link}"] as con
 
 /** Filled automatically from the plan's snapshot; never typed by a person. */
 export const SNAPSHOT_LINK_TOKEN = "{snapshot link}";
+
+/**
+ * A short handwritten letter to the school's founder, mailed before the first email (written by the
+ * `school-letter` skill). Julius copies `body` by hand; the printed insert card carries one QR code
+ * to `/hi/<shortCode>`, which opens the snapshot (and from there the demo).
+ */
+export type OutreachLetter = {
+  /** YYYY-MM-DD the letter was written. */
+  writtenOn: string;
+  founder: {
+    fullName: string;
+    firstName: string;
+    role: string;
+    /** Page title or site name the name and role came from. */
+    source: string;
+    url: string;
+  };
+  /** The school as the founder would say it, for the card and letter ("Athena", "KAPS"). */
+  shortSchoolName: string;
+  /**
+   * A business address the school publishes (never a home address). One line per envelope line.
+   * null until Julius finds one: the letter is still written, and the card shows "Address needed".
+   */
+  mailTo: { lines: string[]; source: string; url: string } | null;
+  /** Public, school-related facts about the founder (podcast, interview, founding story, milestone). */
+  founderFacts: OutreachFact[];
+  /** The `fact` of the founderFacts entry the letter opens on. */
+  hook: string;
+  /** Plain text, "Hi <first name>," … "Julius", 80–110 words. About them and us; no links or {tokens}. */
+  body: string;
+  /** Written under the signature: points to the card (their demo and snapshot). 35 words or fewer. */
+  postscript: string;
+  /** For the yellow Post-it on the outside of the fold. 15 words or fewer. */
+  stickyNote: string;
+  /** Short, typeable code: trymudkitchen.com/hi/<shortCode>. Name part plus a random suffix. */
+  shortCode: string;
+  /** Things to confirm before the letter goes in the mail. */
+  checkBeforeMailing: string[];
+};
+
+/** Business days between mailing the letter and sending the first email. */
+export const LETTER_TO_FIRST_EMAIL_BUSINESS_DAYS = 5;
+
+/** The letter body's word range (one side of a note card; the P.S. is extra). */
+export const LETTER_WORD_RANGE = [80, 110] as const;

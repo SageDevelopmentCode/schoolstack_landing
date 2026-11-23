@@ -144,6 +144,57 @@ export const wonderhereLakelandOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "WonderHere",
+    founder: {
+      fullName: "Tiffany Thenor",
+      firstName: "Tiffany",
+      role: "Co-owner and co-founder",
+      source: "WonderHere Lakeland Staff page (\"Tiffany Thenor is the co-owner and co-founder of WonderHere\")",
+      url: "https://wonderherelakeland.com/staff/",
+    },
+    mailTo: null,
+    founderFacts: [
+      {
+        fact: "On the Founder to Founder podcast (September 4, 2025), Tiffany Thenor told host Felicia Wright how she and her business partner started WonderHere as a small homeschool enrichment program that grew into a microschool on a 10-acre farm in Lakeland.",
+        source: "Founder 2 Founder, How Wonder Here Microschool is Redefining Education with Play-Based Learning (Apple Podcasts)",
+        url: "https://podcasts.apple.com/us/podcast/how-wonder-here-microschool-is-redefining-education/id1873325283?i=1000747361586",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "On the LiberatED podcast (November 8, 2024), Tiffany Thenor, cofounder and CEO, said she left public-school teaching in 2016 to launch the first WonderHere with a handful of children in Lakeland; it now serves over 100 learners a day, and new founders open WonderHere schools through a licensing model.",
+        source: "LiberatED Podcast, How this founder is spreading play-based microschooling nationally (Apple Podcasts)",
+        url: "https://podcasts.apple.com/us/podcast/how-this-founder-is-spreading-play-based-microschooling/id1608978473?i=1000676212163",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Tiffany leads WonderHere's in-person programs; her co-founder Jessica Zivkovich leads the online community, curriculum and marketing.",
+        source: "WonderHere Lakeland Staff page",
+        url: "https://wonderherelakeland.com/staff/",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "On the Founder to Founder podcast (September 4, 2025), Tiffany Thenor told host Felicia Wright how she and her business partner started WonderHere as a small homeschool enrichment program that grew into a microschool on a 10-acre farm in Lakeland.",
+    body: `Hi Tiffany,
+
+I listened to your Founder to Founder episode. I liked hearing how you and Jessica started WonderHere as a small homeschool enrichment program, and how it grew into a microschool on a farm.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear what changed when the enrichment days became a full school. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of WonderHere Lakeland I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Tiffany, a note from a microschool in Round Rock, Texas. J",
+    shortCode: "wonderhere-8xb8",
+    checkBeforeMailing: [
+      "Find a mailing address: the only Lakeland address on wonderherelakeland.com/contact and wonderhere.com/contact is the Colbert Road farm site, which looks like a home property, so it isn't stored here. The other addresses on wonderhere.com/contact are other WonderHere locations, not Lakeland. Check Florida Sunbiz for WonderHere's registered business or mailing address, or a PO box on its Facebook About tab.",
+      "Listen to the Founder to Founder episode (Sept 4, 2025) before mailing: the hook comes from the episode description, and the description says \"her business partner\" while the letter names Jessica (the Staff page lists her as the other co-founder).",
+      "Jessica Zivkovich is co-owner and co-founder too; the letter goes to Tiffany, who leads the in-person programs and who the emails greet. Amanda Thenor is the Lakeland Site Director.",
+      "Sources differ on Tiffany's teaching years (7 at a Title 1 school on the Staff page, 15 on LiberatED); the letter doesn't mention either.",
+    ],
+  },
   steps: [
     {
       id: "first",
@@ -152,6 +203,8 @@ export const wonderhereLakelandOutreach: OutreachPlan = {
       purpose: "Re-intro: acknowledge the June email, give a new reason (the snapshot), one proof number",
       subject: "Step Up at WonderHere Lakeland",
       body: `Hi Tiffany,
+
+I mailed you a handwritten note last week with a card for WonderHere Lakeland.
 
 I wrote in June about a version of MudKitchen I set up for WonderHere Lakeland. Since then I put together a one-page snapshot of what a family sees on your site today, from the Schoolhouse page to paying tuition.
 

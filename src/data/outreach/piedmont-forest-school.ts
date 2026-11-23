@@ -193,15 +193,68 @@ export const piedmontForestSchoolOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Piedmont Forest School",
+    founder: {
+      fullName: "Sheri Grace",
+      firstName: "Sheri",
+      role: "Founder and Director",
+      source: "Piedmont Forest School Our Team page (\"Sheri Grace, PhD: Founder, Director\") and Our Story page (founded the 501(c)3 in 2020)",
+      url: "https://piedmontforestschool.org/about-us/our-team",
+    },
+    mailTo: null,
+    founderFacts: [
+      {
+        fact: "On the What We See podcast (June 11, 2026), in an episode titled \"The hardest thing is not making the fort, it's getting along.\", Sheri Grace talked about founding Piedmont Forest School in a Winston-Salem park, a morning in the woods, what four children learned from building a fort no one assigned, and plans to add an Agile Learning Center this fall.",
+        source: "What We See, \"The hardest thing is not making the fort, it's getting along.\" A conversation with Sheri Grace from Piedmont Forest School (Apple Podcasts)",
+        url: "https://podcasts.apple.com/us/podcast/the-hardest-thing-is-not-making-the-fort-its/id1896826040?i=1000772215155",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Piedmont Forest School was founded as a 501(c)3 nonprofit in 2020 by Sheri Grace, PhD, who brings over 30 years of experience in early childhood special education; it began with summer camps at Little Creek Park and Greenway in Winston-Salem.",
+        source: "Piedmont Forest School Our Story page",
+        url: "https://piedmontforestschool.org/about-us/our-story",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "For the 2026–2027 school year PFS is moving its programs from Salem Lake Park back to Little Creek Park, its first home in 2020, and launching the Agile Learning Center at the Little Creek Neighborhood Center.",
+        source: "Piedmont Forest School home page and Our Location page",
+        url: "https://piedmontforestschool.org/",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "On the What We See podcast (June 11, 2026), in an episode titled \"The hardest thing is not making the fort, it's getting along.\", Sheri Grace talked about founding Piedmont Forest School in a Winston-Salem park, a morning in the woods, what four children learned from building a fort no one assigned, and plans to add an Agile Learning Center this fall.",
+    body: `Hi Sheri,
+
+I listened to your What We See episode about the fort four children built. I liked the title line, that the hardest thing isn't making the fort, it's getting along.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how the Agile Learning Center's first fall is going. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Piedmont Forest School I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Sheri, a note from an outdoor microschool in Round Rock, Texas. J",
+    shortCode: "piedmont-np6r",
+    checkBeforeMailing: [
+      "Find a mailing address: piedmontforestschool.org (home, Our Story, Our Team, Our Location, FAQs, Enrollment, Donate) lists no street address or PO box; programs meet in city parks (Salem Lake Park, moving to Little Creek Park and the Little Creek Neighborhood Center for 2026–27), which won't take mail for PFS. GuideStar lists a Rural Hall address that looks like a home; don't use it. Non-home lead: ask Tausha, the Enrollment and Billing Coordinator, through the site's contact form for a mailing address or PO box.",
+      "Listen to the What We See episode (June 11, 2026, about 27 minutes) before mailing: the hook is from the episode title and description, so make sure the fort story matches what she says.",
+      "The ask assumes the Agile Learning Center opened this fall at Little Creek Park; the site still describes it in the future tense. If it hasn't opened, change the ask to \"I'd like to hear how this fall is going.\"",
+      "PFS is a 501(c)3 with a board; Tausha handles enrollment and billing. The letter goes to Sheri only.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
       purpose:
-        "One real question about how the share a scholarship family still owes gets tracked, then who's asking and why",
+        "Mention last week's handwritten note, then one real question about how the share a scholarship family still owes gets tracked, then who's asking and why",
       subject: "Scholarship families at the ALC",
       body: `Hi Sheri,
+
+I mailed you a handwritten note last week with a card for Piedmont Forest School.
 
 Your ALC page says the new full-day program can take the Opportunity Scholarship ($3,000 to $7,000) as well as ESA+, and your FAQ has families set up a billing plan in Brightwheel once they're enrolled.
 

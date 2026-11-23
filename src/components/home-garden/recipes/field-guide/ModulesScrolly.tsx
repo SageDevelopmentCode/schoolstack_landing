@@ -43,8 +43,6 @@ export default function ModulesScrolly() {
     <section id="product" className="relative scroll-mt-20 bg-[var(--sf-paper)] py-24 lg:py-32">
       <div className="mx-auto max-w-[1320px] px-6 sm:px-10 lg:px-12">
         <SectionIntro
-          pill={`🧺 ${PRODUCT_INTRO_COPY.badge}`}
-          tint="forest"
           lead={PRODUCT_INTRO_COPY.heading}
           squiggle={null}
           align="left"

@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { inspiredLearningConfig } from "@/data/school-demos/inspired-learning-academy";
-import { inspiredLearningWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { inspiredLearningWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/inspired-learning";
 
 export default function InspiredLearningAcademyDemoPage() {
   return (

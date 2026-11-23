@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { trueNorthConfig } from "@/data/school-demos/true-north";
-import { trueNorthWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { trueNorthWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/true-north";
 
 export default function TrueNorthDemoPage() {
   return (

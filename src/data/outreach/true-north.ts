@@ -192,14 +192,60 @@ export const trueNorthOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "True North",
+    founder: {
+      fullName: "Lisa Palmer",
+      firstName: "Lisa",
+      role: "Founder and Executive Director",
+      source: "True North Staff page (\"Lisa Palmer- Founder and Executive Director\")",
+      url: "https://truenortheducation.weebly.com/staff.html",
+    },
+    mailTo: null,
+    founderFacts: [
+      {
+        fact: "True North's About page says it launched its first year in fall 2017 with a team of 14 teachers and admins and 62 students, now has over 150 students, and teaches two days a week in person with three days of assignments at home.",
+        source: "True North About page",
+        url: "https://truenortheducation.weebly.com/about.html",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "On the Staff page, Lisa Palmer writes that she served on the school board for Buckalew Elementary in The Woodlands during its founding year.",
+        source: "True North Staff page",
+        url: "https://truenortheducation.weebly.com/staff.html",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "True North's About page says it launched its first year in fall 2017 with a team of 14 teachers and admins and 62 students, now has over 150 students, and teaches two days a week in person with three days of assignments at home.",
+    body: `Hi Lisa,
+
+I read on your About page that True North opened in fall 2017 with 62 students and a team of 14. It's over 150 students now, still together in person two days a week with three days of work at home.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how you've kept the two-day model as the school grew. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of True North I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Lisa, a note from a microschool in Round Rock, Texas. J",
+    shortCode: "truenorth-21od",
+    checkBeforeMailing: [
+      "Find a mailing address: the Contact page lists a street address in Montgomery, TX, on a road of homes on acreage; nothing on the site or in a search shows it's a school building or church rather than a home, so it isn't stored. No PO box. If you confirm it's where classes meet, address the envelope to Lisa Palmer, True North.",
+      "The \"Take Back the Next Generation\" founding story on the Staff page is Jayme Dicker's (Co-Founder, Director of Education), not Lisa's, so the letter doesn't use it.",
+      "The first email and the social note also mention 62 students growing to over 150; the letter opens on the same About page, so keep the email's own angle (how families pay) when it goes out.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "One real question about how families pay monthly tuition, then who's asking and one proof number",
+      purpose: "Mention last week's handwritten note, then one real question about how families pay monthly tuition, then who's asking and one proof number",
       subject: "monthly tuition at True North",
       body: `Hi Lisa,
+
+I mailed you a handwritten note last week with a card for True North.
 
 I was reading the True North site. Tuition is $417 a month for both days, $367 for each additional child, and the About page says you now have over 150 students.
 

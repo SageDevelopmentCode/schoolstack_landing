@@ -171,22 +171,88 @@ export const creationAcresOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Creation Acres",
+    founder: {
+      fullName: "Jasmine Williams",
+      firstName: "Jasmine",
+      role: "Founder and Head of School",
+      source: "The Charlotte Weekly, Mint Hill Montessori school sees opportunity to grow (Jasmine and Akeem Williams); Creation Acres Meet the Team (Jasmine W., Head of School)",
+      url: "https://www.thecharlotteweekly.com/mmhweekly/mint-hill-montessori-school-sees-opportunity-to-grow/article_17e3c6c9-94ea-4580-bc5c-be0cb61a59e1.html",
+    },
+    mailTo: {
+      lines: ["11120 Lawyers Road", "Mint Hill, NC 28227"],
+      source: "Creation Acres Contact page and site footer (the FAQ says no one lives in the schoolhouse; the property is used only for school programs)",
+      url: "https://www.creationacres.com/contact",
+    },
+    founderFacts: [
+      {
+        fact: "On April 9, 2026, Mint Hill commissioners unanimously approved rezoning 19.9 acres at 6300 Allen Black Road so Creation Acres can move from Lawyers Road to a larger campus; Jasmine Williams told them the project is about carrying on a legacy and keeping the property in Mint Hill.",
+        source: "The Charlotte Weekly, Mint Hill Montessori gets key approval (April 12, 2026)",
+        url: "https://www.thecharlotteweekly.com/mmhweekly/mint-hill-montessori-gets-key-approval/article_15324ed4-84dd-472a-ba83-04d24e43a683.html",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "The Allen Black Road property has run as a working farm with homeschool classes and summer camps, and the plan is a private school campus with farm-based learning and outdoor education; Creation Acres serves about 35 full-time students ages 3 to 15 plus classes for about 40 homeschoolers.",
+        source: "The Charlotte Weekly, Mint Hill Montessori school sees opportunity to grow (March 23, 2026)",
+        url: "https://www.thecharlotteweekly.com/mmhweekly/mint-hill-montessori-school-sees-opportunity-to-grow/article_17e3c6c9-94ea-4580-bc5c-be0cb61a59e1.html",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Jasmine told the Charlotte Weekly the family hadn't planned to open a school; what they were doing with their own children felt like a blessing, and they wanted that for more people.",
+        source: "The Charlotte Weekly, Mint Hill Montessori school sees opportunity to grow (March 23, 2026)",
+        url: "https://www.thecharlotteweekly.com/mmhweekly/mint-hill-montessori-school-sees-opportunity-to-grow/article_17e3c6c9-94ea-4580-bc5c-be0cb61a59e1.html",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "In 2023 the founders bought a 1945 house on 1.5 acres in downtown Mint Hill and converted it into the school.",
+        source: "Creation Acres About and Follow the Journey pages",
+        url: "https://www.creationacres.com/about",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Jasmine homeschooled for seven years before founding Creation Acres and holds an AMI 12–18 diploma from the International Montessori Training Institute of Ohio.",
+        source: "Creation Acres Meet the Team",
+        url: "https://www.creationacres.com/about/meet-team",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "On April 9, 2026, Mint Hill commissioners unanimously approved rezoning 19.9 acres at 6300 Allen Black Road so Creation Acres can move from Lawyers Road to a larger campus; Jasmine Williams told them the project is about carrying on a legacy and keeping the property in Mint Hill.",
+    body: `Hi Jasmine,
+
+I read in the Charlotte Weekly that Mint Hill approved the rezoning for the Allen Black Road farm. I liked what you told the commissioners about carrying on a legacy and keeping that land in Mint Hill.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how the farm campus is coming along. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Creation Acres I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Jasmine, a note from an outdoor microschool in Texas. J",
+    shortCode: "creationacres-ez26",
+    checkBeforeMailing: [
+      "Mail to Lawyers Road, the address on the contact page and footer. The contact page also lists The Farm at 6300 Allen Black Road; if the school has moved there by the time you mail, check the site first.",
+      "Her last name comes from the Charlotte Weekly; the school's own team page only says \"Jasmine W.\"",
+      "The rezoning was approved in April 2026: check their site or social pages for news on the move before mailing, so the ask still fits.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "Re-intro: acknowledge the July email, give a new reason (the snapshot), one proof number",
+      purpose: "Re-intro after the handwritten letter: mention the note and the July email, one detail from the snapshot, one proof number",
       subject: "Scholarship families at Creation Acres",
       body: `Hi Jasmine,
 
-I wrote in July about a version of MudKitchen I set up for Creation Acres. Since then I put together a one-page snapshot of what a family sees on your site today, from the first inquiry to paying tuition.
+I mailed you a handwritten note last week with a card for Creation Acres. It has a QR code for the version of MudKitchen I set up for you (I first wrote about it in July) and a one-page snapshot of what a family sees on your site today, from the first inquiry to paying tuition.
 
 One thing stood out: you're an NCSEAA Direct Payment School, and with tuition from $11,190, a scholarship family can pay from two places, NCSEAA and their own account.
 
 I run Sage Field, a microschool in Round Rock. We went from 0 to 35 students in under 3 months on MudKitchen.
 
-Want me to send the snapshot?
+Want me to send the snapshot link here too?
 
 Julius`,
     },

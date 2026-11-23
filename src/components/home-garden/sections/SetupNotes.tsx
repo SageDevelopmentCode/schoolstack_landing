@@ -19,8 +19,6 @@ export default function SetupNotes() {
     <section id="setup" className="relative py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
         <SectionIntro
-          pill={`🌱 ${WORKFLOW_COPY.badge}`}
-          tint="forest"
           lead={WORKFLOW_COPY.headlineLead}
           accent={WORKFLOW_COPY.headlineAccent}
           accentColor="text-[var(--sf-forest)]"

@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { familyLyceumConfig } from "@/data/school-demos/family-lyceum";
-import { familyLyceumWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { familyLyceumWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/family-lyceum";
 
 export default function FamilyLyceumDemoPage() {
   return (

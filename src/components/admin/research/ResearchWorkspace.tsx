@@ -10,7 +10,7 @@ import { AddSchoolDrawer } from "./AddSchoolDrawer";
 import { OutreachFunnelStrip } from "./OutreachFunnelStrip";
 import { SchoolJourneyPanel } from "./SchoolJourneyPanel";
 import { SchoolList } from "./SchoolList";
-import { SchoolResearchRail } from "./SchoolResearchRail";
+import { SchoolResearchDrawer } from "./SchoolResearchDrawer";
 import { RESEARCH_GARDEN_THEME as THEME } from "./theme";
 import { useResearchWorkspaceModel } from "./useResearchWorkspaceModel";
 
@@ -22,6 +22,7 @@ function todayLabel() {
 export function ResearchWorkspace({ initial, loadError }: { initial: ResearchWorkspaceData; loadError: string | null }) {
   const model = useResearchWorkspaceModel(initial, loadError);
   const [adding, setAdding] = useState(false);
+  const [researchOpen, setResearchOpen] = useState(false);
   const selected = model.selected;
 
   return (
@@ -30,13 +31,16 @@ export function ResearchWorkspace({ initial, loadError }: { initial: ResearchWor
         theme={THEME}
         data-testid="research-workspace"
         overlays={
-          <AddSchoolDrawer
-            theme={THEME}
-            open={adding}
-            saving={model.pendingKey === "add-school"}
-            onClose={() => setAdding(false)}
-            onSave={model.addSchool}
-          />
+          <>
+            <AddSchoolDrawer
+              theme={THEME}
+              open={adding}
+              saving={model.pendingKey === "add-school"}
+              onClose={() => setAdding(false)}
+              onSave={model.addSchool}
+            />
+            <SchoolResearchDrawer theme={THEME} row={selected} open={researchOpen} onClose={() => setResearchOpen(false)} />
+          </>
         }
       >
         <AdminGardenPageHeader
@@ -83,7 +87,7 @@ export function ResearchWorkspace({ initial, loadError }: { initial: ResearchWor
               totalCount={model.rows.length}
             />
 
-            <div className="grid items-start gap-5 lg:grid-cols-[minmax(280px,340px)_minmax(0,1fr)] xl:grid-cols-[minmax(280px,340px)_minmax(0,1fr)_minmax(280px,330px)]">
+            <div className="grid items-start gap-5 lg:grid-cols-[minmax(280px,340px)_minmax(0,1fr)]">
               <SchoolList
                 rows={model.filtered}
                 selectedId={selected?.school.id ?? null}
@@ -93,22 +97,22 @@ export function ResearchWorkspace({ initial, loadError }: { initial: ResearchWor
                 onSearch={model.setSearch}
                 filter={model.filter}
                 onResetFilter={() => model.setFilter("pipeline")}
+                traits={model.traits}
+                traitCounts={model.traitCounts}
+                onToggleTrait={model.toggleTrait}
+                onClearTraits={model.clearTraits}
               />
               {selected ? (
-                <>
-                  <SchoolJourneyPanel
-                    key={selected.school.id}
-                    row={selected}
-                    theme={THEME}
-                    pendingKey={model.pendingKey}
-                    onSaveSchool={(patch, copy) => model.saveSchool(selected.school, patch, copy)}
-                    onStatus={(status) => model.setStatus(selected.school, status)}
-                    onOutreach={(next) => model.applyOutreach(selected.school.id, next)}
-                  />
-                  <div className="lg:col-start-2 xl:col-start-auto">
-                    <SchoolResearchRail row={selected} />
-                  </div>
-                </>
+                <SchoolJourneyPanel
+                  key={selected.school.id}
+                  row={selected}
+                  theme={THEME}
+                  pendingKey={model.pendingKey}
+                  onSaveSchool={(patch, copy) => model.saveSchool(selected.school, patch, copy)}
+                  onStatus={(status) => model.setStatus(selected.school, status)}
+                  onOutreach={(next) => model.applyOutreach(selected.school.id, next)}
+                  onOpenResearch={() => setResearchOpen(true)}
+                />
               ) : (
                 <GardenEmptyState title="Pick a school" description="Choose a school on the left to see its sequence." />
               )}

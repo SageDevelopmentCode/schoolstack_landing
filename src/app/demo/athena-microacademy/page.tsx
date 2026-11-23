@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { athenaMicroacademyConfig } from "@/data/school-demos/athena-microacademy";
-import { athenaWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { athenaWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/athena";
 
 export default function AthenaMicroacademyDemoPage() {
   return (

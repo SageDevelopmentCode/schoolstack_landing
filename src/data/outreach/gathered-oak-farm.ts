@@ -219,14 +219,61 @@ export const gatheredOakFarmOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Gathered Oak",
+    founder: {
+      fullName: "Mindy Kinnier",
+      firstName: "Mindy",
+      role: "Co-owner",
+      source: "Gathered Oak Farm home page (welcome letter signed \"Mindy and Nick Kinnier, Gathered Oak Farm Owners\")",
+      url: "https://www.gatheredoakfarm.com/",
+    },
+    mailTo: null,
+    founderFacts: [
+      {
+        fact: "On the Gathered Oak Farm home page, Mindy and Nick Kinnier write that the 2,000-square-foot barn is the indoor classroom and the 2.5-acre farm around it, with a garden, an oak grove, chickens, goats and pigs, is the outdoor classroom.",
+        source: "Gathered Oak Farm home page (welcome letter)",
+        url: "https://www.gatheredoakfarm.com/",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Programs include Monday Farm School, a 3 Day Farm School, Junior Farm School for TK–1st, and a 3-day 6th–8th grade program that meets off site within 10 minutes of the farm, plus afternoon electives Monday through Thursday.",
+        source: "Gathered Oak Farm, Our Farm School Programs",
+        url: "https://www.gatheredoakfarm.com/ourprograms",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "On the Gathered Oak Farm home page, Mindy and Nick Kinnier write that the 2,000-square-foot barn is the indoor classroom and the 2.5-acre farm around it, with a garden, an oak grove, chickens, goats and pigs, is the outdoor classroom.",
+    body: `Hi Mindy,
+
+I read the welcome letter on your site. I liked that the barn is the indoor classroom and the 2.5 acres around it, with the oak grove, the goats and the pigs, are the outdoor one.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how the farm school got started. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Gathered Oak I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Mindy, a note from an outdoor microschool in Round Rock, Texas. J",
+    shortCode: "gatheredoak-v44e",
+    checkBeforeMailing: [
+      "Find a mailing address: the home and Contact pages give only a road name in Fallbrook, CA 92028 (no street number), and the school runs on the owners' farm, so it may be a home; nothing is stored. No PO box or separate mailing address is published. Leads: ask by email, or check California's Private School Affidavit directory for a filed address.",
+      "No founding story, podcast or interview found (there's no About page; /about returns 404), so the letter opens on a school fact from the home page welcome letter that Mindy and Nick wrote.",
+      "The letter goes to Mindy (the plan's recipient). Nick Kinnier co-signed the welcome letter as co-owner; address it to both if you'd rather.",
+      "The CRM calls the school Fallbrook Farm School; the site and the letter use Gathered Oak Farm.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "One real question about charter funds alongside class-by-class electives, then who's asking and one proof number",
+      purpose: "Mention last week's handwritten note, then one real question about charter funds alongside class-by-class electives, then who's asking and one proof number",
       subject: "charter funds at Gathered Oak",
       body: `Hi Mindy,
+
+I mailed you a handwritten note last week with a card for Gathered Oak.
 
 I was reading your Fall 2026 registration form. Families fill in one form per child, pick electives class by class, from Herbalism to Bug Biographers, and say whether they'll pay with charter funds and through which charter.
 

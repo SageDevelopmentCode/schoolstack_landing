@@ -25,6 +25,7 @@ const CONVERSATION: FunnelStage[] = ["replied", "call_booked", "proposal", "won"
 /** Lane tints: pastel only on the dot / chip, per the admin Garden rules. */
 const LANE_DOT: Partial<Record<FunnelStage, string>> = {
   needs_plan: "bg-[var(--sf-butter)]",
+  letter: "bg-[var(--sf-moss)]",
   replied: "bg-[var(--sf-sky)]",
   call_booked: "bg-[var(--sf-lav)]",
   proposal: "bg-[var(--sf-peach)]",
@@ -37,14 +38,12 @@ function Tile({
   active,
   onSelect,
   number,
-  compact = false,
 }: {
   stage: FunnelStage;
   count: { total: number; actionable: number };
   active: boolean;
   onSelect: (stage: FunnelStage) => void;
   number?: number;
-  compact?: boolean;
 }) {
   const label = FUNNEL_STAGE_LABEL[stage];
   const empty = count.total === 0;
@@ -60,7 +59,7 @@ function Tile({
         active
           ? "border-[var(--sf-ink)] bg-[var(--sf-clay)] text-white shadow-[0_3px_0_0_var(--sf-ink)]"
           : `border-[var(--sf-ink)]/12 bg-white hover:-translate-y-0.5 hover:border-[var(--sf-ink)]/35 ${empty ? "text-[var(--sf-ink)]/55" : "text-[var(--sf-ink)]"}`
-      } ${compact ? "min-w-[104px]" : "min-w-[112px]"} ${G_FOCUS}`}
+      } min-h-[100px] ${G_FOCUS}`}
     >
       {number ? (
         <span
@@ -74,7 +73,7 @@ function Tile({
         {!number && LANE_DOT[stage] ? (
           <span className={`mt-[3px] h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-[var(--sf-ink)]/30 ${LANE_DOT[stage]}`} aria-hidden />
         ) : null}
-        <span className={`line-clamp-2 text-[12.5px] font-extrabold leading-tight ${active ? "text-white" : ""}`}>{label}</span>
+        <span className={`text-[13px] font-extrabold leading-tight ${active ? "text-white" : ""}`}>{label}</span>
       </span>
       <span className="mt-auto flex w-full flex-wrap items-end justify-between gap-x-2 gap-y-1">
         <span className="sf-display text-[1.7rem] leading-none tabular-nums">{count.total}</span>
@@ -101,15 +100,16 @@ function GroupLabel({ children }: { children: string }) {
 
 function Arrow() {
   return (
-    <span className="hidden shrink-0 self-center pt-5 text-[var(--sf-ink)]/30 lg:block" aria-hidden>
+    <span className="hidden shrink-0 self-center pt-6 text-[var(--sf-ink)]/30 lg:block" aria-hidden>
       <ChevronRight className="h-5 w-5" strokeWidth={2.6} />
     </span>
   );
 }
 
 /**
- * The outreach "tunnel": prep → the 5-step sequence → conversations, each lane a button that
- * filters the list. Scrolls sideways inside itself on small screens.
+ * The outreach "tunnel": getting started (plan, handwritten letter) → the 5-step sequence, then
+ * conversations on a second row. Each lane is a button that filters the list. Wraps into grids on
+ * small screens instead of scrolling sideways.
  */
 export function OutreachFunnelStrip({
   counts,
@@ -145,42 +145,34 @@ export function OutreachFunnelStrip({
       className="rounded-[24px] border-[1.5px] border-[var(--sf-ink)]/12 bg-[var(--sf-paper)] p-3 shadow-[0_3px_0_0_rgba(43,36,29,0.08)] sm:p-4"
       data-testid="research-funnel"
     >
-      <div className="-mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]">
-        <div className="flex min-w-[1120px] items-stretch gap-2">
-          <div className="flex w-[124px] shrink-0 flex-col">
-            <GroupLabel>Prep</GroupLabel>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_auto_minmax(0,5fr)] lg:gap-3">
+        <div className="flex min-w-0 flex-col">
+          <GroupLabel>Getting started</GroupLabel>
+          <div className="grid flex-1 grid-cols-2 gap-2">
             <Tile stage="needs_plan" count={counts.needs_plan} active={filter === "needs_plan"} onSelect={toggle} />
+            <Tile stage="letter" count={counts.letter} active={filter === "letter"} onSelect={toggle} />
           </div>
-          <Arrow />
-          <div className="flex min-w-0 flex-[5] flex-col">
-            <GroupLabel>Sequence</GroupLabel>
-            <div className="relative flex flex-1 gap-2">
-              <span
-                className="pointer-events-none absolute left-4 right-4 top-1/2 h-[2px] -translate-y-1/2 border-t-2 border-dashed border-[var(--sf-ink)]/12"
-                aria-hidden
-              />
-              {SEQUENCE.map(({ stage, number }) => (
-                <Tile
-                  key={stage}
-                  stage={stage}
-                  number={number}
-                  count={counts[stage]}
-                  active={filter === stage}
-                  onSelect={toggle}
-                  compact
-                />
-              ))}
-            </div>
+        </div>
+        <Arrow />
+        <div className="flex min-w-0 flex-col">
+          <GroupLabel>Sequence</GroupLabel>
+          <div className="relative grid flex-1 grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
+            <span
+              className="pointer-events-none absolute left-4 right-4 top-1/2 hidden h-[2px] -translate-y-1/2 border-t-2 border-dashed border-[var(--sf-ink)]/12 md:block"
+              aria-hidden
+            />
+            {SEQUENCE.map(({ stage, number }) => (
+              <Tile key={stage} stage={stage} number={number} count={counts[stage]} active={filter === stage} onSelect={toggle} />
+            ))}
           </div>
-          <Arrow />
-          <div className="flex min-w-0 flex-[4] flex-col">
-            <GroupLabel>Conversations</GroupLabel>
-            <div className="flex flex-1 gap-2">
-              {CONVERSATION.map((stage) => (
-                <Tile key={stage} stage={stage} count={counts[stage]} active={filter === stage} onSelect={toggle} compact />
-              ))}
-            </div>
-          </div>
+        </div>
+      </div>
+      <div className="mt-4 border-t border-dashed border-[var(--sf-ink)]/12 pt-3">
+        <GroupLabel>Conversations</GroupLabel>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {CONVERSATION.map((stage) => (
+            <Tile key={stage} stage={stage} count={counts[stage]} active={filter === stage} onSelect={toggle} />
+          ))}
         </div>
       </div>
       <GardenFilterChips

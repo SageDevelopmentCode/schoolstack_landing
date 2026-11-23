@@ -185,16 +185,69 @@ export const kinderAcademyPrepSchoolOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "KAPS",
+    founder: {
+      fullName: "Kimberly Lind",
+      firstName: "Kimberly",
+      role: "Owner, Operator and Principal",
+      source: "Kinder Academy Prep School, Meet the Owner / Operator",
+      url: "https://kinderacademyprepschool.com/meet-the-owner-operator",
+    },
+    mailTo: {
+      lines: ["3303 Shell Road, Suite 6", "Georgetown, TX 78628"],
+      source: "Kinder Academy Prep School home page",
+      url: "https://kinderacademyprepschool.com/",
+    },
+    founderFacts: [
+      {
+        fact: "Kimberly Lind wrote that she didn't start Kinder Academy Prep School because she was finished with education, but because she wasn't: after retiring in 2022 from 33 years in public and private schools, her grandchild inspired her to see the space teaching had left.",
+        source: "KAPS, Meet the Owner / Operator",
+        url: "https://kinderacademyprepschool.com/meet-the-owner-operator",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "KAPS's philosophy is that children learn through play, with a focus on early literacy, foundational math, social-emotional growth and critical thinking.",
+        source: "KAPS, Meet the Owner / Operator",
+        url: "https://kinderacademyprepschool.com/meet-the-owner-operator",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "KAPS is a Prenda-powered microschool in Georgetown for ages 4–8, open 8:00 am–1:00 pm Monday to Thursday, set up for TEFA; school started August 17, 2026.",
+        source: "Kinder Academy Prep School home page",
+        url: "https://kinderacademyprepschool.com/",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "Kimberly Lind wrote that she didn't start Kinder Academy Prep School because she was finished with education, but because she wasn't: after retiring in 2022 from 33 years in public and private schools, her grandchild inspired her to see the space teaching had left.",
+    body: `Hi Kimberly,
+
+I read how you started KAPS after 33 years of teaching, and I liked your line about not starting it because you were done with education, but because you weren't.
+
+My fiancée and I run Sage Field, an outdoor microschool just down the road in Round Rock. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew.
+
+If you're ever up for coffee, Georgetown is close, and I'd like to hear how your first year is going.
+
+Julius`,
+    postscript: "The card inside has a version of KAPS I set up, plus a parent's-eye look at how families sign up with you.",
+    stickyNote: "Kimberly, a note from a microschool just down the road. J",
+    shortCode: "kaps-h3v8",
+    checkBeforeMailing: [
+      "A Show Me the Way Podcast episode (Nov 20, 2026) features a different Kimberly Lind, a nurse and travel agent. Don't mention it.",
+      "3303 Shell Road, Suite 6 is the address on the home page. Check it's the school's building on Google Maps before addressing it.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "One real question about families split between Prenda and Brightwheel, then who's asking and one proof number",
+      purpose: "After the handwritten letter: mention the note, then one real question about families split between Prenda and Brightwheel, and one proof number",
       subject: "TEFA and Direct Pay at KAPS",
       body: `Hi Kimberly,
 
-I was reading the KAPS site and your Prenda pages. The microschool has two listings, one marked TEFA accepted and one for Direct Pay, while PreK 4, Mother's Day Out, tutoring and Extended PlayDate all register through Brightwheel.
+I mailed you a handwritten note last week from Round Rock. In case the card got buried: I was reading the KAPS site and your Prenda pages. The microschool has two listings, one marked TEFA accepted and one for Direct Pay, while PreK 4, Mother's Day Out, tutoring and Extended PlayDate all register through Brightwheel.
 
 How do you keep track of a family that ends up in both?
 

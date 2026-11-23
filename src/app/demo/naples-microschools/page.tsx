@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { naplesMicroschoolsConfig } from "@/data/school-demos/naples-microschools";
-import { naplesMicroschoolsWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { naplesMicroschoolsWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/naples-microschools";
 
 export default function NaplesMicroschoolsDemoPage() {
   return (

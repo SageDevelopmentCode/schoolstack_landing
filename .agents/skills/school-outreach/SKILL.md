@@ -6,7 +6,8 @@ description: >
   website, writes the researched outreach sequence with the Family experience snapshot and tool stack,
   registers and validates it, and leaves the first email ready to send from /admin/research. Use for
   "/school-outreach Ascend Micro School", "get <school> ready to email", "do outreach for <url>", or a list
-  of schools. Never sends email.
+  of schools. Add "with a letter" to also write the handwritten founder letter (school-letter skill).
+  Never sends email.
 ---
 
 # School outreach (one call)
@@ -68,12 +69,17 @@ school, and report each school before starting the next.
 8. **Ready check.** `outreach check-ready <slug>`. It must end with `READY`. Contact email and postal
    address showing ✗ are fine (typed in the send screen / set by Julius).
 
+9. **Handwritten letter (only when asked**, e.g. "with a letter", or when `/school-letter` sent you
+   here): follow `.agents/skills/school-letter/SKILL.md` from its step 2 for this school, then re-run
+   the step 6 checks. The first email must then mention the note.
+
 ## Report (per school)
 
 - Recipient and angle, and the CRM status you started from.
 - The first email: subject and body, word count.
 - Snapshot link and its gaps (headline + label), and the tool stack.
 - Everything in "Before sending" from the ready check.
+- If you wrote a letter: the letter text, its hook and source, the mailing address and short link.
 - Anything you dropped and why, anything that blocked a step.
 
 ## Rules

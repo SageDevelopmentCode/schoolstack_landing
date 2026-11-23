@@ -167,22 +167,87 @@ export const athenaMicroacademyOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Athena",
+    founder: {
+      fullName: "Mily Pérez",
+      firstName: "Mily",
+      role: "Founder and Head of School",
+      source: "Athena Micro-academy of Austin, Meet the Founder",
+      url: "https://www.amaustin.org/meet-the-founder.html",
+    },
+    mailTo: {
+      lines: ["9901 Brodie Lane Ste 160 #1383", "Austin, TX 78748"],
+      source: "Athena's Contact Us page (listed as the mailing address)",
+      url: "https://www.amaustin.org/contact-us.html",
+    },
+    founderFacts: [
+      {
+        fact: "On the LiberatED Podcast (September 15, 2026), Mily Pérez talked about keeping Athena intentionally small and designing each student's curriculum backward from their college, career or post-high-school goals.",
+        source: "LiberatED Podcast, Building the School Her Son Needed with Mily Pérez",
+        url: "https://podcasts.apple.com/us/podcast/building-the-school-her-son-needed-with-mily-p%C3%A9rez/id1608978473?i=1000789785504",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Mily told LiberatED that her son's experience of not thriving in traditional school inspired her to build Athena.",
+        source: "LiberatED Podcast, Building the School Her Son Needed with Mily Pérez",
+        url: "https://podcasts.apple.com/us/podcast/building-the-school-her-son-needed-with-mily-p%C3%A9rez/id1608978473?i=1000789785504",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Mily launched Athena through the KaiPod Catalyst program, which she said gave her the confidence and practical knowledge to start.",
+        source: "LiberatED Podcast, Building the School Her Son Needed with Mily Pérez",
+        url: "https://podcasts.apple.com/us/podcast/building-the-school-her-son-needed-with-mily-p%C3%A9rez/id1608978473?i=1000789785504",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Mily has served K-12 students for 22 years, holds an M.Ed. in Educational Leadership, is a certified teacher and principal in Texas, and was most recently Head of School at her alma mater in the Houston area.",
+        source: "Athena, Meet the Founder",
+        url: "https://www.amaustin.org/meet-the-founder.html",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Athena announced its location in May 2026 and says it is accredited and TEFA approved.",
+        source: "Athena blog, We have a location!",
+        url: "https://www.amaustin.org/blog/we-have-a-location",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "On the LiberatED Podcast (September 15, 2026), Mily Pérez talked about keeping Athena intentionally small and designing each student's curriculum backward from their college, career or post-high-school goals.",
+    body: `Hi Mily,
+
+I listened to your LiberatED episode. I liked how you're keeping Athena small on purpose and planning each student's work around where they want to go after high school.
+
+My fiancée and I run Sage Field, an outdoor microschool up in Round Rock. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+If you're ever up for coffee, I'd like to hear how your first semester is going.
+
+Julius`,
+    postscript: "The card inside has a version of Athena I set up, plus a parent's-eye look at your enrollment. I emailed once in June, but a note seemed better.",
+    stickyNote: "Mily, a note from a microschool up the road. J",
+    shortCode: "athena-q7m4",
+    checkBeforeMailing: [
+      "Address it to the Brodie Lane mailing address, not the I-35 physical address: the contact page lists them separately.",
+      "Listen to the episode before mailing so you can talk about it if she calls.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "Re-intro: acknowledge the June email, give a new reason (the snapshot), one proof number",
+      purpose: "Re-intro after the handwritten letter: mention the note and the June email, one detail from the snapshot, one proof number",
       subject: "TEFA families at Athena",
       body: `Hi Mily,
 
-I wrote in June about a version of MudKitchen I set up for Athena. Since then I put together a one-page snapshot of what a family sees on your site today, from finding tuition to paying it.
+I mailed you a handwritten note last week with a card for Athena. It has a QR code for the version of MudKitchen I set up for you (I first wrote about it in June) and a one-page snapshot of what a family sees on your site today.
 
 One thing stood out: with $17,000 tuition and TEFA paying $10,474, a TEFA family pays from two places, Odyssey and their own account.
 
 I run Sage Field in Round Rock. We went from 0 to 35 students in under 3 months on MudKitchen.
 
-Want me to send the snapshot?
+Want me to send the snapshot link here too?
 
 Julius`,
     },

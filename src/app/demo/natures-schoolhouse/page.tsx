@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { naturesSchoolhouseConfig } from "@/data/school-demos/natures-schoolhouse";
-import { naturesSchoolhouseWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { naturesSchoolhouseWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/natures-schoolhouse";
 
 export default function NaturesSchoolhouseDemoPage() {
   return (

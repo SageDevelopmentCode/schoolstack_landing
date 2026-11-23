@@ -1,48 +1,45 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, MessageSquare } from "lucide-react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { AlertCircle, BookmarkCheck, FileText, Loader2, MessageSquare, SendHorizontal } from "lucide-react";
 import type { ProgramCoopCurriculumDiscussionMessage } from "@/lib/admissions/program-coop-curriculum-discussion";
 import { formatRelativeTime } from "@/lib/school-admin/activity-notifications";
 import { formatChatDayLabel } from "@/lib/messages/format-chat";
 import { colorForKey } from "@/lib/messages/format";
 import MessagesAvatar from "@/components/messages/MessagesAvatar";
-import MessagesComposeBar from "@/components/messages/MessagesComposeBar";
-import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
-import { createClient } from "@/utils/supabase/client";
-import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
+import { useMessageComposer } from "@/components/messages/useMessageComposer";
+import { G_FOCUS, G_INPUT, gBtnPopSm } from "@/components/school-parent/garden/ui";
+import { useCurriculumThread, type CurriculumThread } from "./useCurriculumThread";
 
 type CurriculumDiscussionPanelProps = {
   organizationId: string;
   programId: string;
   curriculumId?: string | null;
-  initialMessages: ProgramCoopCurriculumDiscussionMessage[];
+  /** Server-loaded messages for this thread (General); guide threads fetch. */
+  initialMessages?: ProgramCoopCurriculumDiscussionMessage[];
   currentGuardianId?: string | null;
   previewMode?: boolean;
   embedded?: boolean;
+  /** Use a thread the reader already holds (shares note counts + realtime). */
+  thread?: CurriculumThread;
+  /** The page open in the reader: enables the "About page N" chip. */
+  currentPage?: number | null;
+  /** Makes "Page N" pills jump the reader. */
+  onJumpToPage?: (page: number) => void;
+  /** Only show messages about this page. */
+  pageFilter?: number | null;
+  emptyTitle?: string;
+  emptyBody?: string;
 };
+
+const NO_FILES: File[] = [];
+const noop = () => {};
 
 type DiscussionDayGroup = {
   dayKey: string;
   dayLabel: string;
   messages: ProgramCoopCurriculumDiscussionMessage[];
 };
-
-function mergeDiscussionMessages(
-  existing: ProgramCoopCurriculumDiscussionMessage[],
-  incoming: ProgramCoopCurriculumDiscussionMessage[],
-): ProgramCoopCurriculumDiscussionMessage[] {
-  const map = new Map<string, ProgramCoopCurriculumDiscussionMessage>();
-  for (const message of existing) {
-    map.set(message.id, message);
-  }
-  for (const message of incoming) {
-    map.set(message.id, message);
-  }
-  return [...map.values()].sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-  );
-}
 
 function groupDiscussionMessagesByDay(
   messages: ProgramCoopCurriculumDiscussionMessage[],
@@ -88,89 +85,34 @@ export default function CurriculumDiscussionPanel({
   currentGuardianId = null,
   previewMode = false,
   embedded = false,
+  thread: externalThread,
+  currentPage = null,
+  onJumpToPage,
+  pageFilter = null,
+  emptyTitle = "Start the conversation",
+  emptyBody = "Ask about this week's lessons or share a tip with the group.",
 }: CurriculumDiscussionPanelProps) {
-  const { theme, adminCompat: C } = useParentTheme();
-  const [messages, setMessages] = useState(initialMessages);
-  const [prevInitialMessages, setPrevInitialMessages] = useState(initialMessages);
+  const composerId = useId();
+  const ownThread = useCurriculumThread({
+    organizationId,
+    programId,
+    curriculumId,
+    initialMessages,
+    previewMode,
+    enabled: !externalThread,
+  });
+  const thread = externalThread ?? ownThread;
+  const { loading, sending, error } = thread;
+  const messages = useMemo(
+    () => (pageFilter ? thread.messages.filter((message) => message.pageNumber === pageFilter) : thread.messages),
+    [pageFilter, thread.messages],
+  );
   const [text, setText] = useState("");
-  const [sending, setSending] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // "About page N" is on by default whenever a page is open.
+  const [aboutPage, setAboutPage] = useState(true);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
-  if (initialMessages !== prevInitialMessages) {
-    setPrevInitialMessages(initialMessages);
-    setMessages(initialMessages);
-  }
-
   const dayGroups = useMemo(() => groupDiscussionMessagesByDay(messages), [messages]);
-
-  const refreshMessages = useCallback(async () => {
-    if (!organizationId || !programId) return;
-    setLoading(true);
-    let response: Response | undefined;
-    try {
-      const params = new URLSearchParams({ organizationId, programId });
-      if (curriculumId) {
-        params.set("curriculumId", curriculumId);
-      } else {
-        params.set("curriculumId", "general");
-      }
-      response = await fetch(`/api/parent-portal/curriculum-discussion?${params}`);
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(data.error ?? "Failed to load discussion.");
-      }
-      setMessages(data.messages ?? []);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load discussion.");
-      void reportPortalOperationalError(
-        "parent_portal",
-        {
-          organizationId,
-          operation: "curriculum.discussion_load",
-          error: "",
-        },
-        err,
-        response?.status,
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [curriculumId, organizationId, programId]);
-
-  useEffect(() => {
-    if (initialMessages.length > 0) return;
-    queueMicrotask(() => {
-      void refreshMessages();
-    });
-  }, [initialMessages.length, refreshMessages]);
-
-  useEffect(() => {
-    if (!organizationId || !programId || previewMode) return undefined;
-
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`curriculum-discussion:${programId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "program_coop_curriculum_discussion_messages",
-          filter: `program_id=eq.${programId}`,
-        },
-        () => {
-          void refreshMessages();
-        },
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [curriculumId, organizationId, previewMode, programId, refreshMessages]);
 
   useEffect(() => {
     const node = scrollRef.current;
@@ -178,77 +120,48 @@ export default function CurriculumDiscussionPanel({
     node.scrollTop = node.scrollHeight;
   }, [messages.length]);
 
-  const handleSend = async () => {
-    const trimmed = text.trim();
-    if (!trimmed || previewMode || sending) return;
+  const pageForPost = currentPage && (aboutPage || pageFilter) ? currentPage : null;
 
-    setSending(true);
-    setError(null);
-    let response: Response | undefined;
-    try {
-      response = await fetch("/api/parent-portal/curriculum-discussion", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          organizationId,
-          programId,
-          curriculumId,
-          body: trimmed,
-        }),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(data.error ?? "Failed to send message.");
-      }
-      if (data.message) {
-        const posted = data.message as ProgramCoopCurriculumDiscussionMessage;
-        const matchesThread =
-          (curriculumId ?? null) === (posted.curriculumId ?? null);
-        if (matchesThread) {
-          setMessages((current) => mergeDiscussionMessages(current, [posted]));
-        }
-      }
-      setText("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send message.");
-      void reportPortalOperationalError(
-        "parent_portal",
-        {
-          organizationId,
-          operation: "curriculum.discussion_send",
-          error: "",
-        },
-        err,
-        response?.status,
-      );
-    } finally {
-      setSending(false);
-    }
+  const handleSend = async () => {
+    const ok = await thread.send(text, pageForPost);
+    if (ok) setText("");
   };
+
+  const { textareaRef, canSend, handleKeyDown } = useMessageComposer({
+    value: text,
+    files: NO_FILES,
+    onFilesChange: noop,
+    onSend: () => void handleSend(),
+    hideAttachments: true,
+    autoGrow: true,
+  });
+
+  // The textarea is disabled while sending, which drops focus; hand it back
+  // so the parent can keep typing (or retry) straight away.
+  const wasSending = useRef(sending);
+  useEffect(() => {
+    if (wasSending.current && !sending && !previewMode) {
+      const active = document.activeElement;
+      if (!active || active === document.body) textareaRef.current?.focus();
+    }
+    wasSending.current = sending;
+  }, [previewMode, sending, textareaRef]);
+
+  const sendDisabled = previewMode || sending || !canSend;
 
   return (
     <div
-      className={`flex h-full min-h-0 flex-col overflow-hidden ${
-        embedded ? "" : "rounded-[14px] border"
+      className={`flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-white ${
+        embedded ? "" : "rounded-[24px] border-[1.5px] border-[var(--sf-ink)]/12"
       }`}
-      style={embedded ? undefined : { borderColor: theme.line }}
       data-testid="curriculum-discussion-panel"
     >
       {embedded ? null : (
-        <div
-          className="shrink-0 border-b px-3 py-2"
-          style={{
-            borderColor: theme.line,
-            backgroundColor: theme.paper,
-          }}
-        >
-          <p
-            className="text-sm font-semibold"
-            style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
-          >
+        <div className="shrink-0 border-b-[1.5px] border-[var(--sf-ink)]/10 px-4 py-3">
+          <p className="sf-display m-0 text-[1.1rem] leading-tight text-[var(--sf-ink)]">
             Co-op discussion
           </p>
-          <p className="truncate text-xs" style={{ color: theme.muted }}>
+          <p className="m-0 mt-0.5 truncate text-[13px] font-semibold text-[var(--sf-soft)]">
             Chat with other families in your co-op
           </p>
         </div>
@@ -256,47 +169,40 @@ export default function CurriculumDiscussionPanel({
 
       <div
         ref={scrollRef}
-        className="min-h-0 flex-1 overflow-y-auto px-3 py-3"
-        style={{ backgroundColor: theme.paper }}
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[var(--sf-cream)] px-4 py-4 sm:px-5"
+        aria-busy={loading || undefined}
       >
         {loading && messages.length === 0 ? (
           <div
-            className="flex items-center justify-center gap-2 py-4 text-sm"
-            style={{ color: theme.muted }}
+            role="status"
+            className="flex items-center justify-center gap-2 py-6 text-[13px] font-semibold text-[var(--sf-soft)]"
           >
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
             Loading discussion…
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-3 py-6 text-center">
-            <div
-              className="flex h-14 w-14 items-center justify-center rounded-full"
-              style={{ backgroundColor: theme.primarySoft }}
+          <div className="flex h-full flex-col items-center justify-center gap-3 py-8 text-center">
+            <span
+              aria-hidden="true"
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--sf-sky)] text-[#24507a]"
             >
-              <MessageSquare className="h-6 w-6" style={{ color: theme.primary }} />
-            </div>
+              <MessageSquare className="h-5 w-5" />
+            </span>
             <div>
-              <p className="text-sm font-semibold" style={{ color: theme.ink }}>
-                Start the conversation
+              <p className="m-0 text-[15px] font-extrabold text-[var(--sf-ink)]">
+                {emptyTitle}
               </p>
-              <p className="mt-1 max-w-[220px] text-xs leading-relaxed" style={{ color: theme.muted }}>
-                Ask about this week&apos;s lessons or share a tip with the group.
+              <p className="m-0 mt-1 max-w-[240px] text-[13px] font-semibold leading-relaxed text-[var(--sf-soft)]">
+                {emptyBody}
               </p>
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="flex flex-col gap-4">
             {dayGroups.map((group) => (
-              <div key={group.dayKey} className="space-y-3">
-                <div className="flex justify-center py-1">
-                  <span
-                    className="rounded-full px-3 py-1 text-[11px] font-medium"
-                    style={{
-                      backgroundColor: theme.white,
-                      border: `1px solid ${theme.line}`,
-                      color: theme.muted,
-                    }}
-                  >
+              <section key={group.dayKey} aria-label={group.dayLabel} className="flex flex-col gap-3">
+                <div className="flex justify-center">
+                  <span className="rounded-full border-[1.5px] border-[var(--sf-ink)]/10 bg-white px-3 py-1 text-[11.5px] font-extrabold uppercase tracking-[0.08em] text-[var(--sf-soft)]">
                     {group.dayLabel}
                   </span>
                 </div>
@@ -310,9 +216,7 @@ export default function CurriculumDiscussionPanel({
                   return (
                     <div
                       key={message.id}
-                      className={`flex items-start gap-2.5 ${
-                        isOwn ? "flex-row-reverse" : ""
-                      }`}
+                      className={`flex min-w-0 items-end gap-2 ${isOwn ? "flex-row-reverse" : ""}`}
                     >
                       <MessagesAvatar
                         name={message.senderDisplayName}
@@ -321,54 +225,67 @@ export default function CurriculumDiscussionPanel({
                         size="sm"
                       />
                       <div
-                        className="max-w-[min(75%,28rem)] rounded-2xl px-3.5 py-2.5"
-                        style={{
-                          backgroundColor: isOwn ? theme.primary : theme.white,
-                          border: isOwn ? undefined : `1px solid ${theme.line}`,
-                        }}
+                        className={`min-w-0 max-w-[min(78%,28rem)] rounded-[20px] px-4 py-2.5 ${
+                          isOwn
+                            ? "rounded-br-[6px] bg-[var(--sf-clay)] text-white"
+                            : "rounded-bl-[6px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white shadow-[0_2px_0_0_rgba(43,36,29,0.06)]"
+                        }`}
                       >
                         <p
-                          className="mb-1 text-xs font-semibold"
-                          style={{
-                            color: isOwn ? "rgba(255,255,255,0.75)" : theme.primary,
-                          }}
+                          className={`m-0 text-xs font-extrabold ${
+                            isOwn ? "text-white/80" : "text-[var(--sf-clay-deep)]"
+                          }`}
                         >
                           {message.senderDisplayName}
+                          {familySubtitle ? (
+                            <span
+                              className={`font-semibold ${
+                                isOwn ? "text-white/70" : "text-[var(--sf-soft)]"
+                              }`}
+                            >
+                              {" "}
+                              · {familySubtitle}
+                            </span>
+                          ) : null}
                         </p>
-                        {familySubtitle ? (
-                          <p
-                            className="mb-1 text-[10px] font-medium"
-                            style={{
-                              color: isOwn ? "rgba(255,255,255,0.65)" : theme.muted,
-                            }}
-                          >
-                            {familySubtitle}
-                          </p>
-                        ) : null}
                         {message.pageNumber ? (
-                          <p
-                            className="mb-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                            style={{
-                              backgroundColor: isOwn
-                                ? "rgba(255,255,255,0.2)"
-                                : theme.primarySoft,
-                              color: isOwn ? "#ffffff" : theme.primary,
-                            }}
-                          >
-                            Page {message.pageNumber}
-                          </p>
+                          onJumpToPage ? (
+                            <button
+                              type="button"
+                              onClick={() => onJumpToPage(message.pageNumber!)}
+                              aria-label={`Go to page ${message.pageNumber}`}
+                              className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-extrabold underline-offset-2 hover:underline ${G_FOCUS} ${
+                                isOwn
+                                  ? "bg-white/20 text-white"
+                                  : "bg-[var(--sf-accent-wash)] text-[var(--sf-clay-deep)]"
+                              }`}
+                            >
+                              <FileText className="h-3 w-3" aria-hidden />
+                              Page {message.pageNumber}
+                            </button>
+                          ) : (
+                            <span
+                              className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[11px] font-extrabold ${
+                                isOwn
+                                  ? "bg-white/20 text-white"
+                                  : "bg-[var(--sf-accent-wash)] text-[var(--sf-clay-deep)]"
+                              }`}
+                            >
+                              Page {message.pageNumber}
+                            </span>
+                          )
                         ) : null}
                         <p
-                          className="whitespace-pre-wrap text-sm"
-                          style={{ color: isOwn ? "#ffffff" : theme.ink }}
+                          className={`m-0 mt-0.5 whitespace-pre-wrap break-words text-[14.5px] font-semibold leading-snug ${
+                            isOwn ? "text-white" : "text-[var(--sf-ink)]"
+                          }`}
                         >
                           {message.body}
                         </p>
                         <p
-                          className={`mt-1 text-right text-[10px] ${
-                            isOwn ? "text-white/70" : ""
+                          className={`m-0 mt-1 text-right text-[11px] font-semibold ${
+                            isOwn ? "text-white/75" : "text-[var(--sf-soft)]"
                           }`}
-                          style={isOwn ? undefined : { color: theme.muted }}
                         >
                           {formatRelativeTime(message.createdAt)}
                         </p>
@@ -376,36 +293,87 @@ export default function CurriculumDiscussionPanel({
                     </div>
                   );
                 })}
-              </div>
+              </section>
             ))}
           </div>
         )}
       </div>
 
-      {error ? (
-        <p className="shrink-0 px-3 pb-1 text-[13px]" style={{ color: theme.alert }}>
-          {error}
+      <form
+        className="shrink-0 border-t-[1.5px] border-[var(--sf-ink)]/10 bg-white px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-5"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void handleSend();
+        }}
+      >
+        {error ? (
+          <p
+            role="alert"
+            className="m-0 mb-2 flex items-start gap-2 text-[13px] font-semibold text-[#9a3412]"
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            {error}
+          </p>
+        ) : null}
+        {currentPage && !pageFilter ? (
+          <button
+            type="button"
+            onClick={() => setAboutPage((value) => !value)}
+            aria-pressed={aboutPage}
+            className={`mb-2 inline-flex items-center gap-1.5 rounded-full border-[1.5px] px-2.5 py-1 text-[12px] font-extrabold transition-colors ${G_FOCUS} ${
+              aboutPage
+                ? "border-[var(--sf-clay)]/40 bg-[var(--sf-accent-wash)] text-[var(--sf-clay-deep)]"
+                : "border-[var(--sf-ink)]/15 bg-white text-[var(--sf-soft)]"
+            }`}
+          >
+            <BookmarkCheck className="h-3.5 w-3.5" aria-hidden />
+            {aboutPage ? `About page ${currentPage}` : "Not about a page"}
+          </button>
+        ) : null}
+        <div className="flex items-end gap-2">
+          <label htmlFor={composerId} className="sr-only">
+            Message the co-op
+          </label>
+          <textarea
+            id={composerId}
+            ref={textareaRef}
+            value={text}
+            rows={1}
+            onChange={(event) => setText(event.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={previewMode || sending}
+            placeholder={
+              previewMode
+                ? "Preview mode — sending disabled"
+                : pageForPost
+                  ? `Add a note about page ${pageForPost}…`
+                  : "Ask the co-op a question or share a tip…"
+            }
+            aria-describedby={`${composerId}-hint`}
+            className={`${G_INPUT} max-h-[110px] min-h-[44px] flex-1 resize-none leading-[22px]`}
+          />
+          <button
+            type="submit"
+            disabled={sendDisabled}
+            aria-busy={sending || undefined}
+            className={`${gBtnPopSm} h-[44px] shrink-0`}
+          >
+            {sending ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            ) : (
+              <SendHorizontal className="h-4 w-4" aria-hidden />
+            )}
+            Post
+          </button>
+        </div>
+        <p
+          id={`${composerId}-hint`}
+          className="m-0 mt-1.5 hidden px-1 text-[11.5px] font-semibold text-[var(--sf-soft)] [@media(hover:hover)]:block"
+        >
+          <kbd className="font-extrabold text-[var(--sf-ink)]/70">Enter</kbd> to post ·{" "}
+          <kbd className="font-extrabold text-[var(--sf-ink)]/70">Shift + Enter</kbd> for a new line
         </p>
-      ) : null}
-
-      <MessagesComposeBar
-        value={text}
-        onChange={setText}
-        files={[]}
-        onFilesChange={() => {}}
-        onSend={() => void handleSend()}
-        sending={sending}
-        disabled={previewMode}
-        C={C}
-        theme={theme}
-        variant="parent-story"
-        hideAttachments
-        placeholder={
-          previewMode
-            ? "Preview mode — sending disabled"
-            : "Ask the co-op a question or share a tip…"
-        }
-      />
+      </form>
     </div>
   );
 }

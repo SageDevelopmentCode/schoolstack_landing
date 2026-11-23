@@ -7,6 +7,7 @@ import BlogPostHtml from "@/components/blog/BlogPostHtml";
 import BlogPostProse from "@/components/blog/BlogPostProse";
 import GardenRoot from "@/components/garden/GardenRoot";
 import { getRepoBlogFeatureTags, getRepoBlogPost } from "@/content/blog/registry";
+import { linkPreviewCard, linkPreviewImageUrl } from "@/lib/marketing/link-previews";
 import { pageMetadata } from "@/lib/metadata";
 import { buildBreadcrumbs } from "@/lib/seo";
 import { WEBSITE_BLOG_AUTHOR } from "@/lib/website-blog/author";
@@ -78,7 +79,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         headline={post.seoTitle}
         description={post.metaDescription}
         path={`/blog/${post.slug}`}
-        image="/opengraph-image"
+        image={linkPreviewImageUrl(linkPreviewCard(`/blog/${post.slug}`))}
         author={{
           name: WEBSITE_BLOG_AUTHOR.name,
           url: WEBSITE_BLOG_AUTHOR.profileUrl,

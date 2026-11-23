@@ -89,7 +89,7 @@ Per school, export `*DemoConfig` from `{slug}-admin-demo.ts`, `{slug}-parent-dem
 
 **Optional admin mock overrides:** If leads, events, or emails should differ from the canonical Luff demo, add `src/data/school-demos/admin-content/{slug}.ts` and reference it from `SchoolAdminDemoConfig.contentOverrides` (see `lighthouse-homeschool` admin config). Do not edit the shared admin component for school-specific copy.
 
-Component folder still needs `{Brand}WebsiteDashboardDemo.tsx` and `{Brand}MobileAppShowcase.tsx` only.
+Component folder needs `{Brand}WebsiteDashboardDemo.tsx` only. The mobile step is shared (Phase 4), so there is no per-school mobile code.
 
 **Do not** fork admin/parent/teacher dashboard TSX — per-school forks caused Vercel build OOM. The walkthrough's portal steps render the **real Garden portals** from these configs (see Phase 3b).
 
@@ -130,7 +130,7 @@ The website preview (steps 1–2) is one shared template, `src/components/sectio
 
 ## Phase 4 — Walkthrough
 
-Append `{camelCase}WalkthroughPlaceholder` to `src/data/school-demos/walkthrough-placeholder.ts` (9 steps with the mobile showcase, 8 without):
+Create `src/data/school-demos/walkthroughs/{slug}.ts` exporting `{camelCase}WalkthroughPlaceholder`, add an `export * from "./walkthroughs/{slug}";` line to the barrel `src/data/school-demos/walkthrough-placeholder.ts`, and have the page import from `@/data/school-demos/walkthroughs/{slug}`. Don't import the barrel from a page: it bundles every school's steps. Every walkthrough has these 9 steps:
 
 1. discover (website)
 2. inquire (form)
@@ -139,10 +139,10 @@ Append `{camelCase}WalkthroughPlaceholder` to `src/data/school-demos/walkthrough
 5. parent-enrollment (parent)
 6. parent-pays-tuition (parent)
 7. teacher-attendance (teacher)
-8. mobile-app (mobile) — only when the school has a mobile showcase
+8. mobile-app (mobile): always. It's the same MudKitchen app screenshot gallery for every school
 9. get-in-touch (contact)
 
-Use `createMobileAppWalkthroughStep()` for step 8 (before contact). Copy structure from `luffLearningWalkthroughPlaceholder`.
+Use `createMobileAppWalkthroughStep()` (from `./shared`) for step 8, directly before contact. `walkthrough-placeholder.test.ts` fails if it's missing or misplaced. Copy the structure from `walkthroughs/luff-learning.ts`.
 
 **Walkthrough chrome is Garden and needs no per-school work.** `SchoolDemoShell` → `DemoWalkthroughPanel` (desktop) / `DemoWalkthroughMobileSheet` (mobile) draw the co-brand card, butter progress bar, sticky-note hint and taped step cards from Garden tokens. The school accent comes from `config.theme` via `buildSchoolConceptWalkthroughTheme` (`src/lib/marketing/school-concept-walkthrough-theme.ts`, `theme.primary`). Steps carry no colours: `DemoWalkthroughStepList` reads only each step's `icon`, title and description (the old per-step `theme` field was removed).
 
@@ -152,29 +152,12 @@ Register the school slug in:
 
 - `src/data/school-demos/dashboard-registry.ts` — import and add to all three maps: `schoolAdminDemoConfigs`, `schoolParentDemoConfigs`, `schoolTeacherDemoConfigs`
 - `src/components/demo/shared/lazySchoolWebsiteDemo.tsx` (`WEBSITE_DEMO_LOADERS` — if new website wrapper path)
-- `src/components/demo/ScaledMobileAppPreview.tsx` (`MOBILE_SHOWCASE_LOADERS`)
 
 Admin/parent/teacher `Scaled*` previews need **no per-school edits** once configs are in the registry — shared loaders resolve by `demoSlug`, and the previews route the admissions, enrollment, billing and attendance steps to the Garden wrappers (Phase 3b) automatically. **Rooted Meadows** is the only standard demo with custom dashboard forks (`src/components/demo/rootedmeadows/`). Sagefield is a separate customer demo — out of scope here.
 
-## Phase 5b — Mobile showcase (required)
+## Phase 5b — Mobile step (no per-school work)
 
-1. Create `src/components/demo/{folder}/{Brand}MobileAppShowcase.tsx` using shared `SchoolMobileAppShowcase` + `createMicroschoolMobileSlides` from `src/components/demo/mobile/`.
-2. Pass school `ADMIN_COLORS.accent`, founder/guide name for messages, and optional `schoolName` for the admissions slide header.
-3. Register slug in `MOBILE_SHOWCASE_LOADERS` inside `src/components/demo/ScaledMobileAppPreview.tsx`.
-
-### Mobile slide requirements (5 tabs)
-
-Microschool demos use **Parent · Admin · Teacher** tabs (not committees):
-
-| Tab | Audience | Must include |
-|---|---|---|
-| Messages | Parent | Thread UI with teacher name, online indicator, unread badge |
-| Tuition | Parent | Gradient balance card, child filter pills, invoice list, per-row Pay + Pay All, paid state |
-| Admissions | Admin | Submission cards, flow/status filters, tags, tap-to-detail sheet with Send application link CTA |
-| Attendance | Teacher | 8–10 students, day navigator, search, Present / Pickup / Absent action buttons per row |
-| Students | Teacher | Full roster with avatars, status pills, guardian contact, expandable profile chips |
-
-Shared data lives in `src/components/demo/mobile/mobileDemoData.ts`. Slide components live under `src/components/demo/mobile/slides/`.
+Step 8 renders `src/components/demo/ScaledMobileAppPreview.tsx`: the MudKitchen app store screenshots (`DOWNLOAD_APP_SLIDES`, `/images/mobileapp/*.webp`) as a Garden gallery (recipe 27b in `mudkitchen-garden-design`). It's the same for every school, so don't build per-school phone mock-ups. To change the screenshots, re-export them from Marketing Studio → App store (`src/components/admin/marketing/carousels/app-store-screens.tsx`).
 
 ## Phase 6 — Verify
 
@@ -187,7 +170,7 @@ Shared data lives in `src/components/demo/mobile/mobileDemoData.ts`. Slide compo
 - [ ] Step 5: the Garden enrollment checklist ticks off items
 - [ ] Step 6: the Garden parent header + Billing page
 - [ ] Step 7: the Garden staff header + Attendance with "Today's roster"; teacher program labels match `{slug}-teacher-demo.ts`
-- [ ] Step 8 (if present): mobile preview with school accent + hint tooltip
+- [ ] Step 8: the app screenshot gallery fits the frame (desktop stage and phone snap rail), and the hint note shows
 - [ ] Every step: no `/api` or `/rest/v1` requests, no console errors, and the URL only changes `?step=`
 - [ ] Dev note: each step's chunk compiles on first load and can take ~30–40s in `next dev`; wait before calling it broken
 

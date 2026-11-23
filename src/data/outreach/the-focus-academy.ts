@@ -173,6 +173,51 @@ export const theFocusAcademyOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "FOCUS",
+    founder: {
+      fullName: "Karolyn Miller",
+      firstName: "Karolyn",
+      role: "Founder",
+      source: "FOCUS Founder's Profile page (\"My name is Karolyn Miller\") and Founder's Bio page (Karolyn M. Miller, Founder, The FOCUS Academy)",
+      url: "https://www.thefocusacademy.org/founder-s-profile",
+    },
+    mailTo: null,
+    founderFacts: [
+      {
+        fact: "Karolyn Miller's Founder's Profile says she is a registered nurse with over 12 years of experience working within the educational space; she founded FOCUS, which its homepage calls a new microschool opening in the Memphis area for twice-exceptional middle school boys.",
+        source: "The FOCUS Academy, Founder's Profile and homepage",
+        url: "https://www.thefocusacademy.org/founder-s-profile",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "FOCUS's stated vision is a Christ-centered learning community where middle school boys can grow academically, socially and personally in a setting designed to recognize their strengths and support their challenges.",
+        source: "The FOCUS Academy blog, When the School Year Gets Hard (Oct 31, 2026)",
+        url: "https://www.thefocusacademy.org/post/when-the-school-year-gets-hard-5-ways-to-support-your-neurodivergent-child-through-november",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "Karolyn Miller's Founder's Profile says she is a registered nurse with over 12 years of experience working within the educational space; she founded FOCUS, which its homepage calls a new microschool opening in the Memphis area for twice-exceptional middle school boys.",
+    body: `Hi Karolyn,
+
+I read your founder's profile. You've spent more than twelve years as a registered nurse working in education, and now you're opening FOCUS for twice-exceptional middle school boys in Memphis.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how getting FOCUS started has gone. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of FOCUS I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Karolyn, a note from a microschool in Round Rock, Texas. J",
+    shortCode: "focus-4bj1",
+    checkBeforeMailing: [
+      "Find a mailing address: thefocusacademy.org gives only \"the Memphis area\" (homepage, Contact, Founder's Profile and Bio pages, footer). The street addresses elsewhere on the site (the sample San Francisco address on the coaching pages, the Springfield, TN \"Innovation Center\" on the Events page) are Wix template placeholders: never use them. No other non-home lead found; check the Tennessee Department of Education non-public school list or ask in the first reply.",
+      "The hook is from her own Founder's Profile, not an interview; no podcast or press piece turned up for her or FOCUS.",
+      "The profile also mentions her own son; the letter leaves him out on purpose. Keep it that way, and keep the Founder's Bio family details out too.",
+      "The homepage still says FOCUS is \"opening\" with applications for 2026–27. The ask (\"how getting FOCUS started has gone\") works whether or not it has opened.",
+    ],
+  },
   steps: [
     {
       id: "first",
@@ -182,11 +227,13 @@ export const theFocusAcademyOutreach: OutreachPlan = {
       subject: "after the FOCUS contact form",
       body: `Hi Karolyn,
 
+I mailed you a handwritten note last week with a card for FOCUS.
+
 The FOCUS homepage lays out both options plainly: four days at $15,728 or two at $9,909, 8:30 to 2:30, for homeschooled middle school boys. From there families start with the contact form, and the site doesn't say what comes after.
 
-I run Sage Field, a microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the enrollment and tuition system I built for it. I set up a version for FOCUS with your 4-Day and 2-Day options, from the first conversation to tuition.
+I run Sage Field, a microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the enrollment and tuition system I built for it. I set up a version for FOCUS with your 4-Day and 2-Day options, from the first conversation to tuition; the card opens it.
 
-Want me to send it?
+Want me to send the link too?
 
 Julius`,
     },

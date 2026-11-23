@@ -30,8 +30,6 @@ export default function CustomBuild({ className = "" }: { className?: string }) 
     <section id="custom" className={`overflow-hidden py-24 lg:py-32 ${className}`}>
       <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
         <SectionIntro
-          pill="🛠️ Custom builds"
-          tint="lav"
           lead={CUSTOM_COPY.headlineLead}
           accent={CUSTOM_COPY.headlineAccent}
           squiggle="var(--sf-lav)"

@@ -91,8 +91,6 @@ function Platform() {
       <div className="relative overflow-hidden rounded-[44px] bg-[var(--sf-forest)] py-20 text-[var(--sf-cream)] lg:py-28">
         <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
           <SectionIntro
-            pill={`🧺 ${PLATFORM_COPY.eyebrow}`}
-            tint="ink"
             lead={PLATFORM_COPY.headlineLead}
             accent={PLATFORM_COPY.headlineAccent}
             accentColor="text-[var(--sf-butter)]"

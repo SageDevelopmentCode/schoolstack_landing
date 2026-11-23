@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { theWoodlandsMicroschoolConfig } from "@/data/school-demos/the-woodlands-microschool";
-import { theWoodlandsMicroschoolWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { theWoodlandsMicroschoolWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/the-woodlands-microschool";
 
 export default function TheWoodlandsMicroschoolDemoPage() {
   return (

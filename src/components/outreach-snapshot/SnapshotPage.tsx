@@ -56,7 +56,9 @@ function hostOf(url: string) {
 /** Tells Julius (Discord) the school opened it. Skipped for `?preview=1` and repeat views in a tab. */
 function useViewBeacon(slug: string, token: string) {
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).has("preview")) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("preview")) return;
+    const via = params.get("via") === "letter" ? "letter" : undefined;
     const key = `snapshot-viewed:${slug}`;
     try {
       if (window.sessionStorage.getItem(key)) return;
@@ -70,7 +72,7 @@ function useViewBeacon(slug: string, token: string) {
       } catch {
         // ignore
       }
-      const body = JSON.stringify({ slug, token });
+      const body = JSON.stringify({ slug, token, via });
       const sent = typeof navigator.sendBeacon === "function"
         && navigator.sendBeacon("/api/outreach-snapshot/view", new Blob([body], { type: "application/json" }));
       if (!sent) {
@@ -86,12 +88,31 @@ function useViewBeacon(slug: string, token: string) {
   }, [slug, token]);
 }
 
+/** A short note for someone who scanned the QR card from Julius's handwritten letter. */
+function LetterGreeting({ firstName, demoHref }: { firstName: string; demoHref: string }) {
+  return (
+    <section aria-label="From the letter" className="mx-auto max-w-6xl px-6 pt-6 sm:px-10" data-testid="snapshot-letter-greeting">
+      <div className="flex flex-col gap-4 rounded-[22px] border-2 border-[var(--sf-ink)] bg-[var(--sf-butter)] px-5 py-4 shadow-[0_4px_0_0_var(--sf-ink)] sm:flex-row sm:items-center sm:justify-between">
+        <p className="m-0 text-[15px] font-bold leading-snug">
+          <span className="sf-hand mr-1 text-2xl text-[var(--sf-forest)]">Hi {firstName},</span> thanks for scanning the card.
+          Below is the look at your enrollment I mentioned, and your demo is one tap away.
+          <span className="sf-hand ml-1 text-2xl text-[var(--sf-forest)]">Julius</span>
+        </p>
+        <Link href={demoHref} className={`${btnPop} shrink-0 !px-5 !py-2.5 text-[15px]`}>
+          Open your demo
+        </Link>
+      </div>
+    </section>
+  );
+}
+
 export default function SnapshotPage({
   slug,
   token,
   schoolName,
   demoHref,
   snapshot,
+  letterGreeting,
 }: {
   slug: string;
   token: string;
@@ -99,6 +120,8 @@ export default function SnapshotPage({
   /** Their demo's public path (`/demo/<route>`). */
   demoHref: string;
   snapshot: OutreachSnapshot;
+  /** Set when they arrived from the QR card in the handwritten letter (`?via=letter`). */
+  letterGreeting?: { firstName: string };
 }) {
   useViewBeacon(slug, token);
   const speed = snapshot.pageSpeed;
@@ -117,6 +140,8 @@ export default function SnapshotPage({
         </Link>
         <p className="hidden text-sm font-extrabold text-[var(--sf-soft)] sm:block">{COPY.preparedBy}</p>
       </header>
+
+      {letterGreeting ? <LetterGreeting firstName={letterGreeting.firstName} demoHref={demoHref} /> : null}
 
       {/* Hero */}
       <section className="sf-grid">

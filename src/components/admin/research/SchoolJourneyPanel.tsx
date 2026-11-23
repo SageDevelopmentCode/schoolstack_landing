@@ -3,11 +3,13 @@
 import { useState } from "react";
 import {
   ArrowUpRight,
+  BookOpenText,
   Check,
   ClipboardCopy,
   FileText,
   Inbox,
   Mail,
+  Mailbox,
   MessageCircle,
   Monitor,
   PenLine,
@@ -32,12 +34,13 @@ import { PRIORITY_LABEL, type ResearchSchool, type SchoolPatch } from "@/lib/adm
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { adminToast } from "@/lib/school-admin/admin-toast";
 import { OutreachComposeDialog } from "./OutreachComposeDialog";
+import { SchoolLetterCard } from "./SchoolLetterCard";
 import { dueText, formatDay, journeyChip } from "./research-ui";
 import type { WorkspaceRow } from "./useResearchWorkspaceModel";
 
 const DEMO_OPTIONS = listSchoolDemoOptions();
 const SOCIAL_CHANNELS: OutreachChannel[] = ["instagram", "facebook", "linkedin"];
-const TOUCH_CHANNELS: OutreachChannel[] = ["email", "phone", "instagram", "facebook", "linkedin", "in_person", "other"];
+const TOUCH_CHANNELS: OutreachChannel[] = ["email", "phone", "instagram", "facebook", "linkedin", "in_person", "mail", "other"];
 
 const STEP_ICON: Record<JourneyStep["id"], typeof Mail> = {
   first: Mail,
@@ -98,9 +101,9 @@ function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-function stepWhen(step: JourneyStep, businessDay: number): string {
+function stepWhen(step: JourneyStep, businessDay: number, afterLetter = false): string {
   if (step.status === "done" && step.at) return `${step.kind === "social" ? "Logged" : "Sent"} ${formatDay(step.at)}`;
-  if (step.status === "current") return step.dueAt ? capitalize(dueText(step.dueAt)) : "Ready now";
+  if (step.status === "current") return step.dueAt ? capitalize(dueText(step.dueAt)) : afterLetter ? "After the letter" : "Ready now";
   return businessDay === 0 ? "Day 0" : `Day ${businessDay}`;
 }
 
@@ -136,7 +139,7 @@ function JourneyStepper({ row }: { row: WorkspaceRow }) {
                   step.status === "current" && row.journey.actionable ? "text-[var(--sf-clay-deep)]" : "text-[var(--sf-soft)]"
                 }`}
               >
-                {stepWhen(step, businessDay)}
+                {stepWhen(step, businessDay, row.journey.stage === "letter")}
               </span>
             </span>
           </li>
@@ -161,6 +164,9 @@ function CurrentStepCard({
   const [loggingChannel, setLoggingChannel] = useState<OutreachChannel | null>(null);
   const [copied, setCopied] = useState(false);
   const next = journey.next;
+  // While the handwritten letter is still to be mailed, the first email waits behind it.
+  const waitingOnLetter = journey.stage === "letter";
+  const actionable = journey.actionable && !waitingOnLetter;
   if (!next || !plan) return null;
   const step = plan.steps.find((s) => s.id === next.id);
   if (!step) return null;
@@ -203,7 +209,7 @@ function CurrentStepCard({
   return (
     <div
       className={`mt-5 rounded-[18px] border-[1.5px] p-4 sm:p-5 ${
-        journey.actionable ? "border-[var(--sf-clay)]/35 bg-[var(--sf-accent-wash)]" : "border-[var(--sf-ink)]/10 bg-[var(--sf-paper)]"
+        actionable ? "border-[var(--sf-clay)]/35 bg-[var(--sf-accent-wash)]" : "border-[var(--sf-ink)]/10 bg-[var(--sf-paper)]"
       }`}
       data-testid="research-current-step"
     >
@@ -217,7 +223,9 @@ function CurrentStepCard({
             <p className="m-0 mt-1 text-[13px] font-bold text-[var(--sf-soft)]">Subject: {step.subject}</p>
           ) : null}
         </div>
-        {journey.actionable ? (
+        {waitingOnLetter ? (
+          <GChip tone="info">After the letter</GChip>
+        ) : actionable ? (
           <GChip tone="alert">{next.dueAt ? capitalize(dueText(next.dueAt)) : "Ready now"}</GChip>
         ) : next.dueAt ? (
           <GChip tone="info">{capitalize(dueText(next.dueAt))}</GChip>
@@ -230,14 +238,18 @@ function CurrentStepCard({
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className={journey.actionable ? gBtnPopSm : gBtnOutlineSm}
+              className={actionable ? gBtnPopSm : gBtnOutlineSm}
               onClick={() => onCompose(step)}
               data-testid="research-compose-open"
             >
               <Send className="h-4 w-4" aria-hidden />
-              {journey.actionable ? `Preview & send step ${next.number}` : `Preview step ${next.number}`}
+              {actionable ? `Preview & send step ${next.number}` : `Preview step ${next.number}`}
             </button>
-            {!journey.actionable && next.dueAt ? (
+            {waitingOnLetter ? (
+              <span className="text-[12.5px] font-bold text-[var(--sf-soft)]">
+                Goes out 5 business days after you log the letter as mailed.
+              </span>
+            ) : !actionable && next.dueAt ? (
               <span className="text-[12.5px] font-bold text-[var(--sf-soft)]">You can still send it early.</span>
             ) : null}
           </div>
@@ -245,7 +257,7 @@ function CurrentStepCard({
       ) : (
         <SocialStepBody
           step={step}
-          actionable={journey.actionable}
+          actionable={actionable}
           copied={copied}
           onCopy={() => void copySocial(step.body)}
           loggingChannel={loggingChannel}
@@ -506,8 +518,11 @@ function Activity({ row }: { row: WorkspaceRow }) {
     ...row.log.touches.map((t) => ({
       id: `t-${t.id}`,
       at: t.occurredAt,
-      icon: t.channel === "phone" ? Phone : t.direction === "inbound" ? Inbox : PenLine,
-      title: `${t.direction === "inbound" ? "They replied" : "Reached out"} · ${OUTREACH_CHANNEL_LABEL[t.channel]}`,
+      icon: t.channel === "phone" ? Phone : t.channel === "mail" ? Mailbox : t.direction === "inbound" ? Inbox : PenLine,
+      title:
+        t.channel === "mail" && t.direction === "outbound"
+          ? "Handwritten letter mailed"
+          : `${t.direction === "inbound" ? "They replied" : "Reached out"} · ${OUTREACH_CHANNEL_LABEL[t.channel]}`,
       detail: t.note,
       failed: false,
     })),
@@ -626,6 +641,7 @@ export function SchoolJourneyPanel({
   onSaveSchool,
   onStatus,
   onOutreach,
+  onOpenResearch,
 }: {
   row: WorkspaceRow;
   theme: ParentThemeTokens;
@@ -633,6 +649,8 @@ export function SchoolJourneyPanel({
   onSaveSchool: (patch: SchoolPatch, copy: { key: string; success: string; description?: string; error: string }) => Promise<boolean>;
   onStatus: (status: CrmStatus) => Promise<boolean>;
   onOutreach: (next: DemoOutreach) => void;
+  /** Opens the "Research & plan" drawer for this school. */
+  onOpenResearch: () => void;
 }) {
   const { school, plan, journey } = row;
   const [composing, setComposing] = useState<OutreachEmailStep | null>(null);
@@ -716,6 +734,15 @@ export function SchoolJourneyPanel({
             />
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
+            <button type="button" className={gBtnOutlineSm} onClick={onOpenResearch} data-testid="research-drawer-open">
+              <BookOpenText className="h-4 w-4" aria-hidden />
+              Research &amp; plan
+              {plan && !plan.doNotEmail && plan.facts.length > 0 ? (
+                <span className="rounded-full bg-[var(--sf-ink)]/[0.07] px-1.5 text-[11.5px] tabular-nums" aria-label={`${plan.facts.length} sourced facts`}>
+                  {plan.facts.length}
+                </span>
+              ) : null}
+            </button>
             {school.demo_slug ? (
               <a href={schoolDemoHref(school.demo_slug)} target="_blank" rel="noopener noreferrer" className={gBtnOutlineSm}>
                 <Monitor className="h-4 w-4" aria-hidden />
@@ -731,6 +758,9 @@ export function SchoolJourneyPanel({
           </div>
         </div>
       </GCard>
+
+      {/* Handwritten letter (goes before the first email) */}
+      <SchoolLetterCard row={row} index={1} onOutreach={onOutreach} />
 
       {/* Sequence */}
       <GCard

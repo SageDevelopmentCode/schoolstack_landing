@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { rootsAndWingsMicroschoolConfig } from "@/data/school-demos/roots-and-wings-microschool";
-import { rootsAndWingsMicroschoolWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { rootsAndWingsMicroschoolWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/roots-and-wings-microschool";
 
 export default function RootsAndWingsMicroschoolDemoPage() {
   return (

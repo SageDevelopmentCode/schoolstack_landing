@@ -167,6 +167,56 @@ export const actonAcademyPlacerOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Acton Placer",
+    founder: {
+      fullName: "Kelsy Blyakherov",
+      firstName: "Kelsy",
+      role: "Co-founder and President",
+      source: "Acton Placer The Story page (\"Kelsy Blyakherov, Co-founder / President\")",
+      url: "https://actonplacer.com/the-story-page",
+    },
+    mailTo: null,
+    founderFacts: [
+      {
+        fact: "On Acton Placer's Story page, Kelsy Blyakherov wrote that she has been part of Acton Academy since the fall of 2014 and that the Hero's Journey \"isn't just a philosophy—it is my life's work\".",
+        source: "Acton Placer, The Story page",
+        url: "https://actonplacer.com/the-story-page",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "As Co-Founder/President she works with the young heroes on campus and with their families, Heads of Program and Guides, and says she is committed to bringing this kind of education to as many families and communities as possible.",
+        source: "Acton Placer, The Story page",
+        url: "https://actonplacer.com/the-story-page",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Acton Placer runs three campuses (Roseville, Sacramento near Arden Arcade/Carmichael, and Old Town Rocklin) and four studios, Spark, Threshold, Discovery and Launchpad.",
+        source: "Acton Placer FAQ",
+        url: "https://actonplacer.com/faq-5143-3496",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "On Acton Placer's Story page, Kelsy Blyakherov wrote that she has been part of Acton Academy since the fall of 2014 and that the Hero's Journey \"isn't just a philosophy—it is my life's work\".",
+    body: `Hi Kelsy,
+
+I read your story on the Acton Placer site. You've been part of Acton since the fall of 2014, and you wrote that the Hero's Journey isn't just a philosophy for you. It's your life's work.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how you keep three campuses feeling like one school. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Acton Placer I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Kelsy, a note from a microschool in Round Rock, Texas. J",
+    shortCode: "actonplacer-2emk",
+    checkBeforeMailing: [
+      "Find a mailing address: actonplacer.com publishes none (the Story, FAQ, Enrollment and campus pages say to contact the school for the exact location, and the footer lists only Journey-Suite LLC). Lead: the Acton Academy network directory lists Acton Academy Placer County at 725 Vernon Street, Roseville, CA (https://actonacademy.org/campuses/acton-academy-placer-county/), reportedly the Rock of Roseville church that hosts the Roseville campus. Confirm the school takes mail there before using it, and address it to Kelsy Blyakherov, Acton Academy Placer.",
+      "The hook is from her own Story page, not an interview. No podcast or press piece of hers turned up (the Acton Placer podcasts on Apple are with Matt Beaudreau, a different founder of the school, so they aren't used).",
+      "The three campuses are Roseville, Sacramento and Rocklin per the FAQ; if one has closed, change the ask to \"how the campuses are going\".",
+    ],
+  },
   steps: [
     {
       id: "first",
@@ -176,11 +226,13 @@ export const actonAcademyPlacerOutreach: OutreachPlan = {
       subject: "Acton Placer's three enrollment steps",
       body: `Hi Kelsy,
 
+I mailed you a handwritten note last week with a card for Acton Placer.
+
 Your Enrollment page lays out three steps: learn more, including a 15-minute call with you, then a Family Meetup on campus, then shadow days or enrollment to lock in a spot.
 
 I run Sage Field, a microschool in Round Rock, TX, and built MudKitchen to track every family through steps like that in one place. We grew from 0 to 35 students in under 3 months on it.
 
-I set up a version for Acton Placer with your four studios and three campuses in it. Want me to send it?
+I set up a version for Acton Placer with your four studios and three campuses in it; the card opens it too. Want me to send the link?
 
 Julius`,
     },

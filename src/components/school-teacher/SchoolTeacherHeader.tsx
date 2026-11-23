@@ -14,6 +14,7 @@ import GardenBellButton from "@/components/school-parent/header/GardenBellButton
 import GardenHeaderPopover from "@/components/school-parent/header/GardenHeaderPopover";
 import ParentGardenNav from "@/components/school-parent/header/ParentGardenNav";
 import TeacherGardenProfileMenu from "@/components/school-teacher/header/TeacherGardenProfileMenu";
+import NavigationLink from "@/components/school/shared/NavigationLink";
 import { useMessagesUnreadCount } from "@/lib/messages/use-messages-unread-count";
 import {
   buildTeacherNavItems,
@@ -243,9 +244,9 @@ export default function SchoolTeacherHeader({
               {wordmark}
             </button>
           ) : (
-            <Link href={homeHref} className={wordmarkClass}>
+            <NavigationLink href={homeHref} className={wordmarkClass}>
               {wordmark}
-            </Link>
+            </NavigationLink>
           )}
         </div>
 

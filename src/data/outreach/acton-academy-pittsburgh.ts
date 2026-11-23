@@ -182,20 +182,76 @@ export const actonAcademyPittsburghOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Acton Pittsburgh",
+    founder: {
+      fullName: "Ronnie Esposito",
+      firstName: "Ronnie",
+      role: "Co-founder",
+      source: "Acton Academy Pittsburgh, Team (Who We Are: Ronnie and Meghan Esposito, Founders)",
+      url: "https://actonacademypittsburgh.com/career-old",
+    },
+    mailTo: {
+      lines: ["Acton Academy Pittsburgh", "3500 Brooktree Road", "Wexford, PA 15090"],
+      source: "Acton Pittsburgh Contact Us page (the same address is in the site footer)",
+      url: "https://actonacademypittsburgh.com/contact-acton",
+    },
+    founderFacts: [
+      {
+        fact: "The founders' story on Acton Pittsburgh's Team page says Ronnie heard David Osborne on a podcast while driving to work, then kept listening to find out which school David's kids attended: Acton Academy.",
+        source: "Acton Academy Pittsburgh, Team (Who We Are)",
+        url: "https://actonacademypittsburgh.com/career-old",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Ronnie Esposito was a guest on The Brian Hess Show (Episode 417, October 27, 2021), talking about Acton's student-led, self-paced model and learning by doing.",
+        source: "The Brian Hess Show, Episode 417 | Powerful Perspectives | Ronnie Esposito of Acton Academy (Apple Podcasts)",
+        url: "https://podcasts.apple.com/us/podcast/episode-417-powerful-perspectives-ronnie-esposito-of/id1477287951?i=1000539884714",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Launchpad, Acton Pittsburgh's high school studio for ages 16 to 18, opens in 2027, with the school's own Middle School learners moving up first.",
+        source: "Launchpad Studio (Ages 16–18) | Acton Academy Pittsburgh",
+        url: "https://actonacademypittsburgh.com/launchpad-studio",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "The founders' story on Acton Pittsburgh's Team page says Ronnie heard David Osborne on a podcast while driving to work, then kept listening to find out which school David's kids attended: Acton Academy.",
+    body: `Hi Ronnie,
+
+I read the story on your Team page about hearing David Osborne on a podcast on the drive to work, then listening to more episodes to find out which school his kids went to.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how Launchpad is coming together for 2027. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Acton Pittsburgh I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Ronnie, a note from a microschool founder in Texas. J",
+    shortCode: "actonpgh-25hw",
+    checkBeforeMailing: [
+      "3500 Brooktree Road is a multi-tenant office building in Brooktree Office Park and the site gives no suite number. Keep \"Acton Academy Pittsburgh\" on the envelope; add a suite if you find one.",
+      "Ronnie and Meghan Esposito are both listed as founders. The letter goes to Ronnie because the Team page story is told by the husband (\"my wife and I\") and the FAQ video is \"our founder and his son\".",
+      "The only podcast found is from October 2021 (The Brian Hess Show). Skim it before mailing in case he calls.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "Their own five-step process, one proof number, and a permission ask to send their version",
+      purpose: "Mention the handwritten note, then their own five-step process, one proof number, and a permission ask to send their version",
       subject: "Acton Pittsburgh's five steps",
       body: `Hi Ronnie,
+
+I mailed you a handwritten note last week with a card for Acton Pittsburgh.
 
 Your Book a Call page lays out five steps for a family: a call, a campus tour, the application form, a learner's visit, then the enrollment decision.
 
 I run Sage Field, a microschool in Round Rock, and built MudKitchen to track every family through steps like that, then through enrollment and tuition. We grew from 0 to 35 students in under 3 months on it.
 
-I set up a version for Acton Pittsburgh with your studios and the $11,500 tuition in it. Want me to send it?
+The QR code on the card opens a version I set up for Acton Pittsburgh with your studios and the $11,500 tuition in it. Want me to send the link here too?
 
 Julius`,
     },

@@ -1,34 +1,22 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Eye, SearchX } from "lucide-react";
+import { Tick } from "@/components/garden/ui";
 import CoopTeachingScheduleFilterBar from "@/components/admissions/CoopTeachingScheduleFilterBar";
 import ParentTeachingScheduleVolunteerActions from "@/components/school-parent/teaching-schedule/ParentTeachingScheduleVolunteerActions";
+import ParentGardenFrame from "@/components/school-parent/garden/ParentGardenFrame";
+import ParentGardenPageHeader from "@/components/school-parent/garden/ParentGardenPageHeader";
+import { G_TABLE, G_TD, G_TH } from "@/components/school-parent/garden/fields";
+import { GCard, GChip, GIcon, GKicker, GStatTile } from "@/components/school-parent/garden/ui";
+import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import {
-  type ParentTeachingSchedulePendingAction,
-} from "@/components/school-parent/teaching-schedule/ParentTeachingScheduleSignupButton";
-import {
-  computeTeachingScheduleSummary,
   formatTeachingAssignedParents,
   formatTeachingScheduleDateRange,
   isTeachingWeekPast,
-  sortTeachingScheduleWeeks,
-  teachingScheduleParentRowStyle,
-  teachingScheduleRowSurfaceStyle,
   type CoopTeachingScheduleWeek,
-  type TeachingScheduleParentRole,
 } from "@/lib/admissions/program-coop-teaching-schedule-mock";
-import {
-  DEFAULT_COOP_TEACHING_SCHEDULE_FILTERS,
-  filterCoopTeachingScheduleWeeks,
-  type CoopTeachingScheduleFilters,
-} from "@/lib/admissions/program-coop-teaching-schedule-filters";
-import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
-import ParentCard from "@/components/school-parent/ui/ParentCard";
-import ParentChip from "@/components/school-parent/ui/ParentChip";
-import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
-import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
-import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
+import { PORTAL_HOME_CONTAINER_CLASS } from "@/lib/portal-home/layout";
+import { useParentTeachingScheduleModel } from "./useParentTeachingScheduleModel";
 
 type ParentTeachingSchedulePageProps = {
   organizationId: string;
@@ -40,361 +28,254 @@ type ParentTeachingSchedulePageProps = {
   previewMode?: boolean;
 };
 
+const TABLE_HEADINGS = [
+  "Week",
+  "Parent instructor",
+  "Parent assistant",
+  "Seasonal theme",
+  "Character lesson",
+  "Celebration / event",
+  "Volunteer",
+] as const;
+
+function WeekLabel({ week, isPast, isNext }: { week: CoopTeachingScheduleWeek; isPast: boolean; isNext: boolean }) {
+  return (
+    <div className="flex flex-col items-start gap-1">
+      <span className="flex flex-wrap items-center gap-1.5">
+        <GChip tone={isNext ? "warning" : isPast ? "neutral" : "info"}>{week.weekName.trim() || "Teaching week"}</GChip>
+        {isNext ? <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[var(--sf-clay-deep)]">Next up</span> : null}
+      </span>
+      <span
+        className={`flex items-center gap-1 text-[13px] font-semibold ${isPast ? "text-[var(--sf-soft)]" : "text-[var(--sf-ink)]"}`}
+      >
+        {isPast ? <Tick className="h-3.5 w-3.5" fill="var(--sf-mint)" /> : null}
+        {formatTeachingScheduleDateRange(week.startDate, week.endDate)}
+        {isPast ? <span className="sr-only"> (done)</span> : null}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Parent co-op Teaching schedule (Garden): summary strip, filter card, then
+ * the year in one card (table from md, week cards on phones). Past weeks are
+ * dimmed with a tick; the next week is on the accent wash.
+ */
 export default function ParentTeachingSchedulePage({
   organizationId,
   programId,
   initialWeeks,
   currentFamilyId,
-  currentFamilyLabel,
   familyNameMap,
   previewMode = false,
 }: ParentTeachingSchedulePageProps) {
   const { theme } = useParentTheme();
-  const familyNames = useMemo(
-    () => new Map(Object.entries(familyNameMap)),
-    [familyNameMap],
-  );
-  const [weeks, setWeeks] = useState(() => sortTeachingScheduleWeeks(initialWeeks));
-  const [filters, setFilters] = useState<CoopTeachingScheduleFilters>(
-    DEFAULT_COOP_TEACHING_SCHEDULE_FILTERS,
-  );
-  const [hoveredWeekId, setHoveredWeekId] = useState<string | null>(null);
-  const [pendingAction, setPendingAction] = useState<ParentTeachingSchedulePendingAction | null>(
-    null,
-  );
-  const [actionError, setActionError] = useState<string | null>(null);
+  const model = useParentTeachingScheduleModel({
+    organizationId,
+    programId,
+    initialWeeks,
+    currentFamilyId,
+    familyNameMap,
+    previewMode,
+  });
+  const { familyNames, filteredWeeks, summary, nextWeek } = model;
 
-  const summary = useMemo(() => computeTeachingScheduleSummary(weeks), [weeks]);
-
-  const filteredWeeks = useMemo(
-    () =>
-      filterCoopTeachingScheduleWeeks(weeks, filters, {
-        variant: "parent",
-        currentFamilyId,
-      }),
-    [currentFamilyId, filters, weeks],
-  );
-
-  const updateWeek = useCallback((updated: CoopTeachingScheduleWeek) => {
-    setWeeks((current) =>
-      sortTeachingScheduleWeeks(
-        current.map((week) => (week.id === updated.id ? updated : week)),
-      ),
-    );
-  }, []);
-
-  const runAction = useCallback(
-    async (weekId: string, role: TeachingScheduleParentRole, type: "signup" | "withdraw") => {
-      if (previewMode) return;
-
-      setPendingAction({ weekId, role, type });
-      setActionError(null);
-
-      let response: Response | undefined;
-      try {
-        response = await fetch(
-          `/api/parent-portal/teaching-schedule/${type === "signup" ? "signup" : "withdraw"}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              organizationId,
-              programId,
-              weekId,
-              role,
-            }),
-          },
-        );
-
-        const payload = (await response.json()) as {
-          week?: CoopTeachingScheduleWeek;
-          error?: string;
-        };
-
-        if (!response.ok || !payload.week) {
-          throw new Error(payload.error ?? "Unable to update sign-up.");
-        }
-
-        updateWeek(payload.week);
-      } catch (error) {
-        setActionError(
-          error instanceof Error ? error.message : "Unable to update sign-up.",
-        );
-        void reportPortalOperationalError(
-          "parent_portal",
-          {
-            organizationId,
-            operation: "teaching_schedule.update_signup",
-            error: "",
-          },
-          error,
-          response?.status,
-        );
-      } finally {
-        setPendingAction(null);
-      }
-    },
-    [organizationId, previewMode, programId, updateWeek],
+  const actionsFor = (week: CoopTeachingScheduleWeek, emptyFallback?: string) => (
+    <ParentTeachingScheduleVolunteerActions
+      week={week}
+      currentFamilyId={currentFamilyId}
+      previewMode={previewMode}
+      pendingAction={model.pendingAction}
+      onSignUp={(role) => model.signUp(week.id, role)}
+      onWithdraw={(role) => model.withdraw(week.id, role)}
+      emptyFallback={emptyFallback}
+    />
   );
 
   return (
-    <div
-      className="mx-auto w-full max-w-[1250px] px-4 py-6 sm:py-8 md:px-9"
-      data-testid="parent-coop-teaching-schedule-ready"
-    >
-      <div className="mb-5">
-        <ParentSectionKicker theme={theme}>Co-op</ParentSectionKicker>
-        <div className="mt-1 flex items-center gap-2.5">
-          <CalendarDays
-            className="h-7 w-7 shrink-0"
-            style={{ color: theme.primary }}
-            aria-hidden
-          />
-          <ParentDisplayHeading theme={theme} size="display">
-            Teaching schedule
-          </ParentDisplayHeading>
-        </div>
-        <p className="mt-2 max-w-2xl text-sm" style={{ color: theme.muted }}>
-          View the full year teaching schedule and sign up to volunteer when instructor or
-          assistant slots are open.
-        </p>
-      </div>
-
-      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
-        <ParentCard theme={theme} className="p-3 sm:p-4">
-          <div
-            className="text-[10px] font-extrabold uppercase tracking-[0.08em] sm:text-[11px]"
-            style={{ color: theme.muted }}
-          >
-            Weeks
-          </div>
-          <div className="mt-1 text-xl font-semibold sm:text-2xl" style={{ color: theme.ink }}>
-            {summary.weekCount}
-          </div>
-        </ParentCard>
-        <ParentCard theme={theme} className="p-3 sm:p-4">
-          <div
-            className="text-[10px] font-extrabold uppercase tracking-[0.08em] sm:text-[11px]"
-            style={{ color: theme.muted }}
-          >
-            Events
-          </div>
-          <div className="mt-1 text-xl font-semibold sm:text-2xl" style={{ color: theme.ink }}>
-            {summary.eventCount}
-          </div>
-        </ParentCard>
-        <ParentCard theme={theme} className="p-3 sm:p-4">
-          <div
-            className="text-[10px] font-extrabold uppercase tracking-[0.08em] sm:text-[11px]"
-            style={{ color: theme.muted }}
-          >
-            Completed
-          </div>
-          <div className="mt-1 text-xl font-semibold sm:text-2xl" style={{ color: theme.ink }}>
-            {summary.completedCount}
-          </div>
-        </ParentCard>
-        <ParentCard theme={theme} className="p-3 sm:p-4">
-          <div
-            className="text-[10px] font-extrabold uppercase tracking-[0.08em] sm:text-[11px]"
-            style={{ color: theme.muted }}
-          >
-            Next up
-          </div>
-          <div className="mt-1 text-xs font-semibold sm:text-sm" style={{ color: theme.ink }}>
-            {summary.nextWeekName}
-          </div>
-        </ParentCard>
-      </div>
-
-      {actionError ? (
-        <div
-          className="mb-4 rounded-md border px-3 py-2 text-sm"
-          style={{
-            borderColor: theme.alert,
-            backgroundColor: theme.alertBg,
-            color: theme.alert,
-          }}
-        >
-          {actionError}
-        </div>
-      ) : null}
-
-      {weeks.length === 0 ? (
-        <p className="py-8 text-sm" style={{ color: theme.muted }}>
-          No teaching weeks have been published yet.
-        </p>
-      ) : (
-        <>
-          <CoopTeachingScheduleFilterBar
-            variant="parent"
-            filters={filters}
-            onChange={setFilters}
-            theme={theme}
-            resultCount={filteredWeeks.length}
-            totalCount={weeks.length}
-          />
-
-          {filteredWeeks.length === 0 ? (
-            <p className="py-8 text-sm" style={{ color: theme.muted }}>
-              No teaching weeks match the current filters.
-            </p>
-          ) : (
+    <ParentGardenFrame theme={theme}>
+      <div className={PORTAL_HOME_CONTAINER_CLASS} data-testid="parent-coop-teaching-schedule-ready">
+        <ParentGardenPageHeader
+          kicker="Co-op"
+          title={
             <>
-              <div className="space-y-2 md:hidden">
-                {filteredWeeks.map((week) => {
-                  const isPast = isTeachingWeekPast(week);
-                  const surfaceStyle = teachingScheduleRowSurfaceStyle({
-                    variant: "parent",
-                    parentTheme: theme,
-                    isPast,
-                  });
+              Teaching <span className="text-[var(--sf-clay)]">schedule</span>
+            </>
+          }
+          subtitle="View the full year teaching schedule and sign up to volunteer when instructor or assistant slots are open."
+          data-testid="parent-coop-teaching-schedule-header"
+        />
 
-                  return (
-                    <ParentCard
-                      key={week.id}
-                      theme={theme}
-                      className="p-3.5"
-                      style={surfaceStyle}
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div>
-                          <ParentChip theme={theme} tone="info">
-                            {week.weekName.trim() || "Teaching week"}
-                          </ParentChip>
-                          <div className="mt-1 text-xs font-semibold" style={{ color: theme.ink }}>
-                            {formatTeachingScheduleDateRange(week.startDate, week.endDate)}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="mt-3 space-y-2 text-xs" style={{ color: theme.muted }}>
-                        <div>
-                          <span className="font-semibold" style={{ color: theme.ink }}>
-                            Instructor:
-                          </span>{" "}
-                          {formatTeachingAssignedParents(week.instructorFamilyIds, familyNames)}
-                        </div>
-                        <div>
-                          <span className="font-semibold" style={{ color: theme.ink }}>
-                            Assistant:
-                          </span>{" "}
-                          {formatTeachingAssignedParents(week.assistantFamilyIds, familyNames)}
-                        </div>
-                        <div>{week.seasonalTheme}</div>
-                        <div>{week.characterLesson}</div>
-                        {week.celebrationEvent?.trim() ? (
-                          <div style={{ color: theme.ink }}>{week.celebrationEvent}</div>
-                        ) : null}
-                      </div>
-                      <div className="mt-3">
-                        <ParentTeachingScheduleVolunteerActions
-                          theme={theme}
-                          week={week}
-                          currentFamilyId={currentFamilyId}
-                          previewMode={previewMode}
-                          pendingAction={pendingAction}
-                          onSignUp={(role) => void runAction(week.id, role, "signup")}
-                          onWithdraw={(role) => void runAction(week.id, role, "withdraw")}
-                          emptyFallback=""
-                        />
-                      </div>
-                    </ParentCard>
-                  );
-                })}
-              </div>
+        {previewMode ? (
+          <p className="m-0 -mt-3 flex w-fit items-center gap-2 rounded-[12px] bg-[var(--sf-sky)] px-3 py-2 text-[12px] font-extrabold text-[#24507a]">
+            <Eye className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            Preview mode — volunteer sign-ups are turned off here.
+          </p>
+        ) : null}
 
-              <div className="hidden overflow-x-auto md:block">
-                <table className="min-w-[1080px] w-full border-collapse text-left">
-                  <thead style={{ backgroundColor: "#FBFCFB" }}>
-                    <tr>
-                      {[
-                        "Week",
-                        "Parent instructor",
-                        "Parent assistant",
-                        "Seasonal theme",
-                        "Character lesson",
-                        "Celebration / event",
-                        "Volunteer",
-                      ].map((heading) => (
-                        <th
-                          key={heading}
-                          className="px-[15px] py-2.5 text-left text-[10px] font-extrabold uppercase tracking-[0.08em]"
-                          style={{ color: "#8B9699" }}
-                        >
-                          {heading}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
+        <GCard index={1} kicker="At a glance" className="overflow-hidden" bodyClassName="-mx-5 -mb-5 sm:-mx-6 sm:-mb-6">
+          <div className="grid grid-cols-3 border-t-[1.5px] border-[var(--sf-ink)]/10 lg:grid-cols-[1fr_1fr_1fr_1.6fr]">
+            <div className="border-r-[1.5px] border-[var(--sf-ink)]/10">
+              <GStatTile value={summary.weekCount} label={summary.weekCount === 1 ? "Week" : "Weeks"} />
+            </div>
+            <div className="border-r-[1.5px] border-[var(--sf-ink)]/10">
+              <GStatTile value={summary.eventCount} label={summary.eventCount === 1 ? "Event" : "Events"} />
+            </div>
+            <div className="lg:border-r-[1.5px] lg:border-[var(--sf-ink)]/10">
+              <GStatTile value={summary.completedCount} label="Completed" />
+            </div>
+            <div className="col-span-3 flex flex-col items-start justify-center gap-1 border-t-[1.5px] border-[var(--sf-ink)]/10 bg-[var(--sf-accent-wash)] px-5 py-4 lg:col-span-1 lg:border-t-0">
+              <GKicker>Next up</GKicker>
+              {nextWeek ? (
+                <>
+                  <span className="sf-display text-[1.35rem] leading-tight text-[var(--sf-ink)]">{summary.nextWeekName}</span>
+                  <span className="text-[13px] font-semibold text-[var(--sf-soft)]">
+                    {formatTeachingScheduleDateRange(nextWeek.startDate, nextWeek.endDate)}
+                  </span>
+                </>
+              ) : (
+                <span className="text-[15px] font-extrabold text-[var(--sf-soft)]">
+                  {model.weeks.length > 0 ? "No more weeks this year" : "—"}
+                </span>
+              )}
+            </div>
+          </div>
+        </GCard>
+
+        {model.weeks.length === 0 ? (
+          <GCard index={2} kicker="Schedule" title="No teaching weeks yet" data-testid="parent-teaching-schedule-empty">
+            <div className="flex flex-col items-start gap-3 rounded-[18px] bg-[var(--sf-paper)] p-5 sm:flex-row sm:items-center">
+              <GIcon>
+                <CalendarDays />
+              </GIcon>
+              <p className="m-0 text-[15px] font-semibold text-[var(--sf-soft)]">
+                No teaching weeks have been published yet.
+              </p>
+            </div>
+          </GCard>
+        ) : (
+          <>
+            <CoopTeachingScheduleFilterBar
+              variant="parent"
+              filters={model.filters}
+              onChange={model.setFilters}
+              theme={theme}
+              resultCount={filteredWeeks.length}
+              totalCount={model.weeks.length}
+            />
+
+            <GCard index={3} kicker="Schedule" title="The year, week by week" data-testid="parent-teaching-schedule-weeks">
+              {filteredWeeks.length === 0 ? (
+                <div className="flex flex-col items-start gap-3 rounded-[18px] bg-[var(--sf-paper)] p-5 sm:flex-row sm:items-center">
+                  <GIcon>
+                    <SearchX />
+                  </GIcon>
+                  <p className="m-0 text-[15px] font-semibold text-[var(--sf-soft)]">
+                    No teaching weeks match the current filters.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <ul className="m-0 flex list-none flex-col gap-2.5 p-0 md:hidden">
                     {filteredWeeks.map((week) => {
                       const isPast = isTeachingWeekPast(week);
-                      const isHovered = week.id === hoveredWeekId;
-                      const rowStyle = teachingScheduleParentRowStyle(theme, {
-                        isPast,
-                        isHovered,
-                      });
-                      const textOpacity = isPast ? 0.82 : 1;
+                      const isNext = week.id === summary.nextWeekId;
                       const hasEvent = Boolean(week.celebrationEvent?.trim());
-
                       return (
-                        <tr
+                        <li
                           key={week.id}
-                          onMouseEnter={() => setHoveredWeekId(week.id)}
-                          onMouseLeave={() => setHoveredWeekId(null)}
-                          className="transition-colors"
-                          style={{
-                            ...rowStyle,
-                            borderTop: `1px solid ${theme.line}`,
-                          }}
+                          className={`rounded-[16px] border-[1.5px] p-3.5 ${
+                            isNext
+                              ? "border-[var(--sf-clay)]/40 bg-[var(--sf-accent-wash)]"
+                              : isPast
+                                ? "border-[var(--sf-ink)]/[0.08] bg-[var(--sf-paper)]"
+                                : "border-[var(--sf-ink)]/10 bg-white"
+                          }`}
                         >
-                          <td className="min-w-[160px] px-[15px] py-3" style={{ opacity: textOpacity }}>
-                            <ParentChip theme={theme} tone="info">
-                              {week.weekName.trim() || "Teaching week"}
-                            </ParentChip>
-                            <div
-                              className="mt-1 text-xs font-semibold"
-                              style={{ color: isPast ? theme.muted : theme.ink }}
-                            >
-                              {formatTeachingScheduleDateRange(week.startDate, week.endDate)}
-                            </div>
-                          </td>
-                          <td className="px-[15px] py-3 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
-                            {formatTeachingAssignedParents(week.instructorFamilyIds, familyNames)}
-                          </td>
-                          <td className="px-[15px] py-3 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
-                            {formatTeachingAssignedParents(week.assistantFamilyIds, familyNames)}
-                          </td>
-                          <td className="px-[15px] py-3 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
-                            {week.seasonalTheme}
-                          </td>
-                          <td className="px-[15px] py-3 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
-                            {week.characterLesson}
-                          </td>
-                          <td className="px-[15px] py-3 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
-                            {hasEvent ? week.celebrationEvent : "—"}
-                          </td>
-                          <td className="px-[15px] py-3">
-                            <ParentTeachingScheduleVolunteerActions
-                              theme={theme}
-                              week={week}
-                              currentFamilyId={currentFamilyId}
-                              previewMode={previewMode}
-                              pendingAction={pendingAction}
-                              onSignUp={(role) => void runAction(week.id, role, "signup")}
-                              onWithdraw={(role) => void runAction(week.id, role, "withdraw")}
-                            />
-                          </td>
-                        </tr>
+                          <div className={isPast ? "opacity-80" : undefined}>
+                            <WeekLabel week={week} isPast={isPast} isNext={isNext} />
+                            <dl className="m-0 mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[13px]">
+                              <dt className="font-extrabold text-[var(--sf-ink)]">Instructor</dt>
+                              <dd className="m-0 font-semibold text-[var(--sf-soft)]">
+                                {formatTeachingAssignedParents(week.instructorFamilyIds, familyNames)}
+                              </dd>
+                              <dt className="font-extrabold text-[var(--sf-ink)]">Assistant</dt>
+                              <dd className="m-0 font-semibold text-[var(--sf-soft)]">
+                                {formatTeachingAssignedParents(week.assistantFamilyIds, familyNames)}
+                              </dd>
+                              {week.seasonalTheme.trim() ? (
+                                <>
+                                  <dt className="font-extrabold text-[var(--sf-ink)]">Theme</dt>
+                                  <dd className="m-0 font-semibold text-[var(--sf-soft)]">{week.seasonalTheme}</dd>
+                                </>
+                              ) : null}
+                              {week.characterLesson.trim() ? (
+                                <>
+                                  <dt className="font-extrabold text-[var(--sf-ink)]">Lesson</dt>
+                                  <dd className="m-0 font-semibold text-[var(--sf-soft)]">{week.characterLesson}</dd>
+                                </>
+                              ) : null}
+                              {hasEvent ? (
+                                <>
+                                  <dt className="font-extrabold text-[var(--sf-ink)]">Event</dt>
+                                  <dd className="m-0 font-semibold text-[var(--sf-ink)]">{week.celebrationEvent}</dd>
+                                </>
+                              ) : null}
+                            </dl>
+                          </div>
+                          <div className="mt-3 empty:hidden">{actionsFor(week, "")}</div>
+                        </li>
                       );
                     })}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-        </>
-      )}
-    </div>
+                  </ul>
+
+                  <div className="-mx-5 hidden overflow-x-auto px-5 sm:-mx-6 sm:px-6 md:block">
+                    <table className={`${G_TABLE} min-w-[1080px]`}>
+                      <thead>
+                        <tr>
+                          {TABLE_HEADINGS.map((heading) => (
+                            <th key={heading} scope="col" className={G_TH}>
+                              {heading}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredWeeks.map((week) => {
+                          const isPast = isTeachingWeekPast(week);
+                          const isNext = week.id === summary.nextWeekId;
+                          const hasEvent = Boolean(week.celebrationEvent?.trim());
+                          const muted = `${G_TD} text-[13px] font-semibold text-[var(--sf-soft)] ${isPast ? "opacity-75" : ""}`;
+                          return (
+                            <tr
+                              key={week.id}
+                              className={`transition-colors ${
+                                isNext ? "bg-[var(--sf-accent-wash)]" : "hover:bg-[var(--sf-ink)]/[0.025]"
+                              }`}
+                            >
+                              <th scope="row" className={`${G_TD} min-w-[170px] text-left font-normal`}>
+                                <WeekLabel week={week} isPast={isPast} isNext={isNext} />
+                              </th>
+                              <td className={muted}>{formatTeachingAssignedParents(week.instructorFamilyIds, familyNames)}</td>
+                              <td className={muted}>{formatTeachingAssignedParents(week.assistantFamilyIds, familyNames)}</td>
+                              <td className={muted}>{week.seasonalTheme}</td>
+                              <td className={muted}>{week.characterLesson}</td>
+                              <td className={`${muted} ${hasEvent ? "!text-[var(--sf-ink)]" : ""}`}>
+                                {hasEvent ? week.celebrationEvent : "—"}
+                              </td>
+                              <td className={G_TD}>{actionsFor(week)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </GCard>
+          </>
+        )}
+      </div>
+    </ParentGardenFrame>
   );
 }

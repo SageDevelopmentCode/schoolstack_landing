@@ -1,4 +1,4 @@
-import { poppins } from "@/lib/fonts";
+import { poppins } from "@/lib/fonts/google";
 
 /**
  * Applies Poppins to school website demos (bright layout). Overrides global Lora

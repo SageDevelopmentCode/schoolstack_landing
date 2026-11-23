@@ -166,22 +166,83 @@ export const oneAcreFarmOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "One Acre Farm",
+    founder: {
+      fullName: "Catherine Ward",
+      firstName: "Catherine",
+      role: "Owner of One Acre Farm and founder of One Acre Farm Educational Foundation",
+      source: "One Acre Farm, About Us",
+      url: "https://oneacrefarmtx.com/about-us.html",
+    },
+    mailTo: {
+      lines: ["3410 Magnolia Dr.", "Porter, TX 77365"],
+      source: "One Acre Farm Contact Us page (listed as the mailing address; 3416 Magnolia Dr. is marked GPS only, do not mail)",
+      url: "https://oneacrefarmtx.com/contact-us.html",
+    },
+    founderFacts: [
+      {
+        fact: "On Equine Assisted World with Rupert Isaacson (Ep 30, June 12, 2025), Catherine Ward and Nicole Jones talked about how One Acre Farm started small, with a first class on raising backyard chickens, and about mentoring others toward a thousand One Acre Farms.",
+        source: "Equine Assisted World, One Acre Wonders – Outdoor Schooling, Autism Support, and Equine Wisdom with Catherine Ward & Nicole Jones | Ep 30",
+        url: "https://podcasts.apple.com/us/podcast/one-acre-wonders-outdoor-schooling-autism-support-and/id1684703456?i=1000712525823",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Catherine owns One Acre Farm, founded One Acre Farm Educational Foundation and co-founded the Strides autism program; she is a certified Texas elementary teacher and taught in public school.",
+        source: "One Acre Farm, About Us",
+        url: "https://oneacrefarmtx.com/about-us.html",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "One Acre Farm was established in Porter in 1998, has offered educational workshops since 1999, and in Summer 2016 was certified by The Horse Boy to train and provide the Horse Boy Method and Movement Method.",
+        source: "One Acre Farm, About Us",
+        url: "https://oneacrefarmtx.com/about-us.html",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Community Impact (May 2, 2022) reported that Catherine opened One Acre Farm as an outdoor, hands-on learning space for homeschooled children, quoting her: \"let's not think that everything has to be done at a table or in a chair.\"",
+        source: "Community Impact, Porter nonprofit One Acre Farm offers outdoor learning for individuals of all abilities",
+        url: "https://communityimpact.com/lake-houston-humble-kingwood/nonprofit/porter-nonprofit-one-acre-farm-offers-outdoor-learning-for-individuals-of-all-abilities/",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "On Equine Assisted World with Rupert Isaacson (Ep 30, June 12, 2025), Catherine Ward and Nicole Jones talked about how One Acre Farm started small, with a first class on raising backyard chickens, and about mentoring others toward a thousand One Acre Farms.",
+    body: `Hi Catherine,
+
+I listened to your Equine Assisted World episode with Nicole. I liked hearing that One Acre Farm's first class was on raising backyard chickens, and that you'd like to see a thousand One Acre Farms.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how you mentor people who want to start one. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of One Acre Farm I set up, plus a parent's-eye look at Farm School enrollment.",
+    stickyNote: "Catherine, a note from an outdoor microschool in Round Rock. J",
+    shortCode: "oneacre-4j0r",
+    checkBeforeMailing: [
+      "3410 Magnolia Dr. is the mailing address the Contact page lists for One Acre Farm, but the About page calls the farm a small family homestead. Decide you're comfortable mailing there; if not, skip the letter.",
+      "Address it to Catherine Ward at One Acre Farm. The About page bio also says Catherine Griffin and Community Impact used Griffin in 2022; the Contact page and the podcast use Ward.",
+      "Listen to the episode's \"Starting Small\" and \"Mentorship\" chapters before mailing so you can talk about them if she calls.",
+      "The episode is from June 2025; check her public pages for anything newer before mailing.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "Re-intro: acknowledge the July email, give a new reason (the snapshot), one proof number",
+      purpose: "Re-intro after the handwritten letter: mention the note and the July email, one detail from the snapshot, one proof number",
       subject: "Farm School tour applications",
       body: `Hi Catherine,
 
-I wrote in July about a version of MudKitchen I set up for One Acre Farm. Since then I put together a one-page snapshot of what a family sees on your site today, from the tour form to the $395 monthly payments.
+I mailed you a handwritten note last week with a card for One Acre Farm. It has a QR code for the version of MudKitchen I set up for you (I first wrote about it in July) and a one-page snapshot of what a family sees on your site today, from the tour form to the $395 monthly payments.
 
 One thing stood out: before a tour, families fill in a Google Form with 29 required questions, one per child, then wait for you to find a slot.
 
 I run Sage Field, an outdoor microschool in Round Rock. We went from 0 to 35 students in under 3 months on MudKitchen.
 
-Want me to send the snapshot?
+Want me to send the snapshot link here too?
 
 Julius`,
     },

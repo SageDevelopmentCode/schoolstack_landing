@@ -1,11 +1,12 @@
 import { COVER_MARKS } from "@/components/admin/marketing/brand-marks/marks-covers";
 import { CREW_MARKS } from "@/components/admin/marketing/brand-marks/marks-crew";
 import { IOS_HEADER_MARKS } from "@/components/admin/marketing/brand-marks/marks-ios-headers";
+import { LINK_PREVIEW_MARKS } from "@/components/admin/marketing/brand-marks/marks-link-previews";
 import { EVERYDAY_MARKS } from "@/components/admin/marketing/brand-marks/marks-everyday";
 import { SEASONAL_MARKS } from "@/components/admin/marketing/brand-marks/marks-seasonal";
 import type { BrandMark, BrandMarkKind, BrandMarkSeason, CoverFormat, IosHeaderFormat } from "@/components/admin/marketing/brand-marks/types";
 
-export const BRAND_MARKS: BrandMark[] = [...EVERYDAY_MARKS, ...CREW_MARKS, ...SEASONAL_MARKS, ...COVER_MARKS, ...IOS_HEADER_MARKS];
+export const BRAND_MARKS: BrandMark[] = [...EVERYDAY_MARKS, ...CREW_MARKS, ...SEASONAL_MARKS, ...COVER_MARKS, ...IOS_HEADER_MARKS, ...LINK_PREVIEW_MARKS];
 
 export const DEFAULT_BRAND_MARK_ID = "mint-dots";
 

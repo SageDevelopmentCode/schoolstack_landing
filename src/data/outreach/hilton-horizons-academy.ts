@@ -184,22 +184,81 @@ export const hiltonHorizonsAcademyOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Hilton Horizons",
+    founder: {
+      fullName: "Candice Hilton",
+      firstName: "Candice",
+      role: "Founder and Lead Educator",
+      source: "Hilton Horizons Academy, Our Team",
+      url: "https://www.hiltonhorizonsacademy.com/ourteam",
+    },
+    mailTo: {
+      lines: ["1526 Bridgewater Ln. Unit 200", "Kingsport, TN 37660"],
+      source: "Hilton Horizons, Kingsport Private School page",
+      url: "https://www.hiltonhorizonsacademy.com/kingsport-private-school",
+    },
+    founderFacts: [
+      {
+        fact: "Candice was on the LiberatED Podcast in August 2024, just after opening Hilton Horizons in Kingsport with 12 students in a three-day program, a year after leaving her public school teaching job.",
+        source: "LiberatED Podcast, From Public School to Microschool: A Tennessee Teacher's Bold New Venture",
+        url: "https://podcasts.apple.com/us/podcast/from-public-school-to-microschool-a-tennessee/id1608978473?i=1000666781424",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "On Johnson City Living (February 2025), Candice Hilton said of starting her hybrid microschool: \"if my daughter would love this, then the community would love this.\"",
+        source: "Johnson City Living, Exploring Homeschooling with Hilton Horizons Academy's Candice Hilton",
+        url: "https://podcasts.apple.com/us/podcast/217-exploring-homeschooling-with-hilton-horizons/id1676085306?i=1000689939341",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Hilton Horizons now lists campuses in Kingsport, Johnson City, Elizabethton and Hawkins County, alongside an accredited Category III private school.",
+        source: "Hilton Horizons Academy home page",
+        url: "https://www.hiltonhorizonsacademy.com/",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Candice is a KaiPod Catalyst partner and a VELA Founder, and a member of the National Microschooling Center and the National Hybrid Schools Society.",
+        source: "Hilton Horizons Academy, Our Team",
+        url: "https://www.hiltonhorizonsacademy.com/ourteam",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "Candice was on the LiberatED Podcast in August 2024, just after opening Hilton Horizons in Kingsport with 12 students in a three-day program, a year after leaving her public school teaching job.",
+    body: `Hi Candice,
+
+I heard you on LiberatED back when you'd just opened in Kingsport with 12 students. Now there are four campuses, which is a lot of growth in two years.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how you're handling enrollment across four campuses. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Hilton Horizons I set up, plus a parent's-eye look at your enrollment. I emailed once in June, but a note seemed better.",
+    stickyNote: "Candice, a note from a microschool in Texas. J",
+    shortCode: "hilton-w2k9",
+    checkBeforeMailing: [
+      "Unit 200 is the Kingsport private school and Unit 300 the hybrid microschool in the same building. Unit 200 is used; switch if you know she works from 300.",
+      "The four campuses come from the home page. Check it still says so before mailing.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "Re-intro: acknowledge the June email, give a new reason (the snapshot), one proof number",
+      purpose: "Re-intro after the handwritten letter: mention the note and the June email, one detail from the snapshot, one proof number",
       subject: "Hilton Horizons enrollment page",
       body: `Hi Candice,
 
-I wrote in June about a version of MudKitchen I set up for Hilton Horizons. Since then I put together a one-page snapshot of what a family sees on your site today, from booking a tour to paying tuition.
+I mailed you a handwritten note last week, with a card for the version of MudKitchen I set up for Hilton Horizons (I first wrote about it in June) and a one-page snapshot of what a family sees on your site today.
 
 One thing stood out: your Enrollment page still says enrollment is open for 2025-26, while the campus pages already list 2026–27 start dates.
 
 I run Sage Field, a microschool in Round Rock. We went from 0 to 35 students in under 3 months on MudKitchen.
 
-Want me to send the snapshot?
+Want me to send the snapshot link here too?
 
 Julius`,
     },

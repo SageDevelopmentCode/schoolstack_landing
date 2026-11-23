@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { wildHeartsAdventureConfig } from "@/data/school-demos/wild-hearts-adventure";
-import { wildHeartsWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { wildHeartsWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/wild-hearts";
 
 export default function WildHeartsAdventureDemoPage() {
   return (

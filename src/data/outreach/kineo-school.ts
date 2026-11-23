@@ -187,22 +187,76 @@ export const kineoSchoolOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Kineo",
+    founder: {
+      fullName: "Elizabeth Kent",
+      firstName: "Elizabeth",
+      role: "Director",
+      source: "The Kineo School, Meet the Team (Staff & Employment) and Introduction/letter from our Director",
+      url: "https://www.kineoschool.org/staff",
+    },
+    mailTo: {
+      lines: ["7525 132nd Ave NE", "Kirkland, WA 98033"],
+      source: "The Kineo School site footer (shown on the Story page); the building is Lake Washington United Methodist Church",
+      url: "https://www.kineoschool.org/story",
+    },
+    founderFacts: [
+      {
+        fact: "In her Introduction letter on Kineo's site, Elizabeth Kent says she began with Kineo as a parent, served on the Board of Trustees from 2019 to 2023, and took on the role of Director in 2023, combining her teaching background with her experience as a Kineo parent.",
+        source: "Introduction/letter from our Director — The Kineo School",
+        url: "https://www.kineoschool.org/introduction",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Kineo was founded in 2016 by two former public school teachers, and the site says it is small by design.",
+        source: "Story — The Kineo School",
+        url: "https://www.kineoschool.org/story",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Elizabeth Kent is listed first on Kineo's Meet the Team page, as Director.",
+        source: "Staff & Employment — The Kineo School",
+        url: "https://www.kineoschool.org/staff",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "In her Introduction letter on Kineo's site, Elizabeth Kent says she began with Kineo as a parent, served on the Board of Trustees from 2019 to 2023, and took on the role of Director in 2023, combining her teaching background with her experience as a Kineo parent.",
+    body: `Hi Elizabeth,
+
+I read your letter on the Kineo site. I liked that you came to Kineo as a parent first and served on the board before becoming Director in 2023.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how the move from parent to Director has gone. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Kineo I set up, plus a parent's-eye look at your admissions steps.",
+    stickyNote: "Elizabeth, a short note from a microschool in Texas. J",
+    shortCode: "kineo-ea9n",
+    checkBeforeMailing: [
+      "The address is the school's campus inside Lake Washington United Methodist Church (the site footer lists no separate mailing address): address it to Elizabeth Kent, The Kineo School, so it reaches the school and not the church office.",
+      "Elizabeth is Director, not a founder (Kineo was founded in 2016 by two former teachers): the letter only says she came as a parent and served on the board, which is what her letter on the site says.",
+      "No podcast or interview found; the hook is her own letter on the site. Re-read it before mailing.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "Re-intro: acknowledge the August email, give a new reason (the snapshot), one proof number",
+      purpose: "Re-intro after the handwritten letter: mention the note and the August email, one detail from the snapshot, one proof number",
       subject: "the Kineo application fee",
       body: `Hi Elizabeth,
 
-I wrote in August about a version of MudKitchen I set up for Kineo. Since then I put together a one-page snapshot of what a family sees on your site today, from booking a tour to the enrollment contract.
+I mailed you a handwritten note last week with a card for Kineo. It has a QR code for the version of MudKitchen I set up for you (I first wrote about it in August) and a one-page snapshot of what a family sees on your site today, from booking a tour to the enrollment contract.
 
 One thing stood out: your Tuition page lists a $172 application fee, but the FACTS application asks for $170.
 
 I run Sage Field, a microschool in Round Rock. We went from 0 to 35 students in under 3 months on MudKitchen.
 
-Want me to send the snapshot?
+Want me to send the snapshot link here too?
 
 Julius`,
     },

@@ -184,14 +184,66 @@ export const littleSprigsTampaOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Homeschool Village",
+    founder: {
+      fullName: "Charlene Favorite",
+      firstName: "Charlene",
+      role: "Founder and lead teacher",
+      source: "The Homeschool Village Team page (\"Founder and lead teacher, The Homeschool Village & Little Sprigs of Tampa\")",
+      url: "https://littlesprigsoftampa.org/team/",
+    },
+    mailTo: null,
+    founderFacts: [
+      {
+        fact: "On the Team page, Charlene Favorite, founder and lead teacher, writes that she is honored to be the founder of Florida's first and only African-centered microschool, a milestone she cherishes every day.",
+        source: "The Homeschool Village Team page",
+        url: "https://littlesprigsoftampa.org/team/",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "The Homeschool Village calls itself Florida's first African-centered microschool, with small learning pods of 12–15 students, garden-to-table exploration and forest-school-inspired outdoor learning labs.",
+        source: "The Homeschool Village About page",
+        url: "https://littlesprigsoftampa.org/about/",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Classes meet in the woods of Scout Park in Temple Terrace.",
+        source: "The Homeschool Village Location page",
+        url: "https://littlesprigsoftampa.org/location/",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "On the Team page, Charlene Favorite, founder and lead teacher, writes that she is honored to be the founder of Florida's first and only African-centered microschool, a milestone she cherishes every day.",
+    body: `Hi Charlene,
+
+I read on your Team page that you founded Florida's first and only African-centered microschool, and that you're its lead teacher too.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how this school year is going out in the woods at Scout Park. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of The Homeschool Village I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Charlene, a note from a small school in Round Rock, Texas. J",
+    shortCode: "village-nz2j",
+    checkBeforeMailing: [
+      "Find a mailing address: littlesprigsoftampa.org (home, About, Team, Location, Admissions, Payments, Contact) has no business mailing address. The street address in the footer and Location contact block looks like a home; don't use it. The Contact page's New York address is template placeholder text. Classes meet in the woods of Scout Park, Temple Terrace, which can't take mail. Non-home leads: ask Charlene for a mailing address or PO box, or check the school's Step Up for Students listing.",
+      "The Location page may date from 2024 (it says ages 5–11; Admissions now says 7–14). Confirm classes still meet at Scout Park, or drop \"out in the woods at Scout Park\" from the ask.",
+      "The letter and card say The Homeschool Village; Little Sprigs of Tampa is its family meetup group. The demo the card opens is framed around Little Sprigs meetups: check it before mailing.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "One real question about how Step Up families pay, then who's asking and why",
+      purpose: "Mention last week's handwritten note, then one real question about how Step Up families pay, then who's asking and why",
       subject: "Step Up at The Homeschool Village",
       body: `Hi Charlene,
+
+I mailed you a handwritten note last week with a card for The Homeschool Village.
 
 Your admissions page lists $850 a month for 2026–27, plus $325 and $75 each semester, and says you now accept Step Up for Students. The payments page sends families to a Donorbox page for tuition and registration fees.
 

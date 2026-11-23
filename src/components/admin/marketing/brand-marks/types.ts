@@ -5,8 +5,9 @@ import type { ReactNode } from "react";
  * app-icon: 1024², full bleed, masked by the OS.
  * cover: wide social banner (see COVER_FORMATS).
  * ios-header: App Store artwork (see IOS_HEADER_FORMATS).
+ * link-preview: 1200×630 Open Graph card for one public page (see src/lib/marketing/link-previews.ts).
  */
-export type BrandMarkKind = "avatar" | "app-icon" | "cover" | "ios-header";
+export type BrandMarkKind = "avatar" | "app-icon" | "cover" | "ios-header" | "link-preview";
 
 export type BrandMarkGroup = "everyday" | "crew" | "seasonal";
 
@@ -129,5 +130,7 @@ export type BrandMark = {
   /** App Store artwork: which size, and whether this is the art-only version. */
   iosFormat?: IosHeaderFormat;
   textless?: boolean;
+  /** Link previews: the routes that use this card. */
+  pages?: string[];
   render: () => ReactNode;
 };

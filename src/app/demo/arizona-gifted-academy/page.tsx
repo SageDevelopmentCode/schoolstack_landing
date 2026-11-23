@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { arizonaGiftedAcademyConfig } from "@/data/school-demos/arizona-gifted-academy";
-import { arizonaGiftedAcademyWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { arizonaGiftedAcademyWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/arizona-gifted-academy";
 
 export default function ArizonaGiftedAcademyDemoPage() {
   return (

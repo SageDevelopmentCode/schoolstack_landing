@@ -147,16 +147,62 @@ export const theWoodlandsMicroschoolOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Woodlands Microschool",
+    founder: {
+      fullName: "Dana Yancy",
+      firstName: "Dana",
+      role: "Director",
+      source: "The Woodlands Microschool Who We Are page (\"Our Director, Dana Yancy\", \"Ms. Dana\")",
+      url: "https://thewoodlandsmicroschool.com/who-we-are",
+    },
+    mailTo: null,
+    founderFacts: [
+      {
+        fact: "Dana Yancy, a retired public school teacher who spent the last 11 years of her career teaching math in Conroe ISD, created Champs Educational Services for credit recovery and accelerated graduation; as the need grew, Champs evolved into The Woodlands Microschool, which now runs from elementary through high school.",
+        source: "The Woodlands Microschool, Who We Are",
+        url: "https://thewoodlandsmicroschool.com/who-we-are",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "The home page says the school is accredited by the Accrediting Commission for Schools, Western Association of Schools and Colleges, runs a four-hour school day, and accepts Texas Education Freedom Accounts.",
+        source: "The Woodlands Microschool home page",
+        url: "https://thewoodlandsmicroschool.com/",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "Dana Yancy, a retired public school teacher who spent the last 11 years of her career teaching math in Conroe ISD, created Champs Educational Services for credit recovery and accelerated graduation; as the need grew, Champs evolved into The Woodlands Microschool, which now runs from elementary through high school.",
+    body: `Hi Dana,
+
+I read how Champs grew into The Woodlands Microschool. I liked that it started with credit recovery and accelerated graduation after your years teaching math in Conroe ISD, and now runs from elementary through high school.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear what changed when Champs became a full school. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of The Woodlands Microschool I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Ms. Dana, a note from a microschool in Round Rock, Texas. J",
+    shortCode: "woodlands-cnhy",
+    checkBeforeMailing: [
+      "Find a mailing address: the only address the site publishes (home page and schema.org) is on a residential street in Conroe where the neighboring listings are homes, so it isn't stored. No suite, PO box or separate mailing address. Leads: the Texas business filing for Champs Educational Services, or ask Dana.",
+      "No podcast or interview found; the hook is from the school's Who We Are page.",
+      "The sticky note uses \"Ms. Dana\", as the site says everyone calls her; switch to \"Dana\" if you'd rather.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "Re-intro: acknowledge the June email, give a new reason (the snapshot), one proof number",
+      purpose: "Mention last week's handwritten note, then re-intro: acknowledge the June email, give a new reason (the snapshot), one proof number",
       subject: "TEFA at The Woodlands Microschool",
       body: `Hi Dana,
 
-I wrote in June about a version of MudKitchen I set up for The Woodlands Microschool. Since then I put together a one-page snapshot of what a family sees on your site today, from booking a tour to paying tuition.
+I mailed you a handwritten note last week with a card for the school.
+
+I first wrote in June about a version of MudKitchen I set up for The Woodlands Microschool. Since then I put together a one-page snapshot of what a family sees on your site today, from booking a tour to paying tuition.
 
 One thing stood out: your homepage leads with TEFA, but the "Learn more about TEFA" button doesn't go anywhere, and at $13,500 a TEFA family still owes about $3,026 after the state's $10,474.
 

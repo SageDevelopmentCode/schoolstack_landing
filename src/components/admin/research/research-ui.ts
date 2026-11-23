@@ -39,6 +39,7 @@ export function formatDay(iso: string): string {
 
 /** Stage chip for a list row or header. */
 export function journeyChip(journey: OutreachJourney): { tone: GChipTone; label: string } {
+  if (journey.stage === "letter") return { tone: "alert", label: "Letter to mail" };
   if (journey.next) {
     const label = `${journey.next.number} · ${journey.next.label}`;
     return { tone: journey.actionable ? "alert" : "info", label };
@@ -50,7 +51,50 @@ export function journeyChip(journey: OutreachJourney): { tone: GChipTone; label:
 export function journeyNextLine(journey: OutreachJourney, now = new Date()): string | null {
   const next = journey.next;
   if (!next) return null;
+  if (journey.stage === "letter") return "Write and mail the letter · first email follows";
   const verb = next.kind === "social" ? "Log" : "Send";
   if (!next.dueAt) return `${verb} ${next.label.toLowerCase()} · ready`;
   return `${verb} ${next.label.toLowerCase()} · ${dueText(next.dueAt, now)}`;
+}
+
+// ── "Has" filters (multi-select, AND) ─────────────────────────────────────────
+
+export const SCHOOL_TRAITS = ["demo", "snapshot", "letter"] as const;
+export type SchoolTrait = (typeof SCHOOL_TRAITS)[number];
+
+export const SCHOOL_TRAIT_LABEL: Record<SchoolTrait, string> = {
+  demo: "Demo",
+  snapshot: "Snapshot",
+  letter: "Letter",
+};
+
+type TraitSource = {
+  school: { demo_slug: string | null };
+  plan: { snapshot?: unknown; letter?: unknown; doNotEmail?: unknown } | null;
+};
+
+export function isSchoolTrait(value: string): value is SchoolTrait {
+  return (SCHOOL_TRAITS as readonly string[]).includes(value);
+}
+
+/** What a school has ready: a linked demo, a snapshot page, a handwritten letter. */
+export function schoolTraits(row: TraitSource): Set<SchoolTrait> {
+  const traits = new Set<SchoolTrait>();
+  if (row.school.demo_slug) traits.add("demo");
+  if (row.plan?.snapshot && !row.plan.doNotEmail) traits.add("snapshot");
+  if (row.plan?.letter && !row.plan.doNotEmail) traits.add("letter");
+  return traits;
+}
+
+/** True when the school has every wanted trait (no traits wanted = everything matches). */
+export function matchesTraits(row: TraitSource, wanted: readonly SchoolTrait[]): boolean {
+  if (wanted.length === 0) return true;
+  const has = schoolTraits(row);
+  return wanted.every((trait) => has.has(trait));
+}
+
+/** `?has=demo,letter` → ["demo", "letter"] (unknown values dropped, order kept, no repeats). */
+export function parseTraitsParam(value: string | null): SchoolTrait[] {
+  if (!value) return [];
+  return [...new Set(value.split(",").map((v) => v.trim()).filter(isSchoolTrait))];
 }

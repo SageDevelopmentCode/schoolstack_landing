@@ -1,9 +1,12 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
+import { FEATURE_SLUGS } from "@/lib/marketing/features";
+import { FEATURES_PATH, featurePath } from "@/lib/marketing/features/paths";
 import { listPublishedWebsiteBlogPostSlugs } from "@/lib/website-blog/storage";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const LAST_MODIFIED = new Date("2026-09-26");
+const FEATURES_LAST_MODIFIED = new Date("2026-11-22");
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const admin = createAdminClient();
@@ -16,6 +19,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 1,
     },
+    {
+      url: `${SITE_URL}${FEATURES_PATH}`,
+      lastModified: FEATURES_LAST_MODIFIED,
+      changeFrequency: "monthly",
+      priority: 0.85,
+    },
+    ...FEATURE_SLUGS.map((slug) => ({
+      url: `${SITE_URL}${featurePath(slug)}`,
+      lastModified: FEATURES_LAST_MODIFIED,
+      changeFrequency: "monthly" as const,
+      priority: 0.75,
+    })),
     {
       url: `${SITE_URL}/get-started`,
       lastModified: LAST_MODIFIED,

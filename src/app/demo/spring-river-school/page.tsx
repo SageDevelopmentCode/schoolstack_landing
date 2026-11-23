@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { springRiverSchoolConfig } from "@/data/school-demos/spring-river-school";
-import { springRiverSchoolWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { springRiverSchoolWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/spring-river-school";
 
 export default function SpringRiverSchoolDemoPage() {
   return (

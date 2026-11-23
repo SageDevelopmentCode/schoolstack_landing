@@ -1,26 +1,22 @@
 "use client";
 
-import type { CSSProperties } from "react";
 import {
   formatSupplyEstimatedPrice,
   formatSupplyQuantity,
   supplyItemDisplayName,
-  supplyItemTypeChipTone,
-  supplyItemTypeLabel,
   supplyUsageTimingLabel,
   type CoopSupplyListItem,
-  type SupplyItemType,
 } from "@/lib/admissions/program-coop-supply-list-mock";
+import { G_FOCUS } from "@/components/school-parent/garden/ui";
 import ParentSupplyListSignupButton, {
+  SupplyTypeChip,
   type ParentSupplyListPendingAction,
 } from "@/components/school-parent/supply-list/ParentSupplyListSignupButton";
-import ParentChip, { type ParentChipTone } from "@/components/school-parent/ui/ParentChip";
-import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type ParentSupplyListMobileItemCardProps = {
   item: CoopSupplyListItem;
-  theme: ParentThemeTokens;
-  rowStyle: Pick<CSSProperties, "backgroundColor" | "borderLeft">;
+  /** Highlight colour from the legend (drawn as the row's left edge). */
+  colorHex: string | null;
   currentFamilyId: string;
   previewMode?: boolean;
   pendingAction: ParentSupplyListPendingAction | null;
@@ -29,15 +25,10 @@ type ParentSupplyListMobileItemCardProps = {
   onSignUp: () => void;
 };
 
-function parentSupplyChipTone(type: SupplyItemType): ParentChipTone {
-  const tone = supplyItemTypeChipTone(type);
-  return tone === "purple" ? "info" : tone;
-}
-
+/** One supply item on phones (Garden): opens the item drawer; sign up inline. */
 export default function ParentSupplyListMobileItemCard({
   item,
-  theme,
-  rowStyle,
+  colorHex,
   currentFamilyId,
   previewMode = false,
   pendingAction,
@@ -46,49 +37,49 @@ export default function ParentSupplyListMobileItemCard({
   onSignUp,
 }: ParentSupplyListMobileItemCardProps) {
   return (
+    // The whole card opens the drawer on click; keyboard and screen-reader
+    // users get the item name as a real button (no nested interactive roles).
     <div
-      role="button"
-      tabIndex={0}
       onClick={onSelect}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onSelect();
-        }
-      }}
-      className="w-full cursor-pointer rounded-lg border p-3.5 text-left transition-colors"
-      style={{
-        ...rowStyle,
-        borderColor: isSelected ? theme.primary : theme.line,
-        boxShadow: isSelected ? theme.shadowCard : undefined,
-      }}
+      className={`w-full cursor-pointer rounded-[16px] border-[1.5px] border-l-[5px] p-3.5 text-left transition-colors ${
+        isSelected
+          ? "border-[var(--sf-clay)] bg-[var(--sf-accent-wash)]"
+          : "border-[var(--sf-ink)]/10 bg-white hover:bg-[var(--sf-accent-wash)]"
+      }`}
+      style={{ borderLeftColor: colorHex ?? "rgba(43,36,29,0.1)" }}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold" style={{ color: theme.ink }}>
-              {supplyItemDisplayName(item)}
-            </span>
-            <ParentChip theme={theme} tone={parentSupplyChipTone(item.itemType)}>
-              {supplyItemTypeLabel(item.itemType)}
-            </ParentChip>
-          </div>
-          <p className="mt-1.5 text-xs" style={{ color: theme.muted }}>
-            {supplyUsageTimingLabel(item)}
-            <span className="mx-1.5 opacity-50">·</span>
-            {formatSupplyQuantity(item)}
-            <span className="mx-1.5 opacity-50">·</span>
-            {formatSupplyEstimatedPrice(item.estimatedPrice)}
-          </p>
-        </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelect();
+          }}
+          aria-haspopup="dialog"
+          className={`rounded-md text-left text-[15px] font-extrabold text-[var(--sf-ink)] hover:underline hover:decoration-2 hover:underline-offset-4 ${G_FOCUS}`}
+        >
+          {supplyItemDisplayName(item)}
+        </button>
+        <SupplyTypeChip type={item.itemType} />
+      </div>
+      <p className="m-0 mt-1 text-[13px] font-semibold text-[var(--sf-soft)]">
+        {supplyUsageTimingLabel(item)}
+        <span className="mx-1.5 opacity-50" aria-hidden>
+          ·
+        </span>
+        {formatSupplyQuantity(item)}
+        <span className="mx-1.5 opacity-50" aria-hidden>
+          ·
+        </span>
+        {formatSupplyEstimatedPrice(item.estimatedPrice)}
+      </p>
+      <div className="mt-3">
         <ParentSupplyListSignupButton
-          theme={theme}
           item={item}
           currentFamilyId={currentFamilyId}
           previewMode={previewMode}
           pendingAction={pendingAction}
           onSignUp={onSignUp}
-          className="shrink-0"
         />
       </div>
     </div>

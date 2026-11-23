@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { wildcatMicroschoolConfig } from "@/data/school-demos/wildcat-microschool";
-import { wildcatMicroschoolWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { wildcatMicroschoolWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/wildcat-microschool";
 
 export default function WildcatMicroschoolDemoPage() {
   return (

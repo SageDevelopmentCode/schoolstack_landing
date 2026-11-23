@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import HomeGardenShell from "@/components/garden/HomeGardenShell";
 import { Reveal } from "@/components/garden/motion";
-import { Draw, Pill, Squiggle, Sun, btnButter } from "@/components/garden/ui";
+import { Draw, Squiggle, Sun, btnButter } from "@/components/garden/ui";
 import { FreeToolPostcard } from "@/components/home-garden/FreeToolsPostcards";
 import { GET_STARTED_PAGE_PATH } from "@/lib/marketing/book-demo";
 import {
@@ -57,8 +57,7 @@ function Hero() {
         <Sun />
       </Draw>
       <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
-        <Pill tint="butter">🧮 {COPY.eyebrow}</Pill>
-        <h1 className="sf-display mt-5 max-w-4xl text-[12.5vw] leading-[0.9] text-[var(--sf-ink)] sm:text-7xl lg:text-[5.2rem]">
+        <h1 className="sf-display max-w-4xl text-[12.5vw] leading-[0.9] text-[var(--sf-ink)] sm:text-7xl lg:text-[5.2rem]">
           {COPY.headingLead}{" "}
           <span className="relative isolate inline-block text-[var(--sf-clay)]">
             <Draw className="pointer-events-none absolute -bottom-2 left-0 -z-10 w-full" delay={0.3}>
@@ -188,8 +187,7 @@ function ProductCta() {
     <section className="px-3 pb-24 lg:px-6 lg:pb-32">
       <div className="mx-auto max-w-[1320px] rounded-[44px] bg-[var(--sf-forest)] px-6 py-14 sm:px-10 lg:flex lg:items-center lg:justify-between lg:gap-12 lg:px-16 lg:py-16">
         <div className="max-w-2xl">
-          <Pill tint="ink">🌳 {COPY.cta.kicker}</Pill>
-          <h2 className="sf-display mt-5 text-4xl leading-[0.98] text-[var(--sf-cream)] md:text-5xl">{COPY.cta.heading}</h2>
+          <h2 className="sf-display text-4xl leading-[0.98] text-[var(--sf-cream)] md:text-5xl">{COPY.cta.heading}</h2>
           <p className="mt-5 text-lg leading-relaxed text-[var(--sf-cream)]/85">{COPY.cta.body}</p>
         </div>
         <Link href={GET_STARTED_PAGE_PATH} className={`${btnButter} mt-8 shrink-0 lg:mt-0`}>

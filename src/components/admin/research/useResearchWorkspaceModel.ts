@@ -5,6 +5,7 @@ import { getOutreachPlan } from "@/data/outreach";
 import type { OutreachPlan } from "@/data/outreach/types";
 import { crmStatusLabel, type CrmStatus } from "@/lib/admin-crm/crm-status";
 import { completedOutreachSteps, type DemoOutreach } from "@/lib/admin-crm/demo-outreach-types";
+import { letterMailedAt } from "@/lib/admin-crm/outreach-letter";
 import {
   FUNNEL_MAIN_STAGES,
   FUNNEL_SIDE_STAGES,
@@ -24,6 +25,7 @@ import {
   type SchoolPatch,
 } from "@/lib/admin-crm/research-types";
 import { adminToast } from "@/lib/school-admin/admin-toast";
+import { SCHOOL_TRAITS, matchesTraits, parseTraitsParam, type SchoolTrait } from "./research-ui";
 
 /** List scopes besides a single funnel lane. */
 export type ListScope = "today" | "pipeline" | "all";
@@ -70,6 +72,14 @@ function message(error: unknown): string {
   return error instanceof Error ? error.message : "Something went wrong.";
 }
 
+/** Writes the "Has" filters to the URL (`?has=demo,letter`) without a navigation. */
+function writeTraitsParam(traits: readonly SchoolTrait[]) {
+  const url = new URL(window.location.href);
+  if (traits.length > 0) url.searchParams.set("has", traits.join(","));
+  else url.searchParams.delete("has");
+  window.history.replaceState(window.history.state, "", url.toString());
+}
+
 /** Writes filter + selection to the URL without a navigation (no server re-render, no history entry). */
 function writeParams(filter: ListFilter, schoolId: string | null) {
   const url = new URL(window.location.href);
@@ -89,6 +99,7 @@ function buildRow(school: ResearchSchool, outreach: Record<string, SchoolOutreac
     completed: completedOutreachSteps(log.emails),
     crmStatus: school.crm_status,
     hasDemo: Boolean(school.demo_slug),
+    letterMailedAt: letterMailedAt(log.touches),
     now,
   });
   return { school, plan, log, journey };
@@ -110,6 +121,7 @@ export function useResearchWorkspaceModel(initial: ResearchWorkspaceData, initia
   const [loadError, setLoadError] = useState<string | null>(initialLoadError);
   const [filter, setFilterState] = useState<ListFilter>("pipeline");
   const [search, setSearch] = useState("");
+  const [traits, setTraitsState] = useState<SchoolTrait[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(() => Date.now());
@@ -125,8 +137,10 @@ export function useResearchWorkspaceModel(initial: ResearchWorkspaceData, initia
     const stage = params.get("stage");
     const id = params.get("id");
     const demo = params.get("demo");
+    const has = parseTraitsParam(params.get("has"));
     queueMicrotask(() => {
       if (isListFilter(stage)) setFilterState(stage);
+      if (has.length > 0) setTraitsState(has);
       const byDemo = demo ? initial.schools.find((s) => s.demo_slug === demo) : undefined;
       const match = byDemo ?? (id ? initial.schools.find((s) => s.id === id) : undefined);
       if (match) {
@@ -141,19 +155,43 @@ export function useResearchWorkspaceModel(initial: ResearchWorkspaceData, initia
   const todayCount = useMemo(() => rows.filter((r) => r.journey.actionable).length, [rows]);
   const pipelineCount = useMemo(() => rows.filter((r) => !OUT_OF_PIPELINE.has(r.journey.stage)).length, [rows]);
 
-  const filtered = useMemo(() => {
+  // Scope / lane + search, before the "Has" filters (so each chip can count what it would show).
+  const scoped = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return rows
-      .filter((r) => {
-        if (filter === "today" && !r.journey.actionable) return false;
-        if (filter === "pipeline" && OUT_OF_PIPELINE.has(r.journey.stage)) return false;
-        if (filter !== "today" && filter !== "pipeline" && filter !== "all" && r.journey.stage !== filter) return false;
-        if (!q) return true;
-        const s = r.school;
-        return [s.name, s.location, s.state, s.contact_name, s.notes, s.demo_slug ?? ""].some((v) => v.toLowerCase().includes(q));
-      })
-      .sort(compareRows);
+    return rows.filter((r) => {
+      if (filter === "today" && !r.journey.actionable) return false;
+      if (filter === "pipeline" && OUT_OF_PIPELINE.has(r.journey.stage)) return false;
+      if (filter !== "today" && filter !== "pipeline" && filter !== "all" && r.journey.stage !== filter) return false;
+      if (!q) return true;
+      const s = r.school;
+      return [s.name, s.location, s.state, s.contact_name, s.notes, s.demo_slug ?? ""].some((v) => v.toLowerCase().includes(q));
+    });
   }, [rows, filter, search]);
+
+  const filtered = useMemo(() => scoped.filter((r) => matchesTraits(r, traits)).sort(compareRows), [scoped, traits]);
+
+  /** For each "Has" chip: how many schools you'd see with it on (alongside the chips already on). */
+  const traitCounts = useMemo(
+    () =>
+      Object.fromEntries(
+        SCHOOL_TRAITS.map((t) => [t, scoped.filter((r) => matchesTraits(r, traits.includes(t) ? traits : [...traits, t])).length]),
+      ) as Record<SchoolTrait, number>,
+    [scoped, traits],
+  );
+
+  const toggleTrait = useCallback(
+    (trait: SchoolTrait) => {
+      const next = traits.includes(trait) ? traits.filter((t) => t !== trait) : SCHOOL_TRAITS.filter((t) => t === trait || traits.includes(t));
+      setTraitsState(next);
+      writeTraitsParam(next);
+    },
+    [traits],
+  );
+
+  const clearTraits = useCallback(() => {
+    setTraitsState([]);
+    writeTraitsParam([]);
+  }, []);
 
   const selected = useMemo(() => {
     const explicit = selectedId ? rows.find((r) => r.school.id === selectedId) : undefined;
@@ -369,6 +407,10 @@ export function useResearchWorkspaceModel(initial: ResearchWorkspaceData, initia
     setFilter,
     search,
     setSearch,
+    traits,
+    traitCounts,
+    toggleTrait,
+    clearTraits,
     select,
     loadError,
     refreshing,

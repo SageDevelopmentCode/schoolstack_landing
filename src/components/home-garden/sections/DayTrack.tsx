@@ -11,6 +11,7 @@ import { BOOK_DEMO_HASH_HREF } from "@/lib/marketing/book-demo";
 import { useMediaQuery } from "@/components/garden/motion";
 import { MARK, Tape } from "@/components/garden/ui";
 import { TAPES } from "../assets";
+import AfterBellStrip from "@/components/features-garden/AfterBellStrip";
 import GardenDemoFrame from "../GardenDemoFrame";
 import SectionIntro from "../SectionIntro";
 import StickerNote from "../StickerNote";
@@ -81,8 +82,6 @@ export default function DayTrack() {
       <div id="product" className="mx-auto w-full max-w-7xl scroll-mt-24 px-6 sm:px-10 lg:px-16">
         <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <SectionIntro
-            pill={`🧺 ${PRODUCT_INTRO_COPY.badge}`}
-            tint="forest"
             lead={PRODUCT_INTRO_COPY.heading}
             squiggle={null}
             align="left"
@@ -193,6 +192,8 @@ export default function DayTrack() {
           </a>
         </div>
       </div>
+
+      <AfterBellStrip />
     </section>
   );
 }

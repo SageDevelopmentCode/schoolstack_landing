@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { prestigeHomeschoolAcademyConfig } from "@/data/school-demos/prestige-homeschool-academy";
-import { prestigeHomeschoolAcademyWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { prestigeHomeschoolAcademyWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/prestige-homeschool-academy";
 
 export default function PrestigeHomeschoolAcademyDemoPage() {
   return (

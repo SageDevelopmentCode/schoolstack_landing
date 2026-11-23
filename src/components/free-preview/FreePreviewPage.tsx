@@ -2,7 +2,7 @@
 
 import FunnelGardenShell from "@/components/garden/FunnelGardenShell";
 import { Reveal, WordsReveal } from "@/components/garden/motion";
-import { Draw, Pill, Squiggle, Star, Sun, Tape, Tick } from "@/components/garden/ui";
+import { Draw, Squiggle, Star, Sun, Tape, Tick } from "@/components/garden/ui";
 import GardenFaq from "@/components/home-garden/GardenFaq";
 import SectionIntro from "@/components/home-garden/SectionIntro";
 import StoryTicket from "@/components/home-garden/sections/StoryTicket";
@@ -39,8 +39,7 @@ function Hero() {
       </Draw>
       <div className="mx-auto grid max-w-[1320px] items-start gap-12 px-6 sm:px-10 lg:grid-cols-[1fr_1.05fr] lg:gap-14 lg:px-12">
         <div className="relative z-10 lg:pt-6">
-          <Pill tint="clay">{COPY.hero.pill}</Pill>
-          <h1 className="sf-display mt-5 text-[12vw] leading-[0.9] text-[var(--sf-ink)] sm:text-7xl lg:text-[4.2rem] xl:text-[4.75rem]">
+          <h1 className="sf-display text-[12vw] leading-[0.9] text-[var(--sf-ink)] sm:text-7xl lg:text-[4.2rem] xl:text-[4.75rem]">
             <WordsReveal as="span" text={COPY.hero.lead} immediate className="block" />
             <span className="relative isolate inline-block text-[var(--sf-clay)]">
               <Draw className="pointer-events-none absolute -bottom-2 left-0 -z-10 w-full" delay={0.6}>
@@ -76,8 +75,6 @@ function WhatYouGet() {
       </Draw>
       <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
         <SectionIntro
-          pill={COPY.whatYouGet.pill}
-          tint="forest"
           lead={COPY.whatYouGet.lead}
           accent={COPY.whatYouGet.accent}
           accentColor="text-[var(--sf-forest)]"
@@ -100,8 +97,6 @@ function HowItWorks() {
     <section className="relative bg-[var(--sf-lav)]/40 py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
         <SectionIntro
-          pill={COPY.steps.pill}
-          tint="lav"
           lead={COPY.steps.lead}
           accent={COPY.steps.accent}
           headingClassName="text-5xl md:text-6xl"
@@ -132,8 +127,6 @@ function Closing() {
       <div className="mx-auto grid max-w-[1320px] items-center gap-12 px-6 sm:px-10 lg:grid-cols-[1fr_1.05fr] lg:gap-14 lg:px-12">
         <div>
           <SectionIntro
-            pill={COPY.closing.pill}
-            tint="clay"
             lead={COPY.closing.lead}
             accent={COPY.closing.accent}
             align="left"

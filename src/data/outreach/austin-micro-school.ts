@@ -189,16 +189,68 @@ export const austinMicroSchoolOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Austin Micro",
+    founder: {
+      fullName: "Matthew McCrea",
+      firstName: "Matthew",
+      role: "Co-founder",
+      source: "Austin Micro School Our Team page (\"Matthew McCrea, Co-founder\", no bio)",
+      url: "https://www.austinmicroschool.org/our-team",
+    },
+    mailTo: null,
+    founderFacts: [
+      {
+        fact: "Austin Micro School's blog post \"Inside a Project Block\" (July 13, 2026) describes afternoon Project Blocks tied to six-week thematic Cycles, with projects like testing water samples from the garden, and says most projects end with a share-out to peers, guides and sometimes families.",
+        source: "Austin Micro School blog, Inside a Project Block: Where 'Why Are We Learning This?' Never Gets Asked",
+        url: "https://www.austinmicroschool.org/blog/inside-a-project-block",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Matthew McCrea is listed as Co-founder on the Our Team page, with no bio.",
+        source: "Austin Micro School Our Team page",
+        url: "https://www.austinmicroschool.org/our-team",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "The home page calls Austin Micro School an accredited K-12 microschool in South Austin, accredited by the Middle States Association and a member of the National Microschooling Center.",
+        source: "Austin Micro School home page",
+        url: "https://www.austinmicroschool.org/",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "Austin Micro School's blog post \"Inside a Project Block\" (July 13, 2026) describes afternoon Project Blocks tied to six-week thematic Cycles, with projects like testing water samples from the garden, and says most projects end with a share-out to peers, guides and sometimes families.",
+    body: `Hi Matthew,
+
+I read your post on Project Blocks. I liked the afternoons spent on things like testing water samples from the garden, and that most projects end with a share-out to peers and sometimes families.
+
+My fiancée and I run Sage Field, an outdoor microschool up in Round Rock. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+If you're ever up for coffee, I'd like to hear how you landed on six-week Cycles.
+
+Julius`,
+    postscript: "The card inside has a version of Austin Micro I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Matthew, a note from a microschool up the road in Round Rock. J",
+    shortCode: "austinmicro-f2wa",
+    checkBeforeMailing: [
+      "Find a mailing address: the only address the site publishes (home page footer, Our Mission page and the blog's schema.org markup) is in Manchaca, and real-estate listings show it as a single-family home, so it isn't stored. The site has no Contact page, PO box or separate mailing address (contact is through Acuity booking links). Leads: ask the school, or check the Middle States Association member listing for a business address.",
+      "No founder story, podcast or interview found: Matthew McCrea is only a name and role on the Our Team page, so the letter opens on the school's own Project Block post, which has no author byline. A \"Matt McCrea\" at Third Coast Education Partners couldn't be tied to the school and isn't used.",
+      "Manchaca is south Austin, so the letter asks for coffee.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "Re-intro: acknowledge the August email, give a new reason (the snapshot), one proof number",
+      purpose: "Mention last week's handwritten note, then re-intro: acknowledge the August email, give a new reason (the snapshot), one proof number",
       subject: "TEFA families at Austin Micro",
       body: `Hi Matthew,
 
-I wrote in August about a version of MudKitchen I set up for Austin Micro. Since then I put together a one-page snapshot of what a family sees on your site today, from booking a tour to paying tuition.
+I mailed you a handwritten note last week with a card for Austin Micro.
+
+I first wrote in August about a version of MudKitchen I set up for you. Since then I put together a one-page snapshot of what a family sees on your site today, from booking a tour to paying tuition.
 
 One thing stood out: you accept TEFA funds, and with Full-Time at 10 auto-drafted payments of $1,800, a TEFA family pays from two places, the state account and their own.
 

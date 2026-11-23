@@ -36,8 +36,6 @@ export default function SagefieldGardenBeforeAfter() {
     <section className="relative overflow-hidden bg-[var(--sf-cream)] py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
         <SectionIntro
-          pill={`🔁 ${BEFORE_AFTER_COPY.eyebrow}`}
-          tint="lav"
           lead={BEFORE_AFTER_COPY.headlineLead}
           accent={BEFORE_AFTER_COPY.headlineAccent}
           squiggle="var(--sf-lav)"

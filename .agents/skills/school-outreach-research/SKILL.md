@@ -81,7 +81,9 @@ ask before rewriting it.
    `follow-2` (8, proof or a new angle) · `close` (20). Each step must add something new. The first email
    names MudKitchen once, as what Julius built and runs Sage Field on (no link; the footer has the site). Only the first
    email has a subject; follow-ups reply in the thread. Use `{loom link}` where Julius will paste a Loom
-   URL and `{snapshot link}` (re-contact, below); no other `{…}` placeholders.
+   URL and `{snapshot link}` (re-contact, below); no other `{…}` placeholders. If the plan has a
+   `letter` (or one is being written for this school), the first email mentions the handwritten note
+   in one clause (reference.md, "When the school also gets a handwritten letter").
 
 6b. **Re-contact mode** (the CRM status is Contacted or later, or the user says the school was emailed
    before): the school already got a hand-sent email, usually with their demo link, and didn't reply.

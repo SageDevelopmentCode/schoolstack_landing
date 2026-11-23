@@ -198,20 +198,82 @@ export const riverOakAcademyOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "River Oak",
+    founder: {
+      fullName: "Vincent Wesson",
+      firstName: "Vince",
+      role: "Administrator",
+      source: "River Oak Academy home page, Our Team (Vincent Wesson, Admin: \"an Administrator who supports Guides, learners, and daily school operations\")",
+      url: "https://www.riveroakacademy.org/",
+    },
+    mailTo: {
+      lines: ["River Oak Academy", "3355 State Road 13", "St Johns, FL 32259"],
+      source: "River Oak Academy site footer (home, FAQ and Admissions pages)",
+      url: "https://www.riveroakacademy.org/",
+    },
+    founderFacts: [
+      {
+        fact: "River Oak's Our Team section says Vince's role has grown into serving as an Administrator who supports Guides, learners and daily school operations, and that one of his greatest joys at ROA is sharing woodworking and hands-on creation, giving learners real tools to make something themselves.",
+        source: "River Oak Academy home page, Our Team",
+        url: "https://www.riveroakacademy.org/",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "River Oak runs 11 months a year in 5- to 6-week sessions with a week off between, and Fun Fridays bring each session's project into music, art or field trips.",
+        source: "River Oak Academy FAQ",
+        url: "https://www.riveroakacademy.org/copy-of-admissions-1",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "River Oak is an Acton Academy affiliate, accredited by the International Association of Learner Driven Schools, and its learners earn badges and present work at public exhibitions instead of taking tests.",
+        source: "River Oak Academy FAQ",
+        url: "https://www.riveroakacademy.org/copy-of-admissions-1",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Vincent Shaeffer, River Oak's MS/LP Guide, was one of the school's founding learners.",
+        source: "River Oak Academy home page, Our Team",
+        url: "https://www.riveroakacademy.org/",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "River Oak's Our Team section says Vince's role has grown into serving as an Administrator who supports Guides, learners and daily school operations, and that one of his greatest joys at ROA is sharing woodworking and hands-on creation, giving learners real tools to make something themselves.",
+    body: `Hi Vince,
+
+I was reading the River Oak team page. I liked that your role there includes woodworking with the learners, and that they get to use real tools and make things themselves.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear what the learners have built this year. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of River Oak I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Vince, a note from a microschool in Round Rock, Texas. J",
+    shortCode: "riveroak-06lg",
+    checkBeforeMailing: [
+      "Vince Wesson is not a confirmed founder: the site names no founder or head of school, and Our Team lists him as Admin (\"an Administrator who supports Guides, learners, and daily school operations\"), so the letter goes to him. His bio also has family and career details; none of it is used.",
+      "Not used: a Ponte Vedra Recorder article (about Acton Academy Ponte Vedra, a different school) and an unconfirmed founder lead from a search result.",
+      "3355 State Road 13 is in the footer of every page and on directory listings for the school; some real-estate indexes list the parcel as 3355 State Road 13 N. It's the school's published address, but that stretch of SR 13 also has homes: glance at Street View to confirm it's the campus before mailing.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "First contact: their own four apply steps, one proof number, offer the snapshot",
+      purpose: "Mention last week's handwritten note, then their own four apply steps, one proof number, offer the snapshot link",
       subject: "River Oak's four apply steps",
       body: `Hi Vince,
+
+I mailed you a handwritten note last week with a card for River Oak.
 
 The River Oak home page asks families to click four steps in order. Today the phone call link opens an Appointlet page saying all available times are taken, and the tour and application buttons don't open anything, so email is the only way in.
 
 I run Sage Field, a microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the enrollment and tuition system I built for it.
 
-I put together a one-page snapshot of what a family sees on your site today, from the studios to the $700 deposit. Want me to send it?
+The card has a one-page snapshot of what a family sees on your site today, from the studios to the $700 deposit. Want me to send the link here too?
 
 Julius`,
     },

@@ -154,22 +154,82 @@ export const prestigeHomeschoolAcademyOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Prestige",
+    founder: {
+      fullName: "Amber Merrell",
+      firstName: "Amber",
+      role: "Director",
+      source: "Prestige Meet The Teachers page (\"Prestige homeschool academy director: Amber Merrell\")",
+      url: "https://prestigehomeschoolacademy.com/meet-the-teachers",
+    },
+    mailTo: {
+      lines: ["Prestige Homeschool Academy", "203 John Sims Parkway West", "Niceville, FL 32578"],
+      source: "Prestige Contact Us page (also the home page footer; the FAQ says the school meets there, next to Papa's Smokehouse)",
+      url: "https://prestigehomeschoolacademy.com/contact-us",
+    },
+    founderFacts: [
+      {
+        fact: "Prestige's curriculum covers writing, reading, English, science, social studies and math, along with practical skills like cooking, finances and social etiquette; the Tuesday/Thursday days add a project-based life-skills curriculum, and groups are no more than 12.",
+        source: "Prestige What We Do",
+        url: "https://prestigehomeschoolacademy.com/what-we-do",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Every Prestige student takes part in two community-focused service projects during the school year.",
+        source: "Prestige home page",
+        url: "https://prestigehomeschoolacademy.com/",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Prestige's largest enrollment is its 2-day Monday/Wednesday drop-off; the FAQ says a few hours of drop-off with like-minded students and teachers may be what makes homeschooling work for a family.",
+        source: "Prestige Frequently Asked ?",
+        url: "https://prestigehomeschoolacademy.com/frequently-asked-%3F",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Prestige partners with local businesses SixPointSurvival and Soundside for science, fitness and other activities.",
+        source: "Prestige home page",
+        url: "https://prestigehomeschoolacademy.com/",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "Prestige's curriculum covers writing, reading, English, science, social studies and math, along with practical skills like cooking, finances and social etiquette; the Tuesday/Thursday days add a project-based life-skills curriculum, and groups are no more than 12.",
+    body: `Hi Amber,
+
+I was reading about Prestige. I liked that alongside the regular subjects you teach cooking, money and manners, with a life-skills focus on Tuesdays and Thursdays, all in groups of 12 or fewer.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how the life-skills days came about. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Prestige I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Amber, a note from a microschool in Round Rock, Texas. J",
+    shortCode: "prestige-1gyd",
+    checkBeforeMailing: [
+      "Amber Merrell is not a confirmed founder: the site lists her as \"Prestige homeschool academy director\" (Meet The Teachers) and doesn't say who founded the school, so the letter goes to her as director. Her bio is family detail only; none of it is used.",
+      "203 John Sims Parkway West is on the Contact and home pages, and the FAQ says the school meets there next to Papa's Smokehouse (205 John Sims Pkwy W), so it reads as a storefront. No suite number is published. A Zillow page (blocked) lists an apartment building at \"203 John Sims Pkwy\" with no direction: check Street View that 203 W is the school's space before mailing.",
+      "The school is open Monday to Thursday, 9 to 2 (Contact page); mail it to arrive early in the week.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "Re-intro: acknowledge the June email, give a new reason (the snapshot), one proof number",
+      purpose: "Mention last week's handwritten note and the June email, one snapshot detail, one proof number",
       subject: "Prestige's month-to-month tuition",
       body: `Hi Amber,
 
-I wrote in June about a version of MudKitchen I set up for Prestige. Since then I put together a one-page snapshot of what a family sees on your site today, from the Register Now button to monthly tuition.
+I mailed you a handwritten note last week with a card for Prestige. It has a QR code for the version of MudKitchen I set up for you (I first wrote about it in June) and a one-page snapshot of what a family sees on your site today, from the Register Now button to monthly tuition.
 
 One thing stood out: tuition is $400 a month, month to month, with Step Up accepted, but the site doesn't say how families pay each month or how Step Up is applied.
 
 I run Sage Field, a microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen.
 
-Want me to send the snapshot?
+Want me to send the snapshot link here too?
 
 Julius`,
     },

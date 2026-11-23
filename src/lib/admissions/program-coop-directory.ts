@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { STUDENT_GRADE_OPTIONS } from "@/lib/admissions/apply-system-fields";
 import { loadFamilyGuardianDisplayMaps } from "@/lib/messages/threads";
 
 export type ProgramCoopLearner = {
@@ -37,7 +38,14 @@ function formatLearnerGradeLine(learner: ProgramCoopLearner): string {
     return learner.firstName;
   }
   const grade = learner.grade.trim();
-  return `${learner.firstName} · Grade ${grade}`;
+  const known = STUDENT_GRADE_OPTIONS.find(
+    (option) => option.value === grade.toLowerCase(),
+  );
+  if (known) return `${learner.firstName} · ${known.label}`;
+  // Free-text grades: don't double up "Grade Grade 3".
+  return /grade/i.test(grade)
+    ? `${learner.firstName} · ${grade}`
+    : `${learner.firstName} · Grade ${grade}`;
 }
 
 export function formatProgramCoopLearnerLine(learner: ProgramCoopLearner): string {

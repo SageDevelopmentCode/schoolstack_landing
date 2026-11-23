@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { monarchHillsEducationConfig } from "@/data/school-demos/monarch-hills-education";
-import { monarchHillsWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { monarchHillsWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/monarch-hills";
 
 export default function MonarchHillsEducationDemoPage() {
   return (

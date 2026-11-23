@@ -160,22 +160,67 @@ export const wonderingOaksLearningOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Wondering Oaks",
+    founder: {
+      fullName: "Christian Rust",
+      firstName: "Christian",
+      role: "Director/Founder (now living abroad; the Staff page says she is no longer physically at Wondering Oaks)",
+      source: "Wondering Oaks Staff page (\"Ms. Christian\", Director/Founder)",
+      url: "https://www.wonderingoakslearning.com/staff",
+    },
+    mailTo: null,
+    founderFacts: [
+      {
+        fact: "On the Staff page, Christian Rust writes that she found her passion when she joined Free Forest School, where children explored and learned without constant adult direction, and that her mission at Wondering Oaks is a balance of foundational academics and life skills.",
+        source: "Wondering Oaks Staff page",
+        url: "https://www.wonderingoakslearning.com/staff",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Wondering Oaks describes itself as a part or full time secular learning program between homeschool and private school, drawing on Reggio Emilia and Montessori, with a Morning Work Block built for choice, autonomy and time for deep work.",
+        source: "Wondering Oaks About page",
+        url: "https://www.wonderingoakslearning.com/about",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "On the Staff page, Christian Rust writes that she found her passion when she joined Free Forest School, where children explored and learned without constant adult direction, and that her mission at Wondering Oaks is a balance of foundational academics and life skills.",
+    body: `Hi Christian,
+
+I read your Staff page bio, about finding your passion at Free Forest School, where children explored without constant adult direction. I liked that Wondering Oaks pairs that with foundational academics.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how Wondering Oaks is doing these days. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Wondering Oaks I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Christian, a note from a small school in Round Rock, Texas. J",
+    shortCode: "wonderingoaks-9bti",
+    checkBeforeMailing: [
+      "Find a mailing address: wonderingoakslearning.com (home, About, Staff, Tuition, Registration) lists no address or PO box, only Conroe, TX in the page title. Visits are by appointment because the school shares property with a family photographer, so the campus is likely private property; don't use a street address unless it's clearly published for business. Non-home leads: ask through the school's Facebook page or shared inbox for a mailing address or PO box.",
+      "Christian is abroad: the Staff page says she is no longer physically at Wondering Oaks and now lives overseas, and it names no current director. A letter to the Conroe school may not reach her. Find out who leads it now (the demo's Ms. Lisa and Ms. Laura have no source we could open; a FindGlocal copy of the Facebook page mentions a teacher, Ms. Laura) and either redirect the letter, greeting and sticky note to them (opening on a school fact instead of Christian's bio) or ask the school to forward it.",
+      "Confirm the school is running in 2026–27: the calendar and tuition sheet are 2022–23 and the last public Facebook post we could see is from March 2023.",
+      "The first email still says Julius wrote in June; confirm that email went out and to which address.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "Re-intro: acknowledge the June email, give a new reason (the snapshot), one proof number",
+      purpose: "Re-intro after the handwritten letter: mention the note and the June email, one detail from the snapshot, one proof number",
       subject: "Wondering Oaks registration form",
       body: `Hi Christian,
 
-I wrote in June about a version of MudKitchen I set up for Wondering Oaks. Since then I put together a one-page snapshot of what a family sees on your site today, from registering to paying tuition.
+I mailed you a handwritten note last week with a card for Wondering Oaks. It has a QR code for the version of MudKitchen I set up for you (I first wrote about it in June) and a one-page snapshot of what a family sees on your site today, from registering to paying tuition.
 
 One thing stood out: the Student Registration form asks about the child but not for an email or phone, so a family can send it without any way for you to reach them.
 
 I run Sage Field, a microschool in Round Rock. We went from 0 to 35 students in under 3 months on MudKitchen.
 
-Want me to send the snapshot?
+Want me to send the snapshot link here too?
 
 Julius`,
     },

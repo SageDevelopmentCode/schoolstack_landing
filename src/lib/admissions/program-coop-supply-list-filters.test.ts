@@ -1,10 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  coopSupplyColorFilterOptions,
   DEFAULT_COOP_SUPPLY_LIST_FILTERS,
   filterCoopSupplyListItems,
 } from "./program-coop-supply-list-filters";
-import type { CoopSupplyListItem } from "./program-coop-supply-list-mock";
+import {
+  formatSupplyEstimatedPrice,
+  formatSupplyQuantity,
+  type CoopSupplyListItem,
+} from "./program-coop-supply-list-mock";
 
 const baseItem = (overrides: Partial<CoopSupplyListItem> = {}): CoopSupplyListItem => ({
   id: "item-1",
@@ -54,5 +59,27 @@ describe("filterCoopSupplyListItems parent context", () => {
     );
 
     assert.equal(filtered.length, 0);
+  });
+});
+
+describe("supply list display formatters", () => {
+  it("keeps the dollar sign on both ends of a price range", () => {
+    assert.equal(
+      formatSupplyEstimatedPrice({ mode: "range", minCents: 1500, maxCents: 2500 }),
+      "$15.00–$25.00",
+    );
+  });
+
+  it("formats quantities without doubled numbers or wrong plurals", () => {
+    assert.equal(formatSupplyQuantity(baseItem({ quantity: 1, quantityLabel: "sets" })), "1 set");
+    assert.equal(formatSupplyQuantity(baseItem({ quantity: 3, quantityLabel: "sets" })), "3 sets");
+    assert.equal(formatSupplyQuantity(baseItem({ quantity: 1, quantityLabel: "2 rolls" })), "2 rolls");
+    assert.equal(formatSupplyQuantity(baseItem({ quantity: 1, quantityLabel: "glasses" })), "1 glasses");
+    assert.equal(formatSupplyQuantity(baseItem({ quantity: 4, quantityLabel: "" })), "4");
+  });
+
+  it("labels unnamed colours in the colour filter", () => {
+    const options = coopSupplyColorFilterOptions([{ id: "c1", hex: "#ff0000", label: "  " }]);
+    assert.equal(options.at(-1)?.label, "Unlabeled");
   });
 });

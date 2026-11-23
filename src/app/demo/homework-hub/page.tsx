@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { homeworkHubConfig } from "@/data/school-demos/homework-hub";
-import { homeworkHubWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { homeworkHubWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/homework-hub";
 
 export default function HomeworkHubDemoPage() {
   return (

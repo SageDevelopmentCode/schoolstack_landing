@@ -181,14 +181,66 @@ export const rootsAndWingsMicroschoolOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Roots and Wings",
+    founder: {
+      fullName: "Julie",
+      firstName: "Julie",
+      role: "Founder and teacher",
+      source: "Roots and Wings home page (\"Hi, my name is Julie.\", the certified teacher who started the microschool) and FAQ, written in the first person",
+      url: "https://rootsandwingsmicroschool.com/",
+    },
+    mailTo: null,
+    founderFacts: [
+      {
+        fact: "On the Roots and Wings home page, Julie writes that she kept pondering a small-class, or microschool, model: personalized tutoring when a child needs it, plus group instruction and conversation, \"just like the little red schoolhouse of old.\"",
+        source: "Roots and Wings Microschool home page",
+        url: "https://rootsandwingsmicroschool.com/",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Julie writes that in the school's first year some kids were five grades behind, and by the end of that year the whole group had moved forward an average of three grades in reading and math.",
+        source: "Roots and Wings Microschool home page",
+        url: "https://rootsandwingsmicroschool.com/",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "The FAQ says Julie keeps the class to ten students, Monday through Thursday, 7:45 AM to 1:45 PM, with tuition paid through Arizona's ESA in ClassWallet.",
+        source: "Roots and Wings Microschool FAQ",
+        url: "https://rootsandwingsmicroschool.com/faq",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "On the Roots and Wings home page, Julie writes that she kept pondering a small-class, or microschool, model: personalized tutoring when a child needs it, plus group instruction and conversation, \"just like the little red schoolhouse of old.\"",
+    body: `Hi Julie,
+
+I read your story on the Roots and Wings site. I liked the way you describe the school, tutoring when a child needs it plus group conversation, like the little red schoolhouse of old.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how you settled on keeping it to ten students. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Roots and Wings I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Julie, a note from a small microschool in Round Rock, Texas. J",
+    shortCode: "roots-l040",
+    checkBeforeMailing: [
+      "Find a mailing address: the FAQ says the school is a small school in Julie's home in North Mesa, and the site publishes no address (the Contact page is a form only), so nothing is stored. No PO box or business address found. Lead: ask Julie for a mailing address.",
+      "Julie's last name isn't on the site (only a LinkedIn link in the header), so the letter uses her first name and doesn't draw on LinkedIn. Address the envelope to Julie, Roots and Wings Microschool.",
+      "No podcast or interview found; the hook is her own story on the home page.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "One real question about her quarterly ESA invoices, then who's asking and one proof number",
+      purpose: "Mention last week's handwritten note, then one real question about her quarterly ESA invoices, then who's asking and one proof number",
       subject: "ESA tuition at Roots and Wings",
       body: `Hi Julie,
+
+I mailed you a handwritten note last week with a card for Roots and Wings.
 
 I was reading your FAQ. Once a child is accepted, you email the family an invoice, they choose RAWM in ClassWallet, and tuition is $1,375 a quarter, paid in advance and prorated.
 

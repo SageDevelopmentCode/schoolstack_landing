@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { luffLearningConfig } from "@/data/school-demos/luff-learning";
-import { luffLearningWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { luffLearningWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/luff-learning";
 
 export default function LuffLearningDemoPage() {
   return (

@@ -29,16 +29,17 @@ import {
   type BrandMarkKind,
 } from "@/components/admin/marketing/brand-marks/types";
 
-const KIND_ORDER: BrandMarkKind[] = ["avatar", "app-icon", "cover", "ios-header"];
-const KIND_LABEL: Record<BrandMarkKind, string> = { avatar: "Avatars", "app-icon": "App icons", cover: "Covers", "ios-header": "App Store" };
+const KIND_ORDER: BrandMarkKind[] = ["avatar", "app-icon", "cover", "ios-header", "link-preview"];
+const KIND_LABEL: Record<BrandMarkKind, string> = { avatar: "Avatars", "app-icon": "App icons", cover: "Covers", "ios-header": "App Store", "link-preview": "Link previews" };
 const ZIP_NAME: Record<BrandMarkKind, string> = {
   avatar: "mudkitchen-profile-pictures.zip",
   "app-icon": "mudkitchen-app-icons.zip",
   cover: "mudkitchen-covers.zip",
   "ios-header": "mudkitchen-app-store-artwork.zip",
+  "link-preview": "mudkitchen-link-previews.zip",
 };
 /** Wide banners (covers, App Store art) vs square marks. */
-const isWide = (kind: BrandMarkKind) => kind === "cover" || kind === "ios-header";
+const isWide = (kind: BrandMarkKind) => kind === "cover" || kind === "ios-header" || kind === "link-preview";
 /** iOS-style continuous-corner approximation. */
 const SQUIRCLE = "22.37%";
 
@@ -179,9 +180,16 @@ export default function BrandMarkStudio() {
       for (let i = 0; i < allOfKind.length; i += 1) {
         const mark = allOfKind[i];
         setProgress(`${i + 1} / ${allOfKind.length}`);
+        // Link previews unzip flat, straight into public/og/.
         const folder =
-          mark.kind === "cover" ? mark.format : mark.kind === "ios-header" ? `${mark.iosFormat}/${mark.textless ? "art-only" : "text"}` : mark.group;
-        zip.file(`${folder}/${mark.fileName}`, dataUrlBase64(await capture(mark)), { base64: true });
+          mark.kind === "cover"
+            ? `${mark.format}/`
+            : mark.kind === "ios-header"
+              ? `${mark.iosFormat}/${mark.textless ? "art-only" : "text"}/`
+              : mark.kind === "link-preview"
+                ? ""
+                : `${mark.group}/`;
+        zip.file(`${folder}${mark.fileName}`, dataUrlBase64(await capture(mark)), { base64: true });
       }
       const blob = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(blob);
@@ -286,7 +294,9 @@ export default function BrandMarkStudio() {
                   ? ` · ${COVER_FORMATS[selected.format].label}`
                   : kind === "ios-header" && selected.iosFormat
                     ? ` · ${IOS_HEADER_FORMATS[selected.iosFormat].label}${selected.textless ? " · art only" : ""}`
-                    : " · shown as a circle on most platforms"}
+                    : kind === "link-preview"
+                      ? ` · link preview for ${selected.pages?.join(", ") ?? ""} · save into public/og/`
+                      : " · shown as a circle on most platforms"}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -370,6 +380,8 @@ export default function BrandMarkStudio() {
               <CoverPreview mark={selected} showCrop={showCrop} />
             ) : kind === "ios-header" ? (
               <IosHeaderPreview mark={selected} showCrop={showCrop} />
+            ) : kind === "link-preview" ? (
+              <LinkPreviewPreview mark={selected} showCrop={showCrop} />
             ) : (
               <figure className="flex flex-col items-center gap-3">
                 <div className="relative overflow-hidden rounded-admin-md shadow-sm ring-1 ring-black/5" style={{ width: 460, height: 460 }}>
@@ -400,6 +412,8 @@ export default function BrandMarkStudio() {
                 <IconMocks mark={selected} />
               ) : kind === "ios-header" ? (
                 <IosHeaderMocks mark={selected} />
+              ) : kind === "link-preview" ? (
+                <LinkPreviewMocks mark={selected} />
               ) : (
                 <CoverMocks mark={selected} />
               )}
@@ -695,6 +709,83 @@ function IosHeaderMocks({ mark }: { mark: BrandMark }) {
           The safe zone is our own conservative guess, not Apple&apos;s template. If Apple sends a template, update <code>IOS_HEADER_FORMATS</code> in{" "}
           <code>brand-marks/types.ts</code>.
         </p>
+      </MockCard>
+    </>
+  );
+}
+
+/** Link preview at studio size; the crop view marks the safe box and the square thumbnail some apps cut. */
+function LinkPreviewPreview({ mark, showCrop }: { mark: BrandMark; showCrop: boolean }) {
+  const h = Math.round((mark.height * PREVIEW_W) / mark.width);
+  const k = PREVIEW_W / mark.width;
+  return (
+    <figure className="flex flex-col items-center gap-3">
+      <div className="relative overflow-hidden rounded-admin-md shadow-sm ring-1 ring-black/5" style={{ width: PREVIEW_W, height: h }}>
+        <MarkView mark={mark} size={PREVIEW_W} />
+        {showCrop ? (
+          <>
+            <span
+              aria-hidden
+              className="pointer-events-none absolute"
+              style={{ left: Math.round(60 * k), top: Math.round(40 * k), right: Math.round(60 * k), bottom: Math.round(40 * k), outline: "2px dashed rgba(255,255,255,.9)" }}
+            />
+            <span
+              aria-hidden
+              className="pointer-events-none absolute top-0 bottom-0"
+              style={{ left: Math.round((PREVIEW_W - h) / 2), width: h, outline: "2px dotted rgba(20,16,12,.55)" }}
+            />
+          </>
+        ) : null}
+      </div>
+      <figcaption className="text-xs text-admin-muted">
+        {showCrop ? "Keep words inside the dashed box. The dotted square is the thumbnail some apps (WhatsApp, SMS) cut from the middle." : "Full image, as downloaded"}
+      </figcaption>
+    </figure>
+  );
+}
+
+/** How the card looks when the link is pasted into a chat. */
+function LinkPreviewMocks({ mark }: { mark: BrandMark }) {
+  const w = 300;
+  const h = Math.round((mark.height * w) / mark.width);
+  return (
+    <>
+      <MockCard title="iMessage">
+        <div className="flex justify-end rounded-admin-md bg-[#1c1c1e] p-4">
+          <div className="overflow-hidden rounded-[18px] bg-[#2c2c2e]" style={{ width: w }}>
+            <MarkView mark={mark} size={w} />
+            <div className="px-3 py-2">
+              <p className="truncate text-[13px] font-semibold text-white">{mark.title} · MudKitchen</p>
+              <p className="text-[12px] text-white/55">trymudkitchen.com</p>
+            </div>
+          </div>
+        </div>
+      </MockCard>
+      <MockCard title="Slack / LinkedIn feed">
+        <div className="flex gap-3">
+          <span className="w-1 shrink-0 rounded-full bg-admin-border" />
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-admin-text">MudKitchen</p>
+            <p className="mb-2 text-xs text-admin-muted">{mark.pages?.join(", ")}</p>
+            <div className="overflow-hidden rounded-admin-md ring-1 ring-black/10" style={{ width: 420, height: Math.round((mark.height * 420) / mark.width) }}>
+              <MarkView mark={mark} size={420} />
+            </div>
+          </div>
+        </div>
+      </MockCard>
+      <MockCard title="Square thumbnail (WhatsApp, SMS)">
+        <div className="flex items-center gap-3 rounded-admin-md bg-[#dcf8c6] p-2">
+          <div className="relative shrink-0 overflow-hidden rounded-admin-sm" style={{ width: 72, height: 72 }}>
+            <div className="absolute top-0" style={{ left: -Math.round((((72 * mark.width) / mark.height) - 72) / 2) }}>
+              <MarkView mark={mark} size={Math.round((72 * mark.width) / mark.height)} />
+            </div>
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-[13px] font-semibold text-[#111]">{mark.title} · MudKitchen</p>
+            <p className="text-[12px] text-black/55">trymudkitchen.com</p>
+          </div>
+        </div>
+        <p className="mt-2 text-[11px] text-admin-muted">{h}px tall in a 300px chat bubble.</p>
       </MockCard>
     </>
   );

@@ -40,8 +40,6 @@ export default function CustomDemoOffer({
       <div className="mx-auto grid max-w-[1320px] items-start gap-14 px-6 sm:px-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16 lg:px-16">
         <div className="lg:sticky lg:top-28">
           <SectionIntro
-            pill={heading.pill}
-            tint="clay"
             lead={heading.headlineLead}
             accent={heading.headlineAccent}
             accentColor="text-[var(--sf-clay)]"

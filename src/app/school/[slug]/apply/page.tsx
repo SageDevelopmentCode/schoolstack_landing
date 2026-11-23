@@ -33,6 +33,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getPortalAccountLinkContext } from "@/lib/auth/portal-account-link-context";
 import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-server";
 import { portalAccountLinkOpensInNewTab } from "@/lib/auth/portal-switcher-types";
+import { schoolPageMetadata } from "@/lib/og/school-page-metadata";
 
 export const dynamic = "force-dynamic";
 
@@ -48,10 +49,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: "School Not Found" };
   }
 
-  return {
+  return schoolPageMetadata(org, {
     title: `Your Applications | ${org.name}`,
     description: `View and manage your applications to ${org.name}.`,
-  };
+    path: "/apply",
+    page: "apply",
+  });
 }
 
 export default async function SchoolApplyDashboardPage({ params }: PageProps) {

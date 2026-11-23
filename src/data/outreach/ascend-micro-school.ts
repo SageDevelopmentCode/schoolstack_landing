@@ -185,6 +185,51 @@ export const ascendMicroSchoolOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Ascend",
+    founder: {
+      fullName: "Elizabeth Watkins",
+      firstName: "Elizabeth",
+      role: "Director",
+      source: "Ascend Our Team page (\"Elizabeth Watkins, Director\"); the Employment page calls her executive director",
+      url: "https://ascendmicroschool.com/our-staff/",
+    },
+    mailTo: null,
+    founderFacts: [
+      {
+        fact: "Ascend's homepage describes a faith-based K–6 hybrid school in northern Colorado Springs with two days a week of attendance, small mixed-age classes at a student-to-instructor ratio of 8:1 or less, and a personalized learning plan for each student.",
+        source: "Ascend Micro School homepage",
+        url: "https://ascendmicroschool.com/",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Elizabeth Watkins, Ascend's Director, has been part of the Ascend community since 2020.",
+        source: "Ascend Our Team page",
+        url: "https://ascendmicroschool.com/our-staff/",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "Ascend's homepage describes a faith-based K–6 hybrid school in northern Colorado Springs with two days a week of attendance, small mixed-age classes at a student-to-instructor ratio of 8:1 or less, and a personalized learning plan for each student.",
+    body: `Hi Elizabeth,
+
+I was reading about Ascend. I liked that each student gets their own learning plan, and that the classes stay small and mixed-age, two days a week on campus. I saw you've been part of the community since 2020.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how families split the week between home and campus. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Ascend I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Elizabeth, a note from a microschool in Round Rock, Texas. J",
+    shortCode: "ascend-2xyp",
+    checkBeforeMailing: [
+      "Find a mailing address: ascendmicroschool.com publishes none (homepage, Contact, Our Team and Our Story pages and the footer give only \"northern Colorado Springs\" and the southwest Black Forest area). A Cato Institute Friday Feature (July 2026) reportedly says Ascend meets on a camp property in the Black Forest area; the page blocked our reader, so open it and see whether it names the site, then confirm the school takes mail there.",
+      "Written to Elizabeth Watkins, the Director (also the plan's email recipient). The Our Story page is written by the founder, Sarah, with her husband Nick, but the site never gives Sarah's surname or current role and she isn't on the Our Team page, so the letter goes to Elizabeth and opens on a school fact from the homepage, not a founder story.",
+      "Better hook to check: the Cato Institute Friday Feature on Ascend (https://www.cato.org/blog/friday-feature-ascend-micro-school, July 2026) reportedly names Elizabeth as director. Read it; if it quotes her, swap the opening line for what she said there and add it to founderFacts.",
+      "The homepage says K–6; a search summary of the Cato piece mentions K–6 \"starting this fall\", narrowed from K–8. The letter doesn't mention grades, so nothing to change.",
+    ],
+  },
   steps: [
     {
       id: "first",
@@ -194,13 +239,13 @@ export const ascendMicroSchoolOutreach: OutreachPlan = {
       subject: "Ascend's application checklist",
       body: `Hi Elizabeth,
 
-I wrote in June about a version of MudKitchen I set up for Ascend. Since then I put together a one-page snapshot of what a family sees on your site today, from the first call to the deposit.
+I mailed you a handwritten note last week with a card for Ascend. I first wrote in June about a version of MudKitchen I set up for you. Since then I put together a one-page snapshot of what a family sees on your site today, from the first call to the deposit.
 
 One thing stood out: the application checklist on your Admissions page asks families to sign in to Google before it opens.
 
 I run Sage Field, a microschool in Round Rock. We went from 0 to 35 students in under 3 months on MudKitchen.
 
-Want me to send the snapshot?
+Want me to email the snapshot too?
 
 Julius`,
     },

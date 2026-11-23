@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { actonAcademyPittsburghConfig } from "@/data/school-demos/acton-academy-pittsburgh";
-import { actonAcademyPittsburghWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { actonAcademyPittsburghWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/acton-academy-pittsburgh";
 
 export default function ActonAcademyPittsburghDemoPage() {
   return (

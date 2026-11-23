@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { rootedMeadowsConfig } from "@/data/school-demos/rooted-meadows";
-import { rootedMeadowsWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { rootedMeadowsWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/rooted-meadows";
 
 export default function RootedMeadowsDemoPage() {
   return (

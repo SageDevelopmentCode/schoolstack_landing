@@ -12,17 +12,18 @@ import {
   parentAssignmentFilterOptions,
   type CoopSupplyListFilters,
 } from "@/lib/admissions/program-coop-supply-list-filters";
-import type {
-  CoopSupplyColorLegendEntry,
-  CoopSupplyMonth,
-  SupplyItemType,
-  SupplyUsageTiming,
+import {
+  supplyColorLegendDisplayLabel,
+  type CoopSupplyColorLegendEntry,
+  type CoopSupplyMonth,
+  type SupplyItemType,
+  type SupplyUsageTiming,
 } from "@/lib/admissions/program-coop-supply-list-mock";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
-import ParentCard from "@/components/school-parent/ui/ParentCard";
-import ParentSelect from "@/components/school-parent/ui/ParentSelect";
+import { GSearchInput, GSelect } from "@/components/school-parent/garden/fields";
+import { GCard, gLinkSm } from "@/components/school-parent/garden/ui";
 
 type CoopSupplyListFilterBarProps = {
   variant: "parent" | "admin";
@@ -99,49 +100,30 @@ export default function CoopSupplyListFilterBar({
   ] as const;
 
   if (variant === "parent") {
+    // Parent Garden filter card (renders inside ParentGardenFrame).
     return (
-      <ParentCard theme={theme} className="mb-4 p-4">
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs font-medium" style={{ color: theme.muted }}>
-              Showing {resultCount} of {totalCount} items
-            </p>
-            {activeFilterCount > 0 ? (
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="text-xs font-semibold underline-offset-2 hover:underline"
-                style={{ color: theme.primary }}
-              >
-                Clear filters
-              </button>
-            ) : null}
-          </div>
-
-          <div className="relative">
-            <Search
-              className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2"
-              style={{ color: theme.muted }}
-              aria-hidden
-            />
-            <input
-              type="search"
-              value={filters.search}
-              onChange={(event) => update({ search: event.target.value })}
-              placeholder="Search items, stores, or quantity"
-              className="w-full rounded-full border py-2 pl-9 pr-3 text-[16px] outline-none transition-colors focus:ring-1 sm:text-[13px]"
-              style={{
-                backgroundColor: "#F4F7F5",
-                borderColor: theme.line,
-                color: theme.ink,
-              }}
-              aria-label="Search supply list"
-            />
-          </div>
-
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+      <GCard
+        index={2}
+        kicker="Find an item"
+        action={
+          activeFilterCount > 0 ? (
+            <button type="button" onClick={clearFilters} className={gLinkSm}>
+              Clear filters
+            </button>
+          ) : null
+        }
+        data-testid="parent-supply-list-filters"
+      >
+        <div className="flex flex-col gap-3">
+          <GSearchInput
+            value={filters.search}
+            onChange={(search) => update({ search })}
+            placeholder="Search items, stores, or quantity"
+            label="Search supply list"
+          />
+          <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {parentFilterFields.map((field) => (
-              <ParentSelect
+              <GSelect
                 key={field.id}
                 id={field.id}
                 value={field.value}
@@ -150,14 +132,34 @@ export default function CoopSupplyListFilterBar({
                   value: option.value,
                   label: option.label,
                 }))}
-                ariaLabel={field.ariaLabel}
-                theme={theme}
-                className="w-full sm:min-w-[9.5rem] sm:flex-1"
+                aria-label={field.ariaLabel}
               />
             ))}
           </div>
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <p className="m-0 text-[13px] font-semibold text-[var(--sf-soft)]" aria-live="polite">
+              Showing {resultCount} of {totalCount} items
+            </p>
+            {colorLegend.length > 0 ? (
+              <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0" aria-label="Highlight colours">
+                {colorLegend.map((entry) => (
+                  <li
+                    key={entry.id}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-[var(--sf-ink)]/[0.05] px-2.5 py-1 text-[12px] font-extrabold text-[var(--sf-ink)]/80"
+                  >
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full ring-[1.5px] ring-[var(--sf-ink)]/20"
+                      style={{ backgroundColor: entry.hex }}
+                      aria-hidden="true"
+                    />
+                    {supplyColorLegendDisplayLabel(entry)}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
         </div>
-      </ParentCard>
+      </GCard>
     );
   }
 

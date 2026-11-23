@@ -189,16 +189,79 @@ export const tapestryAcademyOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Tapestry",
+    founder: {
+      fullName: "Candace Lehenbauer",
+      firstName: "Candace",
+      role: "Owner and Director",
+      source: "Tapestry Academy Staff page (\"Ms. Candace Lehenbauer, Owner / Director / Choir Instructor\")",
+      url: "https://www.tapestryacademy.com/staff",
+    },
+    mailTo: {
+      lines: ["1699 S. Federal Hwy, Suite 100", "Boca Raton, FL 33432"],
+      source: "Tapestry Academy Contact page (listed under Location and in the footer)",
+      url: "https://www.tapestryacademy.com/contact",
+    },
+    founderFacts: [
+      {
+        fact: "On the Living Boca podcast (September 4, 2025), Candace Lehenbauer talked with host Paige Kornblue about microschooling as a hybrid of homeschooling and private school, and about how Florida's scholarships, now open to all families, make microschools more accessible.",
+        source: "Living Boca, Ep. 33 - Empowering Students Through Alternative Education in Boca Raton (Apple Podcasts)",
+        url: "https://podcasts.apple.com/us/podcast/ep-33-empowering-students-through-alternative-education/id1581343473?i=1000724971396",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Tapestry Homeschool Commons is new this fall 2026: a Wednesday enrichment day for ages 5–16 with the Boys & Girls Club of Boca Raton, running August 2026 to May 2027, with Candace Lehenbauer as the contact.",
+        source: "Tapestry Homeschool Commons page",
+        url: "https://www.tapestryacademy.com/homeschool-commons",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Candace told Shoutout Miami (June 8, 2022) that Tapestry was founded in 2018 to blend homeschooling and day school, with project-based, student-led learning and students mastering a subject before moving on.",
+        source: "Shoutout Miami, Meet Candace Lehenbauer | Tapestry Academy Microschool Owner/Director",
+        url: "https://shoutoutmiami.com/?p=81587",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Candace founded Microschool Florida, a group connecting families with non-traditional education options; she told Tampa Bay 28 her list of Florida microschools had passed 200.",
+        source: "Tampa Bay 28, Inside Florida's growing movement of non-traditional micro-schools",
+        url: "https://www.tampabay28.com/news/local-news/inside-floridas-growing-movement-of-non-traditional-micro-schools",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "On the Living Boca podcast (September 4, 2025), Candace Lehenbauer talked with host Paige Kornblue about microschooling as a hybrid of homeschooling and private school, and about how Florida's scholarships, now open to all families, make microschools more accessible.",
+    body: `Hi Candace,
+
+I listened to your Living Boca episode. I liked how you described microschooling as a mix of homeschool and private school, and how Florida's scholarships now put it within reach of any family.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how the first months of Homeschool Commons are going. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Tapestry I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Candace, a note from a microschool in Round Rock, Texas. J",
+    shortCode: "tapestry-rc34",
+    checkBeforeMailing: [
+      "Listen to the Living Boca episode (Sept 4, 2025, about 40 minutes) before mailing: the hook is from the episode description, so make sure it matches what she says.",
+      "She is \"Candace\" on the Staff page and \"Ms. Candi\" on the Enrollment page and in some podcasts (Living Boca's listing spells it \"Candice\"). The letter uses Candace; switch the greeting and sticky note to Candi if you'd rather.",
+      "1699 S. Federal Hwy, Suite 100 is the only address the site lists (Contact and About pages); there's no separate mailing address. Address it to Candace Lehenbauer, Tapestry Academy.",
+      "Bear Lehenbauer is listed as co-owner; the letter goes to Candace only.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "One real question about how Step Up funds get matched to registrations, then who's asking and why",
+      purpose: "Mention last week's handwritten note, then one real question about how Step Up funds get matched to registrations, then who's asking and why",
       subject: "Step Up funds at Tapestry",
       body: `Hi Candace,
 
-Tapestry's scholarships page asks Step Up families to register on your site with a coupon code, then send EMA funds in pieces like $2,000 and $500 until they match the price, so your team can compare funds to registrations.
+I mailed you a handwritten note last week with a card for Tapestry.
+
+Your scholarships page asks Step Up families to register on your site with a coupon code, then send EMA funds in pieces like $2,000 and $500 until they match the price, so your team can compare funds to registrations.
 
 Does that matching happen by hand each month, across the microschool, Commons and Science Club?
 

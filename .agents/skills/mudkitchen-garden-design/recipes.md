@@ -147,7 +147,7 @@ Pick **one** signature recipe per section. Every recipe below already has its ph
 **Source:** `recipes/classroom-wall/Story.tsx`
 
 - **Structure:** `section.lg:h-[280vh]` › sticky grid `lg:grid-cols-[1fr_1.75fr_1fr]`. The two side columns are polaroids, doubled so they never run out; one column moves `yPercent 0 → -48`, the other the reverse.
-- **Centre column:** pill, h2, stat stickers that pop in, and a butter note whose rows tick off on the shared trigger (row opacity, `[data-tick]` dash offset, `[data-mark]` background size).
+- **Centre column:** h2, stat stickers that pop in, and a butter note whose rows tick off on the shared trigger (row opacity, `[data-tick]` dash offset, `[data-mark]` background size).
 - **Fit:** the centre column must be no taller than 100vh.
 - **Phones:** a polaroid `Marquee`. The ticks render already checked.
 
@@ -247,6 +247,18 @@ Pick **one** signature recipe per section. Every recipe below already has its ph
 - **Frame:** browser chrome with peach, butter and mint dots, plus a "MudKitchen · {view}" label.
 - **Styling:** 2px ink border, a 10px ink shadow, optional tape and tilt. Overlays (sticker notes) go in as children.
 - **Demo:** `DemoStage` scales a 1100×680 canvas. Lower `designHeight` (640) and `minScale` (0.3) for tighter frames.
+
+### 27b. App screenshots in a frame (demo walkthrough mobile step)
+**Source:** `src/components/demo/ScaledMobileAppPreview.tsx`
+
+Use it to show "the app" inside a fixed-height frame where a marquee won't fit, such as the walkthrough step every `/demo/<slug>` gets from `createMobileAppWalkthroughStep()`.
+
+- **Content:** `DOWNLOAD_APP_SLIDES` (the 10 store screenshots, `/images/mobileapp/*.webp`) in `PhoneCard`s, with `showCaption={false}`. The active slide's `caption` sits once below the stage in an `aria-live` line. Don't build per-school phone mock-ups.
+- **Desktop:** a fanned stage. The active card is sized from the frame height (aspect 960×2087) and gets a cycling `TAPES` strip. Neighbours sit either side at 0.8 scale, ±2° tilt and 60% opacity, and clicking one makes it active. A second ring only appears when it fits the width.
+- **Controls:** round ink-bordered prev/next buttons, ink dots (the active dot stretches), and `MobileAppDownloadBadges` at `h-9`. Arrow keys work once the region has focus.
+- **Motion:** auto-advance every 6 s. It pauses on hover and focus and stops entirely for reduced motion. Cards move with `transform 600ms cubic-bezier(0.34,1.36,0.64,1)`; reduced motion only fades opacity.
+- **Phones:** one card in a scroll-snap rail, 70% of the width so the next card peeks. Scrolling updates the dots. Mount only the layout in use (a media query, not just `hidden`), so the hidden one doesn't download its images too.
+- **Images:** `priority` on slide 1 only. The ring next to the active card loads eagerly and the rest load lazily (`PhoneCard`'s `priority`/`loading` props).
 
 ---
 

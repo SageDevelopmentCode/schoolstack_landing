@@ -13,9 +13,20 @@ If this isn't useful, reply "no thanks" and I won't email again.
 
 ## Who's writing
 
-Julius Cecilia runs **Sage Field**, an outdoor-focused private microschool in Round Rock, Texas
-(ages 4–11), and built MudKitchen (trymudkitchen.com) to run it: website, enrollment, tuition,
-parent portal, teacher and admin dashboards. Emails are from Julius, a person, not from "the MudKitchen team".
+Julius Cecilia runs **Sage Field** with his fiancée, an outdoor-focused private microschool in Round Rock,
+Texas (ages 4–11). They built MudKitchen (trymudkitchen.com) from the start to run it (website,
+enrollment, tuition, parent portal, teacher and admin dashboards), and it's a big part of how they grew.
+Now they offer it to other microschools. Emails are from Julius, a person, not from "the MudKitchen team".
+
+## When the school also gets a handwritten letter
+
+Some plans have a `letter` (written by the `school-letter` skill). The letter is mailed first, and
+/admin/research holds the first email until 5 business days after Julius logs the letter as mailed.
+- The first email opens by mentioning the note in one plain clause ("I mailed you a handwritten note last
+  week with a card for <school>…"). The validator checks for "note" or "letter".
+- Don't repeat the letter: no second founder hook, no "my fiancée and I". Keep the email's own angle
+  (a snapshot detail or one real question) and its proof number.
+- Re-contact plans still mention `priorContact.when` ("I first wrote about it in June").
 
 ## Proof points we can use
 

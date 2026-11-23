@@ -78,7 +78,7 @@ export default function Roles() {
   return (
     <section className="relative bg-[var(--sf-sky)]/35 py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
-        <SectionIntro pill="👩‍👧 For families, founders & teachers" tint="sky" lead={ROLES_HEADING} squiggle={null} />
+        <SectionIntro lead={ROLES_HEADING} squiggle={null} />
 
         <Reveal className="mt-16 grid gap-10 md:grid-cols-3 md:gap-7" stagger={0.12} y={60}>
           {ROLES.map((r, i) => (

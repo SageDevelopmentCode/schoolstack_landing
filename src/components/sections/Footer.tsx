@@ -26,7 +26,7 @@ import "@/components/garden/garden.css";
 
 const NAV_LINKS = [
   { label: "About", href: "/about", icon: Info },
-  { label: "Product", href: "/#product", icon: Layers },
+  { label: "Features", href: "/features", icon: Layers },
   { label: "Customers", href: "/customers", icon: Users },
   { label: "Blog", href: "/blog", icon: BookOpen },
   { label: FREE_TOOLS_NAV_LABEL, href: FREE_TOOLS_HUB_PATH, icon: Wrench },

@@ -16,7 +16,6 @@ export const metadata: Metadata = pageMetadata({
   title: "Microschool Ops Check",
   description: DESCRIPTION,
   path: PATH,
-  ogImageAlt: "Microschool Ops Check — MudKitchen",
 });
 
 const BREADCRUMBS = buildBreadcrumbs({

@@ -17,8 +17,6 @@ export default function MondayCheckIntro({ theme, onStart }: MondayCheckIntroPro
     <div>
       <OpsCheckBreadcrumbs theme={theme} />
       <MarketingToolHero
-        eyebrow="📋 Free assessment"
-        tint="lav"
         lead="Microschool Ops Check — know where your"
         accent="ops stand."
         description="A quick operations snapshot for founders—admissions, enrollment, tuition, and parent communication. Ten questions, about three minutes, instant results."

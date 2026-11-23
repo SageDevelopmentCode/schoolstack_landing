@@ -154,22 +154,83 @@ export const springRiverSchoolOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Spring River",
+    founder: {
+      fullName: "Carrie Zarka Dooley",
+      firstName: "Carrie",
+      role: "Program Development Director (JEC), named among Spring River's founding parents, teachers and supporters",
+      source: "Spring River, K-8 Staff and Faculty and History of Spring River",
+      url: "https://www.springriverschool.org/meet-our-teachers",
+    },
+    mailTo: {
+      lines: ["51 Pine Street", "Atlantic Beach, FL 32233"],
+      source: "Spring River, About High School (\"Location: 51 Pine Street, Atlantic Beach\"; the home page calls Pine Street the administrative home and high school campus)",
+      url: "https://www.springriverschool.org/abouthighschool",
+    },
+    founderFacts: [
+      {
+        fact: "Spring River's History page lists Carrie Zarka Dooley among the founding parents, teachers and supporters, and says the school began in 2014 as a circle of friends gathering in local parks and now serves over 180 students.",
+        source: "History of Spring River",
+        url: "https://www.springriverschool.org/about-spring-river",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Spring River's History page says that after a decade of growing in borrowed spaces, the school is ready to take root, with a Root Down, Rise Up campaign to secure land for a permanent home (details \"coming soon\").",
+        source: "History of Spring River",
+        url: "https://www.springriverschool.org/about-spring-river",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Carrie joined Spring River's leadership team in 2021 and, as Program Development Director, leads the High School, Two-Day and Summer Camp programs; she also teaches Culinary Arts in the High School.",
+        source: "Spring River, K-8 Staff and Faculty",
+        url: "https://www.springriverschool.org/meet-our-teachers",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Spring River moved all its classes outdoors in 2020, when rental space became severely limited.",
+        source: "Voyage Jacksonville, Exploring Life & Business with Spring River School (December 21, 2021)",
+        url: "https://voyagejacksonville.com/interview/exploring-life-business-with-spring-river-school-of-spring-river-school/",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "Spring River's History page lists Carrie Zarka Dooley among the founding parents, teachers and supporters, and says the school began in 2014 as a circle of friends gathering in local parks and now serves over 180 students.",
+    body: `Hi Carrie,
+
+I read the history of Spring River on your site. I liked that it began in 2014 as friends meeting in local parks, with you among the founding parents, and that after a decade in borrowed spaces you're looking for land of your own.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how the search for land is going. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Spring River I set up, plus a parent's-eye look at your admissions and camp sign-ups.",
+    stickyNote: "Carrie, a note from an outdoor microschool in Texas. J",
+    shortCode: "springriver-neno",
+    checkBeforeMailing: [
+      "The site gives 51 Pine Street, Atlantic Beach with no ZIP; 32233 comes from the Duval County record for 51 Pine St (LoopNet). Confirm it with the USPS lookup.",
+      "The \"Help Us with Our New Home\" appeal says the administrative hub is moving to Sonrise Community Church on Levy Road in West Atlantic Beach, while the home page still says Pine Street. Check which is current before mailing.",
+      "Carrie is one of a dozen founding parents and teachers and now Program Development Director, not the sole founder; the letter says \"among the founding parents\".",
+      "Check whether the Root Down, Rise Up land campaign has launched (the History page says details are coming soon).",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "Re-intro: acknowledge the June email, give a new reason (the snapshot), one proof number",
+      purpose: "Re-intro after the handwritten letter: mention the note and the June email, one detail from the snapshot, one proof number",
       subject: "Kitchen to Market billing",
       body: `Hi Carrie,
 
-I wrote in June about a version of MudKitchen I set up for Spring River. Since then I put together a one-page snapshot of what a family sees on your site today, from the tuition table to camp sign-ups.
+I mailed you a handwritten note last week with a card for Spring River. It has a QR code for the version of MudKitchen I set up for you (I first wrote about it in June) and a one-page snapshot of what a family sees on your site today, from the tuition table to camp sign-ups.
 
 One thing stood out: for Kitchen to Market, Spring River families are billed through FACTS and other homeschool families get a QuickBooks invoice, with Step Up on top.
 
 I run Sage Field, a microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen.
 
-Want me to send the snapshot?
+Want me to send the snapshot link here too?
 
 Julius`,
     },

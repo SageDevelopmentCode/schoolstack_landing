@@ -284,7 +284,7 @@ export const TAKEAWAYS_COPY = {
   ctaBody: "See how the platform can support your microschool from website to daily operations.",
   cta: "Book a demo",
   secondaryCta: "Explore the platform",
-  secondaryHref: "/#product",
+  secondaryHref: "/features",
   reassurance: "No commitment. No sales pressure. Just a conversation.",
 };
 

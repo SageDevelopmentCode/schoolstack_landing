@@ -19,9 +19,17 @@ function findSnapshot({ slug, token }: Params) {
   return { plan, snapshot: plan.snapshot };
 }
 
-export default async function Page({ params }: { params: Promise<Params> }) {
+export default async function Page({
+  params,
+  searchParams,
+}: {
+  params: Promise<Params>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const found = findSnapshot(await params);
   if (!found) notFound();
+  // `/hi/<code>` (the QR card in the handwritten letter) lands here with ?via=letter.
+  const fromLetter = (await searchParams).via === "letter" && found.plan.letter;
 
   return (
     <GardenRoot className="min-h-dvh bg-[var(--sf-cream)]">
@@ -31,6 +39,7 @@ export default async function Page({ params }: { params: Promise<Params> }) {
         schoolName={found.plan.schoolName}
         demoHref={schoolDemoHref(found.plan.slug)}
         snapshot={found.snapshot}
+        letterGreeting={fromLetter ? { firstName: found.plan.letter!.founder.firstName } : undefined}
       />
     </GardenRoot>
   );

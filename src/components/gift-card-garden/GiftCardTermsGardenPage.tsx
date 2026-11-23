@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 import HomeGardenShell from "@/components/garden/HomeGardenShell";
-import { Pill, Tape, btnPop } from "@/components/garden/ui";
+import { Tape, btnPop } from "@/components/garden/ui";
 import type { LegalBlock, LegalDocument } from "@/content/legal/types";
 import { GIFT_CARD_PAGE_PATH, GIFT_CARD_TERMS_COPY as COPY } from "@/lib/marketing/gift-card-offer";
 import GiftCardSteps from "./GiftCardSteps";
@@ -111,10 +111,7 @@ export default function GiftCardTermsGardenPage({ document: doc }: { document: L
             <ArrowLeft size={16} strokeWidth={2.6} aria-hidden />
             {COPY.back}
           </Link>
-          <div className="mt-6">
-            <Pill tint="lav">{COPY.pill}</Pill>
-          </div>
-          <h1 className="sf-display mt-5 max-w-4xl text-[clamp(2.4rem,6vw,4rem)] leading-[0.98] text-[var(--sf-ink)]">{doc.title}</h1>
+          <h1 className="sf-display mt-6 max-w-4xl text-[clamp(2.4rem,6vw,4rem)] leading-[0.98] text-[var(--sf-ink)]">{doc.title}</h1>
           <p className="mt-4 text-sm font-bold text-[var(--sf-soft)]">
             {COPY.lastUpdated}: {doc.lastUpdated}
           </p>

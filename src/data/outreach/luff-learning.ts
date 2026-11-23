@@ -166,6 +166,54 @@ export const luffLearningOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Luff",
+    founder: {
+      fullName: "Sarah",
+      firstName: "Sarah",
+      role: "Founder and teacher",
+      source: "Luff Learning homepage testimonials (\"Ms. Sarah\", \"Miss Sarah\"); her surname isn't published",
+      url: "https://lufflearning.org/",
+    },
+    mailTo: {
+      lines: ["Luff Learning", "c/o Plymouth United Church", "5927 Louetta Rd", "Spring, TX 77379"],
+      source: "Luff Learning homepage footer; the open house event page names it as Plymouth United Church, where in-person classes met",
+      url: "https://lufflearning.org/",
+    },
+    founderFacts: [
+      {
+        fact: "In her post \"Luxurious Learning: All Education Should Be Special Education\" (dated June 21, 2023), Luff's founder wrote that she left public-school teaching and started Luff believing all education should be special education, with never more than 10 students to one teacher.",
+        source: "Luff Learning Stories, Luxurious Learning: All Education Should Be Special Education",
+        url: "https://lufflearning.org/luxurious-learning-all-education-should-be-special-education/",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "The homepage now leads with Luff Learning Virtual Academy, a secular, inclusive virtual microschool for bright middle schoolers with ADHD.",
+        source: "Luff Learning homepage",
+        url: "https://lufflearning.org/",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "In her post \"Luxurious Learning: All Education Should Be Special Education\" (dated June 21, 2023), Luff's founder wrote that she left public-school teaching and started Luff believing all education should be special education, with never more than 10 students to one teacher.",
+    body: `Hi Sarah,
+
+I read your post on why you started Luff. I liked the idea that all education should be special education, and your rule of never more than 10 students with one teacher.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how the Virtual Academy is going. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Luff I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Sarah, a note from a microschool in Round Rock. J",
+    shortCode: "luff-byxe",
+    checkBeforeMailing: [
+      "Her surname isn't on the site: parents call her Ms. Sarah or Miss Sarah, and the Stories posts are signed \"admin\". The letter uses Sarah only; find her full name (Texas SOS filing for Luff Learning, LLC, the Facebook About tab or the Sawyer listing) before addressing the envelope.",
+      "The hook post isn't signed by name; it's written by Luff's founder (\"I have started Luff\"). Confirm Sarah is the founder who wrote it.",
+      "5927 Louetta Rd is Plymouth United Church, where in-person classes met. The program has moved online (the homepage leads with the Virtual Academy) and the events calendar stops in January 2024, so confirm Luff still gets mail there or find another address.",
+    ],
+  },
   steps: [
     {
       id: "first",
@@ -174,6 +222,8 @@ export const luffLearningOutreach: OutreachPlan = {
       purpose: "Re-intro: acknowledge the June email, give a new reason (the snapshot), one proof number",
       subject: "Luff's Tuition & Fees page",
       body: `Hi Sarah,
+
+I mailed you a handwritten note last week with a card for Luff.
 
 I wrote in June about a version of MudKitchen I set up for Luff. Since then I put together a one-page snapshot of what a family sees on your site today.
 

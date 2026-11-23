@@ -184,20 +184,80 @@ export const zoeLearningHouseOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Zoe",
+    founder: {
+      fullName: "Emily Barnitz",
+      firstName: "Emily",
+      role: "Founder, director and lead teacher",
+      source: "Zoe Learning House, About Us",
+      url: "https://zoelearninghouse.com/about-us",
+    },
+    mailTo: {
+      lines: ["5824 Berkley Drive", "New Orleans, LA 70131"],
+      source: "Zoe Learning House, Contact (Our Location, and the footer address of Zoe Learning House LLC)",
+      url: "https://zoelearninghouse.com/contact",
+    },
+    founderFacts: [
+      {
+        fact: "Zoe's About page says Emily Barnitz grew up K-12 as a homeschooler and spent 15 years as an educator in public, international and museum settings, so she understands both the non-traditional and traditional sides of education.",
+        source: "Zoe Learning House, About Us",
+        url: "https://zoelearninghouse.com/about-us",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Zoe launched in fall 2024 as a K-5 hybrid academy; each family registers as a homeschool family in Louisiana, and Zoe lists HSLDA, VELA, CLAS (Child Light Schools), the Balance Project and the National Microschooling Center as networks it belongs to.",
+        source: "Zoe Learning House, About Us",
+        url: "https://zoelearninghouse.com/about-us",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Zoe describes itself as the balance between the freedom of homeschool and the community and support of a private elementary school, and shares facility space at Woodland Presbyterian Church in Algiers, New Orleans.",
+        source: "Zoe Learning House home page",
+        url: "https://zoelearninghouse.com/",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Emily has trained teachers and parents on child development, the power of play and building a learning community, and holds a master's in Educational Leadership from Teachers College, Columbia University.",
+        source: "Zoe Learning House, About Us",
+        url: "https://zoelearninghouse.com/about-us",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "Zoe's About page says Emily Barnitz grew up K-12 as a homeschooler and spent 15 years as an educator in public, international and museum settings, so she understands both the non-traditional and traditional sides of education.",
+    body: `Hi Emily,
+
+I read on Zoe's About page that you were homeschooled all the way through, then taught for 15 years in public, international and museum settings. So you've seen both sides, and Zoe sits in between, with some days at home and some days with you.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how your families handle the home days. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Zoe I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Emily, a note from a microschool in Texas. J",
+    shortCode: "zoe-m4t8",
+    checkBeforeMailing: [
+      "5824 Berkley Drive is Woodland Presbyterian Church, where Zoe shares facility space; it's the only address Zoe publishes. Keep \"Zoe Learning House\" on the envelope so the church passes it on.",
+      "Check Zoe's Contact page still lists 5824 Berkley Drive as Our Location before mailing.",
+      "Zoe's home page says 16 years as an educator and the About page says 15. The letter uses 15 (the About page, where the homeschool line is).",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "Re-intro: acknowledge the June email, give a new reason (the snapshot), one proof number",
+      purpose: "Re-intro after the handwritten letter: mention the note and the June email, give a new reason (the snapshot), one proof number",
       subject: "Zoe's interest form, revisited",
       body: `Hi Emily,
 
-I wrote in June about a version of MudKitchen I set up for Zoe. Since then I put together a one-page snapshot of what a family sees on your site today, from the interest form to the Child Visit Day to paying tuition.
+I mailed you a handwritten note last week with a card for Zoe. It has a QR code for the version of MudKitchen I set up for you (I first wrote about it in June) and a one-page snapshot of what a family sees on your site today, from the interest form to the Child Visit Day to paying tuition.
 
 I run Sage Field, a microschool in Round Rock. We went from 0 to 35 students in under 3 months on MudKitchen.
 
-Want me to send the snapshot?
+Want me to send the snapshot link here too?
 
 Julius`,
     },

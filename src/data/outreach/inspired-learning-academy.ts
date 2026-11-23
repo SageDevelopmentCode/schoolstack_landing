@@ -173,22 +173,75 @@ export const inspiredLearningAcademyOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Inspired",
+    founder: {
+      fullName: "Jill Baumann",
+      firstName: "Jill",
+      role: "Co-Founder and Head of School",
+      source: "Inspired Learning Academy, Meet the Team",
+      url: "https://www.inspiredlearningacademy.org/meet-the-team",
+    },
+    mailTo: {
+      lines: ["601 S Greenville Ave", "Allen, TX 75002"],
+      source: "Inspired Learning Academy Contact page and site footer",
+      url: "https://www.inspiredlearningacademy.org/contact",
+    },
+    founderFacts: [
+      {
+        fact: "On This Golden Hour (episode 106, September 10, 2025), Jill Baumann, a Texas micro school co-founder, talked about micro-school homeschooling: she looked for alternative options when her children were young and built a micro school that served them and many other students.",
+        source: "This Golden Hour, 106. Micro-school Homeschooling with Jill Baumann (Apple Podcasts; the show notes list Inspired Learning Academy)",
+        url: "https://podcasts.apple.com/us/podcast/106-micro-school-homeschooling-with-jill-baumann/id1686673626?i=1000725810914",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Jill writes that Inspired Learning Academy was born when she found no local school offering the kind of community she wanted for early adolescents; she describes it as a heart-centered community that builds self-efficacy and resilience.",
+        source: "Inspired Learning Academy, Jill Baumann",
+        url: "https://www.inspiredlearningacademy.org/jill-baumann",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Jill has 8 years of facilitating classes and mentoring students in grades 6–12, and before that was a development manager at Nortel Networks with a B.S. in Electrical Engineering from Texas A&M.",
+        source: "Inspired Learning Academy, Jill Baumann",
+        url: "https://www.inspiredlearningacademy.org/jill-baumann",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "On This Golden Hour (episode 106, September 10, 2025), Jill Baumann, a Texas micro school co-founder, talked about micro-school homeschooling: she looked for alternative options when her children were young and built a micro school that served them and many other students.",
+    body: `Hi Jill,
+
+I listened to your This Golden Hour episode on micro-school homeschooling. I liked hearing how looking for the right fit for your own kids turned into Inspired, a school for a lot of other families too.
+
+My fiancée and I run Sage Field, an outdoor microschool down in Round Rock. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear what you've learned about running a school for young teens. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Inspired I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Jill, a note from a microschool down in Round Rock. J",
+    shortCode: "inspired-rr77",
+    checkBeforeMailing: [
+      "Listen to the This Golden Hour episode before mailing so the first line is true and you can talk about it if she texts.",
+      "601 S Greenville Ave is a church campus (First United Church of Allen per county records): add \"Inspired Learning Academy\" clearly on the envelope so the church office routes it.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "Re-intro: acknowledge the October email, give a new reason (the snapshot), one proof number",
+      purpose: "Re-intro after the handwritten letter: mention the note and the October email, one detail from the snapshot, one proof number",
       subject: "TEFA families at Inspired",
       body: `Hi Jill,
 
-I wrote in October with a demo I set up for Inspired. Since then I put together a one-page snapshot of what a family sees on your site today, from booking a tour to paying tuition.
+I mailed you a handwritten note last week with a card for Inspired. It has a QR code for the demo I set up for you (I first wrote about it in October) and a one-page snapshot of what a family sees on your site today, from booking a tour to paying tuition.
 
 One thing stood out: Inspired now accepts TEFA funds, and tuition is $12,970 or $1,297 a month, so a TEFA family may pay from two places.
 
 I run Sage Field, a microschool in Round Rock. We went from 0 to 35 students in under 3 months on MudKitchen, the enrollment and tuition system I built for it.
 
-Want me to send the snapshot?
+Want me to send the snapshot link here too?
 
 Julius`,
     },

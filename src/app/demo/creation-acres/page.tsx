@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { creationAcresConfig } from "@/data/school-demos/creation-acres";
-import { creationAcresWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { creationAcresWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/creation-acres";
 
 export default function CreationAcresDemoPage() {
   return (

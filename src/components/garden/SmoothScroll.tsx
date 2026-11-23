@@ -7,6 +7,9 @@ import "lenis/dist/lenis.css";
 import { gsap, ScrollTrigger } from "./gsap";
 import { setActiveLenis } from "./lenis-instance";
 
+/** True after the first SmoothScroll mount in this tab; later mounts are client navigations. */
+let hasMountedOnce = false;
+
 /**
  * Lenis smooth scrolling driven by GSAP's ticker so ScrollTrigger scrubs stay
  * perfectly in sync. Disabled entirely for prefers-reduced-motion.
@@ -67,6 +70,16 @@ export default function SmoothScroll({ children }: { children: ReactNode }) {
       window.removeEventListener("load", refresh);
     };
 
+    // Each Garden page mounts its own SmoothScroll, so a client-side navigation to another
+    // page (or another /features/[slug]) arrives here rather than in the pathname effect
+    // below. Start that page at the top unless its hash points at an element on it (a hash
+    // like #for-family only picks a tab). The very first mount keeps the browser's own
+    // scroll restoration (reloads).
+    const hashId = decodeURIComponent(window.location.hash.slice(1));
+    const resetToTop = hasMountedOnce && !(hashId && document.getElementById(hashId));
+    hasMountedOnce = true;
+    if (resetToTop) window.scrollTo(0, 0);
+
     if (reduce) {
       return stopObserving;
     }
@@ -81,6 +94,7 @@ export default function SmoothScroll({ children }: { children: ReactNode }) {
     });
     lenisRef.current = lenis;
     setActiveLenis(lenis);
+    if (resetToTop) lenis.scrollTo(0, { immediate: true, force: true });
     lenis.on("scroll", ScrollTrigger.update);
     const tick = (time: number) => lenis.raf(time * 1000);
     gsap.ticker.add(tick);

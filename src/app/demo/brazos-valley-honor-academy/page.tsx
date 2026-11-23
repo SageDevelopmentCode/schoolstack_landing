@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { brazosValleyHonorAcademyConfig } from "@/data/school-demos/brazos-valley-honor-academy";
-import { brazosValleyHonorAcademyWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { brazosValleyHonorAcademyWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/brazos-valley-honor-academy";
 
 export default function BrazosValleyHonorAcademyDemoPage() {
   return (

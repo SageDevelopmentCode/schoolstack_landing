@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { tapestryAcademyConfig } from "@/data/school-demos/tapestry-academy";
-import { tapestryAcademyWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { tapestryAcademyWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/tapestry-academy";
 
 export default function TapestryAcademyDemoPage() {
   return (

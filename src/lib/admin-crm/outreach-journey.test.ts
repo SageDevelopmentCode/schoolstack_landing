@@ -50,6 +50,58 @@ describe("outreachJourney", () => {
     assert.equal(due.actionable, true);
   });
 
+  it("puts the handwritten letter before the first email, then holds the email five business days", () => {
+    const withLetter: OutreachPlan = {
+      ...plan,
+      letter: {
+        writtenOn: "2026-11-22",
+        shortSchoolName: "Demo",
+        founder: { fullName: "Ana Diaz", firstName: "Ana", role: "Founder", source: "site", url: "https://example.com" },
+        mailTo: { lines: ["1 Main St", "Austin, TX 78701"], source: "site", url: "https://example.com" },
+        founderFacts: [],
+        hook: "",
+        body: "Hi Ana,",
+        postscript: "",
+        stickyNote: "",
+        shortCode: "ana-k7p2",
+        checkBeforeMailing: [],
+      },
+    };
+
+    const toWrite = outreachJourney({ plan: withLetter, completed: [], crmStatus: "contacted", hasDemo: true, now: monday });
+    assert.equal(toWrite.stage, "letter");
+    assert.equal(toWrite.actionable, true);
+    assert.deepEqual(toWrite.letter, { mailedAt: null, firstEmailDueAt: null });
+
+    const mailed = outreachJourney({
+      plan: withLetter,
+      completed: [],
+      crmStatus: "contacted",
+      hasDemo: true,
+      letterMailedAt: monday.toISOString(),
+      now: monday,
+    });
+    assert.equal(mailed.stage, "step:first");
+    assert.equal(mailed.actionable, false);
+    // Monday + 5 business days = the next Monday.
+    assert.equal(new Date(mailed.letter!.firstEmailDueAt!).getDate(), 30);
+
+    const nextMonday = new Date(2026, 10, 30, 10, 0, 0);
+    const due = outreachJourney({
+      plan: withLetter,
+      completed: [],
+      crmStatus: "contacted",
+      hasDemo: true,
+      letterMailedAt: monday.toISOString(),
+      now: nextMonday,
+    });
+    assert.equal(due.actionable, true);
+    assert.equal(due.due, true);
+
+    const plain = outreachJourney({ plan, completed: [], crmStatus: "contacted", hasDemo: true, now: monday });
+    assert.equal(plain.letter, null);
+  });
+
   it("puts replies and closed deals in their outcome lane", () => {
     assert.equal(outreachJourney({ plan, completed: [], crmStatus: "replied", hasDemo: true }).stage, "replied");
     assert.equal(outreachJourney({ plan, completed: [], crmStatus: "demo_scheduled", hasDemo: true }).stage, "call_booked");

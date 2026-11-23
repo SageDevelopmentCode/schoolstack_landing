@@ -4,7 +4,6 @@ import Link from "next/link";
 import {
   useId,
   type ReactNode,
-  type SelectHTMLAttributes,
 } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
@@ -26,7 +25,6 @@ import {
   GSkeleton,
   GTabBar,
   G_FOCUS,
-  G_INPUT,
   G_LABEL,
   gBtnOutlineSm,
   gBtnPopSm,
@@ -338,63 +336,11 @@ export function useGardenFieldId(prefix: string): string {
   return `${prefix}-${id.replace(/:/g, "")}`;
 }
 
-/** Input class with an error state. */
-export function gInputClass(error?: string | null, extra = ""): string {
-  return `${G_INPUT} ${error ? "!border-[#b4412f]/60 focus:!ring-[#b4412f]/15" : ""} ${extra}`;
-}
-
-export type GardenSelectOption = { value: string; label: string; disabled?: boolean };
-
-/** Native Garden select (counterpart of SchoolAdminSelect). */
-export function GardenSelect({
-  id,
-  value,
-  onChange,
-  options,
-  placeholder,
-  error,
-  className = "",
-  ...rest
-}: Omit<SelectHTMLAttributes<HTMLSelectElement>, "onChange" | "value"> & {
-  id?: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: GardenSelectOption[];
-  placeholder?: string;
-  error?: string | null;
-}) {
-  return (
-    <div className="relative">
-      <select
-        id={id}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        aria-invalid={error ? true : undefined}
-        data-garden-skip
-        className={`${gInputClass(error)} cursor-pointer appearance-none pr-10 ${className}`}
-        {...rest}
-      >
-        {placeholder ? (
-          <option value="" disabled>
-            {placeholder}
-          </option>
-        ) : null}
-        {options.map((option) => (
-          <option key={option.value} value={option.value} disabled={option.disabled}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <svg
-        aria-hidden
-        viewBox="0 0 20 20"
-        className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--sf-ink)]/55"
-      >
-        <path d="M5 7.5l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </div>
-  );
-}
+export {
+  gInputClass,
+  GSelect as GardenSelect,
+  type GSelectOption as GardenSelectOption,
+} from "@/components/school-parent/garden/fields";
 
 /** Garden on/off switch with label + optional description. */
 export function GardenSwitch({

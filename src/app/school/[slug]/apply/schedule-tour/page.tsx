@@ -19,6 +19,7 @@ import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-serve
 import { portalAccountLinkOpensInNewTab } from "@/lib/auth/portal-switcher-types";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
+import { schoolPageMetadata } from "@/lib/og/school-page-metadata";
 
 export const dynamic = "force-dynamic";
 
@@ -34,10 +35,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: "School Not Found" };
   }
 
-  return {
+  return schoolPageMetadata(org, {
     title: `Schedule a tour | ${org.name}`,
     description: `Book a campus tour at ${org.name}.`,
-  };
+    path: "/apply/schedule-tour",
+    page: "tour",
+  });
 }
 
 export default async function ScheduleTourPage({ params }: PageProps) {

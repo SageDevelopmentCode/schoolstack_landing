@@ -6,7 +6,7 @@ import { useRef } from "react";
 import HomeGardenShell from "@/components/garden/HomeGardenShell";
 import { gsap, useGSAP, MQ_MOTION } from "@/components/garden/gsap";
 import { WordsReveal } from "@/components/garden/motion";
-import { Draw, Pill, Squiggle, btnOutline, btnPop } from "@/components/garden/ui";
+import { Draw, Squiggle, btnOutline, btnPop } from "@/components/garden/ui";
 import { ILLUSTRATIONS } from "@/components/home-garden/assets";
 import { GET_STARTED_PAGE_PATH } from "@/lib/marketing/book-demo";
 
@@ -63,9 +63,7 @@ export default function NotFoundExperience() {
         ))}
 
         <div className="relative z-10 mx-auto w-full max-w-3xl text-center">
-          <Pill tint="butter">🧭 404</Pill>
-
-          <h1 className="sf-display mt-6 text-[12vw] leading-[0.9] text-[var(--sf-ink)] sm:text-7xl lg:text-[6rem]">
+          <h1 className="sf-display text-[12vw] leading-[0.9] text-[var(--sf-ink)] sm:text-7xl lg:text-[6rem]">
             <WordsReveal as="span" immediate text="This page wandered off" className="block" />{" "}
             <span className="relative isolate inline-block text-[var(--sf-clay)]">
               <Draw className="pointer-events-none absolute -bottom-2 left-0 -z-10 w-full" delay={0.5}>
@@ -91,7 +89,7 @@ export default function NotFoundExperience() {
           </div>
 
           <Link
-            href="/#product"
+            href="/features"
             className="mt-8 inline-block rounded-sm text-base font-extrabold text-[var(--sf-forest)] underline decoration-[var(--sf-moss)] decoration-2 underline-offset-4 transition-colors hover:decoration-[var(--sf-forest)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-forest)]/30"
           >
             Explore the product

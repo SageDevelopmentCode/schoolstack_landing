@@ -1,118 +1,67 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { BookOpen } from "lucide-react";
 import type { ProgramCoopCurriculumDiscussionMessage } from "@/lib/admissions/program-coop-curriculum-discussion";
 import type { ProgramCoopCurriculumRecord } from "@/lib/admissions/program-coop-curriculum-storage";
-import CurriculumDiscussionSidebar from "@/components/school-parent/curriculum/CurriculumDiscussionSidebar";
-import CurriculumGuideListPanel from "@/components/school-parent/curriculum/CurriculumGuideListPanel";
-import ProgramCoopCurriculumPdfViewer from "@/components/school-parent/curriculum/ProgramCoopCurriculumPdfViewer";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
-import ParentCard from "@/components/school-parent/ui/ParentCard";
+import ParentGardenFrame from "@/components/school-parent/garden/ParentGardenFrame";
+import { GCard } from "@/components/school-parent/garden/ui";
+import { WorkspaceDiscussionDrawer, WorkspacePresent } from "./reader/ReaderParts";
+import type { CurriculumSignedUrls } from "./reader/useCurriculumDocument";
+import { useCurriculumWorkspace } from "./useCurriculumWorkspace";
+import CurriculumBookshelf from "./CurriculumBookshelf";
 
 type ParentCurriculumPageProps = {
   organizationId: string;
   programId: string;
   curricula: ProgramCoopCurriculumRecord[];
-  initialDiscussionMessages?: ProgramCoopCurriculumDiscussionMessage[];
+  /** Signed Storage URLs per guide (server render): PDFs load with range requests. */
+  signedUrls?: CurriculumSignedUrls;
+  /** Server-loaded discussion by thread ("general" or a guide id). */
+  initialThreadMessages?: Record<string, ProgramCoopCurriculumDiscussionMessage[]>;
   currentGuardianId?: string | null;
   previewMode?: boolean;
 };
 
-export default function ParentCurriculumPage({
-  organizationId,
-  programId,
-  curricula,
-  initialDiscussionMessages = [],
-  currentGuardianId = null,
-  previewMode = false,
-}: ParentCurriculumPageProps) {
+/*
+ * Co-op Curriculum tab (Garden, full-height app tab): the Bookshelf — guide
+ * covers first, then a reader with a collapsible page tray. The reader
+ * engine (`reader/*`) opens guides straight from Storage with range requests
+ * and caches them; `useCurriculumWorkspace` holds the shared state.
+ * Skill: .agents/skills/parent-portal-garden-design
+ */
+export default function ParentCurriculumPage(props: ParentCurriculumPageProps) {
   const { theme } = useParentTheme();
-  const [discussionOpen, setDiscussionOpen] = useState(false);
-  const [activeCurriculumId, setActiveCurriculumId] = useState(
-    () => curricula[0]?.id ?? "",
-  );
-  const [discussionCurriculumId, setDiscussionCurriculumId] = useState<string | null>(
-    null,
-  );
-  const [prevCurricula, setPrevCurricula] = useState(curricula);
-
-  if (curricula !== prevCurricula) {
-    setPrevCurricula(curricula);
-    if (curricula.length === 0) {
-      setActiveCurriculumId("");
-    } else if (!curricula.some((record) => record.id === activeCurriculumId)) {
-      setActiveCurriculumId(curricula[0].id);
-    }
-  }
-
-  const activeCurriculum = useMemo(
-    () => curricula.find((record) => record.id === activeCurriculumId) ?? curricula[0] ?? null,
-    [activeCurriculumId, curricula],
-  );
-
-  const handleGuideSelect = (curriculumId: string) => {
-    setActiveCurriculumId(curriculumId);
-    if (discussionOpen) {
-      setDiscussionCurriculumId(curriculumId);
-    }
-  };
-
-  const openDiscussion = (curriculumId: string | null) => {
-    setDiscussionCurriculumId(curriculumId);
-    setDiscussionOpen(true);
-  };
+  const ws = useCurriculumWorkspace(props);
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-1 flex-col">
-      {activeCurriculum ? (
-        <>
-          <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-            <CurriculumGuideListPanel
-              theme={theme}
-              curricula={curricula}
-              activeCurriculumId={activeCurriculum.id}
-              onSelect={handleGuideSelect}
-              onOpenDiscussion={openDiscussion}
-            />
-
-            <div
-              className="flex min-h-0 min-w-0 flex-1 flex-col px-3 py-2 sm:px-5"
-              data-testid="curriculum-pdf-viewer"
-            >
-              <ProgramCoopCurriculumPdfViewer
-                key={activeCurriculum.id}
-                organizationId={organizationId}
-                programId={programId}
-                curriculumId={activeCurriculum.id}
-                fileName={activeCurriculum.fileName}
-              />
-            </div>
+    <>
+      <ParentGardenFrame theme={theme} className="flex h-full min-h-0 flex-1 flex-col bg-[var(--sf-cream)]">
+        {ws.curricula.length > 0 ? (
+          <CurriculumBookshelf ws={ws} />
+        ) : (
+          <div className="flex min-h-0 flex-1 items-center justify-center p-4 sm:p-6">
+            <h1 className="sr-only">Curriculum</h1>
+            <GCard className="w-full max-w-md items-center text-center" bodyClassName="items-center">
+              <span
+                aria-hidden="true"
+                className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--sf-sky)] text-[#24507a]"
+              >
+                <BookOpen className="h-5 w-5" />
+              </span>
+              <p className="m-0 text-[15px] font-extrabold text-[var(--sf-ink)]">
+                Curriculum hasn&apos;t been published yet. Check back soon.
+              </p>
+              <span aria-hidden="true" className="sf-hand mt-2 block text-lg text-[var(--sf-forest)]">
+                good things are on the way ✿
+              </span>
+            </GCard>
           </div>
+        )}
+      </ParentGardenFrame>
 
-          <CurriculumDiscussionSidebar
-            theme={theme}
-            open={discussionOpen}
-            onClose={() => setDiscussionOpen(false)}
-            organizationId={organizationId}
-            programId={programId}
-            curricula={curricula}
-            activeCurriculumId={discussionCurriculumId}
-            onActiveCurriculumIdChange={setDiscussionCurriculumId}
-            initialMessages={initialDiscussionMessages}
-            currentGuardianId={currentGuardianId}
-            previewMode={previewMode}
-          />
-        </>
-      ) : (
-        <ParentCard
-          theme={theme}
-          className="mx-3 my-2 flex min-h-0 flex-1 items-center justify-center rounded-[14px] px-4 py-8 text-center sm:mx-5"
-        >
-          <p className="text-sm" style={{ color: theme.muted }}>
-            Curriculum hasn&apos;t been published yet. Check back soon.
-          </p>
-        </ParentCard>
-      )}
-    </div>
+      <WorkspaceDiscussionDrawer ws={ws} theme={theme} />
+      <WorkspacePresent ws={ws} theme={theme} />
+    </>
   );
 }

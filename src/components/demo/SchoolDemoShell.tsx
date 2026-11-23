@@ -1,26 +1,107 @@
 "use client";
 
 import { AnimatePresence } from "framer-motion";
+import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import GardenRoot from "@/components/garden/GardenRoot";
 import { demoStoryShellStyle } from "@/components/demo/shared/demo-story-theme";
 import { resolveWalkthroughStepIndex } from "@/lib/demo-walkthrough";
-import DemoContactPanel from "@/components/demo/DemoContactPanel";
+import DemoPreviewFrame from "@/components/demo/DemoPreviewFrame";
 import DemoPreviewHint from "@/components/demo/DemoPreviewHint";
 import DemoWalkthroughMobileBar from "@/components/demo/DemoWalkthroughMobileBar";
 import DemoWalkthroughPanel from "@/components/demo/DemoWalkthroughPanel";
 import { buildSchoolConceptWalkthroughTheme } from "@/lib/marketing/school-concept-walkthrough-theme";
-import ScaledAdminDemoPreview from "@/components/demo/ScaledAdminDemoPreview";
-import ScaledParentDemoPreview from "@/components/demo/ScaledParentDemoPreview";
-import ScaledTeacherDemoPreview from "@/components/demo/ScaledTeacherDemoPreview";
-import ScaledApplicationDemoPreview from "@/components/demo/ScaledApplicationDemoPreview";
-import ScaledObservationDemoPreview from "@/components/demo/ScaledObservationDemoPreview";
 import ScaledWebsiteDemoPreview from "@/components/demo/ScaledWebsiteDemoPreview";
-import ScaledMobileAppPreview from "@/components/demo/ScaledMobileAppPreview";
+import { prefetchSchoolWebsiteDemo } from "@/components/demo/shared/lazySchoolWebsiteDemo";
 import type { DemoWalkthroughStep } from "@/data/school-demos/walkthrough-placeholder";
 import type { DemoTuitionOverride } from "@/data/school-demos/tuition-override";
 import type { SchoolWebsiteDemoConfig } from "@/data/school-demos/types";
+
+/**
+ * Step 1 is always the school website, so only that preview ships with the page.
+ * The rest load when their step opens (and are warmed once the browser is idle).
+ */
+const PREVIEW_LOADERS = {
+  admin: () => import("@/components/demo/ScaledAdminDemoPreview"),
+  teacher: () => import("@/components/demo/ScaledTeacherDemoPreview"),
+  parent: () => import("@/components/demo/ScaledParentDemoPreview"),
+  contact: () => import("@/components/demo/DemoContactPanel"),
+  mobile: () => import("@/components/demo/ScaledMobileAppPreview"),
+  application: () => import("@/components/demo/ScaledApplicationDemoPreview"),
+  observation: () => import("@/components/demo/ScaledObservationDemoPreview"),
+} as const;
+
+function PreviewLoading({ variant }: { variant: keyof typeof PREVIEW_LOADERS }) {
+  return (
+    <DemoPreviewFrame variant={variant}>
+      <div className="h-full animate-pulse bg-[var(--sf-cream)]" aria-hidden="true" />
+    </DemoPreviewFrame>
+  );
+}
+
+const ScaledAdminDemoPreview = dynamic(PREVIEW_LOADERS.admin, {
+  loading: () => <PreviewLoading variant="admin" />,
+});
+const ScaledTeacherDemoPreview = dynamic(PREVIEW_LOADERS.teacher, {
+  loading: () => <PreviewLoading variant="teacher" />,
+});
+const ScaledParentDemoPreview = dynamic(PREVIEW_LOADERS.parent, {
+  loading: () => <PreviewLoading variant="parent" />,
+});
+const DemoContactPanel = dynamic(PREVIEW_LOADERS.contact, {
+  loading: () => <PreviewLoading variant="contact" />,
+});
+const ScaledMobileAppPreview = dynamic(PREVIEW_LOADERS.mobile, {
+  loading: () => <PreviewLoading variant="mobile" />,
+});
+const ScaledApplicationDemoPreview = dynamic(PREVIEW_LOADERS.application, {
+  loading: () => <PreviewLoading variant="application" />,
+});
+const ScaledObservationDemoPreview = dynamic(PREVIEW_LOADERS.observation, {
+  loading: () => <PreviewLoading variant="observation" />,
+});
+
+/** Start the website chunk as soon as this module runs, not after the preview mounts. */
+const prefetchedWebsiteSlugs = new Set<string>();
+function prefetchWebsiteOnce(slug: string) {
+  if (typeof window === "undefined" || prefetchedWebsiteSlugs.has(slug)) return;
+  prefetchedWebsiteSlugs.add(slug);
+  void prefetchSchoolWebsiteDemo(slug).catch(() => prefetchedWebsiteSlugs.delete(slug));
+}
+
+/**
+ * Warm the small preview wrappers so step clicks don't wait on them. Wait for the
+ * page's load event plus a pause first: the school website (step 1) and its images
+ * come first, and the browser goes "idle" early while it waits on that chunk.
+ */
+function warmPreviewWrappers() {
+  let cancelled = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let idle: number | undefined;
+  const run = () => {
+    if (cancelled) return;
+    for (const load of Object.values(PREVIEW_LOADERS)) void load().catch(() => {});
+  };
+  const schedule = () => {
+    timer = setTimeout(() => {
+      // Safari has no requestIdleCallback.
+      if (typeof window.requestIdleCallback === "function") {
+        idle = window.requestIdleCallback(run, { timeout: 4000 });
+      } else {
+        run();
+      }
+    }, 2000);
+  };
+  if (document.readyState === "complete") schedule();
+  else window.addEventListener("load", schedule, { once: true });
+  return () => {
+    cancelled = true;
+    window.removeEventListener("load", schedule);
+    if (timer !== undefined) clearTimeout(timer);
+    if (idle !== undefined) window.cancelIdleCallback(idle);
+  };
+}
 
 interface Props {
   config: SchoolWebsiteDemoConfig;
@@ -28,18 +109,31 @@ interface Props {
   steps: DemoWalkthroughStep[];
 }
 
+/**
+ * Reads `?step=` and jumps there. It sits in its own Suspense boundary so the
+ * rest of the walkthrough is in the server HTML (useSearchParams would
+ * otherwise turn the whole shell into a client-only render).
+ */
+function StepParamSync({
+  steps,
+  onStep,
+}: {
+  steps: DemoWalkthroughStep[];
+  onStep: (index: number) => void;
+}) {
+  const searchParams = useSearchParams();
+  const stepParam = searchParams.get("step");
+  useEffect(() => {
+    const resolved = resolveWalkthroughStepIndex(steps, stepParam);
+    if (resolved !== null) onStep(resolved);
+  }, [stepParam, steps, onStep]);
+  return null;
+}
+
 export default function SchoolDemoShell(props: Props) {
   return (
     <GardenRoot>
-      <Suspense
-        fallback={
-          <div className="flex h-screen items-center justify-center bg-[var(--sf-cream)] text-sm font-bold text-[var(--sf-soft)]">
-            Loading walkthrough…
-          </div>
-        }
-      >
-        <SchoolDemoShellInner {...props} />
-      </Suspense>
+      <SchoolDemoShellInner {...props} />
     </GardenRoot>
   );
 }
@@ -49,14 +143,8 @@ function SchoolDemoShellInner({
   schoolName,
   steps,
 }: Props) {
-  const searchParams = useSearchParams();
-  const [activeStep, setActiveStep] = useState(() => {
-    const resolved = resolveWalkthroughStepIndex(
-      steps,
-      searchParams.get("step"),
-    );
-    return resolved ?? 0;
-  });
+  prefetchWebsiteOnce(config.slug);
+  const [activeStep, setActiveStep] = useState(0);
   const [demoTuitionOverride, setDemoTuitionOverride] =
     useState<DemoTuitionOverride | null>(null);
   const [scrollRequest, setScrollRequest] = useState<{
@@ -87,15 +175,7 @@ function SchoolDemoShellInner({
     handleStepSelect(activeStep + 1);
   }, [activeStep, handleStepSelect]);
 
-  useEffect(() => {
-    const resolved = resolveWalkthroughStepIndex(
-      steps,
-      searchParams.get("step"),
-    );
-    if (resolved !== null) {
-      queueMicrotask(() => setActiveStep(resolved));
-    }
-  }, [searchParams, steps]);
+  useEffect(() => warmPreviewWrappers(), []);
 
   const walkthroughTheme = useMemo(
     () => buildSchoolConceptWalkthroughTheme(config.theme),
@@ -121,6 +201,9 @@ function SchoolDemoShellInner({
       className="flex h-screen flex-col overflow-hidden bg-[var(--sf-cream)] lg:flex-row"
       style={shellStyle}
     >
+      <Suspense fallback={null}>
+        <StepParamSync steps={steps} onStep={setActiveStep} />
+      </Suspense>
       <DemoWalkthroughMobileBar
         schoolName={schoolName}
         schoolLogo={config.logo}
@@ -213,7 +296,7 @@ function SchoolDemoShellInner({
             variant={steps[activeStep].contactPanelVariant ?? "schedule"}
           />
         ) : activePreview === "mobile" ? (
-          <ScaledMobileAppPreview key={steps[activeStep].id} demoSlug={config.slug} />
+          <ScaledMobileAppPreview key={steps[activeStep].id} />
         ) : activePreview === "application" ? (
           <ScaledApplicationDemoPreview
             demoSlug={config.slug}

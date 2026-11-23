@@ -183,6 +183,56 @@ export const wildHeartsAdventureOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Wild Hearts",
+    founder: {
+      fullName: "Roekmini Pullom",
+      firstName: "Roekmini",
+      role: "Founder & Executive Director",
+      source: "Wild Hearts About page (\"Roekmini Pullom, Founder & Executive Director\"); the staff pages call her the director",
+      url: "https://wildheartsadventure.co/about/",
+    },
+    mailTo: null,
+    founderFacts: [
+      {
+        fact: "Roekmini wrote on the Wild Hearts staff page that she started Wild Hearts Adventure Co. and is its director, and that she also started a similar learning community in San Diego years ago that is still running strong.",
+        source: "Wild Hearts Visalia Location Staff page (Ms. Roekmini's introduction)",
+        url: "https://wildheartsadventure.co/visalia-location-staff/",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "The About page calls Roekmini Pullom the founder and creative force behind Wild Hearts, a credentialed teacher with a master's degree in education.",
+        source: "Wild Hearts About page",
+        url: "https://wildheartsadventure.co/about/",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Wild Hearts runs in two places, Visalia and Selma, each with its own staff page.",
+        source: "Wild Hearts Selma Location Staff page",
+        url: "https://wildheartsadventure.co/selma-staff/",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "Roekmini wrote on the Wild Hearts staff page that she started Wild Hearts Adventure Co. and is its director, and that she also started a similar learning community in San Diego years ago that is still running strong.",
+    body: `Hi Roekmini,
+
+I read your note on the Wild Hearts staff page. You started a learning community in San Diego years ago that's still running, and now Wild Hearts runs in Visalia and Selma.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear what you did differently the second time around. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Wild Hearts I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Roekmini, a note from a microschool in Round Rock, Texas. J",
+    shortCode: "wildhearts-2o8h",
+    checkBeforeMailing: [
+      "Find a mailing address: the home page footer and Contact page list only the Visalia address on Avenue 296, which looks like a rural home, so it isn't stored here. The Selma location has no published address. Check Google Maps, the California private school directory or the Wild Hearts Facebook About tab for a business address or PO box.",
+      "The letter goes to Roekmini Pullom (founder and director); the email sequence goes to Cara Weeks, Director of Operations, and its first email says the note went to Roekmini. Confirm that split, or switch the emails to Roekmini.",
+      "Roekmini's staff-page introduction is undated: confirm she still runs Wild Hearts and that the San Diego community line is still on the page.",
+    ],
+  },
   steps: [
     {
       id: "first",
@@ -191,6 +241,8 @@ export const wildHeartsAdventureOutreach: OutreachPlan = {
       purpose: "Re-intro: acknowledge the July email, give a new reason (the snapshot), one proof number",
       subject: "Wild Hearts family snapshot",
       body: `Hi Cara,
+
+I mailed Roekmini a handwritten note last week with a card for Wild Hearts.
 
 I wrote in July about a version of MudKitchen I set up for Wild Hearts. Since then I put together a one-page snapshot of what a family sees on your site today: the application checkout, paying with charter funds, and the Family Info password.
 

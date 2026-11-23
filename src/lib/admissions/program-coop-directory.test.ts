@@ -137,7 +137,25 @@ describe("formatProgramCoopLearnerLine", () => {
         grade: "k",
         profilePhotoUrl: null,
       }),
-      "Kinder · Grade k",
+      "Kinder · Kindergarten",
+    );
+    assert.equal(
+      formatProgramCoopLearnerLine({
+        studentId: "student-c",
+        firstName: "Julia",
+        grade: "2",
+        profilePhotoUrl: null,
+      }),
+      "Julia · 2nd Grade",
+    );
+    assert.equal(
+      formatProgramCoopLearnerLine({
+        studentId: "student-d",
+        firstName: "Ivy",
+        grade: "Grade 3",
+        profilePhotoUrl: null,
+      }),
+      "Ivy · Grade 3",
     );
     assert.equal(
       formatProgramCoopLearnerLine({

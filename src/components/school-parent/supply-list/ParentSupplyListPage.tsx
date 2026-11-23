@@ -1,39 +1,29 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import { AnimatePresence } from "framer-motion";
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, Eye, SearchX } from "lucide-react";
 import CoopSupplyListFilterBar from "@/components/admissions/CoopSupplyListFilterBar";
 import ParentCoopSupplyListItemDetailPanel from "@/components/school-parent/supply-list/ParentCoopSupplyListItemDetailPanel";
 import ParentSupplyListMobileItemCard from "@/components/school-parent/supply-list/ParentSupplyListMobileItemCard";
-import ParentSupplyListSignupButton from "@/components/school-parent/supply-list/ParentSupplyListSignupButton";
+import ParentSupplyListSignupButton, {
+  SupplyTypeChip,
+} from "@/components/school-parent/supply-list/ParentSupplyListSignupButton";
+import ParentGardenFrame from "@/components/school-parent/garden/ParentGardenFrame";
+import ParentGardenPageHeader from "@/components/school-parent/garden/ParentGardenPageHeader";
+import { G_TABLE, G_TD, G_TH, gRowClass } from "@/components/school-parent/garden/fields";
+import { GCard, GIcon, GKicker, GStatTile, G_FOCUS } from "@/components/school-parent/garden/ui";
+import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import {
-  computeSupplyListSummary,
   formatSupplyAssignedFamilies,
   formatSupplyEstimatedPrice,
   formatSupplyQuantity,
   getSupplyColorLegendEntry,
-  supplyColorLegendDisplayLabel,
   supplyItemDisplayName,
-  supplyItemTypeChipTone,
-  supplyItemTypeLabel,
-  supplyListRowStyle,
   supplyUsageTimingLabel,
   type CoopSupplyColorLegendEntry,
   type CoopSupplyListItem,
-  type SupplyItemType,
 } from "@/lib/admissions/program-coop-supply-list-mock";
-import {
-  DEFAULT_COOP_SUPPLY_LIST_FILTERS,
-  filterCoopSupplyListItems,
-  type CoopSupplyListFilters,
-} from "@/lib/admissions/program-coop-supply-list-filters";
-import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
-import ParentCard from "@/components/school-parent/ui/ParentCard";
-import ParentChip, { type ParentChipTone } from "@/components/school-parent/ui/ParentChip";
-import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
-import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
-import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
+import { PORTAL_HOME_CONTAINER_CLASS } from "@/lib/portal-home/layout";
+import { useParentSupplyListModel } from "./useParentSupplyListModel";
 
 type ParentSupplyListPageProps = {
   organizationId: string;
@@ -46,16 +36,14 @@ type ParentSupplyListPageProps = {
   previewMode?: boolean;
 };
 
-type PendingAction = {
-  itemId: string;
-  type: "claim" | "unclaim";
-};
+const TABLE_HEADINGS = ["Item", "Type", "When", "Qty", "Est. price", "Parents", "Where to buy", "Sign up"] as const;
 
-function parentSupplyChipTone(type: SupplyItemType): ParentChipTone {
-  const tone = supplyItemTypeChipTone(type);
-  return tone === "purple" ? "info" : tone;
-}
-
+/**
+ * Parent co-op Supply list (Garden): summary strip, filter card, then every
+ * item in one card (table from md, rows on phones). Rows open the item
+ * drawer, which is the only place to remove a sign-up. Preview shows
+ * everything with sign-ups disabled.
+ */
 export default function ParentSupplyListPage({
   organizationId,
   programId,
@@ -66,347 +54,198 @@ export default function ParentSupplyListPage({
   familyNameMap,
   previewMode = false,
 }: ParentSupplyListPageProps) {
-  const { theme, adminCompat: C } = useParentTheme();
-  const familyNames = useMemo(
-    () => new Map(Object.entries(familyNameMap)),
-    [familyNameMap],
-  );
-  const [items, setItems] = useState(initialItems);
-  const [filters, setFilters] = useState<CoopSupplyListFilters>(
-    DEFAULT_COOP_SUPPLY_LIST_FILTERS,
-  );
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
-  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-
-  const summary = useMemo(() => computeSupplyListSummary(items), [items]);
-
-  const filteredItems = useMemo(
-    () =>
-      filterCoopSupplyListItems(items, filters, {
-        variant: "parent",
-        currentFamilyId,
-      }),
-    [currentFamilyId, filters, items],
-  );
-
-  const selectedItem = useMemo(
-    () => items.find((item) => item.id === selectedItemId) ?? null,
-    [items, selectedItemId],
-  );
-
-  const updateItem = useCallback((updated: CoopSupplyListItem) => {
-    setItems((current) =>
-      current.map((item) => (item.id === updated.id ? updated : item)),
-    );
-  }, []);
-
-  const runAction = useCallback(
-    async (itemId: string, type: "claim" | "unclaim") => {
-      if (previewMode) return;
-
-      setPendingAction({ itemId, type });
-      setActionError(null);
-
-      let response: Response | undefined;
-      try {
-        response = await fetch(
-          `/api/parent-portal/supply-list/${type === "claim" ? "claim" : "unclaim"}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              organizationId,
-              programId,
-              itemId,
-            }),
-          },
-        );
-
-        const payload = (await response.json()) as {
-          item?: CoopSupplyListItem;
-          error?: string;
-        };
-
-        if (!response.ok || !payload.item) {
-          throw new Error(payload.error ?? "Unable to update sign-up.");
-        }
-
-        updateItem(payload.item);
-      } catch (error) {
-        setActionError(
-          error instanceof Error ? error.message : "Unable to update sign-up.",
-        );
-        void reportPortalOperationalError(
-          "parent_portal",
-          {
-            organizationId,
-            operation: "supply_list.update_signup",
-            error: "",
-          },
-          error,
-          response?.status,
-        );
-      } finally {
-        setPendingAction(null);
-      }
-    },
-    [organizationId, previewMode, programId, updateItem],
-  );
+  const { theme } = useParentTheme();
+  const model = useParentSupplyListModel({
+    organizationId,
+    programId,
+    initialItems,
+    currentFamilyId,
+    familyNameMap,
+    previewMode,
+  });
+  const { filteredItems, familyNames } = model;
+  const colorFor = (item: CoopSupplyListItem) => getSupplyColorLegendEntry(initialLegend, item.colorId)?.hex ?? null;
 
   return (
-    <div className="mx-auto w-full max-w-[1250px] px-4 py-6 sm:py-8 md:px-9">
-      <div className="mb-5">
-        <ParentSectionKicker theme={theme}>Co-op</ParentSectionKicker>
-        <div className="mt-1 flex items-center gap-2.5">
-          <ClipboardList
-            className="h-7 w-7 shrink-0"
-            style={{ color: theme.primary }}
-            aria-hidden
+    <>
+      <ParentGardenFrame theme={theme}>
+        <div className={PORTAL_HOME_CONTAINER_CLASS} data-testid="parent-coop-supply-list-ready">
+          <ParentGardenPageHeader
+            kicker="Co-op"
+            title={
+              <>
+                Supply <span className="text-[var(--sf-clay)]">list</span>
+              </>
+            }
+            subtitle="Review shared supplies for the year and sign up for items your family can bring."
+            data-testid="parent-coop-supply-list-header"
           />
-          <ParentDisplayHeading theme={theme} size="display">
-            Supply list
-          </ParentDisplayHeading>
-        </div>
-        <p className="mt-2 max-w-2xl text-sm" style={{ color: theme.muted }}>
-          Review shared supplies for the year and sign up for items your family can
-          bring.
-        </p>
-      </div>
 
-      {initialLegend.length > 0 ? (
-        <ParentCard theme={theme} className="mb-4 p-3.5">
-          <div className="flex flex-wrap gap-2">
-            {initialLegend.map((entry) => (
-              <div
-                key={entry.id}
-                className="flex items-center gap-2 rounded-md border px-2.5 py-1.5"
-                style={{ borderColor: theme.line, backgroundColor: theme.white }}
-              >
-                <span
-                  className="h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: entry.hex }}
-                  aria-hidden="true"
-                />
-                <span className="text-xs font-medium" style={{ color: theme.ink }}>
-                  {supplyColorLegendDisplayLabel(entry)}
-                </span>
+          {previewMode ? (
+            <p className="m-0 -mt-3 flex w-fit items-center gap-2 rounded-[12px] bg-[var(--sf-sky)] px-3 py-2 text-[12px] font-extrabold text-[#24507a]">
+              <Eye className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              Preview mode — items can be opened but not signed up for here.
+            </p>
+          ) : null}
+
+          <GCard index={1} kicker="At a glance" className="overflow-hidden" bodyClassName="-mx-5 -mb-5 sm:-mx-6 sm:-mb-6">
+            <div className="grid grid-cols-2 border-t-[1.5px] border-[var(--sf-ink)]/10 sm:grid-cols-4 sm:divide-x-[1.5px] sm:divide-[var(--sf-ink)]/10">
+              <div className="border-b-[1.5px] border-r-[1.5px] border-[var(--sf-ink)]/10 sm:border-0">
+                <GStatTile value={model.summary.itemCount} label={model.summary.itemCount === 1 ? "Item" : "Items"} />
               </div>
-            ))}
-          </div>
-        </ParentCard>
-      ) : null}
-
-      <div className="mb-4 grid grid-cols-3 gap-2 sm:gap-3">
-        <ParentCard theme={theme} className="p-3 sm:p-4">
-          <div className="text-[10px] font-extrabold uppercase tracking-[0.08em] sm:text-[11px]" style={{ color: theme.muted }}>
-            Items
-          </div>
-          <div className="mt-1 text-xl font-semibold sm:text-2xl" style={{ color: theme.ink }}>
-            {summary.itemCount}
-          </div>
-        </ParentCard>
-        <ParentCard theme={theme} className="p-3 sm:p-4">
-          <div className="text-[10px] font-extrabold uppercase tracking-[0.08em] sm:text-[11px]" style={{ color: theme.muted }}>
-            With sign-ups
-          </div>
-          <div className="mt-1 text-xl font-semibold sm:text-2xl" style={{ color: theme.ink }}>
-            {summary.assignedCount}
-          </div>
-        </ParentCard>
-        <ParentCard theme={theme} className="p-3 sm:p-4">
-          <div className="text-[10px] font-extrabold uppercase tracking-[0.08em] sm:text-[11px]" style={{ color: theme.muted }}>
-            Signed up as
-          </div>
-          <div className="mt-1 text-xs font-semibold sm:text-sm" style={{ color: theme.ink }}>
-            {currentFamilyLabel}
-          </div>
-        </ParentCard>
-      </div>
-
-      {actionError ? (
-        <div
-          className="mb-4 rounded-md border px-3 py-2 text-sm"
-          style={{
-            borderColor: theme.alert,
-            backgroundColor: theme.alertBg,
-            color: theme.alert,
-          }}
-        >
-          {actionError}
-        </div>
-      ) : null}
-
-      <CoopSupplyListFilterBar
-        variant="parent"
-        filters={filters}
-        onChange={setFilters}
-        colorLegend={initialLegend}
-        theme={theme}
-        resultCount={filteredItems.length}
-        totalCount={items.length}
-      />
-
-      {filteredItems.length === 0 ? (
-        <p className="py-8 text-sm" style={{ color: theme.muted }}>
-          No supply items match the current filters.
-        </p>
-      ) : (
-        <>
-          <div className="space-y-2 md:hidden">
-            {filteredItems.map((item) => {
-              const colorEntry = getSupplyColorLegendEntry(initialLegend, item.colorId);
-              const isSelected = item.id === selectedItemId;
-              const rowStyle = supplyListRowStyle(C, {
-                colorHex: colorEntry?.hex ?? null,
-                isSelected,
-                isHovered: false,
-                variant: "parent",
-                parentTheme: theme,
-              });
-
-              return (
-                <ParentSupplyListMobileItemCard
-                  key={item.id}
-                  item={item}
-                  theme={theme}
-                  rowStyle={rowStyle}
-                  currentFamilyId={currentFamilyId}
-                  previewMode={previewMode}
-                  pendingAction={pendingAction}
-                  isSelected={isSelected}
-                  onSelect={() => setSelectedItemId(item.id)}
-                  onSignUp={() => void runAction(item.id, "claim")}
+              <div className="border-b-[1.5px] border-[var(--sf-ink)]/10 sm:border-0">
+                <GStatTile value={model.summary.assignedCount} label="With sign-ups" />
+              </div>
+              <div className="border-r-[1.5px] border-[var(--sf-ink)]/10 sm:border-0">
+                <GStatTile
+                  value={model.mySignupCount}
+                  label={model.mySignupCount === 1 ? "Your sign-up" : "Your sign-ups"}
+                  accent={model.mySignupCount > 0}
                 />
-              );
-            })}
-          </div>
+              </div>
+              <div className="flex flex-col items-start justify-center gap-1 px-5 py-4">
+                <GKicker>Signed up as</GKicker>
+                <span className="text-[15px] font-extrabold text-[var(--sf-ink)]">{currentFamilyLabel}</span>
+              </div>
+            </div>
+          </GCard>
 
-          <div className="hidden overflow-x-auto md:block">
-            <table className="min-w-[980px] w-full border-collapse text-left">
-              <thead style={{ backgroundColor: "#FBFCFB" }}>
-                <tr>
-                  {[
-                    "Item",
-                    "Type",
-                    "When",
-                    "Qty",
-                    "Est. price",
-                    "Parents",
-                    "Where to buy",
-                    "Sign up",
-                  ].map((heading) => (
-                    <th
-                      key={heading}
-                      className="px-[15px] py-2.5 text-left text-[10px] font-extrabold uppercase tracking-[0.08em]"
-                      style={{ color: "#8B9699" }}
-                    >
-                      {heading}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredItems.map((item) => {
-                  const colorEntry = getSupplyColorLegendEntry(initialLegend, item.colorId);
-                  const isSelected = item.id === selectedItemId;
-                  const isHovered = item.id === hoveredItemId;
-                  const rowStyle = supplyListRowStyle(C, {
-                    colorHex: colorEntry?.hex ?? null,
-                    isSelected,
-                    isHovered,
-                    variant: "parent",
-                    parentTheme: theme,
-                  });
-                  return (
-                    <tr
-                      key={item.id}
-                      onClick={() => setSelectedItemId(item.id)}
-                      onMouseEnter={() => setHoveredItemId(item.id)}
-                      onMouseLeave={() => setHoveredItemId(null)}
-                      className="cursor-pointer transition-colors"
-                      style={{
-                        ...rowStyle,
-                        borderTop: `1px solid ${theme.line}`,
-                      }}
-                    >
-                      <td className="px-[15px] py-3">
-                        <div className="text-xs font-semibold" style={{ color: theme.ink }}>
-                          {supplyItemDisplayName(item)}
-                        </div>
-                      </td>
-                      <td className="px-[15px] py-3">
-                        <ParentChip theme={theme} tone={parentSupplyChipTone(item.itemType)}>
-                          {supplyItemTypeLabel(item.itemType)}
-                        </ParentChip>
-                      </td>
-                      <td className="px-[15px] py-3 text-xs" style={{ color: theme.muted }}>
-                        {supplyUsageTimingLabel(item)}
-                      </td>
-                      <td className="px-[15px] py-3 text-xs" style={{ color: theme.muted }}>
-                        {formatSupplyQuantity(item)}
-                      </td>
-                      <td className="px-[15px] py-3 text-xs" style={{ color: theme.muted }}>
-                        {formatSupplyEstimatedPrice(item.estimatedPrice)}
-                      </td>
-                      <td className="max-w-[180px] px-[15px] py-3">
-                        <div
-                          className="truncate text-xs"
-                          style={{ color: theme.muted }}
-                          title={
-                            item.assignedFamilyIds.length > 0
-                              ? formatSupplyAssignedFamilies(item.assignedFamilyIds, familyNames)
-                              : undefined
-                          }
-                        >
-                          {formatSupplyAssignedFamilies(item.assignedFamilyIds, familyNames)}
-                        </div>
-                      </td>
-                      <td className="max-w-[180px] px-[15px] py-3">
-                        <div
-                          className="truncate text-xs"
-                          style={{ color: theme.muted }}
-                          title={item.whereToBuy || undefined}
-                        >
-                          {item.whereToBuy.trim() || "—"}
-                        </div>
-                      </td>
-                      <td className="px-[15px] py-3">
-                        <ParentSupplyListSignupButton
-                          theme={theme}
-                          item={item}
-                          currentFamilyId={currentFamilyId}
-                          previewMode={previewMode}
-                          pendingAction={pendingAction}
-                          onSignUp={() => void runAction(item.id, "claim")}
-                        />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
-
-      <AnimatePresence>
-        {selectedItem ? (
-          <ParentCoopSupplyListItemDetailPanel
-            item={selectedItem}
+          <CoopSupplyListFilterBar
+            variant="parent"
+            filters={model.filters}
+            onChange={model.setFilters}
             colorLegend={initialLegend}
             theme={theme}
-            currentFamilyId={currentFamilyId}
-            familyNameMap={familyNames}
-            previewMode={previewMode}
-            pendingAction={pendingAction}
-            onClose={() => setSelectedItemId(null)}
-            onClaim={() => void runAction(selectedItem.id, "claim")}
-            onUnclaim={() => void runAction(selectedItem.id, "unclaim")}
+            resultCount={filteredItems.length}
+            totalCount={model.items.length}
           />
-        ) : null}
-      </AnimatePresence>
-    </div>
+
+          <GCard index={3} kicker="Supplies" title="Everything the co-op needs" data-testid="parent-supply-list-items">
+            {filteredItems.length === 0 ? (
+              <div className="flex flex-col items-start gap-3 rounded-[18px] bg-[var(--sf-paper)] p-5 sm:flex-row sm:items-center">
+                <GIcon>{model.items.length === 0 ? <ClipboardList /> : <SearchX />}</GIcon>
+                <p className="m-0 text-[15px] font-semibold text-[var(--sf-soft)]">
+                  {model.items.length === 0
+                    ? "No supply items have been added yet."
+                    : "No supply items match the current filters."}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-col gap-2.5 md:hidden">
+                  {filteredItems.map((item) => (
+                    <ParentSupplyListMobileItemCard
+                      key={item.id}
+                      item={item}
+                      colorHex={colorFor(item)}
+                      currentFamilyId={currentFamilyId}
+                      previewMode={previewMode}
+                      pendingAction={model.pendingAction}
+                      isSelected={item.id === model.selectedItemId}
+                      onSelect={() => model.openItem(item.id)}
+                      onSignUp={() => model.claim(item.id)}
+                    />
+                  ))}
+                </div>
+
+                <div className="-mx-5 hidden overflow-x-auto px-5 sm:-mx-6 sm:px-6 md:block">
+                  <table className={`${G_TABLE} min-w-[980px]`}>
+                    <thead>
+                      <tr>
+                        {TABLE_HEADINGS.map((heading) => (
+                          <th key={heading} scope="col" className={G_TH}>
+                            {heading}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredItems.map((item) => {
+                        const colorHex = colorFor(item);
+                        const parents = formatSupplyAssignedFamilies(item.assignedFamilyIds, familyNames);
+                        return (
+                          <tr
+                            key={item.id}
+                            onClick={() => model.openItem(item.id)}
+                            className={gRowClass({ interactive: true, selected: item.id === model.selectedItemId })}
+                          >
+                            <td
+                              className={`${G_TD} min-w-[200px] border-l-[4px]`}
+                              style={{ borderLeftColor: colorHex ?? "transparent" }}
+                            >
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  model.openItem(item.id);
+                                }}
+                                aria-haspopup="dialog"
+                                className={`rounded-md text-left text-[14px] font-extrabold text-[var(--sf-ink)] hover:underline hover:decoration-2 hover:underline-offset-4 ${G_FOCUS}`}
+                              >
+                                {supplyItemDisplayName(item)}
+                              </button>
+                            </td>
+                            <td className={G_TD}>
+                              <SupplyTypeChip type={item.itemType} />
+                            </td>
+                            <td className={`${G_TD} min-w-[110px] text-[13px] font-semibold text-[var(--sf-soft)]`}>
+                              {supplyUsageTimingLabel(item)}
+                            </td>
+                            <td className={`${G_TD} whitespace-nowrap text-[13px] font-semibold text-[var(--sf-soft)]`}>
+                              {formatSupplyQuantity(item)}
+                            </td>
+                            <td className={`${G_TD} whitespace-nowrap text-[13px] font-semibold text-[var(--sf-soft)]`}>
+                              {formatSupplyEstimatedPrice(item.estimatedPrice)}
+                            </td>
+                            <td className={`${G_TD} max-w-[180px]`}>
+                              <div
+                                className="truncate text-[13px] font-semibold text-[var(--sf-soft)]"
+                                title={item.assignedFamilyIds.length > 0 ? parents : undefined}
+                              >
+                                {parents}
+                              </div>
+                            </td>
+                            <td className={`${G_TD} max-w-[180px]`}>
+                              <div
+                                className="truncate text-[13px] font-semibold text-[var(--sf-soft)]"
+                                title={item.whereToBuy || undefined}
+                              >
+                                {item.whereToBuy.trim() || "—"}
+                              </div>
+                            </td>
+                            <td className={G_TD}>
+                              <ParentSupplyListSignupButton
+                                item={item}
+                                currentFamilyId={currentFamilyId}
+                                previewMode={previewMode}
+                                pendingAction={model.pendingAction}
+                                onSignUp={() => model.claim(item.id)}
+                              />
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </GCard>
+        </div>
+      </ParentGardenFrame>
+
+      <ParentCoopSupplyListItemDetailPanel
+        item={model.selectedItem}
+        colorLegend={initialLegend}
+        theme={theme}
+        currentFamilyId={currentFamilyId}
+        familyNameMap={familyNames}
+        previewMode={previewMode}
+        pendingAction={model.pendingAction}
+        onClose={model.closeItem}
+        onClaim={() => model.selectedItem && model.claim(model.selectedItem.id)}
+        onUnclaim={() => model.selectedItem && model.unclaim(model.selectedItem.id)}
+      />
+    </>
   );
 }

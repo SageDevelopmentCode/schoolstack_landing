@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { Reveal } from "@/components/garden/motion";
-import { Pill } from "@/components/garden/ui";
 import Polaroid from "@/components/home-garden/Polaroid";
 import { SAGEFIELD_PHOTOS, TAPES } from "@/components/home-garden/assets";
 import { GALLERY_COPY, SAGEFIELD_LOGO_SRC, SAGEFIELD_SITE_URL } from "./sagefield-copy";
@@ -15,8 +14,7 @@ export default function SagefieldGardenGallery() {
   return (
     <section aria-label={GALLERY_COPY.eyebrow} className="relative bg-[var(--sf-cream)] py-20 lg:py-28">
       <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
-        <Pill tint="butter">📸 {GALLERY_COPY.eyebrow}</Pill>
-        <Reveal className="mt-10 grid grid-cols-2 gap-6 sm:gap-8 lg:grid-cols-4" y={50} stagger={0.1}>
+        <Reveal className="grid grid-cols-2 gap-6 sm:gap-8 lg:grid-cols-4" y={50} stagger={0.1}>
           {GALLERY.map((photo, i) => (
             <Polaroid
               key={photo.src}

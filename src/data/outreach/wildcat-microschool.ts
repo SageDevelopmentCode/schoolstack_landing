@@ -213,22 +213,72 @@ export const wildcatMicroschoolOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Wildcat",
+    founder: {
+      fullName: "Heather Long",
+      firstName: "Heather",
+      role: "Founder and guide",
+      source: "Josiah Bartlett Center, \"Education entrepreneur spotlight: Heather Long of Wildcat Microschool\" (Dec 8, 2023); the Wildcat home page lists her first of three educators",
+      url: "https://jbartlett.org/?p=53976",
+    },
+    mailTo: null,
+    founderFacts: [
+      {
+        fact: "Heather Long told the Josiah Bartlett Center (December 8, 2023) that she started Wildcat in December 2021 with four learners, that it had 22 by the 2023–24 school year, and that more than anything she wants to see kids who are independent learners.",
+        source: "Josiah Bartlett Center, Education entrepreneur spotlight: Heather Long of Wildcat Microschool",
+        url: "https://jbartlett.org/?p=53976",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Heather Long has worked in education for 15 years, as a preschool teacher, behavior specialist and school counselor.",
+        source: "Wildcat Microschool home page (educator bios)",
+        url: "https://wildcatmicroschool.weebly.com/",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Wildcat is a homeschool learning pod in Haverhill, New Hampshire, run in its guides' homes a few miles apart, with transportation between them and many acres of forest for nature-based learning.",
+        source: "Wildcat Microschool home page",
+        url: "https://wildcatmicroschool.weebly.com/",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "Heather Long told the Josiah Bartlett Center (December 8, 2023) that she started Wildcat in December 2021 with four learners, that it had 22 by the 2023–24 school year, and that more than anything she wants to see kids who are independent learners.",
+    body: `Hi Heather,
+
+I read the Josiah Bartlett Center's piece on Wildcat, and what you said there about wanting, more than anything, to see kids who are independent learners.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how Wildcat has changed since you started it with four learners. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Wildcat I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Heather, a note from a small school in Round Rock, Texas. J",
+    shortCode: "wildcat-nvle",
+    checkBeforeMailing: [
+      "Find a mailing address: wildcatmicroschool.weebly.com (home, contact, blog, calendar) and the Bartlett Center piece list no address or PO box. The home page says the school runs in the guides' homes, so any street address you find for Wildcat is likely a home; don't use it. Non-home leads: ask Heather through the site's contact form for a mailing address or PO box, or ask Prenda (Wildcat's network in 2023–24) whether it has a school mailing address.",
+      "The hook is from a December 2023 profile, and nothing on the site is newer than the 2025–26 calendar. Confirm Wildcat is running in 2026–27 and that Heather still leads it before mailing.",
+      "The first email still says Julius wrote in May; confirm that email went out.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "Re-intro: acknowledge the May email, give a new reason (the snapshot), one proof number",
+      purpose: "Re-intro after the handwritten letter: mention the note and the May email, one detail from the snapshot, one proof number",
       subject: "Wildcat's waitlist form",
       body: `Hi Heather,
 
-I wrote in May about a version of MudKitchen I set up for Wildcat. Since then I put together a one-page snapshot of what a family sees on your site today, from the contact page to the calendar.
+I mailed you a handwritten note last week with a card for Wildcat. It has a QR code for the version of MudKitchen I set up for you (I first wrote about it in May) and a one-page snapshot of what a family sees on your site today, from the contact page to the calendar.
 
 One thing stood out: the waitlist is a Google Form that asks families to fill out a new form for each child, next to a separate contact form.
 
 I run Sage Field, a microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen.
 
-Want me to send the snapshot?
+Want me to send the snapshot link here too?
 
 Julius`,
     },

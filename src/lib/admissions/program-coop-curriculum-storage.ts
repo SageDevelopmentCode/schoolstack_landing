@@ -174,6 +174,30 @@ export async function createProgramCoopCurriculumSignedUrl(
   return data.signedUrl;
 }
 
+/**
+ * Signed, short-lived Storage URLs for every guide, created during the server
+ * render so the browser can open the PDFs straight from Storage with range
+ * requests (never through our server). A guide that fails to sign is left
+ * out; the client then asks `/api/parent-portal/curriculum/pdf-url`.
+ */
+export async function signProgramCoopCurriculumUrls(
+  supabase: SupabaseClient,
+  curricula: ProgramCoopCurriculumRecord[],
+): Promise<Record<string, { url: string; expiresAt: number }>> {
+  const expiresAt = Date.now() + PROGRAM_COOP_CURRICULUM_SIGNED_URL_TTL_SECONDS * 1000;
+  const entries = await Promise.all(
+    curricula.map(async (record) => {
+      try {
+        const url = await createProgramCoopCurriculumSignedUrl(supabase, record.storagePath);
+        return [record.id, { url, expiresAt }] as const;
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return Object.fromEntries(entries.filter((entry) => entry !== null));
+}
+
 export async function listProgramCoopCurriculum(
   supabase: SupabaseClient,
   programId: string,

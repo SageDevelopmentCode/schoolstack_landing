@@ -160,22 +160,77 @@ export const micahsMissionSchoolOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Micah's Mission",
+    founder: {
+      fullName: "Emily Harber Williams",
+      firstName: "Emily",
+      role: "Founder, President & Chief Visionary Officer",
+      source: "Micah's Mission home page, Meet the Administrator",
+      url: "https://micahsmissionschool.org/",
+    },
+    mailTo: {
+      lines: ["900 Crawford Street", "Vicksburg, MS 39180"],
+      source: "Micah's Mission Contact Us page and site footer (Crawford Street United Methodist Church, where the school meets)",
+      url: "https://micahsmissionschool.org/contact.html",
+    },
+    founderFacts: [
+      {
+        fact: "Vicksburg Daily News (April 1, 2025) reported that WJTV named Dr. Emily Williams, founder of Micah's Mission, one of two Remarkable Women of 2025, chosen from more than 150 candidates; in her WJTV interview she called Micah's \"an educational mission where we work with children who are educationally at risk.\"",
+        source: "Vicksburg Daily News, Micah's Mission founder, Dr. Emily Williams, named Remarkable Woman of 2025",
+        url: "https://vicksburgnews.com/micahs-mission-founder-dr-emily-williams-named-remarkable-woman-of-2025/",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "The same article says she founded Micah's Mission in 2017 after noticing that many homeschooled children had learning challenges that needed extra support, and that it has grown into a K-12 learning and resource center.",
+        source: "Vicksburg Daily News, Micah's Mission founder, Dr. Emily Williams, named Remarkable Woman of 2025",
+        url: "https://vicksburgnews.com/micahs-mission-founder-dr-emily-williams-named-remarkable-woman-of-2025/",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Dr. Emily Harber Williams writes that she was a Lead Special Education Teacher in the Vicksburg-Warren School District from 2011 to 2017 before she \"followed God's calling to 'step out of the boat'\" and started Micah's Mission.",
+        source: "Micah's Mission home page, Meet the Administrator",
+        url: "https://micahsmissionschool.org/",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "Vicksburg Daily News (April 1, 2025) reported that WJTV named Dr. Emily Williams, founder of Micah's Mission, one of two Remarkable Women of 2025, chosen from more than 150 candidates; in her WJTV interview she called Micah's \"an educational mission where we work with children who are educationally at risk.\"",
+    body: `Hi Emily,
+
+I read the Vicksburg Daily News story on WJTV naming you one of its Remarkable Women of 2025. I liked how you described Micah's there, as an educational mission for children who are educationally at risk.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how Micah's has grown since you started it in 2017. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Micah's Mission I set up, plus a parent's-eye look at your enrollment and tuition.",
+    stickyNote: "Emily, a short note from a microschool in Texas. J",
+    shortCode: "micahs-okau",
+    checkBeforeMailing: [
+      "The address is Crawford Street United Methodist Church, where Micah's meets (the site lists no separate mailing address): address it to Dr. Emily Harber Williams, Micah's Mission School, so the church office passes it on.",
+      "Greeting: she signs \"Dr. Em\" on the site and the press calls her Dr. Emily Williams. Consider \"Hi Dr. Em,\" when you copy it out (the stored greeting stays \"Hi Emily,\").",
+      "The hook is from April 2025. Confirm Micah's is still open at Crawford Street for 2026–27 before mailing (the site's latest dated items are from 2024).",
+      "Never mention the Sponsor a Student memorial fund or the student story on the Step Out of the Boat page.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "Re-intro: acknowledge the June email, give a new reason (the snapshot), one proof number",
+      purpose: "Re-intro after the handwritten letter: mention the note and the June email, one detail from the snapshot, one proof number",
       subject: "sponsored students at Micah's",
       body: `Hi Emily,
 
-I wrote in June about a version of MudKitchen I set up for Micah's Mission. Since then I put together a one-page snapshot of what a family sees on your site today, from finding tuition to paying it.
+I mailed you a handwritten note last week with a card for Micah's Mission. It has a QR code for the version of MudKitchen I set up for you (I first wrote about it in June) and a one-page snapshot of what a family sees on your site today, from finding tuition to paying it.
 
 One thing stood out: Sponsor a Student uses the same $5,000 semesters as tuition, and your goal is for every student to be fully funded. The site doesn't say how a gift reaches a family's bill.
 
 I run Sage Field, a microschool in Round Rock. We went from 0 to 35 students in under 3 months on MudKitchen.
 
-Want me to send the snapshot?
+Want me to send the snapshot link here too?
 
 Julius`,
     },

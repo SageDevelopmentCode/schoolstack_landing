@@ -175,22 +175,75 @@ export const homeworkHubOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Homework Hub",
+    founder: {
+      fullName: "Tracy Berman-Rolleri",
+      firstName: "Tracy",
+      role: "Owner and founder",
+      source: "Homework Hub, Meet Our Office Staff",
+      url: "https://www.homeworkhubtutoring.com/our-office-staff",
+    },
+    mailTo: {
+      lines: ["628 Walt Whitman Road", "Melville, NY 11747"],
+      source: "Homework Hub home page (schema.org address) and the HwH Academy page's form footer",
+      url: "https://www.homeworkhubtutoring.com/",
+    },
+    founderFacts: [
+      {
+        fact: "Tracy Berman-Rolleri began her career teaching elementary school at a Manhattan private school, built a tutoring practice that took off in New York City, relocated to Long Island over 25 years ago and founded Homework Hub in 2012.",
+        source: "Homework Hub, Meet Our Office Staff",
+        url: "https://www.homeworkhubtutoring.com/our-office-staff",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Tracy holds two master's degrees, in Special Education and in Reading, is Orton-Gillingham and Lindamood-Bell trained, and has over 30 years of experience educating children.",
+        source: "Homework Hub, Meet Our Office Staff",
+        url: "https://www.homeworkhubtutoring.com/our-office-staff",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Homework Hub now runs HwH Academy, a grades 5–8 microschool in Melville with a 6:1 ratio, Monday to Friday 9:00–2:30, enrolling for 2026–2027.",
+        source: "Homework Hub, HwH Academy",
+        url: "https://www.homeworkhubtutoring.com/hwh-academy",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "Tracy Berman-Rolleri began her career teaching elementary school at a Manhattan private school, built a tutoring practice that took off in New York City, relocated to Long Island over 25 years ago and founded Homework Hub in 2012.",
+    body: `Hi Tracy,
+
+I read how Homework Hub began, with a classroom in Manhattan and a tutoring practice in the city before you started it on Long Island in 2012. I liked seeing it now include a full-day microschool for grades 5 to 8.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear what led you to start HwH Academy. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Homework Hub I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Tracy, a handwritten note from a small school in Texas. J",
+    shortCode: "homeworkhub-hq4k",
+    checkBeforeMailing: [
+      "The site gives 628 Walt Whitman Road with no suite number. It's a storefront learning center on Route 110, but check the door or Google Maps for a suite before mailing.",
+      "The founding story is from the school's own staff page, not an interview. I couldn't open a Team Girl Boss feature that search results tie to her, so it isn't used.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "Re-intro: acknowledge the June email, give a new reason (the snapshot), one proof number",
+      purpose: "Re-intro after the handwritten letter: mention the note and the June email, one detail from the snapshot, one proof number",
       subject: "Learning Pod registration at Homework Hub",
       body: `Hi Tracy,
 
-I wrote in June about a version of MudKitchen I set up for Homework Hub. Since then I put together a one-page snapshot of what a family sees on your site today, from finding a program to paying for it.
+I mailed you a handwritten note last week with a card for Homework Hub. It has a QR code for the version of MudKitchen I set up for you (I first wrote about it in June) and a one-page snapshot of what a family sees on your site today, from finding a program to paying for it.
 
 One thing stood out: after acceptance, a Learning Pod family fills in six separate forms, and the membership agreement has them write out each installment's date and amount.
 
 I run Sage Field, a microschool in Round Rock. We went from 0 to 35 students in under 3 months on MudKitchen.
 
-Want me to send the snapshot?
+Want me to send the snapshot link here too?
 
 Julius`,
     },

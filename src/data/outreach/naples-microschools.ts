@@ -173,6 +173,73 @@ export const naplesMicroschoolsOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Naples MicroSchools",
+    founder: {
+      fullName: "Dayana Philippi",
+      firstName: "Dr. Dee",
+      role: "Founder and Head of Schools",
+      source: "Naples MicroSchools Team page (Dayana Philippi, Ed.D., \"known by her colleagues as Dr. Dee\", founder of NMS)",
+      url: "https://www.naplesmicroschools.com/team",
+    },
+    mailTo: {
+      lines: ["PO Box 990434", "Naples, FL 34116"],
+      source: "Naples MicroSchools Contact page (\"Direct Mail to: Naples MicroSchools | PO Box #990434 | Naples, FL 34116\")",
+      url: "https://www.naplesmicroschools.com/contact",
+    },
+    founderFacts: [
+      {
+        fact: "In Southwest Florida Family's story \"New, Innovative Educational Microschool Model in Naples\" (January 29, 2025), Dr. Dee Philippi said of Naples MicroSchools: \"This is for all kids – for kids that have the wiggles, for kids that like to be outside, for kids that want hands-on.\"",
+        source: "Southwest Florida Family, New, Innovative Educational Microschool Model in Naples (Andrea Stetson)",
+        url: "https://neafamily.com/innovative-educational-microschool-model-naples/",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "She told Southwest Florida Family her children were doing well in public school, \"but if you can do something better, then you should.\"",
+        source: "Southwest Florida Family, New, Innovative Educational Microschool Model in Naples (Andrea Stetson)",
+        url: "https://neafamily.com/innovative-educational-microschool-model-naples/",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "The same story describes students on a 2.5-acre farm in Golden Gate Estates who gather eggs or plant vegetables while working math or reading into it, with 31 students (some part time) in three groups: K–2, 3–4 and 5–8.",
+        source: "Southwest Florida Family, New, Innovative Educational Microschool Model in Naples (Andrea Stetson)",
+        url: "https://neafamily.com/innovative-educational-microschool-model-naples/",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Dr. Dee believes engaging with animals and nature can enhance student motivation, learning, leadership and character building, and has trained a team of learning guides to spark joy through exploring the natural world.",
+        source: "Naples MicroSchools Team page",
+        url: "https://www.naplesmicroschools.com/team",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Dr. Dee has 20+ years in education, holds master's and doctoral degrees in education, is a Florida certified educator and K-12 school leader, and was principal at BridgePrep Academy of Naples in its first years.",
+        source: "Naples MicroSchools About page",
+        url: "https://www.naplesmicroschools.com/about",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "In Southwest Florida Family's story \"New, Innovative Educational Microschool Model in Naples\" (January 29, 2025), Dr. Dee Philippi said of Naples MicroSchools: \"This is for all kids – for kids that have the wiggles, for kids that like to be outside, for kids that want hands-on.\"",
+    body: `Hi Dr. Dee,
+
+I read the Southwest Florida Family story about Naples MicroSchools. I liked your line that the school is for kids who have the wiggles and kids who like to be outside.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how the farm fits into your school week. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Naples MicroSchools I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Dr. Dee, a note from an outdoor microschool in Texas. J",
+    shortCode: "naples-7e8m",
+    checkBeforeMailing: [
+      "Mail to the PO Box the Contact page lists under \"Direct Mail to\". The school itself meets on a farm in Golden Gate Estates; never mail there.",
+      "Greeting uses \"Dr. Dee\", the name she uses on the Team page and her Calendly pages. Address the envelope to Dr. Dayana Philippi, Naples MicroSchools.",
+      "The Southwest Florida Family story is from January 2025 (31 students then). Read it before mailing so you can talk about it if she texts, and don't quote the old student count.",
+      "The school is openly Christian; the letter doesn't touch it. Keep it that way if you add anything by hand.",
+    ],
+  },
   steps: [
     {
       id: "first",
@@ -181,6 +248,8 @@ export const naplesMicroschoolsOutreach: OutreachPlan = {
       purpose: "One real question about how a quarterly invoice paid partly through EMA and partly by card is tracked, then who's asking and why",
       subject: "Step Up invoices at NMS",
       body: `Hi Dr. Dee,
+
+I mailed you a handwritten note last week with a card for Naples MicroSchools.
 
 The financial policy on your registration form says families get a quarterly invoice by email and have two days to pay it, through Step Up's EMA or by card, and pay out of pocket whatever the scholarship doesn't cover.
 

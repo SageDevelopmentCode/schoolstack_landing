@@ -17,8 +17,6 @@ export default function PricingPaper() {
       <section id="pricing" className="relative bg-[var(--sf-peach)]/40 py-24 lg:py-32">
         <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
           <SectionIntro
-            pill={`🌼 ${PRICING_COPY.eyebrow}`}
-            tint="clay"
             lead={PRICING_COPY.headlineLead}
             accent={PRICING_COPY.headlineAccent}
             squiggle="var(--sf-butter)"
@@ -71,8 +69,6 @@ export default function PricingPaper() {
         <div className="mx-auto grid max-w-7xl items-center gap-14 px-6 sm:px-10 lg:grid-cols-[0.9fr_1.1fr] lg:px-16">
           <div>
             <SectionIntro
-              pill="🛠️ Custom builds"
-              tint="lav"
               lead={CUSTOM_COPY.headlineLead}
               accent={CUSTOM_COPY.headlineAccent}
               squiggle="var(--sf-lav)"

@@ -13,6 +13,7 @@ export type FunnelStage =
   | "not_started"
   | "needs_demo"
   | "needs_plan"
+  | "letter"
   | `step:${OutreachStepId}`
   | "finished"
   | "replied"
@@ -26,6 +27,7 @@ export type FunnelStage =
 /** The tunnel: the sequence, then the outcomes it should lead to. */
 export const FUNNEL_MAIN_STAGES: FunnelStage[] = [
   "needs_plan",
+  "letter",
   "step:first",
   "step:follow-1",
   "step:social",
@@ -51,6 +53,7 @@ export const FUNNEL_STAGE_LABEL: Record<FunnelStage, string> = {
   not_started: "Not started",
   needs_demo: "Needs a demo",
   needs_plan: "Needs a plan",
+  letter: "Letter",
   "step:first": "First email",
   "step:follow-1": "Walkthrough",
   "step:social": "Social hello",
@@ -92,6 +95,8 @@ export type OutreachJourney = {
   /** True when the next step is a follow-up that's due today or overdue. */
   due: boolean;
   isRecontact: boolean;
+  /** The handwritten letter, when the plan has one: mailed date, and when the first email is due after it. */
+  letter: { mailedAt: string | null; firstEmailDueAt: string | null } | null;
 };
 
 /** Short label for a plan step ("Re-intro" for a re-contact first email, "Snapshot" when it links one). */
@@ -123,11 +128,14 @@ export function outreachJourney(input: {
   completed: CompletedStep[];
   crmStatus: CrmStatus;
   hasDemo: boolean;
+  /** When the plan's handwritten letter was mailed, or null. */
+  letterMailedAt?: string | null;
   now?: Date;
 }): OutreachJourney {
   const { plan, completed, crmStatus, hasDemo } = input;
+  const letterMailedAt = input.letterMailedAt ?? null;
   const doneAt = new Map(completed.map((c) => [c.stepId, c.at]));
-  const next = nextOutreachStep({ plan, completed, crmStatus, now: input.now });
+  const next = nextOutreachStep({ plan, completed, crmStatus, letterMailedAt, now: input.now });
 
   const steps: JourneyStep[] = (plan?.steps ?? []).map((step, index) => {
     const at = doneAt.get(step.id) ?? null;
@@ -143,7 +151,11 @@ export function outreachJourney(input: {
     };
   });
   const current = steps.find((s) => s.status === "current") ?? null;
-  const base = { steps, isRecontact: Boolean(plan?.priorContact) };
+  const firstSent = doneAt.has("first");
+  const letter = plan?.letter
+    ? { mailedAt: letterMailedAt, firstEmailDueAt: !firstSent && next.step?.id === "first" ? next.dueAt : null }
+    : null;
+  const base = { steps, isRecontact: Boolean(plan?.priorContact), letter };
 
   const outcome = OUTCOME_STAGE[crmStatus];
   if (outcome) return { ...base, stage: outcome, next: null, actionable: false, due: false };
@@ -165,6 +177,11 @@ export function outreachJourney(input: {
   if (!current) {
     // Every step is done (or the plan has no steps left): the sequence ran its course.
     return { ...base, stage: crmStatus === "nurturing" ? "nurturing" : "finished", next: null, actionable: false, due: false };
+  }
+
+  if (next.stage === "letter") {
+    // The letter is the job today; the first email waits behind it.
+    return { ...base, stage: "letter", next: current, actionable: true, due: false };
   }
 
   const due = next.stage === "due";

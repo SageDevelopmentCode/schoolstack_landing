@@ -152,22 +152,76 @@ export const paradiseEarthAcademyOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Paradise Earth",
+    founder: {
+      fullName: "Melissa Alexander",
+      firstName: "Melissa",
+      role: "Founder & CEO",
+      source: "Paradise Earth Academy, Who We Are",
+      url: "https://paradiseearthacademy.com/who-we-are/",
+    },
+    mailTo: {
+      lines: ["235 E Guadalupe Rd", "Gilbert, AZ 85234"],
+      source: "Paradise Earth Academy home page footer (the Gilbert campus; no separate mailing address listed)",
+      url: "https://paradiseearthacademy.com/",
+    },
+    founderFacts: [
+      {
+        fact: "On the Harvesting Wisdom Podcast (October 8, 2026), Melissa Alexander told Dr. Joe Roselle how Paradise Earth Academy grew from a small homeschooling group into a school of about 80 students, and talked about the school garden and plans for orchards and outdoor classrooms.",
+        source: "Harvesting Wisdom Podcast with Mike McMahon, Nature-Based Education & School Gardens | Paradise Earth Academy",
+        url: "https://podcasts.apple.com/us/podcast/nature-based-education-school-gardens-paradise-earth/id1732568264?i=1000796381554",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Melissa Alexander has worked in education for over 25 years, starting with a B.S. in Education from Illinois State University in 2000.",
+        source: "Paradise Earth Academy, Who We Are",
+        url: "https://paradiseearthacademy.com/who-we-are/",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Paradise Earth Academy's home page says new Queen Creek, Glendale and Scottsdale locations are opening soon, with pre-enrollment open now.",
+        source: "Paradise Earth Academy home page",
+        url: "https://paradiseearthacademy.com/",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "On the Harvesting Wisdom Podcast (October 8, 2026), Melissa Alexander told Dr. Joe Roselle how Paradise Earth Academy grew from a small homeschooling group into a school of about 80 students, and talked about the school garden and plans for orchards and outdoor classrooms.",
+    body: `Hi Melissa,
+
+I listened to your Harvesting Wisdom episode. I liked hearing how Paradise Earth grew from a small homeschool group to about 80 students, and your plans for orchards and outdoor classrooms around the garden.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+With Queen Creek, Glendale and Scottsdale coming, I'd like to hear how you're planning the new campuses. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Paradise Earth I set up, plus a parent's-eye look at enrolling across your campuses.",
+    stickyNote: "Melissa, a note from an outdoor microschool in Texas. J",
+    shortCode: "paradise-1qnf",
+    checkBeforeMailing: [
+      "235 E Guadalupe Rd is the Gilbert campus in the site footer (the CRM notes it's Gilbert Presbyterian Church's educational center). Put Paradise Earth Academy on the envelope so it isn't taken for church mail.",
+      "Listen to the 15-minute episode before mailing so you can talk about it if she calls.",
+      "Check the home page still says Queen Creek, Glendale and Scottsdale are opening soon (the letter calls them coming).",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "Re-intro: acknowledge the July email, give a new reason (the snapshot), one proof number",
+      purpose: "Re-intro after the handwritten letter: mention the note and the July email, one detail from the snapshot, one proof number",
       subject: "three new P.E.A. campuses",
       body: `Hi Melissa,
 
-I wrote in July about a version of MudKitchen I set up for Paradise Earth Academy. Since then I put together a one-page snapshot of what a family sees on your site today, from finding tuition to paying it.
+I mailed you a handwritten note last week with a card for Paradise Earth Academy. It has a QR code for the version of MudKitchen I set up for you (I first wrote about it in July) and a one-page snapshot of what a family sees on your site today, from finding tuition to paying it.
 
 One thing stood out: Gilbert families start with a School Cues inquiry, while the Queen Creek, Scottsdale and Glendale waitlists are separate Omella forms. That's four lists before anyone tours.
 
 I run Sage Field, a microschool in Round Rock. We went from 0 to 35 students in under 3 months on MudKitchen.
 
-Want me to send the snapshot?
+Want me to send the snapshot link here too?
 
 Julius`,
     },

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, MessageSquare } from "lucide-react";
 import ParentButton from "@/components/school-parent/ui/ParentButton";
+import { gBtnOutlineSm } from "@/components/school-parent/garden/ui";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
   formatParentActionError,
@@ -20,6 +21,8 @@ type ParentCoopFamilyMessageButtonProps = {
   contactGuardianId: string;
   messagesHref: string;
   previewMode?: boolean;
+  /** "garden" renders the Garden outline button (inside ParentGardenFrame). */
+  appearance?: "portal" | "garden";
 };
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -40,6 +43,7 @@ export default function ParentCoopFamilyMessageButton({
   contactGuardianId,
   messagesHref,
   previewMode = false,
+  appearance = "portal",
 }: ParentCoopFamilyMessageButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -87,6 +91,29 @@ export default function ParentCoopFamilyMessageButton({
     }
   };
 
+  const icon = loading ? (
+    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+  ) : (
+    <MessageSquare className="h-3.5 w-3.5" aria-hidden />
+  );
+
+  if (appearance === "garden") {
+    return (
+      <button
+        type="button"
+        disabled={previewMode || loading}
+        onClick={() => void handleClick()}
+        className={`${gBtnOutlineSm} !px-3.5 !py-2 !text-[13px]`}
+        aria-label={`Message ${familyName}`}
+        aria-busy={loading || undefined}
+      >
+        {icon}
+        Message
+        {previewMode ? " (preview)" : ""}
+      </button>
+    );
+  }
+
   return (
     <ParentButton
       theme={theme}
@@ -97,11 +124,7 @@ export default function ParentCoopFamilyMessageButton({
       className="!inline-flex !items-center !gap-1.5 !px-2.5 !py-1 !text-[12px]"
       aria-label={`Message ${familyName}`}
     >
-      {loading ? (
-        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-      ) : (
-        <MessageSquare className="h-3.5 w-3.5" aria-hidden />
-      )}
+      {icon}
       Message
       {previewMode ? " (preview)" : ""}
     </ParentButton>

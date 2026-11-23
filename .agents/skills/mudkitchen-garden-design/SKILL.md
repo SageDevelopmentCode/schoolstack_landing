@@ -199,7 +199,7 @@ All tokens are CSS variables on `.sf-garden`. Write them in Tailwind as `bg-[var
 | Lead paragraph | body | `text-lg leading-relaxed text-[var(--sf-soft)]` |
 | Body in cards | body | `text-[15–16.5px] leading-relaxed text-[var(--sf-ink)]/75–85` |
 | UI labels and buttons | body | `font-extrabold` (Nunito 800) |
-| Eyebrow and meta | body | `text-sm font-extrabold uppercase tracking-[0.18–0.22em]` (editorial) or a `Pill` |
+| Eyebrow and meta | body | `text-sm font-extrabold uppercase tracking-[0.18–0.22em]` (editorial); never a `Pill` above a heading |
 | Handwritten note | `sf-hand` | `text-xl`–`text-2xl`, coloured `text-[var(--sf-forest)]` or `text-[var(--sf-soft)]` |
 
 - **`.sf-display`:** Bricolage, weight 800, tracking −0.035em, line-height 0.95. It's in `@layer components`, so `leading-*` and `tracking-*` utilities override it.
@@ -243,7 +243,7 @@ All tokens are CSS variables on `.sf-garden`. Write them in Tailwind as `bg-[var
 | `btnOutline` | Ink outline secondary (Try the product, See how setup works). |
 | `btnButter` | Primary CTA **on forest panels**. |
 | `MARK.{butter,peach,mint,sky}` | Marker highlight class for a phrase. |
-| `Pill` (`tint`: `clay`, `forest`, `butter`, `sky`, `lav`, `ink`) | Section eyebrow with an emoji (`<Pill tint="forest">🌱 Guided setup</Pill>`); `ink` is for dark panels. |
+| `Pill` (`tint`: `clay`, `forest`, `butter`, `sky`, `lav`, `ink`) | In-card chips and labels only (`<Pill tint="forest">🌱 Guided setup</Pill>`), never a section or hero eyebrow above a heading; `ink` is for dark panels. |
 | `Tape` | Washi tape strip. |
 | `Draw` + `Squiggle`, `Sun`, `Leaf`, `Arrow`, `Star`, `Ring` | Hand-drawn doodles that draw themselves on view. `Draw`'s `className` controls display (`hidden lg:block`). Decorative, so they're `aria-hidden`. |
 | `Tick` (`tick` prop adds `data-tick`) | Hand-drawn check for lists. Renders checked; pass `tick` to animate the draw-on yourself. |
@@ -267,14 +267,14 @@ All tokens are CSS variables on `.sf-garden`. Write them in Tailwind as `bg-[var
 
 | Block | Use |
 |---|---|
-| `SectionIntro` | The standard heading stack: Pill → h2 (`lead` + coloured `accent` + optional squiggle) → `note` → `body`. Props: `align`, `dark`, `headingClassName`. **Use this for every section heading.** |
+| `SectionIntro` | The standard heading stack: h2 (`lead` + coloured `accent` + optional squiggle) → `note` → `body`. Props: `align`, `dark`, `headingClassName`. **Use this for every section heading.** |
 | `GardenDemoFrame` | The live interactive product (`DemoStage`) in a taped browser frame with tilt. `active` is a `DemoStageKey`. Children are overlays (sticker notes). |
 | `GardenBrowserFrame` | The same taped browser frame for anything else: an iframe (sagefield.co), a YouTube film, a role demo, a paper mock-up. `label` fills the bar; the body sits in `.sf-demo`. `chrome={false}` when the child draws its own bar (that's how `GardenDemoFrame` uses it). |
 | `GardenViewTabs` | Parent / Teacher / Admin tabs over a live `GardenDemoFrame` with popping stickers (the home hero pattern, reusable below the fold). `dark` on forest panels. Used on `/about`. |
 | `GardenModuleDemo` | The seven module index cards driving the live demo (recipe 10), with an `aside` slot. Used on `/get-started` and the free-tool tail. |
 | `StickerNote` | A sample notification (`STICKERS_BY_DEMO[key][i]`) as a pastel note. `size="sm"` for overlays. |
 | `Polaroid` | Taped photo with an optional handwritten caption. |
-| `PhoneCard` | App store slide (`DOWNLOAD_APP_SLIDES[i]`) in a white phone card with its caption. |
+| `PhoneCard` | App store slide (`DOWNLOAD_APP_SLIDES[i]`) in a white phone card with its caption. `priority` / `loading` for above-the-fold or carousel use. In a fixed frame, use the screenshot gallery (`recipes.md` 27b). |
 | `GrowingPlant` | Seed-to-bloom SVG for scroll scrubs (`recipes.md`). |
 | `GardenFaq` | `HOME_FAQ` as index-card accordions with a sticky intro. |
 | `GardenBookDemo` | The real `GetStartedDemoFlow` on notebook paper, `id="book-demo"`. Props: `id`, `scrollOnStepChange`, `onStepChange`, `introHeadingAs` (default `"h2"`; `/get-started` passes `"h1"` because the form title is its page heading). |
@@ -295,7 +295,7 @@ All tokens are CSS variables on `.sf-garden`. Write them in Tailwind as `bg-[var
 ```tsx
 <section className="py-24 lg:py-32 bg-[var(--sf-mint)]/45">
   <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
-    <SectionIntro pill="🌱 Guided setup" tint="forest" lead={COPY.headlineLead} accent={COPY.headlineAccent}
+    <SectionIntro lead={COPY.headlineLead} accent={COPY.headlineAccent}
       accentColor="text-[var(--sf-forest)]" squiggle="var(--sf-mint)" body={<p>{COPY.body}</p>} />
     <Reveal className="mt-16 grid gap-8 md:grid-cols-3" stagger={0.12} y={50}>{/* cards */}</Reveal>
     <div className="mt-14 text-center"><a href={BOOK_DEMO_HASH_HREF} className={btnPop}>{COPY.cta}</a></div>
@@ -303,7 +303,7 @@ All tokens are CSS variables on `.sf-garden`. Write them in Tailwind as `bg-[var
 </section>
 ```
 
-- **Order:** Pill → heading → handwritten note → body → content → CTA.
+- **Order:** heading → handwritten note → body → content → CTA. No eyebrow pill above the heading.
 - **Alignment:** left-aligned, two-column layouts are fine when there's text plus a visual.
 - **Widths:** `max-w-7xl` for most sections, `max-w-[1320px]` for wide editorial or split layouts. Copy stays under about `max-w-xl`/`2xl`.
 - **One idea and one signature interaction per section**, picked from `recipes.md`. Calm sections in between are what make the loud ones land.
@@ -317,13 +317,13 @@ All tokens are CSS variables on `.sf-garden`. Write them in Tailwind as `bg-[var
   - The photos are about 1024px. Don't stretch them past about 1200px wide, and keep wide bands inside rounded containers.
 - **Product:**
   - Prefer the live `GardenDemoFrame`.
-  - For static product shots use the app slides (`/images/mobileapp/*.webp`, aspect 960×2087) in `PhoneCard` or a bordered rounded rect.
+  - For static product shots use the app slides (`/images/mobileapp/*.webp`, aspect 960×2087) in `PhoneCard` or a bordered rounded rect. For the app inside a fixed frame (the demo walkthrough's mobile step), use the screenshot gallery recipe (`recipes.md` 27b), not a hand-built phone mock-up.
 - **Illustrations:** `/images/illustrations/*.webp` (`ILLUSTRATIONS`) are transparent cut-outs. Use them in blobs, on spines, or as a prop, like the folder in the messy desk.
 - **Tool logos:** `/images/competitors/*` via `PAIRS`. Only use them in "tools you replace" contexts.
 - **Icons:**
   - lucide at `strokeWidth` 2.2–2.6.
   - Put them inside a white circle or rounded square with `ring-2 ring-[var(--sf-ink)]`, coloured by context.
-  - **Emoji** only lead pills and labels (🌿 🧺 🌱 🌼 🌳 💬 🛠️ 📱), one per label, and never in body copy.
+  - **Emoji** only lead in-card chips and labels (🌿 🧺 🌱 🌼 🌳 💬 🛠️ 📱), one per label, and never in body copy.
 
 ## 11. Motion
 
@@ -396,6 +396,7 @@ All tokens are CSS variables on `.sf-garden`. Write them in Tailwind as `bg-[var
 
 - [ ] Every string comes from a copy source (§3). New microcopy is decorative, short and `aria-hidden`.
 - [ ] One `h1`. Section headings `h2` (through `SectionIntro`).
+- [ ] No eyebrow pills above headings (hero or section).
 - [ ] No small clay text on pastels; clay-deep instead (§5).
 - [ ] Each section has at most one signature interaction; at most one forest panel per page.
 - [ ] At 1440×900, pinned frames fit and scrub forwards and backwards.

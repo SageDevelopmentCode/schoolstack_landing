@@ -174,16 +174,72 @@ export const brazosValleyHonorAcademyOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "BVHA",
+    founder: {
+      fullName: "Amber Trapp",
+      firstName: "Amber",
+      role: "Director",
+      source: "KBTX, A spring rodeo for the whole family to support the Brazos Valley honor academy (March 20, 2025)",
+      url: "https://www.kbtx.com/2025/03/20/spring-rodeo-whole-family-support-brazos-valley-honor-academy/",
+    },
+    mailTo: {
+      lines: ["Brazos Valley Honor Academy", "304 Frazier Street", "Navasota, TX 77868"],
+      source: "BVHA Contact & Visit page (the visit address; also in the site footer and the schema.org School address)",
+      url: "https://www.mybvha.com/contact",
+    },
+    founderFacts: [
+      {
+        fact: "BVHA's campus campaign page says the school is working toward a permanent campus, starting with a $150,000 goal toward a down payment on a prospective 50-acre property with room for classrooms, agricultural learning, a restored farmhouse and a small chapel.",
+        source: "Help BVHA Put Down Roots | Campus Campaign",
+        url: "https://www.mybvha.com/support",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "In a KBTX story (March 20, 2025), director Amber Trapp said BVHA's spring rodeo fit the school because many of its families live out in the country and have horses.",
+        source: "KBTX, A spring rodeo for the whole family to support the Brazos Valley honor academy",
+        url: "https://www.kbtx.com/2025/03/20/spring-rodeo-whole-family-support-brazos-valley-honor-academy/",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "BVHA's first fundraiser was Christmas in the Country (December 9, 2023), its second the Spring Rodeo (March 22, 2025), and its 2026 online silent auction ran November 15–21.",
+        source: "Community & Events | Brazos Valley Honor Academy",
+        url: "https://www.mybvha.com/events",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "BVHA's campus campaign page says the school is working toward a permanent campus, starting with a $150,000 goal toward a down payment on a prospective 50-acre property with room for classrooms, agricultural learning, a restored farmhouse and a small chapel.",
+    body: `Hi Amber,
+
+I saw BVHA is raising money toward a permanent home, maybe a 50-acre property with room for gardens, animals and a restored farmhouse.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how the silent auction went and where the campaign stands. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of BVHA I set up, plus a parent's-eye look at your enrollment and tuition.",
+    stickyNote: "Amber, a note from a microschool in Round Rock. J",
+    shortCode: "bvha-zf1z",
+    checkBeforeMailing: [
+      "Confirm Amber Trapp is still BVHA's director, and whether she founded it: the only source is KBTX (March 2025) and the school's site names no staff.",
+      "304 Frazier Street is the visit address with school hours on the Contact page, and the campaign page calls the current site rented. Glance at it on a map to make sure it's the school building, not a house.",
+      "The 50-acre property is described as prospective. If the campaign page has changed (property secured or dropped), adjust the first line.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "One real question about how families pay tuition, from their own tuition page, plus one proof number",
+      purpose: "Mention the handwritten note, then one real question about how families pay tuition, from their own tuition page, plus one proof number",
       subject: "BVHA's first-Tuesday tuition",
       body: `Hi Amber,
 
-I was reading the new BVHA tuition page. Tuition is $490 a month, due the first Tuesday, with a $25 late fee after three days, and the sibling and pay-in-full discounts can't be combined.
+I mailed you a handwritten note last week with a card for BVHA.
+
+I was also reading the new BVHA tuition page. Tuition is $490 a month, due the first Tuesday, with a $25 late fee after three days, and the sibling and pay-in-full discounts can't be combined.
 
 Is tuition part of the family portal you're rolling out, or do families pay another way today?
 

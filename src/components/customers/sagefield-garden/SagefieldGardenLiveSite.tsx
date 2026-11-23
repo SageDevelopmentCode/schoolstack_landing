@@ -91,8 +91,6 @@ export default function SagefieldGardenLiveSite() {
       <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
         <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
           <SectionIntro
-            pill={`🌐 ${LIVE_SITE_COPY.eyebrow}`}
-            tint="sky"
             lead={LIVE_SITE_COPY.headlineLead}
             accent={LIVE_SITE_COPY.headlineAccent}
             squiggle="var(--sf-sky)"

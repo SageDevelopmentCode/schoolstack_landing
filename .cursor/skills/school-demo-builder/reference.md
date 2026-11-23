@@ -51,10 +51,11 @@ Given school **Luff Learning Fine Arts Academy** and slug **`luff-learning`**:
 - [ ] `src/app/demo/{slug}/page.tsx`
 - [ ] `src/app/demo/{slug}/layout.tsx`
 
-### Components (2 files + optional mobile)
+### Components (1 file)
 
 - [ ] `src/components/demo/{folder}/{Brand}WebsiteDashboardDemo.tsx`
-- [ ] `src/components/demo/{folder}/{Brand}MobileAppShowcase.tsx` (microschool demos)
+
+The mobile step is the shared app screenshot gallery (`ScaledMobileAppPreview.tsx`), so there's no per-school mobile component.
 
 ### Dashboard configs (register in `dashboard-registry.ts`)
 
@@ -69,35 +70,11 @@ Given school **Luff Learning Fine Arts Academy** and slug **`luff-learning`**:
 Admin/parent/teacher previews use shared loaders automatically once configs are in the registry. **Do not** add slug branches or per-school `lazy{Brand}Demos.tsx` for portal dashboards.
 
 - [ ] `src/components/demo/shared/lazySchoolWebsiteDemo.tsx` — `WEBSITE_DEMO_LOADERS` (website wrapper only)
-- [ ] `src/components/demo/ScaledMobileAppPreview.tsx` — `MOBILE_SHOWCASE_LOADERS`
-
 No edits needed to `ScaledAdminDemoPreview.tsx`, `ScaledParentDemoPreview.tsx`, or `ScaledTeacherDemoPreview.tsx` for new schools (Rooted Meadows is already special-cased).
-
-### Mobile showcase (2 touch points)
-
-- [ ] `src/components/demo/{folder}/{Brand}MobileAppShowcase.tsx`
-- [ ] `src/components/demo/ScaledMobileAppPreview.tsx` — `MOBILE_SHOWCASE_LOADERS` entry
-
-#### Mobile slide checklist (microschool demos)
-
-Five tabs in order: **Messages** (Parent) · **Tuition** (Parent) · **Admissions** (Admin) · **Attendance** (Teacher) · **Students** (Teacher).
-
-Do **not** use a Committees tab for microschool demos — use the Admin Admissions submissions slide instead (Rooted Meadows prototype keeps its own committees slide).
-
-| Slide | Key UI |
-|---|---|
-| Messages | Teacher thread, unread badge, message bubbles |
-| Tuition | Balance card, child filters, Pay / Pay All, paid rows |
-| Admissions | Lead cards, flow/status filters, detail sheet |
-| Attendance | 8–10 students, day nav, Present/Pickup/Absent buttons |
-| Students | Avatars, status, guardian contact, profile chips |
-
-Factory: `createMicroschoolMobileSlides({ accentColor, teacherName, teacherTitle?, schoolName? })`.
-Shared roster/leads: `src/components/demo/mobile/mobileDemoData.ts`.
 
 ### Walkthrough (1 touch point)
 
-- [ ] `src/data/school-demos/walkthrough-placeholder.ts` — append `{camelCase}WalkthroughPlaceholder` (9 steps, including `mobile-app` before contact). Steps have no colour fields; the sidebar is themed from `config.theme`
+- [ ] `src/data/school-demos/walkthroughs/{slug}.ts` exports `{camelCase}WalkthroughPlaceholder` (9 steps, with `createMobileAppWalkthroughStep()` just before contact). Add `export * from "./walkthroughs/{slug}";` to the barrel `walkthrough-placeholder.ts` (for tooling and tests), but import the per-school file from the page. Steps have no colour fields; the sidebar is themed from `config.theme`
 
 ### Assets
 
@@ -179,7 +156,7 @@ export const {PREFIX}_ADMIN_COLORS = {
 
 Typography: the website and the Garden portal steps use the Garden fonts (Bricolage / Nunito / Gochi); nothing per school.
 
-Mobile slides are unchanged: paper interior `#F8F8F3`, story tab pills in `SchoolMobileAppShowcase.tsx`.
+The mobile step is MudKitchen-branded (the store screenshots), not school-branded.
 
 ## Teacher program IDs
 
@@ -223,7 +200,7 @@ Set copy strings (school name, location subtitle, office name) on `SchoolAdminDe
 
 **Website:** Register the school's website wrapper in `lazySchoolWebsiteDemo.tsx` → `WEBSITE_DEMO_LOADERS`.
 
-**Mobile:** Register in `ScaledMobileAppPreview.tsx` → `MOBILE_SHOWCASE_LOADERS`.
+**Mobile:** nothing to register. Every school gets the shared app screenshot gallery.
 
 **Do not** copy the old per-slug `is{Brand}` / `Lazy{Brand}AdminDashboardDemo` pattern — that caused duplicate ~24k-line portal forks and Vercel build OOM. Rooted Meadows is the only standard demo with custom portal forks (`src/components/demo/rootedmeadows/`); do not use that pattern for new schools.
 

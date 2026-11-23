@@ -143,22 +143,67 @@ export const lighthouseHomeschoolOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "Lighthouse",
+    founder: {
+      fullName: "Robyn (last name unconfirmed)",
+      firstName: "Robyn",
+      role: "Contact for Lighthouse Homeschool Academy (title unknown, unconfirmed)",
+      source:
+        "UNCONFIRMED: not named on this site. Robyn is the plan's existing email greeting, from a web search summary of Lighthouse's Alignable listing (Robyn Pinkowski) that we couldn't open. lighthousehomeschool.com, its FAQ and TheHomeSchoolMom listing name no staff.",
+      url: "https://www.lighthousehomeschool.com/",
+    },
+    mailTo: null,
+    founderFacts: [
+      {
+        fact: "Each month Lighthouse's teachers for each grade create lesson plans for use both at home and on campus, so parents teaching the 3 home days have the tools and direction to be confident.",
+        source: "How Hybrid Homeschooling Works at Lighthouse",
+        url: "https://www.lighthousehomeschool.com/custom/93067",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "Lighthouse is a Christ-centered hybrid program that meets in Fairview Park, Ohio twice a week for six hours a day: 2 days on campus, drop-off, and 3 days at home.",
+        source: "Lighthouse Homeschool Academy, Who We Are",
+        url: "https://www.lighthousehomeschool.com/custom/93028",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "Each month Lighthouse's teachers for each grade create lesson plans for use both at home and on campus, so parents teaching the 3 home days have the tools and direction to be confident.",
+    body: `Hi Robyn,
+
+I read how Lighthouse works on your site. I liked that your teachers write lesson plans for each grade every month, used both on campus and on the three days at home.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how new families settle into the home days in their first year. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of Lighthouse I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Robyn, a note from a small school in Round Rock, Texas. J",
+    shortCode: "lighthouse-vg8b",
+    checkBeforeMailing: [
+      "Find a mailing address: lighthousehomeschool.com (home, Who We Are, How It Works, Admissions, FAQ, Donate) and the TheHomeSchoolMom listing give only \"Fairview Park, Ohio\"; the FAQ says tuition covers building rental but doesn't name the building. Non-home lead: ask at an Information Meeting, or through the inquiry contact on the home page, which church or building hosts the campus days and whether it takes mail for Lighthouse.",
+      "No founder or leader is named anywhere we could open, so the letter opens on a school fact (the monthly lesson plans) instead of a founder story. \"Robyn\" is the plan's email greeting, from an unconfirmed search summary of the Alignable listing (Robyn Pinkowski); a search for that name with Lighthouse found nothing. Confirm who leads Lighthouse and change the greeting, sticky note and founder fields if it's someone else.",
+      "The first email still says Julius wrote in July; confirm that email went out.",
+    ],
+  },
   steps: [
     {
       id: "first",
       kind: "email",
       businessDay: 0,
-      purpose: "Re-intro: acknowledge the July email, give a new reason (the snapshot), one proof number",
+      purpose: "Re-intro after the handwritten letter: mention the note and the July email, one detail from the snapshot, one proof number",
       subject: "Lighthouse's family application",
       body: `Hi Robyn,
 
-I wrote in July about a version of MudKitchen I set up for Lighthouse. Since then I put together a one-page snapshot of what a family sees on your site today, from finding a tour to paying tuition.
+I mailed you a handwritten note last week with a card for Lighthouse. It has a QR code for the version of MudKitchen I set up for you (I first wrote about it in July) and a one-page snapshot of what a family sees on your site today, from finding a tour to paying tuition.
 
 One thing stood out: the Family Application asks a new family to create a username and password and choose directory settings before they tell you about their children.
 
 I run Sage Field, a microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen.
 
-Want me to send the snapshot?
+Want me to send the snapshot link here too?
 
 Julius`,
     },

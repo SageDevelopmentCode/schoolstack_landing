@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { hiltonHorizonsAcademyConfig } from "@/data/school-demos/hilton-horizons-academy";
-import { hiltonHorizonsAcademyWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { hiltonHorizonsAcademyWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/hilton-horizons-academy";
 
 export default function HiltonHorizonsAcademyDemoPage() {
   return (

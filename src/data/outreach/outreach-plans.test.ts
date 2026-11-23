@@ -28,6 +28,7 @@ function demoWalkthrough(slug: string): readonly DemoWalkthroughStep[] | null {
   return Array.isArray(steps) ? (steps as DemoWalkthroughStep[]) : null;
 }
 import { outreachWarnings } from "@/lib/admin-crm/outreach-email";
+import { letterProblems } from "@/lib/admin-crm/outreach-letter";
 
 // Every researched plan must pass the same checks the send screen runs, so the
 // school-outreach-research skill's output is validated by `npm test`.
@@ -181,6 +182,23 @@ describe("outreach plans", () => {
         });
       }
 
+      if (plan.letter) {
+        const letter = plan.letter;
+        it("has a handwritten letter ready to copy out", () => {
+          assert.deepEqual(letterProblems(plan), [], `${plan.slug} letter: ${letterProblems(plan).join(" ")}`);
+        });
+
+        it("mentions the letter in the first email", () => {
+          const first = plan.steps.find((s) => s.id === "first");
+          assert.match(first?.body ?? "", /\b(note|letter)\b/i, "the first email goes out after the letter, so mention it");
+        });
+
+        it("uses a letter short code no other plan uses", () => {
+          const same = listOutreachPlans().filter((p) => p.letter?.shortCode.toLowerCase() === letter.shortCode.toLowerCase());
+          assert.equal(same.length, 1, `short code ${letter.shortCode} is used by ${same.map((p) => p.slug).join(", ")}`);
+        });
+      }
+
       it("only gives the first email a subject", () => {
         for (const step of plan.steps) {
           if (step.kind !== "email") continue;
@@ -199,12 +217,12 @@ describe("demoWalkthrough", () => {
 });
 
 describe("walkthroughCapabilities", () => {
-  it("reads the standard 8-step demo conservatively", () => {
+  it("reads the standard 9-step demo conservatively", () => {
     const found = walkthroughCapabilities(walkthroughs.athenaWalkthroughPlaceholder);
-    for (const id of ["website-service", "admissions-pipeline", "enrollment-checklist", "parent-billing", "autopay", "attendance"] as const) {
+    for (const id of ["website-service", "admissions-pipeline", "enrollment-checklist", "parent-billing", "autopay", "attendance", "mobile-app"] as const) {
       assert.ok(found.has(id), `expected ${id}`);
     }
-    for (const id of ["tour-self-booking", "calendar", "messaging", "mobile-app"] as const) {
+    for (const id of ["tour-self-booking", "calendar", "messaging"] as const) {
       assert.ok(!found.has(id), `did not expect ${id}`);
     }
   });

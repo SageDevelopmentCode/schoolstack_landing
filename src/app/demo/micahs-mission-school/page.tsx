@@ -2,7 +2,7 @@
 
 import SchoolDemoShell from "@/components/demo/SchoolDemoShell";
 import { micahsMissionSchoolConfig } from "@/data/school-demos/micahs-mission-school";
-import { micahMissionWalkthroughPlaceholder } from "@/data/school-demos/walkthrough-placeholder";
+import { micahMissionWalkthroughPlaceholder } from "@/data/school-demos/walkthroughs/micah-mission";
 
 export default function MicahsMissionSchoolDemoPage() {
   return (

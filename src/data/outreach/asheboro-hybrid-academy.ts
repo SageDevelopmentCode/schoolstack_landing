@@ -186,6 +186,53 @@ export const asheboroHybridAcademyOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-22",
+    shortSchoolName: "AHA",
+    founder: {
+      fullName: "Rachel Callicutt",
+      firstName: "Rachel",
+      role: "Admissions Director",
+      source: "AHA Our AHA Team page (Rachel Callicutt, Admissions Director); no founder or head of school is named",
+      url: "https://asheborohybridacademy.com/our-aha-team",
+    },
+    mailTo: {
+      lines: ["Asheboro Hybrid Academy", "4751 Dunbar Bridge Rd.", "Asheboro, NC 27205"],
+      source: "AHA Contact page and the site footer on every page; the FAQ says students meet at \"our school building\"",
+      url: "https://asheborohybridacademy.com/contact",
+    },
+    founderFacts: [
+      {
+        fact: "The AHA About page says elementary and middle school students meet two days a week and high school three, for 32 weeks a year, with lessons at home led by a parent as co-teacher: \"At AHA, education happens together.\"",
+        source: "AHA About page",
+        url: "https://asheborohybridacademy.com/about",
+        readOn: "2026-11-22",
+      },
+      {
+        fact: "The FAQ calls AHA a parent-governed organization that welcomes families from many Christian traditions.",
+        source: "AHA FAQ",
+        url: "https://asheborohybridacademy.com/faq-1",
+        readOn: "2026-11-22",
+      },
+    ],
+    hook: "The AHA About page says elementary and middle school students meet two days a week and high school three, for 32 weeks a year, with lessons at home led by a parent as co-teacher: \"At AHA, education happens together.\"",
+    body: `Hi Rachel,
+
+I read the About page on the AHA site. I liked the line "education happens together," with teachers in class two or three days a week and a parent as co-teacher at home the rest.
+
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+
+I'd like to hear how admissions works at a parent-governed school. A text is plenty.
+
+Julius`,
+    postscript: "The card inside has a version of AHA I set up, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Rachel, a note for AHA admissions from a microschool in Round Rock. J",
+    shortCode: "aha-s5lq",
+    checkBeforeMailing: [
+      "No founder or head of school is named: the FAQ calls AHA parent-governed, and the Our AHA Team page lists grade-level directors plus Rachel Callicutt as Admissions Director. The letter goes to Rachel (who the emails greet) and opens on a school fact from the About page, not a founder hook.",
+      "Address it to Rachel Callicutt, Asheboro Hybrid Academy, at the Dunbar Bridge Rd. address from the Contact page and footer. The Student Life page mentions \"our sanctuary\", so the building may be a church campus; that's fine for mail.",
+    ],
+  },
   steps: [
     {
       id: "first",
@@ -194,6 +241,8 @@ export const asheboroHybridAcademyOutreach: OutreachPlan = {
       purpose: "First contact: one sourced fact from their Enroll page, one proof number, offer the snapshot",
       subject: "AHA's 2026–27 application form",
       body: `Hi Rachel,
+
+I mailed you a handwritten note last week with a card for AHA.
 
 The Enroll HERE page on the AHA site links to the 2026–2027 New Student Application, but the Google Form now says it's no longer accepting responses. With some grades full, the page doesn't say where a family should go next.
 

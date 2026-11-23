@@ -101,8 +101,6 @@ export default function SagefieldGardenTimeline() {
         </Draw>
         <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
           <SectionIntro
-            pill={`🌱 ${TIMELINE_COPY.eyebrow}`}
-            tint="ink"
             lead={TIMELINE_COPY.headlineLead}
             accent={TIMELINE_COPY.headlineAccent}
             accentColor="text-[var(--sf-butter)]"
