@@ -32,6 +32,7 @@ type CurriculumScrollProps = {
   className?: string;
   /** Max CSS width for "fit-width" so huge monitors stay readable. */
   maxFitWidth?: number;
+  organizationId: string;
 };
 
 const GAP = 16;
@@ -70,6 +71,7 @@ export default function CurriculumScroll({
   renderPageAside,
   className = "",
   maxFitWidth,
+  organizationId,
 }: CurriculumScrollProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState({ width: 0, height: 0 });
@@ -204,6 +206,7 @@ export default function CurriculumScroll({
                   fallbackHeight={fallbackHeight}
                   active={active}
                   onSize={onSize}
+                  organizationId={organizationId}
                   className="rounded-[6px] shadow-[0_2px_0_0_rgba(43,36,29,0.08),0_10px_24px_-18px_rgba(43,36,29,0.45)] ring-1 ring-[var(--sf-ink)]/10"
                 />
                 {renderPageAside ? renderPageAside(page) : null}

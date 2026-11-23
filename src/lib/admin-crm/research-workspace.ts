@@ -1,5 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getOutreachPlan } from "@/data/outreach";
+import type { OutreachPlan } from "@/data/outreach/types";
 import { schoolDemoRegistry } from "@/data/school-demos";
 import { isCrmStatus } from "@/lib/admin-crm/crm-status";
 import { listSchoolOutreachLogs } from "@/lib/admin-crm/demo-outreach";
@@ -25,7 +27,17 @@ export async function loadResearchWorkspace(supabase: SupabaseClient): Promise<R
     .map(toResearchSchool)
     .filter((s) => !s.is_closing)
     .sort(compareSchools);
-  return { schools, outreach };
+  const plans: Record<string, OutreachPlan> = {};
+  for (const school of schools) {
+    const plan = researchPlanFor(school.demo_slug);
+    if (plan && school.demo_slug) plans[school.demo_slug] = plan;
+  }
+  return { schools, outreach, plans };
+}
+
+/** The outreach plan for a demo slug, or null. Server-only: plans carry private snapshot tokens. */
+export function researchPlanFor(slug: string | null): OutreachPlan | null {
+  return slug ? getOutreachPlan(slug) : null;
 }
 
 export class ResearchInputError extends Error {}

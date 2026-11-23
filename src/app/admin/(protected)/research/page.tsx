@@ -7,7 +7,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 export const dynamic = "force-dynamic";
 
 export default async function AdminResearchPage() {
-  let data: ResearchWorkspaceData = { schools: [], outreach: {} };
+  let data: ResearchWorkspaceData = { schools: [], outreach: {}, plans: {} };
   let loadError: string | null = null;
   try {
     data = await loadResearchWorkspace(createAdminClient());

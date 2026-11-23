@@ -1,7 +1,10 @@
 "use client";
 
 import { memo, useEffect, useRef, useState } from "react";
+import { AlertTriangle, RotateCw } from "lucide-react";
 import type { RenderTask } from "pdfjs-dist";
+import { gBtnOutlineSm } from "@/components/school-parent/garden/ui";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { outputScale, type PDFDocumentProxy } from "./pdfjs";
 
 type PageCanvasProps = {
@@ -17,7 +20,12 @@ type PageCanvasProps = {
   thumbnail?: boolean;
   className?: string;
   onSize?: (pageNumber: number, aspect: number) => void;
+  organizationId: string;
 };
+
+function isCancelledRender(error: unknown): boolean {
+  return (error as { name?: string })?.name === "RenderingCancelledException";
+}
 
 /**
  * One PDF page on a canvas at a given CSS width. Renders only while `active`
@@ -33,10 +41,13 @@ function PageCanvasImpl({
   thumbnail = false,
   className = "",
   onSize,
+  organizationId,
 }: PageCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [aspect, setAspect] = useState<number | null>(null);
   const [painted, setPainted] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const height = aspect ? Math.round(width * aspect) : fallbackHeight;
 
   useEffect(() => {
@@ -46,12 +57,31 @@ function PageCanvasImpl({
       // Free the bitmap (a 2x A4 page is ~8 MB).
       canvas.width = 0;
       canvas.height = 0;
-      queueMicrotask(() => setPainted(false));
+      queueMicrotask(() => {
+        setPainted(false);
+        setFailed(false);
+      });
       return;
     }
 
     let cancelled = false;
     let task: RenderTask | null = null;
+
+    const fail = (error: unknown) => {
+      if (cancelled || isCancelledRender(error)) return;
+      setPainted(false);
+      setFailed(true);
+      void reportPortalOperationalError(
+        "parent_portal",
+        {
+          organizationId,
+          operation: "curriculum.pdf_page_render",
+          error: "",
+          metadata: { pageNumber, thumbnail },
+        },
+        error,
+      );
+    };
 
     void (async () => {
       try {
@@ -68,17 +98,20 @@ function PageCanvasImpl({
         canvas.width = Math.floor(viewport.width);
         canvas.height = Math.floor(viewport.height);
         const context = canvas.getContext("2d");
-        if (!context || cancelled) return;
+        if (cancelled) return;
+        if (!context) {
+          fail(new Error("Could not get a canvas drawing context."));
+          return;
+        }
         task = page.render({ canvasContext: context, viewport, canvas }) as RenderTask;
         await task.promise;
         if (!cancelled) {
           setPainted(true);
+          setFailed(false);
           page.cleanup();
         }
       } catch (error) {
-        if ((error as { name?: string })?.name !== "RenderingCancelledException" && !cancelled) {
-          setPainted(false);
-        }
+        fail(error);
       }
     })();
 
@@ -86,7 +119,7 @@ function PageCanvasImpl({
       cancelled = true;
       task?.cancel();
     };
-  }, [active, doc, onSize, pageNumber, thumbnail, width]);
+  }, [active, attempt, doc, onSize, organizationId, pageNumber, thumbnail, width]);
 
   return (
     <div
@@ -100,7 +133,38 @@ function PageCanvasImpl({
         className={`block h-full w-full transition-opacity duration-200 motion-reduce:transition-none ${painted ? "opacity-100" : "opacity-0"}`}
         onContextMenu={(event) => event.preventDefault()}
       />
-      {!painted ? (
+      {failed ? (
+        thumbnail ? (
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 flex items-center justify-center bg-[var(--sf-peach)] text-[var(--sf-clay-deep)]"
+          >
+            <AlertTriangle className="h-4 w-4" />
+          </div>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center bg-white p-4" data-testid="curriculum-page-render-error">
+            <div className="flex max-w-sm flex-col items-center gap-3 text-center">
+              <span aria-hidden className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--sf-peach)] text-[var(--sf-clay-deep)]">
+                <AlertTriangle className="h-5 w-5" />
+              </span>
+              <p role="alert" className="m-0 text-[15px] font-extrabold text-[var(--sf-ink)]">
+                We couldn&apos;t load this page.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setFailed(false);
+                  setAttempt((value) => value + 1);
+                }}
+                className={gBtnOutlineSm}
+              >
+                <RotateCw className="h-4 w-4" aria-hidden />
+                Try again
+              </button>
+            </div>
+          </div>
+        )
+      ) : !painted ? (
         <div aria-hidden="true" className="absolute inset-0 animate-pulse bg-[var(--sf-ink)]/[0.035] motion-reduce:animate-none" />
       ) : null}
     </div>

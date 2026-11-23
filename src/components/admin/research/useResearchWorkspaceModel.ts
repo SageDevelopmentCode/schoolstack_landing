@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getOutreachPlan } from "@/data/outreach";
 import type { OutreachPlan } from "@/data/outreach/types";
 import { crmStatusLabel, type CrmStatus } from "@/lib/admin-crm/crm-status";
 import { completedOutreachSteps, type DemoOutreach } from "@/lib/admin-crm/demo-outreach-types";
@@ -91,8 +90,14 @@ function writeParams(filter: ListFilter, schoolId: string | null) {
   window.history.replaceState(window.history.state, "", url.toString());
 }
 
-function buildRow(school: ResearchSchool, outreach: Record<string, SchoolOutreachLog>, now: Date): WorkspaceRow {
-  const plan = school.demo_slug ? getOutreachPlan(school.demo_slug) : null;
+function buildRow(
+  school: ResearchSchool,
+  outreach: Record<string, SchoolOutreachLog>,
+  plans: Record<string, OutreachPlan>,
+  now: Date,
+): WorkspaceRow {
+  // Plans come from the server (they carry private snapshot tokens), never from the registry module.
+  const plan = school.demo_slug ? (plans[school.demo_slug] ?? null) : null;
   const log = outreach[school.id] ?? EMPTY_OUTREACH_LOG;
   const journey = outreachJourney({
     plan,
@@ -118,6 +123,7 @@ function compareRows(a: WorkspaceRow, b: WorkspaceRow): number {
 export function useResearchWorkspaceModel(initial: ResearchWorkspaceData, initialLoadError: string | null) {
   const [schools, setSchools] = useState<ResearchSchool[]>(initial.schools);
   const [outreach, setOutreach] = useState<Record<string, SchoolOutreachLog>>(initial.outreach);
+  const [plans, setPlans] = useState<Record<string, OutreachPlan>>(initial.plans);
   const [loadError, setLoadError] = useState<string | null>(initialLoadError);
   const [filter, setFilterState] = useState<ListFilter>("pipeline");
   const [search, setSearch] = useState("");
@@ -150,7 +156,7 @@ export function useResearchWorkspaceModel(initial: ResearchWorkspaceData, initia
     });
   }, [initial.schools]);
 
-  const rows = useMemo(() => schools.map((s) => buildRow(s, outreach, now)), [schools, outreach, now]);
+  const rows = useMemo(() => schools.map((s) => buildRow(s, outreach, plans, now)), [schools, outreach, plans, now]);
   const counts = useMemo(() => funnelCounts(rows.map((r) => r.journey)), [rows]);
   const todayCount = useMemo(() => rows.filter((r) => r.journey.actionable).length, [rows]);
   const pipelineCount = useMemo(() => rows.filter((r) => !OUT_OF_PIPELINE.has(r.journey.stage)).length, [rows]);
@@ -238,6 +244,7 @@ export function useResearchWorkspaceModel(initial: ResearchWorkspaceData, initia
           const data = await requestJson<ResearchWorkspaceData>("/api/admin/research", { method: "GET" });
           setSchools(data.schools);
           setOutreach(data.outreach);
+          setPlans(data.plans);
           setLoadError(null);
           setNow(new Date());
           setLastUpdatedAt(Date.now());
@@ -285,10 +292,11 @@ export function useResearchWorkspaceModel(initial: ResearchWorkspaceData, initia
       const attempt = async (): Promise<boolean> => {
         setPendingKey(`${copy.key}:${school.id}`);
         try {
-          const { school: saved } = await requestJson<{ school: ResearchSchool }>(
+          const { school: saved, plan } = await requestJson<{ school: ResearchSchool; plan: OutreachPlan | null }>(
             `/api/admin/research/schools/${encodeURIComponent(school.id)}`,
             { method: "PATCH", body: JSON.stringify(patch) },
           );
+          if (plan && saved.demo_slug) setPlans((prev) => ({ ...prev, [saved.demo_slug as string]: plan }));
           replaceSchool(saved);
           setNow(new Date());
           flash(school.id);

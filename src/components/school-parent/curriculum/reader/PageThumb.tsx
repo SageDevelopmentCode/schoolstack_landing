@@ -15,12 +15,14 @@ export default function PageThumb({
   firstPage,
   width,
   className = "",
+  organizationId,
 }: {
   doc: PDFDocumentProxy;
   page: number;
   firstPage: CurriculumPageSize;
   width: number;
   className?: string;
+  organizationId: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -45,6 +47,7 @@ export default function PageThumb({
         fallbackHeight={Math.round((width * firstPage.height) / firstPage.width)}
         active={visible}
         thumbnail
+        organizationId={organizationId}
         className="rounded-[4px] ring-1 ring-[var(--sf-ink)]/12"
       />
     </div>

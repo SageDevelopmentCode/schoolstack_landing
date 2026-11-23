@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { readJsonBody, withDemoOutreachAdmin } from "@/lib/admin-crm/demo-outreach-api";
-import { parseSchoolPatch, ResearchInputError, updateResearchSchool } from "@/lib/admin-crm/research-workspace";
+import { parseSchoolPatch, ResearchInputError, researchPlanFor, updateResearchSchool } from "@/lib/admin-crm/research-workspace";
 import { apiError } from "@/lib/api/route-errors";
 
 const ROUTE = "/api/admin/research/schools/[id]";
@@ -16,7 +16,8 @@ export async function PATCH(request: Request, context: RouteContext) {
     try {
       const school = await updateResearchSchool(admin, id, parseSchoolPatch(body));
       if (!school) return apiError(ROUTE, { request, status: 404, error: "School not found.", code: "not_found" });
-      return NextResponse.json({ school });
+      // The plan rides along so a newly linked demo shows its sequence without a refresh.
+      return NextResponse.json({ school, plan: researchPlanFor(school.demo_slug) });
     } catch (error) {
       if (error instanceof ResearchInputError) {
         return apiError(ROUTE, { request, status: 400, error: error.message, code: "invalid_body" });

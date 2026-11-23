@@ -116,6 +116,29 @@ export function useCurriculumWorkspace(input: CurriculumWorkspaceInput) {
     [programId],
   );
 
+  /**
+   * Open a guide on a page from a discussion note. The page is stored for that
+   * guide before any reader move, and it is not clamped to the PDF already on
+   * screen — that document may be a different guide. Switching guides only
+   * selects; the reader remounts on the stored page. Scrolling here would move
+   * the guide that is still mounted.
+   */
+  const openGuideAtPage = useCallback(
+    (guideId: string, next: number) => {
+      const target = Math.max(1, Math.round(next));
+      if (!Number.isFinite(target)) return;
+      setPageByGuide((prev) => (prev[guideId] === target ? prev : { ...prev, [guideId]: target }));
+      rememberPage(programId, guideId, target);
+      if (guide?.id === guideId) {
+        if (readerRef.current) readerRef.current.scrollToPage(target, "smooth");
+        else setPage(target);
+        return;
+      }
+      selectGuide(guideId);
+    },
+    [guide, programId, selectGuide, setPage],
+  );
+
   const prefetchGuide = useCallback(
     (guideId: string) => prefetchCurriculumDocument({ organizationId, programId, guideId, signedUrls, previewMode }),
     [organizationId, previewMode, programId, signedUrls],
@@ -160,6 +183,7 @@ export function useCurriculumWorkspace(input: CurriculumWorkspaceInput) {
     page,
     setPage,
     goToPage,
+    openGuideAtPage,
     registerReader,
     scrollReaderTo,
     thread,

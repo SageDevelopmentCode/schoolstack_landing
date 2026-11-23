@@ -2,6 +2,7 @@
  * Client-safe types and helpers for the /admin/research outreach workspace.
  * Rows come from `public.schools` (202601010001_add_crm_schools_table.sql + later migrations).
  */
+import type { OutreachPlan } from "@/data/outreach/types";
 import { isCrmStatus, type CrmStatus } from "@/lib/admin-crm/crm-status";
 import type { DemoOutreachTouch, OutreachEmailRecord } from "@/lib/admin-crm/demo-outreach-types";
 
@@ -41,6 +42,11 @@ export type ResearchWorkspaceData = {
   schools: ResearchSchool[];
   /** Keyed by `schools.id`; schools with no outreach yet are absent. */
   outreach: Record<string, SchoolOutreachLog>;
+  /**
+   * Outreach plans for these schools, keyed by demo slug. Sent by the server (behind the admin login)
+   * because plans carry private snapshot tokens: never import the plan registry into client code.
+   */
+  plans: Record<string, OutreachPlan>;
 };
 
 export const EMPTY_OUTREACH_LOG: SchoolOutreachLog = { emails: [], touches: [] };

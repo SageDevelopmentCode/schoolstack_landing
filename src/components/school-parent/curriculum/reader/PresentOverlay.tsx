@@ -30,6 +30,7 @@ export default function PresentOverlay({
   page,
   onPageChange,
   title,
+  organizationId,
 }: {
   open: boolean;
   onClose: () => void;
@@ -40,6 +41,7 @@ export default function PresentOverlay({
   page: number;
   onPageChange: (page: number) => void;
   title: string;
+  organizationId: string;
 }) {
   const hydrated = useHydrated();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -120,7 +122,15 @@ export default function PresentOverlay({
               <ChevronLeft className="h-7 w-7" aria-hidden />
             </button>
           </div>
-          <SinglePageView doc={doc} page={page} numPages={numPages} firstPage={firstPage} padding={8} pageClassName="rounded-[4px]" />
+          <SinglePageView
+            doc={doc}
+            page={page}
+            numPages={numPages}
+            firstPage={firstPage}
+            padding={8}
+            pageClassName="rounded-[4px]"
+            organizationId={organizationId}
+          />
           <div className="flex items-center px-2 sm:px-4">
             <button type="button" onClick={next} disabled={page >= numPages} aria-label="Next page" className={EDGE_BTN}>
               <ChevronRight className="h-7 w-7" aria-hidden />

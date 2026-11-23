@@ -50,7 +50,14 @@ function GuideCover({ ws, record }: { ws: CurriculumWorkspace; record: ProgramCo
   return (
     <div className="flex aspect-[8.5/11] w-full items-center justify-center overflow-hidden rounded-[10px] bg-[var(--sf-paper)] ring-1 ring-[var(--sf-ink)]/10">
       {pdf.doc && pdf.firstPage ? (
-        <PageThumb doc={pdf.doc} page={1} firstPage={pdf.firstPage} width={220} className="w-full [&>div]:!h-auto [&>div]:!w-full" />
+        <PageThumb
+          doc={pdf.doc}
+          page={1}
+          firstPage={pdf.firstPage}
+          width={220}
+          organizationId={ws.organizationId}
+          className="w-full [&>div]:!h-auto [&>div]:!w-full"
+        />
       ) : pdf.status === "error" ? (
         <BookOpen className="h-8 w-8 text-[var(--sf-ink)]/30" aria-hidden />
       ) : (
@@ -253,7 +260,13 @@ function ThumbButton({ ws, pageNumber, width }: { ws: CurriculumWorkspace; pageN
         active ? "bg-[var(--sf-accent-wash)] ring-2 ring-[var(--sf-clay)]" : "hover:bg-[var(--sf-ink)]/[0.04]"
       }`}
     >
-      <PageThumb doc={pdf.doc!} page={pageNumber} firstPage={pdf.firstPage!} width={width} />
+      <PageThumb
+        doc={pdf.doc!}
+        page={pageNumber}
+        firstPage={pdf.firstPage!}
+        width={width}
+        organizationId={ws.organizationId}
+      />
       <span className="text-[11px] font-bold tabular-nums text-[var(--sf-soft)]">{pageNumber}</span>
     </button>
   );

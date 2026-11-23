@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 import { schoolDemoHref, schoolDemoRegistry } from "@/data/school-demos";
 import { listOutreachPlans, outreachPlanRegistry } from "@/data/outreach";
@@ -220,5 +222,30 @@ describe("walkthroughCapabilities", () => {
     for (const id of ["tour-self-booking", "calendar", "messaging"] as const) {
       assert.ok(!found.has(id), `did not expect ${id}`);
     }
+  });
+});
+
+/** Every .ts/.tsx file under `dir`, recursively. */
+function sourceFiles(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) return entry.name === "node_modules" ? [] : sourceFiles(path);
+    return /\.tsx?$/.test(entry.name) ? [path] : [];
+  });
+}
+
+describe("outreach plan registry stays server-only", () => {
+  it("is never imported by a client component (plans carry private snapshot tokens)", () => {
+    // Only types and the capability list are safe in the browser; anything else in src/data/outreach is a plan.
+    const allowed = new Set(["@/data/outreach/types", "@/data/outreach/mudkitchen-capabilities"]);
+    const offenders: string[] = [];
+    for (const file of sourceFiles(join(process.cwd(), "src"))) {
+      const source = readFileSync(file, "utf8");
+      if (!/^\s*(["'])use client\1/.test(source)) continue;
+      for (const match of source.matchAll(/from\s+["'](@\/data\/outreach(?:\/[^"']*)?)["']/g)) {
+        if (!allowed.has(match[1])) offenders.push(`${file.slice(process.cwd().length + 1)} imports ${match[1]}`);
+      }
+    }
+    assert.deepEqual(offenders, [], "pass plans down from the server instead (see loadResearchWorkspace)");
   });
 });

@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { getOutreachPlan } from "@/data/outreach";
 import { notifyOutreachSnapshotViewed } from "@/lib/discord";
 import { PRODUCTION_SITE_URL } from "@/lib/site";
+import { createAdminClient } from "@/utils/supabase/admin";
 
 /** One alert per school per window, per server instance (views repeat as people scroll back). */
 const THROTTLE_MS = 30 * 60 * 1000;
@@ -38,7 +40,12 @@ export async function POST(request: Request) {
       viaLetter: viaLetter && Boolean(plan.letter),
     });
   } catch (error) {
-    console.error("[outreach-snapshot/view] Discord notify failed", error);
+    lastAlertAt.delete(key);
+    void logNotificationFailure(createAdminClient(), {
+      operation: "outreach_snapshot_view_discord",
+      error,
+      metadata: { slug, viaLetter },
+    });
   }
   return new NextResponse(null, { status: 204 });
 }

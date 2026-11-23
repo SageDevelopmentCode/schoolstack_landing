@@ -272,6 +272,7 @@ export function WorkspaceScrollReader({
       initialPage={ws.page}
       onPageChange={ws.setPage}
       maxFitWidth={maxFitWidth}
+      organizationId={ws.organizationId}
       renderPageAside={
         showNoteMarkers
           ? (pageNumber) => {
@@ -296,6 +297,7 @@ export function WorkspaceScrollReader({
 
 /** The discussion drawer, wired to the workspace (outside the page frame). */
 export function WorkspaceDiscussionDrawer({ ws, theme }: { ws: CurriculumWorkspace; theme: ParentThemeTokens }) {
+  const threadId = ws.discussion.threadId;
   if (ws.curricula.length === 0) return null;
   return (
     <CurriculumDiscussionSidebar
@@ -305,14 +307,14 @@ export function WorkspaceDiscussionDrawer({ ws, theme }: { ws: CurriculumWorkspa
       organizationId={ws.organizationId}
       programId={ws.programId}
       curricula={ws.curricula}
-      activeCurriculumId={ws.discussion.threadId}
+      activeCurriculumId={threadId}
       onActiveCurriculumIdChange={ws.setDiscussionThread}
       initialThreadMessages={ws.initialThreadMessages}
       currentGuardianId={ws.currentGuardianId}
       previewMode={ws.previewMode}
       readerThread={ws.thread}
-      currentPage={ws.guide && ws.discussion.threadId === ws.guide.id ? ws.page : null}
-      onJumpToPage={ws.goToPage}
+      currentPage={ws.guide && threadId === ws.guide.id ? ws.page : null}
+      onJumpToPage={threadId ? (page) => ws.openGuideAtPage(threadId, page) : undefined}
     />
   );
 }
@@ -336,6 +338,7 @@ export function WorkspacePresent({ ws, theme }: { ws: CurriculumWorkspace; theme
       page={ws.page}
       onPageChange={ws.setPage}
       title={ws.guideLabel}
+      organizationId={ws.organizationId}
     />
   );
 }

@@ -18,6 +18,7 @@ export default function SinglePageView({
   padding = 16,
   className = "",
   pageClassName = "",
+  organizationId,
 }: {
   doc: PDFDocumentProxy;
   page: number;
@@ -26,6 +27,7 @@ export default function SinglePageView({
   padding?: number;
   className?: string;
   pageClassName?: string;
+  organizationId: string;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState({ width: 0, height: 0 });
@@ -66,6 +68,7 @@ export default function SinglePageView({
                     width={width}
                     fallbackHeight={Math.round(width * aspect)}
                     active
+                    organizationId={organizationId}
                     className={pageClassName}
                   />
                 </div>
