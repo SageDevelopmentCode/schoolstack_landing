@@ -1,6 +1,4 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import { describe, it } from "node:test";
 import { schoolDemoHref, schoolDemoRegistry } from "@/data/school-demos";
 import { listOutreachPlans, outreachPlanRegistry } from "@/data/outreach";
@@ -14,18 +12,15 @@ import {
 import { SNAPSHOT_AREAS, SNAPSHOT_LINK_TOKEN } from "@/data/outreach/types";
 import * as walkthroughs from "@/data/school-demos/walkthrough-placeholder";
 import type { DemoWalkthroughStep } from "@/data/school-demos/walkthrough-placeholder";
+import { DEMO_ROUTES } from "@/data/school-demos/demo-routes";
 
 /** Judgement words that make a snapshot read as an attack rather than a helpful look. */
 const JUDGEMENT_WORDS = /\b(bad|outdated|ugly|poor|terrible|awful|confusing|clunky|broken|amateur|messy|old-fashioned)\b/i;
 
-/** The walkthrough a demo page imports (e.g. `athenaWalkthroughPlaceholder`), or null. */
+/** The walkthrough a demo's /demo page shows, or null when it has no demo route. */
 function demoWalkthrough(slug: string): readonly DemoWalkthroughStep[] | null {
-  // Some demos live in a route folder that differs from their slug (e.g. monarch-hills-education → /demo/monarch-hills).
-  const page = join(process.cwd(), "src/app", schoolDemoHref(slug).slice(1), "page.tsx");
-  if (!existsSync(page)) return null;
-  const name = readFileSync(page, "utf8").match(/\b(\w+WalkthroughPlaceholder)\b/)?.[1];
-  const steps = name ? (walkthroughs as Record<string, unknown>)[name] : null;
-  return Array.isArray(steps) ? (steps as DemoWalkthroughStep[]) : null;
+  // Some demos use a URL slug that differs from their config slug (e.g. monarch-hills-education → /demo/monarch-hills).
+  return DEMO_ROUTES[schoolDemoHref(slug).slice("/demo/".length)]?.steps ?? null;
 }
 import { outreachWarnings } from "@/lib/admin-crm/outreach-email";
 import { letterProblems } from "@/lib/admin-crm/outreach-letter";

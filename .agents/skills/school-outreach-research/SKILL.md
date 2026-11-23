@@ -119,7 +119,7 @@ ask before rewriting it.
      what we can claim. Include fixes we'd build even when they aren't in the demo or the product yet,
      but label them honestly:
      - `label: "in_demo"`: every capability shows in this school's demo walkthrough (the validator reads
-       `src/app/demo/<slug>/page.tsx` and checks). Gets a "See it in your demo" link.
+       the demo's `steps` in `src/data/school-demos/demo-routes.ts` and checks). Gets a "See it in your demo" link.
      - `label: "set_up"` ("We can set this up for you"): it's in MudKitchen but not their demo, or it's
        custom work. For any `custom` capability, also add `"We'd build: <capability label>"` to
        `checkBeforeSending` so Julius confirms it before sending. Write custom fixes as something we'd

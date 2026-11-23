@@ -7,7 +7,7 @@ Given school **Luff Learning Fine Arts Academy** and slug **`luff-learning`**:
 | Concept | Value |
 |---|---|
 | URL slug | `luff-learning` |
-| Route folder | `src/app/demo/luff-learning/` |
+| Route | `DEMO_ROUTES["luff-learning"]` in `src/data/school-demos/demo-routes.ts` (no route folder) |
 | Component folder | `src/components/demo/lufflearning/` (lowercase, no hyphens) |
 | Website config file | `src/data/school-demos/luff-learning.ts` |
 | Config export | `luffLearningConfig` |
@@ -46,10 +46,9 @@ Given school **Luff Learning Fine Arts Academy** and slug **`luff-learning`**:
 - [ ] `src/data/school-demos/{slug}-teacher-demo.ts`
 - [ ] `src/data/school-demos/index.ts` — export + import + registry key
 
-### App route (2 files)
+### App route (1 entry, no new files)
 
-- [ ] `src/app/demo/{slug}/page.tsx`
-- [ ] `src/app/demo/{slug}/layout.tsx`
+- [ ] `src/data/school-demos/demo-routes.ts` — import config + walkthrough, add the `DEMO_ROUTES` entry (schoolName, title, description, config, steps). Never add a `src/app/demo/{slug}/` folder.
 
 ### Components (1 file)
 

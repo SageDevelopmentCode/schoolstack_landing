@@ -10,7 +10,7 @@ disable-model-invocation: true
 
 # School Demo Builder
 
-Repeatable workflow for adding a new school demo at `/demo/{slug}`. Canonical reference: **Luff Learning** (`src/app/demo/luff-learning/`).
+Repeatable workflow for adding a new school demo at `/demo/{slug}`. Canonical reference: **Luff Learning** (its `DEMO_ROUTES` entry in `src/data/school-demos/demo-routes.ts`).
 
 ## Required inputs
 
@@ -32,7 +32,7 @@ If no redesign guide exists, copy [redesign-guide-template.md](redesign-guide-te
 flowchart TD
   Inputs["Website + Logo + Guide"] --> Research["Phase0: Scrape and reconcile brand"]
   Research --> Data["Phase1: school-demos data files"]
-  Data --> Route["Phase2: app/demo/slug"]
+  Data --> Route["Phase2: demo-routes.ts entry"]
   Data --> Components["Phase3: Dashboard configs + website wrapper"]
   Components --> Registry["dashboard-registry.ts"]
   Data --> Walkthrough["Phase4: walkthrough placeholder"]
@@ -50,7 +50,7 @@ flowchart TD
    - `theme.dark` → the **action colour**: every CTA button, accent words in headings, and the one dark panel. It must read with white text (deep navy, forest, plum…). `readableOn()` in `site-garden-theme.ts` falls back to ink text for light colours, but a light `dark` makes the whole site look washed out — pick a dark brand colour.
    - `theme.primary` → the **brand tint**: sticky notes, washi tape and marker highlights (mixed with paper, so bright yellows/oranges work well).
 4. Logo handling — the website nav and footer are light paper, and the walkthrough sidebar's co-brand card (MudKitchen | school logo) is white, so pick a logo that reads on light backgrounds (white/reverse logos need `logoOnLightClassName`, e.g. `brightness-0`; `SchoolDemoWordmark` applies it everywhere). Set width/height in config.
-5. Document live-site fonts in the redesign guide for **copy tone only**. Every demo uses the Garden fonts (Bricolage Grotesque display, Nunito body, a little Gochi Hand), applied by the website template's own scope (`SITE_SCOPE_CLASS` in `site-garden-theme.ts`) and by the real Garden portals. Copy `layout.tsx` from an existing demo unchanged; do not add per-school fonts.
+5. Document live-site fonts in the redesign guide for **copy tone only**. Every demo uses the Garden fonts (Bricolage Grotesque display, Nunito body, a little Gochi Hand), applied by the website template's own scope (`SITE_SCOPE_CLASS` in `site-garden-theme.ts`) and by the real Garden portals. The shared `src/app/demo/[slug]/layout.tsx` applies them; do not add per-school fonts.
 
 ## Phase 1 — Data layer
 
@@ -71,15 +71,21 @@ Website config must include: `theme`, `hero`, `signatureSection`, `stats`, `welc
 
 Testimonials must use `DemoTestimonial` shape — see [reference.md](reference.md#testimonial-shape).
 
-## Phase 2 — App route
+## Phase 2 — App route (one manifest entry, no route folder)
 
-```
-src/app/demo/{slug}/
-  page.tsx   → SchoolDemoShell + config + walkthrough placeholder
-  layout.tsx → SchoolDemoWebsiteFonts wrapper + pageMetadata (noIndex: true); copy as is
+Every demo is served by the one dynamic route `src/app/demo/[slug]/` (`page.tsx` → `SchoolDemoShell`, `layout.tsx` → `SchoolDemoWebsiteFonts` + `pageMetadata` with `noIndex: true`). To add a school, import its website config and walkthrough placeholder in `src/data/school-demos/demo-routes.ts` and add an entry to `DEMO_ROUTES`, keyed by the URL slug:
+
+```ts
+"luff-learning": {
+  schoolName: "Luff Learning Fine Arts Academy",
+  title: "Luff Learning Website Demo",
+  description: "A private website redesign concept for …",
+  config: luffLearningConfig,
+  steps: luffLearningWalkthroughPlaceholder,
+},
 ```
 
-Copy from `src/app/demo/luff-learning/`.
+**Never create `src/app/demo/{slug}/` folders.** 87 near-identical per-school routes, each pulling in every school's lazy demo chunks, made the Vercel build run out of memory (8 GB). The key must match `schoolDemoHref(slug)` (usually the slug itself; see `DEMO_ROUTE_SLUG_OVERRIDES` in `index.ts`).
 
 ## Phase 3 — Dashboard data (no TSX forks)
 
