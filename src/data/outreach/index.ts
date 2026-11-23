@@ -6,8 +6,12 @@ import { ascendMicroSchoolOutreach } from "./ascend-micro-school";
 import { asheboroHybridAcademyOutreach } from "./asheboro-hybrid-academy";
 import { athenaMicroacademyOutreach } from "./athena-microacademy";
 import { austinMicroSchoolOutreach } from "./austin-micro-school";
+import { beaconOfHopeAcademyOutreach } from "./beacon-of-hope-academy";
 import { brazosValleyHonorAcademyOutreach } from "./brazos-valley-honor-academy";
+import { coastalSageMontessoriOutreach } from "./coastal-sage-montessori";
+import { coysCampsAndClassesOutreach } from "./coys-camps-and-classes";
 import { creationAcresOutreach } from "./creation-acres";
+import { downToEarthHomeschoolOutreach } from "./down-to-earth-homeschool";
 import { familyLyceumOutreach } from "./family-lyceum";
 import { freedomPrepAcademyOutreach } from "./freedom-prep-academy";
 import { gatheredOakFarmOutreach } from "./gathered-oak-farm";
@@ -59,8 +63,12 @@ export const outreachPlanRegistry: Record<string, OutreachPlan> = {
   [asheboroHybridAcademyOutreach.slug]: asheboroHybridAcademyOutreach,
   [athenaMicroacademyOutreach.slug]: athenaMicroacademyOutreach,
   [austinMicroSchoolOutreach.slug]: austinMicroSchoolOutreach,
+  [beaconOfHopeAcademyOutreach.slug]: beaconOfHopeAcademyOutreach,
   [brazosValleyHonorAcademyOutreach.slug]: brazosValleyHonorAcademyOutreach,
+  [coastalSageMontessoriOutreach.slug]: coastalSageMontessoriOutreach,
+  [coysCampsAndClassesOutreach.slug]: coysCampsAndClassesOutreach,
   [creationAcresOutreach.slug]: creationAcresOutreach,
+  [downToEarthHomeschoolOutreach.slug]: downToEarthHomeschoolOutreach,
   [familyLyceumOutreach.slug]: familyLyceumOutreach,
   [freedomPrepAcademyOutreach.slug]: freedomPrepAcademyOutreach,
   [gatheredOakFarmOutreach.slug]: gatheredOakFarmOutreach,

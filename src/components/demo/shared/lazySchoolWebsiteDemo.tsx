@@ -161,6 +161,22 @@ const WEBSITE_DEMO_LOADERS: Record<
     import(
       "@/components/demo/madronaschool/MadronaSchoolWebsiteDashboardDemo"
     ),
+  "down-to-earth-homeschool": () =>
+    import(
+      "@/components/demo/downtoearthhomeschool/DownToEarthHomeschoolWebsiteDashboardDemo"
+    ),
+  "coys-camps-and-classes": () =>
+    import(
+      "@/components/demo/coyscampsandclasses/CoysCampsAndClassesWebsiteDashboardDemo"
+    ),
+  "coastal-sage-montessori": () =>
+    import(
+      "@/components/demo/coastalsagemontessori/CoastalSageMontessoriWebsiteDashboardDemo"
+    ),
+  "beacon-of-hope-academy": () =>
+    import(
+      "@/components/demo/beaconofhopeacademy/BeaconOfHopeAcademyWebsiteDashboardDemo"
+    ),
   "wild-hearts-adventure": () =>
     import(
       "@/components/demo/wildheartsadventure/WildHeartsAdventureWebsiteDashboardDemo"

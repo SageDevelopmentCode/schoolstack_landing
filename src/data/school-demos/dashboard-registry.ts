@@ -42,6 +42,10 @@ import { meadowsBeeFarmAdminDemoConfig } from "./meadows-bee-farm-admin-demo";
 import { heartsongCottageSchoolAdminDemoConfig } from "./heartsong-cottage-school-admin-demo";
 import { honeycombCottageSchoolAdminDemoConfig } from "./honeycomb-cottage-school-admin-demo";
 import { madronaSchoolAdminDemoConfig } from "./madrona-school-admin-demo";
+import { downToEarthHomeschoolAdminDemoConfig } from "./down-to-earth-homeschool-admin-demo";
+import { coysCampsAndClassesAdminDemoConfig } from "./coys-camps-and-classes-admin-demo";
+import { coastalSageMontessoriAdminDemoConfig } from "./coastal-sage-montessori-admin-demo";
+import { beaconOfHopeAcademyAdminDemoConfig } from "./beacon-of-hope-academy-admin-demo";
 import { wildHeartsAdventureAdminDemoConfig } from "./wild-hearts-admin-demo";
 import { wonderhereLakelandAdminDemoConfig } from "./wonderhere-admin-demo";
 import { wonderingOaksLearningAdminDemoConfig } from "./wondering-oaks-admin-demo";
@@ -90,6 +94,10 @@ export const schoolAdminDemoConfigs: Record<string, SchoolAdminDemoConfig> = {
   "heartsong-cottage-school": heartsongCottageSchoolAdminDemoConfig,
   "honeycomb-cottage-school": honeycombCottageSchoolAdminDemoConfig,
   "madrona-school": madronaSchoolAdminDemoConfig,
+  "down-to-earth-homeschool": downToEarthHomeschoolAdminDemoConfig,
+  "coys-camps-and-classes": coysCampsAndClassesAdminDemoConfig,
+  "coastal-sage-montessori": coastalSageMontessoriAdminDemoConfig,
+  "beacon-of-hope-academy": beaconOfHopeAcademyAdminDemoConfig,
   "wild-hearts-adventure": wildHeartsAdventureAdminDemoConfig,
   "wonderhere-lakeland": wonderhereLakelandAdminDemoConfig,
   "wondering-oaks-learning": wonderingOaksLearningAdminDemoConfig,
@@ -139,6 +147,10 @@ import { meadowsBeeFarmParentDemoConfig } from "./meadows-bee-farm-parent-demo";
 import { heartsongCottageSchoolParentDemoConfig } from "./heartsong-cottage-school-parent-demo";
 import { honeycombCottageSchoolParentDemoConfig } from "./honeycomb-cottage-school-parent-demo";
 import { madronaSchoolParentDemoConfig } from "./madrona-school-parent-demo";
+import { downToEarthHomeschoolParentDemoConfig } from "./down-to-earth-homeschool-parent-demo";
+import { coysCampsAndClassesParentDemoConfig } from "./coys-camps-and-classes-parent-demo";
+import { coastalSageMontessoriParentDemoConfig } from "./coastal-sage-montessori-parent-demo";
+import { beaconOfHopeAcademyParentDemoConfig } from "./beacon-of-hope-academy-parent-demo";
 import { wildHeartsAdventureParentDemoConfig } from "./wild-hearts-parent-demo";
 import { wonderhereLakelandParentDemoConfig } from "./wonderhere-parent-demo";
 import { wonderingOaksLearningParentDemoConfig } from "./wondering-oaks-parent-demo";
@@ -187,6 +199,10 @@ export const schoolParentDemoConfigs: Record<string, SchoolParentDemoConfig> = {
   "heartsong-cottage-school": heartsongCottageSchoolParentDemoConfig,
   "honeycomb-cottage-school": honeycombCottageSchoolParentDemoConfig,
   "madrona-school": madronaSchoolParentDemoConfig,
+  "down-to-earth-homeschool": downToEarthHomeschoolParentDemoConfig,
+  "coys-camps-and-classes": coysCampsAndClassesParentDemoConfig,
+  "coastal-sage-montessori": coastalSageMontessoriParentDemoConfig,
+  "beacon-of-hope-academy": beaconOfHopeAcademyParentDemoConfig,
   "wild-hearts-adventure": wildHeartsAdventureParentDemoConfig,
   "wonderhere-lakeland": wonderhereLakelandParentDemoConfig,
   "wondering-oaks-learning": wonderingOaksLearningParentDemoConfig,
@@ -235,6 +251,10 @@ import { meadowsBeeFarmTeacherDemoConfig } from "./meadows-bee-farm-teacher-demo
 import { heartsongCottageSchoolTeacherDemoConfig } from "./heartsong-cottage-school-teacher-demo";
 import { honeycombCottageSchoolTeacherDemoConfig } from "./honeycomb-cottage-school-teacher-demo";
 import { madronaSchoolTeacherDemoConfig } from "./madrona-school-teacher-demo";
+import { downToEarthHomeschoolTeacherDemoConfig } from "./down-to-earth-homeschool-teacher-demo";
+import { coysCampsAndClassesTeacherDemoConfig } from "./coys-camps-and-classes-teacher-demo";
+import { coastalSageMontessoriTeacherDemoConfig } from "./coastal-sage-montessori-teacher-demo";
+import { beaconOfHopeAcademyTeacherDemoConfig } from "./beacon-of-hope-academy-teacher-demo";
 import { wildHeartsAdventureTeacherDemoConfig } from "./wild-hearts-teacher-demo";
 import { wonderhereLakelandTeacherDemoConfig } from "./wonderhere-teacher-demo";
 import { wonderingOaksLearningTeacherDemoConfig } from "./wondering-oaks-teacher-demo";
@@ -283,6 +303,10 @@ export const schoolTeacherDemoConfigs: Record<string, SchoolTeacherDemoConfig> =
   "heartsong-cottage-school": heartsongCottageSchoolTeacherDemoConfig,
   "honeycomb-cottage-school": honeycombCottageSchoolTeacherDemoConfig,
   "madrona-school": madronaSchoolTeacherDemoConfig,
+  "down-to-earth-homeschool": downToEarthHomeschoolTeacherDemoConfig,
+  "coys-camps-and-classes": coysCampsAndClassesTeacherDemoConfig,
+  "coastal-sage-montessori": coastalSageMontessoriTeacherDemoConfig,
+  "beacon-of-hope-academy": beaconOfHopeAcademyTeacherDemoConfig,
   "wild-hearts-adventure": wildHeartsAdventureTeacherDemoConfig,
   "wonderhere-lakeland": wonderhereLakelandTeacherDemoConfig,
   "wondering-oaks-learning": wonderingOaksLearningTeacherDemoConfig,

@@ -47,6 +47,10 @@ export { meadowsBeeFarmConfig } from "./meadows-bee-farm";
 export { heartsongCottageSchoolConfig } from "./heartsong-cottage-school";
 export { honeycombCottageSchoolConfig } from "./honeycomb-cottage-school";
 export { madronaSchoolConfig } from "./madrona-school";
+export { downToEarthHomeschoolConfig } from "./down-to-earth-homeschool";
+export { coysCampsAndClassesConfig } from "./coys-camps-and-classes";
+export { coastalSageMontessoriConfig } from "./coastal-sage-montessori";
+export { beaconOfHopeAcademyConfig } from "./beacon-of-hope-academy";
 
 import type { SchoolWebsiteDemoConfig } from "./types";
 import { athenaMicroacademyConfig } from "./athena-microacademy";
@@ -96,6 +100,10 @@ import { meadowsBeeFarmConfig } from "./meadows-bee-farm";
 import { heartsongCottageSchoolConfig } from "./heartsong-cottage-school";
 import { honeycombCottageSchoolConfig } from "./honeycomb-cottage-school";
 import { madronaSchoolConfig } from "./madrona-school";
+import { downToEarthHomeschoolConfig } from "./down-to-earth-homeschool";
+import { coysCampsAndClassesConfig } from "./coys-camps-and-classes";
+import { coastalSageMontessoriConfig } from "./coastal-sage-montessori";
+import { beaconOfHopeAcademyConfig } from "./beacon-of-hope-academy";
 
 export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "athena-microacademy": athenaMicroacademyConfig,
@@ -145,6 +153,10 @@ export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "heartsong-cottage-school": heartsongCottageSchoolConfig,
   "honeycomb-cottage-school": honeycombCottageSchoolConfig,
   "madrona-school": madronaSchoolConfig,
+  "down-to-earth-homeschool": downToEarthHomeschoolConfig,
+  "coys-camps-and-classes": coysCampsAndClassesConfig,
+  "coastal-sage-montessori": coastalSageMontessoriConfig,
+  "beacon-of-hope-academy": beaconOfHopeAcademyConfig,
 };
 
 export function getSchoolDemoConfig(slug: string): SchoolWebsiteDemoConfig | undefined {
