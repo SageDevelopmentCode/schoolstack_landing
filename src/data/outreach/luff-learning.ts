@@ -200,12 +200,12 @@ export const luffLearningOutreach: OutreachPlan = {
 
 I read your post on why you started Luff. I liked the idea that all education should be special education, and your rule of never more than 10 students with one teacher.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Luff.
 
-I'd like to hear how the Virtual Academy is going. A text is plenty.
+I'd like to hear how the Virtual Academy is going.
 
 Julius`,
-    postscript: "The card inside has a version of Luff I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Sarah, a note from a microschool in Round Rock. J",
     shortCode: "luff-byxe",
     checkBeforeMailing: [

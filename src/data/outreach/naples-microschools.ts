@@ -225,12 +225,12 @@ export const naplesMicroschoolsOutreach: OutreachPlan = {
 
 I read the Southwest Florida Family story about Naples MicroSchools. I liked your line that the school is for kids who have the wiggles and kids who like to be outside.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Naples MicroSchools.
 
-I'd like to hear how the farm fits into your school week. A text is plenty.
+I'd like to hear how the farm fits into your school week.
 
 Julius`,
-    postscript: "The card inside has a version of Naples MicroSchools I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Dr. Dee, a note from an outdoor microschool in Texas. J",
     shortCode: "naples-7e8m",
     checkBeforeMailing: [

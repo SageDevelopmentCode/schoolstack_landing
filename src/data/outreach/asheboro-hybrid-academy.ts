@@ -220,12 +220,12 @@ export const asheboroHybridAcademyOutreach: OutreachPlan = {
 
 I read the About page on the AHA site. I liked the line "education happens together," with teachers in class two or three days a week and a parent as co-teacher at home the rest.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for AHA.
 
-I'd like to hear how admissions works at a parent-governed school. A text is plenty.
+I'd like to hear how admissions works at a parent-governed school.
 
 Julius`,
-    postscript: "The card inside has a version of AHA I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Rachel, a note for AHA admissions from a microschool in Round Rock. J",
     shortCode: "aha-s5lq",
     checkBeforeMailing: [
@@ -246,7 +246,7 @@ I mailed you a handwritten note last week with a card for AHA.
 
 The Enroll HERE page on the AHA site links to the 2026–2027 New Student Application, but the Google Form now says it's no longer accepting responses. With some grades full, the page doesn't say where a family should go next.
 
-I run Sage Field, a microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the enrollment and tuition system I built for it.
+I run Sage Field, a microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the system I built to run it.
 
 I put together a one-page snapshot of what a family sees on your site today, from the program pages to the $125 enrollment fee. Want me to send it?
 

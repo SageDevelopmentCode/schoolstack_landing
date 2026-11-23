@@ -174,12 +174,12 @@ export const lighthouseHomeschoolOutreach: OutreachPlan = {
 
 I read how Lighthouse works on your site. I liked that your teachers write lesson plans for each grade every month, used both on campus and on the three days at home.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Lighthouse.
 
-I'd like to hear how new families settle into the home days in their first year. A text is plenty.
+I'd like to hear how new families settle into the home days in their first year.
 
 Julius`,
-    postscript: "The card inside has a version of Lighthouse I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Robyn, a note from a small school in Round Rock, Texas. J",
     shortCode: "lighthouse-vg8b",
     checkBeforeMailing: [

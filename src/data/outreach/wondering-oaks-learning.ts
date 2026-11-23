@@ -190,12 +190,12 @@ export const wonderingOaksLearningOutreach: OutreachPlan = {
 
 I read your Staff page bio, about finding your passion at Free Forest School, where children explored without constant adult direction. I liked that Wondering Oaks pairs that with foundational academics.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Wondering Oaks.
 
-I'd like to hear how Wondering Oaks is doing these days. A text is plenty.
+I'd like to hear how Wondering Oaks is doing these days.
 
 Julius`,
-    postscript: "The card inside has a version of Wondering Oaks I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Christian, a note from a small school in Round Rock, Texas. J",
     shortCode: "wonderingoaks-9bti",
     checkBeforeMailing: [

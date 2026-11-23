@@ -215,12 +215,12 @@ export const homeworkHubOutreach: OutreachPlan = {
 
 I read how Homework Hub began, with a classroom in Manhattan and a tutoring practice in the city before you started it on Long Island in 2012. I liked seeing it now include a full-day microschool for grades 5 to 8.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Homework Hub.
 
-I'd like to hear what led you to start HwH Academy. A text is plenty.
+I'd like to hear what led you to start HwH Academy.
 
 Julius`,
-    postscript: "The card inside has a version of Homework Hub I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Tracy, a handwritten note from a small school in Texas. J",
     shortCode: "homeworkhub-hq4k",
     checkBeforeMailing: [

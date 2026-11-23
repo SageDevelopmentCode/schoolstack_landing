@@ -221,12 +221,12 @@ export const beaconOfHopeAcademyOutreach: OutreachPlan = {
 
 I saw your LiberatED interview from June 2025, recorded before Beacon of Hope's first fall, about building a faith-based school for K–5 students with special needs. I liked that therapy sits right in the middle of your school day.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Beacon of Hope.
 
-I'd like to hear how opening compared with your plans. A text is plenty.
+I'd like to hear how opening compared with your plans.
 
 Julius`,
-    postscript: "The card inside has a version of Beacon of Hope I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Cassandra, a note from a small microschool in Round Rock, Texas. J",
     shortCode: "beacon-q7m3",
     checkBeforeMailing: [
@@ -250,7 +250,7 @@ I was reading your Enroll Now page. Apply Now opens the interest form, which ask
 
 How does a family get from that form to paying the fees?
 
-I ask because I run Sage Field, a small outdoor microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the enrollment and tuition system I built for it.
+I ask because I run Sage Field, a small outdoor microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the system I built to run it.
 
 Julius`,
     },

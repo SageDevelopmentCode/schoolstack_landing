@@ -237,12 +237,12 @@ export const coysCampsAndClassesOutreach: OutreachPlan = {
 
 I read your post about teaching kindergarten. Some students could spell "I can see a cat" but couldn't come up with their own sentence about a cat, and you wrote that what kids learn on their own stays with them longest.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Coy's.
 
-I'd like to hear how you run a microschool and a chess club under one roof. A text is plenty.
+I'd like to hear how you run a microschool and a chess club under one roof.
 
 Julius`,
-    postscript: "The card inside has a version of Coy's I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Molly, a note from a small microschool in Round Rock, Texas. J",
     shortCode: "coys-r2k9",
     checkBeforeMailing: [
@@ -265,7 +265,7 @@ I was reading your Prodigypreneurs FAQ. Tuition is paid quarterly, you take ESA 
 
 When a family's ESA doesn't cover the whole quarter, how do you collect the rest?
 
-I ask because I run Sage Field, a small outdoor microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the enrollment and tuition system I built for it.
+I ask because I run Sage Field, a small outdoor microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the system I built to run it.
 
 Julius`,
     },

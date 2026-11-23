@@ -227,12 +227,12 @@ export const kineoSchoolOutreach: OutreachPlan = {
 
 I read your letter on the Kineo site. I liked that you came to Kineo as a parent first and served on the board before becoming Director in 2023.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Kineo.
 
-I'd like to hear how the move from parent to Director has gone. A text is plenty.
+I'd like to hear how the move from parent to Director has gone.
 
 Julius`,
-    postscript: "The card inside has a version of Kineo I set up, plus a parent's-eye look at your admissions steps.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your admissions steps.",
     stickyNote: "Elizabeth, a short note from a microschool in Texas. J",
     shortCode: "kineo-ea9n",
     checkBeforeMailing: [

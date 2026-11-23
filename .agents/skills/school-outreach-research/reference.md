@@ -45,7 +45,7 @@ Never invent other customers, numbers or results.
 - Say plainly why you're writing to *this* school.
 - One number for proof (0 → 35 in under 3 months).
 - **Name MudKitchen once in the first email**, as what Julius built and runs Sage Field on
-  ("…0 to 35 students in under 3 months on MudKitchen, the enrollment and tuition system I built for it").
+  ("…0 to 35 students in under 3 months on MudKitchen, the system I built to run it").
   No link in the body: the footer carries trymudkitchen.com. The validator fails a first email without it.
 - One small ask. First email: permission ("Want me to send it?"). No calendar links, no meeting asks.
 - First email 50–125 words (aim 60–90); follow-ups 20–80; social note under 200 characters.
@@ -98,7 +98,7 @@ Hi Mily,
 
 Your FAQ says Athena is an approved TEFA vendor on Odyssey. At $17,000 tuition, a TEFA family still owes about $6,500 on top of the $10,474 the state pays, so one student can mean two payers.
 
-I run Sage Field, a microschool in Round Rock. We went from 0 to 35 students in under 3 months on MudKitchen, the enrollment and tuition system I built for it. I set up a version for Athena with your programs in it.
+I run Sage Field, a microschool in Round Rock. We went from 0 to 35 students in under 3 months on MudKitchen, the system I built to run it. I set up a version for Athena with your programs in it.
 
 Want me to send it?
 

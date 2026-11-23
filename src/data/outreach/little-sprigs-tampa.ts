@@ -220,12 +220,12 @@ export const littleSprigsTampaOutreach: OutreachPlan = {
 
 I read on your Team page that you founded Florida's first and only African-centered microschool, and that you're its lead teacher too.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Homeschool Village.
 
-I'd like to hear how this school year is going out in the woods at Scout Park. A text is plenty.
+I'd like to hear how this school year is going out in the woods at Scout Park.
 
 Julius`,
-    postscript: "The card inside has a version of The Homeschool Village I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Charlene, a note from a small school in Round Rock, Texas. J",
     shortCode: "village-nz2j",
     checkBeforeMailing: [

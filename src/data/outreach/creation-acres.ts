@@ -223,12 +223,12 @@ export const creationAcresOutreach: OutreachPlan = {
 
 I read in the Charlotte Weekly that Mint Hill approved the rezoning for the Allen Black Road farm. I liked what you told the commissioners about carrying on a legacy and keeping that land in Mint Hill.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Creation Acres.
 
-I'd like to hear how the farm campus is coming along. A text is plenty.
+I'd like to hear how the farm campus is coming along.
 
 Julius`,
-    postscript: "The card inside has a version of Creation Acres I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Jasmine, a note from an outdoor microschool in Texas. J",
     shortCode: "creationacres-ez26",
     checkBeforeMailing: [

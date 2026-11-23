@@ -213,12 +213,12 @@ export const inspiredLearningAcademyOutreach: OutreachPlan = {
 
 I listened to your This Golden Hour episode on micro-school homeschooling. I liked hearing how looking for the right fit for your own kids turned into Inspired, a school for a lot of other families too.
 
-My fiancée and I run Sage Field, an outdoor microschool down in Round Rock. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool down in Round Rock. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Inspired.
 
-I'd like to hear what you've learned about running a school for young teens. A text is plenty.
+I'd like to hear what you've learned about running a school for young teens.
 
 Julius`,
-    postscript: "The card inside has a version of Inspired I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Jill, a note from a microschool down in Round Rock. J",
     shortCode: "inspired-rr77",
     checkBeforeMailing: [
@@ -239,7 +239,7 @@ I mailed you a handwritten note last week with a card for Inspired. It has a QR 
 
 One thing stood out: Inspired now accepts TEFA funds, and tuition is $12,970 or $1,297 a month, so a TEFA family may pay from two places.
 
-I run Sage Field, a microschool in Round Rock. We went from 0 to 35 students in under 3 months on MudKitchen, the enrollment and tuition system I built for it.
+I run Sage Field, a microschool in Round Rock. We went from 0 to 35 students in under 3 months on MudKitchen, the system I built to run it.
 
 Want me to send the snapshot link here too?
 

@@ -47,6 +47,24 @@ export { meadowsBeeFarmConfig } from "./meadows-bee-farm";
 export { heartsongCottageSchoolConfig } from "./heartsong-cottage-school";
 export { honeycombCottageSchoolConfig } from "./honeycomb-cottage-school";
 export { madronaSchoolConfig } from "./madrona-school";
+export { morganPrepAcademyConfig } from "./morgan-prep-academy";
+export { mirusAcademyConfig } from "./mirus-academy";
+export { mcpAcademyConfig } from "./mcp-academy";
+export { journeyAcademyConfig } from "./journey-academy";
+export { innovationAcademyLasVegasConfig } from "./innovation-academy-las-vegas";
+export { innerFireAcademyConfig } from "./inner-fire-academy";
+export { theWildSchoolConfig } from "./the-wild-school";
+export { esteamAcademyRoundRockConfig } from "./esteam-academy-round-rock";
+export { igniteMicroschoolConfig } from "./ignite-microschool";
+export { gardenSchoolMariettaConfig } from "./garden-school-marietta";
+export { peninsularPrepConfig } from "./peninsular-prep";
+export { stepsLearningCenterConfig } from "./steps-learning-center";
+export { sageMontessoriNashvilleConfig } from "./sage-montessori-nashville";
+export { renewedRootsForestSchoolConfig } from "./renewed-roots-forest-school";
+export { prestigeWisdomAcademyConfig } from "./prestige-wisdom-academy";
+export { invictusLeanderConfig } from "./invictus-leander";
+export { godsLittlePeopleLearningAcademyConfig } from "./gods-little-people-learning-academy";
+export { everrootAcademyConfig } from "./everroot-academy";
 export { downToEarthHomeschoolConfig } from "./down-to-earth-homeschool";
 export { coysCampsAndClassesConfig } from "./coys-camps-and-classes";
 export { coastalSageMontessoriConfig } from "./coastal-sage-montessori";
@@ -100,6 +118,24 @@ import { meadowsBeeFarmConfig } from "./meadows-bee-farm";
 import { heartsongCottageSchoolConfig } from "./heartsong-cottage-school";
 import { honeycombCottageSchoolConfig } from "./honeycomb-cottage-school";
 import { madronaSchoolConfig } from "./madrona-school";
+import { morganPrepAcademyConfig } from "./morgan-prep-academy";
+import { mirusAcademyConfig } from "./mirus-academy";
+import { mcpAcademyConfig } from "./mcp-academy";
+import { journeyAcademyConfig } from "./journey-academy";
+import { innovationAcademyLasVegasConfig } from "./innovation-academy-las-vegas";
+import { innerFireAcademyConfig } from "./inner-fire-academy";
+import { theWildSchoolConfig } from "./the-wild-school";
+import { esteamAcademyRoundRockConfig } from "./esteam-academy-round-rock";
+import { igniteMicroschoolConfig } from "./ignite-microschool";
+import { gardenSchoolMariettaConfig } from "./garden-school-marietta";
+import { peninsularPrepConfig } from "./peninsular-prep";
+import { stepsLearningCenterConfig } from "./steps-learning-center";
+import { sageMontessoriNashvilleConfig } from "./sage-montessori-nashville";
+import { renewedRootsForestSchoolConfig } from "./renewed-roots-forest-school";
+import { prestigeWisdomAcademyConfig } from "./prestige-wisdom-academy";
+import { invictusLeanderConfig } from "./invictus-leander";
+import { godsLittlePeopleLearningAcademyConfig } from "./gods-little-people-learning-academy";
+import { everrootAcademyConfig } from "./everroot-academy";
 import { downToEarthHomeschoolConfig } from "./down-to-earth-homeschool";
 import { coysCampsAndClassesConfig } from "./coys-camps-and-classes";
 import { coastalSageMontessoriConfig } from "./coastal-sage-montessori";
@@ -153,6 +189,24 @@ export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "heartsong-cottage-school": heartsongCottageSchoolConfig,
   "honeycomb-cottage-school": honeycombCottageSchoolConfig,
   "madrona-school": madronaSchoolConfig,
+  "morgan-prep-academy": morganPrepAcademyConfig,
+  "mirus-academy": mirusAcademyConfig,
+  "mcp-academy": mcpAcademyConfig,
+  "journey-academy": journeyAcademyConfig,
+  "innovation-academy-las-vegas": innovationAcademyLasVegasConfig,
+  "inner-fire-academy": innerFireAcademyConfig,
+  "the-wild-school": theWildSchoolConfig,
+  "esteam-academy-round-rock": esteamAcademyRoundRockConfig,
+  "ignite-microschool": igniteMicroschoolConfig,
+  "garden-school-marietta": gardenSchoolMariettaConfig,
+  "peninsular-prep": peninsularPrepConfig,
+  "steps-learning-center": stepsLearningCenterConfig,
+  "sage-montessori-nashville": sageMontessoriNashvilleConfig,
+  "renewed-roots-forest-school": renewedRootsForestSchoolConfig,
+  "prestige-wisdom-academy": prestigeWisdomAcademyConfig,
+  "invictus-leander": invictusLeanderConfig,
+  "gods-little-people-learning-academy": godsLittlePeopleLearningAcademyConfig,
+  "everroot-academy": everrootAcademyConfig,
   "down-to-earth-homeschool": downToEarthHomeschoolConfig,
   "coys-camps-and-classes": coysCampsAndClassesConfig,
   "coastal-sage-montessori": coastalSageMontessoriConfig,

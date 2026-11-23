@@ -200,12 +200,12 @@ export const springRiverSchoolOutreach: OutreachPlan = {
 
 I read the history of Spring River on your site. I liked that it began in 2014 as friends meeting in local parks, with you among the founding parents, and that after a decade in borrowed spaces you're looking for land of your own.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Spring River.
 
-I'd like to hear how the search for land is going. A text is plenty.
+I'd like to hear how the search for land is going.
 
 Julius`,
-    postscript: "The card inside has a version of Spring River I set up, plus a parent's-eye look at your admissions and camp sign-ups.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your admissions and camp sign-ups.",
     stickyNote: "Carrie, a note from an outdoor microschool in Texas. J",
     shortCode: "springriver-neno",
     checkBeforeMailing: [

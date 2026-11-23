@@ -12,14 +12,23 @@ import { coastalSageMontessoriOutreach } from "./coastal-sage-montessori";
 import { coysCampsAndClassesOutreach } from "./coys-camps-and-classes";
 import { creationAcresOutreach } from "./creation-acres";
 import { downToEarthHomeschoolOutreach } from "./down-to-earth-homeschool";
+import { esteamAcademyRoundRockOutreach } from "./esteam-academy-round-rock";
+import { everrootAcademyOutreach } from "./everroot-academy";
 import { familyLyceumOutreach } from "./family-lyceum";
 import { freedomPrepAcademyOutreach } from "./freedom-prep-academy";
+import { gardenSchoolMariettaOutreach } from "./garden-school-marietta";
 import { gatheredOakFarmOutreach } from "./gathered-oak-farm";
+import { godsLittlePeopleLearningAcademyOutreach } from "./gods-little-people-learning-academy";
 import { heartsongCottageSchoolOutreach } from "./heartsong-cottage-school";
 import { hiltonHorizonsAcademyOutreach } from "./hilton-horizons-academy";
 import { homeworkHubOutreach } from "./homework-hub";
 import { honeycombCottageSchoolOutreach } from "./honeycomb-cottage-school";
+import { igniteMicroschoolOutreach } from "./ignite-microschool";
+import { innerFireAcademyOutreach } from "./inner-fire-academy";
+import { innovationAcademyLasVegasOutreach } from "./innovation-academy-las-vegas";
 import { inspiredLearningAcademyOutreach } from "./inspired-learning-academy";
+import { invictusLeanderOutreach } from "./invictus-leander";
+import { journeyAcademyOutreach } from "./journey-academy";
 import { katsCommunityMicroschoolOutreach } from "./kats-community-microschool";
 import { kinderAcademyPrepSchoolOutreach } from "./kinder-academy-prep-school";
 import { kineoSchoolOutreach } from "./kineo-school";
@@ -28,20 +37,29 @@ import { lighthouseHomeschoolOutreach } from "./lighthouse-homeschool";
 import { littleSprigsTampaOutreach } from "./little-sprigs-tampa";
 import { luffLearningOutreach } from "./luff-learning";
 import { madronaSchoolOutreach } from "./madrona-school";
+import { mcpAcademyOutreach } from "./mcp-academy";
 import { meadowsBeeFarmOutreach } from "./meadows-bee-farm";
 import { micahsMissionSchoolOutreach } from "./micahs-mission-school";
+import { mirusAcademyOutreach } from "./mirus-academy";
 import { monarchHillsEducationOutreach } from "./monarch-hills-education";
+import { morganPrepAcademyOutreach } from "./morgan-prep-academy";
 import { naplesMicroschoolsOutreach } from "./naples-microschools";
 import { naturesSchoolhouseOutreach } from "./natures-schoolhouse";
 import { oneAcreFarmOutreach } from "./one-acre-farm";
 import { paradiseEarthAcademyOutreach } from "./paradise-earth-academy";
+import { peninsularPrepOutreach } from "./peninsular-prep";
 import { piedmontForestSchoolOutreach } from "./piedmont-forest-school";
 import { prestigeHomeschoolAcademyOutreach } from "./prestige-homeschool-academy";
+import { prestigeWisdomAcademyOutreach } from "./prestige-wisdom-academy";
+import { renewedRootsForestSchoolOutreach } from "./renewed-roots-forest-school";
 import { riverOakAcademyOutreach } from "./river-oak-academy";
 import { rootsAndWingsMicroschoolOutreach } from "./roots-and-wings-microschool";
+import { sageMontessoriNashvilleOutreach } from "./sage-montessori-nashville";
 import { springRiverSchoolOutreach } from "./spring-river-school";
+import { stepsLearningCenterOutreach } from "./steps-learning-center";
 import { tapestryAcademyOutreach } from "./tapestry-academy";
 import { theFocusAcademyOutreach } from "./the-focus-academy";
+import { theWildSchoolOutreach } from "./the-wild-school";
 import { theWoodlandsMicroschoolOutreach } from "./the-woodlands-microschool";
 import { trueNorthOutreach } from "./true-north";
 import type { OutreachPlan } from "./types";
@@ -69,14 +87,23 @@ export const outreachPlanRegistry: Record<string, OutreachPlan> = {
   [coysCampsAndClassesOutreach.slug]: coysCampsAndClassesOutreach,
   [creationAcresOutreach.slug]: creationAcresOutreach,
   [downToEarthHomeschoolOutreach.slug]: downToEarthHomeschoolOutreach,
+  [esteamAcademyRoundRockOutreach.slug]: esteamAcademyRoundRockOutreach,
+  [everrootAcademyOutreach.slug]: everrootAcademyOutreach,
   [familyLyceumOutreach.slug]: familyLyceumOutreach,
   [freedomPrepAcademyOutreach.slug]: freedomPrepAcademyOutreach,
+  [gardenSchoolMariettaOutreach.slug]: gardenSchoolMariettaOutreach,
   [gatheredOakFarmOutreach.slug]: gatheredOakFarmOutreach,
+  [godsLittlePeopleLearningAcademyOutreach.slug]: godsLittlePeopleLearningAcademyOutreach,
   [heartsongCottageSchoolOutreach.slug]: heartsongCottageSchoolOutreach,
   [hiltonHorizonsAcademyOutreach.slug]: hiltonHorizonsAcademyOutreach,
   [homeworkHubOutreach.slug]: homeworkHubOutreach,
   [honeycombCottageSchoolOutreach.slug]: honeycombCottageSchoolOutreach,
+  [igniteMicroschoolOutreach.slug]: igniteMicroschoolOutreach,
+  [innerFireAcademyOutreach.slug]: innerFireAcademyOutreach,
+  [innovationAcademyLasVegasOutreach.slug]: innovationAcademyLasVegasOutreach,
   [inspiredLearningAcademyOutreach.slug]: inspiredLearningAcademyOutreach,
+  [invictusLeanderOutreach.slug]: invictusLeanderOutreach,
+  [journeyAcademyOutreach.slug]: journeyAcademyOutreach,
   [katsCommunityMicroschoolOutreach.slug]: katsCommunityMicroschoolOutreach,
   [kinderAcademyPrepSchoolOutreach.slug]: kinderAcademyPrepSchoolOutreach,
   [kineoSchoolOutreach.slug]: kineoSchoolOutreach,
@@ -85,20 +112,29 @@ export const outreachPlanRegistry: Record<string, OutreachPlan> = {
   [littleSprigsTampaOutreach.slug]: littleSprigsTampaOutreach,
   [luffLearningOutreach.slug]: luffLearningOutreach,
   [madronaSchoolOutreach.slug]: madronaSchoolOutreach,
+  [mcpAcademyOutreach.slug]: mcpAcademyOutreach,
   [meadowsBeeFarmOutreach.slug]: meadowsBeeFarmOutreach,
   [micahsMissionSchoolOutreach.slug]: micahsMissionSchoolOutreach,
+  [mirusAcademyOutreach.slug]: mirusAcademyOutreach,
   [monarchHillsEducationOutreach.slug]: monarchHillsEducationOutreach,
+  [morganPrepAcademyOutreach.slug]: morganPrepAcademyOutreach,
   [naplesMicroschoolsOutreach.slug]: naplesMicroschoolsOutreach,
   [naturesSchoolhouseOutreach.slug]: naturesSchoolhouseOutreach,
   [oneAcreFarmOutreach.slug]: oneAcreFarmOutreach,
   [paradiseEarthAcademyOutreach.slug]: paradiseEarthAcademyOutreach,
+  [peninsularPrepOutreach.slug]: peninsularPrepOutreach,
   [piedmontForestSchoolOutreach.slug]: piedmontForestSchoolOutreach,
   [prestigeHomeschoolAcademyOutreach.slug]: prestigeHomeschoolAcademyOutreach,
+  [prestigeWisdomAcademyOutreach.slug]: prestigeWisdomAcademyOutreach,
+  [renewedRootsForestSchoolOutreach.slug]: renewedRootsForestSchoolOutreach,
   [riverOakAcademyOutreach.slug]: riverOakAcademyOutreach,
   [rootsAndWingsMicroschoolOutreach.slug]: rootsAndWingsMicroschoolOutreach,
+  [sageMontessoriNashvilleOutreach.slug]: sageMontessoriNashvilleOutreach,
   [springRiverSchoolOutreach.slug]: springRiverSchoolOutreach,
+  [stepsLearningCenterOutreach.slug]: stepsLearningCenterOutreach,
   [tapestryAcademyOutreach.slug]: tapestryAcademyOutreach,
   [theFocusAcademyOutreach.slug]: theFocusAcademyOutreach,
+  [theWildSchoolOutreach.slug]: theWildSchoolOutreach,
   [theWoodlandsMicroschoolOutreach.slug]: theWoodlandsMicroschoolOutreach,
   [trueNorthOutreach.slug]: trueNorthOutreach,
   [wildHeartsAdventureOutreach.slug]: wildHeartsAdventureOutreach,

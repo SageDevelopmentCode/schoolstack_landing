@@ -219,12 +219,12 @@ export const wildHeartsAdventureOutreach: OutreachPlan = {
 
 I read your note on the Wild Hearts staff page. You started a learning community in San Diego years ago that's still running, and now Wild Hearts runs in Visalia and Selma.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Wild Hearts.
 
-I'd like to hear what you did differently the second time around. A text is plenty.
+I'd like to hear what you did differently the second time around.
 
 Julius`,
-    postscript: "The card inside has a version of Wild Hearts I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Roekmini, a note from a microschool in Round Rock, Texas. J",
     shortCode: "wildhearts-2o8h",
     checkBeforeMailing: [

@@ -235,12 +235,12 @@ export const freedomPrepAcademyOutreach: OutreachPlan = {
 
 I read your line on Freedom Prep's About page, that students need more freedom in their learning, more spark to pursue their passion, and more guidance and encouragement along the way.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Freedom Prep.
 
-I'd like to hear how you keep that guidance going across so many microschools. A text is plenty.
+I'd like to hear how you keep that guidance going across so many microschools.
 
 Julius`,
-    postscript: "The card inside has a version of Freedom Prep I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Sterling, a note from a microschool in Round Rock, Texas. J",
     shortCode: "freedomprep-gzdk",
     checkBeforeMailing: [

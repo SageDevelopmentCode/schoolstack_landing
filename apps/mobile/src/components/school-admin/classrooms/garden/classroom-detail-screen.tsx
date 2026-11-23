@@ -1,7 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GBackHeader } from '@/components/parent/garden/back-header';
 import { closeThen, confirmDestructive, useGardenPullRefresh, useGardenReadOnlyGate } from '@/components/parent/garden/feedback';
@@ -29,12 +28,12 @@ import { haptic } from '@/lib/haptics';
 import { groupStudentsForClassroomPicker } from '@/lib/school-admin/classroom-roster-ui';
 import type { ClassroomStaffRole } from '@/lib/school-admin/classrooms';
 import { formatEnrolledStudentName, formatStudentGrade } from '@/lib/school-admin/enrolled-students';
+import { useStatusBarBleed } from '@/hooks/use-status-bar-bleed';
 
 type ClassroomDetailScreenProps = { slug: string; organizationId: string; classroomId: string };
 
 function useDetailBleed() {
-  const insets = useSafeAreaInsets();
-  return { marginTop: -insets.top, paddingTop: insets.top };
+  return useStatusBarBleed();
 }
 
 /** School admin › More › Classrooms › one classroom (Garden). */

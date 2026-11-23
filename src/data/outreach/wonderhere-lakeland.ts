@@ -180,12 +180,12 @@ export const wonderhereLakelandOutreach: OutreachPlan = {
 
 I listened to your Founder to Founder episode. I liked hearing how you and Jessica started WonderHere as a small homeschool enrichment program, and how it grew into a microschool on a farm.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for WonderHere.
 
-I'd like to hear what changed when the enrichment days became a full school. A text is plenty.
+I'd like to hear what changed when the enrichment days became a full school.
 
 Julius`,
-    postscript: "The card inside has a version of WonderHere Lakeland I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Tiffany, a note from a microschool in Round Rock, Texas. J",
     shortCode: "wonderhere-8xb8",
     checkBeforeMailing: [

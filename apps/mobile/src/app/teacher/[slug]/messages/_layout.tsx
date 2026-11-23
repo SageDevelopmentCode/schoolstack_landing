@@ -1,14 +1,14 @@
 import { Stack } from 'expo-router';
 import { View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Garden } from '@/components/parent/garden/tokens';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { detailStackAnimation } from '@/lib/motion/portal-motion';
+import { useStatusBarBleed } from '@/hooks/use-status-bar-bleed';
 
 export default function TeacherMessagesLayout() {
   const theme = useParentTheme();
-  const insets = useSafeAreaInsets();
+  const statusBarBleed = useStatusBarBleed();
 
   // Stack screens are clipped, so the cream is pulled up under the status bar here
   // (the teacher layout's SafeAreaView pads the top edge).
@@ -16,8 +16,7 @@ export default function TeacherMessagesLayout() {
     <View
       style={{
         flex: 1,
-        marginTop: -insets.top,
-        paddingTop: insets.top,
+        ...statusBarBleed,
         backgroundColor: Garden.cream,
       }}>
       <Stack

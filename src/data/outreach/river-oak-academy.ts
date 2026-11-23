@@ -244,12 +244,12 @@ export const riverOakAcademyOutreach: OutreachPlan = {
 
 I was reading the River Oak team page. I liked that your role there includes woodworking with the learners, and that they get to use real tools and make things themselves.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for River Oak.
 
-I'd like to hear what the learners have built this year. A text is plenty.
+I'd like to hear what the learners have built this year.
 
 Julius`,
-    postscript: "The card inside has a version of River Oak I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Vince, a note from a microschool in Round Rock, Texas. J",
     shortCode: "riveroak-06lg",
     checkBeforeMailing: [
@@ -271,7 +271,7 @@ I mailed you a handwritten note last week with a card for River Oak.
 
 The River Oak home page asks families to click four steps in order. Today the phone call link opens an Appointlet page saying all available times are taken, and the tour and application buttons don't open anything, so email is the only way in.
 
-I run Sage Field, a microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the enrollment and tuition system I built for it.
+I run Sage Field, a microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the system I built to run it.
 
 The card has a one-page snapshot of what a family sees on your site today, from the studios to the $700 deposit. Want me to send the link here too?
 

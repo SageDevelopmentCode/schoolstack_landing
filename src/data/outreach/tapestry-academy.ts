@@ -235,12 +235,12 @@ export const tapestryAcademyOutreach: OutreachPlan = {
 
 I listened to your Living Boca episode. I liked how you described microschooling as a mix of homeschool and private school, and how Florida's scholarships now put it within reach of any family.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Tapestry.
 
-I'd like to hear how the first months of Homeschool Commons are going. A text is plenty.
+I'd like to hear how the first months of Homeschool Commons are going.
 
 Julius`,
-    postscript: "The card inside has a version of Tapestry I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Candace, a note from a microschool in Round Rock, Texas. J",
     shortCode: "tapestry-rc34",
     checkBeforeMailing: [

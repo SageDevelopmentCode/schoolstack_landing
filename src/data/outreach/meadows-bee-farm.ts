@@ -215,12 +215,12 @@ export const meadowsBeeFarmOutreach: OutreachPlan = {
 
 Rachael Sparhawk, who founded Rooted Meadows in Rigby, Idaho, mentioned Meadows Bee to me. I read your Liberty Food Fest bio and liked that you trained as a sculptor before turning to farming, and that Young Farmers now earn badges in 30 subjects.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other schools and farm programs too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Meadows Bee.
 
-I'd like to hear how the badge program started. A text is plenty.
+I'd like to hear how the badge program started.
 
 Julius`,
-    postscript: "The card inside has a version of Meadows Bee I set up, plus a parent's-eye look at your sign-ups.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your sign-ups.",
     stickyNote: "Leigh, a note from an outdoor microschool in Round Rock, Texas. J",
     shortCode: "meadowsbee-w3n9",
     checkBeforeMailing: [
@@ -244,7 +244,7 @@ I was reading the Young Farmers pages. Wednesdays are $40 a session, families bu
 
 With families signing up month by month, how do you keep track of who's coming each Wednesday and who's on a scholarship?
 
-I ask because I run Sage Field, a small outdoor microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the enrollment and tuition system I built for it.
+I ask because I run Sage Field, a small outdoor microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the system I built to run it.
 
 Julius`,
     },

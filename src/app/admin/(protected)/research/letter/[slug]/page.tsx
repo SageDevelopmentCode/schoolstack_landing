@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DownloadCardImageButton } from "@/components/admin/research/DownloadCardImageButton";
 import { LetterPrintSheet } from "@/components/admin/research/LetterPrintSheet";
 import { PrintButton } from "@/components/admin/research/PrintButton";
 import { getOutreachPlan } from "@/data/outreach";
@@ -29,7 +30,8 @@ export default async function LetterCardPage({ params }: { params: Promise<{ slu
             <a className="underline" href={url} target="_blank" rel="noreferrer">
               {letterShortUrlLabel(plan.letter.shortCode, PRODUCTION_SITE_URL)}
             </a>
-            , which goes to their snapshot (and from there their demo). Scans ping Discord as &ldquo;Letter QR scanned&rdquo;.
+            , which goes to their snapshot (and from there their demo). Scans ping Discord as &ldquo;Letter QR scanned&rdquo;. Or
+            download one card as an image.
           </p>
         </div>
         <div className="flex gap-2">
@@ -39,6 +41,10 @@ export default async function LetterCardPage({ params }: { params: Promise<{ slu
           >
             Back to outreach
           </Link>
+          <DownloadCardImageButton
+            fileName={`${slug}-letter-card.png`}
+            className="inline-flex items-center gap-2 rounded-full border-2 border-[#2b241d] px-4 py-2 text-sm font-extrabold"
+          />
           <PrintButton className="inline-flex items-center gap-2 rounded-full border-2 border-[#2b241d] bg-[#2b241d] px-4 py-2 text-sm font-extrabold text-white" />
         </div>
       </div>

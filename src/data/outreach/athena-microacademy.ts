@@ -219,12 +219,12 @@ export const athenaMicroacademyOutreach: OutreachPlan = {
 
 I listened to your LiberatED episode. I liked how you're keeping Athena small on purpose and planning each student's work around where they want to go after high school.
 
-My fiancée and I run Sage Field, an outdoor microschool up in Round Rock. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool up in Round Rock. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Athena.
 
 If you're ever up for coffee, I'd like to hear how your first semester is going.
 
 Julius`,
-    postscript: "The card inside has a version of Athena I set up, plus a parent's-eye look at your enrollment. I emailed once in June, but a note seemed better.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment. I emailed once in June, but a note seemed better.",
     stickyNote: "Mily, a note from a microschool up the road. J",
     shortCode: "athena-q7m4",
     checkBeforeMailing: [

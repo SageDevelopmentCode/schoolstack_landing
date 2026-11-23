@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ParentBottomSheet } from '@/components/parent/parent-bottom-sheet';
 import { Garden, GardenFonts, NOTE_TINTS, useGardenAccent } from '@/components/parent/garden/tokens';
@@ -35,6 +34,7 @@ import {
   getQuickActionIconStyle,
   resolveParentWebParentHrefToMobileRoute,
 } from '@/lib/parent/parent-nav';
+import { useStatusBarBleed } from '@/hooks/use-status-bar-bleed';
 
 /* ------------------------------------------------------------------ */
 /* Widget                                                              */
@@ -161,7 +161,7 @@ function JumpToCard({ ctx }: { ctx: ParentHomeCtx }) {
  */
 export function ParentHomeHub({ ctx }: { ctx: ParentHomeCtx }) {
   const accent = useGardenAccent();
-  const insets = useSafeAreaInsets();
+  const statusBarBleed = useStatusBarBleed();
   const { props, model } = ctx;
   const [eventsOpen, setEventsOpen] = useState(false);
   const [formsOpen, setFormsOpen] = useState(false);
@@ -191,7 +191,7 @@ export function ParentHomeHub({ ctx }: { ctx: ParentHomeCtx }) {
     // The parent layout's SafeAreaView pads the top. Pull the cream background up under
     // the status bar (tab routes aren't clipped) but keep the scroll view below it so the
     // iOS refresh spinner stays visible.
-    <View style={[styles.root, { marginTop: -insets.top, paddingTop: insets.top }]}>
+    <View style={[styles.root, statusBarBleed]}>
       <ScrollView
         contentContainerStyle={[styles.content, { paddingTop: 12 }]}
         refreshControl={

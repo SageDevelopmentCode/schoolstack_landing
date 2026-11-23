@@ -1,16 +1,16 @@
 import { StatusBar } from 'expo-status-bar';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Garden } from '@/components/parent/garden/tokens';
 import { GSkeleton } from '@/components/parent/garden/ui';
+import { useStatusBarBleed } from '@/hooks/use-status-bar-bleed';
 
 /** Loading layout shaped like the Garden Calendar (header, note, calendar card, agenda). */
 export function ParentCalendarGardenSkeleton() {
-  const insets = useSafeAreaInsets();
+  const statusBarBleed = useStatusBarBleed();
   return (
     <View
-      style={[styles.root, { marginTop: -insets.top, paddingTop: insets.top }]}
+      style={[styles.root, statusBarBleed]}
       accessible
       accessibilityLabel="Loading calendar">
       <StatusBar style="dark" />

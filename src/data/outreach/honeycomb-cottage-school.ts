@@ -243,12 +243,12 @@ export const honeycombCottageSchoolOutreach: OutreachPlan = {
 
 Rachael Sparhawk, who founded Rooted Meadows in Rigby, Idaho, mentioned Honeycomb to me. I read your About page and liked that you call yourselves the daughters of Abella Cottage School, keeping Julene's school going since 2022.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Honeycomb.
 
-I'd like to hear what it was like taking over a school with 21 years behind it. A text is plenty.
+I'd like to hear what it was like taking over a school with 21 years behind it.
 
 Julius`,
-    postscript: "The card inside has a version of Honeycomb I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Honeycomb team, a note from an outdoor microschool in Round Rock, Texas. J",
     shortCode: "honeycomb-k4m8",
     checkBeforeMailing: [
@@ -272,7 +272,7 @@ Your Classes page says families pay the $320 monthly tuition to you and get reim
 
 Once that goes through, will some families' tuition come from the program while others still pay you directly?
 
-I ask because I run Sage Field, a small outdoor microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the enrollment and tuition system I built for it.
+I ask because I run Sage Field, a small outdoor microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the system I built to run it.
 
 Julius`,
     },

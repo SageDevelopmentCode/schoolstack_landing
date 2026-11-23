@@ -249,12 +249,12 @@ export const wildcatMicroschoolOutreach: OutreachPlan = {
 
 I read the Josiah Bartlett Center's piece on Wildcat, and what you said there about wanting, more than anything, to see kids who are independent learners.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Wildcat.
 
-I'd like to hear how Wildcat has changed since you started it with four learners. A text is plenty.
+I'd like to hear how Wildcat has changed since you started it with four learners.
 
 Julius`,
-    postscript: "The card inside has a version of Wildcat I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Heather, a note from a small school in Round Rock, Texas. J",
     shortCode: "wildcat-nvle",
     checkBeforeMailing: [

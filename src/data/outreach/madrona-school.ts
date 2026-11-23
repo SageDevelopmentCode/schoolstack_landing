@@ -250,12 +250,12 @@ export const madronaSchoolOutreach: OutreachPlan = {
 
 Rachael Sparhawk, who founded Rooted Meadows in Rigby, Idaho, mentioned Madrona to me. I read your page on the Madrona site and liked what you wrote about handwork: students working through boredom and frustration on projects that take months.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Madrona.
 
-I'd like to hear how you went from designing school buildings to running a school. A text is plenty.
+I'd like to hear how you went from designing school buildings to running a school.
 
 Julius`,
-    postscript: "The card inside has a version of Madrona I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Toni, a note from an outdoor microschool in Round Rock, Texas. J",
     shortCode: "madrona-1573",
     checkBeforeMailing: [
@@ -279,7 +279,7 @@ I was reading your tuition page. The enrollment fee goes in with a signed tuitio
 
 Are those contracts still signed and returned to the office, or do families sign them online now?
 
-I ask because I run Sage Field, a small outdoor microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the enrollment and tuition system I built for it.
+I ask because I run Sage Field, a small outdoor microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the system I built to run it.
 
 Julius`,
     },

@@ -212,12 +212,12 @@ export const oneAcreFarmOutreach: OutreachPlan = {
 
 I listened to your Equine Assisted World episode with Nicole. I liked hearing that One Acre Farm's first class was on raising backyard chickens, and that you'd like to see a thousand One Acre Farms.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for One Acre Farm.
 
-I'd like to hear how you mentor people who want to start one. A text is plenty.
+I'd like to hear how you mentor people who want to start one.
 
 Julius`,
-    postscript: "The card inside has a version of One Acre Farm I set up, plus a parent's-eye look at Farm School enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at Farm School enrollment.",
     stickyNote: "Catherine, a note from an outdoor microschool in Round Rock. J",
     shortCode: "oneacre-4j0r",
     checkBeforeMailing: [

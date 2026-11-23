@@ -2,7 +2,6 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GBackHeader } from '@/components/parent/garden/back-header';
 import { GSegmented } from '@/components/parent/garden/segmented';
@@ -39,6 +38,7 @@ import {
   applicationStatusChipTone,
 } from '@/lib/admissions/application-status-ui';
 import { haptic } from '@/lib/haptics';
+import { useStatusBarBleed } from '@/hooks/use-status-bar-bleed';
 
 const TAB_ICONS: Record<SubmissionDetailTab, 'reader-outline' | 'list-outline' | 'time-outline' | 'card-outline'> = {
   overview: 'reader-outline',
@@ -68,8 +68,7 @@ export function SubmissionDetailScreen(props: SubmissionDetailScreenProps) {
 }
 
 function useDetailBleed() {
-  const insets = useSafeAreaInsets();
-  return { marginTop: -insets.top, paddingTop: insets.top };
+  return useStatusBarBleed();
 }
 
 function SubmissionDetailContent({ controller }: { controller: SubmissionDetailController }) {

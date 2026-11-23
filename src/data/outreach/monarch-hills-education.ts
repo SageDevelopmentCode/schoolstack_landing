@@ -209,12 +209,12 @@ export const monarchHillsEducationOutreach: OutreachPlan = {
 
 I was looking at the Monarch Hills calendar for this year. I liked that Fridays are spent off-site at a different spot around San Luis Obispo each week, and that December has a Winter Solstice hike.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Monarch Hills.
 
-I'd like to hear how the Friday days come together. A text is plenty.
+I'd like to hear how the Friday days come together.
 
 Julius`,
-    postscript: "The card inside has a version of Monarch Hills I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Cat, a note from an outdoor microschool in Round Rock, Texas. J",
     shortCode: "monarch-8mq5",
     checkBeforeMailing: [

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { StyleSheet, View, type ViewStyle } from 'react-native';
+import { StyleSheet, type ViewStyle } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -8,10 +8,6 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { StoryCard } from '@/components/story/story-card';
-import { GSkeleton } from '@/components/parent/garden/ui';
-import {
-  PARENT_COOP_TAB_BAR_BANNER_HEIGHT,
-} from '@/components/parent/parent-portal-coop-tab-bar-banner';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { StoryCardPadding, StoryRadius } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
@@ -36,19 +32,6 @@ function SkeletonBlock({
   return <Animated.View style={[style, { backgroundColor }, animatedStyle]} />;
 }
 
-export function ParentPortalCoopTabBarBannerSkeleton() {
-  return (
-    <View
-      accessible
-      accessibilityRole="progressbar"
-      accessibilityLabel="Loading program portal"
-      pointerEvents="none"
-      style={styles.tabBarBanner}>
-      <GSkeleton style={styles.tabBarBannerChip} />
-    </View>
-  );
-}
-
 export function ParentPortalProgramSwitcherCardSkeleton() {
   const theme = useParentTheme();
 
@@ -62,18 +45,6 @@ export function ParentPortalProgramSwitcherCardSkeleton() {
 }
 
 const styles = StyleSheet.create({
-  tabBarBanner: {
-    alignSelf: 'stretch',
-    width: '100%',
-    height: PARENT_COOP_TAB_BAR_BANNER_HEIGHT,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tabBarBannerChip: {
-    height: 26,
-    width: 180,
-    borderRadius: 13,
-  },
   programCard: {
     padding: StoryCardPadding,
     gap: Spacing.two,

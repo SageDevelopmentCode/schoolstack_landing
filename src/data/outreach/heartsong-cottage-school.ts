@@ -236,12 +236,12 @@ export const heartsongCottageSchoolOutreach: OutreachPlan = {
 
 Rachael Sparhawk, who founded Rooted Meadows in Rigby, Idaho, mentioned Heartsong to me. I liked reading about your shared meal, a warm lunch served to the children by candlelight every school day.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Heartsong.
 
-I'd like to hear how the co-op got started and who's behind it. A text is plenty.
+I'd like to hear how the co-op got started and who's behind it.
 
 Julius`,
-    postscript: "The card inside has a version of Heartsong I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Heartsong team, a note from an outdoor microschool in Round Rock, Texas. J",
     shortCode: "heartsong-r7c2",
     checkBeforeMailing: [
@@ -265,7 +265,7 @@ Your Classes page says the $250 monthly tuition, lunch included, can go through 
 
 When a family claims that money back, what do they send as proof of a Venmo payment?
 
-I ask because I run Sage Field, a small outdoor microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the enrollment and tuition system I built for it.
+I ask because I run Sage Field, a small outdoor microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the system I built to run it.
 
 Julius`,
     },

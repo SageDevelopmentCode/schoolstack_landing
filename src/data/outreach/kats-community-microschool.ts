@@ -230,7 +230,7 @@ I was reading your site. Enroll Now, Reserve a Seat and Schedule a Visit all lea
 
 With up to ten families, how do you keep track of where each one is between that first message, their ESA approval and the first day?
 
-I ask because I run Sage Field, a microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the enrollment and tuition system I built for it.
+I ask because I run Sage Field, a microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the system I built to run it.
 
 Julius`,
     },

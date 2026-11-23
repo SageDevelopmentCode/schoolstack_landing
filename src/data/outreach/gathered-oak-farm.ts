@@ -249,12 +249,12 @@ export const gatheredOakFarmOutreach: OutreachPlan = {
 
 I read the welcome letter on your site. I liked that the barn is the indoor classroom and the 2.5 acres around it, with the oak grove, the goats and the pigs, are the outdoor one.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Gathered Oak.
 
-I'd like to hear how the farm school got started. A text is plenty.
+I'd like to hear how the farm school got started.
 
 Julius`,
-    postscript: "The card inside has a version of Gathered Oak I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Mindy, a note from an outdoor microschool in Round Rock, Texas. J",
     shortCode: "gatheredoak-v44e",
     checkBeforeMailing: [
@@ -279,7 +279,7 @@ I was reading your Fall 2026 registration form. Families fill in one form per ch
 
 With families coming through different charters, how do you keep track of what each one has covered alongside the electives each child picked?
 
-I ask because I run Sage Field, a small outdoor microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the enrollment and tuition system I built for it.
+I ask because I run Sage Field, a small outdoor microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the system I built to run it.
 
 Julius`,
     },

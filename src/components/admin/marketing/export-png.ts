@@ -3,11 +3,18 @@ import { toPng } from "html-to-image";
 /**
  * Rasterises a full-size, off-screen design node to a PNG data URL at exactly width × height.
  * Nodes marked `data-marketing-export-ignore="true"` and fixed-position nodes (preview chrome) are skipped.
+ * `pixelRatio` scales the output (e.g. 3.125 for 300 DPI print); `style` overrides the root node's style in the image only.
  */
-export async function nodeToPng(node: HTMLElement, width: number, height: number): Promise<string> {
+export async function nodeToPng(
+  node: HTMLElement,
+  width: number,
+  height: number,
+  { pixelRatio = 1, style }: { pixelRatio?: number; style?: Partial<CSSStyleDeclaration> } = {},
+): Promise<string> {
   return toPng(node, {
     cacheBust: true,
-    pixelRatio: 1,
+    pixelRatio,
+    ...(style ? { style } : {}),
     width,
     height,
     canvasWidth: width,

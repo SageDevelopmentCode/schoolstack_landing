@@ -203,12 +203,12 @@ export const actonAcademyPlacerOutreach: OutreachPlan = {
 
 I read your story on the Acton Placer site. You've been part of Acton since the fall of 2014, and you wrote that the Hero's Journey isn't just a philosophy for you. It's your life's work.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Acton Placer.
 
-I'd like to hear how you keep three campuses feeling like one school. A text is plenty.
+I'd like to hear how you keep three campuses feeling like one school.
 
 Julius`,
-    postscript: "The card inside has a version of Acton Placer I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Kelsy, a note from a microschool in Round Rock, Texas. J",
     shortCode: "actonplacer-2emk",
     checkBeforeMailing: [

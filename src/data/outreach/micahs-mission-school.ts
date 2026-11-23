@@ -200,12 +200,12 @@ export const micahsMissionSchoolOutreach: OutreachPlan = {
 
 I read the Vicksburg Daily News story on WJTV naming you one of its Remarkable Women of 2025. I liked how you described Micah's there, as an educational mission for children who are educationally at risk.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Micah's Mission.
 
-I'd like to hear how Micah's has grown since you started it in 2017. A text is plenty.
+I'd like to hear how Micah's has grown since you started it in 2017.
 
 Julius`,
-    postscript: "The card inside has a version of Micah's Mission I set up, plus a parent's-eye look at your enrollment and tuition.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment and tuition.",
     stickyNote: "Emily, a short note from a microschool in Texas. J",
     shortCode: "micahs-okau",
     checkBeforeMailing: [

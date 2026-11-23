@@ -230,12 +230,12 @@ export const hiltonHorizonsAcademyOutreach: OutreachPlan = {
 
 I heard you on LiberatED back when you'd just opened in Kingsport with 12 students. Now there are four campuses, which is a lot of growth in two years.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Hilton Horizons.
 
-I'd like to hear how you're handling enrollment across four campuses. A text is plenty.
+I'd like to hear how you're handling enrollment across four campuses.
 
 Julius`,
-    postscript: "The card inside has a version of Hilton Horizons I set up, plus a parent's-eye look at your enrollment. I emailed once in June, but a note seemed better.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment. I emailed once in June, but a note seemed better.",
     stickyNote: "Candice, a note from a microschool in Texas. J",
     shortCode: "hilton-w2k9",
     checkBeforeMailing: [

@@ -5,10 +5,14 @@ The product stays in the P.S. and on the card.
 
 ## Our story (the only approved source for the "us" line)
 
-Say it plainly, in one or two sentences:
+Say it plainly, in three short sentences, the last one naming their school by `shortSchoolName`:
 
-> My fiancée and I run Sage Field, an outdoor microschool in Round Rock. We built MudKitchen from the start
-> to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+> My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from
+> the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for <school>.
+
+MudKitchen runs the whole school (website, enrollment, tuition, parent portal, staff), so don't narrow it
+to "enrollment and tuition". The last sentence is what carries the reader to the card; don't add
+"Now we offer it to other microschools" or anything else about selling it.
 
 Background, for context only: Julius and his fiancée went to the same middle school and were both told
 growing up they were too playful. That's why Sage Field is an outdoor school built around play and time
@@ -29,13 +33,16 @@ letters (it stays in the emails).
 
 1. **Them.** One specific thing about them, said simply: what they said on a podcast, why they started,
    a milestone. "I listened to your LiberatED episode. I liked how you're keeping Athena small on purpose."
-2. **Us.** The plain Sage Field and MudKitchen line above. MudKitchen is named here, once.
-3. **One small ask.** Coffee for Austin-area schools (Austin, Georgetown, Pflugerville, Cedar Park,
-   Leander, Hutto); otherwise "A text is plenty" or "I'd like to hear how…".
+2. **Us, and what you made them.** The three sentences above, ending "So I set up a version of it for
+   <school>." MudKitchen is named here, once.
+3. **One small ask, last.** Its own paragraph, closing the letter: "I'd like to hear how…" about their
+   school. Coffee for Austin-area schools (Austin, Georgetown, Pflugerville, Cedar Park, Leander, Hutto):
+   "If you're ever up for coffee, I'd like to hear how…". Don't add "A text is plenty" or any other
+   line after the ask.
 4. **"Julius".** His cell number is written by hand, never stored.
-5. **P.S.** The card, without naming MudKitchen again: "The card inside has a version of <school> I set
-   up, plus a parent's-eye look at your enrollment." Don't mention earlier emails, even for re-contact
-   schools: it spends words on us, not them.
+5. **P.S.** Points to the card, without naming MudKitchen or repeating the "set up a version" line:
+   "The card inside has a QR code for it, plus a parent's-eye look at your enrollment." Don't mention
+   earlier emails, even for re-contact schools: it spends words on us, not them.
 
 **Sticky note** (15 words or fewer): first name, a plain reason to open it, initial.
 "Mily, a note from a microschool up the road. J"
@@ -81,11 +88,10 @@ letters (it stays in the emails).
 > each student's work around where they want to go after high school.
 >
 > My fiancée and I run Sage Field, an outdoor microschool up in Round Rock. We built MudKitchen from the
-> start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other
-> microschools too.
+> start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Athena.
 >
 > If you're ever up for coffee, I'd like to hear how your first semester is going.
 >
 > Julius
 >
-> P.S. The card inside has a version of Athena I set up, plus a parent's-eye look at your enrollment.
+> P.S. The card inside has a QR code for it, plus a parent's-eye look at your enrollment.

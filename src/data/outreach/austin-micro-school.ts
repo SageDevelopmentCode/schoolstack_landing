@@ -225,12 +225,12 @@ export const austinMicroSchoolOutreach: OutreachPlan = {
 
 I read your post on Project Blocks. I liked the afternoons spent on things like testing water samples from the garden, and that most projects end with a share-out to peers and sometimes families.
 
-My fiancée and I run Sage Field, an outdoor microschool up in Round Rock. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool up in Round Rock. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Austin Micro.
 
 If you're ever up for coffee, I'd like to hear how you landed on six-week Cycles.
 
 Julius`,
-    postscript: "The card inside has a version of Austin Micro I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Matthew, a note from a microschool up the road in Round Rock. J",
     shortCode: "austinmicro-f2wa",
     checkBeforeMailing: [

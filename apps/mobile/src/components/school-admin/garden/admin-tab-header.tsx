@@ -1,17 +1,16 @@
 import { type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Garden, GardenFonts, useGardenAccent } from '@/components/parent/garden/tokens';
 import { useUpdatedLabel } from '@/components/school-admin/dashboard/garden/sections/admin-header';
+import { useStatusBarBleed } from '@/hooks/use-status-bar-bleed';
 
 /**
  * Tab routes sit inside the admin layout's SafeAreaView: let the cream run
  * under the status bar (same trick as the Dashboard).
  */
 export function useAdminTopBleed() {
-  const insets = useSafeAreaInsets();
-  return { marginTop: -insets.top, paddingTop: insets.top };
+  return useStatusBarBleed();
 }
 
 /**

@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GBackHeader } from '@/components/parent/garden/back-header';
 import { closeThen, useGardenPullRefresh, useGardenReadOnlyGate } from '@/components/parent/garden/feedback';
@@ -36,6 +35,7 @@ import {
   studentStatusLabel,
 } from '@/lib/school-admin/enrolled-students';
 import { formatStudentClassroomLabel } from '@/lib/school-admin/format-student-classroom-label';
+import { useStatusBarBleed } from '@/hooks/use-status-bar-bleed';
 
 type StudentDetailScreenProps = { organizationId: string; studentId: string; slug: string };
 
@@ -44,8 +44,7 @@ function errorText(err: unknown, fallback: string): string {
 }
 
 function useDetailBleed() {
-  const insets = useSafeAreaInsets();
-  return { marginTop: -insets.top, paddingTop: insets.top };
+  return useStatusBarBleed();
 }
 
 /**

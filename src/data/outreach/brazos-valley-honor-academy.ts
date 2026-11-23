@@ -214,12 +214,12 @@ export const brazosValleyHonorAcademyOutreach: OutreachPlan = {
 
 I saw BVHA is raising money toward a permanent home, maybe a 50-acre property with room for gardens, animals and a restored farmhouse.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for BVHA.
 
-I'd like to hear how the silent auction went and where the campaign stands. A text is plenty.
+I'd like to hear how the silent auction went and where the campaign stands.
 
 Julius`,
-    postscript: "The card inside has a version of BVHA I set up, plus a parent's-eye look at your enrollment and tuition.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment and tuition.",
     stickyNote: "Amber, a note from a microschool in Round Rock. J",
     shortCode: "bvha-zf1z",
     checkBeforeMailing: [

@@ -225,12 +225,12 @@ export const kinderAcademyPrepSchoolOutreach: OutreachPlan = {
 
 I read how you started KAPS after 33 years of teaching, and I liked your line about not starting it because you were done with education, but because you weren't.
 
-My fiancée and I run Sage Field, an outdoor microschool just down the road in Round Rock. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew.
+My fiancée and I run Sage Field, an outdoor microschool just down the road in Round Rock. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for KAPS.
 
 If you're ever up for coffee, Georgetown is close, and I'd like to hear how your first year is going.
 
 Julius`,
-    postscript: "The card inside has a version of KAPS I set up, plus a parent's-eye look at how families sign up with you.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at how families sign up with you.",
     stickyNote: "Kimberly, a note from a microschool just down the road. J",
     shortCode: "kaps-h3v8",
     checkBeforeMailing: [
@@ -251,7 +251,7 @@ I mailed you a handwritten note last week from Round Rock. In case the card got 
 
 How do you keep track of a family that ends up in both?
 
-I ask because I run Sage Field, a microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the enrollment and tuition system I built for it.
+I ask because I run Sage Field, a microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the system I built to run it.
 
 Julius`,
     },

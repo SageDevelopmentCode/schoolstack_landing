@@ -200,12 +200,12 @@ export const prestigeHomeschoolAcademyOutreach: OutreachPlan = {
 
 I was reading about Prestige. I liked that alongside the regular subjects you teach cooking, money and manners, with a life-skills focus on Tuesdays and Thursdays, all in groups of 12 or fewer.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Prestige.
 
-I'd like to hear how the life-skills days came about. A text is plenty.
+I'd like to hear how the life-skills days came about.
 
 Julius`,
-    postscript: "The card inside has a version of Prestige I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Amber, a note from a microschool in Round Rock, Texas. J",
     shortCode: "prestige-1gyd",
     checkBeforeMailing: [

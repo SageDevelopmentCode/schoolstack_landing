@@ -244,12 +244,12 @@ export const coastalSageMontessoriOutreach: OutreachPlan = {
 
 I saw that Coastal Sage cut the ribbon on its new building at St. Michael's By-the-Sea in August. Your staff page says you started the school for North County families who wanted Montessori and faith together, and now it runs from age three to high school.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Coastal Sage.
 
-I'd like to hear how the first fall in the new building has gone. A text is plenty.
+I'd like to hear how the first fall in the new building has gone.
 
 Julius`,
-    postscript: "The card inside has a version of Coastal Sage I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Signe, a note from a small microschool in Round Rock, Texas. J",
     shortCode: "coastalsage-h4t8",
     checkBeforeMailing: [
@@ -272,7 +272,7 @@ I was reading your admission pages. Families can book a Tuesday or Thursday tour
 
 Do most families ask about tuition before they visit, or at the tour?
 
-I ask because I run Sage Field, a small outdoor microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the enrollment and tuition system I built for it.
+I ask because I run Sage Field, a small outdoor microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the system I built to run it.
 
 Julius`,
     },

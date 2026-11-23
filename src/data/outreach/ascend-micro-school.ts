@@ -215,12 +215,12 @@ export const ascendMicroSchoolOutreach: OutreachPlan = {
 
 I was reading about Ascend. I liked that each student gets their own learning plan, and that the classes stay small and mixed-age, two days a week on campus. I saw you've been part of the community since 2020.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Ascend.
 
-I'd like to hear how families split the week between home and campus. A text is plenty.
+I'd like to hear how families split the week between home and campus.
 
 Julius`,
-    postscript: "The card inside has a version of Ascend I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Elizabeth, a note from a microschool in Round Rock, Texas. J",
     shortCode: "ascend-2xyp",
     checkBeforeMailing: [

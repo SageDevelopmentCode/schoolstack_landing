@@ -161,6 +161,78 @@ const WEBSITE_DEMO_LOADERS: Record<
     import(
       "@/components/demo/madronaschool/MadronaSchoolWebsiteDashboardDemo"
     ),
+  "morgan-prep-academy": () =>
+    import(
+      "@/components/demo/morganprepacademy/MorganPrepAcademyWebsiteDashboardDemo"
+    ),
+  "mirus-academy": () =>
+    import(
+      "@/components/demo/mirusacademy/MirusAcademyWebsiteDashboardDemo"
+    ),
+  "mcp-academy": () =>
+    import(
+      "@/components/demo/mcpacademy/McpAcademyWebsiteDashboardDemo"
+    ),
+  "journey-academy": () =>
+    import(
+      "@/components/demo/journeyacademy/JourneyAcademyWebsiteDashboardDemo"
+    ),
+  "innovation-academy-las-vegas": () =>
+    import(
+      "@/components/demo/innovationacademylv/InnovationAcademyLasVegasWebsiteDashboardDemo"
+    ),
+  "inner-fire-academy": () =>
+    import(
+      "@/components/demo/innerfireacademy/InnerFireAcademyWebsiteDashboardDemo"
+    ),
+  "the-wild-school": () =>
+    import(
+      "@/components/demo/thewildschool/TheWildSchoolWebsiteDashboardDemo"
+    ),
+  "esteam-academy-round-rock": () =>
+    import(
+      "@/components/demo/esteamacademy/EsteamAcademyRoundRockWebsiteDashboardDemo"
+    ),
+  "ignite-microschool": () =>
+    import(
+      "@/components/demo/ignitemicroschool/IgniteMicroschoolWebsiteDashboardDemo"
+    ),
+  "garden-school-marietta": () =>
+    import(
+      "@/components/demo/gardenschoolmarietta/GardenSchoolMariettaWebsiteDashboardDemo"
+    ),
+  "peninsular-prep": () =>
+    import(
+      "@/components/demo/peninsularprep/PeninsularPrepWebsiteDashboardDemo"
+    ),
+  "steps-learning-center": () =>
+    import(
+      "@/components/demo/stepslearningcenter/StepsLearningCenterWebsiteDashboardDemo"
+    ),
+  "sage-montessori-nashville": () =>
+    import(
+      "@/components/demo/sagemontessorinashville/SageMontessoriNashvilleWebsiteDashboardDemo"
+    ),
+  "renewed-roots-forest-school": () =>
+    import(
+      "@/components/demo/renewedroots/RenewedRootsForestSchoolWebsiteDashboardDemo"
+    ),
+  "prestige-wisdom-academy": () =>
+    import(
+      "@/components/demo/prestigewisdomacademy/PrestigeWisdomAcademyWebsiteDashboardDemo"
+    ),
+  "invictus-leander": () =>
+    import(
+      "@/components/demo/invictusleander/InvictusLeanderWebsiteDashboardDemo"
+    ),
+  "gods-little-people-learning-academy": () =>
+    import(
+      "@/components/demo/godslittlepeople/GodsLittlePeopleLearningAcademyWebsiteDashboardDemo"
+    ),
+  "everroot-academy": () =>
+    import(
+      "@/components/demo/everrootacademy/EverrootAcademyWebsiteDashboardDemo"
+    ),
   "down-to-earth-homeschool": () =>
     import(
       "@/components/demo/downtoearthhomeschool/DownToEarthHomeschoolWebsiteDashboardDemo"

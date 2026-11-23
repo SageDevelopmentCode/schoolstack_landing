@@ -230,12 +230,12 @@ export const zoeLearningHouseOutreach: OutreachPlan = {
 
 I read on Zoe's About page that you were homeschooled all the way through, then taught for 15 years in public, international and museum settings. So you've seen both sides, and Zoe sits in between, with some days at home and some days with you.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Zoe.
 
-I'd like to hear how your families handle the home days. A text is plenty.
+I'd like to hear how your families handle the home days.
 
 Julius`,
-    postscript: "The card inside has a version of Zoe I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Emily, a note from a microschool in Texas. J",
     shortCode: "zoe-m4t8",
     checkBeforeMailing: [

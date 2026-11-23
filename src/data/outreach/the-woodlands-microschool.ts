@@ -177,12 +177,12 @@ export const theWoodlandsMicroschoolOutreach: OutreachPlan = {
 
 I read how Champs grew into The Woodlands Microschool. I liked that it started with credit recovery and accelerated graduation after your years teaching math in Conroe ISD, and now runs from elementary through high school.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Woodlands Microschool.
 
-I'd like to hear what changed when Champs became a full school. A text is plenty.
+I'd like to hear what changed when Champs became a full school.
 
 Julius`,
-    postscript: "The card inside has a version of The Woodlands Microschool I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Ms. Dana, a note from a microschool in Round Rock, Texas. J",
     shortCode: "woodlands-cnhy",
     checkBeforeMailing: [

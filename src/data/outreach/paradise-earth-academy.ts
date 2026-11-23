@@ -192,12 +192,12 @@ export const paradiseEarthAcademyOutreach: OutreachPlan = {
 
 I listened to your Harvesting Wisdom episode. I liked hearing how Paradise Earth grew from a small homeschool group to about 80 students, and your plans for orchards and outdoor classrooms around the garden.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Paradise Earth.
 
-With Queen Creek, Glendale and Scottsdale coming, I'd like to hear how you're planning the new campuses. A text is plenty.
+With Queen Creek, Glendale and Scottsdale coming, I'd like to hear how you're planning the new campuses.
 
 Julius`,
-    postscript: "The card inside has a version of Paradise Earth I set up, plus a parent's-eye look at enrolling across your campuses.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at enrolling across your campuses.",
     stickyNote: "Melissa, a note from an outdoor microschool in Texas. J",
     shortCode: "paradise-1qnf",
     checkBeforeMailing: [

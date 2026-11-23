@@ -203,12 +203,12 @@ export const theFocusAcademyOutreach: OutreachPlan = {
 
 I read your founder's profile. You've spent more than twelve years as a registered nurse working in education, and now you're opening FOCUS for twice-exceptional middle school boys in Memphis.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our enrollment and tuition, and it's a big part of how we grew. Now we offer it to other microschools too.
+My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for FOCUS.
 
-I'd like to hear how getting FOCUS started has gone. A text is plenty.
+I'd like to hear how getting FOCUS started has gone.
 
 Julius`,
-    postscript: "The card inside has a version of FOCUS I set up, plus a parent's-eye look at your enrollment.",
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Karolyn, a note from a microschool in Round Rock, Texas. J",
     shortCode: "focus-4bj1",
     checkBeforeMailing: [
@@ -231,7 +231,7 @@ I mailed you a handwritten note last week with a card for FOCUS.
 
 The FOCUS homepage lays out both options plainly: four days at $15,728 or two at $9,909, 8:30 to 2:30, for homeschooled middle school boys. From there families start with the contact form, and the site doesn't say what comes after.
 
-I run Sage Field, a microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the enrollment and tuition system I built for it. I set up a version for FOCUS with your 4-Day and 2-Day options, from the first conversation to tuition; the card opens it.
+I run Sage Field, a microschool in Round Rock, TX. We went from 0 to 35 students in under 3 months on MudKitchen, the system I built to run it. I set up a version for FOCUS with your 4-Day and 2-Day options, from the first conversation to tuition; the card opens it.
 
 Want me to send the link too?
 
