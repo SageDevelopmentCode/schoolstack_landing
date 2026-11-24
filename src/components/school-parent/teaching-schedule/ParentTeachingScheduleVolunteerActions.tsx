@@ -10,10 +10,8 @@ import {
   type CoopTeachingScheduleWeek,
   type TeachingScheduleParentRole,
 } from "@/lib/admissions/program-coop-teaching-schedule-mock";
-import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type ParentTeachingScheduleVolunteerActionsProps = {
-  theme: ParentThemeTokens;
   week: CoopTeachingScheduleWeek;
   currentFamilyId: string;
   previewMode?: boolean;
@@ -37,7 +35,6 @@ function roleHasVolunteerAction(
 }
 
 export default function ParentTeachingScheduleVolunteerActions({
-  theme,
   week,
   currentFamilyId,
   previewMode = false,
@@ -53,19 +50,19 @@ export default function ParentTeachingScheduleVolunteerActions({
   );
 
   if (actionableRoles.length === 0) {
+    if (!emptyFallback) return null;
     return (
-      <span className={`text-xs ${className}`} style={{ color: theme.muted }}>
+      <span className={`text-[13px] font-semibold text-[var(--sf-soft)] ${className}`}>
         {emptyFallback}
       </span>
     );
   }
 
   return (
-    <div className={`flex flex-col gap-1.5 ${className}`}>
+    <div className={`flex flex-col items-start gap-1.5 ${className}`}>
       {actionableRoles.map((role) => (
         <ParentTeachingScheduleSignupButton
           key={role}
-          theme={theme}
           week={week}
           role={role}
           currentFamilyId={currentFamilyId}

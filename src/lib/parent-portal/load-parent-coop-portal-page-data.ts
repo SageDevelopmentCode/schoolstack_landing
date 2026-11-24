@@ -210,7 +210,7 @@ export async function loadParentCoopSupplyListPageDataForUser(input: {
     input.programId,
   );
 
-  const [{ items, colorLegend }, enrolledFamily, familyNameMap] = await Promise.all([
+  const [{ items, colorLegend }, enrolledFamily] = await Promise.all([
     listProgramCoopSupplyList(input.supabase, input.programId),
     resolveEnrolledFamilyForProgram(
       input.supabase,
@@ -218,8 +218,14 @@ export async function loadParentCoopSupplyListPageDataForUser(input: {
       input.organizationId,
       input.programId,
     ),
-    buildProgramCoopFamilyNameMap(input.supabase, input.organizationId, input.programId),
   ]);
+  // Guardians can only read their own enrollments under RLS: read the other
+  // families' names with the admin client once access is established.
+  const familyNameMap = await buildProgramCoopFamilyNameMap(
+    createAdminClient(),
+    input.organizationId,
+    input.programId,
+  );
 
   return {
     items,
@@ -291,7 +297,7 @@ export async function loadParentCoopTeachingSchedulePageDataForUser(input: {
     input.programId,
   );
 
-  const [weeks, enrolledFamily, familyNameMap] = await Promise.all([
+  const [weeks, enrolledFamily] = await Promise.all([
     listProgramCoopTeachingSchedule(input.supabase, input.programId),
     resolveEnrolledFamilyForProgram(
       input.supabase,
@@ -299,8 +305,14 @@ export async function loadParentCoopTeachingSchedulePageDataForUser(input: {
       input.organizationId,
       input.programId,
     ),
-    buildProgramCoopFamilyNameMap(input.supabase, input.organizationId, input.programId),
   ]);
+  // Guardians can only read their own enrollments under RLS: read the other
+  // families' names with the admin client once access is established.
+  const familyNameMap = await buildProgramCoopFamilyNameMap(
+    createAdminClient(),
+    input.organizationId,
+    input.programId,
+  );
 
   return {
     weeks,

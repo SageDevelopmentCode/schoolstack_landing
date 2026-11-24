@@ -12,8 +12,6 @@ export default function SagefieldGardenChallenge() {
       <div className="mx-auto grid max-w-7xl items-start gap-14 px-6 sm:px-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16 lg:px-16">
         <div>
           <SectionIntro
-            pill={`🧩 ${CHALLENGE_COPY.eyebrow}`}
-            tint="clay"
             lead={CHALLENGE_COPY.headlineLead}
             accent={CHALLENGE_COPY.headlineAccent}
             squiggle="var(--sf-butter)"

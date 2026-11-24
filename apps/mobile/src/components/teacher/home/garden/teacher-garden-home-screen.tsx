@@ -2,7 +2,6 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AttendanceRosterPanel } from '@/components/attendance/attendance-roster-panel';
 import { GCelebrate } from '@/components/parent/garden/celebrate';
@@ -38,6 +37,7 @@ import { haptic } from '@/lib/haptics';
 import { registerPortalMemoryClear } from '@/lib/portal-cache';
 import type { TeacherDocGuide } from '@/lib/teacher/teacher-portal-api';
 import { submitTeacherSupportRequest } from '@/lib/teacher/teacher-portal-api';
+import { useStatusBarBleed } from '@/hooks/use-status-bar-bleed';
 
 /**
  * The route's AttendanceProvider remounts with the Home tab, so remember today's
@@ -51,9 +51,8 @@ function attendanceSummaryKey(organizationId: string): string {
 }
 
 function useTopBleed() {
-  const insets = useSafeAreaInsets();
   // Tab route: cream runs under the status bar (the layout SafeAreaView pads the top).
-  return { marginTop: -insets.top, paddingTop: insets.top };
+  return useStatusBarBleed();
 }
 
 /**

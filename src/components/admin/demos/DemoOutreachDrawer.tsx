@@ -17,7 +17,6 @@ import {
   type OutreachDirection,
 } from "@/lib/admin-crm/demo-outreach-types";
 import type { DemoCard } from "@/components/admin/demos/DemoOutreachBoard";
-import { DemoOutreachEmails } from "@/components/admin/demos/DemoOutreachEmails";
 import {
   daysFromToday,
   formatAgo,
@@ -244,7 +243,18 @@ function DrawerBody({
         </div>
       </section>
 
-      <DemoOutreachEmails demo={demo} outreach={outreach} onChange={onChange} />
+      {/* The email sequence lives in the outreach workspace now. */}
+      <section className="rounded-admin-md border border-admin-border bg-admin-bg p-3">
+        <h3 className="text-xs font-semibold text-admin-text">Outreach sequence</h3>
+        <p className="mt-1 text-xs text-admin-muted">Preview, send and track every step on the outreach page.</p>
+        <Link
+          href={`/admin/research?demo=${encodeURIComponent(demo.slug)}`}
+          className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-admin-accent hover:underline"
+        >
+          Open in Outreach
+          <ArrowUpRight size={12} aria-hidden />
+        </Link>
+      </section>
 
       <LogTouchForm saving={saving} onSubmit={logTouch} />
 

@@ -4,15 +4,17 @@ import { redirect } from "next/navigation";
 import GardenRoot from "@/components/garden/GardenRoot";
 import TryGardenPage from "@/components/try/TryGardenPage";
 import { resolveAuthenticatedLogin } from "@/lib/auth/login-destination";
+import { pageMetadata } from "@/lib/metadata";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Try MudKitchen for free",
   description:
     "Create a free MudKitchen school dashboard. Confirm your email with a code on this page.",
-};
+  path: "/try",
+});
 
 export default async function TryPage() {
   const supabase = createClient(await cookies());

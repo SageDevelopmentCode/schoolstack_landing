@@ -64,6 +64,7 @@ apps/mobile/android/app/build/
 /video/mudkitchen-film/public/audio/
 /video/mudkitchen-film/public/footage/
 /video/mudkitchen-film/audio-source/
+/video/mudkitchen-film/footage-source/
 *.MP4
 
 # typescript
@@ -80,3 +81,5 @@ specs
 
 
 guides
+.site-audits/
+.founder-research/

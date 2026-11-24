@@ -1,5 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { compressImageForUpload } from "@/lib/images/compress-image";
+import {
+  assertUploadFileSize,
+  normalizeUploadFile,
+} from "@/lib/uploads/normalize-upload-mime-type";
 
 export const PORTAL_MESSAGE_FILES_BUCKET = "portal-message-files";
 
@@ -49,17 +53,14 @@ export function buildBroadcastStagingStoragePath(
   return `${organizationId}/message-broadcasts/${broadcastBatchId}/${fileId}_${safeName}`;
 }
 
-export function validateMessageAttachmentFile(file: File): void {
-  if (file.size > MAX_MESSAGE_ATTACHMENT_BYTES) {
-    throw new Error(`"${file.name}" exceeds the 10 MB limit.`);
-  }
-  if (file.type && !ALLOWED_MIME_TYPES.has(file.type)) {
-    throw new Error(`"${file.name}" is not a supported file type.`);
-  }
+/** Checks size and type; returns the file retyped from its extension if needed. */
+export function validateMessageAttachmentFile(file: File): File {
+  assertUploadFileSize(file, MAX_MESSAGE_ATTACHMENT_BYTES);
+  return normalizeUploadFile(file, ALLOWED_MIME_TYPES);
 }
 
-async function prepareMessageAttachmentUpload(file: File): Promise<File> {
-  validateMessageAttachmentFile(file);
+async function prepareMessageAttachmentUpload(input: File): Promise<File> {
+  const file = validateMessageAttachmentFile(input);
 
   if (file.type === "image/jpeg" || file.type === "image/png") {
     return compressImageForUpload(file, {

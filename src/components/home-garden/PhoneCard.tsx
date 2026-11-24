@@ -10,6 +10,8 @@ export default function PhoneCard({
   className = "",
   sizes = "240px",
   showCaption = true,
+  priority = false,
+  loading,
 }: {
   slide: DownloadAppSlide;
   tilt?: number;
@@ -17,6 +19,8 @@ export default function PhoneCard({
   className?: string;
   sizes?: string;
   showCaption?: boolean;
+  priority?: boolean;
+  loading?: "eager" | "lazy";
 }) {
   return (
     <figure
@@ -24,8 +28,16 @@ export default function PhoneCard({
       style={{ rotate: `${tilt}deg` }}
     >
       {tape ? <Tape color={tape} className="-top-3 left-1/2 -translate-x-1/2 rotate-2" /> : null}
-      <div className="relative aspect-[960/2078] overflow-hidden rounded-[20px]">
-        <Image src={slide.src} alt={slide.alt} fill className="object-cover" sizes={sizes} />
+      <div className="relative aspect-[960/2087] overflow-hidden rounded-[20px]">
+        <Image
+          src={slide.src}
+          alt={slide.alt}
+          fill
+          className="object-cover"
+          sizes={sizes}
+          priority={priority}
+          loading={priority ? undefined : loading}
+        />
       </div>
       {showCaption ? (
         <figcaption className="px-2 pb-1 pt-3 text-center text-sm font-bold leading-snug text-[var(--sf-soft)]">{slide.caption}</figcaption>

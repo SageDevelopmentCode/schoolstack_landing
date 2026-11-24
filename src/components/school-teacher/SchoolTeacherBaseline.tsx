@@ -5,6 +5,7 @@ import { Suspense, type ReactNode, useCallback, useEffect, useRef, useState } fr
 import { usePathname, useSearchParams } from "next/navigation";
 import SchoolTeacherHeader from "@/components/school-teacher/SchoolTeacherHeader";
 import TeacherToaster from "@/components/school-teacher/TeacherToaster";
+import NavigationLoadingProvider from "@/components/school/shared/NavigationLoadingProvider";
 import {
   ParentThemeProvider,
   useParentTheme,
@@ -125,7 +126,7 @@ function SchoolTeacherBaselineInner({
     setNotificationsOpen(true);
   }, []);
 
-  return (
+  const shell = (
     <CommitteeUnreadRefreshProvider>
     <MessagesRefreshProvider
       organizationId={organizationId}
@@ -180,6 +181,13 @@ function SchoolTeacherBaselineInner({
     </MessagesRefreshProvider>
     </CommitteeUnreadRefreshProvider>
   );
+
+  // Like SchoolParentBaseline: no full-page splash inside the admin staff preview.
+  if (previewMode) {
+    return shell;
+  }
+
+  return <NavigationLoadingProvider>{shell}</NavigationLoadingProvider>;
 }
 
 function SchoolTeacherBaselineWithSearchParams(props: SchoolTeacherBaselineProps) {

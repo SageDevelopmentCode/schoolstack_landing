@@ -70,7 +70,10 @@ import {
 } from "@/lib/parent-portal/newsletters/load-parent-newsletters";
 import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
 import { listProgramCoopCurriculumDiscussionMessages } from "@/lib/admissions/program-coop-curriculum-discussion";
-import { listProgramCoopCurriculum } from "@/lib/admissions/program-coop-curriculum-storage";
+import {
+  listProgramCoopCurriculum,
+  signProgramCoopCurriculumUrls,
+} from "@/lib/admissions/program-coop-curriculum-storage";
 import {
   buildProgramCoopFamilyNameMap,
   resolveEnrolledFamilyForProgram,
@@ -676,13 +679,17 @@ export async function renderSchoolParentFeaturePage(
       }),
     ]);
 
+    // Signed with the parent's own client, so Storage RLS still applies.
+    const signedUrls = await signProgramCoopCurriculumUrls(supabase, curricula);
+
     return (
       <SchoolParentPageShell title={pageName} layout="embedded">
         <ParentCurriculumPage
           organizationId={org.id}
           programId={programId}
           curricula={curricula}
-          initialDiscussionMessages={discussionMessages}
+          signedUrls={signedUrls}
+          initialThreadMessages={{ general: discussionMessages }}
           currentGuardianId={currentGuardianId}
         />
       </SchoolParentPageShell>
@@ -694,11 +701,19 @@ export async function renderSchoolParentFeaturePage(
       notFound();
     }
 
-    const [{ items, colorLegend }, enrolledFamily, familyNameMap] = await Promise.all([
+    // Resolve the parent's own enrollment first (throws if they aren't in
+    // this co-op), then read the other families' names with the admin client:
+    // guardians can only read their own enrollments under RLS, so the parent
+    // client would label every other family "Unknown family".
+    const [{ items, colorLegend }, enrolledFamily] = await Promise.all([
       listProgramCoopSupplyList(supabase, programId),
       resolveEnrolledFamilyForProgram(supabase, user.id, org.id, programId),
-      buildProgramCoopFamilyNameMap(supabase, org.id, programId),
     ]);
+    const familyNameMap = await buildProgramCoopFamilyNameMap(
+      createAdminClient(),
+      org.id,
+      programId,
+    );
 
     return (
       <SchoolParentPageShell title={pageName} layout="default">
@@ -789,11 +804,16 @@ export async function renderSchoolParentFeaturePage(
       notFound();
     }
 
-    const [weeks, enrolledFamily, familyNameMap] = await Promise.all([
+    // Same as the supply list: own enrollment first, then names via admin.
+    const [weeks, enrolledFamily] = await Promise.all([
       listProgramCoopTeachingSchedule(supabase, programId),
       resolveEnrolledFamilyForProgram(supabase, user.id, org.id, programId),
-      buildProgramCoopFamilyNameMap(supabase, org.id, programId),
     ]);
+    const familyNameMap = await buildProgramCoopFamilyNameMap(
+      createAdminClient(),
+      org.id,
+      programId,
+    );
 
     return (
       <SchoolParentPageShell title={pageName} layout="default">

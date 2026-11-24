@@ -26,8 +26,6 @@ export default function Product() {
     <section id="product" className="relative scroll-mt-20 bg-[var(--sf-paper)] py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
         <SectionIntro
-          pill={`🧺 ${PRODUCT_INTRO_COPY.badge}`}
-          tint="forest"
           lead={PRODUCT_INTRO_COPY.heading}
           squiggle={null}
           headingClassName="text-5xl md:text-7xl"

@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, X } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { CalendarDays, Coins, Eye, Loader2, Package, Palette, Store, Users } from "lucide-react";
+import { Tick } from "@/components/garden/ui";
+import GSidePanel from "@/components/school-parent/garden/GSidePanel";
+import { GIcon, gBtnOutlineSm, gBtnPopSm } from "@/components/school-parent/garden/ui";
 import {
   COOP_SUPPLY_MAX_ASSIGNED_FAMILIES,
   formatSupplyAssignedFamilies,
@@ -12,21 +14,15 @@ import {
   isSupplyFamilyAssigned,
   supplyColorLegendDisplayLabel,
   supplyItemDisplayName,
-  supplyItemTypeChipTone,
-  supplyItemTypeLabel,
   supplyUsageTimingLabel,
   type CoopSupplyColorLegendEntry,
   type CoopSupplyListItem,
-  type SupplyItemType,
 } from "@/lib/admissions/program-coop-supply-list-mock";
-import ParentButton from "@/components/school-parent/ui/ParentButton";
-import ParentChip, { type ParentChipTone } from "@/components/school-parent/ui/ParentChip";
-import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
-import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { SupplyTypeChip } from "./ParentSupplyListSignupButton";
 
 type ParentCoopSupplyListItemDetailPanelProps = {
-  item: CoopSupplyListItem;
+  item: CoopSupplyListItem | null;
   colorLegend: ReadonlyArray<CoopSupplyColorLegendEntry>;
   theme: ParentThemeTokens;
   currentFamilyId: string;
@@ -38,35 +34,23 @@ type ParentCoopSupplyListItemDetailPanelProps = {
   onUnclaim: () => void;
 };
 
-function parentSupplyChipTone(type: SupplyItemType): ParentChipTone {
-  const tone = supplyItemTypeChipTone(type);
-  return tone === "purple" ? "info" : tone;
-}
-
-function DetailRow({
-  label,
-  children,
-  theme,
-}: {
-  label: string;
-  children: React.ReactNode;
-  theme: ParentThemeTokens;
-}) {
+function DetailRow({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
   return (
-    <div>
-      <div
-        className="text-[10px] font-extrabold uppercase tracking-[0.08em]"
-        style={{ color: theme.muted }}
-      >
-        {label}
-      </div>
-      <div className="mt-1 text-sm" style={{ color: theme.ink }}>
-        {children}
+    <div className="flex items-start gap-3.5">
+      <GIcon size="sm">{icon}</GIcon>
+      <div className="min-w-0">
+        <p className="m-0 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[var(--sf-soft)]">{label}</p>
+        <div className="mt-0.5 text-[15px] font-semibold text-[var(--sf-ink)]">{children}</div>
       </div>
     </div>
   );
 }
 
+/**
+ * Supply item drawer (Garden). Mount it OUTSIDE the page frame: GSidePanel
+ * carries its own frame, Escape, focus-to-close and focus return.
+ * The only place to remove a sign-up ("Remove me").
+ */
 export default function ParentCoopSupplyListItemDetailPanel({
   item,
   colorLegend,
@@ -79,169 +63,111 @@ export default function ParentCoopSupplyListItemDetailPanel({
   onClaim,
   onUnclaim,
 }: ParentCoopSupplyListItemDetailPanelProps) {
-  const titleId = "parent-supply-item-detail-title";
-  const colorEntry = getSupplyColorLegendEntry(colorLegend, item.colorId);
-  const isSignedUp = isSupplyFamilyAssigned(item.assignedFamilyIds, currentFamilyId);
-  const isFull = item.assignedFamilyIds.length >= COOP_SUPPLY_MAX_ASSIGNED_FAMILIES;
-  const isPending = pendingAction?.itemId === item.id;
+  // Keep the last item while the panel animates out.
+  const [shown, setShown] = useState<CoopSupplyListItem | null>(item);
+  useEffect(() => {
+    if (item) queueMicrotask(() => setShown(item));
+  }, [item]);
+  const current = item ?? shown;
+
+  const colorEntry = current ? getSupplyColorLegendEntry(colorLegend, current.colorId) : null;
+  const isSignedUp = current ? isSupplyFamilyAssigned(current.assignedFamilyIds, currentFamilyId) : false;
+  const isFull = current ? current.assignedFamilyIds.length >= COOP_SUPPLY_MAX_ASSIGNED_FAMILIES : false;
+  const isPending = current != null && pendingAction?.itemId === current.id;
   const pendingType = pendingAction?.type;
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  const footer = !current ? null : isSignedUp ? (
+    <div className="flex w-full flex-col gap-3">
+      <p className="m-0 flex items-center gap-2 text-[14px] font-extrabold text-[var(--sf-forest)]">
+        <Tick className="h-5 w-5" fill="var(--sf-mint)" />
+        You&apos;re signed up for this item.
+      </p>
+      <button
+        type="button"
+        className={`${gBtnOutlineSm} w-full`}
+        disabled={previewMode || isPending}
+        aria-busy={(isPending && pendingType === "unclaim") || undefined}
+        onClick={onUnclaim}
+      >
+        {isPending && pendingType === "unclaim" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+        Remove me
+      </button>
+    </div>
+  ) : isFull ? (
+    <p className="m-0 text-[14px] font-semibold text-[var(--sf-soft)]">
+      This item is full — all sign-up spots are taken.
+    </p>
+  ) : (
+    <button
+      type="button"
+      className={`${gBtnPopSm} w-full`}
+      disabled={previewMode || isPending}
+      aria-busy={(isPending && pendingType === "claim") || undefined}
+      onClick={onClaim}
+    >
+      {isPending && pendingType === "claim" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+      Sign up for this item
+    </button>
+  );
 
   return (
-    <AnimatePresence>
-      <motion.div
-        className="fixed inset-0 z-[110]"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        data-testid="parent-supply-item-detail-panel"
-      >
-        <div
-          className="absolute inset-0"
-          style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
-          onClick={onClose}
-          aria-hidden="true"
-        />
-        <motion.aside
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={titleId}
-          initial={{ x: "100%", opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: "100%", opacity: 0 }}
-          transition={{ type: "spring", damping: 28, stiffness: 300 }}
-          className="absolute inset-y-0 right-0 z-[15] flex w-[min(100%,28rem)] max-w-full flex-col overflow-hidden border-l"
-          style={{
-            backgroundColor: theme.white,
-            borderColor: theme.line,
-            boxShadow: theme.shadowCard,
-          }}
-          onClick={(event) => event.stopPropagation()}
-        >
-          <div
-            className="flex shrink-0 flex-col gap-3 border-b px-4 py-4"
-            style={{ borderColor: theme.line, backgroundColor: theme.paper }}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <ParentSectionKicker theme={theme}>Supply item</ParentSectionKicker>
-                <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <ParentDisplayHeading
-                    theme={theme}
-                    as="h2"
-                    size="section"
-                    id={titleId}
-                    className="truncate"
-                  >
-                    {supplyItemDisplayName(item)}
-                  </ParentDisplayHeading>
-                  <ParentChip theme={theme} tone={parentSupplyChipTone(item.itemType)}>
-                    {supplyItemTypeLabel(item.itemType)}
-                  </ParentChip>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Close supply item details"
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border-0 bg-transparent"
-                style={{ color: theme.muted }}
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-4">
-            <div className="space-y-4">
-              <DetailRow label="When" theme={theme}>
-                {supplyUsageTimingLabel(item)}
-              </DetailRow>
-              <DetailRow label="Quantity" theme={theme}>
-                {formatSupplyQuantity(item)}
-              </DetailRow>
-              <DetailRow label="Estimated price" theme={theme}>
-                {formatSupplyEstimatedPrice(item.estimatedPrice)}
-              </DetailRow>
-              <DetailRow label="Where to buy" theme={theme}>
-                {item.whereToBuy.trim() || "—"}
-              </DetailRow>
-              <DetailRow label="Highlight" theme={theme}>
-                {colorEntry ? (
-                  <span className="inline-flex items-center gap-2">
-                    <span
-                      className="h-2.5 w-2.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: colorEntry.hex }}
-                      aria-hidden="true"
-                    />
-                    {supplyColorLegendDisplayLabel(colorEntry)}
-                  </span>
-                ) : (
-                  "No highlight"
-                )}
-              </DetailRow>
-              <DetailRow label="Signed up families" theme={theme}>
-                {item.assignedFamilyIds.length > 0
-                  ? formatSupplyAssignedFamilies(item.assignedFamilyIds, familyNameMap)
-                  : "No sign-ups yet"}
-              </DetailRow>
-            </div>
-          </div>
-
-          <div
-            className="shrink-0 border-t px-4 py-4"
-            style={{ borderColor: theme.line, backgroundColor: theme.paper }}
-          >
-            {isSignedUp ? (
-              <div className="space-y-3">
-                <p className="text-sm font-medium" style={{ color: theme.success }}>
-                  You&apos;re signed up for this item.
-                </p>
-                <ParentButton
-                  theme={theme}
-                  variant="outline"
-                  className="w-full"
-                  disabled={previewMode || isPending}
-                  onClick={onUnclaim}
-                >
-                  {isPending && pendingType === "unclaim" ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Remove me"
-                  )}
-                </ParentButton>
-              </div>
-            ) : isFull ? (
-              <p className="text-sm" style={{ color: theme.muted }}>
-                This item is full — all sign-up spots are taken.
-              </p>
+    <GSidePanel
+      theme={theme}
+      open={item != null}
+      onClose={onClose}
+      kicker="Supply item"
+      title={current ? supplyItemDisplayName(current) : ""}
+      subtitle={current ? <SupplyTypeChip type={current.itemType} /> : null}
+      closeLabel="Close supply item details"
+      testId="parent-supply-item-detail-panel"
+      panelId="parent-supply-item-detail"
+      footer={
+        <div className="flex w-full flex-col gap-2">
+          {previewMode ? (
+            <p className="m-0 flex items-center gap-1.5 text-[12px] font-extrabold text-[var(--sf-soft)]">
+              <Eye className="h-3.5 w-3.5" aria-hidden />
+              Preview mode — sign-ups are turned off here.
+            </p>
+          ) : null}
+          {footer}
+        </div>
+      }
+    >
+      {current ? (
+        <div className="flex flex-col gap-4">
+          <DetailRow icon={<CalendarDays />} label="When">
+            {supplyUsageTimingLabel(current)}
+          </DetailRow>
+          <DetailRow icon={<Package />} label="Quantity">
+            {formatSupplyQuantity(current)}
+          </DetailRow>
+          <DetailRow icon={<Coins />} label="Estimated price">
+            {formatSupplyEstimatedPrice(current.estimatedPrice)}
+          </DetailRow>
+          <DetailRow icon={<Store />} label="Where to buy">
+            {current.whereToBuy.trim() || "—"}
+          </DetailRow>
+          <DetailRow icon={<Palette />} label="Highlight">
+            {colorEntry ? (
+              <span className="inline-flex items-center gap-2">
+                <span
+                  className="h-3 w-3 shrink-0 rounded-full ring-[1.5px] ring-[var(--sf-ink)]/20"
+                  style={{ backgroundColor: colorEntry.hex }}
+                  aria-hidden="true"
+                />
+                {supplyColorLegendDisplayLabel(colorEntry)}
+              </span>
             ) : (
-              <ParentButton
-                theme={theme}
-                variant="soft"
-                className="w-full"
-                disabled={previewMode || isPending}
-                onClick={onClaim}
-              >
-                {isPending && pendingType === "claim" ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "Sign up for this item"
-                )}
-              </ParentButton>
+              "No highlight"
             )}
-          </div>
-        </motion.aside>
-      </motion.div>
-    </AnimatePresence>
+          </DetailRow>
+          <DetailRow icon={<Users />} label="Signed up families">
+            {current.assignedFamilyIds.length > 0
+              ? formatSupplyAssignedFamilies(current.assignedFamilyIds, familyNameMap)
+              : "No sign-ups yet"}
+          </DetailRow>
+        </div>
+      ) : null}
+    </GSidePanel>
   );
 }

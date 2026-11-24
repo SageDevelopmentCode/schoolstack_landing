@@ -35,6 +35,25 @@ export function isParentProgramPortalPath(pathname: string): boolean {
   return /\/parent\/[^/]+\/p\/[^/]+/.test(pathname);
 }
 
+/**
+ * Co-op-only families land on the main Home first (sign-in, restore and impersonation all
+ * open `/parent/<slug>/home`) and are redirected into their program once portal contexts load.
+ * Hold the main portal behind a skeleton until we know, so they never see the main tabs flash.
+ * Paths the shell's redirect skips (program routes, bulletin deep links) are never held, and a
+ * failed contexts load (no redirect flag) falls through to the main portal.
+ */
+export function shouldHoldParentMainPortal(input: {
+  contextsLoading: boolean;
+  activeProgramSlug: string | null;
+  redirectAwayFromMainPortal: boolean;
+  pathname: string;
+}): boolean {
+  if (input.activeProgramSlug) return false;
+  if (isParentProgramPortalPath(input.pathname)) return false;
+  if (input.pathname.includes('/bulletin/')) return false;
+  return input.contextsLoading || input.redirectAwayFromMainPortal;
+}
+
 export function getParentActiveTabFromPathname(
   pathname: string,
   tabs: Pick<MobileParentTabDefinition, 'tabId' | 'pathSegment'>[],

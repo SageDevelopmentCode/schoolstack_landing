@@ -2,7 +2,6 @@ import * as Clipboard from 'expo-clipboard';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GBackHeader } from '@/components/parent/garden/back-header';
 import { closeThen, confirmDestructive, useGardenPullRefresh, useGardenReadOnlyGate } from '@/components/parent/garden/feedback';
@@ -37,12 +36,12 @@ import {
   staffDisplayName,
   staffPortalLoginStatus,
 } from '@/lib/school-admin/staff-labels';
+import { useStatusBarBleed } from '@/hooks/use-status-bar-bleed';
 
 type StaffDetailScreenProps = { slug: string; staffMemberId: string; organizationId: string };
 
 function useDetailBleed() {
-  const insets = useSafeAreaInsets();
-  return { marginTop: -insets.top, paddingTop: insets.top };
+  return useStatusBarBleed();
 }
 
 /**

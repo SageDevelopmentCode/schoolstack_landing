@@ -6,6 +6,11 @@ import {
   SITE_NAME,
   SITE_URL,
 } from "./site";
+import {
+  LINK_PREVIEW_SIZE,
+  linkPreviewCard,
+  linkPreviewImageUrl,
+} from "./marketing/link-previews";
 
 type PageMetadataOptions = {
   title: string;
@@ -13,17 +18,22 @@ type PageMetadataOptions = {
   path?: string;
   noIndex?: boolean;
   ogImageAlt?: string;
+  /** Overrides the page's link-preview card (src/lib/marketing/link-previews.ts). */
   ogImagePath?: string;
   keywords?: string[];
 };
 
-function defaultOgImages(alt: string, imagePath = "/opengraph-image") {
+const HOME_PREVIEW = linkPreviewCard("/");
+const HOME_PREVIEW_IMAGE = linkPreviewImageUrl(HOME_PREVIEW);
+
+function defaultOgImages(alt: string, imagePath = HOME_PREVIEW_IMAGE) {
   return [
     {
       url: imagePath,
-      width: 1200,
-      height: 630,
+      width: LINK_PREVIEW_SIZE.width,
+      height: LINK_PREVIEW_SIZE.height,
       alt,
+      type: "image/png",
     },
   ];
 }
@@ -41,7 +51,8 @@ function siteIcons() {
 function sharedMetadataFields(
   title: string,
   description: string,
-  ogImagePath = "/opengraph-image",
+  ogImagePath = HOME_PREVIEW_IMAGE,
+  ogImageAlt = title,
 ) {
   return {
     applicationName: SITE_NAME,
@@ -56,13 +67,13 @@ function sharedMetadataFields(
       siteName: SITE_NAME,
       type: "website" as const,
       locale: "en_US",
-      images: defaultOgImages(title, ogImagePath),
+      images: defaultOgImages(ogImageAlt, ogImagePath),
     },
     twitter: {
       card: "summary_large_image" as const,
       title,
       description,
-      images: [ogImagePath],
+      images: [{ url: ogImagePath, alt: ogImageAlt }],
     },
   };
 }
@@ -73,12 +84,14 @@ export function pageMetadata({
   path,
   noIndex = false,
   ogImageAlt,
-  ogImagePath = "/opengraph-image",
+  ogImagePath,
   keywords,
 }: PageMetadataOptions): Metadata {
   const canonical = path ? `${SITE_URL}${path}` : undefined;
-  const imageAlt = ogImageAlt ?? title;
-  const shared = sharedMetadataFields(title, description, ogImagePath);
+  const card = linkPreviewCard(path);
+  const imagePath = ogImagePath ?? linkPreviewImageUrl(card);
+  const imageAlt = ogImageAlt ?? (ogImagePath ? title : card.alt);
+  const shared = sharedMetadataFields(title, description, imagePath, imageAlt);
 
   return {
     title,
@@ -95,12 +108,8 @@ export function pageMetadata({
           openGraph: {
             ...shared.openGraph,
             url: canonical,
-            images: defaultOgImages(imageAlt, ogImagePath),
           },
-          twitter: {
-            ...shared.twitter,
-            images: [ogImagePath],
-          },
+          twitter: shared.twitter,
         }
       : {}),
   };
@@ -108,7 +117,12 @@ export function pageMetadata({
 
 export function rootMetadata(): Metadata {
   const title = "MudKitchen — The complete operating system for microschools";
-  const shared = sharedMetadataFields(title, DEFAULT_DESCRIPTION);
+  const shared = sharedMetadataFields(
+    title,
+    DEFAULT_DESCRIPTION,
+    HOME_PREVIEW_IMAGE,
+    HOME_PREVIEW.alt,
+  );
 
   return {
     metadataBase: new URL(SITE_URL),

@@ -12,6 +12,7 @@ import {
 } from "@/lib/admissions/public-tour-settings";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { schoolPageMetadata } from "@/lib/og/school-page-metadata";
 
 export const dynamic = "force-dynamic";
 
@@ -27,10 +28,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: "School Not Found" };
   }
 
-  return {
+  return schoolPageMetadata(org, {
     title: `Schedule a tour | ${org.name}`,
     description: `Book a campus tour at ${org.name}.`,
-  };
+    path: "/tour",
+    page: "tour",
+  });
 }
 
 export default async function PublicTourPage({ params }: PageProps) {

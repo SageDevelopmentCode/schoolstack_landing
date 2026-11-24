@@ -13,9 +13,20 @@ If this isn't useful, reply "no thanks" and I won't email again.
 
 ## Who's writing
 
-Julius Cecilia runs **Sage Field**, an outdoor-focused private microschool in Round Rock, Texas
-(ages 4–11), and built MudKitchen (trymudkitchen.com) to run it: website, enrollment, tuition,
-parent portal, teacher and admin dashboards. Emails are from Julius, a person, not from "the MudKitchen team".
+Julius Cecilia runs **Sage Field** with his fiancée, an outdoor-focused private microschool in Round Rock,
+Texas (ages 4–11). They built MudKitchen (trymudkitchen.com) from the start to run it (website,
+enrollment, tuition, parent portal, teacher and admin dashboards), and it's a big part of how they grew.
+Now they offer it to other microschools. Emails are from Julius, a person, not from "the MudKitchen team".
+
+## When the school also gets a handwritten letter
+
+Some plans have a `letter` (written by the `school-letter` skill). The letter is mailed first, and
+/admin/research holds the first email until 5 business days after Julius logs the letter as mailed.
+- The first email opens by mentioning the note in one plain clause ("I mailed you a handwritten note last
+  week with a card for <school>…"). The validator checks for "note" or "letter".
+- Don't repeat the letter: no second founder hook, no "my fiancée and I". Keep the email's own angle
+  (a snapshot detail or one real question) and its proof number.
+- Re-contact plans still mention `priorContact.when` ("I first wrote about it in June").
 
 ## Proof points we can use
 
@@ -34,7 +45,7 @@ Never invent other customers, numbers or results.
 - Say plainly why you're writing to *this* school.
 - One number for proof (0 → 35 in under 3 months).
 - **Name MudKitchen once in the first email**, as what Julius built and runs Sage Field on
-  ("…0 to 35 students in under 3 months on MudKitchen, the enrollment and tuition system I built for it").
+  ("…0 to 35 students in under 3 months on MudKitchen, the system I built to run it").
   No link in the body: the footer carries trymudkitchen.com. The validator fails a first email without it.
 - One small ask. First email: permission ("Want me to send it?"). No calendar links, no meeting asks.
 - First email 50–125 words (aim 60–90); follow-ups 20–80; social note under 200 characters.
@@ -87,7 +98,7 @@ Hi Mily,
 
 Your FAQ says Athena is an approved TEFA vendor on Odyssey. At $17,000 tuition, a TEFA family still owes about $6,500 on top of the $10,474 the state pays, so one student can mean two payers.
 
-I run Sage Field, a microschool in Round Rock. We went from 0 to 35 students in under 3 months on MudKitchen, the enrollment and tuition system I built for it. I set up a version for Athena with your programs in it.
+I run Sage Field, a microschool in Round Rock. We went from 0 to 35 students in under 3 months on MudKitchen, the system I built to run it. I set up a version for Athena with your programs in it.
 
 Want me to send it?
 
@@ -133,3 +144,22 @@ and their site returned 404, so the plan has `doNotEmail` and no steps.
 - [ ] Facebook / Instagram / LinkedIn: recent news
 - [ ] State funding programs that apply (TEFA in Texas, charter enrichment funds in California, ESAs elsewhere)
 - [ ] What the demo actually shows (so the email doesn't over-claim)
+
+## Re-contact and the snapshot (Nov 2026)
+
+Why the re-contact sequence looks the way it does:
+
+- **Offer, don't link, in the first email.** An Overloop A/B test found a URL in email 1 cut replies from
+  9.4% to 5.1%, and Gong found interest-based asks book about 2x the meetings of meeting asks. So the
+  first email offers the snapshot ("Want me to send the snapshot?") and follow-up 2 sends it anyway.
+- **A new reason, honestly framed.** These schools already got the demo link by hand months ago. Vendor
+  guidance says wait about 3 months and bring something new; the snapshot is that. Say once that you
+  wrote before; never pretend it's a first email, and never "just following up".
+- **No hard data on free reports in cold email** (only templates), so make the snapshot earn its place:
+  4–8 real gaps found by auditing the whole site, each sourced, direct but kind, with what it costs a
+  family and what we'd do. Judge it by replies after 30 schools.
+- **Fixes can go beyond the demo.** If MudKitchen could solve a gap (shipped but not in their demo, or
+  custom work we'd build), include it as "We can set this up for you", and list custom work in
+  `checkBeforeSending`. Never present unbuilt work as existing.
+- **Proof:** Sage Field 0 → 35 students in under 3 months (always fine). Rooted Meadows opened on
+  MudKitchen in August 2026 (keep in `checkBeforeSending` until confirmed).

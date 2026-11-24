@@ -1,5 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { compressImageForUpload } from "@/lib/images/compress-image";
+import {
+  assertUploadFileSize,
+  normalizeUploadFile,
+  resolveUploadMimeType,
+} from "@/lib/uploads/normalize-upload-mime-type";
 
 export const SCHOOL_BULLETIN_FILES_BUCKET = "school-bulletin-files";
 
@@ -39,16 +44,18 @@ export function buildBulletinAttachmentStoragePath(
   return `${organizationId}/bulletin-posts/${postId}/${fileId}_${safeName}`;
 }
 
-export function validateBulletinAttachmentFile(file: File): void {
-  if (file.size > MAX_BULLETIN_ATTACHMENT_BYTES) {
-    throw new Error(`"${file.name}" exceeds the 10 MB limit.`);
-  }
-  if (file.type && !ALLOWED_MIME_TYPES.has(file.type)) {
-    throw new Error(`"${file.name}" is not a supported file type.`);
-  }
+/** Checks size and type; returns the file retyped from its extension if needed. */
+export function validateBulletinAttachmentFile(file: File): File {
+  assertUploadFileSize(file, MAX_BULLETIN_ATTACHMENT_BYTES);
+  return normalizeUploadFile(file, ALLOWED_MIME_TYPES);
 }
 
-export async function prepareBulletinAttachmentForUpload(file: File): Promise<File> {
+export async function prepareBulletinAttachmentForUpload(input: File): Promise<File> {
+  const resolvedType = resolveUploadMimeType(input);
+  const file =
+    resolvedType && resolvedType !== input.type && ALLOWED_MIME_TYPES.has(resolvedType)
+      ? normalizeUploadFile(input, ALLOWED_MIME_TYPES)
+      : input;
   if (file.type === "image/jpeg" || file.type === "image/png") {
     return compressImageForUpload(file, BULLETIN_IMAGE_COMPRESS_OPTIONS);
   }
@@ -59,9 +66,9 @@ export async function uploadBulletinAttachment(
   supabase: SupabaseClient,
   organizationId: string,
   postId: string,
-  file: File,
+  input: File,
 ): Promise<BulletinAttachmentMeta> {
-  validateBulletinAttachmentFile(file);
+  const file = validateBulletinAttachmentFile(input);
 
   const fileId = crypto.randomUUID();
   const storagePath = buildBulletinAttachmentStoragePath(

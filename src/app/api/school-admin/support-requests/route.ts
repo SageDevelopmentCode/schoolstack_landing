@@ -144,7 +144,7 @@ export async function POST(request: Request) {
       return apiError(ROUTE, {
         request,
         status: 500,
-        error: "Failed to upload attachments.",
+        error: "Failed to load school.",
         cause: organizationError,
       });
     }
@@ -158,7 +158,12 @@ export async function POST(request: Request) {
       });
     }
 
-    const { data: inserted, error: insertError } = await supabase
+    // Insert with the service client: access was checked above, and RLS only
+    // lets platform admins SELECT these rows, so INSERT ... RETURNING through
+    // the user's client fails with 42501 for school admins.
+    const admin = createAdminClient();
+
+    const { data: inserted, error: insertError } = await admin
       .from("admin_support_requests")
       .insert({
         organization_id: organization.id,
@@ -179,12 +184,11 @@ export async function POST(request: Request) {
         request,
         status: 500,
         error: "Failed to create support request.",
-      cause: insertError,
+        cause: insertError,
       });
     }
 
     const requestId = String(inserted.id);
-    const admin = createAdminClient();
     const uploadedAttachments: SupportRequestAttachmentMeta[] = [];
     const uploadedPaths: string[] = [];
 
@@ -217,7 +221,7 @@ export async function POST(request: Request) {
           organizationId: organization.id,
           operation: "school_admin_support_request_attachment_cleanup",
           error: "Support request attachment cleanup failed.",
-      cause: cleanupError,
+          cause: cleanupError,
           entityType: "admin_support_request",
           entityId: requestId,
           notify: true,

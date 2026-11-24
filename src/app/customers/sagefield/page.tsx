@@ -11,8 +11,6 @@ export const metadata: Metadata = pageMetadata({
   description:
     "How Sage Field launched and grew from 0 to 35 students in under 3 months using MudKitchen to power their website, enrollment, tuition, and operations.",
   path: "/customers/sagefield",
-  ogImageAlt: "Sage Field Case Study — MudKitchen",
-  ogImagePath: "/customers/sagefield/opengraph-image",
 });
 
 const BREADCRUMBS = buildBreadcrumbs(

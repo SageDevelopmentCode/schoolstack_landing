@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import GardenRoot from "@/components/garden/GardenRoot";
 import SchoolAdminAccessDenied from "@/components/school-admin/SchoolAdminAccessDenied";
 import MudKitchenPortalShell from "@/components/mudkitchen-portal/MudKitchenPortalShell";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
@@ -78,14 +79,18 @@ export default async function MudKitchenPortalLayout({
     redirect(`${schoolAdminPath(slug, "home")}?${params.toString()}`);
   }
 
+  const dueInvoiceCount = await countDueCustomerInvoices(supabase, org.id);
+
   return (
-    <MudKitchenPortalShell
-      slug={slug}
-      schoolName={org.name}
-      branding={org.branding}
-      dueInvoiceCount={await countDueCustomerInvoices(supabase, org.id)}
-    >
-      {children}
-    </MudKitchenPortalShell>
+    <GardenRoot className="min-h-dvh bg-[var(--sf-cream)]">
+      <MudKitchenPortalShell
+        slug={slug}
+        schoolName={org.name}
+        branding={org.branding}
+        dueInvoiceCount={dueInvoiceCount}
+      >
+        {children}
+      </MudKitchenPortalShell>
+    </GardenRoot>
   );
 }

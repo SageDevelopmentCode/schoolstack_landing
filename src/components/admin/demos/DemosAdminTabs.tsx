@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   { href: "/admin/demos", label: "Demos", exact: true },
-  { href: "/admin/demos/funnel", label: "Funnel", exact: false },
+  { href: "/admin/research", label: "Outreach ↗", exact: true },
 ] as const;
 
 function isActive(pathname: string, href: string, exact: boolean) {

@@ -79,7 +79,9 @@ return (
 - The portal header and nav (`SchoolParentHeader`) are Garden too, but they use `ParentGardenScope` (same tokens and fonts, no `min-h-full`, no overflow clip) instead of `ParentGardenFrame`. Don't wrap the header in a page frame. See the Header / nav recipe in §6.
 - Drawers, modals and side panels (`ParentOnboardingSidebar`, `ParentDocumentationGuidePanel`, bulletin sidebar/dialogs, billing side panels) render **outside** the frame until they're migrated. Otherwise the Garden type reset restyles their headings.
 
-**Not-yet-migrated blocks inside a page.** Wrap them in `<PortalIsland>`, which keeps the portal's Fraunces/DM Sans. The Home does this for Friday Branch and co-op families (`HomeProgramSections`).
+**Not-yet-migrated blocks inside a page.** Wrap them in `<PortalIsland>`, which keeps the portal's Fraunces/DM Sans. The Home no longer has any; every Home block is Garden.
+
+**Legacy sheets opened from a Garden card** (for example `ParentFridayBranchClassSheet` from `HomeFridayBranchCard`): `createPortal` them into the nearest `[data-parent-portal]` shell (portal fonts + theme vars), not into the frame or the card. A `fixed` sheet inside `GCard`'s motion box is positioned against the transform, and the frame's type reset restyles it.
 
 **Inside marketing demos.** The parent Home also renders inside marketing demos (`DemoStage` → `DemoParentHomePage`, inside `.sf-demo`). The `.sf-parent-garden` rule in `garden.css` keeps the reset working there, so don't remove it.
 
@@ -152,6 +154,11 @@ These are what separate this from the marketing site. Each one was a correction 
 | `NOTE_TINTS`, `PANEL_TINTS`, `TAPE_COLORS` | Literal tint classes and colours. |
 | `GTabBar` | Segmented `role="tablist"` with a gliding accent pill (Billing tabs, Messages All/Unread). |
 
+From `school-parent/garden/fields.tsx` (the admin kit re-exports these as `GardenSelect`, `GardenSearchInput`, `G_TABLE`…):
+- `GSelect`: native select with a drawn chevron (`options`, `aria-label`, optional `error`).
+- `GSearchInput`: search box with an icon and a clear button (`label` is required).
+- `G_TABLE`, `G_TH`, `G_TD`, `gRowClass({ interactive, selected })`: the table recipe. Put the table in a `GCard` inside `overflow-x-auto`; rows that open a drawer keep the item name as a real `<button>` (no `role="button"` rows). Used by the co-op Supply list and Teaching schedule.
+
 From `school-parent/garden/GDialog.tsx`:
 - `GDialog`: portalled Garden dialog (own `ParentGardenFrame`, bottom sheet on phones, Escape, focus trap + return). Safe to mount from inside a page frame.
 - `GConfirmDialog`: outline Cancel + one toy confirm (spinner + `aria-busy` while `loading`; `destructive` for deletes/discards).
@@ -196,9 +203,11 @@ From the shared Garden kit (`@/components/garden/ui`):
 | **Note-row launcher**: a butter/sky taped row button with `GIcon`, title, one-line preview and chevron | `HomeRail.tsx` › `HomeBulletinTile`, `HomeMessagesTile` | Opening a drawer or a related tab |
 | **Jump to**: `QuickLinks` in a kicker-only `GCard` | `HomeRail.tsx` › `HomeJumpToCard` | Tab shortcuts |
 | **Person mini-cards**: `ChildThumb` + `sf-display` name + `StatusChip` + meta + `GProgress` + outline/secondary links, on a paper inner card | `home/garden/HomeChildrenCard.tsx` | Children, family members, committee members |
+| **Family mini-cards**: `sf-display` family name + "Your family" `GChip`, learners as `ChildThumb sm` (takes any `{ studentName, profilePhotoUrl }`) + learner line, `ParentCoopFamilyMessageButton appearance="garden"` footer | `home/garden/HomeCoopFamiliesCard.tsx` | Co-op / class directories |
 | **Notebook list**: `.sf-paper` list with `Tick` (done) / empty ring (to do), title + meta, chevron; counts as `GChip`s above | `home/garden/HomeLowerCards.tsx` › `HomeFormsCard` | Forms, documents, receipts, payment history |
 | **Index of help**: category columns of button rows that open a side panel | `HomeLowerCards.tsx` › `HomeGuidesCard` | How-to guides, FAQs |
-| **Legacy block**: `PortalIsland` around an unmigrated component | `HomeLowerCards.tsx` › `HomeProgramSections` | Anything not yet migrated |
+| **Legacy block**: `PortalIsland` around an unmigrated component | (none left on the Home) | Anything not yet migrated |
+| **Class/slot rows**: time pill on `--sf-peach` + title + `GChip`s (family sign-ups or spots left) in `.sf-paper` notebook lists, two lists side by side from `lg`; rows open a portalled legacy sheet | `home/garden/HomeFridayBranchCard.tsx` | Schedules with sign-ups |
 | **Full-height app tab** (exception to §3.2/§3.4): the tab IS the page — full-bleed panes (list \| detail \| xl details rail) with 1.5px ink/10 dividers, no page header (sr-only `h1`), primary actions in the list column header; shared layout hands a view-model to a Garden view via a new variant | `messages/garden/ParentGardenMessagesView.tsx` (`MessagesInboxLayout variant="parent-garden"`) | Inbox-style tabs (committees chat, curriculum discussion) |
 | **Header / nav**: pill links with an accent pill that glides to the active tab (framer `layoutId`) and `aria-current="page"`; "More" shows the active hidden tab ("More · Photos") and the unread total of hidden tabs; More = pastel icon tiles with arrow-key grid nav and a "How-to guides" footer; account menu = "you" card, radio-style Program rows, account portals, settings links, log out. All popovers use `GardenHeaderPopover` (anchored card from `sm`, bottom sheet on phones, Escape + focus return, `[data-roving]` arrow keys, `[data-autofocus]` start item) | `school-parent/header/*` | Any portal chrome menu or switcher |
 | **Notifications drawer**: `GSidePanel` (with `bodyRef` as the infinite-scroll root and a `headerAside` status chip: "N new" → "✓ Marked as read", or the preview chip); rows grouped under sticky "Today / Yesterday / Earlier this week / Earlier" kickers; newest N rows (the bell count at open) get a "New" dot + chip; each row ends with the notification's own `ctaLabel` →; caught-up state on mint; dashed "That's everything…" end line; footer link to notification settings | `ParentActivityNotificationsPanel.tsx`, `ParentActivityNotificationRow.tsx` | Any activity/feed drawer |

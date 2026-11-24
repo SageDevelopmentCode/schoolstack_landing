@@ -4,6 +4,7 @@
  * hosted project: it refuses any NEXT_PUBLIC_SUPABASE_URL that isn't 127.0.0.1 / localhost.
  *
  * Re-runnable: it deletes the `your-school` org (cascades) and rebuilds it.
+ * Set YOUR_SCHOOL_FRESH_ROLL_CALL=1 to leave today's roll call unmarked (App Store shots); by default 4 of 6 are marked.
  *
  * Run from the repo root, with local Supabase up (`supabase start`) and `.env.e2e.local` pointing at it:
  *   npx tsx --tsconfig tsconfig.json --require ./src/test/integration/mock-server-only.cjs scripts/seed-your-school-marketing-local.ts
@@ -12,6 +13,7 @@
  *   Parent:       sarah@your-school.test   (Sarah Mitchell; Emma & Liam)
  *   Teacher:      maya@your-school.test    (Maya Rivera, Little Learners)
  *   School admin: morgan@your-school.test  (Morgan Ellis)
+ *   Enrolling:    jordan@your-school.test  (Jordan Park; Nora enrolled, Owen's enrollment checklist half done)
  *   Password:     YourSchoolLocal2026!
  */
 import fs from "node:fs";
@@ -29,6 +31,7 @@ const PASSWORD = "YourSchoolLocal2026!";
 const PARENT_EMAIL = "sarah@your-school.test";
 const TEACHER_EMAIL = "maya@your-school.test";
 const ADMIN_EMAIL = "morgan@your-school.test";
+const APPLICANT_EMAIL = "jordan@your-school.test";
 
 if (fs.existsSync(".env.e2e.local")) dotenv.config({ path: ".env.e2e.local", override: true });
 
@@ -219,11 +222,11 @@ async function main() {
     others.push(await family(last, parent, `${parent.toLowerCase()}.${last.toLowerCase()}@example.test`, [{ first: kid, programId: little.id, dob: "2021-06-01", grade: "k" }]));
   }
 
-  // ---- attendance today (a roll call in progress: 4 of 6 marked)
+  // ---- attendance today (a roll call in progress: 4 of 6 marked; YOUR_SCHOOL_FRESH_ROLL_CALL=1 leaves everyone unmarked)
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date());
   const marked = [mitchell.students[0], others[0].students[0], others[1].students[0], others[2].students[0]];
   const markedFamilies = [mitchell.familyId, others[0].familyId, others[1].familyId, others[2].familyId];
-  check(
+  if (process.env.YOUR_SCHOOL_FRESH_ROLL_CALL !== "1") check(
     await db.from("student_attendance_records").insert(
       marked.map((s, i) => ({
         organization_id: orgId,
@@ -373,15 +376,22 @@ async function main() {
     ]),
     "participants",
   );
-  const minutesAgo = (m: number) => new Date(Date.now() - m * 60000).toISOString();
+  // Fixed school-day times (America/Chicago = UTC−6 in November) so screenshots never show a 1 AM message
+  // next to the 9:41 status bar: yesterday 3:05 PM and 6:48 PM, today 8:32 AM.
+  const yesterday = new Date(`${today}T12:00:00Z`);
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  const yesterdayDate = yesterday.toISOString().slice(0, 10);
+  const schoolTime = (date: string, utcHm: string) => new Date(`${date}T${utcHm}:00Z`).toISOString();
+  const latestMessageAt = schoolTime(today, "14:32");
   check(
     await db.from("portal_messages").insert([
-      { thread_id: thread.id, organization_id: orgId, body: "Emma painted the most amazing sunflower today 🌻 It's drying on the art wall for pickup.", sender_user_id: teacherUserId, sender_kind: "staff_member", sender_staff_member_id: teacherStaffId, created_at: minutesAgo(190) },
-      { thread_id: thread.id, organization_id: orgId, body: "She told us all about it at dinner! Thank you for sharing.", sender_user_id: parentUserId, sender_kind: "guardian", sender_guardian_id: mitchell.guardianId, created_at: minutesAgo(150) },
-      { thread_id: thread.id, organization_id: orgId, body: "Quick reminder: the photo release form is due before the field trip on Dec 4.", sender_user_id: teacherUserId, sender_kind: "staff_member", sender_staff_member_id: teacherStaffId, created_at: minutesAgo(25) },
+      { thread_id: thread.id, organization_id: orgId, body: "Emma painted the most amazing sunflower today 🌻 It's drying on the art wall for pickup.", sender_user_id: teacherUserId, sender_kind: "staff_member", sender_staff_member_id: teacherStaffId, created_at: schoolTime(yesterdayDate, "21:05") },
+      { thread_id: thread.id, organization_id: orgId, body: "She told us all about it at dinner! Thank you for sharing.", sender_user_id: parentUserId, sender_kind: "guardian", sender_guardian_id: mitchell.guardianId, created_at: schoolTime(today, "00:48") }, // 6:48 PM yesterday, Chicago
+      { thread_id: thread.id, organization_id: orgId, body: "Quick reminder: the photo release form is due before the field trip on Dec 4.", sender_user_id: teacherUserId, sender_kind: "staff_member", sender_staff_member_id: teacherStaffId, created_at: latestMessageAt },
     ]),
     "messages",
   );
+  check(await db.from("message_threads").update({ last_message_at: latestMessageAt }).eq("id", thread.id), "thread last message");
 
   // ---- admissions pipeline for the admin dashboard
   const formVersion = check(
@@ -439,6 +449,77 @@ async function main() {
       "application",
     );
   }
+
+  // ---- an enrolling family (app store "enrollment progress" shot): Nora is enrolled (so the app opens),
+  // Owen's application was accepted and his enrollment checklist is half done.
+  const applicantUserId = await ensureUser(APPLICANT_EMAIL);
+  check(await db.from("organization_memberships").insert({ organization_id: orgId, user_id: applicantUserId, role: "parent", status: "active" }), "applicant membership");
+  await db.auth.admin.updateUserById(applicantUserId, { user_metadata: { full_name: "Jordan Park", first_name: "Jordan" } });
+  const park = await family("Park", "Jordan", APPLICANT_EMAIL, [{ first: "Nora", programId: lower.id, dob: "2019-02-20", grade: "1" }], applicantUserId);
+  const owen = check(
+    await db.from("students").insert({ organization_id: orgId, family_id: park.familyId, first_name: "Owen", last_name: "Park", date_of_birth: "2021-07-14", grade: "k", status: "prospect" }).select("id").single(),
+    "owen",
+  ) as { id: string };
+  const owenSubmittedAt = new Date(Date.now() - 12 * 86400000).toISOString();
+  const owenApplication = check(
+    await db
+      .from("applications")
+      .insert({
+        organization_id: orgId,
+        program_id: little.id,
+        form_version_id: formVersion.id,
+        family_id: park.familyId,
+        student_id: owen.id,
+        primary_guardian_id: park.guardianId,
+        status: "enrolling",
+        fee_status: "not_required",
+        submitted_at: owenSubmittedAt,
+        created_at: owenSubmittedAt,
+        responses: { student_first_name: "Owen", student_last_name: "Park", student_date_of_birth: "2021-07-14", student_grade: "k" },
+      })
+      .select("id")
+      .single(),
+    "owen application",
+  ) as { id: string };
+  const owenEnrollment = check(
+    await db.from("enrollments").insert({ organization_id: orgId, student_id: owen.id, program_id: little.id, status: "pending" }).select("id").single(),
+    "owen enrollment",
+  ) as { id: string };
+  const template = check(
+    await db.from("enrollment_checklist_templates").insert({ organization_id: orgId, program_id: little.id, name: "Little Learners enrollment", enrollment_path: "standard", status: "published" }).select("id").single(),
+    "checklist template",
+  ) as { id: string };
+  const checklistItems: Array<[string, string, string, string]> = [
+    ["agreement", "Enrollment agreement", "acknowledgment", "completed"],
+    ["student_info", "Student information", "form", "completed"],
+    ["immunizations", "Immunization records", "file_upload", "completed"],
+    ["emergency", "Emergency contacts & pickup", "form", "in_progress"],
+    ["deposit", "Enrollment deposit", "payment", "not_started"],
+    ["media", "Photo & media release", "acknowledgment", "not_started"],
+  ];
+  const templateItems = check(
+    await db
+      .from("enrollment_checklist_template_items")
+      .insert(checklistItems.map(([key, label, type], i) => ({ template_id: template.id, organization_id: orgId, item_key: key, sort_order: i, label, type, required: true })))
+      .select("id, item_key"),
+    "checklist template items",
+  ) as Array<{ id: string; item_key: string }>;
+  const checklist = check(
+    await db.from("enrollment_checklists").insert({ organization_id: orgId, enrollment_id: owenEnrollment.id, template_id: template.id, application_id: owenApplication.id, status: "in_progress" }).select("id").single(),
+    "checklist",
+  ) as { id: string };
+  check(
+    await db.from("enrollment_checklist_items").insert(
+      checklistItems.map(([key, , , status]) => ({
+        checklist_id: checklist.id,
+        organization_id: orgId,
+        template_item_id: templateItems.find((t) => t.item_key === key)!.id,
+        item_key: key,
+        status,
+      })),
+    ),
+    "checklist items",
+  );
 
   console.log(`Seeded ${YOUR_SCHOOL_NAME} (${SLUG}) on ${url}: org ${orgId}`);
 }

@@ -22,8 +22,6 @@ export default function BigNumbers() {
       <div className="mx-auto max-w-[1320px] px-6 sm:px-10 lg:px-12">
         <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
           <SectionIntro
-            pill={`🌳 ${STORY_COPY.badge}`}
-            tint="forest"
             lead={STORY_COPY.headlineLead}
             accent={STORY_COPY.headlineAccent}
             accentColor="text-[var(--sf-forest)]"

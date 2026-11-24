@@ -1,16 +1,14 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Draw, Pill, Squiggle, type Tint } from "@/components/garden/ui";
+import { Draw, Squiggle } from "@/components/garden/ui";
 import { WordsReveal } from "@/components/garden/motion";
 
 /**
- * Garden section heading: Pill → h2 (lead + accent phrase with a drawn
+ * Garden section heading: h2 (lead + accent phrase with a drawn
  * squiggle) → optional handwritten note → optional body.
  */
 export default function SectionIntro({
-  pill,
-  tint = "clay",
   lead,
   accent,
   accentColor = "text-[var(--sf-clay)]",
@@ -23,8 +21,6 @@ export default function SectionIntro({
   bodyClassName = "text-[var(--sf-soft)]",
   dark = false,
 }: {
-  pill?: ReactNode;
-  tint?: Tint;
   lead: string;
   accent?: string;
   accentColor?: string;
@@ -40,8 +36,7 @@ export default function SectionIntro({
   const center = align === "center";
   return (
     <div className={`${center ? "mx-auto max-w-3xl text-center" : "max-w-2xl"} ${className}`}>
-      {pill ? <Pill tint={tint}>{pill}</Pill> : null}
-      <h2 className={`sf-display mt-5 leading-[0.95] ${dark ? "text-[var(--sf-cream)]" : "text-[var(--sf-ink)]"} ${headingClassName}`}>
+      <h2 className={`sf-display leading-[0.95] ${dark ? "text-[var(--sf-cream)]" : "text-[var(--sf-ink)]"} ${headingClassName}`}>
         <WordsReveal as="span" text={lead} className="block" />
         {accent ? (
           <span className={`relative isolate inline-block ${accentColor}`}>

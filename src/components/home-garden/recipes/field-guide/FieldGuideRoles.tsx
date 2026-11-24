@@ -12,7 +12,7 @@ export default function FieldGuideRoles() {
   return (
     <section className="relative py-24 lg:py-36">
       <div className="mx-auto max-w-[1320px] px-6 sm:px-10 lg:px-12">
-        <SectionIntro pill="👩‍👧 For families, founders & teachers" tint="sky" lead={ROLES_HEADING} squiggle={null} align="left" headingClassName="text-5xl md:text-7xl" />
+        <SectionIntro lead={ROLES_HEADING} squiggle={null} align="left" headingClassName="text-5xl md:text-7xl" />
         <div className="mt-16 border-t-2 border-[var(--sf-ink)]">
           {ROLES.map((r, i) => (
             <Reveal

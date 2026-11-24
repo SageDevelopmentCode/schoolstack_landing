@@ -3,13 +3,11 @@
 import Link from "next/link";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import { Tick } from "@/components/garden/ui";
-import ParentCoopFamiliesSection from "@/components/school-parent/ParentCoopFamiliesSection";
-import ParentHomeFridayBranchSection from "@/components/school-parent/home/ParentHomeFridayBranchSection";
-import { ParentHomeFridayBranchSkeleton } from "@/components/school-parent/home/ParentHomeDeferredSkeleton";
 import ParentOnboardingSidebar from "@/components/school-parent/ParentOnboardingSidebar";
 import ParentDocumentationGuidePanel from "@/components/school-parent/ParentDocumentationGuidePanel";
-import { PortalIsland } from "@/components/school-parent/garden/ParentGardenFrame";
 import { GCard, GChip, GNoteTile, GSkeleton, NOTE_TINTS, G_FOCUS, gLinkSm } from "@/components/school-parent/garden/ui";
+import HomeCoopFamiliesCard from "./HomeCoopFamiliesCard";
+import HomeFridayBranchCard from "./HomeFridayBranchCard";
 import type { ParentHomePageProps } from "../parent-home-types";
 import type { ParentHomeModel } from "../useParentHomeModel";
 
@@ -129,7 +127,7 @@ export function HomeGuidesCard({ model }: { model: ParentHomeModel }) {
   );
 }
 
-/** Friday Branch + co-op families: not yet migrated, so rendered in portal type. */
+/** Friday Branch + co-op families (program blocks below the fold). */
 export function HomeProgramSections({ model, props }: { model: ParentHomeModel; props: ParentHomePageProps }) {
   const {
     organizationId,
@@ -143,7 +141,6 @@ export function HomeProgramSections({ model, props }: { model: ParentHomeModel; 
     programPortalLabel,
     coopFamilies = [],
     programId,
-    schoolName,
   } = props;
   const showFriday =
     model.fridayBranchHomeEnabled &&
@@ -152,12 +149,13 @@ export function HomeProgramSections({ model, props }: { model: ParentHomeModel; 
   const showCoop = coopModeEnabled && programPortalLabel;
   if (!showFriday && !showCoop) return null;
   return (
-    <PortalIsland className="flex flex-col gap-6">
+    <>
       {showFriday && organizationId ? (
         contentDeferred || !fridayBranchHome ? (
-          <ParentHomeFridayBranchSkeleton theme={model.theme} />
+          <GSkeleton className="h-64" />
         ) : (
-          <ParentHomeFridayBranchSection
+          <HomeFridayBranchCard
+            index={8}
             theme={model.theme}
             organizationId={organizationId}
             schoolSlug={schoolSlug}
@@ -169,19 +167,20 @@ export function HomeProgramSections({ model, props }: { model: ParentHomeModel; 
         )
       ) : null}
       {showCoop ? (
-        <ParentCoopFamiliesSection
+        <HomeCoopFamiliesCard
+          index={9}
+          theme={model.theme}
           programLabel={programPortalLabel}
           families={coopFamilies}
           organizationId={organizationId}
           programId={programId}
-          schoolName={schoolName}
           messagesHref={model.messagesHref}
           messagesEnabled={model.messagesEnabled}
           previewMode={previewMode}
           contentDeferred={contentDeferred}
         />
       ) : null}
-    </PortalIsland>
+    </>
   );
 }
 

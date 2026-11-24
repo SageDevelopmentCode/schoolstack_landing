@@ -117,3 +117,11 @@ Re-count in App Store Connect before saving alternates.
 3. Paste **Description** (from section above) and **Promotional Text** (if used).
 4. Confirm **Description** is ≤ 4,000 characters and **Keywords** ≤ 100 characters in Connect’s counter.
 5. Save and submit with your TestFlight / App Store release.
+
+## Store screenshots
+
+The 10 screenshots are built in **Marketing Studio → App store** (`/admin/marketing?carousel=app-store-screens`, source `src/components/admin/marketing/carousels/app-store-screens.tsx`), in the MudKitchen Garden look.
+
+- **Sizes:** App Store 6.3" at 1206×2622 (the slot also takes 1179×2556) → `public/images/mobileapp/{1..10}.png`. Google Play at 1080×1920 (Play rejects anything longer than 2:1) → `public/images/mobileapp/play/{1..10}.png`. The website carousel uses the App Store set as 960px `.webp` (`src/lib/marketing/download-app-slides.ts`); keep its `alt` text in sync with the slide headlines.
+- **Phone screens:** real captures of the app on the iOS Simulator, signed in to the fictional "Your School" on the **local** stack (`scripts/seed-your-school-marketing-local.ts`; accounts are in its header). Use native resolution, with the status bar set to 9:41 via `xcrun simctl status_bar <udid> override --time 9:41 --batteryState charged --batteryLevel 100 --wifiBars 3`. Saved to `public/images/marketing/app-store-screens/<role>-<screen>.png`.
+- **To refresh:** recapture the screens, then use the Studio's size switch and "Download all", and copy the PNGs into place.

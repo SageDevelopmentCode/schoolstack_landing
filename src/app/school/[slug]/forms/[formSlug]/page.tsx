@@ -12,6 +12,7 @@ import {
 } from "@/lib/admissions/public-apply-cache";
 import { isApplyProgramPicker } from "@/lib/admissions/resolve-published-apply-entry";
 import { createClient } from "@/utils/supabase/server";
+import { schoolPageMetadata } from "@/lib/og/school-page-metadata";
 
 export const dynamic = "force-dynamic";
 
@@ -53,17 +54,23 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   if (isApplyProgramPicker(resolved)) {
-    return {
+    return schoolPageMetadata(org, {
       title: `Apply | ${org.name}`,
       description: `Choose a program to apply to ${org.name}.`,
-    };
+      path: `/forms/${formSlug}`,
+      page: "form",
+      form: formSlug,
+    });
   }
 
   const form = resolved;
-  return {
+  return schoolPageMetadata(org, {
     title: `${form.title} | ${org.name}`,
     description: form.intro ?? `Apply to ${org.name}`,
-  };
+    path: `/forms/${formSlug}`,
+    page: "form",
+    form: formSlug,
+  });
 }
 
 export default async function PublicApplicationFormPage({ params }: PageProps) {

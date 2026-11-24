@@ -8,7 +8,7 @@ import { NAV_CTA_LABEL, NAV_CTA_PATH } from "@/lib/marketing/free-tools";
 
 const MOBILE_LINKS = [
   { label: "About", href: "/about", icon: Info },
-  { label: "Product", href: "/#product", icon: Layers },
+  { label: "Features", href: "/features", icon: Layers },
   { label: "Customers", href: "/customers", icon: Users },
   { label: "Blog", href: "/blog", icon: BookOpen },
 ];

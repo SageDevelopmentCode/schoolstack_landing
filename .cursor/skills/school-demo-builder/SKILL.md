@@ -10,7 +10,7 @@ disable-model-invocation: true
 
 # School Demo Builder
 
-Repeatable workflow for adding a new school demo at `/demo/{slug}`. Canonical reference: **Luff Learning** (`src/app/demo/luff-learning/`).
+Repeatable workflow for adding a new school demo at `/demo/{slug}`. Canonical reference: **Luff Learning** (its `DEMO_ROUTES` entry in `src/data/school-demos/demo-routes.ts`).
 
 ## Required inputs
 
@@ -32,7 +32,7 @@ If no redesign guide exists, copy [redesign-guide-template.md](redesign-guide-te
 flowchart TD
   Inputs["Website + Logo + Guide"] --> Research["Phase0: Scrape and reconcile brand"]
   Research --> Data["Phase1: school-demos data files"]
-  Data --> Route["Phase2: app/demo/slug"]
+  Data --> Route["Phase2: demo-routes.ts entry"]
   Data --> Components["Phase3: Dashboard configs + website wrapper"]
   Components --> Registry["dashboard-registry.ts"]
   Data --> Walkthrough["Phase4: walkthrough placeholder"]
@@ -49,8 +49,8 @@ flowchart TD
 3. Reconcile brand colors — cross-check guide hex values against logo + live CSS. WP/Kadence scrapes often mislabel roles (e.g. `#efad1f` labeled "purple" but is gold). Then map them to the **Garden roles** the demo uses (see [reference.md](reference.md#color-reconciliation)):
    - `theme.dark` → the **action colour**: every CTA button, accent words in headings, and the one dark panel. It must read with white text (deep navy, forest, plum…). `readableOn()` in `site-garden-theme.ts` falls back to ink text for light colours, but a light `dark` makes the whole site look washed out — pick a dark brand colour.
    - `theme.primary` → the **brand tint**: sticky notes, washi tape and marker highlights (mixed with paper, so bright yellows/oranges work well).
-4. Logo handling — the website nav and footer are light paper, so pick a logo that reads on light backgrounds (white/reverse logos need `logoOnLightClassName`, e.g. `brightness-0`). Set width/height in config.
-5. Document live-site fonts in the redesign guide for **copy tone only**. Every demo uses the Garden fonts (Bricolage Grotesque display, Nunito body, a little Gochi Hand), applied by the website template's own scope (`SITE_SCOPE_CLASS` in `site-garden-theme.ts`) and by the real Garden portals. Copy `layout.tsx` from an existing demo unchanged; do not add per-school fonts.
+4. Logo handling — the website nav and footer are light paper, and the walkthrough sidebar's co-brand card (MudKitchen | school logo) is white, so pick a logo that reads on light backgrounds (white/reverse logos need `logoOnLightClassName`, e.g. `brightness-0`; `SchoolDemoWordmark` applies it everywhere). Set width/height in config.
+5. Document live-site fonts in the redesign guide for **copy tone only**. Every demo uses the Garden fonts (Bricolage Grotesque display, Nunito body, a little Gochi Hand), applied by the website template's own scope (`SITE_SCOPE_CLASS` in `site-garden-theme.ts`) and by the real Garden portals. The shared `src/app/demo/[slug]/layout.tsx` applies them; do not add per-school fonts.
 
 ## Phase 1 — Data layer
 
@@ -71,15 +71,21 @@ Website config must include: `theme`, `hero`, `signatureSection`, `stats`, `welc
 
 Testimonials must use `DemoTestimonial` shape — see [reference.md](reference.md#testimonial-shape).
 
-## Phase 2 — App route
+## Phase 2 — App route (one manifest entry, no route folder)
 
-```
-src/app/demo/{slug}/
-  page.tsx   → SchoolDemoShell + config + walkthrough placeholder
-  layout.tsx → SchoolDemoWebsiteFonts wrapper + pageMetadata (noIndex: true); copy as is
+Every demo is served by the one dynamic route `src/app/demo/[slug]/` (`page.tsx` → `SchoolDemoShell`, `layout.tsx` → `SchoolDemoWebsiteFonts` + `pageMetadata` with `noIndex: true`). To add a school, import its website config and walkthrough placeholder in `src/data/school-demos/demo-routes.ts` and add an entry to `DEMO_ROUTES`, keyed by the URL slug:
+
+```ts
+"luff-learning": {
+  schoolName: "Luff Learning Fine Arts Academy",
+  title: "Luff Learning Website Demo",
+  description: "A private website redesign concept for …",
+  config: luffLearningConfig,
+  steps: luffLearningWalkthroughPlaceholder,
+},
 ```
 
-Copy from `src/app/demo/luff-learning/`.
+**Never create `src/app/demo/{slug}/` folders.** 87 near-identical per-school routes, each pulling in every school's lazy demo chunks, made the Vercel build run out of memory (8 GB). The key must match `schoolDemoHref(slug)` (usually the slug itself; see `DEMO_ROUTE_SLUG_OVERRIDES` in `index.ts`).
 
 ## Phase 3 — Dashboard data (no TSX forks)
 
@@ -89,7 +95,7 @@ Per school, export `*DemoConfig` from `{slug}-admin-demo.ts`, `{slug}-parent-dem
 
 **Optional admin mock overrides:** If leads, events, or emails should differ from the canonical Luff demo, add `src/data/school-demos/admin-content/{slug}.ts` and reference it from `SchoolAdminDemoConfig.contentOverrides` (see `lighthouse-homeschool` admin config). Do not edit the shared admin component for school-specific copy.
 
-Component folder still needs `{Brand}WebsiteDashboardDemo.tsx` and `{Brand}MobileAppShowcase.tsx` only.
+Component folder needs `{Brand}WebsiteDashboardDemo.tsx` only. The mobile step is shared (Phase 4), so there is no per-school mobile code.
 
 **Do not** fork admin/parent/teacher dashboard TSX — per-school forks caused Vercel build OOM. The walkthrough's portal steps render the **real Garden portals** from these configs (see Phase 3b).
 
@@ -103,7 +109,7 @@ Walkthrough steps 3–7 show the **real** school portal components (the same cod
 |---|---|---|
 | 3 view-lead, 4 send-application-link | `DemoAdminGardenAdmissions` (inside `DemoAdminGardenShell`) | `SchoolAdminBaseline` (Garden sidebar, preview mode) + `ApplicationSubmissionsPageShell` (`preview` prop) + `ApplicationSubmissionDetailPanel` (`previewDetail`), `StartEnrollmentModal` (preview) |
 | 5 parent-enrollment | `DemoParentEnrollmentChecklist` | `ApplyPortalPageShell` + `EnrollmentChecklistExperience` (`mode="preview"`) |
-| 6 parent-pays-tuition | `DemoParentGardenPortal` | `SchoolParentBaseline` (`embeddedPreview`) + `ParentBillingPageShell` (`initialPreviewData`) |
+| 6 parent-pays-tuition (also any `home` parent tab) | `DemoParentGardenPortal` | `SchoolParentBaseline` (`embeddedPreview`) + `ParentBillingPageShell` (`initialPreviewData`) |
 | 7 teacher-attendance | `DemoTeacherGardenPortal` | `SchoolTeacherHeader` (`embeddedPreview`) + `TeacherAttendancePage` (`initialRoster`, `syncDateToUrl={false}`) |
 
 Fixtures live in `src/data/school-demos/demo-*-fixtures.ts` (`demo-admin-admissions-fixtures.ts`, `demo-admin-submission-detail-fixtures.ts`, `demo-parent-portal-fixtures.ts`, `demo-teacher-portal-fixtures.ts`). The demo attendance roster is always dated today.
@@ -113,7 +119,7 @@ Rules:
 - Feed data through the real components' `previewMode` / `initial*` / preview props. **Never** stub `window.fetch` in a demo, and never import route files from `src/app/school/`.
 - Need a new portal moment in the walkthrough? Add a preview seam to the **real** component (as `previewDetail`, `embeddedPreview` and `initialRoster` were added) — don't build a demo copy. Follow the portal's Garden skill: `admin-portal-garden-design`, `parent-portal-garden-design`, `teacher-portal-garden-design`.
 - Dialogs and toasts must render inside the scaled preview card (`GDialog` `portalContainer`), not over the walkthrough page.
-- Other admin walkthrough steps (committees, tuition, My School) still use the older Story `SchoolAdminDashboardDemo` from the same configs. **Rooted Meadows** keeps its own custom portal forks (`src/components/demo/rootedmeadows/`); don't copy that pattern.
+- Which parent tabs go to the Garden wrappers is decided by `usesGardenParentDemo` in `ScaledParentDemoPreview.tsx` (`enrollment`, `home`, `billing`); the other parent and teacher tabs use the shared `SchoolParentDashboardDemo` / `SchoolTeacherDashboardDemo`. Those shells now have a Garden header (`DemoPortalGardenHeader`) and a mix of Garden pages (`shared/parent-garden/*`, `shared/teacher-garden/*`, `garden-feed/`) and older Story pages. Other admin walkthrough steps (committees, tuition, My School) still use the Story `SchoolAdminDashboardDemo`. All of these read the same configs, so new schools need no changes there. **Rooted Meadows** keeps its own custom portal forks (`src/components/demo/rootedmeadows/`); don't copy that pattern.
 
 ## Phase 3c — Website step: school-branded Garden
 
@@ -130,7 +136,7 @@ The website preview (steps 1–2) is one shared template, `src/components/sectio
 
 ## Phase 4 — Walkthrough
 
-Append `{camelCase}WalkthroughPlaceholder` to `src/data/school-demos/walkthrough-placeholder.ts` (9 steps with the mobile showcase, 8 without):
+Create `src/data/school-demos/walkthroughs/{slug}.ts` exporting `{camelCase}WalkthroughPlaceholder`, add an `export * from "./walkthroughs/{slug}";` line to the barrel `src/data/school-demos/walkthrough-placeholder.ts`, and have the page import from `@/data/school-demos/walkthroughs/{slug}`. Don't import the barrel from a page: it bundles every school's steps. Every walkthrough has these 9 steps:
 
 1. discover (website)
 2. inquire (form)
@@ -139,10 +145,12 @@ Append `{camelCase}WalkthroughPlaceholder` to `src/data/school-demos/walkthrough
 5. parent-enrollment (parent)
 6. parent-pays-tuition (parent)
 7. teacher-attendance (teacher)
-8. mobile-app (mobile) — only when the school has a mobile showcase
+8. mobile-app (mobile): always. It's the same MudKitchen app screenshot gallery for every school
 9. get-in-touch (contact)
 
-Use `createMobileAppWalkthroughStep(theme)` for step 8 (before contact). Theme steps with school primary + accent colors. Copy structure from `luffLearningWalkthroughPlaceholder`.
+Use `createMobileAppWalkthroughStep()` (from `./shared`) for step 8, directly before contact. `walkthrough-placeholder.test.ts` fails if it's missing or misplaced. Copy the structure from `walkthroughs/luff-learning.ts`.
+
+**Walkthrough chrome is Garden and needs no per-school work.** `SchoolDemoShell` → `DemoWalkthroughPanel` (desktop) / `DemoWalkthroughMobileSheet` (mobile) draw the co-brand card, butter progress bar, sticky-note hint and taped step cards from Garden tokens. The school accent comes from `config.theme` via `buildSchoolConceptWalkthroughTheme` (`src/lib/marketing/school-concept-walkthrough-theme.ts`, `theme.primary`). Steps carry no colours: `DemoWalkthroughStepList` reads only each step's `icon`, title and description (the old per-step `theme` field was removed).
 
 ## Phase 5 — Scaled preview wiring (required)
 
@@ -150,33 +158,17 @@ Register the school slug in:
 
 - `src/data/school-demos/dashboard-registry.ts` — import and add to all three maps: `schoolAdminDemoConfigs`, `schoolParentDemoConfigs`, `schoolTeacherDemoConfigs`
 - `src/components/demo/shared/lazySchoolWebsiteDemo.tsx` (`WEBSITE_DEMO_LOADERS` — if new website wrapper path)
-- `src/components/demo/ScaledMobileAppPreview.tsx` (`MOBILE_SHOWCASE_LOADERS`)
 
 Admin/parent/teacher `Scaled*` previews need **no per-school edits** once configs are in the registry — shared loaders resolve by `demoSlug`, and the previews route the admissions, enrollment, billing and attendance steps to the Garden wrappers (Phase 3b) automatically. **Rooted Meadows** is the only standard demo with custom dashboard forks (`src/components/demo/rootedmeadows/`). Sagefield is a separate customer demo — out of scope here.
 
-## Phase 5b — Mobile showcase (required)
+## Phase 5b — Mobile step (no per-school work)
 
-1. Create `src/components/demo/{folder}/{Brand}MobileAppShowcase.tsx` using shared `SchoolMobileAppShowcase` + `createMicroschoolMobileSlides` from `src/components/demo/mobile/`.
-2. Pass school `ADMIN_COLORS.accent`, founder/guide name for messages, and optional `schoolName` for the admissions slide header.
-3. Register slug in `MOBILE_SHOWCASE_LOADERS` inside `src/components/demo/ScaledMobileAppPreview.tsx`.
-
-### Mobile slide requirements (5 tabs)
-
-Microschool demos use **Parent · Admin · Teacher** tabs (not committees):
-
-| Tab | Audience | Must include |
-|---|---|---|
-| Messages | Parent | Thread UI with teacher name, online indicator, unread badge |
-| Tuition | Parent | Gradient balance card, child filter pills, invoice list, per-row Pay + Pay All, paid state |
-| Admissions | Admin | Submission cards, flow/status filters, tags, tap-to-detail sheet with Send application link CTA |
-| Attendance | Teacher | 8–10 students, day navigator, search, Present / Pickup / Absent action buttons per row |
-| Students | Teacher | Full roster with avatars, status pills, guardian contact, expandable profile chips |
-
-Shared data lives in `src/components/demo/mobile/mobileDemoData.ts`. Slide components live under `src/components/demo/mobile/slides/`.
+Step 8 renders `src/components/demo/ScaledMobileAppPreview.tsx`: the MudKitchen app store screenshots (`DOWNLOAD_APP_SLIDES`, `/images/mobileapp/*.webp`) as a Garden gallery (recipe 27b in `mudkitchen-garden-design`). It's the same for every school, so don't build per-school phone mock-ups. To change the screenshots, re-export them from Marketing Studio → App store (`src/components/admin/marketing/carousels/app-store-screens.tsx`).
 
 ## Phase 6 — Verify
 
 - [ ] `npm run build` — route appears as `/demo/{slug}`
+- [ ] Walkthrough sidebar (desktop panel and mobile sheet): the co-brand card shows the school logo clearly on white, and the progress bar and step cards use the Garden look
 - [ ] Website step: headings in Bricolage (not Lora/Poppins), CTAs in the school's `theme.dark`, logo readable on the paper nav, testimonials render (correct shape)
 - [ ] Website at 375 / 1024 / 1440 frame widths: no horizontal scroll inside the site; step 2 CTA scrolls to the form
 - [ ] Step 3: the Garden admin sidebar + Submissions page in the school colour; the new application slides in and the counts tick up
@@ -184,7 +176,7 @@ Shared data lives in `src/components/demo/mobile/mobileDemoData.ts`. Slide compo
 - [ ] Step 5: the Garden enrollment checklist ticks off items
 - [ ] Step 6: the Garden parent header + Billing page
 - [ ] Step 7: the Garden staff header + Attendance with "Today's roster"; teacher program labels match `{slug}-teacher-demo.ts`
-- [ ] Step 8 (if present): mobile preview with school accent + hint tooltip
+- [ ] Step 8: the app screenshot gallery fits the frame (desktop stage and phone snap rail), and the hint note shows
 - [ ] Every step: no `/api` or `/rest/v1` requests, no console errors, and the URL only changes `?step=`
 - [ ] Dev note: each step's chunk compiles on first load and can take ~30–40s in `next dev`; wait before calling it broken
 

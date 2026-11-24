@@ -649,6 +649,25 @@ function shouldUseServerActivityLogInsertPolicy(): boolean {
   return true;
 }
 
+/**
+ * A retry reuses the row id. If the earlier attempt actually committed but the
+ * client gave up (timeout/abort), the retry hits the primary key: the event is
+ * already logged, so this is success, not a failure to report.
+ */
+function isDuplicateActivityEventIdError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const { code, message, details } = error as {
+    code?: unknown;
+    message?: unknown;
+    details?: unknown;
+  };
+  if (code !== "23505") return false;
+  const text = [message, details]
+    .filter((part): part is string => typeof part === "string")
+    .join(" ");
+  return text.length === 0 || text.includes("activity_events_pkey");
+}
+
 function isRetryableActivityLogInsertFailure(error: unknown): boolean {
   if (error && typeof error === "object" && "code" in error) {
     const code = (error as { code?: string | null }).code;
@@ -818,6 +837,9 @@ export async function logActivityEvent(
         const { data, error } = await insertActivityEventRow(writeClient, row);
 
         if (error) {
+          if (attempt > 1 && isDuplicateActivityEventIdError(error)) {
+            return row.id;
+          }
           lastFailure = error;
           if (
             attempt < maxAttempts &&

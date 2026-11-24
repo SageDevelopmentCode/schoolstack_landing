@@ -2,6 +2,7 @@ import type { MobileParentTabDefinition } from '@/lib/parent/mobile-parent-porta
 import {
   getParentActiveTabFromPathname,
   resolveParentWebParentHrefToMobileRoute,
+  shouldHoldParentMainPortal,
 } from '@/lib/parent/parent-nav';
 
 const COOP_TAB_BAR: Pick<MobileParentTabDefinition, 'tabId' | 'pathSegment'>[] = [
@@ -73,5 +74,61 @@ describe('resolveParentWebParentHrefToMobileRoute', () => {
         '/school/rooted-meadows/parent/p/kindergarten-co-op/children?applicationId=app-123&section=health',
       ),
     ).toBe('/parent/rooted-meadows/p/kindergarten-co-op/more/children/app-123?section=health');
+  });
+});
+
+describe('shouldHoldParentMainPortal', () => {
+  const base = {
+    contextsLoading: false,
+    activeProgramSlug: null,
+    redirectAwayFromMainPortal: false,
+    pathname: '/parent/rooted-meadows/home',
+  };
+
+  it('holds the main Home while portal contexts load', () => {
+    expect(shouldHoldParentMainPortal({ ...base, contextsLoading: true })).toBe(true);
+  });
+
+  it('keeps holding once loaded for a co-op-only family until the redirect lands', () => {
+    expect(shouldHoldParentMainPortal({ ...base, redirectAwayFromMainPortal: true })).toBe(true);
+  });
+
+  it('shows the main portal once loaded for a main-school family', () => {
+    expect(shouldHoldParentMainPortal(base)).toBe(false);
+  });
+
+  it('shows the main portal when the contexts load failed (no redirect flag)', () => {
+    expect(
+      shouldHoldParentMainPortal({ ...base, contextsLoading: false, redirectAwayFromMainPortal: false }),
+    ).toBe(false);
+  });
+
+  it('never holds program routes', () => {
+    expect(
+      shouldHoldParentMainPortal({
+        ...base,
+        contextsLoading: true,
+        activeProgramSlug: 'kindergarten-co-op',
+        pathname: '/parent/rooted-meadows/p/kindergarten-co-op/home',
+      }),
+    ).toBe(false);
+    expect(
+      shouldHoldParentMainPortal({
+        ...base,
+        contextsLoading: true,
+        pathname: '/parent/rooted-meadows/p/kindergarten-co-op/home',
+      }),
+    ).toBe(false);
+  });
+
+  it('never holds bulletin deep links', () => {
+    expect(
+      shouldHoldParentMainPortal({
+        ...base,
+        contextsLoading: true,
+        redirectAwayFromMainPortal: true,
+        pathname: '/parent/rooted-meadows/bulletin/post-1',
+      }),
+    ).toBe(false);
   });
 });

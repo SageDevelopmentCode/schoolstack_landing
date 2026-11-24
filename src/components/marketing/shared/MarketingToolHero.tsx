@@ -1,11 +1,8 @@
 "use client";
 
-import { Draw, Pill, Squiggle, type Tint } from "@/components/garden/ui";
+import { Draw, Squiggle } from "@/components/garden/ui";
 
 type MarketingToolHeroProps = {
-  /** Pill text, led by one emoji. */
-  eyebrow: string;
-  tint?: Tint;
   /** Heading words before the coloured accent phrase. */
   lead: string;
   accent: string;
@@ -15,10 +12,8 @@ type MarketingToolHeroProps = {
   className?: string;
 };
 
-/** Garden hero for a free tool: Pill → display heading with a clay accent → lead paragraph. */
+/** Garden hero for a free tool: display heading with a clay accent → lead paragraph. */
 export default function MarketingToolHero({
-  eyebrow,
-  tint = "butter",
   lead,
   accent,
   description,
@@ -30,10 +25,9 @@ export default function MarketingToolHero({
 
   return (
     <header className={className}>
-      <Pill tint={tint}>{eyebrow}</Pill>
       <Heading
         id={headingId}
-        className="sf-display mt-5 max-w-[820px] text-[2.6rem] leading-[0.92] text-[var(--sf-ink)] sm:text-6xl lg:text-[4.2rem]"
+        className="sf-display max-w-[820px] text-[2.6rem] leading-[0.92] text-[var(--sf-ink)] sm:text-6xl lg:text-[4.2rem]"
       >
         {lead}{" "}
         <span className="relative isolate inline-block text-[var(--sf-clay)]">

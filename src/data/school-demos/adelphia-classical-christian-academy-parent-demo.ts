@@ -1,0 +1,27 @@
+export {
+  ADELPHIA_CLASSICAL_CHRISTIAN_ACADEMY_LOGO as ADELPHIA_CLASSICAL_CHRISTIAN_ACADEMY_PARENT_LOGO,
+  ADELPHIA_CLASSICAL_CHRISTIAN_ACADEMY_ADMIN_COLORS,
+} from "./adelphia-classical-christian-academy-admin-demo";
+
+export const ADELPHIA_CLASSICAL_CHRISTIAN_ACADEMY_PARENT_ACCENT = "#16284C";
+export const ADELPHIA_CLASSICAL_CHRISTIAN_ACADEMY_PARENT_ACCENT_HOVER = "#263C68";
+export const ADELPHIA_CLASSICAL_CHRISTIAN_ACADEMY_PARENT_SCHOOL_NAME = "Adelphia Classical Christian Academy";
+export const ADELPHIA_CLASSICAL_CHRISTIAN_ACADEMY_PARENT_SCHOOL_SHORT = "Adelphia";
+export const ADELPHIA_CLASSICAL_CHRISTIAN_ACADEMY_PARENT_OFFICE = "Adelphia Office";
+
+import { ADELPHIA_CLASSICAL_CHRISTIAN_ACADEMY_ADMIN_LOGO } from "./adelphia-classical-christian-academy-admin-demo";
+import type { SchoolParentDemoConfig } from "./demo-dashboard-types";
+
+export const adelphiaClassicalChristianAcademyParentDemoConfig: SchoolParentDemoConfig = {
+  slug: "adelphia-classical-christian-academy",
+  logo: ADELPHIA_CLASSICAL_CHRISTIAN_ACADEMY_ADMIN_LOGO,
+  colors: {
+    accent: ADELPHIA_CLASSICAL_CHRISTIAN_ACADEMY_PARENT_ACCENT,
+    accentHover: ADELPHIA_CLASSICAL_CHRISTIAN_ACADEMY_PARENT_ACCENT_HOVER,
+  },
+  copy: {
+    schoolName: ADELPHIA_CLASSICAL_CHRISTIAN_ACADEMY_PARENT_SCHOOL_NAME,
+    schoolShortName: ADELPHIA_CLASSICAL_CHRISTIAN_ACADEMY_PARENT_SCHOOL_SHORT,
+    officeName: ADELPHIA_CLASSICAL_CHRISTIAN_ACADEMY_PARENT_OFFICE,
+  },
+};

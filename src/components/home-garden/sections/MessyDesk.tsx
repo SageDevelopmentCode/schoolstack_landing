@@ -8,7 +8,7 @@ import DemoStage from "@/components/home/DemoStage";
 import { BOOK_DEMO_HASH_HREF } from "@/lib/marketing/book-demo";
 import { gsap, useGSAP, MQ_DESKTOP_MOTION } from "@/components/garden/gsap";
 import { ScrubWords } from "@/components/garden/motion";
-import { MARK, Pill, btnPop } from "@/components/garden/ui";
+import { MARK, btnPop } from "@/components/garden/ui";
 import type { Run } from "@/components/garden/types";
 import { MUDKITCHEN_LOGO, NOTE_TINTS } from "../assets";
 
@@ -97,8 +97,7 @@ export default function MessyDesk() {
     <section ref={ref} className="relative bg-[var(--sf-butter)]/40 lg:h-[280vh]">
       <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-24 sm:px-10 lg:sticky lg:top-0 lg:h-screen lg:grid-cols-[0.9fr_1.1fr] lg:gap-12 lg:px-16 lg:py-0 lg:pt-16">
         <div>
-          <Pill tint="butter">🗂️ {PAIN_COPY.eyebrow}</Pill>
-          <h2 className="sf-display mt-5 text-5xl leading-[0.95] text-[var(--sf-ink)] md:text-6xl lg:text-[3.2rem] xl:text-[3.5rem]">
+          <h2 className="sf-display text-5xl leading-[0.95] text-[var(--sf-ink)] md:text-6xl lg:text-[3.2rem] xl:text-[3.5rem]">
             {PAIN_COPY.headlineLead} <span className="text-[var(--sf-clay)]">{PAIN_COPY.headlineAccent}</span>
           </h2>
           <ScrubWords

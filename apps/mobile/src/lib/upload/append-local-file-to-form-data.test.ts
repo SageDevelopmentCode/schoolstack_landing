@@ -67,4 +67,43 @@ describe('appendLocalFileToFormData', () => {
       expect(global.fetch).toHaveBeenCalledWith(uri);
     },
   );
+
+  it.each(['application/octet-stream', ''])(
+    'uses the picker type when the fetched blob type is %p (Android)',
+    async (blobType) => {
+      const blob = new Blob(['jpeg-bytes'], { type: blobType });
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        blob: () => Promise.resolve(blob),
+      }) as typeof fetch;
+
+      const formData = new FormData();
+      await appendLocalFileToFormData(formData, 'files', {
+        uri: 'content://media/picker/0/1000047910',
+        name: '1000047910.jpg',
+        type: 'image/jpeg',
+      });
+
+      const part = formData.getAll('files')[0] as Blob;
+      expect(part.type).toBe('image/jpeg');
+      expect(part.size).toBe(blob.size);
+    },
+  );
+
+  it('keeps a specific blob type even if the picker type differs', async () => {
+    const blob = new Blob(['png-bytes'], { type: 'image/png' });
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      blob: () => Promise.resolve(blob),
+    }) as typeof fetch;
+
+    const formData = new FormData();
+    await appendLocalFileToFormData(formData, 'files', {
+      uri: 'file:///tmp/a.png',
+      name: 'a.png',
+      type: 'application/octet-stream',
+    });
+
+    expect((formData.getAll('files')[0] as Blob).type).toBe('image/png');
+  });
 });

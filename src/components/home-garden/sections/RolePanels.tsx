@@ -36,7 +36,7 @@ export default function RolePanels() {
   return (
     <section className="relative py-24 xl:py-32">
       <div className="mx-auto max-w-7xl px-6 sm:px-10 xl:px-16">
-        <SectionIntro pill="👩‍👧 For families, founders & teachers" tint="sky" lead={ROLES_HEADING} squiggle={null} />
+        <SectionIntro lead={ROLES_HEADING} squiggle={null} />
         {/* The row is a size container so the open content can be exactly as wide as an open panel. */}
         <Reveal className="mt-14 flex flex-col gap-5 [container-type:inline-size] xl:h-[640px] xl:flex-row" stagger={0.1} y={50}>
           {ROLES.map((r) => {

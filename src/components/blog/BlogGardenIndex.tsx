@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import HomeGardenShell from "@/components/garden/HomeGardenShell";
 import { Reveal, WordsReveal } from "@/components/garden/motion";
-import { Draw, Leaf, Pill, Squiggle, Tape } from "@/components/garden/ui";
+import { Draw, Leaf, Squiggle, Tape } from "@/components/garden/ui";
 import { ILLUSTRATIONS, TAPES } from "@/components/home-garden/assets";
 import BlogPostFeatureTags from "@/components/blog/BlogPostFeatureTags";
 import type { BlogFeatureTagId } from "@/content/blog/blog-feature-tags";
@@ -64,8 +64,7 @@ export default function BlogGardenIndex({ posts }: { posts: BlogIndexPost[] }) {
           <Leaf />
         </Draw>
         <div className="mx-auto max-w-6xl px-6 sm:px-10 lg:px-16">
-          <Pill tint="forest">✏️ {BLOG_COPY.eyebrow}</Pill>
-          <h1 className="sf-display mt-6 max-w-4xl text-[12vw] leading-[0.9] text-[var(--sf-ink)] sm:text-7xl lg:text-[5.6rem]">
+          <h1 className="sf-display max-w-4xl text-[12vw] leading-[0.9] text-[var(--sf-ink)] sm:text-7xl lg:text-[5.6rem]">
             <WordsReveal as="span" text={BLOG_COPY.headlineLead} immediate />{" "}
             <span className="relative isolate inline-block text-[var(--sf-clay)]">
               <Draw className="pointer-events-none absolute -bottom-2 left-0 -z-10 w-full" delay={0.6}>

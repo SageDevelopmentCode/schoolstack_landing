@@ -419,6 +419,8 @@ export type TeachingScheduleSummary = {
   eventCount: number;
   completedCount: number;
   nextWeekName: string;
+  /** The first week that isn't over yet (null when the year is done). */
+  nextWeekId: string | null;
 };
 
 export function countUnfilledTeachingWeeks(weeks: CoopTeachingScheduleWeek[]): number {
@@ -439,6 +441,9 @@ export function computeTeachingScheduleSummary(
     weekCount: weeks.length,
     eventCount: weeks.filter((week) => week.celebrationEvent?.trim()).length,
     completedCount: weeks.filter((week) => isTeachingWeekPast(week, referenceDate)).length,
-    nextWeekName: nextUpcoming?.weekName ?? "—",
+    nextWeekName: nextUpcoming
+      ? nextUpcoming.weekName.trim() || "Teaching week"
+      : "—",
+    nextWeekId: nextUpcoming?.id ?? null,
   };
 }

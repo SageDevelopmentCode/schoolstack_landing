@@ -16,8 +16,6 @@ export default function AppStrip() {
     <section className="relative overflow-hidden bg-[var(--sf-lav)]/40 py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
         <SectionIntro
-          pill="📱 MudKitchen app"
-          tint="lav"
           lead={HERO_SLIDE.alt}
           squiggle={null}
           note={HERO_SLIDE.caption}

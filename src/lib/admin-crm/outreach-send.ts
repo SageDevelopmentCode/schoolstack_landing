@@ -11,6 +11,7 @@ import {
 import { completedOutreachSteps, type DemoOutreach, type OutreachChannel } from "@/lib/admin-crm/demo-outreach-types";
 import { isCrmStatus } from "@/lib/admin-crm/crm-status";
 import {
+  fillSnapshotLink,
   followUpSubject,
   hasBlockingWarning,
   isOutreachSequenceStoppedByCrmStatus,
@@ -20,6 +21,7 @@ import {
   type OutreachWarning,
 } from "@/lib/admin-crm/outreach-email";
 import { isOutboundEmailDisabled } from "@/lib/outbound-email";
+import { PRODUCTION_SITE_URL } from "@/lib/site";
 import { sendZohoEmail } from "@/lib/zoho";
 
 /** Hunter's 2026 data: reply rates hold up to ~50 sends per inbox per day. Stay under that. */
@@ -56,6 +58,11 @@ export function getOutreachPostalAddress(): string | null {
 }
 
 type Demo = { slug: string; schoolName: string };
+
+/** `{snapshot link}` always points at production: outbound email never carries localhost URLs. */
+function withSnapshotLink(body: string, plan: OutreachPlan): string {
+  return fillSnapshotLink(body, plan, PRODUCTION_SITE_URL);
+}
 
 export type OutreachDraftInput = {
   stepId: string;
@@ -110,8 +117,9 @@ export async function previewOutreachEmail(
   }
 
   const mailingAddress = getOutreachPostalAddress();
-  const rendered = renderOutreachEmail({ body: input.draft.body, mailingAddress: mailingAddress ?? "{postal address}" });
-  warnings.push(...outreachWarnings({ stepId: step.id, subject: step.id === "first" ? subject : undefined, body: input.draft.body }));
+  const body = withSnapshotLink(input.draft.body, input.plan);
+  const rendered = renderOutreachEmail({ body, mailingAddress: mailingAddress ?? "{postal address}" });
+  warnings.push(...outreachWarnings({ stepId: step.id, subject: step.id === "first" ? subject : undefined, body }));
   return { subject, ...rendered, warnings, mailingAddressMissing: !mailingAddress };
 }
 
@@ -162,7 +170,8 @@ export async function sendOutreachEmail(
 
   const { subject, firstMessageId, references } = await resolveSubject(supabase, school.id, step.id, draft.subject);
 
-  const warnings = outreachWarnings({ stepId: step.id, subject: step.id === "first" ? subject : undefined, body: draft.body });
+  const body = withSnapshotLink(draft.body, plan);
+  const warnings = outreachWarnings({ stepId: step.id, subject: step.id === "first" ? subject : undefined, body });
   if (hasBlockingWarning(warnings)) {
     throw new OutreachSendError(warnings.filter((w) => w.level === "block").map((w) => w.message).join(" "), "content_blocked", 400, warnings);
   }
@@ -188,7 +197,7 @@ export async function sendOutreachEmail(
     );
   }
 
-  const { text, html } = renderOutreachEmail({ body: draft.body, mailingAddress });
+  const { text, html } = renderOutreachEmail({ body, mailingAddress });
   const domain = process.env.ZOHO_FROM_ADDRESS?.split("@")[1] ?? "trymudkitchen.com";
   const messageId = `<outreach-${randomUUID()}@${domain}>`;
   const dryRun = isOutboundEmailDisabled();

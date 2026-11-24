@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Mail, Phone } from "lucide-react";
 import HomeGardenShell from "@/components/garden/HomeGardenShell";
 import { WordsReveal } from "@/components/garden/motion";
-import { Draw, Pill, Squiggle, Tape } from "@/components/garden/ui";
+import { Draw, Squiggle, Tape } from "@/components/garden/ui";
 import { SAGEFIELD_PHOTOS } from "@/components/home-garden/assets";
 import GardenFaq from "@/components/home-garden/GardenFaq";
 import Polaroid from "@/components/home-garden/Polaroid";
@@ -40,8 +40,7 @@ export default function SupportGardenPage() {
     <HomeGardenShell>
       <section aria-label={SUPPORT_COPY.eyebrow} className="sf-grid relative overflow-hidden pb-20 pt-32 lg:pb-28 lg:pt-40">
         <div className="mx-auto max-w-6xl px-6 sm:px-10 lg:px-16">
-          <Pill tint="forest">💬 {SUPPORT_COPY.eyebrow}</Pill>
-          <h1 className="sf-display mt-6 max-w-4xl text-[12vw] leading-[0.9] text-[var(--sf-ink)] sm:text-7xl lg:text-[5.6rem]">
+          <h1 className="sf-display max-w-4xl text-[12vw] leading-[0.9] text-[var(--sf-ink)] sm:text-7xl lg:text-[5.6rem]">
             <WordsReveal as="span" text={SUPPORT_COPY.headlineLead} immediate />{" "}
             <span className="relative isolate inline-block text-[var(--sf-clay)]">
               <Draw className="pointer-events-none absolute -bottom-2 left-0 -z-10 w-full" delay={0.6}>

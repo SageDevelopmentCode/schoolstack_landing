@@ -1,6 +1,6 @@
 import { CRM_STATUS_RANK, type CrmStatus } from "@/lib/admin-crm/crm-status";
 
-export const OUTREACH_CHANNELS = ["email", "instagram", "facebook", "linkedin", "phone", "in_person", "other"] as const;
+export const OUTREACH_CHANNELS = ["email", "instagram", "facebook", "linkedin", "phone", "in_person", "mail", "other"] as const;
 export type OutreachChannel = (typeof OUTREACH_CHANNELS)[number];
 
 export const OUTREACH_CHANNEL_LABEL: Record<OutreachChannel, string> = {
@@ -10,6 +10,7 @@ export const OUTREACH_CHANNEL_LABEL: Record<OutreachChannel, string> = {
   linkedin: "LinkedIn",
   phone: "Phone",
   in_person: "In person",
+  mail: "Mail",
   other: "Other",
 };
 

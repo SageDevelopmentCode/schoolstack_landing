@@ -17,8 +17,6 @@ export default function SagefieldGardenTakeaways() {
     <section className="relative bg-[var(--sf-paper)] py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
         <SectionIntro
-          pill={`🌼 ${TAKEAWAYS_COPY.eyebrow}`}
-          tint="butter"
           lead={TAKEAWAYS_COPY.headlineLead}
           accent={TAKEAWAYS_COPY.headlineAccent}
           squiggle="var(--sf-butter)"

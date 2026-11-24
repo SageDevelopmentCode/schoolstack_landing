@@ -22,8 +22,6 @@ function ToolProductBand() {
       </Draw>
       <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
         <SectionIntro
-          pill={`🧺 ${PRODUCT_SHOWCASE_SECTION_COPY.eyebrow}`}
-          tint="forest"
           lead={PRODUCT_SHOWCASE_SECTION_COPY.heading}
           accent={PRODUCT_SHOWCASE_SECTION_COPY.headingAccent}
           squiggle="var(--sf-butter)"

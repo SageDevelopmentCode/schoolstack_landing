@@ -4,7 +4,6 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { FREE_TOOLS_HUB_PATH } from "@/lib/marketing/free-tools";
 import { FREE_TOOLS_HUB_TOOLS, type FreeToolsHubTool } from "@/lib/marketing/free-tools-hub-content";
-import { Pill } from "@/components/garden/ui";
 import { Reveal, WordsReveal } from "@/components/garden/motion";
 
 const COPY = {
@@ -60,8 +59,7 @@ export default function FreeToolsPostcards({ className = "" }: { className?: str
       <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
         <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
           <div className="max-w-2xl">
-            <Pill tint="butter">🧮 {COPY.eyebrow}</Pill>
-            <WordsReveal text={COPY.heading} className="sf-display mt-5 text-5xl leading-[0.95] md:text-6xl" />
+            <WordsReveal text={COPY.heading} className="sf-display text-5xl leading-[0.95] md:text-6xl" />
             <p className="mt-5 text-lg leading-relaxed text-[var(--sf-soft)]">{COPY.body}</p>
           </div>
           <Link

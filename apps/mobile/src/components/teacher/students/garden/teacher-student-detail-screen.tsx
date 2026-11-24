@@ -36,14 +36,14 @@ import {
   fetchTeacherStudentHealthProfile,
   updateTeacherStudentHealthItem,
 } from '@/lib/teacher/teacher-portal-api';
+import { useStatusBarBleed } from '@/hooks/use-status-bar-bleed';
 
 /**
  * Full-screen route inside the teacher layout's SafeAreaView (tab bar hidden):
  * let the cream run under the status bar and the home indicator.
  */
 function useDetailBleed() {
-  const insets = useSafeAreaInsets();
-  return { marginTop: -insets.top, paddingTop: insets.top, marginBottom: -insets.bottom };
+  return useStatusBarBleed({ bottom: true });
 }
 
 type Props = { slug: string; studentId: string; detailAccess?: TeacherStudentDetailScope };

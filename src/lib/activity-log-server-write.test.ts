@@ -15,6 +15,8 @@ function createActivityEventsMockSupabase(
     insertError?: { message: string; code?: string };
     failInsertAttempts?: number;
     failInsertError?: unknown;
+    /** Returned on attempts after the thrown `failInsertAttempts`. */
+    insertErrorAfterFailures?: { message: string; code?: string };
   },
 ): {
   supabase: SupabaseClient;
@@ -48,12 +50,14 @@ function createActivityEventsMockSupabase(
             ) {
               throw options.failInsertError ?? new TypeError("fetch failed");
             }
+            const insertError =
+              options?.insertError ?? options?.insertErrorAfterFailures ?? null;
             return {
               data:
-                options?.insertError || !returning
+                insertError || !returning
                   ? null
                   : { id: `${label}-event-1` },
-              error: options?.insertError ?? null,
+              error: insertError,
             };
           };
           return {
@@ -203,6 +207,34 @@ describe("logActivityEvent server writes", () => {
     assert.equal(eventId, "write-event-1");
     assert.equal(flakyWriteClient.insertAttempts, 2);
     assert.equal(flakyWriteClient.inserts.length, 2);
+  });
+
+  it("treats a duplicate id on retry as success when the timed-out first insert committed", async () => {
+    const writeClient = createActivityEventsMockSupabase("write", {
+      failInsertAttempts: 1,
+      failInsertError: new Error("The operation was aborted due to timeout"),
+      insertErrorAfterFailures: {
+        message:
+          'duplicate key value violates unique constraint "activity_events_pkey"',
+        code: "23505",
+      },
+    });
+
+    setActivityLogInsertRetryInTests(true);
+    setActivityWriteClientForTests(writeClient.supabase);
+
+    const eventId = await logActivityEvent(writeClient.supabase, {
+      organizationId: "org-1",
+      actorType: "system",
+      surface: "api",
+      action: ACTIVITY_ACTIONS.API_ERROR,
+      summary: "POST /api/example returned 500",
+    });
+
+    assert.equal(writeClient.insertAttempts, 2);
+    assert.equal(writeClient.inserts.length, 2);
+    assert.equal(writeClient.inserts[0]?.id, writeClient.inserts[1]?.id);
+    assert.equal(eventId, writeClient.inserts[0]?.id);
   });
 
   it("does not retry Postgres errors such as RLS violations", async () => {

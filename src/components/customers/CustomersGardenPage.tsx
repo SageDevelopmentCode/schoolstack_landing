@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowRight, ExternalLink, MapPin } from "lucide-react";
 import HomeGardenShell from "@/components/garden/HomeGardenShell";
 import { Reveal, WordsReveal } from "@/components/garden/motion";
-import { Draw, Pill, Squiggle, Star, Sun, Tape, btnButter } from "@/components/garden/ui";
+import { Draw, Squiggle, Star, Sun, Tape, btnButter } from "@/components/garden/ui";
 import Polaroid from "@/components/home-garden/Polaroid";
 import { SAGEFIELD_PHOTOS } from "@/components/home-garden/assets";
 import { STORY_COPY } from "@/components/home/home-copy";
@@ -26,8 +26,7 @@ function Hero() {
         <Sun />
       </Draw>
       <div className="relative mx-auto max-w-3xl px-6 text-center sm:px-10">
-        <Pill tint="clay">🎟️ {CUSTOMERS_COPY.eyebrow}</Pill>
-        <h1 className="sf-display mt-6 text-[13vw] leading-[0.9] text-[var(--sf-ink)] sm:text-7xl lg:text-[5.4rem]">
+        <h1 className="sf-display text-[13vw] leading-[0.9] text-[var(--sf-ink)] sm:text-7xl lg:text-[5.4rem]">
           <WordsReveal as="span" text={CUSTOMERS_COPY.headlineLead} immediate className="block" />{" "}
           <span className="relative isolate inline-block text-[var(--sf-clay)]">
             <Draw className="pointer-events-none absolute -bottom-2 left-0 -z-10 w-full" delay={0.6}>

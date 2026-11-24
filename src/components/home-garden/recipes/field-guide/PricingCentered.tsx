@@ -18,8 +18,6 @@ export default function PricingCentered() {
       </Draw>
       <div className="mx-auto max-w-[1320px] px-6 sm:px-10 lg:px-12">
         <SectionIntro
-          pill={`🌼 ${PRICING_COPY.eyebrow}`}
-          tint="butter"
           lead={PRICING_COPY.headlineLead}
           accent={PRICING_COPY.headlineAccent}
           accentColor="text-[var(--sf-forest)]"

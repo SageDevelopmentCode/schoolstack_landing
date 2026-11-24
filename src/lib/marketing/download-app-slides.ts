@@ -7,6 +7,11 @@ export type DownloadAppSlide = {
   group: DownloadAppSlideGroup;
 };
 
+/**
+ * The app store screenshots (App Store 6.3", also used on the site). Built in Marketing Studio →
+ * App store (src/components/admin/marketing/carousels/app-store-screens.tsx): keep each `alt` in sync with
+ * that slide's headline.
+ */
 export const DOWNLOAD_APP_SLIDES: DownloadAppSlide[] = [
   {
     src: "/images/mobileapp/1.webp",
@@ -52,8 +57,8 @@ export const DOWNLOAD_APP_SLIDES: DownloadAppSlide[] = [
   },
   {
     src: "/images/mobileapp/8.webp",
-    alt: "Attendance and rosters, quick on the classroom floor.",
-    caption: "Fast attendance workflows for teachers on the go.",
+    alt: "Keep schedules, notes, and student details in one place.",
+    caption: "Teachers find every student's details in My Students.",
     group: "tuition",
   },
   {
@@ -92,5 +97,5 @@ export function getGroupForSlideIndex(index: number): DownloadAppSlideGroup {
 
 export const DOWNLOAD_APP_SLIDE_COUNT = DOWNLOAD_APP_SLIDES.length;
 
-/** Aspect ratio width / height for layout (1242×2688). */
-export const DOWNLOAD_APP_SLIDE_ASPECT_RATIO = 1242 / 2688;
+/** Aspect ratio width / height for layout (App Store 6.3": 1206×2622). */
+export const DOWNLOAD_APP_SLIDE_ASPECT_RATIO = 1206 / 2622;

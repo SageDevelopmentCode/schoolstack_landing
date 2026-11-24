@@ -1,7 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { BillingCtx } from '@/components/parent/billing/billing-ctx';
 import { BillingAgreements } from '@/components/parent/billing/sections/billing-agreements';
@@ -39,6 +38,7 @@ import { haptic } from '@/lib/haptics';
 import { childFirstNameFromFullName } from '@/lib/tuition/billing-helpers';
 import { formatCents } from '@/lib/tuition/format-cents';
 import type { ParentBillingSetupStepKey } from '@/lib/tuition/parent-billing-setup-steps';
+import { useStatusBarBleed } from '@/hooks/use-status-bar-bleed';
 
 /** Parent Billing (main and program portals): Garden skeleton, error card, or the tab. */
 export function ParentBillingGardenScreen({
@@ -81,7 +81,7 @@ function BillingContent({
   error: string | null;
   feedback: ParentBillingFeedback;
 }) {
-  const insets = useSafeAreaInsets();
+  const statusBarBleed = useStatusBarBleed();
   const accent = useGardenAccent();
   const model = useParentBillingModel(view);
   const refreshWithFeedback = useParentBillingRefreshFeedback(view.isRefreshing, error, view.refresh);
@@ -217,7 +217,7 @@ function BillingContent({
   return (
     // The parent layout's SafeAreaView pads the top. Pull only the background up so
     // the iOS refresh spinner (inside the ScrollView) stays below the status bar.
-    <View style={[styles.root, { marginTop: -insets.top, paddingTop: insets.top }]}>
+    <View style={[styles.root, statusBarBleed]}>
       <StatusBar style="dark" />
       <ScrollView
         ref={model.scrollRef}

@@ -207,9 +207,35 @@ function parseDollarAmount(value: string): number | null {
   return Math.round(parsed * 100);
 }
 
+/** Plural units we can safely say in the singular when the quantity is 1. */
+const SINGULAR_SUPPLY_UNITS: Record<string, string> = {
+  sets: "set",
+  packs: "pack",
+  packages: "package",
+  rolls: "roll",
+  boxes: "box",
+  bags: "bag",
+  bottles: "bottle",
+  jars: "jar",
+  cans: "can",
+  pairs: "pair",
+  sheets: "sheet",
+  pieces: "piece",
+  bundles: "bundle",
+  containers: "container",
+  tubes: "tube",
+  cartons: "carton",
+};
+
 export function formatSupplyQuantity(item: CoopSupplyListItem): string {
   const label = item.quantityLabel.trim();
   if (!label) return String(item.quantity);
+  // The label already carries its own number ("2 rolls"): don't prefix another.
+  if (/^\d/.test(label)) return label;
+  if (item.quantity === 1) {
+    const singular = SINGULAR_SUPPLY_UNITS[label.toLowerCase()];
+    if (singular) return `1 ${singular}`;
+  }
   return `${item.quantity} ${label}`;
 }
 
@@ -222,7 +248,7 @@ export function formatSupplyEstimatedPrice(price: CoopSupplyEstimatedPrice): str
     case "single":
       return formatSupplyPriceCents(price.cents);
     case "range":
-      return `${formatSupplyPriceCents(price.minCents)}–${formatSupplyPriceCents(price.maxCents).slice(1)}`;
+      return `${formatSupplyPriceCents(price.minCents)}–${formatSupplyPriceCents(price.maxCents)}`;
   }
 }
 

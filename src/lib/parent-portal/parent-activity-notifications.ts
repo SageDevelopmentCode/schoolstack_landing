@@ -25,6 +25,7 @@ import {
   buildPortalCalendarNotificationHref,
 } from "@/lib/school-events/calendar-notification-links";
 import { appendCommitteeActivityFocusParams } from "@/lib/committees/committee-workspace-notification-links";
+import { listParentVisibleSignupIds } from "@/lib/classroom-signups/load-parent-signups";
 
 export { buildPortalCalendarNotificationHref as buildParentCalendarNotificationHref } from "@/lib/school-events/calendar-notification-links";
 import {
@@ -610,10 +611,22 @@ function isCommitteeBroadcastParentNotificationAction(action: string): boolean {
   return COMMITTEE_BROADCAST_PARENT_NOTIFICATION_ACTIONS.has(action);
 }
 
-function isOrgWideParentNotificationAction(action: string): boolean {
+/** Signup events go only to families who can open that signup (its audience). */
+function isClassroomSignupParentNotificationAction(action: string): boolean {
   return (
     action === ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED ||
-    action === ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED ||
+    action === ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED
+  );
+}
+
+function classroomSignupIdForEvent(
+  event: ActivityEventForNotification,
+): string | null {
+  return metadataString(event.metadata, "signupId") ?? event.entity_id ?? null;
+}
+
+function isOrgWideParentNotificationAction(action: string): boolean {
+  return (
     action === ACTIVITY_ACTIONS.SCHOOL_GALLERY_PHOTOS_UPLOADED ||
     action === SYNTHETIC_BULLETIN_ACTION ||
     action === SYNTHETIC_EVENT_ACTION
@@ -1427,8 +1440,27 @@ async function filterRawActivityEventsForFamily(
         )
       : { committeeIds: new Set<string>(), memberIds: new Set<string>() };
 
+  const signupIds = rawEvents
+    .filter((event) => isClassroomSignupParentNotificationAction(event.action))
+    .map(classroomSignupIdForEvent)
+    .filter((value): value is string => Boolean(value));
+  const visibleSignupIds =
+    signupIds.length > 0
+      ? await listParentVisibleSignupIds(
+          supabase,
+          organizationId,
+          familyId,
+          signupIds,
+        )
+      : new Set<string>();
+
   return rawEvents.filter((event) => {
     if (shouldExcludeParentActorEvent(event)) return false;
+
+    if (isClassroomSignupParentNotificationAction(event.action)) {
+      const signupId = classroomSignupIdForEvent(event);
+      return signupId != null && visibleSignupIds.has(signupId);
+    }
 
     if (isOrgWideParentNotificationAction(event.action)) {
       return true;

@@ -21,8 +21,6 @@ export default function SagefieldGardenWhy() {
       <div className="mx-auto grid max-w-7xl items-start gap-16 px-6 sm:px-10 lg:grid-cols-[0.9fr_1.1fr] lg:px-16">
         <div>
           <SectionIntro
-            pill={`🌳 ${WHY_COPY.eyebrow}`}
-            tint="forest"
             lead={WHY_COPY.headlineLead}
             accent={WHY_COPY.headlineAccent}
             accentColor="text-[var(--sf-forest)]"

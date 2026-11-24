@@ -8,8 +8,8 @@ import {
   type CoopTeachingScheduleWeek,
   type TeachingScheduleParentRole,
 } from "@/lib/admissions/program-coop-teaching-schedule-mock";
-import ParentButton from "@/components/school-parent/ui/ParentButton";
-import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { Tick } from "@/components/garden/ui";
+import { GChip, gBtnOutlineSm, gLinkSm } from "@/components/school-parent/garden/ui";
 
 export type ParentTeachingSchedulePendingAction = {
   weekId: string;
@@ -18,7 +18,6 @@ export type ParentTeachingSchedulePendingAction = {
 };
 
 type ParentTeachingScheduleSignupButtonProps = {
-  theme: ParentThemeTokens;
   week: CoopTeachingScheduleWeek;
   role: TeachingScheduleParentRole;
   currentFamilyId: string;
@@ -29,15 +28,16 @@ type ParentTeachingScheduleSignupButtonProps = {
   className?: string;
 };
 
-const compactButtonClass = "px-3 py-1.5 text-xs whitespace-nowrap";
-
 const roleLabels: Record<TeachingScheduleParentRole, string> = {
   instructor: "instructor",
   assistant: "assistant",
 };
 
+/**
+ * One role's volunteer control (Garden). Rows never get toy buttons: sign up
+ * is an outline pill; signed up is a mint chip with a tick + a Withdraw link.
+ */
 export default function ParentTeachingScheduleSignupButton({
-  theme,
   week,
   role,
   currentFamilyId,
@@ -51,48 +51,31 @@ export default function ParentTeachingScheduleSignupButton({
   const isSignedUp = isTeachingParentAssigned(familyIds, currentFamilyId);
   const canSignUp = canParentSignUpForTeachingRole(familyIds);
   const isPendingSignup =
-    pendingAction?.weekId === week.id &&
-    pendingAction.role === role &&
-    pendingAction.type === "signup";
+    pendingAction?.weekId === week.id && pendingAction.role === role && pendingAction.type === "signup";
   const isPendingWithdraw =
-    pendingAction?.weekId === week.id &&
-    pendingAction.role === role &&
-    pendingAction.type === "withdraw";
+    pendingAction?.weekId === week.id && pendingAction.role === role && pendingAction.type === "withdraw";
 
   if (isSignedUp) {
     return (
-      <div className={`flex flex-wrap items-center gap-1.5 ${className}`}>
-        <ParentButton
-          theme={theme}
-          variant="outline"
-          disabled
-          className={compactButtonClass}
-          style={{
-            color: theme.success,
-            borderColor: `${theme.success}55`,
-            backgroundColor: theme.successBg,
-          }}
-          onClick={(event) => event.stopPropagation()}
-        >
-          You&apos;re signed up
-        </ParentButton>
-        <ParentButton
-          theme={theme}
-          variant="outline"
+      <div className={`flex flex-wrap items-center gap-x-2.5 gap-y-1 ${className}`}>
+        <GChip tone="success" className="whitespace-nowrap py-1">
+          <Tick className="h-3.5 w-3.5" />
+          You&apos;re signed up · {roleLabels[role]}
+        </GChip>
+        <button
+          type="button"
+          className={`${gLinkSm} !text-[13px] disabled:cursor-not-allowed disabled:opacity-50`}
           disabled={previewMode || isPendingWithdraw}
-          className={compactButtonClass}
-          style={{ color: theme.muted }}
+          aria-busy={isPendingWithdraw || undefined}
+          aria-label={`Withdraw as ${roleLabels[role]}`}
           onClick={(event) => {
             event.stopPropagation();
             onWithdraw();
           }}
         >
-          {isPendingWithdraw ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            "Withdraw"
-          )}
-        </ParentButton>
+          {isPendingWithdraw ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : null}
+          Withdraw
+        </button>
       </div>
     );
   }
@@ -102,21 +85,18 @@ export default function ParentTeachingScheduleSignupButton({
   }
 
   return (
-    <ParentButton
-      theme={theme}
-      variant="soft"
+    <button
+      type="button"
       disabled={previewMode || isPendingSignup}
-      className={`${compactButtonClass} ${className}`}
+      aria-busy={isPendingSignup || undefined}
+      className={`${gBtnOutlineSm} !px-3.5 !py-1.5 whitespace-nowrap hover:bg-[var(--sf-accent-wash)] ${className}`}
       onClick={(event) => {
         event.stopPropagation();
         onSignUp();
       }}
     >
-      {isPendingSignup ? (
-        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-      ) : (
-        `Sign up as ${roleLabels[role]}`
-      )}
-    </ParentButton>
+      {isPendingSignup ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : null}
+      Sign up as {roleLabels[role]}
+    </button>
   );
 }

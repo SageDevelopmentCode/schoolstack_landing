@@ -38,6 +38,50 @@ import { brazosValleyHonorAcademyAdminDemoConfig } from "./brazos-valley-honor-a
 import { theWoodlandsMicroschoolAdminDemoConfig } from "./the-woodlands-admin-demo";
 import { trueNorthAdminDemoConfig } from "./truenorth-admin-demo";
 import { wildcatMicroschoolAdminDemoConfig } from "./wildcat-microschool-admin-demo";
+import { meadowsBeeFarmAdminDemoConfig } from "./meadows-bee-farm-admin-demo";
+import { heartsongCottageSchoolAdminDemoConfig } from "./heartsong-cottage-school-admin-demo";
+import { honeycombCottageSchoolAdminDemoConfig } from "./honeycomb-cottage-school-admin-demo";
+import { madronaSchoolAdminDemoConfig } from "./madrona-school-admin-demo";
+import { morganPrepAcademyAdminDemoConfig } from "./morgan-prep-academy-admin-demo";
+import { giftedCollectiveMicroschoolAdminDemoConfig } from "./gifted-collective-microschool-admin-demo";
+import { foothillChristianAcademyAdminDemoConfig } from "./foothill-christian-academy-admin-demo";
+import { exodusAcademyAdminDemoConfig } from "./exodus-academy-admin-demo";
+import { elitePerformancePrepFreeportAdminDemoConfig } from "./elite-performance-prep-freeport-admin-demo";
+import { desertSunRanchAcademyAdminDemoConfig } from "./desert-sun-ranch-academy-admin-demo";
+import { desertDragonSchoolAdminDemoConfig } from "./desert-dragon-school-admin-demo";
+import { choiceActonAcademyAdminDemoConfig } from "./choice-acton-academy-admin-demo";
+import { brightMindsFutureLeadersAdminDemoConfig } from "./bright-minds-future-leaders-admin-demo";
+import { bmfMicroschoolsAdminDemoConfig } from "./bmf-microschools-admin-demo";
+import { blueHorizonStudioAdminDemoConfig } from "./blue-horizon-studio-admin-demo";
+import { apogeeLaMicroschoolAdminDemoConfig } from "./apogee-la-microschool-admin-demo";
+import { ahbCommunitySchoolAdminDemoConfig } from "./ahb-community-school-admin-demo";
+import { adelphiaClassicalChristianAcademyAdminDemoConfig } from "./adelphia-classical-christian-academy-admin-demo";
+import { aMindOfMagicAndReasonAdminDemoConfig } from "./a-mind-of-magic-and-reason-admin-demo";
+import { bookHooksSchoolhouseAdminDemoConfig } from "./book-hooks-schoolhouse-admin-demo";
+import { spyrjaAcademyNewBraunfelsAdminDemoConfig } from "./spyrja-academy-new-braunfels-admin-demo";
+import { southOcHybridHomeschoolAdminDemoConfig } from "./south-oc-hybrid-homeschool-admin-demo";
+import { praxisEliteSportsAcademyAdminDemoConfig } from "./praxis-elite-sports-academy-admin-demo";
+import { mirusAcademyAdminDemoConfig } from "./mirus-academy-admin-demo";
+import { mcpAcademyAdminDemoConfig } from "./mcp-academy-admin-demo";
+import { journeyAcademyAdminDemoConfig } from "./journey-academy-admin-demo";
+import { innovationAcademyLasVegasAdminDemoConfig } from "./innovation-academy-las-vegas-admin-demo";
+import { innerFireAcademyAdminDemoConfig } from "./inner-fire-academy-admin-demo";
+import { theWildSchoolAdminDemoConfig } from "./the-wild-school-admin-demo";
+import { esteamAcademyRoundRockAdminDemoConfig } from "./esteam-academy-round-rock-admin-demo";
+import { igniteMicroschoolAdminDemoConfig } from "./ignite-microschool-admin-demo";
+import { gardenSchoolMariettaAdminDemoConfig } from "./garden-school-marietta-admin-demo";
+import { peninsularPrepAdminDemoConfig } from "./peninsular-prep-admin-demo";
+import { stepsLearningCenterAdminDemoConfig } from "./steps-learning-center-admin-demo";
+import { sageMontessoriNashvilleAdminDemoConfig } from "./sage-montessori-nashville-admin-demo";
+import { renewedRootsForestSchoolAdminDemoConfig } from "./renewed-roots-forest-school-admin-demo";
+import { prestigeWisdomAcademyAdminDemoConfig } from "./prestige-wisdom-academy-admin-demo";
+import { invictusLeanderAdminDemoConfig } from "./invictus-leander-admin-demo";
+import { godsLittlePeopleLearningAcademyAdminDemoConfig } from "./gods-little-people-learning-academy-admin-demo";
+import { everrootAcademyAdminDemoConfig } from "./everroot-academy-admin-demo";
+import { downToEarthHomeschoolAdminDemoConfig } from "./down-to-earth-homeschool-admin-demo";
+import { coysCampsAndClassesAdminDemoConfig } from "./coys-camps-and-classes-admin-demo";
+import { coastalSageMontessoriAdminDemoConfig } from "./coastal-sage-montessori-admin-demo";
+import { beaconOfHopeAcademyAdminDemoConfig } from "./beacon-of-hope-academy-admin-demo";
 import { wildHeartsAdventureAdminDemoConfig } from "./wild-hearts-admin-demo";
 import { wonderhereLakelandAdminDemoConfig } from "./wonderhere-admin-demo";
 import { wonderingOaksLearningAdminDemoConfig } from "./wondering-oaks-admin-demo";
@@ -82,6 +126,50 @@ export const schoolAdminDemoConfigs: Record<string, SchoolAdminDemoConfig> = {
   "the-woodlands-microschool": theWoodlandsMicroschoolAdminDemoConfig,
   "true-north": trueNorthAdminDemoConfig,
   "wildcat-microschool": wildcatMicroschoolAdminDemoConfig,
+  "meadows-bee-farm": meadowsBeeFarmAdminDemoConfig,
+  "heartsong-cottage-school": heartsongCottageSchoolAdminDemoConfig,
+  "honeycomb-cottage-school": honeycombCottageSchoolAdminDemoConfig,
+  "madrona-school": madronaSchoolAdminDemoConfig,
+  "morgan-prep-academy": morganPrepAcademyAdminDemoConfig,
+  "gifted-collective-microschool": giftedCollectiveMicroschoolAdminDemoConfig,
+  "foothill-christian-academy": foothillChristianAcademyAdminDemoConfig,
+  "exodus-academy": exodusAcademyAdminDemoConfig,
+  "elite-performance-prep-freeport": elitePerformancePrepFreeportAdminDemoConfig,
+  "desert-sun-ranch-academy": desertSunRanchAcademyAdminDemoConfig,
+  "desert-dragon-school": desertDragonSchoolAdminDemoConfig,
+  "choice-acton-academy": choiceActonAcademyAdminDemoConfig,
+  "bright-minds-future-leaders": brightMindsFutureLeadersAdminDemoConfig,
+  "bmf-microschools": bmfMicroschoolsAdminDemoConfig,
+  "blue-horizon-studio": blueHorizonStudioAdminDemoConfig,
+  "apogee-la-microschool": apogeeLaMicroschoolAdminDemoConfig,
+  "ahb-community-school": ahbCommunitySchoolAdminDemoConfig,
+  "adelphia-classical-christian-academy": adelphiaClassicalChristianAcademyAdminDemoConfig,
+  "a-mind-of-magic-and-reason": aMindOfMagicAndReasonAdminDemoConfig,
+  "book-hooks-schoolhouse": bookHooksSchoolhouseAdminDemoConfig,
+  "spyrja-academy-new-braunfels": spyrjaAcademyNewBraunfelsAdminDemoConfig,
+  "south-oc-hybrid-homeschool": southOcHybridHomeschoolAdminDemoConfig,
+  "praxis-elite-sports-academy": praxisEliteSportsAcademyAdminDemoConfig,
+  "mirus-academy": mirusAcademyAdminDemoConfig,
+  "mcp-academy": mcpAcademyAdminDemoConfig,
+  "journey-academy": journeyAcademyAdminDemoConfig,
+  "innovation-academy-las-vegas": innovationAcademyLasVegasAdminDemoConfig,
+  "inner-fire-academy": innerFireAcademyAdminDemoConfig,
+  "the-wild-school": theWildSchoolAdminDemoConfig,
+  "esteam-academy-round-rock": esteamAcademyRoundRockAdminDemoConfig,
+  "ignite-microschool": igniteMicroschoolAdminDemoConfig,
+  "garden-school-marietta": gardenSchoolMariettaAdminDemoConfig,
+  "peninsular-prep": peninsularPrepAdminDemoConfig,
+  "steps-learning-center": stepsLearningCenterAdminDemoConfig,
+  "sage-montessori-nashville": sageMontessoriNashvilleAdminDemoConfig,
+  "renewed-roots-forest-school": renewedRootsForestSchoolAdminDemoConfig,
+  "prestige-wisdom-academy": prestigeWisdomAcademyAdminDemoConfig,
+  "invictus-leander": invictusLeanderAdminDemoConfig,
+  "gods-little-people-learning-academy": godsLittlePeopleLearningAcademyAdminDemoConfig,
+  "everroot-academy": everrootAcademyAdminDemoConfig,
+  "down-to-earth-homeschool": downToEarthHomeschoolAdminDemoConfig,
+  "coys-camps-and-classes": coysCampsAndClassesAdminDemoConfig,
+  "coastal-sage-montessori": coastalSageMontessoriAdminDemoConfig,
+  "beacon-of-hope-academy": beaconOfHopeAcademyAdminDemoConfig,
   "wild-hearts-adventure": wildHeartsAdventureAdminDemoConfig,
   "wonderhere-lakeland": wonderhereLakelandAdminDemoConfig,
   "wondering-oaks-learning": wonderingOaksLearningAdminDemoConfig,
@@ -127,6 +215,50 @@ import { brazosValleyHonorAcademyParentDemoConfig } from "./brazos-valley-honor-
 import { theWoodlandsMicroschoolParentDemoConfig } from "./the-woodlands-parent-demo";
 import { trueNorthParentDemoConfig } from "./truenorth-parent-demo";
 import { wildcatMicroschoolParentDemoConfig } from "./wildcat-microschool-parent-demo";
+import { meadowsBeeFarmParentDemoConfig } from "./meadows-bee-farm-parent-demo";
+import { heartsongCottageSchoolParentDemoConfig } from "./heartsong-cottage-school-parent-demo";
+import { honeycombCottageSchoolParentDemoConfig } from "./honeycomb-cottage-school-parent-demo";
+import { madronaSchoolParentDemoConfig } from "./madrona-school-parent-demo";
+import { morganPrepAcademyParentDemoConfig } from "./morgan-prep-academy-parent-demo";
+import { giftedCollectiveMicroschoolParentDemoConfig } from "./gifted-collective-microschool-parent-demo";
+import { foothillChristianAcademyParentDemoConfig } from "./foothill-christian-academy-parent-demo";
+import { exodusAcademyParentDemoConfig } from "./exodus-academy-parent-demo";
+import { elitePerformancePrepFreeportParentDemoConfig } from "./elite-performance-prep-freeport-parent-demo";
+import { desertSunRanchAcademyParentDemoConfig } from "./desert-sun-ranch-academy-parent-demo";
+import { desertDragonSchoolParentDemoConfig } from "./desert-dragon-school-parent-demo";
+import { choiceActonAcademyParentDemoConfig } from "./choice-acton-academy-parent-demo";
+import { brightMindsFutureLeadersParentDemoConfig } from "./bright-minds-future-leaders-parent-demo";
+import { bmfMicroschoolsParentDemoConfig } from "./bmf-microschools-parent-demo";
+import { blueHorizonStudioParentDemoConfig } from "./blue-horizon-studio-parent-demo";
+import { apogeeLaMicroschoolParentDemoConfig } from "./apogee-la-microschool-parent-demo";
+import { ahbCommunitySchoolParentDemoConfig } from "./ahb-community-school-parent-demo";
+import { adelphiaClassicalChristianAcademyParentDemoConfig } from "./adelphia-classical-christian-academy-parent-demo";
+import { aMindOfMagicAndReasonParentDemoConfig } from "./a-mind-of-magic-and-reason-parent-demo";
+import { bookHooksSchoolhouseParentDemoConfig } from "./book-hooks-schoolhouse-parent-demo";
+import { spyrjaAcademyNewBraunfelsParentDemoConfig } from "./spyrja-academy-new-braunfels-parent-demo";
+import { southOcHybridHomeschoolParentDemoConfig } from "./south-oc-hybrid-homeschool-parent-demo";
+import { praxisEliteSportsAcademyParentDemoConfig } from "./praxis-elite-sports-academy-parent-demo";
+import { mirusAcademyParentDemoConfig } from "./mirus-academy-parent-demo";
+import { mcpAcademyParentDemoConfig } from "./mcp-academy-parent-demo";
+import { journeyAcademyParentDemoConfig } from "./journey-academy-parent-demo";
+import { innovationAcademyLasVegasParentDemoConfig } from "./innovation-academy-las-vegas-parent-demo";
+import { innerFireAcademyParentDemoConfig } from "./inner-fire-academy-parent-demo";
+import { theWildSchoolParentDemoConfig } from "./the-wild-school-parent-demo";
+import { esteamAcademyRoundRockParentDemoConfig } from "./esteam-academy-round-rock-parent-demo";
+import { igniteMicroschoolParentDemoConfig } from "./ignite-microschool-parent-demo";
+import { gardenSchoolMariettaParentDemoConfig } from "./garden-school-marietta-parent-demo";
+import { peninsularPrepParentDemoConfig } from "./peninsular-prep-parent-demo";
+import { stepsLearningCenterParentDemoConfig } from "./steps-learning-center-parent-demo";
+import { sageMontessoriNashvilleParentDemoConfig } from "./sage-montessori-nashville-parent-demo";
+import { renewedRootsForestSchoolParentDemoConfig } from "./renewed-roots-forest-school-parent-demo";
+import { prestigeWisdomAcademyParentDemoConfig } from "./prestige-wisdom-academy-parent-demo";
+import { invictusLeanderParentDemoConfig } from "./invictus-leander-parent-demo";
+import { godsLittlePeopleLearningAcademyParentDemoConfig } from "./gods-little-people-learning-academy-parent-demo";
+import { everrootAcademyParentDemoConfig } from "./everroot-academy-parent-demo";
+import { downToEarthHomeschoolParentDemoConfig } from "./down-to-earth-homeschool-parent-demo";
+import { coysCampsAndClassesParentDemoConfig } from "./coys-camps-and-classes-parent-demo";
+import { coastalSageMontessoriParentDemoConfig } from "./coastal-sage-montessori-parent-demo";
+import { beaconOfHopeAcademyParentDemoConfig } from "./beacon-of-hope-academy-parent-demo";
 import { wildHeartsAdventureParentDemoConfig } from "./wild-hearts-parent-demo";
 import { wonderhereLakelandParentDemoConfig } from "./wonderhere-parent-demo";
 import { wonderingOaksLearningParentDemoConfig } from "./wondering-oaks-parent-demo";
@@ -171,6 +303,50 @@ export const schoolParentDemoConfigs: Record<string, SchoolParentDemoConfig> = {
   "the-woodlands-microschool": theWoodlandsMicroschoolParentDemoConfig,
   "true-north": trueNorthParentDemoConfig,
   "wildcat-microschool": wildcatMicroschoolParentDemoConfig,
+  "meadows-bee-farm": meadowsBeeFarmParentDemoConfig,
+  "heartsong-cottage-school": heartsongCottageSchoolParentDemoConfig,
+  "honeycomb-cottage-school": honeycombCottageSchoolParentDemoConfig,
+  "madrona-school": madronaSchoolParentDemoConfig,
+  "morgan-prep-academy": morganPrepAcademyParentDemoConfig,
+  "gifted-collective-microschool": giftedCollectiveMicroschoolParentDemoConfig,
+  "foothill-christian-academy": foothillChristianAcademyParentDemoConfig,
+  "exodus-academy": exodusAcademyParentDemoConfig,
+  "elite-performance-prep-freeport": elitePerformancePrepFreeportParentDemoConfig,
+  "desert-sun-ranch-academy": desertSunRanchAcademyParentDemoConfig,
+  "desert-dragon-school": desertDragonSchoolParentDemoConfig,
+  "choice-acton-academy": choiceActonAcademyParentDemoConfig,
+  "bright-minds-future-leaders": brightMindsFutureLeadersParentDemoConfig,
+  "bmf-microschools": bmfMicroschoolsParentDemoConfig,
+  "blue-horizon-studio": blueHorizonStudioParentDemoConfig,
+  "apogee-la-microschool": apogeeLaMicroschoolParentDemoConfig,
+  "ahb-community-school": ahbCommunitySchoolParentDemoConfig,
+  "adelphia-classical-christian-academy": adelphiaClassicalChristianAcademyParentDemoConfig,
+  "a-mind-of-magic-and-reason": aMindOfMagicAndReasonParentDemoConfig,
+  "book-hooks-schoolhouse": bookHooksSchoolhouseParentDemoConfig,
+  "spyrja-academy-new-braunfels": spyrjaAcademyNewBraunfelsParentDemoConfig,
+  "south-oc-hybrid-homeschool": southOcHybridHomeschoolParentDemoConfig,
+  "praxis-elite-sports-academy": praxisEliteSportsAcademyParentDemoConfig,
+  "mirus-academy": mirusAcademyParentDemoConfig,
+  "mcp-academy": mcpAcademyParentDemoConfig,
+  "journey-academy": journeyAcademyParentDemoConfig,
+  "innovation-academy-las-vegas": innovationAcademyLasVegasParentDemoConfig,
+  "inner-fire-academy": innerFireAcademyParentDemoConfig,
+  "the-wild-school": theWildSchoolParentDemoConfig,
+  "esteam-academy-round-rock": esteamAcademyRoundRockParentDemoConfig,
+  "ignite-microschool": igniteMicroschoolParentDemoConfig,
+  "garden-school-marietta": gardenSchoolMariettaParentDemoConfig,
+  "peninsular-prep": peninsularPrepParentDemoConfig,
+  "steps-learning-center": stepsLearningCenterParentDemoConfig,
+  "sage-montessori-nashville": sageMontessoriNashvilleParentDemoConfig,
+  "renewed-roots-forest-school": renewedRootsForestSchoolParentDemoConfig,
+  "prestige-wisdom-academy": prestigeWisdomAcademyParentDemoConfig,
+  "invictus-leander": invictusLeanderParentDemoConfig,
+  "gods-little-people-learning-academy": godsLittlePeopleLearningAcademyParentDemoConfig,
+  "everroot-academy": everrootAcademyParentDemoConfig,
+  "down-to-earth-homeschool": downToEarthHomeschoolParentDemoConfig,
+  "coys-camps-and-classes": coysCampsAndClassesParentDemoConfig,
+  "coastal-sage-montessori": coastalSageMontessoriParentDemoConfig,
+  "beacon-of-hope-academy": beaconOfHopeAcademyParentDemoConfig,
   "wild-hearts-adventure": wildHeartsAdventureParentDemoConfig,
   "wonderhere-lakeland": wonderhereLakelandParentDemoConfig,
   "wondering-oaks-learning": wonderingOaksLearningParentDemoConfig,
@@ -215,6 +391,50 @@ import { brazosValleyHonorAcademyTeacherDemoConfig } from "./brazos-valley-honor
 import { theWoodlandsMicroschoolTeacherDemoConfig } from "./the-woodlands-teacher-demo";
 import { trueNorthTeacherDemoConfig } from "./truenorth-teacher-demo";
 import { wildcatMicroschoolTeacherDemoConfig } from "./wildcat-microschool-teacher-demo";
+import { meadowsBeeFarmTeacherDemoConfig } from "./meadows-bee-farm-teacher-demo";
+import { heartsongCottageSchoolTeacherDemoConfig } from "./heartsong-cottage-school-teacher-demo";
+import { honeycombCottageSchoolTeacherDemoConfig } from "./honeycomb-cottage-school-teacher-demo";
+import { madronaSchoolTeacherDemoConfig } from "./madrona-school-teacher-demo";
+import { morganPrepAcademyTeacherDemoConfig } from "./morgan-prep-academy-teacher-demo";
+import { giftedCollectiveMicroschoolTeacherDemoConfig } from "./gifted-collective-microschool-teacher-demo";
+import { foothillChristianAcademyTeacherDemoConfig } from "./foothill-christian-academy-teacher-demo";
+import { exodusAcademyTeacherDemoConfig } from "./exodus-academy-teacher-demo";
+import { elitePerformancePrepFreeportTeacherDemoConfig } from "./elite-performance-prep-freeport-teacher-demo";
+import { desertSunRanchAcademyTeacherDemoConfig } from "./desert-sun-ranch-academy-teacher-demo";
+import { desertDragonSchoolTeacherDemoConfig } from "./desert-dragon-school-teacher-demo";
+import { choiceActonAcademyTeacherDemoConfig } from "./choice-acton-academy-teacher-demo";
+import { brightMindsFutureLeadersTeacherDemoConfig } from "./bright-minds-future-leaders-teacher-demo";
+import { bmfMicroschoolsTeacherDemoConfig } from "./bmf-microschools-teacher-demo";
+import { blueHorizonStudioTeacherDemoConfig } from "./blue-horizon-studio-teacher-demo";
+import { apogeeLaMicroschoolTeacherDemoConfig } from "./apogee-la-microschool-teacher-demo";
+import { ahbCommunitySchoolTeacherDemoConfig } from "./ahb-community-school-teacher-demo";
+import { adelphiaClassicalChristianAcademyTeacherDemoConfig } from "./adelphia-classical-christian-academy-teacher-demo";
+import { aMindOfMagicAndReasonTeacherDemoConfig } from "./a-mind-of-magic-and-reason-teacher-demo";
+import { bookHooksSchoolhouseTeacherDemoConfig } from "./book-hooks-schoolhouse-teacher-demo";
+import { spyrjaAcademyNewBraunfelsTeacherDemoConfig } from "./spyrja-academy-new-braunfels-teacher-demo";
+import { southOcHybridHomeschoolTeacherDemoConfig } from "./south-oc-hybrid-homeschool-teacher-demo";
+import { praxisEliteSportsAcademyTeacherDemoConfig } from "./praxis-elite-sports-academy-teacher-demo";
+import { mirusAcademyTeacherDemoConfig } from "./mirus-academy-teacher-demo";
+import { mcpAcademyTeacherDemoConfig } from "./mcp-academy-teacher-demo";
+import { journeyAcademyTeacherDemoConfig } from "./journey-academy-teacher-demo";
+import { innovationAcademyLasVegasTeacherDemoConfig } from "./innovation-academy-las-vegas-teacher-demo";
+import { innerFireAcademyTeacherDemoConfig } from "./inner-fire-academy-teacher-demo";
+import { theWildSchoolTeacherDemoConfig } from "./the-wild-school-teacher-demo";
+import { esteamAcademyRoundRockTeacherDemoConfig } from "./esteam-academy-round-rock-teacher-demo";
+import { igniteMicroschoolTeacherDemoConfig } from "./ignite-microschool-teacher-demo";
+import { gardenSchoolMariettaTeacherDemoConfig } from "./garden-school-marietta-teacher-demo";
+import { peninsularPrepTeacherDemoConfig } from "./peninsular-prep-teacher-demo";
+import { stepsLearningCenterTeacherDemoConfig } from "./steps-learning-center-teacher-demo";
+import { sageMontessoriNashvilleTeacherDemoConfig } from "./sage-montessori-nashville-teacher-demo";
+import { renewedRootsForestSchoolTeacherDemoConfig } from "./renewed-roots-forest-school-teacher-demo";
+import { prestigeWisdomAcademyTeacherDemoConfig } from "./prestige-wisdom-academy-teacher-demo";
+import { invictusLeanderTeacherDemoConfig } from "./invictus-leander-teacher-demo";
+import { godsLittlePeopleLearningAcademyTeacherDemoConfig } from "./gods-little-people-learning-academy-teacher-demo";
+import { everrootAcademyTeacherDemoConfig } from "./everroot-academy-teacher-demo";
+import { downToEarthHomeschoolTeacherDemoConfig } from "./down-to-earth-homeschool-teacher-demo";
+import { coysCampsAndClassesTeacherDemoConfig } from "./coys-camps-and-classes-teacher-demo";
+import { coastalSageMontessoriTeacherDemoConfig } from "./coastal-sage-montessori-teacher-demo";
+import { beaconOfHopeAcademyTeacherDemoConfig } from "./beacon-of-hope-academy-teacher-demo";
 import { wildHeartsAdventureTeacherDemoConfig } from "./wild-hearts-teacher-demo";
 import { wonderhereLakelandTeacherDemoConfig } from "./wonderhere-teacher-demo";
 import { wonderingOaksLearningTeacherDemoConfig } from "./wondering-oaks-teacher-demo";
@@ -259,6 +479,50 @@ export const schoolTeacherDemoConfigs: Record<string, SchoolTeacherDemoConfig> =
   "the-woodlands-microschool": theWoodlandsMicroschoolTeacherDemoConfig,
   "true-north": trueNorthTeacherDemoConfig,
   "wildcat-microschool": wildcatMicroschoolTeacherDemoConfig,
+  "meadows-bee-farm": meadowsBeeFarmTeacherDemoConfig,
+  "heartsong-cottage-school": heartsongCottageSchoolTeacherDemoConfig,
+  "honeycomb-cottage-school": honeycombCottageSchoolTeacherDemoConfig,
+  "madrona-school": madronaSchoolTeacherDemoConfig,
+  "morgan-prep-academy": morganPrepAcademyTeacherDemoConfig,
+  "gifted-collective-microschool": giftedCollectiveMicroschoolTeacherDemoConfig,
+  "foothill-christian-academy": foothillChristianAcademyTeacherDemoConfig,
+  "exodus-academy": exodusAcademyTeacherDemoConfig,
+  "elite-performance-prep-freeport": elitePerformancePrepFreeportTeacherDemoConfig,
+  "desert-sun-ranch-academy": desertSunRanchAcademyTeacherDemoConfig,
+  "desert-dragon-school": desertDragonSchoolTeacherDemoConfig,
+  "choice-acton-academy": choiceActonAcademyTeacherDemoConfig,
+  "bright-minds-future-leaders": brightMindsFutureLeadersTeacherDemoConfig,
+  "bmf-microschools": bmfMicroschoolsTeacherDemoConfig,
+  "blue-horizon-studio": blueHorizonStudioTeacherDemoConfig,
+  "apogee-la-microschool": apogeeLaMicroschoolTeacherDemoConfig,
+  "ahb-community-school": ahbCommunitySchoolTeacherDemoConfig,
+  "adelphia-classical-christian-academy": adelphiaClassicalChristianAcademyTeacherDemoConfig,
+  "a-mind-of-magic-and-reason": aMindOfMagicAndReasonTeacherDemoConfig,
+  "book-hooks-schoolhouse": bookHooksSchoolhouseTeacherDemoConfig,
+  "spyrja-academy-new-braunfels": spyrjaAcademyNewBraunfelsTeacherDemoConfig,
+  "south-oc-hybrid-homeschool": southOcHybridHomeschoolTeacherDemoConfig,
+  "praxis-elite-sports-academy": praxisEliteSportsAcademyTeacherDemoConfig,
+  "mirus-academy": mirusAcademyTeacherDemoConfig,
+  "mcp-academy": mcpAcademyTeacherDemoConfig,
+  "journey-academy": journeyAcademyTeacherDemoConfig,
+  "innovation-academy-las-vegas": innovationAcademyLasVegasTeacherDemoConfig,
+  "inner-fire-academy": innerFireAcademyTeacherDemoConfig,
+  "the-wild-school": theWildSchoolTeacherDemoConfig,
+  "esteam-academy-round-rock": esteamAcademyRoundRockTeacherDemoConfig,
+  "ignite-microschool": igniteMicroschoolTeacherDemoConfig,
+  "garden-school-marietta": gardenSchoolMariettaTeacherDemoConfig,
+  "peninsular-prep": peninsularPrepTeacherDemoConfig,
+  "steps-learning-center": stepsLearningCenterTeacherDemoConfig,
+  "sage-montessori-nashville": sageMontessoriNashvilleTeacherDemoConfig,
+  "renewed-roots-forest-school": renewedRootsForestSchoolTeacherDemoConfig,
+  "prestige-wisdom-academy": prestigeWisdomAcademyTeacherDemoConfig,
+  "invictus-leander": invictusLeanderTeacherDemoConfig,
+  "gods-little-people-learning-academy": godsLittlePeopleLearningAcademyTeacherDemoConfig,
+  "everroot-academy": everrootAcademyTeacherDemoConfig,
+  "down-to-earth-homeschool": downToEarthHomeschoolTeacherDemoConfig,
+  "coys-camps-and-classes": coysCampsAndClassesTeacherDemoConfig,
+  "coastal-sage-montessori": coastalSageMontessoriTeacherDemoConfig,
+  "beacon-of-hope-academy": beaconOfHopeAcademyTeacherDemoConfig,
   "wild-hearts-adventure": wildHeartsAdventureTeacherDemoConfig,
   "wonderhere-lakeland": wonderhereLakelandTeacherDemoConfig,
   "wondering-oaks-learning": wonderingOaksLearningTeacherDemoConfig,

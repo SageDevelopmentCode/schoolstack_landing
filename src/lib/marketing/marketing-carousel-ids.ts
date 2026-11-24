@@ -47,6 +47,7 @@ export const MARKETING_CAROUSEL_IDS = [
   "ads-preview-thanksgiving",
   "ads-preview-thanksgiving-break",
   "ads-crew-chat",
+  "app-store-screens",
 ] as const;
 
 export type MarketingCarouselId = (typeof MARKETING_CAROUSEL_IDS)[number];

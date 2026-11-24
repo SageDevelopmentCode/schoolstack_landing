@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { X } from "lucide-react";
+import { useEffect, useMemo, useRef } from "react";
 import type { ProgramCoopCurriculumDiscussionMessage } from "@/lib/admissions/program-coop-curriculum-discussion";
 import {
   getProgramCoopCurriculumTabLabel,
   type ProgramCoopCurriculumRecord,
 } from "@/lib/admissions/program-coop-curriculum-storage";
 import CurriculumDiscussionPanel from "@/components/school-parent/curriculum/CurriculumDiscussionPanel";
+import type { CurriculumThread } from "@/components/school-parent/curriculum/useCurriculumThread";
+import GSidePanel from "@/components/school-parent/garden/GSidePanel";
+import { G_TOGGLE, G_TOGGLE_OFF, G_TOGGLE_ON } from "@/components/school-parent/garden/ui";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 const GENERAL_DISCUSSION_KEY = "general";
@@ -29,11 +30,23 @@ type CurriculumDiscussionSidebarProps = {
   curricula: ProgramCoopCurriculumRecord[];
   activeCurriculumId: string | null;
   onActiveCurriculumIdChange: (curriculumId: string | null) => void;
-  initialMessages: ProgramCoopCurriculumDiscussionMessage[];
+  /** Server-loaded messages by thread key ("general" or a guide id). */
+  initialThreadMessages: Record<string, ProgramCoopCurriculumDiscussionMessage[]>;
   currentGuardianId?: string | null;
   previewMode?: boolean;
+  /** The reader's thread for its open guide: reused when the drawer shows that guide. */
+  readerThread?: CurriculumThread;
+  /** Reader page (for "About page N") and jump-to-page from page pills. */
+  currentPage?: number | null;
+  onJumpToPage?: (page: number) => void;
 };
 
+/*
+ * Co-op discussion drawer on the Garden GSidePanel (own frame, Escape, focus
+ * return). Thread chips (General + one per guide) sit in `headerBelow`; guide
+ * titles can be long, so they are truncated chips in a scrolling row rather
+ * than a GTabBar. The chat fills the body edge to edge.
+ */
 export default function CurriculumDiscussionSidebar({
   theme,
   open,
@@ -43,11 +56,14 @@ export default function CurriculumDiscussionSidebar({
   curricula,
   activeCurriculumId,
   onActiveCurriculumIdChange,
-  initialMessages,
+  initialThreadMessages,
   currentGuardianId = null,
   previewMode = false,
+  readerThread,
+  currentPage = null,
+  onJumpToPage,
 }: CurriculumDiscussionSidebarProps) {
-  const titleId = "curriculum-discussion-sidebar-title";
+  const activeChipRef = useRef<HTMLButtonElement>(null);
 
   const activeGuide = useMemo(
     () => curricula.find((record) => record.id === activeCurriculumId) ?? null,
@@ -86,133 +102,94 @@ export default function CurriculumDiscussionSidebar({
       ? `Discussion for ${getProgramCoopCurriculumTabLabel(activeGuide)}`
       : "General co-op chat";
 
+  // Bring the active thread chip into view (opening on a later guide).
   useEffect(() => {
     if (!open) return;
+    const timer = window.setTimeout(
+      () => activeChipRef.current?.scrollIntoView({ block: "nearest", inline: "nearest" }),
+      80,
+    );
+    return () => window.clearTimeout(timer);
+  }, [activeThreadKey, open]);
 
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, onClose]);
+  const threadTabs =
+    curricula.length > 0 ? (
+      <nav
+        className="-mx-1 flex max-w-none gap-1.5 overflow-x-auto px-1 py-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        aria-label="Discussion threads"
+        role="tablist"
+        data-testid="curriculum-discussion-thread-tabs"
+      >
+        {threadItems.map((item) => {
+          const active = item.key === activeThreadKey;
+          return (
+            <button
+              key={item.key}
+              ref={active ? activeChipRef : undefined}
+              type="button"
+              role="tab"
+              title={item.fullLabel}
+              aria-selected={active}
+              data-testid={item.testId}
+              onClick={() =>
+                onActiveCurriculumIdChange(
+                  item.key === GENERAL_DISCUSSION_KEY ? null : item.key,
+                )
+              }
+              className={`${G_TOGGLE} ${active ? G_TOGGLE_ON : G_TOGGLE_OFF} max-w-full shrink-0 cursor-pointer focus-visible:ring-offset-0`}
+            >
+              <span className="block max-w-[10rem] truncate">{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+    ) : null;
 
   return (
-    <AnimatePresence>
-      {open ? (
-        <motion.div
-          className="fixed inset-0 z-[110]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          data-testid="curriculum-discussion-sidebar"
-        >
-          <div
-            className="absolute inset-0"
-            style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
-            onClick={onClose}
-            aria-hidden="true"
-          />
-          <motion.aside
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={titleId}
-            initial={{ x: "100%", opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: "100%", opacity: 0 }}
-            transition={{ type: "spring", damping: 28, stiffness: 300 }}
-            className="absolute inset-y-0 right-0 z-[15] flex w-[min(100%,28rem)] max-w-full flex-col overflow-hidden border-l"
-            style={{
-              backgroundColor: theme.white,
-              borderColor: theme.line,
-              boxShadow: theme.shadowCard,
-            }}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div
-              className="flex shrink-0 flex-col gap-3 border-b px-4 py-3"
-              style={{ borderColor: theme.line, backgroundColor: theme.paper }}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h2
-                    id={titleId}
-                    className="text-sm font-semibold"
-                    style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
-                  >
-                    Co-op discussion
-                  </h2>
-                  <p className="mt-0.5 truncate text-xs" style={{ color: theme.muted }} title={subtitle}>
-                    {subtitle}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  aria-label="Close discussion"
-                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border-0 bg-transparent"
-                  style={{ color: theme.muted }}
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              {curricula.length > 0 ? (
-                <nav
-                  className="flex max-w-full flex-wrap gap-1 overflow-x-auto rounded-lg p-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                  style={{ backgroundColor: "#EAF2EB" }}
-                  aria-label="Discussion threads"
-                  role="tablist"
-                  data-testid="curriculum-discussion-thread-tabs"
-                >
-                  {threadItems.map((item) => {
-                    const active = item.key === activeThreadKey;
-                    return (
-                      <button
-                        key={item.key}
-                        type="button"
-                        role="tab"
-                        title={item.fullLabel}
-                        aria-selected={active}
-                        data-testid={item.testId}
-                        onClick={() =>
-                          onActiveCurriculumIdChange(
-                            item.key === GENERAL_DISCUSSION_KEY ? null : item.key,
-                          )
-                        }
-                        className="inline-flex max-w-full shrink-0 items-center rounded-lg px-3 py-2 text-[11px] font-bold transition-colors"
-                        style={{
-                          backgroundColor: active ? theme.white : "transparent",
-                          color: active ? theme.primary : "#728079",
-                          boxShadow: active ? "0 1px 4px #dbe2dc" : undefined,
-                        }}
-                      >
-                        <span className="block max-w-[9rem] truncate">{item.label}</span>
-                      </button>
-                    );
-                  })}
-                </nav>
-              ) : null}
-            </div>
-
-            <div className="flex min-h-0 flex-1 flex-col">
-              <CurriculumDiscussionPanel
-                key={discussionCurriculumId ?? GENERAL_DISCUSSION_KEY}
-                organizationId={organizationId}
-                programId={programId}
-                curriculumId={discussionCurriculumId}
-                initialMessages={
-                  discussionCurriculumId ? [] : initialMessages
+    <GSidePanel
+      theme={theme}
+      open={open}
+      onClose={onClose}
+      kicker="Curriculum"
+      title="Co-op discussion"
+      subtitle={
+        <span className="block truncate" title={subtitle}>
+          {subtitle}
+        </span>
+      }
+      closeLabel="Close discussion"
+      testId="curriculum-discussion-sidebar"
+      panelId="curriculum-discussion-sidebar"
+      headerBelow={threadTabs}
+    >
+      {/* The chat owns its scroll + composer: cancel the drawer body padding. */}
+      <div
+        className="-mx-5 -mt-5 flex min-h-0 flex-1 flex-col sm:-mx-6"
+        style={{ marginBottom: "calc(-1 * max(1.25rem, env(safe-area-inset-bottom)))" }}
+      >
+        <CurriculumDiscussionPanel
+          key={discussionCurriculumId ?? GENERAL_DISCUSSION_KEY}
+          organizationId={organizationId}
+          programId={programId}
+          curriculumId={discussionCurriculumId}
+          initialMessages={initialThreadMessages[discussionCurriculumId ?? GENERAL_DISCUSSION_KEY]}
+          thread={
+            readerThread && readerThread.curriculumId === discussionCurriculumId ? readerThread : undefined
+          }
+          currentPage={discussionCurriculumId ? currentPage : null}
+          onJumpToPage={
+            discussionCurriculumId && onJumpToPage
+              ? (page) => {
+                  onJumpToPage(page);
+                  onClose();
                 }
-                currentGuardianId={currentGuardianId}
-                previewMode={previewMode}
-                embedded
-              />
-            </div>
-          </motion.aside>
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
+              : undefined
+          }
+          currentGuardianId={currentGuardianId}
+          previewMode={previewMode}
+          embedded
+        />
+      </div>
+    </GSidePanel>
   );
 }

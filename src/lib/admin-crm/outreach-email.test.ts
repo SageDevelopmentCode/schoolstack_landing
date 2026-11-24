@@ -3,11 +3,13 @@ import { describe, it } from "node:test";
 import type { OutreachPlan } from "@/data/outreach/types";
 import {
   addBusinessDays,
+  fillSnapshotLink,
   followUpSubject,
   isOutreachSequenceStoppedByCrmStatus,
   nextOutreachStep,
   outreachWarnings,
   renderOutreachEmail,
+  snapshotPath,
 } from "@/lib/admin-crm/outreach-email";
 
 const plan: OutreachPlan = {
@@ -133,5 +135,23 @@ describe("nextOutreachStep", () => {
     assert.equal(nextOutreachStep({ plan, completed, crmStatus: "replied" }).stage, "replied");
     assert.equal(nextOutreachStep({ plan, completed, crmStatus: "demo_scheduled" }).stage, "replied");
     assert.equal(nextOutreachStep({ plan, completed, crmStatus: "not_interested" }).stage, "closed");
+  });
+});
+
+describe("fillSnapshotLink", () => {
+  const plan = { slug: "athena-microacademy", snapshot: { token: "abcDEF123_-xyz789", preparedOn: "2026-11-22", observations: [] } };
+
+  it("fills the snapshot URL from the plan", () => {
+    assert.equal(snapshotPath(plan), "/snapshot/athena-microacademy/abcDEF123_-xyz789");
+    assert.equal(
+      fillSnapshotLink("Here it is: {snapshot link}", plan, "https://trymudkitchen.com/"),
+      "Here it is: https://trymudkitchen.com/snapshot/athena-microacademy/abcDEF123_-xyz789",
+    );
+  });
+
+  it("leaves the token when there's no snapshot, so the send is blocked", () => {
+    const body = fillSnapshotLink("Here: {snapshot link}", { slug: "x" }, "https://trymudkitchen.com");
+    assert.equal(body, "Here: {snapshot link}");
+    assert.ok(outreachWarnings({ stepId: "follow-2", body }).some((w) => w.code === "placeholder"));
   });
 });

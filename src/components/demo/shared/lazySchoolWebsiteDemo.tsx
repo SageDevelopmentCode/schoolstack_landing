@@ -145,6 +145,182 @@ const WEBSITE_DEMO_LOADERS: Record<
     import(
       "@/components/demo/wildcatmicroschool/WildcatMicroschoolWebsiteDashboardDemo"
     ),
+  "meadows-bee-farm": () =>
+    import(
+      "@/components/demo/meadowsbeefarm/MeadowsBeeFarmWebsiteDashboardDemo"
+    ),
+  "heartsong-cottage-school": () =>
+    import(
+      "@/components/demo/heartsongcottageschool/HeartsongCottageSchoolWebsiteDashboardDemo"
+    ),
+  "honeycomb-cottage-school": () =>
+    import(
+      "@/components/demo/honeycombcottageschool/HoneycombCottageSchoolWebsiteDashboardDemo"
+    ),
+  "madrona-school": () =>
+    import(
+      "@/components/demo/madronaschool/MadronaSchoolWebsiteDashboardDemo"
+    ),
+  "morgan-prep-academy": () =>
+    import(
+      "@/components/demo/morganprepacademy/MorganPrepAcademyWebsiteDashboardDemo"
+    ),
+  "gifted-collective-microschool": () =>
+    import(
+      "@/components/demo/giftedcollectivemicroschool/GiftedCollectiveMicroschoolWebsiteDashboardDemo"
+    ),
+  "foothill-christian-academy": () =>
+    import(
+      "@/components/demo/foothillchristianacademy/FoothillChristianAcademyWebsiteDashboardDemo"
+    ),
+  "exodus-academy": () =>
+    import(
+      "@/components/demo/exodusacademy/ExodusAcademyWebsiteDashboardDemo"
+    ),
+  "elite-performance-prep-freeport": () =>
+    import(
+      "@/components/demo/eliteperformanceprepfreeport/ElitePerformancePrepFreeportWebsiteDashboardDemo"
+    ),
+  "desert-sun-ranch-academy": () =>
+    import(
+      "@/components/demo/desertsunranchacademy/DesertSunRanchAcademyWebsiteDashboardDemo"
+    ),
+  "desert-dragon-school": () =>
+    import(
+      "@/components/demo/desertdragonschool/DesertDragonSchoolWebsiteDashboardDemo"
+    ),
+  "choice-acton-academy": () =>
+    import(
+      "@/components/demo/choiceactonacademy/ChoiceActonAcademyWebsiteDashboardDemo"
+    ),
+  "bright-minds-future-leaders": () =>
+    import(
+      "@/components/demo/brightmindsfutureleaders/BrightMindsFutureLeadersWebsiteDashboardDemo"
+    ),
+  "bmf-microschools": () =>
+    import(
+      "@/components/demo/bmfmicroschools/BmfMicroschoolsWebsiteDashboardDemo"
+    ),
+  "blue-horizon-studio": () =>
+    import(
+      "@/components/demo/bluehorizonstudio/BlueHorizonStudioWebsiteDashboardDemo"
+    ),
+  "apogee-la-microschool": () =>
+    import(
+      "@/components/demo/apogeelamicroschool/ApogeeLaMicroschoolWebsiteDashboardDemo"
+    ),
+  "ahb-community-school": () =>
+    import(
+      "@/components/demo/ahbcommunityschool/AhbCommunitySchoolWebsiteDashboardDemo"
+    ),
+  "adelphia-classical-christian-academy": () =>
+    import(
+      "@/components/demo/adelphiaclassicalchristianacademy/AdelphiaClassicalChristianAcademyWebsiteDashboardDemo"
+    ),
+  "a-mind-of-magic-and-reason": () =>
+    import(
+      "@/components/demo/amindofmagicandreason/AMindOfMagicAndReasonWebsiteDashboardDemo"
+    ),
+  "book-hooks-schoolhouse": () =>
+    import(
+      "@/components/demo/bookhooksschoolhouse/BookHooksSchoolhouseWebsiteDashboardDemo"
+    ),
+  "spyrja-academy-new-braunfels": () =>
+    import(
+      "@/components/demo/spyrjaacademynewbraunfels/SpyrjaAcademyNewBraunfelsWebsiteDashboardDemo"
+    ),
+  "south-oc-hybrid-homeschool": () =>
+    import(
+      "@/components/demo/southochybridhomeschool/SouthOcHybridHomeschoolWebsiteDashboardDemo"
+    ),
+  "praxis-elite-sports-academy": () =>
+    import(
+      "@/components/demo/praxiselitesportsacademy/PraxisEliteSportsAcademyWebsiteDashboardDemo"
+    ),
+  "mirus-academy": () =>
+    import(
+      "@/components/demo/mirusacademy/MirusAcademyWebsiteDashboardDemo"
+    ),
+  "mcp-academy": () =>
+    import(
+      "@/components/demo/mcpacademy/McpAcademyWebsiteDashboardDemo"
+    ),
+  "journey-academy": () =>
+    import(
+      "@/components/demo/journeyacademy/JourneyAcademyWebsiteDashboardDemo"
+    ),
+  "innovation-academy-las-vegas": () =>
+    import(
+      "@/components/demo/innovationacademylv/InnovationAcademyLasVegasWebsiteDashboardDemo"
+    ),
+  "inner-fire-academy": () =>
+    import(
+      "@/components/demo/innerfireacademy/InnerFireAcademyWebsiteDashboardDemo"
+    ),
+  "the-wild-school": () =>
+    import(
+      "@/components/demo/thewildschool/TheWildSchoolWebsiteDashboardDemo"
+    ),
+  "esteam-academy-round-rock": () =>
+    import(
+      "@/components/demo/esteamacademy/EsteamAcademyRoundRockWebsiteDashboardDemo"
+    ),
+  "ignite-microschool": () =>
+    import(
+      "@/components/demo/ignitemicroschool/IgniteMicroschoolWebsiteDashboardDemo"
+    ),
+  "garden-school-marietta": () =>
+    import(
+      "@/components/demo/gardenschoolmarietta/GardenSchoolMariettaWebsiteDashboardDemo"
+    ),
+  "peninsular-prep": () =>
+    import(
+      "@/components/demo/peninsularprep/PeninsularPrepWebsiteDashboardDemo"
+    ),
+  "steps-learning-center": () =>
+    import(
+      "@/components/demo/stepslearningcenter/StepsLearningCenterWebsiteDashboardDemo"
+    ),
+  "sage-montessori-nashville": () =>
+    import(
+      "@/components/demo/sagemontessorinashville/SageMontessoriNashvilleWebsiteDashboardDemo"
+    ),
+  "renewed-roots-forest-school": () =>
+    import(
+      "@/components/demo/renewedroots/RenewedRootsForestSchoolWebsiteDashboardDemo"
+    ),
+  "prestige-wisdom-academy": () =>
+    import(
+      "@/components/demo/prestigewisdomacademy/PrestigeWisdomAcademyWebsiteDashboardDemo"
+    ),
+  "invictus-leander": () =>
+    import(
+      "@/components/demo/invictusleander/InvictusLeanderWebsiteDashboardDemo"
+    ),
+  "gods-little-people-learning-academy": () =>
+    import(
+      "@/components/demo/godslittlepeople/GodsLittlePeopleLearningAcademyWebsiteDashboardDemo"
+    ),
+  "everroot-academy": () =>
+    import(
+      "@/components/demo/everrootacademy/EverrootAcademyWebsiteDashboardDemo"
+    ),
+  "down-to-earth-homeschool": () =>
+    import(
+      "@/components/demo/downtoearthhomeschool/DownToEarthHomeschoolWebsiteDashboardDemo"
+    ),
+  "coys-camps-and-classes": () =>
+    import(
+      "@/components/demo/coyscampsandclasses/CoysCampsAndClassesWebsiteDashboardDemo"
+    ),
+  "coastal-sage-montessori": () =>
+    import(
+      "@/components/demo/coastalsagemontessori/CoastalSageMontessoriWebsiteDashboardDemo"
+    ),
+  "beacon-of-hope-academy": () =>
+    import(
+      "@/components/demo/beaconofhopeacademy/BeaconOfHopeAcademyWebsiteDashboardDemo"
+    ),
   "wild-hearts-adventure": () =>
     import(
       "@/components/demo/wildheartsadventure/WildHeartsAdventureWebsiteDashboardDemo"

@@ -2,7 +2,7 @@
 
 import HomeGardenShell from "@/components/garden/HomeGardenShell";
 import { Magnetic, Reveal, WordsReveal } from "@/components/garden/motion";
-import { Draw, Leaf, Pill, Squiggle, Star, Sun, Tape, btnPop } from "@/components/garden/ui";
+import { Draw, Leaf, Squiggle, Star, Sun, Tape, btnPop } from "@/components/garden/ui";
 import GardenOurStory from "@/components/about-garden/GardenOurStory";
 import GardenBookDemo from "@/components/home-garden/GardenBookDemo";
 import GardenFaq from "@/components/home-garden/GardenFaq";
@@ -68,8 +68,7 @@ function Hero() {
       <div className="mx-auto max-w-[1320px] px-6 sm:px-10 lg:px-12">
         <div className="grid items-center gap-16 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10">
           <div className="relative z-10">
-            <Pill tint="butter">🎁 {COPY.heroPill}</Pill>
-            <h1 className="sf-display mt-5 text-[11vw] leading-[0.92] text-[var(--sf-ink)] sm:text-6xl lg:text-[3.6rem] xl:text-[4.2rem]">
+            <h1 className="sf-display text-[11vw] leading-[0.92] text-[var(--sf-ink)] sm:text-6xl lg:text-[3.6rem] xl:text-[4.2rem]">
               <WordsReveal as="span" text={COPY.heroLead} immediate />{" "}
               <span className="relative isolate inline-block text-[var(--sf-clay)]">
                 <Draw className="pointer-events-none absolute -bottom-2 left-0 -z-10 w-full" delay={0.6}>
@@ -104,8 +103,6 @@ function ProductBand() {
       </Draw>
       <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
         <SectionIntro
-          pill={`🧺 ${COPY.productPill}`}
-          tint="forest"
           lead={PRODUCT_SHOWCASE_SECTION_COPY.heading}
           accent={PRODUCT_SHOWCASE_SECTION_COPY.headingAccent}
           squiggle="var(--sf-butter)"
@@ -137,8 +134,6 @@ function FinePrint() {
     <section id="fine-print" className="relative bg-[var(--sf-lav)]/40 py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
         <SectionIntro
-          pill={`📎 ${COPY.finePrintPill}`}
-          tint="lav"
           lead={COPY.finePrintLead}
           accent={COPY.finePrintAccent}
           squiggle="var(--sf-butter)"
@@ -177,8 +172,6 @@ function ClosingCta() {
           <Leaf />
         </Draw>
         <SectionIntro
-          pill={`🎁 ${GIFT_CARD_OFFER.amount} Amazon gift card`}
-          tint="clay"
           lead={COPY.closingLead}
           accent={COPY.closingAccent}
           squiggle="var(--sf-peach)"

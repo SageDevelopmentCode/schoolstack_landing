@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { WorkspaceProjectsSection } from '@/components/parent/committees/garden/projects/workspace-projects-section';
 import { WorkspaceCalendarSection } from '@/components/parent/committees/garden/sections/workspace-calendar-section';
@@ -35,6 +34,7 @@ import {
 import { getCommittee } from '@/lib/school-admin/committees/queries';
 import { getSupabaseClient } from '@/lib/supabase';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
+import { useStatusBarBleed } from '@/hooks/use-status-bar-bleed';
 
 const SECTION_ICONS: Partial<Record<CommitteeWorkspaceSection, keyof typeof Ionicons.glyphMap>> = {
   home: 'home-outline',
@@ -61,8 +61,7 @@ function resolveVisibleSection(configSections: CommitteeWorkspaceSection[], curr
 }
 
 function useDetailBleed() {
-  const insets = useSafeAreaInsets();
-  return { marginTop: -insets.top, paddingTop: insets.top };
+  return useStatusBarBleed();
 }
 
 type Props = {

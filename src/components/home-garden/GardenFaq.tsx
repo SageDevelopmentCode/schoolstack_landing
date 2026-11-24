@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { HOME_FAQ } from "@/lib/faq";
-import { Pill, Draw, Squiggle } from "@/components/garden/ui";
+import { Draw, Squiggle } from "@/components/garden/ui";
 import { Reveal, WordsReveal } from "@/components/garden/motion";
 
 const FAQ_COPY = {
@@ -40,8 +40,7 @@ export default function GardenFaq({
     <section className={`py-24 lg:py-32 ${className}`}>
       <div className="mx-auto grid max-w-7xl gap-12 px-6 sm:px-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-20 lg:px-16">
         <div className="lg:sticky lg:top-32 lg:self-start">
-          <Pill tint="lav">💬 {copy.eyebrow}</Pill>
-          <WordsReveal text={copy.heading} className="sf-display mt-5 text-5xl leading-[0.95] md:text-6xl" />
+          <WordsReveal text={copy.heading} className="sf-display text-5xl leading-[0.95] md:text-6xl" />
           <Draw className="mt-3 block w-48">
             <Squiggle color="var(--sf-lav)" className="w-full" />
           </Draw>

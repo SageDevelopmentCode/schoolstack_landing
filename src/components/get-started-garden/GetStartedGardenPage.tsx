@@ -41,8 +41,6 @@ function ProductBand() {
       <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
         <div>
           <SectionIntro
-            pill={`🧺 ${PRODUCT_SHOWCASE_SECTION_COPY.eyebrow}`}
-            tint="forest"
             lead={PRODUCT_SHOWCASE_SECTION_COPY.heading}
             accent={PRODUCT_SHOWCASE_SECTION_COPY.headingAccent}
             squiggle="var(--sf-butter)"
@@ -69,8 +67,6 @@ function Film() {
       <div className="mx-auto max-w-5xl px-6 sm:px-10 lg:px-16">
         <div>
           <SectionIntro
-            pill={`🎬 ${GET_STARTED_FILM_COPY.kicker}`}
-            tint="clay"
             lead={FILM_HEADING.lead}
             accent={FILM_HEADING.accent}
             squiggle="var(--sf-butter)"

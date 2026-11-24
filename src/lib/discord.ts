@@ -984,6 +984,28 @@ export async function notifyMobileOperationalError(payload: {
   );
 }
 
+/** A prospect school opened its free outreach snapshot: the best moment to follow up. */
+export async function notifyOutreachSnapshotViewed(payload: {
+  schoolName: string;
+  slug: string;
+  adminUrl: string;
+  /** True when they came from the QR card in the handwritten letter (`/hi/<code>`). */
+  viaLetter?: boolean;
+}) {
+  await sendDiscordEmbed({
+    title: payload.viaLetter ? "📮 Letter QR scanned" : "👀 Snapshot opened",
+    description: payload.viaLetter
+      ? `${payload.schoolName} scanned the QR card from your handwritten letter and opened their snapshot.`
+      : `${payload.schoolName} opened their family experience snapshot.`,
+    color: DISCORD_EMBED_COLORS.sales,
+    fields: [
+      embedField("School", truncate(payload.schoolName), true),
+      embedField("Demo", truncate(payload.slug), true),
+      embedField("Outreach", payload.adminUrl),
+    ],
+  });
+}
+
 export async function notifyMobileAppDownloadLead(payload: {
   leadId: string;
   name: string;

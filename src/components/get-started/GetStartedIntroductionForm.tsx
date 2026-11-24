@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowRight, Calendar, ChevronDown } from "lucide-react";
-import { Draw, Pill, Squiggle, btnPop } from "@/components/garden/ui";
+import { Draw, Squiggle, btnPop } from "@/components/garden/ui";
 import GardenBookingSteps from "@/components/get-started/garden/GardenBookingSteps";
 import PublicFormHoneypotField from "@/components/public-forms/PublicFormHoneypotField";
 import GetStartedRoleChoices from "@/components/get-started/GetStartedRoleChoices";
@@ -110,10 +110,7 @@ export default function GetStartedIntroductionForm({
         <form onSubmit={handleFormSubmit} noValidate>
           <PublicFormHoneypotField value={companyWebsite} onChange={onCompanyWebsiteChange} />
 
-          <Pill tint="clay" className="!text-xs">
-            <span aria-hidden="true">👋</span> {copy.kicker}
-          </Pill>
-          <Heading className="sf-display mt-4 text-4xl leading-[0.95] text-[var(--sf-ink)] sm:text-5xl">
+          <Heading className="sf-display text-4xl leading-[0.95] text-[var(--sf-ink)] sm:text-5xl">
             {copy.titleLead}{" "}
             <span className="relative isolate inline-block text-[var(--sf-clay)]">
               <Draw className="pointer-events-none absolute -bottom-2 left-0 -z-10 w-full" delay={0.2}>

@@ -7,7 +7,7 @@ import { NAV_CTA_LABEL, NAV_CTA_PATH, NAV_CTA_SHORT_LABEL } from "@/lib/marketin
 
 const NAV_LINKS = [
   { label: "About", href: "/about", icon: Info },
-  { label: "Product", href: "/#product", icon: Layers },
+  { label: "Features", href: "/features", icon: Layers },
 ];
 
 export default function Navbar() {

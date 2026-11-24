@@ -42,7 +42,7 @@ import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts-home";
 import { filterFamilyChildrenForProgramPortal } from "@/components/school-parent/children/parent-children-utils";
 import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
 import { listProgramCoopCurriculumDiscussionMessages } from "@/lib/admissions/program-coop-curriculum-discussion";
-import { listProgramCoopCurriculum } from "@/lib/admissions/program-coop-curriculum-storage";
+import { listProgramCoopCurriculum, signProgramCoopCurriculumUrls } from "@/lib/admissions/program-coop-curriculum-storage";
 import { buildProgramCoopFamilyNameMap } from "@/lib/admissions/program-coop-family-assignments";
 import { listProgramCoopSupplyList } from "@/lib/admissions/program-coop-supply-list-storage";
 import { listProgramCoopTeachingSchedule } from "@/lib/admissions/program-coop-teaching-schedule-storage";
@@ -385,14 +385,25 @@ export default async function FamilyPreviewProgramParentFeaturePage({
       .limit(1)
       .maybeSingle();
 
-    const [curricula, discussionMessages] = await Promise.all([
-      listProgramCoopCurriculum(admin, programContext.programId),
-      listProgramCoopCurriculumDiscussionMessages(admin, {
-        organizationId: org.id,
-        programId: programContext.programId,
-        curriculumId: null,
-      }),
+    const curricula = await listProgramCoopCurriculum(admin, programContext.programId);
+    // Preview can't call parent-only APIs with the admin session: sign the
+    // PDFs and load every thread (General + one per guide, at most 6) here.
+    const threadIds: Array<string | null> = [null, ...curricula.map((record) => record.id)];
+    const [signedUrls, threadMessages] = await Promise.all([
+      signProgramCoopCurriculumUrls(admin, curricula),
+      Promise.all(
+        threadIds.map((curriculumId) =>
+          listProgramCoopCurriculumDiscussionMessages(admin, {
+            organizationId: org.id,
+            programId: programContext.programId,
+            curriculumId,
+          }),
+        ),
+      ),
     ]);
+    const initialThreadMessages = Object.fromEntries(
+      threadIds.map((curriculumId, index) => [curriculumId ?? "general", threadMessages[index] ?? []]),
+    );
 
     return (
       <SchoolParentPageShell title={pageName} layout="embedded">
@@ -400,7 +411,8 @@ export default async function FamilyPreviewProgramParentFeaturePage({
           organizationId={org.id}
           programId={programContext.programId}
           curricula={curricula}
-          initialDiscussionMessages={discussionMessages}
+          signedUrls={signedUrls}
+          initialThreadMessages={initialThreadMessages}
           currentGuardianId={previewGuardian?.id ? String(previewGuardian.id) : null}
           previewMode
         />

@@ -9,6 +9,7 @@ import {
   type CoopSupplyMonth,
   type SupplyItemType,
   type SupplyUsageTiming,
+  supplyColorLegendDisplayLabel,
 } from "./program-coop-supply-list-mock";
 
 export type CoopSupplyListAssignmentFilterParent =
@@ -206,7 +207,7 @@ export function coopSupplyColorFilterOptions(
     { value: "none", label: "No highlight" },
     ...colorLegend.map((entry) => ({
       value: entry.id,
-      label: entry.label,
+      label: supplyColorLegendDisplayLabel(entry),
     })),
   ];
 }

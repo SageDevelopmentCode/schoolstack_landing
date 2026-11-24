@@ -4,7 +4,7 @@ import Image from "next/image";
 import { ArrowRight, ExternalLink } from "lucide-react";
 import { BOOK_DEMO_HASH_HREF } from "@/lib/marketing/book-demo";
 import { Magnetic, Reveal, WordsReveal } from "@/components/garden/motion";
-import { Draw, Pill, Squiggle, Sun, btnOutline, btnPop } from "@/components/garden/ui";
+import { Draw, Squiggle, Sun, btnOutline, btnPop } from "@/components/garden/ui";
 import Polaroid from "@/components/home-garden/Polaroid";
 import { SAGEFIELD_PHOTOS } from "@/components/home-garden/assets";
 import { HERO_COPY, PROOF_ITEMS, SAGEFIELD_LOGO_SRC, SAGEFIELD_SITE_URL } from "./sagefield-copy";
@@ -25,7 +25,6 @@ export default function SagefieldGardenHero() {
             <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white p-1.5 ring-2 ring-[var(--sf-ink)]">
               <Image src={SAGEFIELD_LOGO_SRC} alt="Sage Field logo" width={36} height={36} className="h-full w-full object-contain" />
             </span>
-            <Pill tint="clay">🎟️ {HERO_COPY.pill}</Pill>
             <span className="text-sm font-extrabold text-[var(--sf-soft)]">{HERO_COPY.meta}</span>
             <a
               href={SAGEFIELD_SITE_URL}

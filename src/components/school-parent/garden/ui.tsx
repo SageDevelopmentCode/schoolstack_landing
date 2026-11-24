@@ -312,7 +312,7 @@ export function ChildPhoto({
   className = "",
   textClass = "text-4xl",
 }: {
-  child: FamilyChildOverview;
+  child: Pick<FamilyChildOverview, "studentName" | "profilePhotoUrl">;
   index: number;
   className?: string;
   textClass?: string;
@@ -346,7 +346,7 @@ export function ChildThumb({
   size = "md",
   tilt = 0,
 }: {
-  child: FamilyChildOverview;
+  child: Pick<FamilyChildOverview, "studentName" | "profilePhotoUrl">;
   index: number;
   size?: "sm" | "md" | "lg";
   tilt?: number;

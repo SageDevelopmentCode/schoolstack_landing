@@ -3,7 +3,6 @@ import { useCallback, useRef, type ReactNode } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   CalendarPortalProvider,
@@ -34,6 +33,7 @@ import { Garden, PORTAL_EASE, useGardenAccent } from '@/components/parent/garden
 import { GErrorCard, GOutlineButton } from '@/components/parent/garden/ui';
 import { haptic } from '@/lib/haptics';
 import type { OrganizationEvent } from '@/lib/school-events/types';
+import { useStatusBarBleed } from '@/hooks/use-status-bar-bleed';
 
 const SWIPE_DISTANCE = 60;
 
@@ -70,7 +70,7 @@ export function ParentCalendarGardenScreen({
   portal?: CalendarPortal;
   manage?: CalendarManage;
 }) {
-  const insets = useSafeAreaInsets();
+  const statusBarBleed = useStatusBarBleed();
   const accent = useGardenAccent();
   const { calendar } = controller;
   const model = useParentCalendarModel(controller, {
@@ -115,7 +115,7 @@ export function ParentCalendarGardenScreen({
     return <ParentCalendarGardenSkeleton />;
   }
 
-  const rootStyle = [styles.root, { marginTop: -insets.top, paddingTop: insets.top }];
+  const rootStyle = [styles.root, statusBarBleed];
 
   if (controller.error && !controller.hasData) {
     return (

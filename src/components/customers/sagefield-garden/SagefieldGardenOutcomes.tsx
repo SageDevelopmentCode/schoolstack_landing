@@ -34,8 +34,6 @@ export default function SagefieldGardenOutcomes() {
     <section id="outcomes" className="relative scroll-mt-24 bg-[var(--sf-sky)]/35 py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
         <SectionIntro
-          pill={`🧺 ${OUTCOMES_COPY.eyebrow}`}
-          tint="forest"
           lead={OUTCOMES_COPY.headlineLead}
           accent={OUTCOMES_COPY.headlineAccent}
           accentColor="text-[var(--sf-forest)]"

@@ -91,6 +91,64 @@ export async function getParentVisibleClassroomSignup(
   return visible ? signup : null;
 }
 
+/**
+ * Of `signupIds`, the ones this family would see on its Classroom signups page:
+ * open signups whose audience includes the family, and closed signups the
+ * family confirmed. Used to keep signup notifications to that same audience.
+ */
+export async function listParentVisibleSignupIds(
+  admin: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+  signupIds: string[],
+): Promise<Set<string>> {
+  const visible = new Set<string>();
+  const uniqueIds = [...new Set(signupIds)];
+  if (uniqueIds.length === 0) return visible;
+
+  const { data: signups, error: signupsError } = await admin
+    .from("classroom_signups")
+    .select(CLASSROOM_SIGNUP_SELECT)
+    .eq("organization_id", organizationId)
+    .in("id", uniqueIds)
+    .in("status", ["open", "closed"]);
+
+  if (signupsError) throw signupsError;
+
+  const signupRows = (signups ?? []) as ClassroomSignupRow[];
+  if (signupRows.length === 0) return visible;
+
+  const { data: responses, error: responsesError } = await admin
+    .from("classroom_signup_responses")
+    .select("signup_id, status")
+    .eq("organization_id", organizationId)
+    .eq("family_id", familyId)
+    .in(
+      "signup_id",
+      signupRows.map((row) => String(row.id)),
+    );
+
+  if (responsesError) throw responsesError;
+
+  const confirmedSignupIds = new Set(
+    (responses ?? [])
+      .filter((row) => row.status === "confirmed")
+      .map((row) => String(row.signup_id)),
+  );
+
+  for (const row of signupRows) {
+    const signup = mapClassroomSignupRow(row);
+    if (signup.status === "closed" && !confirmedSignupIds.has(signup.id)) {
+      continue;
+    }
+    if (await isFamilyInSignupAudience(admin, signup, familyId)) {
+      visible.add(signup.id);
+    }
+  }
+
+  return visible;
+}
+
 export async function loadParentClassroomSignupsPageData(
   admin: SupabaseClient,
   organizationId: string,

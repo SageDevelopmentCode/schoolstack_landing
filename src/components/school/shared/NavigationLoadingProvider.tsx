@@ -129,10 +129,13 @@ export default function NavigationLoadingProvider({
   }, [hideWithMinDuration, pathname]);
 
   useEffect(() => {
-    if (!visible) return;
     if (previousPathnameRef.current === pathname) return;
 
+    // Track every pathname change, not only ones made while the splash shows:
+    // a stale ref (after back/forward or router.push) would hide the next
+    // splash as soon as it opened, before its navigation finished.
     previousPathnameRef.current = pathname;
+    if (!visible) return;
     hideWithMinDuration();
 
     return clearHideTimeout;

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, Check, ChevronRight, Copy, Loader2, Search, X, type LucideIcon } from "lucide-react";
+import { ArrowRight, Check, ChevronRight, Copy, Loader2, type LucideIcon } from "lucide-react";
 import { adminToast } from "@/lib/school-admin/admin-toast";
 import GSidePanel from "@/components/school-parent/garden/GSidePanel";
 import { ParentGardenScope } from "@/components/school-parent/garden/ParentGardenFrame";
@@ -12,7 +12,6 @@ import {
   GChip,
   GSkeleton,
   G_FOCUS,
-  G_INPUT,
   PANEL_TINTS,
   gBtnOnAccent,
   gBtnOutlineSm,
@@ -22,6 +21,7 @@ import {
 } from "@/components/school-parent/garden/ui";
 import { useHydrated } from "@/hooks/useHydrated";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { GSearchInput as GardenSearchInput } from "@/components/school-parent/garden/fields";
 import { useAdminGardenSkin } from "./skin";
 import { BusyLabel, GardenFilterChips, type GardenFilterOption } from "./kit";
 import { GardenLoadError } from "@/components/school-admin/dashboard/garden/shared";
@@ -191,50 +191,7 @@ export function GardenLeadStrip({
 /* Search                                                              */
 /* ------------------------------------------------------------------ */
 
-export function GardenSearchInput({
-  value,
-  onChange,
-  placeholder,
-  label,
-  className = "",
-  "data-testid": testId,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-  label: string;
-  className?: string;
-  "data-testid"?: string;
-}) {
-  return (
-    <div className={`relative ${className}`}>
-      <Search
-        className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--sf-ink)]/45"
-        aria-hidden
-      />
-      <input
-        type="search"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        aria-label={label}
-        data-garden-skip
-        data-testid={testId}
-        className={`${G_INPUT} !pl-10 ${value ? "!pr-10" : ""}`}
-      />
-      {value ? (
-        <button
-          type="button"
-          onClick={() => onChange("")}
-          aria-label="Clear search"
-          className={`absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-[var(--sf-ink)]/55 hover:bg-[var(--sf-ink)]/[0.06] hover:text-[var(--sf-ink)] ${G_FOCUS}`}
-        >
-          <X className="h-3.5 w-3.5" aria-hidden />
-        </button>
-      ) : null}
-    </div>
-  );
-}
+export { GardenSearchInput };
 
 /* ------------------------------------------------------------------ */
 /* Record list (list + detail pages)                                   */
@@ -426,30 +383,7 @@ export function GardenRecordList({
 /* Table recipe                                                        */
 /* ------------------------------------------------------------------ */
 
-export const G_TABLE = "w-full border-separate border-spacing-0 text-left";
-export const G_TH =
-  "border-b-[1.5px] border-[var(--sf-ink)]/10 px-3 pb-2.5 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[var(--sf-soft)]";
-export const G_TD = "border-b border-[var(--sf-ink)]/[0.06] px-3 py-3 align-middle";
-
-export function gRowClass({
-  selected = false,
-  flashed = false,
-  interactive = false,
-}: {
-  selected?: boolean;
-  flashed?: boolean;
-  interactive?: boolean;
-}): string {
-  return `transition-colors duration-300 ${interactive ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--sf-clay)]/45" : ""} ${
-    flashed
-      ? "bg-[var(--sf-mint)]"
-      : selected
-        ? "bg-[var(--sf-accent-wash)]"
-        : interactive
-          ? "hover:bg-[var(--sf-accent-wash)]"
-          : ""
-  }`;
-}
+export { G_TABLE, G_TH, G_TD, gRowClass } from "@/components/school-parent/garden/fields";
 
 /** Dims content and shows a spinner while a list refetches. */
 export function GardenRefetchVeil({ active, children }: { active: boolean; children: ReactNode }) {

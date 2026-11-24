@@ -13,7 +13,6 @@ import {
   NEXT_KICKER,
   NEXT_SUPPORT,
   NEXT_TITLE,
-  PLANNER_KICKER,
   PLANNER_SUPPORT,
 } from "@/components/marketing/tuition-planner/planner-copy";
 import { plannerFocusClass, TUITION_PLANNER_THEME } from "@/components/marketing/tuition-planner/planner-theme";
@@ -142,8 +141,6 @@ export default function TuitionPlannerExperience() {
 
       <div className="mb-7 flex flex-col gap-4 max-[760px]:block sm:flex-row sm:items-end sm:justify-between">
         <MarketingToolHero
-          eyebrow={`💵 ${PLANNER_KICKER}`}
-          tint="sky"
           lead="What would your annual tuition revenue"
           accent="be?"
           description={PLANNER_SUPPORT}

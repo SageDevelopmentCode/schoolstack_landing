@@ -12,6 +12,7 @@ import {
   type OutreachDirection,
   type OutreachEmailRecord,
 } from "@/lib/admin-crm/demo-outreach-types";
+import { fetchAllPostgrestRows } from "@/lib/supabase/fetch-all-rows";
 
 export type SchoolRow = {
   id: string;
@@ -287,4 +288,37 @@ export async function deleteDemoOutreachTouch(
   if (error) throw error;
   const schoolId = ((data ?? []) as { school_id: string }[])[0]?.school_id;
   return schoolId ? loadOutreach(supabase, schoolId) : null;
+}
+
+/**
+ * Every school's sent steps and logged touches, keyed by `schools.id` (for /admin/research).
+ * Pages past PostgREST's row cap so older steps and mailed letters stay in each history.
+ */
+export async function listSchoolOutreachLogs(
+  supabase: SupabaseClient,
+): Promise<Record<string, { emails: OutreachEmailRecord[]; touches: DemoOutreachTouch[] }>> {
+  const [emailRows, touchRows] = await Promise.all([
+    fetchAllPostgrestRows(async (from, to) =>
+      supabase
+        .from("crm_outreach_emails")
+        .select(EMAIL_COLUMNS)
+        .order("sent_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to),
+    ),
+    fetchAllPostgrestRows(async (from, to) =>
+      supabase
+        .from("crm_outreach_touches")
+        .select(TOUCH_COLUMNS)
+        .order("occurred_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to),
+    ),
+  ]);
+
+  const result: Record<string, { emails: OutreachEmailRecord[]; touches: DemoOutreachTouch[] }> = {};
+  const entry = (schoolId: string) => (result[schoolId] ??= { emails: [], touches: [] });
+  for (const row of emailRows as EmailRow[]) entry(row.school_id).emails.push(toEmailRecord(row));
+  for (const row of touchRows as TouchRow[]) entry(row.school_id).touches.push(toTouch(row));
+  return result;
 }

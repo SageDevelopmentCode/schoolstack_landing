@@ -13,8 +13,8 @@ import {
   resolveParentBottomChromeHeight,
   shouldShowParentCoopTabBarBanner,
 } from '@/components/parent/parent-portal-coop-tab-bar-banner';
-import { ParentPortalCoopTabBarBannerSkeleton } from '@/components/parent/parent-portal-program-chrome-skeleton';
 import { ParentFloatingTabBar } from '@/components/parent/parent-floating-tab-bar';
+import { ParentHomeSkeleton } from '@/components/parent/parent-home-skeleton';
 import { useMessagesUnread } from '@/contexts/messages-unread-context';
 import { useParentPortalContext } from '@/contexts/parent-portal-context';
 import {
@@ -25,6 +25,7 @@ import {
   parentProgramTabRoute,
   isParentMoreMenuItemActive,
   resolveParentMoreMenuNavigationTarget,
+  shouldHoldParentMainPortal,
   type ParentMoreMenuItemId,
   type ParentTab,
 } from '@/lib/parent/parent-nav';
@@ -65,9 +66,21 @@ export function ParentPortalShell() {
     }
   }, [organizationId, slug]);
 
+  // Co-op-only families get redirected into their program once contexts load; until then
+  // show the skeleton instead of the main Home so nothing flashes.
+  const holdMainPortal = shouldHoldParentMainPortal({
+    contextsLoading: portalContextsLoading,
+    activeProgramSlug,
+    redirectAwayFromMainPortal,
+    pathname,
+  });
+
   const pathTab = getParentActiveTabFromPathname(pathname, tabBarTabs);
   const activeTab = moreSheetOpen ? 'more' : pathTab;
-  const showTabBar = pathTab !== null;
+  // Until contexts load, tabBarTabs is the main-portal fallback (Billing etc.). The redirect into a
+  // program replaces the root stack route, so the whole parent tree remounts and loads again;
+  // keep the tab bar hidden while loading so co-op families never see the main tabs.
+  const showTabBar = pathTab !== null && !holdMainPortal && !portalContextsLoading;
 
   const showCoopTabBarBanner = useMemo(
     () =>
@@ -80,11 +93,7 @@ export function ParentPortalShell() {
     [activeContext, activePortalFeatures?.coopMode, activePortalFeatures?.programLabel, showSwitcher],
   );
 
-  const showCoopTabBarBannerSkeleton = Boolean(
-    portalContextsLoading && activeProgramSlug && !showCoopTabBarBanner,
-  );
-  const reserveCoopBannerChrome = showCoopTabBarBanner || showCoopTabBarBannerSkeleton;
-  const bottomChromeHeight = resolveParentBottomChromeHeight(reserveCoopBannerChrome);
+  const bottomChromeHeight = resolveParentBottomChromeHeight(showCoopTabBarBanner);
 
   useEffect(() => {
     void refreshUnreadCount();
@@ -161,8 +170,6 @@ export function ParentPortalShell() {
   const coopBanner =
     showCoopTabBarBanner && activePortalFeatures?.programLabel ? (
       <ParentPortalCoopTabBarBanner programLabel={activePortalFeatures.programLabel} />
-    ) : showCoopTabBarBannerSkeleton ? (
-      <ParentPortalCoopTabBarBannerSkeleton />
     ) : null;
 
   return (
@@ -171,14 +178,18 @@ export function ParentPortalShell() {
       <GardenToastProvider bottomOffset={showTabBar ? bottomChromeHeight + 10 : 12}>
         {isPreview ? <PortalPreviewBanner onExit={() => void exitPreview()} /> : null}
         <View
-          testID={showTabBar && !portalContextsLoading ? 'parent-portal-ready' : undefined}
+          testID={showTabBar ? 'parent-portal-ready' : undefined}
           style={[
             styles.content,
             showTabBar ? { paddingBottom: bottomChromeHeight } : null,
           ]}>
-          <AnimatedTabContent transitionKey={showTabBar ? pathTab : null}>
-            <Slot />
-          </AnimatedTabContent>
+          {holdMainPortal ? (
+            <ParentHomeSkeleton />
+          ) : (
+            <AnimatedTabContent transitionKey={showTabBar ? pathTab : null}>
+              <Slot />
+            </AnimatedTabContent>
+          )}
         </View>
         {showTabBar && activeTab ? (
           <ParentFloatingTabBar

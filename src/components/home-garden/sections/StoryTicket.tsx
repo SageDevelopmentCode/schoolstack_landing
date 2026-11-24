@@ -19,8 +19,6 @@ export default function StoryTicket() {
       </Draw>
       <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
         <SectionIntro
-          pill={`🌳 ${STORY_COPY.badge}`}
-          tint="forest"
           lead={STORY_COPY.headlineLead}
           accent={STORY_COPY.headlineAccent}
           accentColor="text-[var(--sf-forest)]"

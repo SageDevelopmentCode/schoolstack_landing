@@ -3,7 +3,13 @@
  * Shared by the admin UI, the send API and the plan validator test.
  */
 import type { CrmStatus } from "@/lib/admin-crm/crm-status";
-import { OUTREACH_FILL_IN_TOKENS, type OutreachPlan, type OutreachStep } from "@/data/outreach/types";
+import {
+  LETTER_TO_FIRST_EMAIL_BUSINESS_DAYS,
+  OUTREACH_FILL_IN_TOKENS,
+  SNAPSHOT_LINK_TOKEN,
+  type OutreachPlan,
+  type OutreachStep,
+} from "@/data/outreach/types";
 
 // ── Footer and rendering ──────────────────────────────────────────────────────
 
@@ -94,7 +100,23 @@ export function countWords(text: string): number {
 }
 
 function countLinks(text: string): number {
-  return (text.match(/https?:\/\/\S+|\{loom link\}/gi) ?? []).length;
+  return (text.match(/https?:\/\/\S+|\{loom link\}|\{snapshot link\}/gi) ?? []).length;
+}
+
+/** Path of a plan's free snapshot page, or null when it has none. */
+export function snapshotPath(plan: Pick<OutreachPlan, "slug" | "snapshot"> | null): string | null {
+  if (!plan?.snapshot) return null;
+  return `/snapshot/${plan.slug}/${plan.snapshot.token}`;
+}
+
+/**
+ * Replaces `{snapshot link}` with the plan's snapshot URL. Left as-is when the plan has no
+ * snapshot, so the placeholder check blocks the send.
+ */
+export function fillSnapshotLink(body: string, plan: Pick<OutreachPlan, "slug" | "snapshot"> | null, siteUrl: string): string {
+  const path = snapshotPath(plan);
+  if (!path || !body.includes(SNAPSHOT_LINK_TOKEN)) return body;
+  return body.split(SNAPSHOT_LINK_TOKEN).join(`${siteUrl.replace(/\/+$/, "")}${path}`);
 }
 
 /** Leftover `{…}` tokens. `allowFillIns` keeps the known send-time tokens (for plan files). */
@@ -171,6 +193,7 @@ export function hasBlockingWarning(warnings: OutreachWarning[]): boolean {
 // ── Funnel: what's next for a school ─────────────────────────────────────────
 
 export type OutreachStage =
+  | "letter"
   | "due"
   | "ready"
   | "waiting"
@@ -180,6 +203,7 @@ export type OutreachStage =
   | "needs_research";
 
 export const OUTREACH_STAGE_ORDER: OutreachStage[] = [
+  "letter",
   "due",
   "ready",
   "waiting",
@@ -190,6 +214,7 @@ export const OUTREACH_STAGE_ORDER: OutreachStage[] = [
 ];
 
 export const OUTREACH_STAGE_LABEL: Record<OutreachStage, string> = {
+  letter: "Letter to mail",
   due: "Follow-up due",
   ready: "Ready to send",
   waiting: "Waiting",
@@ -241,6 +266,8 @@ export function nextOutreachStep(input: {
   plan: OutreachPlan | null;
   completed: CompletedStep[];
   crmStatus: CrmStatus;
+  /** When the plan's handwritten letter was mailed (see `letterMailedAt`), or null. */
+  letterMailedAt?: string | null;
   now?: Date;
 }): NextOutreachStep {
   const { plan, completed, crmStatus } = input;
@@ -261,7 +288,14 @@ export function nextOutreachStep(input: {
 
   if (!first) {
     const firstStep = plan.steps.find((s) => s.id === "first") ?? null;
-    return { stage: firstStep ? "ready" : "needs_research", step: firstStep, dueAt: null };
+    if (!firstStep) return { stage: "needs_research", step: null, dueAt: null };
+    // With a handwritten letter, the letter goes first and the first email follows once it has landed.
+    if (plan.letter) {
+      if (!input.letterMailedAt) return { stage: "letter", step: firstStep, dueAt: null };
+      const due = addBusinessDays(input.letterMailedAt, LETTER_TO_FIRST_EMAIL_BUSINESS_DAYS);
+      return { stage: due.getTime() <= endOfDay(now) ? "due" : "waiting", step: firstStep, dueAt: due.toISOString() };
+    }
+    return { stage: "ready", step: firstStep, dueAt: null };
   }
 
   const next = remaining[0];

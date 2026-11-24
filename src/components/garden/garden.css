@@ -415,3 +415,19 @@ html:has(.lenis) {
   from { transform: translateX(-100%); }
   to { transform: none; }
 }
+
+/* Portal loading splash (src/components/school/shared/GardenLoadingSplash.tsx):
+   a delayed fade so fast navigations don't flash, a small pop for the card,
+   and the staggered 4px dot bounce from the Expo splash. */
+@keyframes sf-loading-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes sf-loading-pop {
+  from { transform: scale(0.96); }
+  to { transform: none; }
+}
+@keyframes sf-loading-bounce {
+  0%, 71%, 100% { transform: translateY(0); }
+  35% { transform: translateY(-4px); }
+}

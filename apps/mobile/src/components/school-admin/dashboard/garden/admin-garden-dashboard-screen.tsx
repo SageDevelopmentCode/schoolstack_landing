@@ -2,7 +2,6 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AttendanceRosterPanel } from '@/components/attendance/attendance-roster-panel';
 import { PortalAccountSheet } from '@/components/portal-account-sheet';
@@ -34,6 +33,7 @@ import type { AttendanceRosterSummary } from '@/lib/attendance/attendance-types'
 import { haptic } from '@/lib/haptics';
 import { registerPortalMemoryClear } from '@/lib/portal-cache';
 import type { MobileAdminDashboardSummary } from '@/lib/school-admin/dashboard-summary-types';
+import { useStatusBarBleed } from '@/hooks/use-status-bar-bleed';
 
 type DashboardTab = 'overview' | 'attendance';
 
@@ -93,9 +93,8 @@ export function AdminGardenDashboardScreen(props: AdminGardenDashboardScreenProp
 }
 
 function useTopBleed() {
-  const insets = useSafeAreaInsets();
   // Tab route: cream runs under the status bar (the layout SafeAreaView pads the top).
-  return { marginTop: -insets.top, paddingTop: insets.top };
+  return useStatusBarBleed();
 }
 
 function DashboardContent({ controller }: { controller: AdminDashboardController }) {

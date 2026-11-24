@@ -436,6 +436,166 @@ describe("filterParentActivityEventsForFamily org-wide gallery", () => {
   });
 });
 
+function createSignupAudienceSupabase(options: {
+  signups: Array<Record<string, unknown>>;
+  /** enrollment_classrooms rows for the signup's classroom. */
+  classroomEnrollments: Array<{ family_id: string; student_id: string }>;
+  responses?: Array<{ signup_id: string; status: string }>;
+}): SupabaseClient {
+  function createQueryChain(resolveData: () => unknown[]) {
+    const chain = {
+      select() {
+        return chain;
+      },
+      eq() {
+        return chain;
+      },
+      in() {
+        return chain;
+      },
+      not() {
+        return chain;
+      },
+      order() {
+        return chain;
+      },
+      limit() {
+        return chain;
+      },
+      maybeSingle() {
+        return Promise.resolve({ data: null, error: null });
+      },
+      then(onFulfilled: (value: { data: unknown[]; error: null }) => unknown) {
+        return Promise.resolve(onFulfilled({ data: resolveData(), error: null }));
+      },
+    };
+    return chain;
+  }
+
+  return {
+    from(table: string) {
+      if (table === "classroom_signups") {
+        return createQueryChain(() => options.signups);
+      }
+      if (table === "classroom_signup_responses") {
+        return createQueryChain(() => options.responses ?? []);
+      }
+      if (table === "enrollment_classrooms") {
+        return createQueryChain(() =>
+          options.classroomEnrollments.map((row) => ({
+            enrollments: {
+              student_id: row.student_id,
+              status: "enrolled",
+              students: { family_id: row.family_id },
+            },
+          })),
+        );
+      }
+      return createQueryChain(() => []);
+    },
+  } as unknown as SupabaseClient;
+}
+
+describe("filterParentActivityEventsForFamily classroom signups", () => {
+  const signupRow = (status: string) => ({
+    id: "signup-1",
+    organization_id: "org-1",
+    title: "Snack Time",
+    status,
+    audience: "classrooms",
+    classroom_id: null,
+    classroom_ids: ["classroom-meraki"],
+    created_by_staff_member_id: "staff-1",
+    staff_members: { first_name: "Rachael", last_name: "S" },
+    classrooms: null,
+  });
+
+  const signupEvent = (action: string) => ({
+    id: `event-${action}`,
+    action,
+    entity_type: "classroom_signup",
+    entity_id: "signup-1",
+    summary: 'Rachael published "Snack Time"',
+    metadata: { signupId: "signup-1", signupTitle: "Snack Time" },
+    created_at: "2026-11-23T22:28:00.000Z",
+  });
+
+  it("shows a published signup to a family in its classroom", async () => {
+    const supabase = createSignupAudienceSupabase({
+      signups: [signupRow("open")],
+      classroomEnrollments: [{ family_id: "family-meraki", student_id: "s-1" }],
+    });
+
+    const filtered = await filterParentActivityEventsForFamily(
+      supabase,
+      "org-1",
+      "family-meraki",
+      [signupEvent(ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED)],
+    );
+
+    assert.equal(filtered.length, 1);
+  });
+
+  it("hides a published signup from a family outside its audience", async () => {
+    const supabase = createSignupAudienceSupabase({
+      signups: [signupRow("open")],
+      classroomEnrollments: [{ family_id: "family-meraki", student_id: "s-1" }],
+    });
+
+    const filtered = await filterParentActivityEventsForFamily(
+      supabase,
+      "org-1",
+      "family-other",
+      [signupEvent(ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED)],
+    );
+
+    assert.equal(filtered.length, 0);
+  });
+
+  it("hides signup events when the signup no longer exists or is a draft", async () => {
+    const supabase = createSignupAudienceSupabase({
+      signups: [],
+      classroomEnrollments: [{ family_id: "family-meraki", student_id: "s-1" }],
+    });
+
+    const filtered = await filterParentActivityEventsForFamily(
+      supabase,
+      "org-1",
+      "family-meraki",
+      [signupEvent(ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED)],
+    );
+
+    assert.equal(filtered.length, 0);
+  });
+
+  it("shows a closed signup only to an audience family that signed up", async () => {
+    const closedEvent = signupEvent(ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED);
+
+    const notSignedUp = await filterParentActivityEventsForFamily(
+      createSignupAudienceSupabase({
+        signups: [signupRow("closed")],
+        classroomEnrollments: [{ family_id: "family-meraki", student_id: "s-1" }],
+      }),
+      "org-1",
+      "family-meraki",
+      [closedEvent],
+    );
+    assert.equal(notSignedUp.length, 0);
+
+    const signedUp = await filterParentActivityEventsForFamily(
+      createSignupAudienceSupabase({
+        signups: [signupRow("closed")],
+        classroomEnrollments: [{ family_id: "family-meraki", student_id: "s-1" }],
+        responses: [{ signup_id: "signup-1", status: "confirmed" }],
+      }),
+      "org-1",
+      "family-meraki",
+      [closedEvent],
+    );
+    assert.equal(signedUp.length, 1);
+  });
+});
+
 describe("filterParentActivityEventsForFamily committee broadcasts", () => {
   const organizationId = "org-1";
   const familyId = "family-1";

@@ -4,8 +4,17 @@ import type { ReactNode } from "react";
  * avatar: profile picture (1080², shown cropped to a circle).
  * app-icon: 1024², full bleed, masked by the OS.
  * cover: wide social banner (see COVER_FORMATS).
+ * ios-header: App Store artwork (see IOS_HEADER_FORMATS).
+ * link-preview: 1200×630 Open Graph card for one public page (see src/lib/marketing/link-previews.ts).
+ * logo: transparent die-cut logo sticker for print (exported at LOGO_SCALE × its stage).
  */
-export type BrandMarkKind = "avatar" | "app-icon" | "cover";
+export type BrandMarkKind = "avatar" | "app-icon" | "cover" | "ios-header" | "link-preview" | "logo";
+
+/** Logo stickers: which list they sit in (also the folder in the zip). */
+export type LogoSection = "bowl" | "wordmark" | "badge";
+
+/** Logo stickers are drawn on a 1080-unit stage and exported at 3× (3240px ≈ 10.8 in at 300 dpi). */
+export const LOGO_SCALE = 3;
 
 export type BrandMarkGroup = "everyday" | "crew" | "seasonal";
 
@@ -59,6 +68,49 @@ export const COVER_FORMATS: Record<CoverFormat, CoverFormatSpec> = {
 
 export const COVER_FORMAT_ORDER: CoverFormat[] = ["facebook", "linkedin-page", "linkedin-profile"];
 
+export type IosHeaderFormat = "ios-16x9" | "ios-ultrawide";
+
+type IosHeaderFormatSpec = {
+  label: string;
+  short: string;
+  /** Exported PNG size. */
+  width: number;
+  height: number;
+  /** Design units (output is exactly 2× the stage). */
+  stage: { w: number; h: number };
+  /** Keep faces and words in here: Apple may crop the sides and top on smaller layouts. */
+  safe: Rect;
+  /** Bottom band where the App Store may lay the app name and subtitle over the art. */
+  overlay: Rect;
+};
+
+/**
+ * App Store artwork. The safe zone and title band are our own conservative guesses (a centred ~70% × 64%
+ * box with the bottom ~22% kept free), not published Apple numbers — tweak them here if Apple's template differs.
+ */
+export const IOS_HEADER_FORMATS: Record<IosHeaderFormat, IosHeaderFormatSpec> = {
+  "ios-16x9": {
+    label: "App Store artwork · 16:9",
+    short: "16:9 · 5244×2950",
+    width: 5244,
+    height: 2950,
+    stage: { w: 2622, h: 1475 },
+    safe: { x: 393, y: 206, w: 1836, h: 944 },
+    overlay: { x: 0, y: 1150, w: 2622, h: 325 },
+  },
+  "ios-ultrawide": {
+    label: "App Store artwork · ultrawide",
+    short: "Ultrawide · 3840×1646",
+    width: 3840,
+    height: 1646,
+    stage: { w: 1920, h: 823 },
+    safe: { x: 288, y: 115, w: 1344, h: 527 },
+    overlay: { x: 0, y: 642, w: 1920, h: 181 },
+  },
+};
+
+export const IOS_HEADER_FORMAT_ORDER: IosHeaderFormat[] = ["ios-16x9", "ios-ultrawide"];
+
 /** Profile pictures and app icons are drawn on a 1080-unit square stage. */
 export const SQUARE_STAGE = 1080;
 export const SQUARE_OUTPUT: Record<"avatar" | "app-icon", number> = { avatar: 1080, "app-icon": 1024 };
@@ -79,8 +131,15 @@ export type BrandMark = {
   height: number;
   /** Units the design is drawn in (scaled to width × height). */
   stage: { w: number; h: number };
-  /** Covers: the design these format variants share, and which format this one is. */
+  /** Covers and App Store artwork: the design these format variants share, and which format this one is. */
   concept?: string;
   format?: CoverFormat;
+  /** App Store artwork: which size, and whether this is the art-only version. */
+  iosFormat?: IosHeaderFormat;
+  textless?: boolean;
+  /** Link previews: the routes that use this card. */
+  pages?: string[];
+  /** Logo stickers: which list they sit in. */
+  section?: LogoSection;
   render: () => ReactNode;
 };
