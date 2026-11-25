@@ -29,6 +29,9 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: process.env.VERCEL === "1",
   },
   images: {
+    // Vercel's Image Optimization quota ran out (402 OPTIMIZED_IMAGE_REQUEST_PAYMENT_REQUIRED),
+    // so serve the files as-is. Keep /public images pre-compressed (.webp) instead.
+    unoptimized: true,
     remotePatterns: supabaseStorageRemotePatterns(),
   },
   experimental: {

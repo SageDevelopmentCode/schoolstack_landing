@@ -177,7 +177,7 @@ export const luffLearningOutreach: OutreachPlan = {
       url: "https://lufflearning.org/",
     },
     mailTo: {
-      lines: ["Luff Learning", "c/o Plymouth United Church", "5927 Louetta Rd", "Spring, TX 77379"],
+      lines: ["Sarah", "Luff Learning", "c/o Plymouth United Church", "5927 Louetta Rd", "Spring, TX 77379"],
       source: "Luff Learning homepage footer; the open house event page names it as Plymouth United Church, where in-person classes met",
       url: "https://lufflearning.org/",
     },
@@ -198,11 +198,11 @@ export const luffLearningOutreach: OutreachPlan = {
     hook: "In her post \"Luxurious Learning: All Education Should Be Special Education\" (dated June 21, 2023), Luff's founder wrote that she left public-school teaching and started Luff believing all education should be special education, with never more than 10 students to one teacher.",
     body: `Hi Sarah,
 
-I read your post on why you started Luff. I liked the idea that all education should be special education, and your rule of never more than 10 students with one teacher.
+I read your post on why you started Luff and loved the idea that all education should be special education, with never more than 10 students to one teacher.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Luff.
+That's the kind of school we love hearing about. My fiancée and I run Sage Field, an outdoor microschool in Round Rock. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Luff.
 
-I'd like to hear how the Virtual Academy is going.
+I'd love to hear how the Virtual Academy is going.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

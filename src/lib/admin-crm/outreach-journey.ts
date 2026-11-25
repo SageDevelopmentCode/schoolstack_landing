@@ -95,8 +95,11 @@ export type OutreachJourney = {
   /** True when the next step is a follow-up that's due today or overdue. */
   due: boolean;
   isRecontact: boolean;
-  /** The handwritten letter, when the plan has one: mailed date, and when the first email is due after it. */
-  letter: { mailedAt: string | null; firstEmailDueAt: string | null } | null;
+  /**
+   * The handwritten letter, when the plan has one: when it was marked ready to mail (written, addressed,
+   * stamped), when it was mailed, and when the first email is due after it.
+   */
+  letter: { readyAt: string | null; mailedAt: string | null; firstEmailDueAt: string | null } | null;
 };
 
 /** Short label for a plan step ("Re-intro" for a re-contact first email, "Snapshot" when it links one). */
@@ -130,6 +133,8 @@ export function outreachJourney(input: {
   hasDemo: boolean;
   /** When the plan's handwritten letter was mailed, or null. */
   letterMailedAt?: string | null;
+  /** When the letter was marked ready to mail (`schools.letter_ready_at`), or null. Display only. */
+  letterReadyAt?: string | null;
   now?: Date;
 }): OutreachJourney {
   const { plan, completed, crmStatus, hasDemo } = input;
@@ -153,7 +158,11 @@ export function outreachJourney(input: {
   const current = steps.find((s) => s.status === "current") ?? null;
   const firstSent = doneAt.has("first");
   const letter = plan?.letter
-    ? { mailedAt: letterMailedAt, firstEmailDueAt: !firstSent && next.step?.id === "first" ? next.dueAt : null }
+    ? {
+        readyAt: input.letterReadyAt ?? null,
+        mailedAt: letterMailedAt,
+        firstEmailDueAt: !firstSent && next.step?.id === "first" ? next.dueAt : null,
+      }
     : null;
   const base = { steps, isRecontact: Boolean(plan?.priorContact), letter };
 

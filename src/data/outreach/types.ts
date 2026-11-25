@@ -181,7 +181,8 @@ export type OutreachLetter = {
   /** The school as the founder would say it, for the card and letter ("Athena", "KAPS"). */
   shortSchoolName: string;
   /**
-   * A business address the school publishes (never a home address). One line per envelope line.
+   * A business address the school publishes (never a home address). One line per envelope line, the whole
+   * envelope as it's handwritten: recipient, school, street, city (the card prints exactly these lines).
    * null until Julius finds one: the letter is still written, and the card shows "Address needed".
    */
   mailTo: { lines: string[]; source: string; url: string } | null;

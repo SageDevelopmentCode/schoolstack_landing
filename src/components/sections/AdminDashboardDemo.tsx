@@ -930,7 +930,7 @@ const DEMO_PARENTS: DemoParent[] = [
     g2Relationship: "Father",
     g2Email: "tom.r@email.com",
     g2Phone: "(512) 555-0103",
-    children: [{ name: "Emma Richardson", dob: "Mar 12, 2017", photo: "/images/people/students/patrick-hauth-K6p0llhyvP8-unsplash.jpg" }],
+    children: [{ name: "Emma Richardson", dob: "Mar 12, 2017", photo: "/images/people/students/patrick-hauth-K6p0llhyvP8-unsplash-thumb.webp" }],
     applications: [
       {
         childName: "Emma Richardson",
@@ -955,7 +955,7 @@ const DEMO_PARENTS: DemoParent[] = [
     g2Relationship: "Mother",
     g2Email: "ana.t@email.com",
     g2Phone: "(737) 555-0206",
-    children: [{ name: "Liam Torres", dob: "Jun 5, 2015", photo: "/images/people/students/ibrahim-guetar-NUkjka_RqUE-unsplash.jpg" }],
+    children: [{ name: "Liam Torres", dob: "Jun 5, 2015", photo: "/images/people/students/ibrahim-guetar-NUkjka_RqUE-unsplash-thumb.webp" }],
     applications: [
       {
         childName: "Liam Torres",
@@ -980,7 +980,7 @@ const DEMO_PARENTS: DemoParent[] = [
     g2Relationship: null,
     g2Email: null,
     g2Phone: null,
-    children: [{ name: "Noah Foster", dob: "Sep 22, 2019", photo: "/images/people/students/izzy-park-8hBY-30cEqI-unsplash.jpg" }],
+    children: [{ name: "Noah Foster", dob: "Sep 22, 2019", photo: "/images/people/students/izzy-park-8hBY-30cEqI-unsplash-thumb.webp" }],
     applications: [
       {
         childName: "Noah Foster",
@@ -1005,7 +1005,7 @@ const DEMO_PARENTS: DemoParent[] = [
     g2Relationship: "Father",
     g2Email: "derek.c@email.com",
     g2Phone: "(512) 555-0319",
-    children: [{ name: "Isabelle Clarke", dob: "Jan 30, 2013", photo: "/images/people/students/cristina-anne-costello-i8n-TbgzSUE-unsplash.jpg" }],
+    children: [{ name: "Isabelle Clarke", dob: "Jan 30, 2013", photo: "/images/people/students/cristina-anne-costello-i8n-TbgzSUE-unsplash-thumb.webp" }],
     applications: [
       {
         childName: "Isabelle Clarke",
@@ -1030,7 +1030,7 @@ const DEMO_PARENTS: DemoParent[] = [
     g2Relationship: "Mother",
     g2Email: "adaeze.o@email.com",
     g2Phone: "(737) 555-0611",
-    children: [{ name: "Chidera Okonkwo", dob: "Nov 8, 2016", photo: "/images/people/students/ben-mullins-je240KkJIuA-unsplash.jpg" }],
+    children: [{ name: "Chidera Okonkwo", dob: "Nov 8, 2016", photo: "/images/people/students/ben-mullins-je240KkJIuA-unsplash-thumb.webp" }],
     applications: [
       {
         childName: "Chidera Okonkwo",
@@ -1056,8 +1056,8 @@ const DEMO_PARENTS: DemoParent[] = [
     g2Email: null,
     g2Phone: null,
     children: [
-      { name: "Kai Simmons", dob: "Feb 14, 2013", photo: "/images/people/students/vitaly-gariev-_z2Ii760I38-unsplash.jpg" },
-      { name: "Jade Simmons", dob: "Aug 3, 2016", photo: "/images/people/students/aditya-sethia-y9se00qtzd4-unsplash.jpg" },
+      { name: "Kai Simmons", dob: "Feb 14, 2013", photo: "/images/people/students/vitaly-gariev-_z2Ii760I38-unsplash-thumb.webp" },
+      { name: "Jade Simmons", dob: "Aug 3, 2016", photo: "/images/people/students/aditya-sethia-y9se00qtzd4-unsplash-thumb.webp" },
     ],
     applications: [
       {
@@ -1090,7 +1090,7 @@ const DEMO_PARENTS: DemoParent[] = [
     g2Relationship: "Mother",
     g2Email: "monica.w@email.com",
     g2Phone: "(512) 555-0723",
-    children: [{ name: "Marcus Webb", dob: "Jul 18, 2014", photo: "/images/people/students/thomas-park-qnFFfsrxzIk-unsplash.jpg" }],
+    children: [{ name: "Marcus Webb", dob: "Jul 18, 2014", photo: "/images/people/students/thomas-park-qnFFfsrxzIk-unsplash-thumb.webp" }],
     applications: [
       {
         childName: "Marcus Webb",
@@ -1115,7 +1115,7 @@ const DEMO_PARENTS: DemoParent[] = [
     g2Relationship: "Father",
     g2Email: "kenji.n@email.com",
     g2Phone: "(737) 555-0833",
-    children: [{ name: "Lily Nakamura", dob: "Oct 3, 2017", photo: "/images/people/students/patrick-hauth-K6p0llhyvP8-unsplash.jpg" }],
+    children: [{ name: "Lily Nakamura", dob: "Oct 3, 2017", photo: "/images/people/students/patrick-hauth-K6p0llhyvP8-unsplash-thumb.webp" }],
     applications: [
       {
         childName: "Lily Nakamura",
@@ -1140,7 +1140,7 @@ const DEMO_PARENTS: DemoParent[] = [
     g2Relationship: null,
     g2Email: null,
     g2Phone: null,
-    children: [{ name: "Jordan Rivera", dob: "Mar 5, 2020", photo: "/images/people/students/ibrahim-guetar-NUkjka_RqUE-unsplash.jpg" }],
+    children: [{ name: "Jordan Rivera", dob: "Mar 5, 2020", photo: "/images/people/students/ibrahim-guetar-NUkjka_RqUE-unsplash-thumb.webp" }],
     applications: [
       {
         childName: "Jordan Rivera",
@@ -4255,17 +4255,17 @@ const FLOW_FILTER_OPTIONS = [
 ];
 
 const LEAD_CHILD_PHOTOS: Record<string, string> = {
-  "Noah Foster": "/images/people/students/izzy-park-8hBY-30cEqI-unsplash.jpg",
-  "Raj Patel": "/images/people/students/aditya-sethia-y9se00qtzd4-unsplash.jpg",
-  "Lily Beaumont": "/images/people/students/patrick-hauth-K6p0llhyvP8-unsplash.jpg",
-  "Tyler Watkins": "/images/people/students/vitaly-gariev-_z2Ii760I38-unsplash.jpg",
-  "Sofia Mendez": "/images/people/students/cristina-anne-costello-i8n-TbgzSUE-unsplash.jpg",
-  "Marcus Park": "/images/people/students/thomas-park-qnFFfsrxzIk-unsplash.jpg",
-  "Hannah Kim": "/images/people/students/ben-mullins-je240KkJIuA-unsplash.jpg",
-  "Jordan Cho": "/images/people/students/ibrahim-guetar-NUkjka_RqUE-unsplash.jpg",
-  "Ella Thornton": "/images/people/students/aditya-sethia-y9se00qtzd4-unsplash.jpg",
-  "Chidera Okonkwo": "/images/people/students/ben-mullins-je240KkJIuA-unsplash.jpg",
-  "Alex & Ben Sullivan": "/images/people/students/vitaly-gariev-_z2Ii760I38-unsplash.jpg",
+  "Noah Foster": "/images/people/students/izzy-park-8hBY-30cEqI-unsplash-thumb.webp",
+  "Raj Patel": "/images/people/students/aditya-sethia-y9se00qtzd4-unsplash-thumb.webp",
+  "Lily Beaumont": "/images/people/students/patrick-hauth-K6p0llhyvP8-unsplash-thumb.webp",
+  "Tyler Watkins": "/images/people/students/vitaly-gariev-_z2Ii760I38-unsplash-thumb.webp",
+  "Sofia Mendez": "/images/people/students/cristina-anne-costello-i8n-TbgzSUE-unsplash-thumb.webp",
+  "Marcus Park": "/images/people/students/thomas-park-qnFFfsrxzIk-unsplash-thumb.webp",
+  "Hannah Kim": "/images/people/students/ben-mullins-je240KkJIuA-unsplash-thumb.webp",
+  "Jordan Cho": "/images/people/students/ibrahim-guetar-NUkjka_RqUE-unsplash-thumb.webp",
+  "Ella Thornton": "/images/people/students/aditya-sethia-y9se00qtzd4-unsplash-thumb.webp",
+  "Chidera Okonkwo": "/images/people/students/ben-mullins-je240KkJIuA-unsplash-thumb.webp",
+  "Alex & Ben Sullivan": "/images/people/students/vitaly-gariev-_z2Ii760I38-unsplash-thumb.webp",
 };
 
 function LeadsFiltersPanel({

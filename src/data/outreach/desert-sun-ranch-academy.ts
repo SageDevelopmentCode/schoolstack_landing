@@ -171,11 +171,11 @@ export const desertSunRanchAcademyOutreach: OutreachPlan = {
     hook: "Julie Philips co-founded Desert Sun Ranch with occupational therapist Jaclyn Wahlberg, and the school's OT works in the classroom all day alongside the lead instructor.",
     body: `Hi Julie and Jaclyn,
 
-A school started by a parent and an occupational therapist, with the OT in the classroom all day, is a rare thing. So is a founding promise to cut the bureaucracy families usually wade through.
+A school started by a parent and an occupational therapist, with the OT in the classroom all day, is rare and lovely. So is a promise to cut the red tape families wade through.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Desert Sun Ranch.
+That's the kind of school we love hearing about. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Desert Sun Ranch.
 
-I'd like to hear how the animals and the therapy fit into a typical day.
+I'd love to hear how the animals and the therapy fit into a typical day.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

@@ -2,7 +2,7 @@
 name: school-letter
 description: >
   Research a microschool's founder and write the short handwritten letter Julius mails before the first
-  outreach email: one plain line about the founder (podcast, interview, founding story, milestone), that
+  outreach email: one warm line about the founder (podcast, interview, founding story, milestone), that
   Julius and his fiancée run Sage Field and built MudKitchen from the start to run it, that he set up a
   version for them, one small ask to close, and the demo and snapshot on a QR card the P.S. points to. Adds a
   `letter` to the school's plan in src/data/outreach/<slug>.ts, so /admin/research shows it to copy out
@@ -47,12 +47,12 @@ written `outreach <script>` below. Voice, examples and the checklist are in [ref
    whoever leads (director, head of school, administrator, board president) and open on a school fact
    from their own site; say so in `checkBeforeMailing`. Don't skip a school for this.
 6. **Write the letter** (rules and our story in reference.md): body 80–110 words, "Hi <first name>,"
-   … "Julius". One specific thing about them, said simply; then the plain line that we run Sage Field
-   and built MudKitchen from the start to run our whole school, which helped us grow, ending "So I set up
-   a version of it for <school>."; then one small ask as the last paragraph ("I'd like to hear how…",
-   no "A text is plenty"). The P.S. points to the card ("The card inside has a QR code for it, plus…"),
-   plus a sticky note. Read it aloud; cut anything that sounds like marketing or a
-   greeting card (see "Don't" in reference.md).
+   … "Julius". One specific thing about them, said warmly; then a one-sentence bridge from that detail
+   into the line that we run Sage Field and built MudKitchen from the start to run our whole school,
+   which helped us grow, ending "So I set up a version of it for <school>."; then one small ask as the
+   last paragraph ("I'd love to hear how…", no "A text is plenty"). The P.S. points to the card ("The card inside has a QR code for it, plus…"),
+   plus a sticky note. Read it aloud: it should sound warm and kind and flow from
+   paragraph 1 into paragraph 2; cut anything that sounds like marketing or a greeting card (see "Don't" in reference.md).
 7. **Add `letter` to the plan** (type `OutreachLetter` in `src/data/outreach/types.ts`):
    `writtenOn`, `founder`, `mailTo`, `founderFacts`, `hook` (the exact `fact` it opens on), `body`,
    `postscript`, `stickyNote`, `shortCode` (`<short school name>-<4 random lowercase letters/digits>`,

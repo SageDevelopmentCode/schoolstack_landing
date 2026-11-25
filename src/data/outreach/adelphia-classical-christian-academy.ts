@@ -175,11 +175,11 @@ export const adelphiaClassicalChristianAcademyOutreach: OutreachPlan = {
     hook: "Adelphia's home page says its Latin students have earned 15 perfect National Latin Exam scores over the past eight years, including two on the Spring 2026 exam.",
     body: `Hi Tiffany,
 
-Your home page says Adelphia's Latin students have earned 15 perfect scores on the National Latin Exam in eight years, two of them this spring. That's remarkable for a three-day program.
+Your home page says Adelphia's Latin students have earned 15 perfect scores on the National Latin Exam in eight years, two of them this spring. That's wonderful for a three-day program.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Adelphia.
+Congratulations to your students and teachers. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Adelphia.
 
-I'd like to hear how families usually find you, with so many grades already on a waitlist.
+I'd love to hear how families usually find you, with so many grades already on a waitlist.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your admissions.",

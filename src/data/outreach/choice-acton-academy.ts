@@ -167,11 +167,11 @@ export const choiceActonAcademyOutreach: OutreachPlan = {
     hook: "On the LiberatED Podcast (\"Mom, we need to start one!\", January 17, 2023), JeVonne, a former public high school biology teacher, described how she and Paul launched CHOICE Acton Academy in Utah in 2020 at the urging of their children.",
     body: `Hi JeVonne and Paul,
 
-On the LiberatED podcast, JeVonne told how CHOICE began: a high school biology teacher whose kids said "we need to start one," and she did. Six years on, there are three studios, from Spark to DELTA.
+On the LiberatED podcast, JeVonne told how CHOICE began: a high school biology teacher whose kids said "we need to start one," and she did. I loved that. Six years on, there are three studios, from Spark to DELTA.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for CHOICE.
+Stories like that are why I wanted to write. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for CHOICE.
 
-I'd like to hear what your heroes are taking on this year.
+I'd love to hear what your heroes are taking on this year.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

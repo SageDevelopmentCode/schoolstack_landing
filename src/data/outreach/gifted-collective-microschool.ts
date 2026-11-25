@@ -211,11 +211,11 @@ export const giftedCollectiveMicroschoolOutreach: OutreachPlan = {
     hook: "In an October 2024 article for the Arizona Association for Gifted and Talented, Adam Laningham wrote that after over 20 years in public education he chose to open Arizona's first Gifted Microschool because the flexibility let him do what was best for gifted and twice-exceptional children.",
     body: `Hi Adam,
 
-You wrote that after more than 20 years in public education, you opened Arizona's first Gifted Microschool because it let you do what was best for gifted and twice-exceptional kids. The family stories on your site say it's working.
+You wrote that after more than 20 years in public education, you opened Arizona's first Gifted Microschool so you could do what was best for gifted and twice-exceptional kids. I loved reading the family stories on your site.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for the Gifted Microschool.
+Stories like those are why I wanted to write. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for the Gifted Microschool.
 
-I'd like to hear what you've learned from running two academies side by side.
+I'd love to hear what you've learned from running two academies side by side.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

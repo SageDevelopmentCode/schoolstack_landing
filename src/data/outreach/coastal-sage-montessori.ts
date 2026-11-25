@@ -242,11 +242,11 @@ export const coastalSageMontessoriOutreach: OutreachPlan = {
     hook: "Coastal Sage held a Ribbon Cutting Ceremony & Open House on Thursday, August 20th to officially open its brand-new school building at the St. Michael's By-the-Sea campus in Carlsbad.",
     body: `Hi Signe,
 
-I saw that Coastal Sage cut the ribbon on its new building at St. Michael's By-the-Sea in August. Your staff page says you started the school for North County families who wanted Montessori and faith together, and now it runs from age three to high school.
+Congratulations on Coastal Sage's new building at St. Michael's By-the-Sea. I loved that you started the school for North County families who wanted Montessori and faith together, and now it runs from age three to high school.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Coastal Sage.
+Running a small school ourselves, I know how much that takes. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Coastal Sage.
 
-I'd like to hear how the first fall in the new building has gone.
+I'd love to hear how the first fall in the new building has gone.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

@@ -71,7 +71,14 @@ describe("outreachJourney", () => {
     const toWrite = outreachJourney({ plan: withLetter, completed: [], crmStatus: "contacted", hasDemo: true, now: monday });
     assert.equal(toWrite.stage, "letter");
     assert.equal(toWrite.actionable, true);
-    assert.deepEqual(toWrite.letter, { mailedAt: null, firstEmailDueAt: null });
+    assert.deepEqual(toWrite.letter, { readyAt: null, mailedAt: null, firstEmailDueAt: null });
+
+    // "Ready to mail" is display only: same stage, still actionable, no email clock yet.
+    const readyAt = monday.toISOString();
+    const ready = outreachJourney({ plan: withLetter, completed: [], crmStatus: "contacted", hasDemo: true, letterReadyAt: readyAt, now: monday });
+    assert.equal(ready.stage, "letter");
+    assert.equal(ready.actionable, true);
+    assert.deepEqual(ready.letter, { readyAt, mailedAt: null, firstEmailDueAt: null });
 
     const mailed = outreachJourney({
       plan: withLetter,

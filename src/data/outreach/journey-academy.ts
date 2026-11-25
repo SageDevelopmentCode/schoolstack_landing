@@ -174,11 +174,11 @@ export const journeyAcademyOutreach: OutreachPlan = {
     hook: "Journey Academy's FAQ says it runs five Acton studios, from Sparks (4–7) to Launch Pad (14–18), at $7,000 a year, and its Apply page asks families to watch the TED talk and read Courage to Grow before applying.",
     body: `Hi Andie,
 
-I read your FAQ and Apply pages. Journey runs five Acton studios, from Sparks to Launch Pad, at $7,000 a year, and asks families to watch the TED talk and read Courage to Grow before they apply.
+Your FAQ says Journey runs five Acton studios, from Sparks to Launch Pad, at $7,000 a year, and asks families to watch the TED talk and read Courage to Grow before they apply. I loved how much care goes into that.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Journey.
+Running a small school ourselves, I know how much that takes. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Journey.
 
-I'd like to hear how you keep tuition that affordable.
+I'd love to hear how you keep tuition that affordable.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

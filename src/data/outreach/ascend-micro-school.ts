@@ -195,7 +195,11 @@ export const ascendMicroSchoolOutreach: OutreachPlan = {
       source: "Ascend Our Team page (\"Elizabeth Watkins, Director\"); the Employment page calls her executive director",
       url: "https://ascendmicroschool.com/our-staff/",
     },
-    mailTo: null,
+    mailTo: {
+      lines: ["Elizabeth Watkins", "Ascend Micro School", "6145 Shoup Road", "Colorado Springs, CO 80908"],
+      source: "Address Julius found (2026-11-23); ascendmicroschool.com doesn't publish a street address, only \"southwest Black Forest\" on the FAQ page",
+      url: "https://ascendmicroschool.com/faqs/",
+    },
     founderFacts: [
       {
         fact: "Ascend's homepage describes a faith-based K–6 hybrid school in northern Colorado Springs with two days a week of attendance, small mixed-age classes at a student-to-instructor ratio of 8:1 or less, and a personalized learning plan for each student.",
@@ -209,24 +213,30 @@ export const ascendMicroSchoolOutreach: OutreachPlan = {
         url: "https://ascendmicroschool.com/our-staff/",
         readOn: "2026-11-22",
       },
+      {
+        fact: "Elizabeth Watkins's bio on Ascend's Our Team page says she was raised in the woods of Northern Maine and grew up in a homeschooling family; she has been part of Ascend since 2020 and is its Director.",
+        source: "Ascend Our Team page (Elizabeth Watkins's bio)",
+        url: "https://ascendmicroschool.com/our-staff/",
+        readOn: "2026-11-23",
+      },
     ],
-    hook: "Ascend's homepage describes a faith-based K–6 hybrid school in northern Colorado Springs with two days a week of attendance, small mixed-age classes at a student-to-instructor ratio of 8:1 or less, and a personalized learning plan for each student.",
+    hook: "Elizabeth Watkins's bio on Ascend's Our Team page says she was raised in the woods of Northern Maine and grew up in a homeschooling family; she has been part of Ascend since 2020 and is its Director.",
     body: `Hi Elizabeth,
 
-I was reading about Ascend. I liked that each student gets their own learning plan, and that the classes stay small and mixed-age, two days a week on campus. I saw you've been part of the community since 2020.
+I loved your bio on the Ascend site. You were raised in the woods of Northern Maine in a homeschooling family, and now you lead a school where kids learn part of the week at home and part on campus.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Ascend.
+Time outside is a big part of our days too. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Ascend.
 
-I'd like to hear how families split the week between home and campus.
+I'd love to hear how families split the week between home and campus.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
     stickyNote: "Elizabeth, a note from a microschool in Round Rock, Texas. J",
     shortCode: "ascend-2xyp",
     checkBeforeMailing: [
-      "Find a mailing address: ascendmicroschool.com publishes none (homepage, Contact, Our Team and Our Story pages and the footer give only \"northern Colorado Springs\" and the southwest Black Forest area). A Cato Institute Friday Feature (July 2026) reportedly says Ascend meets on a camp property in the Black Forest area; the page blocked our reader, so open it and see whether it names the site, then confirm the school takes mail there.",
-      "Written to Elizabeth Watkins, the Director (also the plan's email recipient). The Our Story page is written by the founder, Sarah, with her husband Nick, but the site never gives Sarah's surname or current role and she isn't on the Our Team page, so the letter goes to Elizabeth and opens on a school fact from the homepage, not a founder story.",
-      "Better hook to check: the Cato Institute Friday Feature on Ascend (https://www.cato.org/blog/friday-feature-ascend-micro-school, July 2026) reportedly names Elizabeth as director. Read it; if it quotes her, swap the opening line for what she said there and add it to founderFacts.",
+      "Mailing address is 6145 Shoup Road, Colorado Springs, CO 80908 (Black Forest area), which Julius found; the school's site lists no street address and a web search found no page naming it. Before mailing, make sure this is the school's site and not someone's home.",
+      "Written to Elizabeth Watkins, the Director (also the plan's email recipient), and it opens on her own bio from the Our Team page (raised in the woods of Northern Maine, homeschooled). The Our Story page is written by an earlier founder, Sarah, who isn't on the Our Team page, so the letter doesn't mention her.",
+      "Worth a look: the Cato Institute Friday Feature on Ascend (https://www.cato.org/blog/friday-feature-ascend-micro-school, July 2026) reportedly names Elizabeth as director; it blocked our reader. Open it for anything newer about Elizabeth or the school before mailing.",
       "The homepage says K–6; a search summary of the Cato piece mentions K–6 \"starting this fall\", narrowed from K–8. The letter doesn't mention grades, so nothing to change.",
     ],
   },

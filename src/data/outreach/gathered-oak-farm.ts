@@ -247,11 +247,11 @@ export const gatheredOakFarmOutreach: OutreachPlan = {
     hook: "On the Gathered Oak Farm home page, Mindy and Nick Kinnier write that the 2,000-square-foot barn is the indoor classroom and the 2.5-acre farm around it, with a garden, an oak grove, chickens, goats and pigs, is the outdoor classroom.",
     body: `Hi Mindy,
 
-I read the welcome letter on your site. I liked that the barn is the indoor classroom and the 2.5 acres around it, with the oak grove, the goats and the pigs, are the outdoor one.
+I read the welcome letter on your site and loved that the barn is the indoor classroom, and the 2.5 acres around it, with the oak grove, the goats and the pigs, are the outdoor one.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Gathered Oak.
+Time outside is a big part of our days too. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Gathered Oak.
 
-I'd like to hear how the farm school got started.
+I'd love to hear how the farm school got started.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

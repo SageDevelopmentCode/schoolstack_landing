@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import GardenRoot from "@/components/garden/GardenRoot";
 import SnapshotPage from "@/components/outreach-snapshot/SnapshotPage";
+import Footer from "@/components/sections/Footer";
 import { getOutreachPlan } from "@/data/outreach";
 import { schoolDemoHref } from "@/data/school-demos";
 
@@ -41,6 +42,7 @@ export default async function Page({
         snapshot={found.snapshot}
         letterGreeting={fromLetter ? { firstName: found.plan.letter!.founder.firstName } : undefined}
       />
+      <Footer />
     </GardenRoot>
   );
 }

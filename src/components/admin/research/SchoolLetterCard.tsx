@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowUpRight, Check, ClipboardCopy, Mailbox, Printer, StickyNote } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { ArrowDown, ArrowRight, ArrowUpRight, Check, ClipboardCopy, Mailbox, PackageCheck, Printer, StickyNote } from "lucide-react";
 import { GCard, GChip, G_INPUT, G_LABEL, gBtnOutlineSm, gBtnPopSm, gLinkSm } from "@/components/school-parent/garden/ui";
 import { BusyLabel, GardenNotice } from "@/components/school-admin/garden/kit";
 import type { OutreachLetter } from "@/data/outreach/types";
 import type { DemoOutreach } from "@/lib/admin-crm/demo-outreach-types";
+import type { SchoolPatch } from "@/lib/admin-crm/research-types";
 import { letterNeedsAddress, letterProblems, letterShortUrlLabel, letterText } from "@/lib/admin-crm/outreach-letter";
 import { adminToast } from "@/lib/school-admin/admin-toast";
 import { PRODUCTION_SITE_URL } from "@/lib/site";
@@ -31,6 +32,85 @@ function LetterText({ letter }: { letter: OutreachLetter }) {
     >
       {letterText(letter)}
     </div>
+  );
+}
+
+/**
+ * "Letter ready to mail": written, addressed and stamped, waiting to be posted. Display only; it doesn't
+ * start the email clock (Log letter mailed does).
+ */
+function ReadyToMail({ readyAt, busy, onSet }: { readyAt: string | null; busy: boolean; onSet: (ready: boolean) => void }) {
+  if (readyAt) {
+    return (
+      <span className="flex items-center gap-2" data-testid="research-letter-ready">
+        <GChip tone="success">Ready to mail since {formatDay(readyAt)}</GChip>
+        <button
+          type="button"
+          onClick={() => onSet(false)}
+          disabled={busy}
+          aria-busy={busy || undefined}
+          className={`${gLinkSm} cursor-pointer border-0 bg-transparent p-0`}
+          data-testid="research-letter-ready-undo"
+        >
+          {busy ? "Saving…" : "Undo"}
+        </button>
+      </span>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => onSet(true)}
+      className={gBtnOutlineSm}
+      disabled={busy}
+      aria-busy={busy || undefined}
+      data-testid="research-letter-ready-mark"
+    >
+      <BusyLabel busy={busy} busyLabel="Saving…" icon={<PackageCheck className="h-4 w-4" aria-hidden />}>
+        Letter ready to mail
+      </BusyLabel>
+    </button>
+  );
+}
+
+/** One numbered step in the "ready → mailed" strip at the foot of the letter card. */
+function MailStep({
+  number,
+  title,
+  hint,
+  done,
+  children,
+}: {
+  number: number;
+  title: string;
+  hint: string;
+  done: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <li
+      className={`flex min-w-0 flex-1 flex-col gap-2.5 rounded-[16px] border-[1.5px] px-4 py-3 ${
+        done ? "border-[var(--sf-forest)]/25 bg-[var(--sf-mint)]/40" : "border-[var(--sf-ink)]/12 bg-[#fffdf7]"
+      }`}
+      data-testid={`research-letter-step-${number}`}
+    >
+      <div className="flex items-center gap-2">
+        <span
+          className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-extrabold ${
+            done ? "bg-[var(--sf-forest)] text-white" : "bg-[var(--sf-ink)]/[0.08] text-[var(--sf-ink)]"
+          }`}
+          aria-hidden
+        >
+          {done ? <Check className="h-3.5 w-3.5" /> : number}
+        </span>
+        <p className="m-0 text-[14px] font-extrabold text-[var(--sf-ink)]">
+          <span className="sr-only">Step {number}{done ? " (done)" : ""}: </span>
+          {title}
+        </p>
+      </div>
+      <div className="flex flex-wrap items-end gap-2">{children}</div>
+      <p className="m-0 text-[12.5px] font-bold text-[var(--sf-soft)]">{hint}</p>
+    </li>
   );
 }
 
@@ -89,23 +169,27 @@ function LogMailed({ slug, onLogged }: { slug: string; onLogged: (next: DemoOutr
           Log letter mailed
         </BusyLabel>
       </button>
-      <span className="text-[12.5px] font-bold text-[var(--sf-soft)]">The first email comes due 5 business days later.</span>
     </form>
   );
 }
 
 /**
  * The handwritten letter for a school: the text to copy by hand, the envelope, the sticky note, the
- * QR card to print, what to check, and "Log letter mailed" (which starts the email clock).
+ * QR card to print, what to check, "Letter ready to mail" (written and stamped, waiting to be posted),
+ * and "Log letter mailed" (which starts the email clock).
  */
 export function SchoolLetterCard({
   row,
   index,
   onOutreach,
+  onSaveSchool,
+  pendingKey,
 }: {
   row: WorkspaceRow;
   index: number;
   onOutreach: (next: DemoOutreach) => void;
+  onSaveSchool: (patch: SchoolPatch, copy: { key: string; success: string; description?: string; error: string }) => Promise<boolean>;
+  pendingKey: string | null;
 }) {
   const { plan, school, journey } = row;
   const [copied, setCopied] = useState(false);
@@ -116,6 +200,22 @@ export function SchoolLetterCard({
   const needsAddress = letterNeedsAddress(letter);
   const hookFact = letter.founderFacts.find((f) => f.fact === letter.hook);
   const mailedAt = journey.letter.mailedAt;
+  const readyAt = journey.letter.readyAt;
+  const readyBusy = pendingKey === `letter-ready:${school.id}`;
+
+  function setReady(ready: boolean) {
+    void onSaveSchool(
+      { letter_ready_at: ready ? new Date().toISOString() : null },
+      ready
+        ? {
+            key: "letter-ready",
+            success: "Letter marked ready to mail.",
+            description: "Log it as mailed once it's in the mailbox; that starts the email clock.",
+            error: "Couldn't mark the letter ready.",
+          }
+        : { key: "letter-ready", success: "Letter no longer marked ready.", error: "Couldn't update the letter." },
+    );
+  }
   const emailDue = journey.letter.firstEmailDueAt;
   const shortLabel = letterShortUrlLabel(letter.shortCode, PRODUCTION_SITE_URL);
 
@@ -137,13 +237,11 @@ export function SchoolLetterCard({
       action={
         mailedAt ? (
           <GChip tone="success">Mailed {formatDay(mailedAt)}</GChip>
-        ) : needsAddress ? (
-          <span className="flex flex-wrap items-center gap-1.5">
-            <GChip tone="alert">To write and mail</GChip>
-            <GChip tone="warning">Address needed</GChip>
-          </span>
         ) : (
-          <GChip tone="alert">To write and mail</GChip>
+          <span className="flex flex-wrap items-center gap-1.5">
+            {readyAt ? <GChip tone="success">Ready to mail</GChip> : <GChip tone="alert">To write and mail</GChip>}
+            {needsAddress ? <GChip tone="warning">Address needed</GChip> : null}
+          </span>
         )
       }
       data-testid="research-letter-card"
@@ -189,20 +287,23 @@ export function SchoolLetterCard({
           <div>
             <SectionLabel>Envelope</SectionLabel>
             <address className="rounded-[14px] border-[1.5px] border-dashed border-[var(--sf-ink)]/20 bg-white px-4 py-3 text-[14.5px] font-bold not-italic leading-relaxed text-[var(--sf-ink)]">
-              {letter.founder.fullName}
-              <br />
-              {plan.schoolName}
+              {/* mailTo.lines is the whole envelope (recipient, school, street, city), copied exactly as shown. */}
               {letter.mailTo ? (
-                letter.mailTo.lines.map((line) => (
+                letter.mailTo.lines.map((line, i) => (
                   <span key={line}>
-                    <br />
+                    {i > 0 ? <br /> : null}
                     {line}
                   </span>
                 ))
               ) : (
-                <span className="mt-2 block text-[13.5px] font-extrabold text-[#6b4f00]" data-testid="research-letter-needs-address">
-                  Address needed
-                </span>
+                <>
+                  {letter.founder.fullName}
+                  <br />
+                  {plan.schoolName}
+                  <span className="mt-2 block text-[13.5px] font-extrabold text-[#6b4f00]" data-testid="research-letter-needs-address">
+                    Address needed
+                  </span>
+                </>
               )}
             </address>
             {letter.mailTo ? (
@@ -290,16 +391,27 @@ export function SchoolLetterCard({
               : "The email sequence has started."}
           </GardenNotice>
         ) : (
-          <LogMailed
-            slug={school.demo_slug}
-            onLogged={(next) => {
-              onOutreach(next);
-              adminToast.success(`Letter to ${letter.founder.firstName} logged.`, {
-                id: `research-letter-${school.id}`,
-                description: "The first email comes due in 5 business days.",
-              });
-            }}
-          />
+          <ol className="m-0 flex list-none flex-col items-stretch gap-2 p-0 md:flex-row" aria-label="Mailing the letter">
+            <MailStep number={1} title="Ready to mail" hint="Written, signed, addressed and stamped." done={Boolean(readyAt)}>
+              <ReadyToMail readyAt={readyAt} busy={readyBusy} onSet={setReady} />
+            </MailStep>
+            <li className="flex shrink-0 justify-center self-center text-[var(--sf-ink)]/35" aria-hidden>
+              <ArrowRight className="hidden h-5 w-5 md:block" />
+              <ArrowDown className="h-5 w-5 md:hidden" />
+            </li>
+            <MailStep number={2} title="Mailed" hint="The first email comes due 5 business days later." done={false}>
+              <LogMailed
+                slug={school.demo_slug}
+                onLogged={(next) => {
+                  onOutreach(next);
+                  adminToast.success(`Letter to ${letter.founder.firstName} logged.`, {
+                    id: `research-letter-${school.id}`,
+                    description: "The first email comes due in 5 business days.",
+                  });
+                }}
+              />
+            </MailStep>
+          </ol>
         )}
       </div>
     </GCard>

@@ -235,11 +235,11 @@ export const coysCampsAndClassesOutreach: OutreachPlan = {
     hook: "In her blog post \"My Reflections on Empowering Students\" (October 2023), Molly wrote that when she taught kindergarten, some students could spell \"I can see a cat\" but couldn't think of a sentence about a cat, and that what students learn on their own stays with them the longest.",
     body: `Hi Molly,
 
-I read your post about teaching kindergarten. Some students could spell "I can see a cat" but couldn't come up with their own sentence about a cat, and you wrote that what kids learn on their own stays with them longest.
+I loved your kindergarten post. Some students could spell "I can see a cat" but couldn't come up with their own sentence about a cat, and you wrote that what kids learn on their own stays with them longest.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Coy's.
+We believe that at our school too. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Coy's.
 
-I'd like to hear how you run a microschool and a chess club under one roof.
+I'd love to hear how you run a microschool and a chess club under one roof.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

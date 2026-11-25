@@ -234,11 +234,11 @@ export const heartsongCottageSchoolOutreach: OutreachPlan = {
     hook: "Heartsong's home page says that each day a warm, nutritious meal is served to the children by candlelight, a tradition meant to foster reverence and connection.",
     body: `Hi Heartsong team,
 
-Rachael Sparhawk, who founded Rooted Meadows in Rigby, Idaho, mentioned Heartsong to me. I liked reading about your shared meal, a warm lunch served to the children by candlelight every school day.
+Rachael Sparhawk, who founded Rooted Meadows in Rigby, Idaho, mentioned Heartsong to me. I loved reading about your shared meal, a warm lunch served to the children by candlelight every school day.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Heartsong.
+What a gentle way to gather a school each day. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Heartsong.
 
-I'd like to hear how the co-op got started and who's behind it.
+I'd love to hear how the co-op got started and who's behind it.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

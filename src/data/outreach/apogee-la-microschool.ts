@@ -160,11 +160,11 @@ export const apogeeLaMicroschoolOutreach: OutreachPlan = {
     hook: "On Drinkin' Bros Podcast episode 1583, \"Where Is The Future Of Education Headed?\" (December 8, 2025), Will Reusch talked about the modern education system and how Apogee can play a huge role in its future.",
     body: `Hi Will and Sheila,
 
-Will, on the Drinkin' Bros podcast last December you talked about where education is headed and the part Apogee can play in it. Jiu-jitsu and real-world projects in the same school week is a good picture of that.
+Will, I enjoyed hearing you on the Drinkin' Bros podcast last December, talking about where education is headed and the part Apogee can play. Jiu-jitsu and real-world projects in the same school week is a great picture of that.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Apogee LA.
+That's the kind of school we love hearing about. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Apogee LA.
 
-I'd like to hear what families notice first when they visit.
+I'd love to hear what families notice first when they visit.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your admissions.",

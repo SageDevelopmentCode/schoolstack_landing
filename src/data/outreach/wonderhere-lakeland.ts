@@ -178,11 +178,11 @@ export const wonderhereLakelandOutreach: OutreachPlan = {
     hook: "On the Founder to Founder podcast (September 4, 2025), Tiffany Thenor told host Felicia Wright how she and her business partner started WonderHere as a small homeschool enrichment program that grew into a microschool on a 10-acre farm in Lakeland.",
     body: `Hi Tiffany,
 
-I listened to your Founder to Founder episode. I liked hearing how you and Jessica started WonderHere as a small homeschool enrichment program, and how it grew into a microschool on a farm.
+I listened to your Founder to Founder episode and loved hearing how you and Jessica started WonderHere as a small homeschool enrichment program, and how it grew into a microschool on a farm.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for WonderHere.
+Hearing from founders like you is my favorite part of this work. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for WonderHere.
 
-I'd like to hear what changed when the enrichment days became a full school.
+I'd love to hear what changed when the enrichment days became a full school.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

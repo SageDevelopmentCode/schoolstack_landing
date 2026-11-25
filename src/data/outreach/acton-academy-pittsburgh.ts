@@ -193,7 +193,7 @@ export const actonAcademyPittsburghOutreach: OutreachPlan = {
       url: "https://actonacademypittsburgh.com/career-old",
     },
     mailTo: {
-      lines: ["Acton Academy Pittsburgh", "3500 Brooktree Road", "Wexford, PA 15090"],
+      lines: ["Ronnie Esposito", "Acton Academy Pittsburgh", "3500 Brooktree Road", "Wexford, PA 15090"],
       source: "Acton Pittsburgh Contact Us page (the same address is in the site footer)",
       url: "https://actonacademypittsburgh.com/contact-acton",
     },
@@ -220,11 +220,11 @@ export const actonAcademyPittsburghOutreach: OutreachPlan = {
     hook: "The founders' story on Acton Pittsburgh's Team page says Ronnie heard David Osborne on a podcast while driving to work, then kept listening to find out which school David's kids attended: Acton Academy.",
     body: `Hi Ronnie,
 
-I read the story on your Team page about hearing David Osborne on a podcast on the drive to work, then listening to more episodes to find out which school his kids went to.
+I loved the story on your Team page about hearing David Osborne on a podcast on the drive to work, then listening to more episodes to find out which school his kids went to.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Acton Pittsburgh.
+It's fun to hear how a school starts from one podcast. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Acton Pittsburgh.
 
-I'd like to hear how Launchpad is coming together for 2027.
+I'd love to hear how Launchpad is coming together for 2027.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

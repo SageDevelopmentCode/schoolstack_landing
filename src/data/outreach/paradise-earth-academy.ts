@@ -163,7 +163,7 @@ export const paradiseEarthAcademyOutreach: OutreachPlan = {
       url: "https://paradiseearthacademy.com/who-we-are/",
     },
     mailTo: {
-      lines: ["235 E Guadalupe Rd", "Gilbert, AZ 85234"],
+      lines: ["Melissa Alexander", "Paradise Earth Academy", "235 E Guadalupe Rd", "Gilbert, AZ 85234"],
       source: "Paradise Earth Academy home page footer (the Gilbert campus; no separate mailing address listed)",
       url: "https://paradiseearthacademy.com/",
     },
@@ -190,11 +190,11 @@ export const paradiseEarthAcademyOutreach: OutreachPlan = {
     hook: "On the Harvesting Wisdom Podcast (October 8, 2026), Melissa Alexander told Dr. Joe Roselle how Paradise Earth Academy grew from a small homeschooling group into a school of about 80 students, and talked about the school garden and plans for orchards and outdoor classrooms.",
     body: `Hi Melissa,
 
-I listened to your Harvesting Wisdom episode. I liked hearing how Paradise Earth grew from a small homeschool group to about 80 students, and your plans for orchards and outdoor classrooms around the garden.
+I listened to your Harvesting Wisdom episode and loved hearing how Paradise Earth grew from a small homeschool group to about 80 students, and your plans for orchards and outdoor classrooms around the garden.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Paradise Earth.
+Time outside is a big part of our days too. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Paradise Earth.
 
-With Queen Creek, Glendale and Scottsdale coming, I'd like to hear how you're planning the new campuses.
+With Queen Creek, Glendale and Scottsdale coming, I'd love to hear how you're planning the new campuses.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at enrolling across your campuses.",

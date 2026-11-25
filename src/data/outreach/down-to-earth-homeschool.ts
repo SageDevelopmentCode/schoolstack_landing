@@ -195,11 +195,11 @@ export const downToEarthHomeschoolOutreach: OutreachPlan = {
     hook: "Down to Earth's home page says the program is built on community: alongside the Monday program, moms meet every Friday for park days and field trips, including through the summer when the Monday program is on break.",
     body: `Hi Elena,
 
-I read about Down to Earth on your site. I liked that the Monday program is only half of it, and that moms meet every Friday for park days and field trips, even through the summer when Mondays are on break.
+I read about Down to Earth on your site and loved that the Monday program is only half of it. Moms meet every Friday for park days and field trips, even through the summer.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Down to Earth.
+Time outside is a big part of our days too. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Down to Earth.
 
-I'd like to hear how you and Kelsey keep a co-op that close.
+I'd love to hear how you and Kelsey keep a co-op that close.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

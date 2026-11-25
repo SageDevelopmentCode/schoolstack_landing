@@ -197,11 +197,11 @@ export const ahbCommunitySchoolOutreach: OutreachPlan = {
     hook: "AHB moved from its longtime Hyde Park home to a new campus in Crestview, with a gym, a commercial kitchen, and AHB's first teachers' lounge, shared with parents.",
     body: `Hi Shari,
 
-I read about AHB's move from Hyde Park to Crestview: a gym, a real kitchen, and a teachers' lounge you share with parents. That last one says a lot about the school.
+I read about AHB's move from Hyde Park to Crestview: a gym, a real kitchen, and a teachers' lounge you share with parents. I loved that last one.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for AHB.
+It says a lot about the school you've built. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for AHB.
 
-If you're ever up for coffee, I'd like to hear how the move to Crestview has gone.
+If you're ever up for coffee, I'd love to hear how the move to Crestview has gone.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your admissions.",

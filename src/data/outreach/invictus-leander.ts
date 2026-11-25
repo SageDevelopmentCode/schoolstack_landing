@@ -199,11 +199,11 @@ export const invictusLeanderOutreach: OutreachPlan = {
     hook: "On the About page, Sarah writes that while searching for school options for her nephew she found an Acton Academy, and watching him flourish there told her she wanted that for her children and other children in her community.",
     body: `Hi Sarah,
 
-I read your story on the Invictus site. After years in Texas classrooms, you watched your nephew flourish at an Acton and decided to bring that to families around Leander. Now Invictus has its own place on Highway 29.
+I loved reading your story on the Invictus site. After years in Texas classrooms, you watched your nephew flourish at an Acton and decided to bring that to families around Leander. Now Invictus has its own place on Highway 29.
 
-My fiancée and I run Sage Field, an outdoor microschool up the road in Round Rock. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Invictus.
+Congratulations on the new home. My fiancée and I run Sage Field, an outdoor microschool up the road in Round Rock. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Invictus.
 
-If you're ever up for coffee, I'd like to hear how the move has gone.
+If you're ever up for coffee, I'd love to hear how the move has gone.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

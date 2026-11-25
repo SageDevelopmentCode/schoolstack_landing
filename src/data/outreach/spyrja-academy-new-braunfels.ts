@@ -182,11 +182,11 @@ export const spyrjaAcademyNewBraunfelsOutreach: OutreachPlan = {
     hook: "Spyrja's About page says that as of July 3, 2025 the school has been fully accredited by the Accrediting Commission for Schools, Western Association of Schools and Colleges (WASC).",
     body: `Hi Jourdan,
 
-Your About page says Spyrja was fully accredited by WASC in July 2025, two years after you opened. That's a lot of work for a new school, on top of teaching every day.
+Your About page says Spyrja was fully accredited by WASC in July 2025, two years after you opened. Congratulations. That's a lot of work for a new school, on top of teaching every day.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Spyrja.
+We know how full those first years are. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Spyrja.
 
-I'd like to hear what the accreditation process was like in your second year.
+I'd love to hear what the accreditation process was like in your second year.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

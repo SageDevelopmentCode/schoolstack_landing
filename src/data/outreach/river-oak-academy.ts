@@ -209,7 +209,7 @@ export const riverOakAcademyOutreach: OutreachPlan = {
       url: "https://www.riveroakacademy.org/",
     },
     mailTo: {
-      lines: ["River Oak Academy", "3355 State Road 13", "St Johns, FL 32259"],
+      lines: ["Vincent Wesson", "River Oak Academy", "3355 State Road 13", "St Johns, FL 32259"],
       source: "River Oak Academy site footer (home, FAQ and Admissions pages)",
       url: "https://www.riveroakacademy.org/",
     },
@@ -242,11 +242,11 @@ export const riverOakAcademyOutreach: OutreachPlan = {
     hook: "River Oak's Our Team section says Vince's role has grown into serving as an Administrator who supports Guides, learners and daily school operations, and that one of his greatest joys at ROA is sharing woodworking and hands-on creation, giving learners real tools to make something themselves.",
     body: `Hi Vince,
 
-I was reading the River Oak team page. I liked that your role there includes woodworking with the learners, and that they get to use real tools and make things themselves.
+I was reading the River Oak team page and loved that your role there includes woodworking with the learners, and that they get to use real tools and make things themselves.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for River Oak.
+That's the kind of school we love hearing about. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for River Oak.
 
-I'd like to hear what the learners have built this year.
+I'd love to hear what the learners have built this year.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

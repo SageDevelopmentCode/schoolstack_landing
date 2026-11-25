@@ -219,11 +219,11 @@ export const beaconOfHopeAcademyOutreach: OutreachPlan = {
     hook: "On the LiberatED Podcast (episode 322, \"Pre-launch plans: A former special education teacher prepares to open a new school\", June 17, 2025), Cassandra talked about opening Beacon of Hope, a faith-based microschool for K–5 students with special needs, before its first fall.",
     body: `Hi Cassandra,
 
-I saw your LiberatED interview from June 2025, recorded before Beacon of Hope's first fall, about building a faith-based school for K–5 students with special needs. I liked that therapy sits right in the middle of your school day.
+I saw your LiberatED interview from June 2025, recorded before Beacon of Hope's first fall, about building a faith-based school for K–5 students with special needs. I loved that therapy sits right in the middle of your school day.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Beacon of Hope.
+Schools built that thoughtfully are why I wanted to write. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Beacon of Hope.
 
-I'd like to hear how opening compared with your plans.
+I'd love to hear how opening compared with your plans.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

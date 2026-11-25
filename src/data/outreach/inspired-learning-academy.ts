@@ -184,7 +184,7 @@ export const inspiredLearningAcademyOutreach: OutreachPlan = {
       url: "https://www.inspiredlearningacademy.org/meet-the-team",
     },
     mailTo: {
-      lines: ["601 S Greenville Ave", "Allen, TX 75002"],
+      lines: ["Jill Baumann", "Inspired Learning Academy", "601 S Greenville Ave", "Allen, TX 75002"],
       source: "Inspired Learning Academy Contact page and site footer",
       url: "https://www.inspiredlearningacademy.org/contact",
     },
@@ -211,11 +211,11 @@ export const inspiredLearningAcademyOutreach: OutreachPlan = {
     hook: "On This Golden Hour (episode 106, September 10, 2025), Jill Baumann, a Texas micro school co-founder, talked about micro-school homeschooling: she looked for alternative options when her children were young and built a micro school that served them and many other students.",
     body: `Hi Jill,
 
-I listened to your This Golden Hour episode on micro-school homeschooling. I liked hearing how looking for the right fit for your own kids turned into Inspired, a school for a lot of other families too.
+I listened to your This Golden Hour episode on micro-school homeschooling and loved hearing how looking for the right fit for your own kids turned into Inspired, a school for a lot of other families too.
 
-My fiancée and I run Sage Field, an outdoor microschool down in Round Rock. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Inspired.
+Hearing from founders like you is my favorite part of this work. My fiancée and I run Sage Field, an outdoor microschool down in Round Rock. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Inspired.
 
-I'd like to hear what you've learned about running a school for young teens.
+I'd love to hear what you've learned about running a school for young teens.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

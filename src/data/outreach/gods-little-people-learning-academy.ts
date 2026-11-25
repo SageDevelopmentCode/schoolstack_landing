@@ -177,11 +177,11 @@ export const godsLittlePeopleLearningAcademyOutreach: OutreachPlan = {
     hook: "The About page says Mar'Keda and Jacqueline left their public school positions, opened an in-home childcare that ran more like a private preschool, and four months later found the opportunity to launch God's Little People.",
     body: `Hi Mar'Keda,
 
-I read your founding story on the God's Little People site. You and Jacqueline left public school, opened an in-home childcare that ran more like a little school, and four months later had the chance to start a microschool.
+I loved your founding story on the God's Little People site. You and Jacqueline left public school, opened an in-home childcare that ran more like a little school, and four months later had the chance to start a microschool.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for God's Little People.
+Stories like yours are why I wanted to write. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for God's Little People.
 
-I'd like to hear how the first stretch has gone for you both.
+I'd love to hear how the first stretch has gone for you both.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

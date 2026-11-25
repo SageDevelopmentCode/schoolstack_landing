@@ -213,11 +213,11 @@ export const meadowsBeeFarmOutreach: OutreachPlan = {
     hook: "Leigh Merinoff's Liberty Food Fest speaker bio says she trained as a sculptor before turning from art to farming, and now runs a children's program awarding badges as they learn farming and science fundamentals across 30 subjects.",
     body: `Hi Leigh,
 
-Rachael Sparhawk, who founded Rooted Meadows in Rigby, Idaho, mentioned Meadows Bee to me. I read your Liberty Food Fest bio and liked that you trained as a sculptor before turning to farming, and that Young Farmers now earn badges in 30 subjects.
+Rachael Sparhawk, who founded Rooted Meadows in Rigby, Idaho, mentioned Meadows Bee to me. I loved reading in your Liberty Food Fest bio that you trained as a sculptor before turning to farming, and that Young Farmers now earn badges in 30 subjects.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Meadows Bee.
+Time outside is a big part of our days too. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Meadows Bee.
 
-I'd like to hear how the badge program started.
+I'd love to hear how the badge program started.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your sign-ups.",

@@ -233,11 +233,11 @@ export const freedomPrepAcademyOutreach: OutreachPlan = {
     hook: "Freedom Prep's About page quotes its founder, Sterling Kellis: \"Students need more freedom in their learning, more spark to pursue their passion, and more guidance and encouragement along the way.\"",
     body: `Hi Sterling,
 
-I read your line on Freedom Prep's About page, that students need more freedom in their learning, more spark to pursue their passion, and more guidance and encouragement along the way.
+I loved your line on Freedom Prep's About page, that students need more freedom in their learning, more spark to pursue their passion, and more guidance and encouragement along the way.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Freedom Prep.
+That's the kind of school we love hearing about. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Freedom Prep.
 
-I'd like to hear how you keep that guidance going across so many microschools.
+I'd love to hear how you keep that guidance going across so many microschools.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

@@ -216,11 +216,11 @@ export const esteamAcademyRoundRockOutreach: OutreachPlan = {
     hook: "Nicholle wrote a four-part series for Round the Rock on Texas Education Freedom Accounts, starting with \"Education Freedom Is Personal: Why Texas EFAs Matter to Families Like Mine.\"",
     body: `Hi Nicholle,
 
-I read your TEFA series for Round the Rock, starting with "Education Freedom Is Personal." ESTEAM has been learner-driven in Round Rock since 2014, and now you're helping other families work out TEFA too.
+I enjoyed your TEFA series for Round the Rock, starting with "Education Freedom Is Personal." ESTEAM has been learner-driven in Round Rock since 2014, and now you're helping other families work out TEFA too.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for ESTEAM.
+We're your neighbors, as it happens. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for ESTEAM.
 
-If you're ever up for coffee, I'd like to hear how your first TEFA year is going.
+If you're ever up for coffee, I'd love to hear how your first TEFA year is going.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

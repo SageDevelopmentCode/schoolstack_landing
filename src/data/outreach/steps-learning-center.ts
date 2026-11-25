@@ -197,11 +197,11 @@ export const stepsLearningCenterOutreach: OutreachPlan = {
     hook: "Alexandra's About page says she created Steps to bridge the gap between what many neurodiverse learners need and what families can realistically piece together on their own.",
     body: `Hi Alexandra,
 
-I found your LiberatED episode with Kerry McDonald, then read your About page. You built Steps to bridge the gap between what neurodiverse learners need and what families can piece together on their own.
+I found your LiberatED episode with Kerry McDonald, then read your About page. I loved that you built Steps to bridge the gap between what neurodiverse learners need and what families can piece together on their own.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Steps.
+Hearing from founders like you is my favorite part of this work. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Steps.
 
-I'd like to hear how Choice Navigation started.
+I'd love to hear how Choice Navigation started.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

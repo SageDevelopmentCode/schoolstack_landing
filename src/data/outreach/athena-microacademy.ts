@@ -178,7 +178,7 @@ export const athenaMicroacademyOutreach: OutreachPlan = {
       url: "https://www.amaustin.org/meet-the-founder.html",
     },
     mailTo: {
-      lines: ["9901 Brodie Lane Ste 160 #1383", "Austin, TX 78748"],
+      lines: ["Mily Pérez", "Athena Micro-academy of Austin", "9901 Brodie Lane Ste 160 #1383", "Austin, TX 78748"],
       source: "Athena's Contact Us page (listed as the mailing address)",
       url: "https://www.amaustin.org/contact-us.html",
     },
@@ -217,11 +217,11 @@ export const athenaMicroacademyOutreach: OutreachPlan = {
     hook: "On the LiberatED Podcast (September 15, 2026), Mily Pérez talked about keeping Athena intentionally small and designing each student's curriculum backward from their college, career or post-high-school goals.",
     body: `Hi Mily,
 
-I listened to your LiberatED episode. I liked how you're keeping Athena small on purpose and planning each student's work around where they want to go after high school.
+I listened to your LiberatED episode and loved how you're keeping Athena small on purpose, planning each student's work around where they want to go after high school.
 
-My fiancée and I run Sage Field, an outdoor microschool up in Round Rock. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Athena.
+Hearing from founders like you is my favorite part of this work. My fiancée and I run Sage Field, an outdoor microschool up in Round Rock. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Athena.
 
-If you're ever up for coffee, I'd like to hear how your first semester is going.
+If you're ever up for coffee, I'd love to hear how your first semester is going.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment. I emailed once in June, but a note seemed better.",

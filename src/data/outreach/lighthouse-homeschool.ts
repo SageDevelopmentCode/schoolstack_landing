@@ -172,11 +172,11 @@ export const lighthouseHomeschoolOutreach: OutreachPlan = {
     hook: "Each month Lighthouse's teachers for each grade create lesson plans for use both at home and on campus, so parents teaching the 3 home days have the tools and direction to be confident.",
     body: `Hi Robyn,
 
-I read how Lighthouse works on your site. I liked that your teachers write lesson plans for each grade every month, used both on campus and on the three days at home.
+I read how Lighthouse works on your site and loved that your teachers write lesson plans for each grade every month, used both on campus and on the three days at home.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Lighthouse.
+Running a small school ourselves, I know how much that takes. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Lighthouse.
 
-I'd like to hear how new families settle into the home days in their first year.
+I'd love to hear how new families settle into the home days in their first year.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

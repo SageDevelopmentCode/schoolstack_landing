@@ -230,11 +230,11 @@ export const theWildSchoolOutreach: OutreachPlan = {
     hook: "Lindsay's Founder's Story says she trained as a nature-based educator in 2023, became a Texas Master Naturalist the following year, and counts securing ideal locations across Houston among the challenges of starting.",
     body: `Hi Lindsay,
 
-I found your Fifty Plus interview with Doug Pike, then read your founder's story. You trained as a nature-based educator in 2023, became a Texas Master Naturalist the next year, and now Wild Preschool runs at seven locations across Houston.
+I loved your Fifty Plus interview and your founder's story. You trained as a nature-based educator in 2023, became a Texas Master Naturalist the next year, and now Wild Preschool runs at seven locations across Houston.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for The Wild School.
+Time outside is a big part of our days too. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for The Wild School.
 
-I'd like to hear how you find the land for each new location.
+I'd love to hear how you find the land for each new location.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

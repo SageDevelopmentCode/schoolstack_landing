@@ -198,7 +198,7 @@ export const kineoSchoolOutreach: OutreachPlan = {
       url: "https://www.kineoschool.org/staff",
     },
     mailTo: {
-      lines: ["7525 132nd Ave NE", "Kirkland, WA 98033"],
+      lines: ["Elizabeth Kent", "The Kineo School", "7525 132nd Ave NE", "Kirkland, WA 98033"],
       source: "The Kineo School site footer (shown on the Story page); the building is Lake Washington United Methodist Church",
       url: "https://www.kineoschool.org/story",
     },
@@ -225,11 +225,11 @@ export const kineoSchoolOutreach: OutreachPlan = {
     hook: "In her Introduction letter on Kineo's site, Elizabeth Kent says she began with Kineo as a parent, served on the Board of Trustees from 2019 to 2023, and took on the role of Director in 2023, combining her teaching background with her experience as a Kineo parent.",
     body: `Hi Elizabeth,
 
-I read your letter on the Kineo site. I liked that you came to Kineo as a parent first and served on the board before becoming Director in 2023.
+I read your letter on the Kineo site and loved that you came to Kineo as a parent first and served on the board before becoming Director in 2023.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Kineo.
+That's a wonderful path into leading a school. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Kineo.
 
-I'd like to hear how the move from parent to Director has gone.
+I'd love to hear how the move from parent to Director has gone.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your admissions steps.",

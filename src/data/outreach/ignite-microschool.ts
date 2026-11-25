@@ -194,11 +194,11 @@ export const igniteMicroschoolOutreach: OutreachPlan = {
     hook: "Ignite's blog post \"Ignite Microschool On TV!\" says WYFF 4 visited before the microschool opened in fall 2020 as Greenville's first microschool.",
     body: `Hi Beth,
 
-I read your post about WYFF 4 visiting before Ignite's first fall in 2020, when it opened as Greenville's first microschool. Six years on, kids are still building rockets and robots with you every Wednesday.
+I loved your post about WYFF 4 visiting before Ignite's first fall in 2020, when it opened as Greenville's first microschool. Six years on, kids are still building rockets and robots with you every Wednesday.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Ignite.
+That's the kind of school we love hearing about. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Ignite.
 
-I'd like to hear how the microschool has changed since that first fall.
+I'd love to hear how the microschool has changed since that first fall.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

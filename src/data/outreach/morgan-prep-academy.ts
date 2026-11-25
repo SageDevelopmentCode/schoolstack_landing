@@ -221,11 +221,11 @@ export const morganPrepAcademyOutreach: OutreachPlan = {
     hook: "Dr. Boykins' founder page says her belief is simple: behavior is a skill that can be taught without sacrificing academic growth.",
     body: `Hi Consuelo,
 
-I read your page on the Morgan Prep site. You wrote that behavior is a skill that can be taught without sacrificing academic growth, and you've built a whole school day around it. Now Murphy Prep and Anderson Academy are on the way too.
+I loved your page on the Morgan Prep site, that behavior is a skill that can be taught without sacrificing academic growth. You built a whole school day around it, and now Murphy Prep and Anderson Academy are on the way.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Morgan Prep.
+Running a small school ourselves, I know how much that takes. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Morgan Prep.
 
-I'd like to hear how you're planning for three schools.
+I'd love to hear how you're planning for three schools.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

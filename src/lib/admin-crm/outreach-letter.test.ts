@@ -15,7 +15,7 @@ const plan: Pick<OutreachPlan, "letter" | "snapshot"> = {
     writtenOn: "2026-11-22",
     shortSchoolName: "Demo",
         founder: { fullName: "Ana Diaz", firstName: "Ana", role: "Founder", source: "About", url: "https://example.com/about" },
-    mailTo: { lines: ["1 Main St", "Austin, TX 78701"], source: "Contact", url: "https://example.com/contact" },
+    mailTo: { lines: ["Ana Ruiz", "Oak School", "1 Main St", "Austin, TX 78701"], source: "Contact", url: "https://example.com/contact" },
     founderFacts: [{ fact: "Ana started with six kids.", source: "Podcast", url: "https://example.com/ep", readOn: "2026-11-22" }],
     hook: "Ana started with six kids.",
     body,
@@ -58,6 +58,8 @@ describe("letterProblems", () => {
     assert.equal(letterNeedsAddress(plan.letter!), false);
     const partial = { lines: ["1 Main St"], source: "Contact", url: "https://example.com/contact" };
     assert.match(letterProblems({ ...plan, letter: { ...plan.letter!, mailTo: partial } }).join(" "), /street line and a city line/);
+    const noRecipient = { lines: ["1 Main St", "Austin, TX 78701"], source: "Contact", url: "https://example.com/contact" };
+    assert.match(letterProblems({ ...plan, letter: { ...plan.letter!, mailTo: noRecipient } }).join(" "), /whole envelope/);
   });
 
   it("needs a snapshot for the QR card and a hook that is a founder fact", () => {

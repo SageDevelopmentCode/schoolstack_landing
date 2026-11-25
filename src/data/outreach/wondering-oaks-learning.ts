@@ -188,11 +188,11 @@ export const wonderingOaksLearningOutreach: OutreachPlan = {
     hook: "On the Staff page, Christian Rust writes that she found her passion when she joined Free Forest School, where children explored and learned without constant adult direction, and that her mission at Wondering Oaks is a balance of foundational academics and life skills.",
     body: `Hi Christian,
 
-I read your Staff page bio, about finding your passion at Free Forest School, where children explored without constant adult direction. I liked that Wondering Oaks pairs that with foundational academics.
+I read your Staff page bio, about finding your passion at Free Forest School, where children explored without constant adult direction. I loved that Wondering Oaks pairs that with foundational academics.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Wondering Oaks.
+Time outside is a big part of our days too. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Wondering Oaks.
 
-I'd like to hear how Wondering Oaks is doing these days.
+I'd love to hear how Wondering Oaks is doing these days.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

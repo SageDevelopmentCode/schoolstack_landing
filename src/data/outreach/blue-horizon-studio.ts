@@ -168,11 +168,11 @@ export const blueHorizonStudioOutreach: OutreachPlan = {
     hook: "On May 20, 2026, Blue Horizon held an Outdoor Science Pop-Up at Champions Park where students in grades 3–8 engineered and tested foam projectile launchers.",
     body: `Hi Danielle,
 
-Your calendar from May had kids engineering foam launchers at Champions Park, more than a year before Blue Horizon opens. That's a good way to show families what your afternoons will feel like.
+I loved seeing your calendar from May, with kids engineering foam launchers at Champions Park more than a year before Blue Horizon opens. What a nice way to show families what your afternoons will feel like.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Blue Horizon.
+We love seeing a school take shape like that. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Blue Horizon.
 
-I'd like to hear how the Founders Club is coming together ahead of August.
+I'd love to hear how the Founders Club is coming together ahead of August.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

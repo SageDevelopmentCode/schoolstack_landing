@@ -760,7 +760,7 @@ export function SchoolJourneyPanel({
       </GCard>
 
       {/* Handwritten letter (goes before the first email) */}
-      <SchoolLetterCard row={row} index={1} onOutreach={onOutreach} />
+      <SchoolLetterCard row={row} index={1} onOutreach={onOutreach} onSaveSchool={onSaveSchool} pendingKey={pendingKey} />
 
       {/* Sequence */}
       <GCard

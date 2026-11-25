@@ -162,11 +162,11 @@ export const bookHooksSchoolhouseOutreach: OutreachPlan = {
     hook: "On the Teacher's Lounge podcast (Curriculum Trak, March 2024), Lara described her students building German Christmas pyramids, tying German immigrants to Texas to the convection currents they studied in science.",
     body: `Hi Lara,
 
-On the Teacher's Lounge podcast you described your students building German Christmas pyramids, tying the German settlers in Texas to the convection currents from science. It's a good picture of what one mixed-age room can do.
+I loved hearing you on the Teacher's Lounge podcast describe your students building German Christmas pyramids, tying the German settlers in Texas to convection currents in science. What a picture of what one mixed-age room can do.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Book Hooks.
+That's the kind of school we love hearing about. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Book Hooks.
 
-I'd like to hear how the schoolhouse has grown since that first group of nine.
+I'd love to hear how the schoolhouse has grown since that first group of nine.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your admissions.",

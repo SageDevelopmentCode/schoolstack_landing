@@ -165,7 +165,7 @@ export const prestigeHomeschoolAcademyOutreach: OutreachPlan = {
       url: "https://prestigehomeschoolacademy.com/meet-the-teachers",
     },
     mailTo: {
-      lines: ["Prestige Homeschool Academy", "203 John Sims Parkway West", "Niceville, FL 32578"],
+      lines: ["Amber Merrell", "Prestige Homeschool Academy", "203 John Sims Parkway West", "Niceville, FL 32578"],
       source: "Prestige Contact Us page (also the home page footer; the FAQ says the school meets there, next to Papa's Smokehouse)",
       url: "https://prestigehomeschoolacademy.com/contact-us",
     },
@@ -198,11 +198,11 @@ export const prestigeHomeschoolAcademyOutreach: OutreachPlan = {
     hook: "Prestige's curriculum covers writing, reading, English, science, social studies and math, along with practical skills like cooking, finances and social etiquette; the Tuesday/Thursday days add a project-based life-skills curriculum, and groups are no more than 12.",
     body: `Hi Amber,
 
-I was reading about Prestige. I liked that alongside the regular subjects you teach cooking, money and manners, with a life-skills focus on Tuesdays and Thursdays, all in groups of 12 or fewer.
+I was reading about Prestige and loved that alongside the regular subjects you teach cooking, money and manners, with a life-skills focus on Tuesdays and Thursdays, all in groups of 12 or fewer.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Prestige.
+That's the kind of school we love hearing about. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Prestige.
 
-I'd like to hear how the life-skills days came about.
+I'd love to hear how the life-skills days came about.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

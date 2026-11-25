@@ -225,11 +225,11 @@ export const familyLyceumOutreach: OutreachPlan = {
     hook: "On the Dimond Education Podcast (episode 22, \"Family Centered Education\", February 14, 2023), Renae Zentz talked about Family Lyceum, the part-time private school she founded and directs, and its mission to ignite the FIRE (Freedom, Individuals, Respect, Excellence) in each student while respecting the family's role in a child's education.",
     body: `Hi Renae,
 
-I listened to your Dimond Education Podcast episode. I liked how you set Family Lyceum's goal, to ignite the FIRE in each student, right next to respect for the family's role in a child's education.
+I listened to your Dimond Education Podcast episode and loved how you set Family Lyceum's goal, to ignite the FIRE in each student, right next to respect for the family's role in a child's education.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Family Lyceum.
+Hearing from founders like you is my favorite part of this work. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Family Lyceum.
 
-I'd like to hear how families take to the campus days and the home days.
+I'd love to hear how families take to the campus days and the home days.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

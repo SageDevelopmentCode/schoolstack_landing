@@ -195,7 +195,7 @@ export const hiltonHorizonsAcademyOutreach: OutreachPlan = {
       url: "https://www.hiltonhorizonsacademy.com/ourteam",
     },
     mailTo: {
-      lines: ["1526 Bridgewater Ln. Unit 200", "Kingsport, TN 37660"],
+      lines: ["Candice Hilton", "Hilton Horizons Academy", "1526 Bridgewater Ln. Unit 200", "Kingsport, TN 37660"],
       source: "Hilton Horizons, Kingsport Private School page",
       url: "https://www.hiltonhorizonsacademy.com/kingsport-private-school",
     },
@@ -228,11 +228,11 @@ export const hiltonHorizonsAcademyOutreach: OutreachPlan = {
     hook: "Candice was on the LiberatED Podcast in August 2024, just after opening Hilton Horizons in Kingsport with 12 students in a three-day program, a year after leaving her public school teaching job.",
     body: `Hi Candice,
 
-I heard you on LiberatED back when you'd just opened in Kingsport with 12 students. Now there are four campuses, which is a lot of growth in two years.
+I heard you on LiberatED back when you'd just opened in Kingsport with 12 students. Now there are four campuses. Congratulations on so much growth in two years.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Hilton Horizons.
+Running a small school ourselves, I know how much that takes. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Hilton Horizons.
 
-I'd like to hear how you're handling enrollment across four campuses.
+I'd love to hear how you're handling enrollment across four campuses.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment. I emailed once in June, but a note seemed better.",

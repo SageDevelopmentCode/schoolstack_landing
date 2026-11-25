@@ -223,11 +223,11 @@ export const austinMicroSchoolOutreach: OutreachPlan = {
     hook: "Austin Micro School's blog post \"Inside a Project Block\" (July 13, 2026) describes afternoon Project Blocks tied to six-week thematic Cycles, with projects like testing water samples from the garden, and says most projects end with a share-out to peers, guides and sometimes families.",
     body: `Hi Matthew,
 
-I read your post on Project Blocks. I liked the afternoons spent on things like testing water samples from the garden, and that most projects end with a share-out to peers and sometimes families.
+I read your post on Project Blocks and loved the afternoons spent on things like testing water samples from the garden, with most projects ending in a share-out to peers and sometimes families.
 
-My fiancée and I run Sage Field, an outdoor microschool up in Round Rock. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Austin Micro.
+Afternoons outside are a big part of our days too. My fiancée and I run Sage Field, an outdoor microschool up in Round Rock. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Austin Micro.
 
-If you're ever up for coffee, I'd like to hear how you landed on six-week Cycles.
+If you're ever up for coffee, I'd love to hear how you landed on six-week Cycles.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

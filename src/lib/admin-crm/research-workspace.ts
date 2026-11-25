@@ -88,6 +88,11 @@ export function parseSchoolPatch(body: Record<string, unknown>): SchoolPatch {
     if (!parsed.ok) throw new ResearchInputError("Follow-up must be a date.");
     patch.next_follow_up_at = parsed.value ?? null;
   }
+  if ("letter_ready_at" in body) {
+    const parsed = parseOptionalDate(body.letter_ready_at);
+    if (!parsed.ok) throw new ResearchInputError("Letter ready must be a date.");
+    patch.letter_ready_at = parsed.value ?? null;
+  }
   if (Object.keys(patch).length === 0) throw new ResearchInputError("Nothing to update.");
   return patch;
 }

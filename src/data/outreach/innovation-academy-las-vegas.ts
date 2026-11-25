@@ -162,11 +162,11 @@ export const innovationAcademyLasVegasOutreach: OutreachPlan = {
     hook: "Innovation Academy's About page says most schools' idea of accommodating a severe food allergy is isolation, so the school made its whole campus peanut and tree-nut free.",
     body: `Hi Mary,
 
-I read your page on why Innovation Academy is a peanut and tree-nut free campus. Most schools handle a severe allergy by seating a child apart, so you made the whole campus safe and every student eats together.
+I read your page on why Innovation Academy is a peanut and tree-nut free campus. Most schools handle a severe allergy by seating a child apart, so you made the whole campus safe and every student eats together. I loved that.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Innovation Academy.
+That kind of care is why I wanted to write. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Innovation Academy.
 
-I'd like to hear how families with allergies usually find you.
+I'd love to hear how families with allergies usually find you.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

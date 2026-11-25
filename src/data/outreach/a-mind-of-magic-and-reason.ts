@@ -192,11 +192,11 @@ export const aMindOfMagicAndReasonOutreach: OutreachPlan = {
     hook: "April's Our Story says that after 10 years as a public educator, parents of former students jokingly suggested she homeschool their children, which led her through KaiPod Catalyst to open AMOMAR in Fall 2025.",
     body: `Hi April,
 
-Your Our Story page says AMOMAR started when parents of former students jokingly suggested you homeschool their kids. A year after opening, you've grown from grades 3–8 to K–8.
+Your Our Story page made me smile. AMOMAR started when parents of former students jokingly suggested you homeschool their kids, and a year after opening, you've grown from grades 3–8 to K–8.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for AMOMAR.
+What a way for a school to begin. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for AMOMAR.
 
-I'd like to hear what made you add the younger grades in year two.
+I'd love to hear what made you add the younger grades in year two.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

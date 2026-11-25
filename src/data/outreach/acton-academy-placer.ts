@@ -201,11 +201,11 @@ export const actonAcademyPlacerOutreach: OutreachPlan = {
     hook: "On Acton Placer's Story page, Kelsy Blyakherov wrote that she has been part of Acton Academy since the fall of 2014 and that the Hero's Journey \"isn't just a philosophy—it is my life's work\".",
     body: `Hi Kelsy,
 
-I read your story on the Acton Placer site. You've been part of Acton since the fall of 2014, and you wrote that the Hero's Journey isn't just a philosophy for you. It's your life's work.
+I read your story on the Acton Placer site. You've been part of Acton since the fall of 2014, and I loved that you called the Hero's Journey your life's work, not just a philosophy.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Acton Placer.
+That kind of devotion is why I wanted to write. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Acton Placer.
 
-I'd like to hear how you keep three campuses feeling like one school.
+I'd love to hear how you keep three campuses feeling like one school.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
