@@ -6,7 +6,11 @@ import { X } from "lucide-react";
 import DemoWalkthroughStepList from "@/components/demo/DemoWalkthroughStepList";
 import type { DemoWalkthroughStep } from "@/data/school-demos/walkthrough-placeholder";
 import type { SchoolDemoLogo } from "@/components/demo/SchoolDemoWordmark";
-import { DemoCoBrandCard, DemoStepProgress } from "@/components/demo/DemoWalkthroughPanel";
+import {
+  DemoCoBrandCard,
+  DemoSnapshotLink,
+  DemoStepProgress,
+} from "@/components/demo/DemoWalkthroughPanel";
 import { Pill } from "@/components/garden/ui";
 
 type Props = {
@@ -17,6 +21,8 @@ type Props = {
   steps: DemoWalkthroughStep[];
   activeStep: number;
   onStepSelect: (index: number) => void;
+  /** Their snapshot page, when they opened it on this device. */
+  snapshotHref?: string | null;
 };
 
 export default function DemoWalkthroughMobileSheet({
@@ -27,6 +33,7 @@ export default function DemoWalkthroughMobileSheet({
   steps,
   activeStep,
   onStepSelect,
+  snapshotHref,
 }: Props) {
   const titleId = useId();
 
@@ -114,6 +121,7 @@ export default function DemoWalkthroughMobileSheet({
                 onStepSelect={handleStepSelect}
                 compact
               />
+              {snapshotHref ? <DemoSnapshotLink href={snapshotHref} className="mt-6" /> : null}
             </div>
           </motion.aside>
         </motion.div>

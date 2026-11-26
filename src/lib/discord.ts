@@ -1006,6 +1006,34 @@ export async function notifyOutreachSnapshotViewed(payload: {
   });
 }
 
+const DEMO_OPENED_FROM = {
+  snapshot: "Their snapshot",
+  letter: "Letter QR → snapshot",
+  direct: "A direct link",
+} as const;
+
+/** A prospect school opened its walkthrough demo (`/demo/<slug>`). */
+export async function notifyDemoOpened(payload: {
+  schoolName: string;
+  slug: string;
+  /** Where they opened it from: their snapshot, the letter's QR card (via the snapshot), or elsewhere. */
+  via: keyof typeof DEMO_OPENED_FROM;
+  /** Outreach workspace link, when the school has an outreach plan. */
+  adminUrl?: string;
+}) {
+  await sendDiscordEmbed({
+    title: "🧭 Demo opened",
+    description: `${payload.schoolName} opened their demo.`,
+    color: DISCORD_EMBED_COLORS.sales,
+    fields: [
+      embedField("School", truncate(payload.schoolName), true),
+      embedField("Demo", truncate(payload.slug), true),
+      embedField("Came from", DEMO_OPENED_FROM[payload.via], true),
+      ...(payload.adminUrl ? [embedField("Outreach", payload.adminUrl)] : []),
+    ],
+  });
+}
+
 export async function notifyMobileAppDownloadLead(payload: {
   leadId: string;
   name: string;

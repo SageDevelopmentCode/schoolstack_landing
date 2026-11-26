@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import {
   ArrowDown,
   ArrowRight,
@@ -19,6 +19,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { rememberSnapshotPath } from "@/components/demo/useSnapshotLink";
+import { useViewBeacon } from "@/lib/outreach/view-beacon";
 import { MUDKITCHEN_LOGO, SAGEFIELD_PHOTOS } from "@/components/home-garden/assets";
 import { Pill, Tape, Tick, btnButter, btnOutline, btnPop } from "@/components/garden/ui";
 import {
@@ -60,39 +62,18 @@ function hostOf(url: string) {
   }
 }
 
-/** Tells Julius (Discord) the school opened it. Skipped for `?preview=1` and repeat views in a tab. */
-function useViewBeacon(slug: string, token: string) {
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.has("preview")) return;
-    const via = params.get("via") === "letter" ? "letter" : undefined;
-    const key = `snapshot-viewed:${slug}`;
-    try {
-      if (window.sessionStorage.getItem(key)) return;
-    } catch {
-      // Storage blocked: still send once for this page load.
-    }
-    // Wait a few seconds so link scanners and instant bounces don't count as a view.
-    const timer = window.setTimeout(() => {
-      try {
-        window.sessionStorage.setItem(key, "1");
-      } catch {
-        // ignore
-      }
-      const body = JSON.stringify({ slug, token, via });
-      const sent = typeof navigator.sendBeacon === "function"
-        && navigator.sendBeacon("/api/outreach-snapshot/view", new Blob([body], { type: "application/json" }));
-      if (!sent) {
-        void fetch("/api/outreach-snapshot/view", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body,
-          keepalive: true,
-        }).catch(() => {});
-      }
-    }, 4000);
-    return () => window.clearTimeout(timer);
-  }, [slug, token]);
+const noSubscribe = () => () => {};
+
+/**
+ * True when they arrived from the QR card in the handwritten letter (`?via=letter`).
+ * Read after mount so the page can be prerendered.
+ */
+function useCameFromLetter() {
+  return useSyncExternalStore(
+    noSubscribe,
+    () => new URLSearchParams(window.location.search).get("via") === "letter",
+    () => false,
+  );
 }
 
 /** A short note for someone who scanned the QR card from Julius's handwritten letter. */
@@ -119,7 +100,7 @@ export default function SnapshotPage({
   schoolName,
   demoHref,
   snapshot,
-  letterGreeting,
+  letterFirstName,
 }: {
   slug: string;
   token: string;
@@ -127,10 +108,26 @@ export default function SnapshotPage({
   /** Their demo's public path (`/demo/<route>`). */
   demoHref: string;
   snapshot: OutreachSnapshot;
-  /** Set when they arrived from the QR card in the handwritten letter (`?via=letter`). */
-  letterGreeting?: { firstName: string };
+  /** Founder's first name when the plan has a handwritten letter; greets them after a QR scan. */
+  letterFirstName?: string;
 }) {
-  useViewBeacon(slug, token);
+  const fromLetter = useCameFromLetter();
+  // Tells Julius (Discord) the school opened it.
+  useViewBeacon({
+    endpoint: "/api/outreach-snapshot/view",
+    storageKey: `snapshot-viewed:${slug}`,
+    body: { slug, token, via: fromLetter ? "letter" : undefined },
+  });
+  // Demo links say where they came from, for the demo's own Discord alert.
+  const demoLink = (path = "") => {
+    const url = new URL(`${demoHref}${path}`, "https://trymudkitchen.com");
+    url.searchParams.set("via", fromLetter ? "letter" : "snapshot");
+    return `${url.pathname}${url.search}${url.hash}`;
+  };
+  // Lets their demo (opened in a new tab) link back here on this device.
+  useEffect(() => {
+    rememberSnapshotPath(slug, `/snapshot/${slug}/${token}`);
+  }, [slug, token]);
   const speed = snapshot.pageSpeed;
   // Journey order (find → tour → apply → enroll → pay → updates → website); stable within an area.
   const observations = [...snapshot.observations].sort(
@@ -148,7 +145,7 @@ export default function SnapshotPage({
         <p className="hidden text-sm font-extrabold text-[var(--sf-soft)] sm:block">{COPY.preparedBy}</p>
       </header>
 
-      {letterGreeting ? <LetterGreeting firstName={letterGreeting.firstName} demoHref={demoHref} /> : null}
+      {fromLetter && letterFirstName ? <LetterGreeting firstName={letterFirstName} demoHref={demoLink()} /> : null}
 
       {/* Hero */}
       <section className="sf-grid">
@@ -158,7 +155,7 @@ export default function SnapshotPage({
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-[var(--sf-soft)]">{COPY.intro(schoolName)}</p>
           <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
-            <Link href={demoHref} target="_blank" rel="noopener noreferrer" className={btnPop}>
+            <Link href={demoLink()} target="_blank" rel="noopener noreferrer" className={btnPop}>
               {COPY.ctaDemo}
               <ArrowUpRight className="h-5 w-5" strokeWidth={2.4} aria-hidden />
             </Link>
@@ -287,7 +284,7 @@ export default function SnapshotPage({
                       <p className="mt-3 text-[15.5px] leading-relaxed text-[var(--sf-ink)]">{o.fix.text}</p>
                       {inDemo ? (
                         <Link
-                          href={`${demoHref}${o.fix.demoPath ?? ""}`}
+                          href={demoLink(o.fix.demoPath)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className={`mt-auto inline-flex items-center gap-1.5 rounded-full pt-3 text-sm font-extrabold text-[var(--sf-forest)] hover:underline ${focusRing}`}
@@ -325,7 +322,7 @@ export default function SnapshotPage({
             <div className="rounded-[26px] border-2 border-[var(--sf-ink)] bg-white p-5 shadow-[0_6px_0_0_var(--sf-ink)]">
               <p className="sf-display text-2xl leading-[1.05]">{COPY.ctaTitle}</p>
               <p className="mt-2 text-[15px] leading-relaxed text-[var(--sf-soft)]">{COPY.ctaBody}</p>
-              <Link href={demoHref} target="_blank" rel="noopener noreferrer" className={`${btnPop} mt-4 w-full !px-5 !py-3 text-[15px]`}>
+              <Link href={demoLink()} target="_blank" rel="noopener noreferrer" className={`${btnPop} mt-4 w-full !px-5 !py-3 text-[15px]`}>
                 {COPY.ctaDemo}
               </Link>
               <Link

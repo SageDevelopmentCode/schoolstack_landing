@@ -268,7 +268,8 @@ export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
 };
 
 export function getSchoolDemoConfig(slug: string): SchoolWebsiteDemoConfig | undefined {
-  return schoolDemoRegistry[slug];
+  // Own keys only, so "constructor" and friends from untrusted input don't match.
+  return Object.prototype.hasOwnProperty.call(schoolDemoRegistry, slug) ? schoolDemoRegistry[slug] : undefined;
 }
 
 export function listSchoolDemoOptions(): { slug: string; label: string }[] {

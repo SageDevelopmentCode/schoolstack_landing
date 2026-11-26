@@ -1,7 +1,8 @@
 "use client";
 
-import { MousePointerClick } from "lucide-react";
+import { ArrowLeft, MousePointerClick } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import SchoolDemoWordmark, {
   type SchoolDemoLogo,
 } from "@/components/demo/SchoolDemoWordmark";
@@ -15,6 +16,28 @@ interface Props {
   steps: DemoWalkthroughStep[];
   activeStep?: number;
   onStepSelect: (index: number) => void;
+  /** Their snapshot page, when they opened it on this device. */
+  snapshotHref?: string | null;
+}
+
+/** Back to the school's "Family experience snapshot" (shown once they've opened it here). */
+export function DemoSnapshotLink({
+  href,
+  className = "",
+}: {
+  href: string;
+  className?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`flex w-full items-center justify-center gap-2 rounded-full border-2 border-[var(--sf-ink)] bg-white px-4 py-2.5 text-sm font-extrabold text-[var(--sf-ink)] shadow-[0_3px_0_0_var(--sf-ink)] transition hover:bg-[var(--sf-butter)] active:translate-y-0.5 active:shadow-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/30 ${className}`}
+      data-testid="demo-snapshot-link"
+    >
+      <ArrowLeft className="h-4 w-4" strokeWidth={2.6} aria-hidden />
+      Back to your snapshot
+    </Link>
+  );
 }
 
 /** MudKitchen × school co-brand, pinned to the wall as an index card. */
@@ -125,9 +148,10 @@ export default function DemoWalkthroughPanel({
   steps,
   activeStep = 0,
   onStepSelect,
+  snapshotHref,
 }: Props) {
   return (
-    <aside className="hidden h-screen w-[20%] min-w-[290px] shrink-0 flex-col overflow-y-auto border-r-2 border-[var(--sf-ink)]/10 bg-[var(--sf-paper)] lg:flex">
+    <aside className="hidden h-dvh w-[20%] min-w-[290px] shrink-0 flex-col overflow-y-auto border-r-2 border-[var(--sf-ink)]/10 bg-[var(--sf-paper)] lg:flex">
       <div className="flex flex-1 flex-col px-5 pb-8 pt-7">
         <header className="mb-6">
           <Pill tint="forest" className="!px-3 !py-1 !text-xs">
@@ -140,6 +164,7 @@ export default function DemoWalkthroughPanel({
           <div className="mt-5">
             <DemoStepProgress activeStep={activeStep} total={steps.length} />
           </div>
+          {snapshotHref ? <DemoSnapshotLink href={snapshotHref} className="mt-5" /> : null}
         </header>
 
         <DemoWalkthroughHint />

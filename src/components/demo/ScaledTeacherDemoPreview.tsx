@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, type ComponentType } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import DemoPreviewFrame from "@/components/demo/DemoPreviewFrame";
+import DemoScaledCanvas from "@/components/demo/shared/DemoScaledCanvas";
 import type { DemoWalkthroughTeacherTab } from "@/data/school-demos/walkthrough-placeholder";
 
-const DESIGN_WIDTH = 1440;
 const ROOTED_MEADOWS_SLUG = "rooted-meadows";
 
 type DemoComponent = ComponentType<Record<string, unknown>>;
@@ -37,8 +37,6 @@ export default function ScaledTeacherDemoPreview({
   initialSelectedTeacherStudentId?: string;
   openInitialTeacherStudentDetailDelayMs?: number;
 }) {
-  const outerRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(0.81);
   const [loadedDemo, setLoadedDemo] = useState<LoadedTeacherDemo | null>(null);
   const [SharedTeacher, setSharedTeacher] = useState<ComponentType<
     Record<string, unknown>
@@ -70,15 +68,6 @@ export default function ScaledTeacherDemoPreview({
     };
   }, [demoSlug]);
 
-  useEffect(() => {
-    const el = outerRef.current;
-    if (!el) return;
-    const update = () => setScale(el.offsetWidth / DESIGN_WIDTH);
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
 
   const demoProps = {
     initialTab: initialTeacherTab,
@@ -95,23 +84,14 @@ export default function ScaledTeacherDemoPreview({
 
   return (
     <DemoPreviewFrame variant="teacher">
-      <div ref={outerRef} className="relative h-full overflow-hidden">
-        <div
-          style={{
-            width: DESIGN_WIDTH,
-            height: scale > 0 ? `${100 / scale}%` : "100%",
-            transform: `scale(${scale})`,
-            transformOrigin: "top left",
-          }}
-        >
-          {loadedDemo?.kind === "shared" && SharedTeacher ? (
-            <SharedTeacher demoSlug={demoSlug} {...demoProps} />
-          ) : null}
-          {loadedDemo?.kind === "custom" ? (
-            <loadedDemo.Component {...demoProps} />
-          ) : null}
-        </div>
-      </div>
+      <DemoScaledCanvas>
+        {loadedDemo?.kind === "shared" && SharedTeacher ? (
+          <SharedTeacher demoSlug={demoSlug} {...demoProps} />
+        ) : null}
+        {loadedDemo?.kind === "custom" ? (
+          <loadedDemo.Component {...demoProps} />
+        ) : null}
+      </DemoScaledCanvas>
     </DemoPreviewFrame>
   );
 }
