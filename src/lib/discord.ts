@@ -992,18 +992,21 @@ export async function notifyOutreachSnapshotViewed(payload: {
   /** True when they came from the QR card in the handwritten letter (`/hi/<code>`). */
   viaLetter?: boolean;
 }) {
-  await sendDiscordEmbed({
-    title: payload.viaLetter ? "📮 Letter QR scanned" : "👀 Snapshot opened",
-    description: payload.viaLetter
-      ? `${payload.schoolName} scanned the QR card from your handwritten letter and opened their snapshot.`
-      : `${payload.schoolName} opened their family experience snapshot.`,
-    color: DISCORD_EMBED_COLORS.sales,
-    fields: [
-      embedField("School", truncate(payload.schoolName), true),
-      embedField("Demo", truncate(payload.slug), true),
-      embedField("Outreach", payload.adminUrl),
-    ],
-  });
+  await sendDiscordEmbed(
+    {
+      title: payload.viaLetter ? "📮 Letter QR scanned" : "👀 Snapshot opened",
+      description: payload.viaLetter
+        ? `${payload.schoolName} scanned the QR card from your handwritten letter and opened their snapshot.`
+        : `${payload.schoolName} opened their family experience snapshot.`,
+      color: DISCORD_EMBED_COLORS.sales,
+      fields: [
+        embedField("School", truncate(payload.schoolName), true),
+        embedField("Demo", truncate(payload.slug), true),
+        embedField("Outreach", payload.adminUrl),
+      ],
+    },
+    { strict: true },
+  );
 }
 
 const DEMO_OPENED_FROM = {
@@ -1021,17 +1024,20 @@ export async function notifyDemoOpened(payload: {
   /** Outreach workspace link, when the school has an outreach plan. */
   adminUrl?: string;
 }) {
-  await sendDiscordEmbed({
-    title: "🧭 Demo opened",
-    description: `${payload.schoolName} opened their demo.`,
-    color: DISCORD_EMBED_COLORS.sales,
-    fields: [
-      embedField("School", truncate(payload.schoolName), true),
-      embedField("Demo", truncate(payload.slug), true),
-      embedField("Came from", DEMO_OPENED_FROM[payload.via], true),
-      ...(payload.adminUrl ? [embedField("Outreach", payload.adminUrl)] : []),
-    ],
-  });
+  await sendDiscordEmbed(
+    {
+      title: "🧭 Demo opened",
+      description: `${payload.schoolName} opened their demo.`,
+      color: DISCORD_EMBED_COLORS.sales,
+      fields: [
+        embedField("School", truncate(payload.schoolName), true),
+        embedField("Demo", truncate(payload.slug), true),
+        embedField("Came from", DEMO_OPENED_FROM[payload.via], true),
+        ...(payload.adminUrl ? [embedField("Outreach", payload.adminUrl)] : []),
+      ],
+    },
+    { strict: true },
+  );
 }
 
 export async function notifyMobileAppDownloadLead(payload: {

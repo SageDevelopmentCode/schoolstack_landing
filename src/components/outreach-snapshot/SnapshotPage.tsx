@@ -76,6 +76,19 @@ function useCameFromLetter() {
   );
 }
 
+/**
+ * True when an admin opened this page with `?preview=1`.
+ * Read after mount so the page can be prerendered. Demo links keep the flag so
+ * the demo's view beacon stays silent (same check as `useViewBeacon`).
+ */
+function useIsPreviewVisit() {
+  return useSyncExternalStore(
+    noSubscribe,
+    () => new URLSearchParams(window.location.search).has("preview"),
+    () => false,
+  );
+}
+
 /** A short note for someone who scanned the QR card from Julius's handwritten letter. */
 function LetterGreeting({ firstName, demoHref }: { firstName: string; demoHref: string }) {
   return (
@@ -112,6 +125,7 @@ export default function SnapshotPage({
   letterFirstName?: string;
 }) {
   const fromLetter = useCameFromLetter();
+  const previewVisit = useIsPreviewVisit();
   // Tells Julius (Discord) the school opened it.
   useViewBeacon({
     endpoint: "/api/outreach-snapshot/view",
@@ -119,9 +133,11 @@ export default function SnapshotPage({
     body: { slug, token, via: fromLetter ? "letter" : undefined },
   });
   // Demo links say where they came from, for the demo's own Discord alert.
+  // Preview visits keep `preview=1` so an admin check does not count as a school visit.
   const demoLink = (path = "") => {
     const url = new URL(`${demoHref}${path}`, "https://trymudkitchen.com");
     url.searchParams.set("via", fromLetter ? "letter" : "snapshot");
+    if (previewVisit) url.searchParams.set("preview", "1");
     return `${url.pathname}${url.search}${url.hash}`;
   };
   // Lets their demo (opened in a new tab) link back here on this device.
