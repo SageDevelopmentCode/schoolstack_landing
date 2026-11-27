@@ -16,10 +16,11 @@
     },
     "android": {
       "package": "com.mudkitchen.schoolstack.mobile",
+      "icon": "./assets/images/icon-winter.png",
       "adaptiveIcon": {
-        "backgroundColor": "#F7F1E7",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
+        "backgroundColor": "#2E4A3C",
+        "foregroundImage": "./assets/images/android-icon-foreground-winter.png",
+        "backgroundImage": "./assets/images/android-icon-background-winter.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,

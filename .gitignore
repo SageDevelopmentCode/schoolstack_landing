@@ -65,7 +65,7 @@ apps/mobile/android/app/build/
 /video/mudkitchen-film/public/footage/
 /video/mudkitchen-film/audio-source/
 /video/mudkitchen-film/footage-source/
-*.MP4
+*.[mM][pP]4
 
 # typescript
 *.tsbuildinfo
