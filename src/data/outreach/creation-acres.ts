@@ -182,7 +182,7 @@ export const creationAcresOutreach: OutreachPlan = {
       url: "https://www.thecharlotteweekly.com/mmhweekly/mint-hill-montessori-school-sees-opportunity-to-grow/article_17e3c6c9-94ea-4580-bc5c-be0cb61a59e1.html",
     },
     mailTo: {
-      lines: ["11120 Lawyers Road", "Mint Hill, NC 28227"],
+      lines: ["Jasmine Williams", "Creation Acres Montessori", "11120 Lawyers Road", "Mint Hill, NC 28227"],
       source: "Creation Acres Contact page and site footer (the FAQ says no one lives in the schoolhouse; the property is used only for school programs)",
       url: "https://www.creationacres.com/contact",
     },
@@ -221,11 +221,11 @@ export const creationAcresOutreach: OutreachPlan = {
     hook: "On April 9, 2026, Mint Hill commissioners unanimously approved rezoning 19.9 acres at 6300 Allen Black Road so Creation Acres can move from Lawyers Road to a larger campus; Jasmine Williams told them the project is about carrying on a legacy and keeping the property in Mint Hill.",
     body: `Hi Jasmine,
 
-I read in the Charlotte Weekly that Mint Hill approved the rezoning for the Allen Black Road farm. I liked what you told the commissioners about carrying on a legacy and keeping that land in Mint Hill.
+I read in the Charlotte Weekly that Mint Hill approved the rezoning for the Allen Black Road farm. Congratulations. I loved what you told the commissioners about carrying on a legacy and keeping that land in Mint Hill.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Creation Acres.
+Time outside is a big part of our days too. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Creation Acres.
 
-I'd like to hear how the farm campus is coming along.
+I'd love to hear how the farm campus is coming along.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

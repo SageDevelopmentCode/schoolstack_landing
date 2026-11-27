@@ -193,11 +193,11 @@ export const southOcHybridHomeschoolOutreach: OutreachPlan = {
     hook: "On episode 078 of the Learning to Glow podcast (July 10, 2024), Natalie, introduced as Founder and Director of SOCHH, talked about alternative schooling and what type of child could benefit from it.",
     body: `Hi Natalie,
 
-On the Learning to Glow podcast you talked about what kind of child could benefit from alternative schooling. SOCHH's own history is a good answer: a co-op of "accidental homeschoolers" that became a campus with programs from TK to 8th grade.
+On the Learning to Glow podcast you talked about what kind of child could benefit from alternative schooling. I loved that SOCHH's own history answers it: a co-op of "accidental homeschoolers" that became a campus with programs from TK to 8th grade.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for SOCHH.
+Stories like that are why I wanted to write. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for SOCHH.
 
-I'd like to hear how the co-op became a campus.
+I'd love to hear how the co-op became a campus.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your admissions.",

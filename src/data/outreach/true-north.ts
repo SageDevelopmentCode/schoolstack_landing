@@ -220,11 +220,11 @@ export const trueNorthOutreach: OutreachPlan = {
     hook: "True North's About page says it launched its first year in fall 2017 with a team of 14 teachers and admins and 62 students, now has over 150 students, and teaches two days a week in person with three days of assignments at home.",
     body: `Hi Lisa,
 
-I read on your About page that True North opened in fall 2017 with 62 students and a team of 14. It's over 150 students now, still together in person two days a week with three days of work at home.
+Your About page says True North opened in fall 2017 with 62 students and a team of 14. I loved that it's over 150 students now, still together in person two days a week.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for True North.
+Running a small school ourselves, I know how much that takes. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for True North.
 
-I'd like to hear how you've kept the two-day model as the school grew.
+I'd love to hear how you've kept the two-day model as the school grew.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

@@ -39,7 +39,9 @@ export function formatDay(iso: string): string {
 
 /** Stage chip for a list row or header. */
 export function journeyChip(journey: OutreachJourney): { tone: GChipTone; label: string } {
-  if (journey.stage === "letter") return { tone: "alert", label: "Letter to mail" };
+  if (journey.stage === "letter") {
+    return journey.letter?.readyAt ? { tone: "info", label: "Ready to mail" } : { tone: "alert", label: "Letter to mail" };
+  }
   if (journey.next) {
     const label = `${journey.next.number} · ${journey.next.label}`;
     return { tone: journey.actionable ? "alert" : "info", label };

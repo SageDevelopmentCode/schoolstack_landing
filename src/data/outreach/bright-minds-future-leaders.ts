@@ -160,11 +160,11 @@ export const brightMindsFutureLeadersOutreach: OutreachPlan = {
     hook: "Angela taught for 30+ years across several districts, ending her public school career in New Caney ISD, then founded Bright Minds in the same community.",
     body: `Hi Angela,
 
-After more than 30 years of teaching, finishing in New Caney ISD, you opened Bright Minds in the same community, with classes of 12 instead of 30. That's a lot of trust from local families.
+After more than 30 years of teaching, finishing in New Caney ISD, you opened Bright Minds in the same community, with classes of 12 instead of 30. I loved that, and how much local families trust you.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Bright Minds.
+I know how much that takes. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Bright Minds.
 
-I'd like to hear what's surprised you most about running the school and teaching in it.
+I'd love to hear what's surprised you most about running the school and teaching in it.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

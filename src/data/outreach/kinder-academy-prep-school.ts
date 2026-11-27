@@ -196,7 +196,7 @@ export const kinderAcademyPrepSchoolOutreach: OutreachPlan = {
       url: "https://kinderacademyprepschool.com/meet-the-owner-operator",
     },
     mailTo: {
-      lines: ["3303 Shell Road, Suite 6", "Georgetown, TX 78628"],
+      lines: ["Kimberly Lind", "Kinder Academy Prep School", "3303 Shell Road, Suite 6", "Georgetown, TX 78628"],
       source: "Kinder Academy Prep School home page",
       url: "https://kinderacademyprepschool.com/",
     },
@@ -223,11 +223,11 @@ export const kinderAcademyPrepSchoolOutreach: OutreachPlan = {
     hook: "Kimberly Lind wrote that she didn't start Kinder Academy Prep School because she was finished with education, but because she wasn't: after retiring in 2022 from 33 years in public and private schools, her grandchild inspired her to see the space teaching had left.",
     body: `Hi Kimberly,
 
-I read how you started KAPS after 33 years of teaching, and I liked your line about not starting it because you were done with education, but because you weren't.
+I read how you started KAPS after 33 years of teaching, and I loved your line about not starting it because you were done with education, but because you weren't.
 
-My fiancée and I run Sage Field, an outdoor microschool just down the road in Round Rock. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for KAPS.
+Stories like that are why I wanted to write. My fiancée and I run Sage Field, an outdoor microschool just down the road in Round Rock. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for KAPS.
 
-If you're ever up for coffee, Georgetown is close, and I'd like to hear how your first year is going.
+If you're ever up for coffee, Georgetown is close, and I'd love to hear how your first year is going.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at how families sign up with you.",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, type MouseEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode, type SyntheticEvent } from "react";
 import {
   ADMIN_DEMO_COLORS,
   ADMIN_DEMO_COPY,
@@ -52,6 +52,11 @@ type DemoAdminGardenShellProps = {
    * while the sidebar / top bar stay decorative and no link navigates.
    */
   inert?: boolean;
+  /**
+   * With `inert`: still scripted (every click is swallowed), but the visitor can
+   * scroll the page and drawers. Used by the walkthrough, where a long page must scroll.
+   */
+  scrollable?: boolean;
   "data-testid"?: string;
   children: (ctx: DemoAdminGardenShellContext) => ReactNode;
 };
@@ -106,9 +111,14 @@ export default function DemoAdminGardenShell({
   previewPathname,
   features = DEMO_ADMIN_FEATURES,
   inert = false,
+  scrollable = false,
   "data-testid": testId,
   children,
 }: DemoAdminGardenShellProps) {
+  // Fully frozen (no pointer at all), or scripted but scrollable.
+  const frozen = inert && !scrollable;
+  const scripted = inert && scrollable;
+  const rootRef = useRef<HTMLDivElement>(null);
   const setup = useMemo(() => {
     applyAdminDemoRuntime(config);
     const branding = buildBranding();
@@ -147,19 +157,48 @@ export default function DemoAdminGardenShell({
     if (target.closest("a[href]")) event.preventDefault();
   }, []);
 
+  /*
+   * Scripted but scrollable: without `inert`, the drawer's and dialog's focus()
+   * calls can scroll an overflow-hidden box sideways and shift the layout.
+   * Snap any sideways scroll on a box that isn't meant to scroll back to 0.
+   */
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!scripted || !root) return;
+    const onScroll = (event: Event) => {
+      const el = event.target;
+      if (!(el instanceof HTMLElement) || el.scrollLeft === 0) return;
+      const overflowX = getComputedStyle(el).overflowX;
+      if (overflowX === "hidden" || overflowX === "clip") el.scrollLeft = 0;
+    };
+    root.addEventListener("scroll", onScroll, true);
+    return () => root.removeEventListener("scroll", onScroll, true);
+  }, [scripted]);
+
+  const swallow = useCallback((event: SyntheticEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+  }, []);
+
   return (
     <div
+      ref={rootRef}
       className="relative h-full w-full overflow-hidden"
       {...{ [SHELL_ATTR]: "" }}
       data-testid={testId}
-      // Scripted previews: `inert` makes the drawer's and dialog's focus()
+      // Frozen previews: `inert` makes the drawer's and dialog's focus()
       // calls no-ops, so they can't scroll the walkthrough frame sideways
       // (and keyboard users can't tab into fake rows).
-      inert={inert}
-      onClickCapture={inert ? undefined : guardClick}
+      inert={frozen}
+      onClickCapture={frozen ? undefined : scripted ? swallow : guardClick}
+      onSubmitCapture={scripted ? swallow : undefined}
     >
       <SchoolAdminStoryShell branding={setup.branding} className="h-full">
-        <div className={inert ? "pointer-events-none h-full select-none" : "h-full"}>
+        <div
+          className={
+            frozen ? "pointer-events-none h-full select-none" : scripted ? "h-full select-none" : "h-full"
+          }
+        >
           <SchoolAdminBaseline
             slug={DEMO_PORTAL_SLUG}
             organizationId={DEMO_PORTAL_ORG_ID}
@@ -183,7 +222,7 @@ export default function DemoAdminGardenShell({
         ref={setPortalHost}
         {...{ [PORTAL_ATTR]: "" }}
         className={`pointer-events-none absolute inset-0 z-[130] ${
-          inert ? "select-none" : "[&>*]:pointer-events-auto"
+          frozen ? "select-none" : scripted ? "select-none [&>*]:pointer-events-auto" : "[&>*]:pointer-events-auto"
         }`}
       />
       <style>{HIDE_STORY_TOASTER}</style>

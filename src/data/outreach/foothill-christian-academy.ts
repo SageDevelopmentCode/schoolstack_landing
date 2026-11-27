@@ -187,11 +187,11 @@ export const foothillChristianAcademyOutreach: OutreachPlan = {
     hook: "Alicia Gonzalez grew up in Upland and has taught elementary, middle and high school over the last 22 years; she now leads Foothill Christian Academy in Upland.",
     body: `Hi Alicia,
 
-You grew up in Upland, taught every level from elementary to high school over 22 years, and now lead a school in your hometown. That's a rare path.
+You grew up in Upland, taught every level from elementary to high school over 22 years, and now lead a school in your hometown. I loved reading that.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Foothill Christian.
+Stories like yours are why I wanted to write. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Foothill Christian.
 
-I'd like to hear how families take to the hybrid week, with two and a half days on campus.
+I'd love to hear how families take to the hybrid week, with two and a half days on campus.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your admissions.",

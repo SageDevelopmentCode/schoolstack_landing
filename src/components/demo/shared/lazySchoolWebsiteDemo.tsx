@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 
 const WEBSITE_DEMO_LOADERS: Record<
   string,
@@ -339,9 +339,12 @@ const WEBSITE_DEMO_LOADERS: Record<
 
 export function LazySchoolWebsiteDashboardDemo({
   demoSlug,
+  fallback = null,
   ...props
 }: {
   demoSlug: string;
+  /** Shown while the school's website chunk downloads. */
+  fallback?: ReactNode;
 } & Record<string, unknown>) {
   const [Component, setComponent] = useState<ComponentType<
     Record<string, unknown>
@@ -360,7 +363,7 @@ export function LazySchoolWebsiteDashboardDemo({
     };
   }, [demoSlug]);
 
-  if (!Component) return null;
+  if (!Component) return <>{fallback}</>;
   return <Component {...props} />;
 }
 

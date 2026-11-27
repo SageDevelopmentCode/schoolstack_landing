@@ -186,7 +186,7 @@ export const homeworkHubOutreach: OutreachPlan = {
       url: "https://www.homeworkhubtutoring.com/our-office-staff",
     },
     mailTo: {
-      lines: ["628 Walt Whitman Road", "Melville, NY 11747"],
+      lines: ["Tracy Berman-Rolleri", "Homework Hub", "628 Walt Whitman Road", "Melville, NY 11747"],
       source: "Homework Hub home page (schema.org address) and the HwH Academy page's form footer",
       url: "https://www.homeworkhubtutoring.com/",
     },
@@ -213,11 +213,11 @@ export const homeworkHubOutreach: OutreachPlan = {
     hook: "Tracy Berman-Rolleri began her career teaching elementary school at a Manhattan private school, built a tutoring practice that took off in New York City, relocated to Long Island over 25 years ago and founded Homework Hub in 2012.",
     body: `Hi Tracy,
 
-I read how Homework Hub began, with a classroom in Manhattan and a tutoring practice in the city before you started it on Long Island in 2012. I liked seeing it now include a full-day microschool for grades 5 to 8.
+I read how Homework Hub began, with a classroom in Manhattan and a tutoring practice before you started it on Long Island in 2012. I loved that it now includes a full-day microschool for grades 5 to 8.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Homework Hub.
+Running a small school ourselves, I know how much that takes. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Homework Hub.
 
-I'd like to hear what led you to start HwH Academy.
+I'd love to hear what led you to start HwH Academy.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

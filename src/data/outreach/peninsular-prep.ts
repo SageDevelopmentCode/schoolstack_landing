@@ -219,11 +219,11 @@ export const peninsularPrepOutreach: OutreachPlan = {
     hook: "On Conversations with GIPR (January 16, 2025), Angela talked about launching a learning pod in 2020 that became South Tampa Microschool by 2021 and Peninsular Prep @ STM by 2024, and the challenges of her new role as a tenant of a fairly large space in Tampa.",
     body: `Hi Angela,
 
-I found your Conversations with GIPR episode. You went from a learning pod in 2020 to South Tampa Microschool in 2021, and now Peninsular Prep runs K–8 from a much bigger space on Coolidge Avenue.
+I loved your Conversations with GIPR episode. You went from a learning pod in 2020 to South Tampa Microschool in 2021, and now Peninsular Prep runs K–8 from a much bigger space on Coolidge Avenue.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Pen Prep.
+Stories like that are why I wanted to write. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Pen Prep.
 
-I'd like to hear how the move into a bigger space has gone.
+I'd love to hear how the move into a bigger space has gone.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

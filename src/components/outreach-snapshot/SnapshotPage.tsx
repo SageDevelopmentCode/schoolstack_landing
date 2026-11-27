@@ -2,20 +2,25 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import {
+  ArrowDown,
   ArrowRight,
   ArrowUpRight,
   ClipboardList,
   CreditCard,
   FileSignature,
   Globe,
+  Mail,
   MapPin,
   MessageCircle,
+  Phone,
   Search,
   Sparkles,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { rememberSnapshotPath } from "@/components/demo/useSnapshotLink";
+import { useViewBeacon } from "@/lib/outreach/view-beacon";
 import { MUDKITCHEN_LOGO, SAGEFIELD_PHOTOS } from "@/components/home-garden/assets";
 import { Pill, Tape, Tick, btnButter, btnOutline, btnPop } from "@/components/garden/ui";
 import {
@@ -26,6 +31,7 @@ import {
   type SnapshotArea,
 } from "@/data/outreach/types";
 import { GET_STARTED_PAGE_PATH } from "@/lib/marketing/book-demo";
+import { MUDKITCHEN_CONTACT } from "@/lib/site";
 import { SNAPSHOT_COPY as COPY } from "./snapshot-copy";
 
 const AREA_STYLE: Record<SnapshotArea, { icon: LucideIcon; tint: string; tape: string; rotate: string }> = {
@@ -38,7 +44,10 @@ const AREA_STYLE: Record<SnapshotArea, { icon: LucideIcon; tint: string; tape: s
   website: { icon: Globe, tint: "bg-[var(--sf-mint)]", tape: "var(--sf-mint)", rotate: "-0.6deg" },
 };
 
-const focusRing = "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/30";
+/** Only show the Mobile speed sticker for a poor score (Google PageSpeed's red band, 0–49). */
+const PAGESPEED_SHOW_BELOW = 50;
+
+const focusRing ="focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/30";
 
 function formatDate(isoDate: string) {
   const [y, m, d] = isoDate.split("-").map(Number);
@@ -53,39 +62,31 @@ function hostOf(url: string) {
   }
 }
 
-/** Tells Julius (Discord) the school opened it. Skipped for `?preview=1` and repeat views in a tab. */
-function useViewBeacon(slug: string, token: string) {
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.has("preview")) return;
-    const via = params.get("via") === "letter" ? "letter" : undefined;
-    const key = `snapshot-viewed:${slug}`;
-    try {
-      if (window.sessionStorage.getItem(key)) return;
-    } catch {
-      // Storage blocked: still send once for this page load.
-    }
-    // Wait a few seconds so link scanners and instant bounces don't count as a view.
-    const timer = window.setTimeout(() => {
-      try {
-        window.sessionStorage.setItem(key, "1");
-      } catch {
-        // ignore
-      }
-      const body = JSON.stringify({ slug, token, via });
-      const sent = typeof navigator.sendBeacon === "function"
-        && navigator.sendBeacon("/api/outreach-snapshot/view", new Blob([body], { type: "application/json" }));
-      if (!sent) {
-        void fetch("/api/outreach-snapshot/view", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body,
-          keepalive: true,
-        }).catch(() => {});
-      }
-    }, 4000);
-    return () => window.clearTimeout(timer);
-  }, [slug, token]);
+const noSubscribe = () => () => {};
+
+/**
+ * True when they arrived from the QR card in the handwritten letter (`?via=letter`).
+ * Read after mount so the page can be prerendered.
+ */
+function useCameFromLetter() {
+  return useSyncExternalStore(
+    noSubscribe,
+    () => new URLSearchParams(window.location.search).get("via") === "letter",
+    () => false,
+  );
+}
+
+/**
+ * True when an admin opened this page with `?preview=1`.
+ * Read after mount so the page can be prerendered. Demo links keep the flag so
+ * the demo's view beacon stays silent (same check as `useViewBeacon`).
+ */
+function useIsPreviewVisit() {
+  return useSyncExternalStore(
+    noSubscribe,
+    () => new URLSearchParams(window.location.search).has("preview"),
+    () => false,
+  );
 }
 
 /** A short note for someone who scanned the QR card from Julius's handwritten letter. */
@@ -98,7 +99,7 @@ function LetterGreeting({ firstName, demoHref }: { firstName: string; demoHref: 
           Below is the look at your enrollment I mentioned, and your demo is one tap away.
           <span className="sf-hand ml-1 text-2xl text-[var(--sf-forest)]">Julius</span>
         </p>
-        <Link href={demoHref} className={`${btnPop} shrink-0 !px-5 !py-2.5 text-[15px]`}>
+        <Link href={demoHref} target="_blank" rel="noopener noreferrer" className={`${btnPop} shrink-0 !px-5 !py-2.5 text-[15px]`}>
           Open your demo
         </Link>
       </div>
@@ -112,7 +113,7 @@ export default function SnapshotPage({
   schoolName,
   demoHref,
   snapshot,
-  letterGreeting,
+  letterFirstName,
 }: {
   slug: string;
   token: string;
@@ -120,10 +121,29 @@ export default function SnapshotPage({
   /** Their demo's public path (`/demo/<route>`). */
   demoHref: string;
   snapshot: OutreachSnapshot;
-  /** Set when they arrived from the QR card in the handwritten letter (`?via=letter`). */
-  letterGreeting?: { firstName: string };
+  /** Founder's first name when the plan has a handwritten letter; greets them after a QR scan. */
+  letterFirstName?: string;
 }) {
-  useViewBeacon(slug, token);
+  const fromLetter = useCameFromLetter();
+  const previewVisit = useIsPreviewVisit();
+  // Tells Julius (Discord) the school opened it.
+  useViewBeacon({
+    endpoint: "/api/outreach-snapshot/view",
+    storageKey: `snapshot-viewed:${slug}`,
+    body: { slug, token, via: fromLetter ? "letter" : undefined },
+  });
+  // Demo links say where they came from, for the demo's own Discord alert.
+  // Preview visits keep `preview=1` so an admin check does not count as a school visit.
+  const demoLink = (path = "") => {
+    const url = new URL(`${demoHref}${path}`, "https://trymudkitchen.com");
+    url.searchParams.set("via", fromLetter ? "letter" : "snapshot");
+    if (previewVisit) url.searchParams.set("preview", "1");
+    return `${url.pathname}${url.search}${url.hash}`;
+  };
+  // Lets their demo (opened in a new tab) link back here on this device.
+  useEffect(() => {
+    rememberSnapshotPath(slug, `/snapshot/${slug}/${token}`);
+  }, [slug, token]);
   const speed = snapshot.pageSpeed;
   // Journey order (find → tour → apply → enroll → pay → updates → website); stable within an area.
   const observations = [...snapshot.observations].sort(
@@ -141,27 +161,27 @@ export default function SnapshotPage({
         <p className="hidden text-sm font-extrabold text-[var(--sf-soft)] sm:block">{COPY.preparedBy}</p>
       </header>
 
-      {letterGreeting ? <LetterGreeting firstName={letterGreeting.firstName} demoHref={demoHref} /> : null}
+      {fromLetter && letterFirstName ? <LetterGreeting firstName={letterFirstName} demoHref={demoLink()} /> : null}
 
       {/* Hero */}
       <section className="sf-grid">
         <div className="mx-auto max-w-6xl px-6 pb-14 pt-12 sm:px-10 lg:pb-20 lg:pt-16">
-          <Pill tint="butter">📋 {COPY.kicker}</Pill>
-          <h1 className="sf-display mt-5 max-w-4xl text-[11vw] leading-[0.9] sm:text-6xl lg:text-[4.6rem]">
+          <h1 className="sf-display max-w-4xl text-[11vw] leading-[0.9] sm:text-6xl lg:text-[4.6rem]">
             {COPY.title(schoolName)}
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-[var(--sf-soft)]">{COPY.intro(schoolName)}</p>
-          {snapshot.summary ? <p className="mt-3 max-w-2xl text-[15px] font-bold text-[var(--sf-ink)]/75">{snapshot.summary}</p> : null}
-          <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2">
-            <span className="rounded-full bg-white px-4 py-1.5 text-sm font-extrabold tabular-nums ring-2 ring-[var(--sf-ink)]">
+          <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
+            <Link href={demoLink()} target="_blank" rel="noopener noreferrer" className={btnPop}>
+              {COPY.ctaDemo}
+              <ArrowUpRight className="h-5 w-5" strokeWidth={2.4} aria-hidden />
+            </Link>
+            <a
+              href="#snapshot-noticed"
+              className={`inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-1.5 text-sm font-extrabold tabular-nums ring-2 ring-[var(--sf-ink)] transition-colors hover:bg-[var(--sf-butter)] ${focusRing}`}
+            >
               {COPY.countLabel(observations.length)}
-            </span>
-            <span className="text-sm font-extrabold uppercase tracking-[0.18em] text-[var(--sf-soft)]">
-              {formatDate(snapshot.preparedOn)}
-            </span>
-            <span className="sf-hand text-2xl text-[var(--sf-forest)]" aria-hidden>
-              {COPY.handNote}
-            </span>
+              <ArrowDown className="h-4 w-4 motion-safe:animate-bounce" strokeWidth={2.6} aria-hidden />
+            </a>
           </div>
         </div>
       </section>
@@ -213,7 +233,7 @@ export default function SnapshotPage({
       ) : null}
 
       {/* Observations */}
-      <section className="pb-16 lg:pb-24" aria-labelledby="snapshot-observations">
+      <section id="snapshot-noticed" className="scroll-mt-8 pb-16 lg:pb-24" aria-labelledby="snapshot-observations">
         <div className="mx-auto grid max-w-6xl gap-8 px-6 sm:px-10 lg:grid-cols-[1fr_260px] lg:items-start">
           <h2 id="snapshot-observations" className="sr-only">
             What we noticed
@@ -280,7 +300,9 @@ export default function SnapshotPage({
                       <p className="mt-3 text-[15.5px] leading-relaxed text-[var(--sf-ink)]">{o.fix.text}</p>
                       {inDemo ? (
                         <Link
-                          href={`${demoHref}${o.fix.demoPath ?? ""}`}
+                          href={demoLink(o.fix.demoPath)}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className={`mt-auto inline-flex items-center gap-1.5 rounded-full pt-3 text-sm font-extrabold text-[var(--sf-forest)] hover:underline ${focusRing}`}
                         >
                           {COPY.openInDemo}
@@ -296,7 +318,7 @@ export default function SnapshotPage({
 
           {/* Rail: speed sticker + CTA */}
           <aside className="grid gap-6 lg:sticky lg:top-8">
-            {speed ? (
+            {speed && speed.mobileScore < PAGESPEED_SHOW_BELOW ? (
               <div
                 className="relative rounded-md bg-[var(--sf-butter)] p-5 shadow-[0_14px_30px_-16px_rgba(43,36,29,0.5)]"
                 style={{ rotate: "1.5deg" }}
@@ -316,12 +338,38 @@ export default function SnapshotPage({
             <div className="rounded-[26px] border-2 border-[var(--sf-ink)] bg-white p-5 shadow-[0_6px_0_0_var(--sf-ink)]">
               <p className="sf-display text-2xl leading-[1.05]">{COPY.ctaTitle}</p>
               <p className="mt-2 text-[15px] leading-relaxed text-[var(--sf-soft)]">{COPY.ctaBody}</p>
-              <Link href={GET_STARTED_PAGE_PATH} className={`${btnPop} mt-4 w-full !px-5 !py-3 text-[15px]`}>
-                {COPY.ctaPrimary}
+              <Link href={demoLink()} target="_blank" rel="noopener noreferrer" className={`${btnPop} mt-4 w-full !px-5 !py-3 text-[15px]`}>
+                {COPY.ctaDemo}
               </Link>
-              <Link href={demoHref} className={`${btnOutline} mt-3 w-full !px-5 !py-[10px] text-[15px]`}>
-                {COPY.ctaSecondary}
+              <Link
+                href={GET_STARTED_PAGE_PATH}
+                className={`${btnOutline} mt-3 w-full whitespace-nowrap !px-3 !py-[10px] text-[14px]`}
+              >
+                {COPY.ctaBookShort}
               </Link>
+              <div className="mt-5 border-t-2 border-dashed border-[var(--sf-ink)]/15 pt-4" data-testid="snapshot-contact">
+                <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--sf-soft)]">{COPY.contactLead}</p>
+                <ul className="m-0 mt-2 grid list-none gap-1.5 p-0">
+                  <li>
+                    <a
+                      href={`mailto:${MUDKITCHEN_CONTACT.email}`}
+                      className={`inline-flex max-w-full items-center gap-2 rounded-md text-[14px] font-extrabold text-[var(--sf-ink)] hover:text-[var(--sf-clay-deep)] hover:underline ${focusRing}`}
+                    >
+                      <Mail className="h-4 w-4 shrink-0 text-[var(--sf-forest)]" strokeWidth={2.4} aria-hidden />
+                      <span className="min-w-0 break-all">{MUDKITCHEN_CONTACT.email}</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href={MUDKITCHEN_CONTACT.phoneHref}
+                      className={`inline-flex items-center gap-2 rounded-md text-[14px] font-extrabold tabular-nums text-[var(--sf-ink)] hover:text-[var(--sf-clay-deep)] hover:underline ${focusRing}`}
+                    >
+                      <Phone className="h-4 w-4 shrink-0 text-[var(--sf-forest)]" strokeWidth={2.4} aria-hidden />
+                      {MUDKITCHEN_CONTACT.phoneDisplay}
+                    </a>
+                  </li>
+                </ul>
+              </div>
             </div>
           </aside>
         </div>
@@ -336,10 +384,21 @@ export default function SnapshotPage({
               {COPY.proofLead} <span className="text-[var(--sf-butter)]">{COPY.proofAccent}</span>
             </h2>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-white/85">{COPY.proofBody}</p>
-            <Link href={GET_STARTED_PAGE_PATH} className={`${btnButter} mt-7`}>
-              {COPY.ctaPrimary}
-              <ArrowRight className="h-5 w-5" strokeWidth={2.4} aria-hidden />
-            </Link>
+            <div className="mt-7 flex flex-wrap items-center gap-3">
+              <Link href={GET_STARTED_PAGE_PATH} className={btnButter}>
+                {COPY.ctaBook}
+                <ArrowRight className="h-5 w-5" strokeWidth={2.4} aria-hidden />
+              </Link>
+              <a
+                href={COPY.proofStoryHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`inline-flex items-center justify-center gap-2 rounded-full border-2 border-white/50 px-6 py-[14px] text-base font-extrabold text-white transition-colors hover:bg-white/10 ${focusRing}`}
+              >
+                {COPY.proofStory}
+                <ArrowUpRight className="h-5 w-5" strokeWidth={2.4} aria-hidden />
+              </a>
+            </div>
           </div>
           <div className="relative mx-auto w-full max-w-[300px]" style={{ rotate: "2deg" }}>
             <div className="sf-polaroid relative bg-white p-3 pb-10">

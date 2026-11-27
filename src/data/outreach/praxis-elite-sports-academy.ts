@@ -196,11 +196,11 @@ export const praxisEliteSportsAcademyOutreach: OutreachPlan = {
     hook: "Praxis Elite's 2027–28 application thanks families for applying to the school's \"Year 5 Class\".",
     body: `Hi Amanda,
 
-Your 2027–28 application welcomes families to the Year 5 class. I like the idea at the center of Praxis Elite: two periods of academics and two of training, every school day.
+Your 2027–28 application welcomes families to the Year 5 class. Congratulations on five years. I love the idea at the center of Praxis Elite: two periods of academics and two of training, every school day.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Praxis Elite.
+That's the kind of school we love hearing about. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Praxis Elite.
 
-I'd like to hear how the 8th+ year has grown since you started it.
+I'd love to hear how the 8th+ year has grown since you started it.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your admissions.",

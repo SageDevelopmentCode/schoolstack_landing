@@ -197,7 +197,7 @@ export const asheboroHybridAcademyOutreach: OutreachPlan = {
       url: "https://asheborohybridacademy.com/our-aha-team",
     },
     mailTo: {
-      lines: ["Asheboro Hybrid Academy", "4751 Dunbar Bridge Rd.", "Asheboro, NC 27205"],
+      lines: ["Rachel Callicutt", "Asheboro Hybrid Academy", "4751 Dunbar Bridge Rd.", "Asheboro, NC 27205"],
       source: "AHA Contact page and the site footer on every page; the FAQ says students meet at \"our school building\"",
       url: "https://asheborohybridacademy.com/contact",
     },
@@ -218,11 +218,11 @@ export const asheboroHybridAcademyOutreach: OutreachPlan = {
     hook: "The AHA About page says elementary and middle school students meet two days a week and high school three, for 32 weeks a year, with lessons at home led by a parent as co-teacher: \"At AHA, education happens together.\"",
     body: `Hi Rachel,
 
-I read the About page on the AHA site. I liked the line "education happens together," with teachers in class two or three days a week and a parent as co-teacher at home the rest.
+I read the About page on the AHA site and loved the line "education happens together," with teachers in class two or three days a week and a parent as co-teacher at home the rest.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for AHA.
+It's a lovely way to share a child's week. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for AHA.
 
-I'd like to hear how admissions works at a parent-governed school.
+I'd love to hear how admissions works at a parent-governed school.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

@@ -201,11 +201,11 @@ export const theFocusAcademyOutreach: OutreachPlan = {
     hook: "Karolyn Miller's Founder's Profile says she is a registered nurse with over 12 years of experience working within the educational space; she founded FOCUS, which its homepage calls a new microschool opening in the Memphis area for twice-exceptional middle school boys.",
     body: `Hi Karolyn,
 
-I read your founder's profile. You've spent more than twelve years as a registered nurse working in education, and now you're opening FOCUS for twice-exceptional middle school boys in Memphis.
+I read your founder's profile. You've spent more than twelve years as a registered nurse working in education, and now you're opening FOCUS for twice-exceptional middle school boys in Memphis. Congratulations.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for FOCUS.
+Stories like yours are why I wanted to write. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for FOCUS.
 
-I'd like to hear how getting FOCUS started has gone.
+I'd love to hear how getting FOCUS started has gone.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

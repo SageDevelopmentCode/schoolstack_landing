@@ -88,7 +88,11 @@ export default function WebsiteDashboardDemo({
     return true;
   }, []);
 
-  const scrollToForm = useCallback(() => scrollToSection("form"), [scrollToSection]);
+  // The form card, not the section: on narrow sites the photo and "What happens next" stack above it.
+  const scrollToForm = useCallback(
+    () => scrollToSection("form-card") || scrollToSection("form"),
+    [scrollToSection],
+  );
 
   const runScrollRequest = useCallback(
     (target: "top" | "form") => (target === "top" ? scrollToTop() : scrollToForm()),

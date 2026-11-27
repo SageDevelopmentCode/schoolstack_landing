@@ -215,11 +215,11 @@ export const rootsAndWingsMicroschoolOutreach: OutreachPlan = {
     hook: "On the Roots and Wings home page, Julie writes that she kept pondering a small-class, or microschool, model: personalized tutoring when a child needs it, plus group instruction and conversation, \"just like the little red schoolhouse of old.\"",
     body: `Hi Julie,
 
-I read your story on the Roots and Wings site. I liked the way you describe the school, tutoring when a child needs it plus group conversation, like the little red schoolhouse of old.
+I read your story on the Roots and Wings site and loved the way you describe the school, tutoring when a child needs it plus group conversation, like the little red schoolhouse of old.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Roots and Wings.
+That's the kind of school we love hearing about. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Roots and Wings.
 
-I'd like to hear how you settled on keeping it to ten students.
+I'd love to hear how you settled on keeping it to ten students.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

@@ -217,6 +217,56 @@ export const katsCommunityMicroschoolOutreach: OutreachPlan = {
       },
     ],
   },
+  letter: {
+    writtenOn: "2026-11-24",
+    shortSchoolName: "Kat's",
+    founder: {
+      fullName: "Kathleen Graves",
+      firstName: "Kathleen",
+      role: "Founder and lead guide",
+      source: "Kat's Community Microschool home page, Meet your guide (\"Kathleen Graves, Founder & Lead Guide\")",
+      url: "https://katscommunitymicroschool.com/#owner",
+    },
+    mailTo: null,
+    founderFacts: [
+      {
+        fact: "In the Meet your guide section of her school's site, Kathleen Graves writes that she homeschooled her own two children K–5 because she was unsatisfied with what was available in Phoenix, and that she built the school for kids like yours.",
+        source: "Kat's Community Microschool home page (Meet your guide)",
+        url: "https://katscommunitymicroschool.com/#owner",
+        readOn: "2026-11-24",
+      },
+      {
+        fact: "Kathleen Graves has 15+ years teaching, an M.Ed. in Secondary Education and a B.A. in History, and has taught everything from 3rd–5th grade reading and math to 10th grade world history.",
+        source: "Kat's Community Microschool home page (Meet your guide)",
+        url: "https://katscommunitymicroschool.com/#owner",
+        readOn: "2026-11-24",
+      },
+      {
+        fact: "The site says Kathleen will personally walk families through anything, including AZ ESA enrollment, and that seats are limited to 10 students.",
+        source: "Kat's Community Microschool home page (FAQ and Let's Talk)",
+        url: "https://katscommunitymicroschool.com/#faq",
+        readOn: "2026-11-24",
+      },
+    ],
+    hook: "In the Meet your guide section of her school's site, Kathleen Graves writes that she homeschooled her own two children K–5 because she was unsatisfied with what was available in Phoenix, and that she built the school for kids like yours.",
+    body: `Hi Kathleen,
+
+I read the Meet your guide part of your site. I loved that after homeschooling your own two kids through fifth grade, you built Kat's so more Phoenix families would have something better.
+
+Stories like yours are why I wanted to write. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Kat's.
+
+I'd love to hear how families are finding the AZ ESA side of enrolling.
+
+Julius`,
+    postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
+    stickyNote: "Kathleen, a note from a microschool in Round Rock, Texas. J",
+    shortCode: "kats-uxfq",
+    checkBeforeMailing: [
+      "Find a mailing address: katscommunitymicroschool.com lists only \"Phoenix, AZ 85015\" in Let's Talk (no street address in the footer, contact section or anywhere else on the page). Prenda-powered microschools often meet in the guide's home, so don't use one that looks like a home. Leads: her Prenda page (microschools.prenda.com/ms/Kat) and the school's Facebook group. If nothing turns up, address it to Kathleen Graves, Kat's Community Microschool, once she gives you a mailing address.",
+      "Confirm the school is still open and enrolling before mailing: Prenda's listing shows no 2026–27 term while her site still says Enroll Now and the calendar starts Aug 3, 2026. If it has closed, switch the plan to doNotEmail and don't mail.",
+      "The hook is her founding story from her own site, not an interview: no podcast or press piece of hers turned up. The iTunes match (\"Dancing Out Stress & Building Self-Leadership\" on The Well) is Shampaigne Graves, a different person. The letter leaves out the health details she shares on that page on purpose.",
+    ],
+  },
   steps: [
     {
       id: "first",
@@ -225,6 +275,8 @@ export const katsCommunityMicroschoolOutreach: OutreachPlan = {
       purpose: "One real question about how she tracks each family from first message through AZ ESA, then who's asking and one proof number",
       subject: "ESA enrollment at Kat's",
       body: `Hi Kathleen,
+
+I mailed you a handwritten note last week with a card for Kat's.
 
 I was reading your site. Enroll Now, Reserve a Seat and Schedule a Visit all lead to your email and phone, and the FAQ says you'll personally walk each family through AZ ESA enrollment.
 

@@ -200,7 +200,7 @@ export const tapestryAcademyOutreach: OutreachPlan = {
       url: "https://www.tapestryacademy.com/staff",
     },
     mailTo: {
-      lines: ["1699 S. Federal Hwy, Suite 100", "Boca Raton, FL 33432"],
+      lines: ["Candace Lehenbauer", "Tapestry Academy", "1699 S. Federal Hwy, Suite 100", "Boca Raton, FL 33432"],
       source: "Tapestry Academy Contact page (listed under Location and in the footer)",
       url: "https://www.tapestryacademy.com/contact",
     },
@@ -233,11 +233,11 @@ export const tapestryAcademyOutreach: OutreachPlan = {
     hook: "On the Living Boca podcast (September 4, 2025), Candace Lehenbauer talked with host Paige Kornblue about microschooling as a hybrid of homeschooling and private school, and about how Florida's scholarships, now open to all families, make microschools more accessible.",
     body: `Hi Candace,
 
-I listened to your Living Boca episode. I liked how you described microschooling as a mix of homeschool and private school, and how Florida's scholarships now put it within reach of any family.
+I listened to your Living Boca episode and loved how you described microschooling as a mix of homeschool and private school, with Florida's scholarships now putting it within reach of any family.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Tapestry.
+Hearing from founders like you is my favorite part of this work. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Tapestry.
 
-I'd like to hear how the first months of Homeschool Commons are going.
+I'd love to hear how the first months of Homeschool Commons are going.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

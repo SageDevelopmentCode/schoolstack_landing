@@ -227,11 +227,11 @@ export const piedmontForestSchoolOutreach: OutreachPlan = {
     hook: "On the What We See podcast (June 11, 2026), in an episode titled \"The hardest thing is not making the fort, it's getting along.\", Sheri Grace talked about founding Piedmont Forest School in a Winston-Salem park, a morning in the woods, what four children learned from building a fort no one assigned, and plans to add an Agile Learning Center this fall.",
     body: `Hi Sheri,
 
-I listened to your What We See episode about the fort four children built. I liked the title line, that the hardest thing isn't making the fort, it's getting along.
+I listened to your What We See episode about the fort four children built, and loved the title line, that the hardest thing isn't making the fort, it's getting along.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Piedmont Forest School.
+Time outside is a big part of our days too. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Piedmont Forest School.
 
-I'd like to hear how the Agile Learning Center's first fall is going.
+I'd love to hear how the Agile Learning Center's first fall is going.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",
@@ -240,7 +240,7 @@ Julius`,
     checkBeforeMailing: [
       "Find a mailing address: piedmontforestschool.org (home, Our Story, Our Team, Our Location, FAQs, Enrollment, Donate) lists no street address or PO box; programs meet in city parks (Salem Lake Park, moving to Little Creek Park and the Little Creek Neighborhood Center for 2026–27), which won't take mail for PFS. GuideStar lists a Rural Hall address that looks like a home; don't use it. Non-home lead: ask Tausha, the Enrollment and Billing Coordinator, through the site's contact form for a mailing address or PO box.",
       "Listen to the What We See episode (June 11, 2026, about 27 minutes) before mailing: the hook is from the episode title and description, so make sure the fort story matches what she says.",
-      "The ask assumes the Agile Learning Center opened this fall at Little Creek Park; the site still describes it in the future tense. If it hasn't opened, change the ask to \"I'd like to hear how this fall is going.\"",
+      "The ask assumes the Agile Learning Center opened this fall at Little Creek Park; the site still describes it in the future tense. If it hasn't opened, change the ask to \"I'd love to hear how this fall is going.\"",
       "PFS is a 501(c)3 with a board; Tausha handles enrollment and billing. The letter goes to Sheri only.",
     ],
   },

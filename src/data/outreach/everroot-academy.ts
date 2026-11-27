@@ -205,11 +205,11 @@ export const everrootAcademyOutreach: OutreachPlan = {
     hook: "Katelynn's About page says she started EverRoot to expand access to high-quality education for mobile learners and students underserved or excluded by traditional systems, with a consistent program accessible from anywhere.",
     body: `Hi Katelynn,
 
-I read about EverRoot on your site. You started it so kids who move often, or who don't fit traditional schools, can keep one consistent program wherever they are. And you opened this August, with a twelve-month year.
+I read about EverRoot on your site and loved why you started it, so kids who move often, or who don't fit traditional schools, can keep one consistent program wherever they are. And you opened this August, with a twelve-month year.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for EverRoot.
+Congratulations on getting it off the ground. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for EverRoot.
 
-I'd like to hear how your first few months have gone.
+I'd love to hear how your first few months have gone.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

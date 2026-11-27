@@ -218,11 +218,11 @@ export const littleSprigsTampaOutreach: OutreachPlan = {
     hook: "On the Team page, Charlene Favorite, founder and lead teacher, writes that she is honored to be the founder of Florida's first and only African-centered microschool, a milestone she cherishes every day.",
     body: `Hi Charlene,
 
-I read on your Team page that you founded Florida's first and only African-centered microschool, and that you're its lead teacher too.
+I read on your Team page that you founded Florida's first and only African-centered microschool, and that you're its lead teacher too. I loved learning about it.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Homeschool Village.
+Running a small school ourselves, I know how much that takes. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Homeschool Village.
 
-I'd like to hear how this school year is going out in the woods at Scout Park.
+I'd love to hear how this school year is going out in the woods at Scout Park.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

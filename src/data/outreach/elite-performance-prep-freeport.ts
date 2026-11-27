@@ -190,11 +190,11 @@ export const elitePerformancePrepFreeportOutreach: OutreachPlan = {
     hook: "Elite Freeport is offering founding-members tuition to its first families, with premium electives (art, cooking, PE with T48 Athletics) on Monday and Wednesday.",
     body: `Hi Trent and Stephanie,
 
-You've opened Elite in Freeport, with founding-member tuition for your first families and cooking and art on elective days. Opening a new center asks a lot of its owners, and yours looks well underway.
+Congratulations on opening Elite in Freeport, with founding-member tuition for your first families and cooking and art on elective days. Opening a new center asks a lot, and yours looks well underway.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Elite Freeport.
+We remember those first months well. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Elite Freeport.
 
-I'd like to hear how your founding families found you.
+I'd love to hear how your founding families found you.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

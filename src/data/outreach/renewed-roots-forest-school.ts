@@ -226,11 +226,11 @@ export const renewedRootsForestSchoolOutreach: OutreachPlan = {
     hook: "Renewed Roots' Our Story says a local pastor, who didn't know they were looking for land, reached out and asked if they might be interested in purchasing his 70-acre property in Moorhead along the Red River.",
     body: `Hi Danielle,
 
-I read your Our Story page. I liked the part where a local pastor, not knowing you were looking, asked if you'd buy his 70 acres along the Red River. Now there's a barn classroom, goats and a first year of forest school.
+I loved the part on your Our Story page where a local pastor, not knowing you were looking, asked if you'd buy his 70 acres along the Red River. Now there's a barn classroom, goats and a first year of forest school.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Renewed Roots.
+What a gift. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Renewed Roots.
 
-I'd like to hear how your first winter on the land is going.
+I'd love to hear how your first winter on the land is going.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

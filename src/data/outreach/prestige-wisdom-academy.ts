@@ -197,11 +197,11 @@ export const prestigeWisdomAcademyOutreach: OutreachPlan = {
     hook: "PWA's Careers page lists four open roles in Houston: Lead Elementary Teacher, Middle School Math Instructor, After-School Program Coordinator and Campus Operations Assistant.",
     body: `Hi Prestige Wisdom team,
 
-I saw on your Careers page that you're hiring for four roles, from a lead elementary teacher to a middle school math instructor. I also liked that zero tolerance for bullying is one of your six pillars.
+I saw on your Careers page that you're hiring for four roles, from a lead elementary teacher to a middle school math instructor. I also loved that zero tolerance for bullying is one of your six pillars.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for PWA.
+Running a small school ourselves, I know how much that takes. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for PWA.
 
-I'd like to hear how enrollment is going this year.
+I'd love to hear how enrollment is going this year.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

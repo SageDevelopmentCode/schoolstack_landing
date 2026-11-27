@@ -241,11 +241,11 @@ export const honeycombCottageSchoolOutreach: OutreachPlan = {
     hook: "Honeycomb's About page says the school is the daughters of Abella Cottage School, which Julene Humes started and cultivated in Utah Valley for over 21 years before handing it to a group in 2022 who continue its legacy.",
     body: `Hi Honeycomb team,
 
-Rachael Sparhawk, who founded Rooted Meadows in Rigby, Idaho, mentioned Honeycomb to me. I read your About page and liked that you call yourselves the daughters of Abella Cottage School, keeping Julene's school going since 2022.
+Rachael Sparhawk, who founded Rooted Meadows in Rigby, Idaho, mentioned Honeycomb to me. I loved that you call yourselves the daughters of Abella Cottage School, keeping Julene's school going since 2022.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Honeycomb.
+What a sweet way to carry a school forward. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Honeycomb.
 
-I'd like to hear what it was like taking over a school with 21 years behind it.
+I'd love to hear what it was like taking over a school with 21 years behind it.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

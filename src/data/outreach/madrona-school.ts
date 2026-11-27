@@ -248,11 +248,11 @@ export const madronaSchoolOutreach: OutreachPlan = {
     hook: "On her Madrona staff page, Toni writes that she loves being a handwork teacher and watching students overcome boredom and frustration on long-term projects that take months to complete.",
     body: `Hi Toni,
 
-Rachael Sparhawk, who founded Rooted Meadows in Rigby, Idaho, mentioned Madrona to me. I read your page on the Madrona site and liked what you wrote about handwork: students working through boredom and frustration on projects that take months.
+Rachael Sparhawk, who founded Rooted Meadows in Rigby, Idaho, mentioned Madrona to me. I loved what you wrote about handwork, with students working through boredom and frustration on projects that take months.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Madrona.
+That's the kind of school we love hearing about. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Madrona.
 
-I'd like to hear how you went from designing school buildings to running a school.
+I'd love to hear how you went from designing school buildings to running a school.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

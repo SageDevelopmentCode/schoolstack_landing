@@ -195,11 +195,11 @@ export const mcpAcademyOutreach: OutreachPlan = {
     hook: "Kerry McDonald's June 2025 piece in The 74 says Cammy ran a licensed in-home preschool for more than a decade, added a Montessori-inspired school-age program in 2021, created the Texas Microschools Facebook group, and applied to a new accreditation pilot for microschools.",
     body: `Hi Cammy,
 
-I read Kerry McDonald's piece in The 74 about MCP Academy and the new accreditation pilot. You grew a home preschool into a PreK–8 microschool, and you started the Texas Microschools Facebook group along the way.
+I read Kerry McDonald's piece in The 74 about MCP Academy and the new accreditation pilot. You grew a home preschool into a PreK–8 microschool, and started the Texas Microschools Facebook group along the way.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for MCPA.
+Texas microschools are better off for it. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for MCPA.
 
-I'd like to hear how your first year with TEFA families is going.
+I'd love to hear how your first year with TEFA families is going.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

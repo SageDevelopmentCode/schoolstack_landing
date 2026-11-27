@@ -247,11 +247,11 @@ export const wildcatMicroschoolOutreach: OutreachPlan = {
     hook: "Heather Long told the Josiah Bartlett Center (December 8, 2023) that she started Wildcat in December 2021 with four learners, that it had 22 by the 2023–24 school year, and that more than anything she wants to see kids who are independent learners.",
     body: `Hi Heather,
 
-I read the Josiah Bartlett Center's piece on Wildcat, and what you said there about wanting, more than anything, to see kids who are independent learners.
+I read the Josiah Bartlett Center's piece on Wildcat and loved what you said there about wanting, more than anything, to see kids who are independent learners.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Wildcat.
+That's something we hope for at our school too. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Wildcat.
 
-I'd like to hear how Wildcat has changed since you started it with four learners.
+I'd love to hear how Wildcat has changed since you started it with four learners.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

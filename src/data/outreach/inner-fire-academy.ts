@@ -210,11 +210,11 @@ export const innerFireAcademyOutreach: OutreachPlan = {
     hook: "Sebastian's page says he left a corporate VP of Operations role in 2022, started as a substitute teacher, and found microschooling, which \"felt right.\"",
     body: `Hi Sebastian,
 
-I read your page on why you started a school. You left a VP of Operations job in 2022, started out as a substitute teacher, and now teach classes of eight in the Mission, accelerating by subject instead of grade.
+I read your page on why you started a school and loved it. You left a VP of Operations job in 2022, started out as a substitute teacher, and now teach classes of eight in the Mission, accelerating by subject instead of grade.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Inner Fire.
+What a leap. It's why I wanted to write. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Inner Fire.
 
-I'd like to hear what's been harder than you expected.
+I'd love to hear what's been harder than you expected.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

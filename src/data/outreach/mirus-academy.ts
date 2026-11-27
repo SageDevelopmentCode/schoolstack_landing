@@ -202,11 +202,11 @@ export const mirusAcademyOutreach: OutreachPlan = {
     hook: "Mirus's Microschools page says the school was established in 2006 as something between homeschooling and traditional school, and that \"at the time, we had never heard the term 'micro-school'.\"",
     body: `Hi Laura and Scott,
 
-I read your page on microschools. You started Mirus in 2006, before you'd ever heard the word "micro-school," and twenty years later it's still 25 to 30 students on purpose.
+I loved your page on microschools. You started Mirus in 2006, before you'd ever heard the word "micro-school," and twenty years later it's still 25 to 30 students on purpose.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Mirus.
+You were doing this long before most of us. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Mirus.
 
-I'd like to hear how you've kept it that small for twenty years.
+I'd love to hear how you've kept it that small for twenty years.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your admissions.",

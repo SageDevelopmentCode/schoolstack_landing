@@ -214,11 +214,11 @@ export const exodusAcademyOutreach: OutreachPlan = {
     hook: "Meg Perry posted on Nov 12 that Exodus's 1–200 Envelope Challenge is raising money for an outdoor campus: new swings, hammocks, volleyball and soccer space, a toddler play area and a covered spot to eat lunch outside.",
     body: `Hi Meg and Jakeb,
 
-You opened Exodus in 2023, and now the 1–200 Envelope Challenge is raising money for swings, hammocks and a covered spot to eat lunch outside. That's a lot of growth in three years.
+You opened Exodus in 2023, and now the 1–200 Envelope Challenge is raising money for swings, hammocks and a covered spot to eat lunch outside. It's a lot of growth in three years.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Exodus.
+Time outside is a big part of our days too. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Exodus.
 
-I'd like to hear what the students are most excited about for the outdoor campus.
+I'd love to hear what the students are most excited about for the outdoor campus.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

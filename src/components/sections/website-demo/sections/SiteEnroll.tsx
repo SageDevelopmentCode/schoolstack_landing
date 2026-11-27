@@ -114,7 +114,8 @@ export default function SiteEnroll({ form, formRef, onExplorePrograms }: Props) 
         </SiteReveal>
 
         <SiteReveal delay={0.08}>
-          <div className="sf-paper rounded-[26px] border-2 border-[var(--sf-ink)] p-7 shadow-[0_8px_0_0_var(--sf-ink)] @3xl/site:rounded-[32px] @3xl/site:p-10">
+          {/* The walkthrough and "Start an inquiry" scroll here, so phones land on the fields, not the photo above. */}
+          <div id="form-card" className="sf-paper scroll-mt-[88px] rounded-[26px] border-2 border-[var(--sf-ink)] p-7 shadow-[0_8px_0_0_var(--sf-ink)] @3xl/site:rounded-[32px] @3xl/site:p-10">
             <SitePill>{form.eyebrow}</SitePill>
             <h2 className="sf-display mt-5 text-balance text-[clamp(2rem,3.4cqw,3rem)] leading-[1] text-[var(--sf-ink)]">
               {keepHyphenated(form.heading)}

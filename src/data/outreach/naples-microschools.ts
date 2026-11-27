@@ -184,7 +184,7 @@ export const naplesMicroschoolsOutreach: OutreachPlan = {
       url: "https://www.naplesmicroschools.com/team",
     },
     mailTo: {
-      lines: ["PO Box 990434", "Naples, FL 34116"],
+      lines: ["Dayana Philippi", "Naples MicroSchools", "PO Box 990434", "Naples, FL 34116"],
       source: "Naples MicroSchools Contact page (\"Direct Mail to: Naples MicroSchools | PO Box #990434 | Naples, FL 34116\")",
       url: "https://www.naplesmicroschools.com/contact",
     },
@@ -223,11 +223,11 @@ export const naplesMicroschoolsOutreach: OutreachPlan = {
     hook: "In Southwest Florida Family's story \"New, Innovative Educational Microschool Model in Naples\" (January 29, 2025), Dr. Dee Philippi said of Naples MicroSchools: \"This is for all kids – for kids that have the wiggles, for kids that like to be outside, for kids that want hands-on.\"",
     body: `Hi Dr. Dee,
 
-I read the Southwest Florida Family story about Naples MicroSchools. I liked your line that the school is for kids who have the wiggles and kids who like to be outside.
+I read the Southwest Florida Family story about Naples MicroSchools and loved your line that the school is for kids who have the wiggles and kids who like to be outside.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Naples MicroSchools.
+Time outside is a big part of our days too. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Naples MicroSchools.
 
-I'd like to hear how the farm fits into your school week.
+I'd love to hear how the farm fits into your school week.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

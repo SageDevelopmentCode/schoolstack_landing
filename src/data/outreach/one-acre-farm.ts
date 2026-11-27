@@ -177,7 +177,7 @@ export const oneAcreFarmOutreach: OutreachPlan = {
       url: "https://oneacrefarmtx.com/about-us.html",
     },
     mailTo: {
-      lines: ["3410 Magnolia Dr.", "Porter, TX 77365"],
+      lines: ["Catherine Ward", "One Acre Farm", "3410 Magnolia Dr.", "Porter, TX 77365"],
       source: "One Acre Farm Contact Us page (listed as the mailing address; 3416 Magnolia Dr. is marked GPS only, do not mail)",
       url: "https://oneacrefarmtx.com/contact-us.html",
     },
@@ -210,11 +210,11 @@ export const oneAcreFarmOutreach: OutreachPlan = {
     hook: "On Equine Assisted World with Rupert Isaacson (Ep 30, June 12, 2025), Catherine Ward and Nicole Jones talked about how One Acre Farm started small, with a first class on raising backyard chickens, and about mentoring others toward a thousand One Acre Farms.",
     body: `Hi Catherine,
 
-I listened to your Equine Assisted World episode with Nicole. I liked hearing that One Acre Farm's first class was on raising backyard chickens, and that you'd like to see a thousand One Acre Farms.
+I listened to your Equine Assisted World episode with Nicole and loved hearing that One Acre Farm's first class was on raising backyard chickens, and that you'd like to see a thousand One Acre Farms.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for One Acre Farm.
+Time outside is a big part of our days too. My fiancée and I run Sage Field, an outdoor microschool in Round Rock. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for One Acre Farm.
 
-I'd like to hear how you mentor people who want to start one.
+I'd love to hear how you mentor people who want to start one.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at Farm School enrollment.",

@@ -171,7 +171,7 @@ export const micahsMissionSchoolOutreach: OutreachPlan = {
       url: "https://micahsmissionschool.org/",
     },
     mailTo: {
-      lines: ["900 Crawford Street", "Vicksburg, MS 39180"],
+      lines: ["Emily Harber Williams", "Micah's Mission School", "900 Crawford Street", "Vicksburg, MS 39180"],
       source: "Micah's Mission Contact Us page and site footer (Crawford Street United Methodist Church, where the school meets)",
       url: "https://micahsmissionschool.org/contact.html",
     },
@@ -198,11 +198,11 @@ export const micahsMissionSchoolOutreach: OutreachPlan = {
     hook: "Vicksburg Daily News (April 1, 2025) reported that WJTV named Dr. Emily Williams, founder of Micah's Mission, one of two Remarkable Women of 2025, chosen from more than 150 candidates; in her WJTV interview she called Micah's \"an educational mission where we work with children who are educationally at risk.\"",
     body: `Hi Emily,
 
-I read the Vicksburg Daily News story on WJTV naming you one of its Remarkable Women of 2025. I liked how you described Micah's there, as an educational mission for children who are educationally at risk.
+I read the Vicksburg Daily News story on WJTV naming you one of its Remarkable Women of 2025. Congratulations. I loved how you described Micah's there, as an educational mission for children who are educationally at risk.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Micah's Mission.
+Schools like yours are why I wanted to write. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Micah's Mission.
 
-I'd like to hear how Micah's has grown since you started it in 2017.
+I'd love to hear how Micah's has grown since you started it in 2017.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment and tuition.",

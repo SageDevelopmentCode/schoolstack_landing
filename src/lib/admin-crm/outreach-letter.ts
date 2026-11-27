@@ -100,6 +100,10 @@ export function letterProblems(plan: Pick<OutreachPlan, "letter" | "snapshot">):
   if (!/^https:\/\//.test(letter.founder.url)) problems.push("Founder name needs an https source.");
   if (letter.mailTo) {
     if (letter.mailTo.lines.length < 2) problems.push("Mailing address needs at least a street line and a city line.");
+    // The card prints mailTo.lines as the whole envelope, so it starts with who it's to, not the street.
+    else if (/^(\d|p\.?\s*o\.?\s*box\b|c\/o\b)/i.test(letter.mailTo.lines[0].trim())) {
+      problems.push("Mailing address should be the whole envelope: start with the recipient (and school), then street and city.");
+    }
     if (!/^https:\/\//.test(letter.mailTo.url)) problems.push("Mailing address needs the https page it was published on.");
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(letter.writtenOn)) problems.push("writtenOn must be YYYY-MM-DD.");

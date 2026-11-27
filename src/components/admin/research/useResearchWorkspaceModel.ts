@@ -105,6 +105,7 @@ function buildRow(
     crmStatus: school.crm_status,
     hasDemo: Boolean(school.demo_slug),
     letterMailedAt: letterMailedAt(log.touches),
+    letterReadyAt: school.letter_ready_at,
     now,
   });
   return { school, plan, log, journey };

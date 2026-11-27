@@ -195,7 +195,7 @@ export const zoeLearningHouseOutreach: OutreachPlan = {
       url: "https://zoelearninghouse.com/about-us",
     },
     mailTo: {
-      lines: ["5824 Berkley Drive", "New Orleans, LA 70131"],
+      lines: ["Emily Barnitz", "Zoe Learning House", "5824 Berkley Drive", "New Orleans, LA 70131"],
       source: "Zoe Learning House, Contact (Our Location, and the footer address of Zoe Learning House LLC)",
       url: "https://zoelearninghouse.com/contact",
     },
@@ -228,11 +228,11 @@ export const zoeLearningHouseOutreach: OutreachPlan = {
     hook: "Zoe's About page says Emily Barnitz grew up K-12 as a homeschooler and spent 15 years as an educator in public, international and museum settings, so she understands both the non-traditional and traditional sides of education.",
     body: `Hi Emily,
 
-I read on Zoe's About page that you were homeschooled all the way through, then taught for 15 years in public, international and museum settings. So you've seen both sides, and Zoe sits in between, with some days at home and some days with you.
+I read on Zoe's About page that you were homeschooled all the way through, then taught for 15 years in public, international and museum settings. I loved that Zoe sits in between, with some days at home and some days with you.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Zoe.
+That's the kind of school we love hearing about. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Zoe.
 
-I'd like to hear how your families handle the home days.
+I'd love to hear how your families handle the home days.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

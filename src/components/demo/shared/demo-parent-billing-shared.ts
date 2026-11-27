@@ -15,8 +15,8 @@ export type DemoParentTransaction = {
 };
 
 export const DEMO_PARENT_SCHOOL_YEAR_LABEL = "School Year 2026–27";
-export const DEMO_PARENT_BILLING_BANNER_SCHOOL_YEAR = "/images/stock/ImageFive.jpg";
-export const DEMO_PARENT_BILLING_BANNER_HOMESCHOOL = "/images/stock/Homeschool2.jpg";
+export const DEMO_PARENT_BILLING_BANNER_SCHOOL_YEAR = "/images/stock/ImageFive.webp";
+export const DEMO_PARENT_BILLING_BANNER_HOMESCHOOL = "/images/stock/Homeschool2.webp";
 export const DEMO_PARENT_SCHOOL_YEAR_MONTHLY_TUITION = 1700;
 export const DEMO_PARENT_SCHOOL_YEAR_UPFRONT_TUITION = 17000;
 export const EMMA_SCHOOL_YEAR_TX_ID = "emma-school-year-tuition";

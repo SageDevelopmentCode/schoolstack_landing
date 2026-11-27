@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, type ComponentType } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import DemoPreviewFrame from "@/components/demo/DemoPreviewFrame";
+import DemoScaledCanvas from "@/components/demo/shared/DemoScaledCanvas";
 import type { DemoTuitionOverride } from "@/data/school-demos/tuition-override";
 import type { DemoWalkthroughParentTab } from "@/data/school-demos/walkthrough-placeholder";
 
-const DESIGN_WIDTH = 1440;
 const ROOTED_MEADOWS_SLUG = "rooted-meadows";
 
 type DemoComponent = ComponentType<Record<string, unknown>>;
@@ -60,8 +60,6 @@ export default function ScaledParentDemoPreview({
     | "members"
     | "settings";
 }) {
-  const outerRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(0.81);
   const [loadedDemo, setLoadedDemo] = useState<LoadedParentDemo | null>(null);
   const [SharedParent, setSharedParent] = useState<ComponentType<
     Record<string, unknown>
@@ -101,15 +99,6 @@ export default function ScaledParentDemoPreview({
     };
   }, [demoSlug, initialParentTab]);
 
-  useEffect(() => {
-    const el = outerRef.current;
-    if (!el) return;
-    const update = () => setScale(el.offsetWidth / DESIGN_WIDTH);
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
 
   const demoProps = {
     initialTab: initialParentTab as "home" | "enrollment" | "billing",
@@ -127,35 +116,25 @@ export default function ScaledParentDemoPreview({
 
   return (
     <DemoPreviewFrame variant="parent">
-      <div ref={outerRef} className="relative h-full overflow-hidden">
-        <div
-          className="h-full"
-          style={{
-            width: DESIGN_WIDTH,
-            height: scale > 0 ? `${100 / scale}%` : "100%",
-            transform: `scale(${scale})`,
-            transformOrigin: "top left",
-          }}
-        >
-          {loadedDemo?.kind === "garden" && gardenDemos ? (
-            initialParentTab === "enrollment" ? (
-              <gardenDemos.LazyDemoParentEnrollmentChecklist demoSlug={demoSlug} />
-            ) : (
-              <gardenDemos.LazyDemoParentGardenPortal
-                demoSlug={demoSlug}
-                initialTab={initialParentTab === "home" ? "home" : "billing"}
-                billingChildIds={billingChildIds}
-              />
-            )
-          ) : null}
-          {loadedDemo?.kind === "shared" && SharedParent ? (
-            <SharedParent demoSlug={demoSlug} {...demoProps} />
-          ) : null}
-          {loadedDemo?.kind === "custom" ? (
-            <loadedDemo.Component {...demoProps} />
-          ) : null}
-        </div>
-      </div>
+      <DemoScaledCanvas>
+        {loadedDemo?.kind === "garden" && gardenDemos ? (
+          initialParentTab === "enrollment" ? (
+            <gardenDemos.LazyDemoParentEnrollmentChecklist demoSlug={demoSlug} />
+          ) : (
+            <gardenDemos.LazyDemoParentGardenPortal
+              demoSlug={demoSlug}
+              initialTab={initialParentTab === "home" ? "home" : "billing"}
+              billingChildIds={billingChildIds}
+            />
+          )
+        ) : null}
+        {loadedDemo?.kind === "shared" && SharedParent ? (
+          <SharedParent demoSlug={demoSlug} {...demoProps} />
+        ) : null}
+        {loadedDemo?.kind === "custom" ? (
+          <loadedDemo.Component {...demoProps} />
+        ) : null}
+      </DemoScaledCanvas>
     </DemoPreviewFrame>
   );
 }

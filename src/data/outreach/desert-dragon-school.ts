@@ -200,11 +200,11 @@ export const desertDragonSchoolOutreach: OutreachPlan = {
     hook: "Annie taught English at City High School in downtown Tucson from 2013 to 2023 and writes that even in a progressive, alternative school like City High, she saw the need for a different way to do school.",
     body: `Hi Annie,
 
-You taught English at City High for ten years and still saw the need for a different way to do school, even there. Desert Dragon is that different way, and the parents' words on your site say it's working.
+You taught English at City High for ten years and still saw the need for a different way to do school. Desert Dragon is that different way, and I loved reading the parents' words on your site.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Desert Dragon.
+Stories like yours are why I wanted to write. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Desert Dragon.
 
-I'd like to hear how your first elementary group is settling in.
+I'd love to hear how your first elementary group is settling in.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

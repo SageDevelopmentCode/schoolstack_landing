@@ -122,8 +122,6 @@ export function createMobileAppWalkthroughStep(): DemoWalkthroughStep {
     talkingPoint:
       "Parents pay tuition and message teachers, teachers take attendance from the classroom floor, and admins review admissions — all from their phones.",
     preview: "mobile",
-    previewHint: "The MudKitchen app — on the App Store now, Google Play soon.",
-    previewHintDelayMs: 800,
     icon: "smartphone",
   };
 }

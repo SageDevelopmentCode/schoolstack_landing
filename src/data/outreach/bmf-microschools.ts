@@ -185,11 +185,11 @@ export const bmfMicroschoolsOutreach: OutreachPlan = {
     hook: "On The Future of Education podcast with Michael Horn (\"Black Mothers and Microschools\", February 27, 2023), Tiffany said the secret of microschools is \"the autonomy that their children have, where they're more of a participant in their education instead of just a bystander.\"",
     body: `Hi Tiffany,
 
-On Michael Horn's Future of Education podcast, you said microschool kids become "more of a participant in their education instead of just a bystander." Your students cooking free meals for the community, no questions asked, looks like exactly that.
+On Michael Horn's Future of Education podcast, you said microschool kids become "more of a participant in their education instead of just a bystander." Your students cooking free meals for the community, no questions asked, is a beautiful example.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Purpose Academies.
+That's the kind of school we love hearing about. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Purpose Academies.
 
-I'd like to hear how the students have taken to cooking for their neighbors.
+I'd love to hear how the students have taken to cooking for their neighbors.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

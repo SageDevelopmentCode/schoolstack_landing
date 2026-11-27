@@ -32,6 +32,8 @@ export type ResearchSchool = {
   last_contacted_at: string | null;
   next_follow_up_at: string | null;
   demo_slug: string | null;
+  /** The handwritten letter is written, addressed and stamped, waiting to be posted (null otherwise). */
+  letter_ready_at: string | null;
   updated_at: string;
 };
 
@@ -62,6 +64,7 @@ export const EDITABLE_SCHOOL_FIELDS = [
   "contact_phone",
   "notes",
   "next_follow_up_at",
+  "letter_ready_at",
 ] as const;
 export type EditableSchoolField = (typeof EDITABLE_SCHOOL_FIELDS)[number];
 export type SchoolPatch = Partial<Pick<ResearchSchool, EditableSchoolField>>;
@@ -125,6 +128,7 @@ export function toResearchSchool(row: Record<string, unknown>): ResearchSchool {
     last_contacted_at: typeof row.last_contacted_at === "string" ? row.last_contacted_at : null,
     next_follow_up_at: typeof row.next_follow_up_at === "string" ? row.next_follow_up_at : null,
     demo_slug: typeof row.demo_slug === "string" && row.demo_slug ? row.demo_slug : null,
+    letter_ready_at: typeof row.letter_ready_at === "string" ? row.letter_ready_at : null,
     updated_at: text(row.updated_at),
   };
 }

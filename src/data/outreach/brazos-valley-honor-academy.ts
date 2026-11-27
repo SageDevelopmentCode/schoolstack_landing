@@ -185,7 +185,7 @@ export const brazosValleyHonorAcademyOutreach: OutreachPlan = {
       url: "https://www.kbtx.com/2025/03/20/spring-rodeo-whole-family-support-brazos-valley-honor-academy/",
     },
     mailTo: {
-      lines: ["Brazos Valley Honor Academy", "304 Frazier Street", "Navasota, TX 77868"],
+      lines: ["Amber Trapp", "Brazos Valley Honor Academy", "304 Frazier Street", "Navasota, TX 77868"],
       source: "BVHA Contact & Visit page (the visit address; also in the site footer and the schema.org School address)",
       url: "https://www.mybvha.com/contact",
     },
@@ -212,11 +212,11 @@ export const brazosValleyHonorAcademyOutreach: OutreachPlan = {
     hook: "BVHA's campus campaign page says the school is working toward a permanent campus, starting with a $150,000 goal toward a down payment on a prospective 50-acre property with room for classrooms, agricultural learning, a restored farmhouse and a small chapel.",
     body: `Hi Amber,
 
-I saw BVHA is raising money toward a permanent home, maybe a 50-acre property with room for gardens, animals and a restored farmhouse.
+I saw BVHA is raising money toward a permanent home, maybe a 50-acre property with room for gardens, animals and a restored farmhouse. I loved picturing it.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for BVHA.
+Time outside is a big part of our days too. My fiancée and I run Sage Field, an outdoor microschool in Round Rock. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for BVHA.
 
-I'd like to hear how the silent auction went and where the campaign stands.
+I'd love to hear how the silent auction went and where the campaign stands.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment and tuition.",

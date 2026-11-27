@@ -217,11 +217,11 @@ export const wildHeartsAdventureOutreach: OutreachPlan = {
     hook: "Roekmini wrote on the Wild Hearts staff page that she started Wild Hearts Adventure Co. and is its director, and that she also started a similar learning community in San Diego years ago that is still running strong.",
     body: `Hi Roekmini,
 
-I read your note on the Wild Hearts staff page. You started a learning community in San Diego years ago that's still running, and now Wild Hearts runs in Visalia and Selma.
+I read your note on the Wild Hearts staff page and loved it. You started a learning community in San Diego years ago that's still running, and now Wild Hearts runs in Visalia and Selma.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Wild Hearts.
+Running a small school ourselves, I know how much that takes. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Wild Hearts.
 
-I'd like to hear what you did differently the second time around.
+I'd love to hear what you did differently the second time around.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

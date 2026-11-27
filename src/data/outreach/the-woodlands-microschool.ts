@@ -175,11 +175,11 @@ export const theWoodlandsMicroschoolOutreach: OutreachPlan = {
     hook: "Dana Yancy, a retired public school teacher who spent the last 11 years of her career teaching math in Conroe ISD, created Champs Educational Services for credit recovery and accelerated graduation; as the need grew, Champs evolved into The Woodlands Microschool, which now runs from elementary through high school.",
     body: `Hi Dana,
 
-I read how Champs grew into The Woodlands Microschool. I liked that it started with credit recovery and accelerated graduation after your years teaching math in Conroe ISD, and now runs from elementary through high school.
+I loved reading how Champs grew into The Woodlands Microschool. It started with credit recovery and accelerated graduation after your years teaching math in Conroe ISD, and now runs from elementary through high school.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Woodlands Microschool.
+Stories like that are why I wanted to write. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Woodlands Microschool.
 
-I'd like to hear what changed when Champs became a full school.
+I'd love to hear what changed when Champs became a full school.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

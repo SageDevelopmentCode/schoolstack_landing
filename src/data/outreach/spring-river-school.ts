@@ -165,7 +165,7 @@ export const springRiverSchoolOutreach: OutreachPlan = {
       url: "https://www.springriverschool.org/meet-our-teachers",
     },
     mailTo: {
-      lines: ["51 Pine Street", "Atlantic Beach, FL 32233"],
+      lines: ["Carrie Zarka Dooley", "Spring River School", "51 Pine Street", "Atlantic Beach, FL 32233"],
       source: "Spring River, About High School (\"Location: 51 Pine Street, Atlantic Beach\"; the home page calls Pine Street the administrative home and high school campus)",
       url: "https://www.springriverschool.org/abouthighschool",
     },
@@ -198,11 +198,11 @@ export const springRiverSchoolOutreach: OutreachPlan = {
     hook: "Spring River's History page lists Carrie Zarka Dooley among the founding parents, teachers and supporters, and says the school began in 2014 as a circle of friends gathering in local parks and now serves over 180 students.",
     body: `Hi Carrie,
 
-I read the history of Spring River on your site. I liked that it began in 2014 as friends meeting in local parks, with you among the founding parents, and that after a decade in borrowed spaces you're looking for land of your own.
+I loved reading the history of Spring River on your site. It began in 2014 as friends meeting in local parks, with you among the founding parents, and after a decade in borrowed spaces you're looking for land of your own.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Spring River.
+Time outside is a big part of our days too. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Spring River.
 
-I'd like to hear how the search for land is going.
+I'd love to hear how the search for land is going.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your admissions and camp sign-ups.",

@@ -182,7 +182,7 @@ export default function DemoFeedbackPage() {
                 />
                 {schoolDemoRegistry[selected.school_slug] ? (
                   <Link
-                    href={`/demo/${selected.school_slug}`}
+                    href={`/demo/${selected.school_slug}?preview=1`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-admin-accent hover:underline"

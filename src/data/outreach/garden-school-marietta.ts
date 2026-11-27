@@ -232,11 +232,11 @@ export const gardenSchoolMariettaOutreach: OutreachPlan = {
     hook: "East Cobber (August 2018) reported that The Garden School's founder, Jas Darland, is an alumna of the Austin Waldorf School.",
     body: `Hi Ashley,
 
-I read in East Cobber that the Garden School's founder went to the Austin Waldorf School, just down the road from us. Now the school runs from toddlers through 8th grade on 14 acres of wetlands, farm and garden, rain or shine.
+East Cobber says the Garden School's founder went to the Austin Waldorf School, just down the road from us. I loved that it now runs from toddlers through 8th grade on 14 acres of wetlands, farm and garden, rain or shine.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for The Garden School.
+Time outside is a big part of our days too. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for The Garden School.
 
-I'd like to hear how the Grades program has grown.
+I'd love to hear how the Grades program has grown.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your admissions.",

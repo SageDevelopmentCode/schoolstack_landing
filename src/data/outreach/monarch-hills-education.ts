@@ -174,7 +174,7 @@ export const monarchHillsEducationOutreach: OutreachPlan = {
       url: "https://www.monarchhills.org/educators",
     },
     mailTo: {
-      lines: ["Monarch Hills Education", "PO Box 1136", "Boulder Creek, CA 95006"],
+      lines: ["Cat Placencia", "Monarch Hills Education", "PO Box 1136", "Boulder Creek, CA 95006"],
       source: "Monarch Hills Donate page (\"Mail to our Treasurer\")",
       url: "https://www.monarchhills.org/donate",
     },
@@ -207,11 +207,11 @@ export const monarchHillsEducationOutreach: OutreachPlan = {
     hook: "The 2026–2027 Program Calendar has Fridays off-site at rotating San Luis Obispo locations, announced the week of, and a Winter Solstice celebration hike on December 18.",
     body: `Hi Cat,
 
-I was looking at the Monarch Hills calendar for this year. I liked that Fridays are spent off-site at a different spot around San Luis Obispo each week, and that December has a Winter Solstice hike.
+I was looking at the Monarch Hills calendar for this year and loved that Fridays are spent off-site at a different spot around San Luis Obispo each week, and that December has a Winter Solstice hike.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Monarch Hills.
+Time outside is a big part of our days too. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Monarch Hills.
 
-I'd like to hear how the Friday days come together.
+I'd love to hear how the Friday days come together.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your enrollment.",

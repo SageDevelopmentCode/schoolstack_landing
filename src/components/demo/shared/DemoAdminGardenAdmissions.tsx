@@ -49,6 +49,8 @@ type DemoAdminGardenAdmissionsProps = {
   initialSelectedLeadId?: string;
   autoSendEnrollmentLink?: boolean;
   autoSendEnrollmentLinkDelayMs?: number;
+  /** Let the visitor scroll the page and drawer (clicks still do nothing). */
+  scrollable?: boolean;
 };
 
 /**
@@ -84,6 +86,7 @@ export default function DemoAdminGardenAdmissions({
   initialSelectedLeadId,
   autoSendEnrollmentLink = false,
   autoSendEnrollmentLinkDelayMs,
+  scrollable = false,
 }: DemoAdminGardenAdmissionsProps) {
   const reduce = useReducedMotion() === true;
   const config = configProp ?? (demoSlug ? schoolAdminDemoConfigs[demoSlug] : undefined);
@@ -158,6 +161,7 @@ export default function DemoAdminGardenAdmissions({
       config={config}
       previewPathname={previewPathname}
       inert
+      scrollable={scrollable}
       data-testid="demo-admin-garden-admissions"
     >
       {({ branding, schoolName, portalHost }) => (

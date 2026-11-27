@@ -204,11 +204,11 @@ export const sageMontessoriNashvilleOutreach: OutreachPlan = {
     hook: "In their Nashville Voyager interview, Stephanie and Margaret said the biggest obstacle had been real estate: Nashville spaces are expensive and not everyone is willing to lease to a childcare facility.",
     body: `Hi Stephanie and Margaret,
 
-I read your Nashville Voyager interview. You said real estate was the biggest obstacle, since not everyone will lease to a childcare program. Now Sage has a home on 2nd Ave South, with tuition tiered to what families earn.
+I read your Nashville Voyager interview. You said real estate was the biggest obstacle, since not everyone will lease to a childcare program. I loved seeing that Sage now has a home on 2nd Ave South, with tuition tiered to what families earn.
 
-My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Sage Montessori.
+Congratulations on the new home. My fiancée and I run Sage Field, an outdoor microschool in Round Rock, Texas. We built MudKitchen from the start to run our whole school, and it's a big part of how we grew. So I set up a version of it for Sage Montessori.
 
-I'd like to hear how the tiered tuition is working out.
+I'd love to hear how the tiered tuition is working out.
 
 Julius`,
     postscript: "The card inside has a QR code for it, plus a parent's-eye look at your admissions.",

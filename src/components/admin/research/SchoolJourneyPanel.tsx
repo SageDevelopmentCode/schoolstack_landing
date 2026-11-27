@@ -744,7 +744,7 @@ export function SchoolJourneyPanel({
               ) : null}
             </button>
             {school.demo_slug ? (
-              <a href={schoolDemoHref(school.demo_slug)} target="_blank" rel="noopener noreferrer" className={gBtnOutlineSm}>
+              <a href={`${schoolDemoHref(school.demo_slug)}?preview=1`} target="_blank" rel="noopener noreferrer" className={gBtnOutlineSm}>
                 <Monitor className="h-4 w-4" aria-hidden />
                 Open demo
               </a>
@@ -760,7 +760,7 @@ export function SchoolJourneyPanel({
       </GCard>
 
       {/* Handwritten letter (goes before the first email) */}
-      <SchoolLetterCard row={row} index={1} onOutreach={onOutreach} />
+      <SchoolLetterCard row={row} index={1} onOutreach={onOutreach} onSaveSchool={onSaveSchool} pendingKey={pendingKey} />
 
       {/* Sequence */}
       <GCard

@@ -1,22 +1,26 @@
 "use client";
 
-import { AnimatePresence } from "framer-motion";
+import { ArrowLeft } from "lucide-react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import GardenRoot from "@/components/garden/GardenRoot";
 import { demoStoryShellStyle } from "@/components/demo/shared/demo-story-theme";
 import { resolveWalkthroughStepIndex } from "@/lib/demo-walkthrough";
-import DemoPreviewFrame from "@/components/demo/DemoPreviewFrame";
-import DemoPreviewHint from "@/components/demo/DemoPreviewHint";
+import DemoPreviewFrame, { DEMO_PREVIEW_ROLES } from "@/components/demo/DemoPreviewFrame";
+import DemoStepGuide from "@/components/demo/DemoStepGuide";
 import DemoWalkthroughMobileBar from "@/components/demo/DemoWalkthroughMobileBar";
 import DemoWalkthroughPanel from "@/components/demo/DemoWalkthroughPanel";
+import { useSnapshotLink } from "@/components/demo/useSnapshotLink";
+import { useViewBeacon } from "@/lib/outreach/view-beacon";
 import { buildSchoolConceptWalkthroughTheme } from "@/lib/marketing/school-concept-walkthrough-theme";
 import ScaledWebsiteDemoPreview from "@/components/demo/ScaledWebsiteDemoPreview";
 import { prefetchSchoolWebsiteDemo } from "@/components/demo/shared/lazySchoolWebsiteDemo";
 import type { DemoWalkthroughStep } from "@/data/school-demos/walkthrough-placeholder";
 import type { DemoTuitionOverride } from "@/data/school-demos/tuition-override";
 import type { SchoolWebsiteDemoConfig } from "@/data/school-demos/types";
+import { getStepGuide } from "@/data/school-demos/walkthroughs/step-guides";
 
 /**
  * Step 1 is always the school website, so only that preview ships with the page.
@@ -130,6 +134,20 @@ function StepParamSync({
   return null;
 }
 
+const noSubscribe = () => () => {};
+
+/** `snapshot` or `letter` when their snapshot linked them here; read after mount (static page). */
+function useOpenedVia(): "snapshot" | "letter" | undefined {
+  return useSyncExternalStore(
+    noSubscribe,
+    () => {
+      const via = new URLSearchParams(window.location.search).get("via");
+      return via === "snapshot" || via === "letter" ? via : undefined;
+    },
+    () => undefined,
+  );
+}
+
 export default function SchoolDemoShell(props: Props) {
   return (
     <GardenRoot>
@@ -153,6 +171,21 @@ function SchoolDemoShellInner({
   } | null>(null);
 
   const activePreview = steps[activeStep]?.preview ?? "website";
+  const stepGuide = getStepGuide(steps[activeStep], {
+    navCta: config.hero.navCta,
+    submitLabel: config.form.submitLabel,
+  });
+  // Set once they've opened their snapshot on this device. `from=demo` stops the
+  // snapshot sending a second Discord alert for the same visit.
+  const snapshotPath = useSnapshotLink(config.slug);
+  const snapshotHref = snapshotPath ? `${snapshotPath}?from=demo` : null;
+  // Tells Julius (Discord) the school opened its demo, and where from (`?via=` from the snapshot).
+  const openedVia = useOpenedVia();
+  useViewBeacon({
+    endpoint: "/api/demo/view",
+    storageKey: `demo-viewed:${config.slug}`,
+    body: { slug: config.slug, via: openedVia },
+  });
 
   const handleStepSelect = useCallback(
     (index: number) => {
@@ -198,11 +231,11 @@ function SchoolDemoShellInner({
 
   return (
     <div
-      className="flex h-screen flex-col overflow-hidden bg-[var(--sf-cream)] lg:flex-row"
+      className="flex h-dvh flex-col overflow-hidden bg-[var(--sf-cream)] lg:flex-row"
       style={shellStyle}
     >
       <Suspense fallback={null}>
-        <StepParamSync steps={steps} onStep={setActiveStep} />
+        <StepParamSync steps={steps} onStep={handleStepSelect} />
       </Suspense>
       <DemoWalkthroughMobileBar
         schoolName={schoolName}
@@ -210,6 +243,8 @@ function SchoolDemoShellInner({
         steps={steps}
         activeStep={activeStep}
         onStepSelect={handleStepSelect}
+        snapshotHref={snapshotHref}
+        preview={activePreview}
       />
       <DemoWalkthroughPanel
         schoolName={schoolName}
@@ -217,6 +252,7 @@ function SchoolDemoShellInner({
         steps={steps}
         activeStep={activeStep}
         onStepSelect={handleStepSelect}
+        snapshotHref={snapshotHref}
       />
       <div className="relative h-full min-h-0 min-w-0 flex-1" style={previewStyle}>
         {activePreview === "admin" ? (
@@ -311,15 +347,25 @@ function SchoolDemoShellInner({
             onDiscoveryCallClick={handleDiscoveryCallClick}
           />
         )}
-        <AnimatePresence mode="wait">
-          {steps[activeStep]?.previewHint ? (
-            <DemoPreviewHint
-              key={steps[activeStep].id}
-              message={steps[activeStep].previewHint}
-              delayMs={steps[activeStep].previewHintDelayMs}
-            />
-          ) : null}
-        </AnimatePresence>
+        {/* Back to their snapshot (phones; the side panel has it on desktop). */}
+        {snapshotHref ? (
+          <Link
+            href={snapshotHref}
+            className="absolute bottom-8 left-5 z-10 inline-flex h-9 items-center gap-1 rounded-full border-2 border-[var(--sf-ink)] bg-white px-3 font-[family-name:var(--font-sf-body)] text-[12px] font-extrabold text-[var(--sf-ink)] shadow-[0_2px_0_0_var(--sf-ink)] transition active:translate-y-0.5 active:shadow-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/30 sm:bottom-10 sm:left-8 lg:hidden"
+            data-testid="demo-snapshot-link-mobile"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.6} aria-hidden />
+            Snapshot
+          </Link>
+        ) : null}
+        {stepGuide ? (
+          <DemoStepGuide
+            key={`guide-${steps[activeStep].id}`}
+            guide={stepGuide}
+            stepLabel={`Step ${activeStep + 1} of ${steps.length} · ${DEMO_PREVIEW_ROLES[activePreview].label}`}
+            title={steps[activeStep].title}
+          />
+        ) : null}
       </div>
     </div>
   );

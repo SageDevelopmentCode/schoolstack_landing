@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, type ComponentType } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import DemoPreviewFrame from "@/components/demo/DemoPreviewFrame";
+import DemoScaledCanvas from "@/components/demo/shared/DemoScaledCanvas";
 import type {
   DemoWalkthroughMySchoolTab,
   DemoWalkthroughAdminPage,
@@ -9,7 +10,6 @@ import type {
 } from "@/data/school-demos/walkthrough-placeholder";
 import type { DemoTuitionOverride } from "@/data/school-demos/tuition-override";
 
-const DESIGN_WIDTH = 1440;
 const ROOTED_MEADOWS_SLUG = "rooted-meadows";
 
 type AdminDemoComponent = ComponentType<Record<string, unknown>>;
@@ -105,8 +105,6 @@ export default function ScaledAdminDemoPreview({
   openSendAugustSignupModalDelayMs?: number;
   openArchiveCommitteeModal?: boolean;
 }) {
-  const outerRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(0.81);
   const [loadedDemo, setLoadedDemo] = useState<LoadedAdminDemo | null>(null);
   const [SharedAdmin, setSharedAdmin] = useState<ComponentType<
     Record<string, unknown>
@@ -153,17 +151,6 @@ export default function ScaledAdminDemoPreview({
     };
   }, [demoSlug, useGardenAdmissions]);
 
-  useEffect(() => {
-    const el = outerRef.current;
-    if (!el) return;
-
-    const update = () => setScale(el.offsetWidth / DESIGN_WIDTH);
-    update();
-
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
 
   const demoProps = {
     initialPage: (initialAdminPage ?? "leads") as
@@ -207,35 +194,27 @@ export default function ScaledAdminDemoPreview({
 
   return (
     <DemoPreviewFrame variant="admin">
-      <div ref={outerRef} className="relative h-full overflow-hidden">
-        <div
-          style={{
-            width: DESIGN_WIDTH,
-            height: scale > 0 ? `${100 / scale}%` : "100%",
-            transform: `scale(${scale})`,
-            transformOrigin: "top left",
-          }}
-        >
-          {loadedDemo?.kind === "garden-admissions" &&
-          useGardenAdmissions &&
-          GardenAdmissions ? (
-            <GardenAdmissions
-              key={`${demoSlug}-${initialSelectedLeadId ?? "list"}-${autoSendEnrollmentLink ? "send" : "view"}`}
-              demoSlug={demoSlug}
-              animateNewSubmission={animateNewSubmission}
-              initialSelectedLeadId={initialSelectedLeadId}
-              autoSendEnrollmentLink={autoSendEnrollmentLink}
-              autoSendEnrollmentLinkDelayMs={autoSendEnrollmentLinkDelayMs}
-            />
-          ) : null}
-          {loadedDemo?.kind === "shared" && !useGardenAdmissions && SharedAdmin ? (
-            <SharedAdmin demoSlug={demoSlug} {...demoProps} />
-          ) : null}
-          {loadedDemo?.kind === "custom" ? (
-            <loadedDemo.Component {...demoProps} />
-          ) : null}
-        </div>
-      </div>
+      <DemoScaledCanvas>
+        {loadedDemo?.kind === "garden-admissions" &&
+        useGardenAdmissions &&
+        GardenAdmissions ? (
+          <GardenAdmissions
+            key={`${demoSlug}-${initialSelectedLeadId ?? "list"}-${autoSendEnrollmentLink ? "send" : "view"}`}
+            demoSlug={demoSlug}
+            animateNewSubmission={animateNewSubmission}
+            initialSelectedLeadId={initialSelectedLeadId}
+            autoSendEnrollmentLink={autoSendEnrollmentLink}
+            autoSendEnrollmentLinkDelayMs={autoSendEnrollmentLinkDelayMs}
+            scrollable
+          />
+        ) : null}
+        {loadedDemo?.kind === "shared" && !useGardenAdmissions && SharedAdmin ? (
+          <SharedAdmin demoSlug={demoSlug} {...demoProps} />
+        ) : null}
+        {loadedDemo?.kind === "custom" ? (
+          <loadedDemo.Component {...demoProps} />
+        ) : null}
+      </DemoScaledCanvas>
     </DemoPreviewFrame>
   );
 }
