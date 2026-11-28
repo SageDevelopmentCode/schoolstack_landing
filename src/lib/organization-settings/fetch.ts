@@ -130,3 +130,18 @@ export async function fetchOrganizationWithSettings(
 ): Promise<OrganizationWithSettings | null> {
   return fetchOrganizationWithSettingsBySlug(slug);
 }
+
+/**
+ * Same cached read as `fetchOrganizationWithSettings`, but falls back to the caller's client
+ * (for example a bearer-token client in a mobile API route) instead of the request cookies.
+ */
+export async function fetchOrganizationWithSettingsForClient(
+  supabase: SupabaseClient,
+  slug: string,
+): Promise<OrganizationWithSettings | null> {
+  try {
+    return await fetchOrganizationWithSettingsCached(slug);
+  } catch {
+    return fetchOrganizationWithSettingsUncached(supabase, slug);
+  }
+}

@@ -1,17 +1,112 @@
 import { Platform } from 'react-native';
 import type { WebViewSource } from 'react-native-webview/lib/WebViewTypes';
 
-import { ANDROID_PDF_VIEWER_BASE_URL } from '@/lib/pdf/mobile-pdf-webview-navigation';
+import {
+  ANDROID_PDF_VIEWER_BASE_URL,
+  PDF_VIEWER_BASE_URL,
+} from '@/lib/pdf/mobile-pdf-webview-navigation';
 import { buildEmbeddedPdfViewerUrl } from '@/lib/school-bulletin/bulletin-format';
 
-export { ANDROID_PDF_VIEWER_BASE_URL };
+export { ANDROID_PDF_VIEWER_BASE_URL, PDF_VIEWER_BASE_URL };
 
-export type AndroidPdfViewerShellOptions = {
+export type PdfViewerShellOptions = {
   /** Source text of `pdfjs-dist/build/pdf.min.mjs`. */
   pdfModuleSource: string;
   /** Source text of `pdfjs-dist/build/pdf.worker.min.mjs`. */
   workerModuleSource: string;
+  /**
+   * pdf.js image decoders keyed by the filename pdf.js asks for (JPEG 2000: `openjpeg.wasm` +
+   * `openjpeg_nowasm_fallback.js`; JBIG2 / CCITT: `jbig2.*`). Missing ones render those images blank.
+   */
+  imageDecoders?: {
+    /** `.wasm` as base64, served through the shell's `BinaryDataFactory`. */
+    wasmBase64: Record<string, string>;
+    /** Pure-JS builds pdf.js `import()`s where the wasm cannot compile (always on WebKit). */
+    jsFallbacks: Record<string, string>;
+  } | null;
 };
+
+/**
+ * `wasmUrl` for pdf.js when no JS decoder fallbacks are bundled (it must end in `/`). Nothing is
+ * fetched from it: with `useWorkerFetch: false` the worker asks the page's `BinaryDataFactory`
+ * for `.wasm` files. With fallbacks, the shell swaps in a blob "router" URL instead (see the HTML).
+ */
+export const PDFJS_BUNDLED_WASM_URL = `${PDF_VIEWER_BASE_URL}/pdfjs-wasm/`;
+
+/**
+ * Built-ins that pdf.js 6 calls without feature checks, defined only where missing. Prepended to
+ * both the main and the worker module so they exist in each realm before pdf.js evaluates.
+ *
+ * Without them pdf.js parses fine on iOS 16.4–18.1 but then fails at runtime (`Promise.try` runs
+ * on every worker message). Older engines that cannot even parse pdf.js (iOS < 16.4 lacks class
+ * static blocks) fail at `module_load`, and the host falls back to the native viewer.
+ *
+ * ES5-style with no template literals so it can sit in this file and inside the inline JSON.
+ */
+export const PDFJS_RUNTIME_PRELUDE = `(function () {
+  function define(target, name, value) {
+    if (!target || typeof target[name] === 'function') return;
+    Object.defineProperty(target, name, { value: value, configurable: true, writable: true, enumerable: false });
+  }
+  define(Promise, 'withResolvers', function () {
+    var resolve, reject;
+    var promise = new this(function (res, rej) { resolve = res; reject = rej; });
+    return { promise: promise, resolve: resolve, reject: reject };
+  });
+  define(Promise, 'try', function (fn) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return new this(function (resolve) { resolve(fn.apply(undefined, args)); });
+  });
+  [typeof Map === 'function' ? Map : null, typeof WeakMap === 'function' ? WeakMap : null].forEach(function (Ctor) {
+    if (!Ctor) return;
+    define(Ctor.prototype, 'getOrInsert', function (key, value) {
+      if (!this.has(key)) this.set(key, value);
+      return this.get(key);
+    });
+    define(Ctor.prototype, 'getOrInsertComputed', function (key, compute) {
+      if (!this.has(key)) this.set(key, compute(key));
+      return this.get(key);
+    });
+  });
+  define(Math, 'sumPrecise', function (items) {
+    var sum = 0;
+    var compensation = 0;
+    for (var value of items) {
+      var next = sum + value;
+      compensation += Math.abs(sum) >= Math.abs(value) ? (sum - next) + value : (value - next) + sum;
+      sum = next;
+    }
+    return sum + compensation;
+  });
+  if (typeof Uint8Array === 'function' && typeof atob === 'function') {
+    define(Uint8Array, 'fromBase64', function (text) {
+      var binary = atob(String(text).replace(/\\s/g, ''));
+      var bytes = new Uint8Array(binary.length);
+      for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes;
+    });
+    define(Uint8Array.prototype, 'toBase64', function () {
+      var binary = '';
+      for (var i = 0; i < this.length; i += 32768) {
+        binary += String.fromCharCode.apply(null, Array.prototype.slice.call(this.subarray(i, i + 32768)));
+      }
+      return btoa(binary);
+    });
+  }
+  if (typeof Response === 'function') {
+    define(Response.prototype, 'bytes', function () {
+      return this.arrayBuffer().then(function (buffer) { return new Uint8Array(buffer); });
+    });
+  }
+  if (typeof Uint8Array === 'function') {
+    define(Uint8Array.prototype, 'toHex', function () {
+      var hex = '';
+      for (var i = 0; i < this.length; i++) hex += (this[i] < 16 ? '0' : '') + this[i].toString(16);
+      return hex;
+    });
+  }
+})();
+`;
 
 /**
  * JSON for an inline classic `<script>`: escapes `<` (so `</script>` in the source cannot close the
@@ -36,15 +131,15 @@ export function getMobilePdfExternalOpenUrl(pdfUrl: string): string {
   return stripViewerFragment(pdfUrl);
 }
 
-export type AndroidPdfViewerLoadOptions = {
+export type PdfViewerLoadOptions = {
   /** Render only page 1 (non-interactive inline previews). */
   firstPageOnly?: boolean;
 };
 
 /** Message posted from React Native to start loading a document (keeps signed URLs out of static HTML). */
-export function buildAndroidPdfViewerLoadMessage(
+export function buildPdfViewerLoadMessage(
   pdfUrl: string,
-  options: AndroidPdfViewerLoadOptions = {},
+  options: PdfViewerLoadOptions = {},
 ): string {
   return JSON.stringify({
     type: 'load-pdf',
@@ -53,8 +148,8 @@ export function buildAndroidPdfViewerLoadMessage(
   });
 }
 
-/** Messages the Android pdf.js shell posts back to React Native. */
-export type AndroidPdfViewerMessage =
+/** Messages the pdf.js shell posts back to React Native. */
+export type PdfViewerMessage =
   | { type: 'ready' }
   | { type: 'loaded' }
   | {
@@ -67,7 +162,7 @@ export type AndroidPdfViewerMessage =
     }
   | { type: 'unknown'; raw: string };
 
-export function parseAndroidPdfViewerMessage(data: string): AndroidPdfViewerMessage {
+export function parsePdfViewerMessage(data: string): PdfViewerMessage {
   if (data === 'pdf-viewer-ready') return { type: 'ready' };
   if (data === 'pdf-loaded') return { type: 'loaded' };
   if (data === 'pdf-error') {
@@ -104,24 +199,33 @@ export function parseAndroidPdfViewerMessage(data: string): AndroidPdfViewerMess
 }
 
 /**
- * Static Android viewer shell: bundled pdf.js only (no CDN). Document URL is supplied later via postMessage.
+ * Static pdf.js viewer shell (iOS and Android): bundled pdf.js only (no CDN). Document URL is
+ * supplied later via postMessage.
  *
  * pdf.js is inlined as text and imported from same-origin `blob:` URLs. The page's origin is
- * {@link ANDROID_PDF_VIEWER_BASE_URL}, so a module import or module worker from a `file://` asset URI
+ * {@link PDF_VIEWER_BASE_URL}, so a module import or module worker from a `file://` asset URI
  * is a cross-origin CORS request that Chromium refuses (`ModuleLoadError` at stage `module_load`).
+ * {@link PDFJS_RUNTIME_PRELUDE} is prepended to both modules.
  *
  * Large books (60+ MB) must not be rendered eagerly: page 1 is rendered first (and `pdf-loaded` is
  * posted right away), the remaining pages render on demand near the viewport, and canvases far
- * from the viewport are released so memory stays bounded. `disableAutoFetch` keeps pdf.js from
- * downloading the whole file in the background (HTTP range requests fetch only needed pages).
+ * from the viewport are released so memory stays bounded. `disableAutoFetch` + `disableStream`
+ * keep pdf.js from downloading the whole file in the background: without `disableStream` the first
+ * (full) request keeps streaming the entire book into memory even though ranges are supported.
+ * With it, that request is cancelled once headers confirm range support and only the 512 KB
+ * ranges that the visible pages need are fetched. Servers without range support still get one
+ * full download.
  *
  * The inline script avoids template literals so it can live inside this TS template string.
  */
-export function buildAndroidPdfViewerHtml(options: AndroidPdfViewerShellOptions): string {
+export function buildPdfViewerHtml(options: PdfViewerShellOptions): string {
   const sourcesJson = toInlineScriptJson({
-    main: options.pdfModuleSource,
-    worker: options.workerModuleSource,
+    main: PDFJS_RUNTIME_PRELUDE + options.pdfModuleSource,
+    worker: PDFJS_RUNTIME_PRELUDE + options.workerModuleSource,
+    wasm: options.imageDecoders?.wasmBase64 ?? {},
+    wasmFallbacks: options.imageDecoders?.jsFallbacks ?? {},
   });
+  const wasmUrlJson = toInlineScriptJson(PDFJS_BUNDLED_WASM_URL);
 
   return `<!DOCTYPE html>
 <html>
@@ -129,12 +233,12 @@ export function buildAndroidPdfViewerHtml(options: AndroidPdfViewerShellOptions)
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
 <style>
-  html, body { margin: 0; padding: 0; background: #f8fafc; }
+  html, body { margin: 0; padding: 0; background: #F7F1E7; }
   #pages { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px; }
-  .page { position: relative; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.12); overflow: hidden; }
+  .page { position: relative; background: #fff; box-shadow: 0 1px 3px rgba(43,36,29,0.14); overflow: hidden; }
   .page canvas { display: block; }
-  .page-failed { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: system-ui, sans-serif; font-size: 13px; color: #94a3b8; }
-  #status { padding: 24px 16px; font-family: system-ui, sans-serif; font-size: 14px; color: #64748b; text-align: center; }
+  .page-failed { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: system-ui, sans-serif; font-size: 13px; color: #6D6257; }
+  #status { padding: 24px 16px; font-family: system-ui, sans-serif; font-size: 14px; color: #6D6257; text-align: center; }
   #error { display: none; padding: 16px; font-family: system-ui, sans-serif; font-size: 14px; color: #b91c1c; text-align: center; }
 </style>
 </head>
@@ -148,6 +252,11 @@ export function buildAndroidPdfViewerHtml(options: AndroidPdfViewerShellOptions)
 <script id="pdfjs-module" type="module">
   var pdfjsSources = window.__pdfjsSources;
   window.__pdfjsSources = null;
+  // Image decoders (JPEG 2000, JBIG2/CCITT). Wasm is decoded lazily: only documents with those
+  // images ever ask for it.
+  var bundledWasmBase64 = pdfjsSources.wasm || {};
+  var bundledWasmBytes = {};
+  var bundledWasmFallbacks = pdfjsSources.wasmFallbacks || {};
   var pdfjsLib;
   try {
     var pdfModuleUrl = URL.createObjectURL(new Blob([pdfjsSources.main], { type: 'text/javascript' }));
@@ -165,6 +274,58 @@ export function buildAndroidPdfViewerHtml(options: AndroidPdfViewerShellOptions)
   var KEEP_PAGES_AROUND_VIEWPORT = 4;
   var MAX_OUTPUT_SCALE = 2;
   var RANGE_CHUNK_SIZE = 524288;
+  var BUNDLED_WASM_URL = createBundledWasmUrl(${wasmUrlJson});
+
+  /**
+   * pdf.js imports a decoder's JS build from wasmUrl + filename when its wasm will not compile
+   * (WebKit rejects relaxed SIMD). One prefix has to serve several files, so wasmUrl is a blob
+   * "router" module plus '#/': loading a blob URL ignores the fragment, but every fragment is its
+   * own module with its own import.meta.url, so the router re-exports the file that was asked for.
+   */
+  function createBundledWasmUrl(defaultUrl) {
+    var urls = {};
+    var count = 0;
+    Object.keys(bundledWasmFallbacks).forEach(function (name) {
+      if (typeof bundledWasmFallbacks[name] !== 'string') return;
+      urls[name] = URL.createObjectURL(new Blob([bundledWasmFallbacks[name]], { type: 'text/javascript' }));
+      count++;
+    });
+    bundledWasmFallbacks = null;
+    if (count === 0) return defaultUrl;
+    var router =
+      'const urls = ' + JSON.stringify(urls) + ';' +
+      'const name = import.meta.url.slice(import.meta.url.lastIndexOf("/") + 1);' +
+      'if (!urls[name]) throw new Error("No bundled pdf.js decoder for " + name);' +
+      'const mod = await import(urls[name]);' +
+      'export default mod.default;';
+    return URL.createObjectURL(new Blob([router], { type: 'text/javascript' })) + '#/';
+  }
+
+  function decodeBase64(text) {
+    var binary = atob(text);
+    var bytes = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
+  // Serves pdf.js's binary data requests (useWorkerFetch: false) from what the app bundled.
+  // Only the decoder .wasm files are bundled; anything else (standard fonts, cmaps) rejects, which
+  // pdf.js already handles by falling back as it did before this factory existed.
+  function BundledBinaryDataFactory() {}
+  BundledBinaryDataFactory.prototype.fetch = function (request) {
+    var kind = request && request.kind;
+    var filename = request && request.filename;
+    if (kind === 'wasmUrl' && typeof bundledWasmBase64[filename] === 'string') {
+      try {
+        if (!bundledWasmBytes[filename]) bundledWasmBytes[filename] = decodeBase64(bundledWasmBase64[filename]);
+        // A copy: pdf.js may transfer (detach) the buffer it receives.
+        return Promise.resolve(bundledWasmBytes[filename].slice());
+      } catch (err) {
+        return Promise.reject(err);
+      }
+    }
+    return Promise.reject(new Error('Not bundled in the viewer: ' + kind + ' ' + filename));
+  };
 
   var loadToken = 0;
   var current = null;
@@ -311,7 +472,11 @@ export function buildAndroidPdfViewerHtml(options: AndroidPdfViewerShellOptions)
         url: pdfUrl,
         isEvalSupported: false,
         disableAutoFetch: true,
-        rangeChunkSize: RANGE_CHUNK_SIZE
+        disableStream: true,
+        rangeChunkSize: RANGE_CHUNK_SIZE,
+        wasmUrl: BUNDLED_WASM_URL,
+        useWorkerFetch: false,
+        BinaryDataFactory: BundledBinaryDataFactory
       });
       var state = {
         pdf: null,
@@ -429,18 +594,42 @@ export function buildAndroidPdfViewerHtml(options: AndroidPdfViewerShellOptions)
 </html>`;
 }
 
-export function getAndroidPdfWebViewSource(shell: AndroidPdfViewerShellOptions): WebViewSource {
+export function getPdfJsWebViewSource(shell: PdfViewerShellOptions): WebViewSource {
   return {
-    html: buildAndroidPdfViewerHtml(shell),
-    baseUrl: ANDROID_PDF_VIEWER_BASE_URL,
+    html: buildPdfViewerHtml(shell),
+    baseUrl: PDF_VIEWER_BASE_URL,
   };
 }
 
-export function usesAndroidPdfJsHtml(pdfUrl: string): boolean {
-  return Platform.OS === 'android' && Boolean(pdfUrl);
+/**
+ * The bundled pdf.js shell renders page 1 after a few range requests instead of waiting for the
+ * whole file (WKWebView's native PDF view downloads 20–70 MB books before showing anything).
+ */
+export function usesPdfJsViewer(pdfUrl: string): boolean {
+  return (Platform.OS === 'ios' || Platform.OS === 'android') && Boolean(pdfUrl);
 }
 
-/** iOS (and tests): native WebView PDF via signed URL. Android uses {@link getAndroidPdfWebViewSource}. */
+/** pdf.js shell stages whose failure means the engine itself cannot run pdf.js. */
+const PDFJS_ENGINE_STAGES = new Set(['module_load', 'script']);
+
+/**
+ * iOS only: whether a shell error means pdf.js cannot run in this WebKit, so the host should
+ * switch (once) to the native WKWebView viewer instead of showing the error.
+ *
+ * A fatal `module_load` / `script` error qualifies. So does a `script` error before the shell
+ * posted `pdf-viewer-ready`: a module that fails to parse is reported by the classic script's
+ * `window.onerror` as non-fatal, but nothing else will ever run.
+ */
+export function shouldFallBackToNativePdfViewer(
+  message: PdfViewerMessage,
+  context: { platform: string; viewerReady: boolean },
+): boolean {
+  if (context.platform !== 'ios' || message.type !== 'error') return false;
+  if (!PDFJS_ENGINE_STAGES.has(message.stage)) return false;
+  return message.fatal || (message.stage === 'script' && !context.viewerReady);
+}
+
+/** Native WKWebView PDF via signed URL: the iOS fallback when pdf.js cannot run (and tests). */
 export function getMobilePdfWebViewSource(pdfUrl: string): WebViewSource {
   const baseUrl = stripViewerFragment(pdfUrl);
   return { uri: buildEmbeddedPdfViewerUrl(baseUrl) };

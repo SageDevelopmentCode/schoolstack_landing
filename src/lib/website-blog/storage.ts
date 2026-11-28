@@ -1,5 +1,4 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { sanitizeBlogHtml } from "@/lib/website-blog/sanitize-html";
 import { normalizeBlogSlug, parseSecondaryKeywords } from "@/lib/website-blog/slug";
 import type {
   WebsiteBlogPostInput,
@@ -61,7 +60,9 @@ function toPublic(row: WebsiteBlogPostRow): WebsiteBlogPostPublic {
   };
 }
 
-function normalizeInput(input: WebsiteBlogPostInput): WebsiteBlogPostInput {
+async function normalizeInput(input: WebsiteBlogPostInput): Promise<WebsiteBlogPostInput> {
+  // Loaded on write only: the sanitizer pulls in jsdom, which public read paths must not load.
+  const { sanitizeBlogHtml } = await import("@/lib/website-blog/sanitize-html");
   const slug = normalizeBlogSlug(input.slug);
   const published = input.published ?? false;
   const publishedAt = published
@@ -84,8 +85,8 @@ function normalizeInput(input: WebsiteBlogPostInput): WebsiteBlogPostInput {
   };
 }
 
-function rowFromInput(input: WebsiteBlogPostInput) {
-  const normalized = normalizeInput(input);
+async function rowFromInput(input: WebsiteBlogPostInput) {
+  const normalized = await normalizeInput(input);
   return {
     slug: normalized.slug,
     title: normalized.title,
@@ -187,7 +188,7 @@ export async function createWebsiteBlogPost(
   supabase: SupabaseClient,
   input: WebsiteBlogPostInput,
 ): Promise<WebsiteBlogPostRecord> {
-  const payload = rowFromInput(input);
+  const payload = await rowFromInput(input);
   const { data, error } = await supabase
     .from("website_blog_posts")
     .insert(payload)
@@ -228,7 +229,7 @@ export async function updateWebsiteBlogPost(
       input.publishedAt !== undefined ? input.publishedAt : existing.publishedAt,
   };
 
-  const payload = rowFromInput(merged);
+  const payload = await rowFromInput(merged);
   const { data, error } = await supabase
     .from("website_blog_posts")
     .update(payload)

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { runAfterResponse } from "@/lib/next/run-after-response";
 import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { ACTIVITY_ACTIONS, logActivityEvent } from "@/lib/activity-log";
 import {
@@ -318,16 +319,29 @@ export async function submitStaffHoursAdjustment(
     userId: input.userId,
   });
 
-  await notifySchoolAdminsOfAdjustment(admin, {
-    organizationId: input.organizationId,
-    staffMemberId: input.staffMemberId,
-    userId: input.userId,
-    requestId,
-    workDate,
-    timezone,
-    sessions,
-    note,
-  });
+  // The admin email, Discord alert and activity event take ~2–3 s; the teacher doesn't wait for
+  // them. Failures are already recorded through logNotificationFailure inside.
+  runAfterResponse(() =>
+    notifySchoolAdminsOfAdjustment(admin, {
+      organizationId: input.organizationId,
+      staffMemberId: input.staffMemberId,
+      userId: input.userId,
+      requestId,
+      workDate,
+      timezone,
+      sessions,
+      note,
+    }).catch((err: unknown) =>
+      logNotificationFailure(admin, {
+        organizationId: input.organizationId,
+        operation: "staff_hours_adjustment_requested",
+        error:
+          err instanceof Error ? err.message : "Staff hours adjustment notification failed.",
+        entityType: "staff_hours_adjustment_request",
+        entityId: requestId,
+      }),
+    ),
+  );
 
   return { requireApproval: true, requestId };
 }

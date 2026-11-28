@@ -7,7 +7,7 @@ export const HOME_FAQ: FaqItem[] = [
   {
     question: "What is MudKitchen?",
     answer:
-      "MudKitchen is an all-in-one operating system for microschools. It brings enrollment, tuition and billing, parent communication, student records, and daily school operations into one platform — built inside a real microschool to replace the patchwork of spreadsheets, form builders, and disconnected tools founders typically stitch together.",
+      "MudKitchen is microschool software: an all-in-one operating system for microschools and small private schools. It brings enrollment, tuition and billing, parent communication, student records, and daily school operations into one platform — built inside a real microschool to replace the patchwork of spreadsheets, form builders, and disconnected tools founders typically stitch together.",
   },
   {
     question: "Who is MudKitchen built for?",

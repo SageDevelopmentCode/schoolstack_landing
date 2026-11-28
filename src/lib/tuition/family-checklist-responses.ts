@@ -1,5 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { chargeRemainingCents } from "./billing-splits";
+import {
+  familyStudentEnrollments,
+  type FamilyBillingRows,
+  type MaybePromise,
+} from "./family-billing-rows";
 import type { InstallmentChargeBalance } from "./payment-settlement";
 import type { TuitionCharge } from "./types";
 
@@ -24,22 +29,23 @@ function extractChecklistResponseValue(
   return null;
 }
 
-export async function familyHasChecklistResponse(
+async function loadFamilyEnrollmentIds(
   supabase: SupabaseClient,
-  input: {
-    familyId: string;
-    itemKey: string;
-    responseValue: string;
-  },
-): Promise<boolean> {
+  familyId: string,
+  familyRows?: MaybePromise<FamilyBillingRows>,
+): Promise<string[]> {
+  if (familyRows) {
+    return familyStudentEnrollments(await familyRows).map((row) => String(row.id));
+  }
+
   const { data: students, error: studentsError } = await supabase
     .from("students")
     .select("id")
-    .eq("family_id", input.familyId);
+    .eq("family_id", familyId);
 
   if (studentsError) throw studentsError;
   const studentIds = (students ?? []).map((row) => String(row.id));
-  if (studentIds.length === 0) return false;
+  if (studentIds.length === 0) return [];
 
   const { data: enrollments, error: enrollmentsError } = await supabase
     .from("enrollments")
@@ -47,7 +53,26 @@ export async function familyHasChecklistResponse(
     .in("student_id", studentIds);
 
   if (enrollmentsError) throw enrollmentsError;
-  const enrollmentIds = (enrollments ?? []).map((row) => String(row.id));
+  return (enrollments ?? []).map((row) => String(row.id));
+}
+
+export async function familyHasChecklistResponse(
+  supabase: SupabaseClient,
+  input: {
+    familyId: string;
+    itemKey: string;
+    responseValue: string;
+  },
+  options?: {
+    /** The family's students and enrollments, already loaded (skips two reads). */
+    familyRows?: MaybePromise<FamilyBillingRows>;
+  },
+): Promise<boolean> {
+  const enrollmentIds = await loadFamilyEnrollmentIds(
+    supabase,
+    input.familyId,
+    options?.familyRows,
+  );
   if (enrollmentIds.length === 0) return false;
 
   const { data: checklists, error: checklistsError } = await supabase
@@ -121,14 +146,21 @@ export async function shouldShowTaxCreditPaymentBanner(
     familyId: string;
     charges: TuitionCharge[];
   },
+  options?: {
+    familyRows?: MaybePromise<FamilyBillingRows>;
+  },
 ): Promise<boolean> {
   if (!familyHasOpenTuitionInstallments(input.charges)) {
     return false;
   }
 
-  return familyHasChecklistResponse(supabase, {
-    familyId: input.familyId,
-    itemKey: IDAHO_PARENT_CHOICE_TAX_CREDIT_ITEM_KEY,
-    responseValue: "yes",
-  });
+  return familyHasChecklistResponse(
+    supabase,
+    {
+      familyId: input.familyId,
+      itemKey: IDAHO_PARENT_CHOICE_TAX_CREDIT_ITEM_KEY,
+      responseValue: "yes",
+    },
+    options,
+  );
 }

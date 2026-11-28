@@ -11,9 +11,9 @@ const DemoAdminNewsletterEditorPage = dynamic(
 
 export default function NewsletterEditorTeacherUpdatesBlogEmbed() {
   return (
-    <BlogPostWideDemo caption="Pull teacher updates into your class updates section">
-      <BlogProductDemoFrame contentHeight={920} cropZoom={0.92}>
-        <DemoAdminNewsletterEditorPage variant="teacherUpdates" persistImportModal />
+    <BlogPostWideDemo caption="Add each teacher's update to the newsletter">
+      <BlogProductDemoFrame contentHeight={920} cropZoom={0.92} mobileCropOriginX={0} fitHeight>
+        <DemoAdminNewsletterEditorPage variant="teacherUpdates" />
       </BlogProductDemoFrame>
     </BlogPostWideDemo>
   );

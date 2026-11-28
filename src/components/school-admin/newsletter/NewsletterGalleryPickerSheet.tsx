@@ -26,6 +26,8 @@ type NewsletterGalleryPickerSheetProps = {
   onClose: () => void;
   onAddPhotos?: (photos: NewsletterPhoto[]) => void;
   onPickCover?: (cover: { galleryPhotoId: string; src: string }) => void;
+  /** Marketing demos: the library to show instead of fetching the school gallery. */
+  previewPhotos?: GalleryPhoto[];
 };
 
 export default function NewsletterGalleryPickerSheet({
@@ -36,10 +38,15 @@ export default function NewsletterGalleryPickerSheet({
   onClose,
   onAddPhotos,
   onPickCover,
+  previewPhotos,
 }: NewsletterGalleryPickerSheetProps) {
   const { theme, C } = useSchoolAdminStoryTheme();
   const isCoverMode = mode === "cover";
-  const listUrl = open ? `/api/school/${slug}/gallery` : null;
+  const listUrl = open && !previewPhotos ? `/api/school/${slug}/gallery` : null;
+  const previewInitial = useMemo(
+    () => (previewPhotos ? { photos: previewPhotos, hasMore: false, nextOffset: 0 } : null),
+    [previewPhotos],
+  );
   const {
     photos,
     loading,
@@ -48,7 +55,7 @@ export default function NewsletterGalleryPickerSheet({
     loadMoreRef,
     loadMoreError,
     reload,
-  } = useGalleryPhotosFeed({ listUrl, enabled: open });
+  } = useGalleryPhotosFeed({ listUrl, enabled: open, initial: previewInitial });
 
   const existingGalleryIds = useMemo(
     () =>

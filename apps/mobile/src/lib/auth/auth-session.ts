@@ -23,6 +23,11 @@ export type FetchWithAuthOptions = {
   body?: string;
   includeJson?: boolean;
   signOutOnFailure?: boolean;
+  /**
+   * Fire-and-forget request (push registration, telemetry). Its Sentry span is its own root so it
+   * doesn't extend the active screen's navigation transaction.
+   */
+  background?: boolean;
 };
 
 let cachedAccessToken: string | null = null;
@@ -284,6 +289,7 @@ export async function fetchWithAuth(
     body,
     includeJson = false,
     signOutOnFailure = false,
+    background = false,
   } = options;
 
   const accessToken = await resolveAccessToken({ signOutOnFailure: false });
@@ -312,12 +318,16 @@ export async function fetchWithAuth(
   }
 
   const request = (token: string) =>
-    withMobileApiSpan(url, method, () =>
-      fetch(url, {
-        method,
-        headers: buildAuthHeaders(token, includeJson || body !== undefined),
-        body,
-      }),
+    withMobileApiSpan(
+      url,
+      method,
+      () =>
+        fetch(url, {
+          method,
+          headers: buildAuthHeaders(token, includeJson || body !== undefined),
+          body,
+        }),
+      { background },
     );
 
   let response = await request(accessToken);

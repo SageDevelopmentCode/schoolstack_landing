@@ -1,5 +1,7 @@
 import {
   computeSupplyListSummary,
+  countMySupplySignups,
+  filterMobileSupplyItems,
   supplyItemDisplayName,
   supplyUsageTimingLabel,
 } from '@/lib/parent/coop/supply-list-helpers';
@@ -43,5 +45,32 @@ describe('supply-list-helpers', () => {
     expect(supplyUsageTimingLabel(item({ usageTiming: 'specific_months', months: [] }))).toBe(
       'Specific months',
     );
+  });
+});
+
+describe('filterMobileSupplyItems', () => {
+  const items = [
+    item({ id: 'a', name: 'Paper towels' }),
+    item({ id: 'b', name: 'Glue', assignedFamilyIds: ['me'] }),
+    item({ id: 'c', name: 'Bowls', assignedFamilyIds: ['1', '2', '3', '4', '5'] }),
+  ];
+  const ids = (list: ParentCoopSupplyListItem[]) => list.map((row) => row.id);
+
+  it('filters by sign-up status', () => {
+    const base = { search: '', currentFamilyId: 'me' };
+    expect(ids(filterMobileSupplyItems(items, { ...base, filterKey: 'all' }))).toEqual(['a', 'b', 'c']);
+    expect(ids(filterMobileSupplyItems(items, { ...base, filterKey: 'available' }))).toEqual(['a']);
+    expect(ids(filterMobileSupplyItems(items, { ...base, filterKey: 'mine' }))).toEqual(['b']);
+    expect(ids(filterMobileSupplyItems(items, { ...base, filterKey: 'full' }))).toEqual(['c']);
+    expect(countMySupplySignups(items, 'me')).toBe(1);
+  });
+
+  it('searches name, store and quantity', () => {
+    expect(
+      ids(filterMobileSupplyItems(items, { search: 'costco', filterKey: 'all', currentFamilyId: 'me' })),
+    ).toEqual(['a', 'b', 'c']);
+    expect(
+      ids(filterMobileSupplyItems(items, { search: 'glue', filterKey: 'all', currentFamilyId: 'me' })),
+    ).toEqual(['b']);
   });
 });

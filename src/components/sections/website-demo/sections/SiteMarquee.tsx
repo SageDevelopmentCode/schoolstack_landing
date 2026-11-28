@@ -21,7 +21,7 @@ export default function SiteMarquee({ items }: { items: string[] }) {
         ))}
       </ul>
       <div
-        className="-mx-6 border-y-2 border-[var(--sf-ink)] bg-[var(--sf-butter)] py-3.5 shadow-[0_5px_0_0_var(--sf-ink)]"
+        className="-mx-6 border-y-2 border-[var(--sf-ink)] bg-[var(--sf-marquee-bg,var(--sf-butter))] py-3.5 shadow-[0_5px_0_0_var(--sf-ink)]"
         style={{ rotate: "-1.4deg" }}
         aria-hidden="true"
       >
@@ -29,10 +29,10 @@ export default function SiteMarquee({ items }: { items: string[] }) {
           {doubled.map((item, i) => (
             <span
               key={`${item}-${i}`}
-              className="sf-display inline-flex shrink-0 items-center gap-5 whitespace-nowrap pr-5 text-[clamp(1.25rem,2.2cqw,1.8rem)] leading-none text-[var(--sf-ink)]"
+              className="sf-display inline-flex shrink-0 items-center gap-5 whitespace-nowrap pr-5 text-[clamp(1.25rem,2.2cqw,1.8rem)] leading-none text-[var(--sf-marquee-ink,var(--sf-ink))]"
             >
               {item}
-              <span className="text-[var(--sf-clay)]">✿</span>
+              <span className="text-[var(--sf-marquee-mark,var(--sf-clay))]">✿</span>
             </span>
           ))}
         </div>

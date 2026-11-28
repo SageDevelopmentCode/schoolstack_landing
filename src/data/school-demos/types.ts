@@ -23,6 +23,11 @@ export interface DemoTheme {
   badgeBg: string;
   accentText: string;
   pageBg?: string;
+  /**
+   * Website demo personality. Omit to let the site pick one from the slug:
+   * `paper` (tinted cream hero), `bold` (hero on `dark`), `sunny` (hero on a `primary` wash).
+   */
+  siteMood?: "paper" | "bold" | "sunny";
 }
 
 export interface DemoStat {

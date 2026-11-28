@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, BookOpen, Info, Layers, Users, Wrench } from "lucide-react";
+import { ArrowRight, BookOpen, Info, Layers, Scale, Users, Wrench } from "lucide-react";
 import { siFacebook, siInstagram } from "simple-icons";
 import { MUDKITCHEN_CONTACT } from "@/lib/site";
 import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
@@ -27,6 +27,7 @@ import "@/components/garden/garden.css";
 const NAV_LINKS = [
   { label: "About", href: "/about", icon: Info },
   { label: "Features", href: "/features", icon: Layers },
+  { label: "Compare", href: "/compare", icon: Scale },
   { label: "Customers", href: "/customers", icon: Users },
   { label: "Blog", href: "/blog", icon: BookOpen },
   { label: FREE_TOOLS_NAV_LABEL, href: FREE_TOOLS_HUB_PATH, icon: Wrench },

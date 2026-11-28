@@ -1,11 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { Garden, GardenFonts } from '@/components/parent/garden/tokens';
+import { GPressable } from '@/components/parent/garden/ui';
 import { ParentEmbeddedPdfViewerModal } from '@/components/parent/shared/parent-embedded-pdf-viewer-modal';
 import { ParentEmbeddedPdfWebView } from '@/components/parent/shared/parent-embedded-pdf-webview';
-import { StoryFonts } from '@/constants/story-theme';
-import { Radius, Spacing } from '@/constants/theme';
 
 type ParentEmbeddedPdfPreviewProps = {
   url: string;
@@ -24,13 +24,14 @@ export function ParentEmbeddedPdfPreview({
   reportEntityId,
 }: ParentEmbeddedPdfPreviewProps) {
   const [expanded, setExpanded] = useState(false);
+  const trimmedTitle = title?.trim();
 
   return (
     <>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Expand document"
+      <GPressable
+        accessibilityLabel={trimmedTitle ? `Expand ${trimmedTitle}` : 'Expand document'}
         onPress={() => setExpanded(true)}
+        pressedScale={0.995}
         style={[styles.container, { minHeight }]}>
         {expanded ? (
           <View style={[styles.webView, styles.inlinePlaceholder, { minHeight }]} />
@@ -41,15 +42,16 @@ export function ParentEmbeddedPdfPreview({
             scrollEnabled={false}
             pointerEvents="none"
             firstPageOnly
+            title={trimmedTitle}
             reportEntityType={reportEntityType}
             reportEntityId={reportEntityId}
           />
         )}
         <View style={styles.expandHint} pointerEvents="none">
-          <Ionicons name="expand-outline" size={16} color="#FFFFFF" />
+          <Ionicons name="expand-outline" size={16} color={Garden.white} />
           <Text style={styles.expandHintText}>Tap to expand</Text>
         </View>
-      </Pressable>
+      </GPressable>
 
       <ParentEmbeddedPdfViewerModal
         visible={expanded}
@@ -66,31 +68,30 @@ export function ParentEmbeddedPdfPreview({
 const styles = StyleSheet.create({
   container: {
     overflow: 'hidden',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: Garden.cream,
   },
   webView: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: Garden.cream,
   },
   inlinePlaceholder: {
-    backgroundColor: '#E2E8F0',
+    backgroundColor: Garden.ink06,
   },
   expandHint: {
     position: 'absolute',
-    right: Spacing.three,
-    bottom: Spacing.three,
+    right: 12,
+    bottom: 12,
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.one,
-    backgroundColor: 'rgba(15, 23, 42, 0.72)',
-    borderRadius: Radius.pill,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
+    gap: 6,
+    backgroundColor: Garden.ink,
+    borderRadius: 999,
+    paddingHorizontal: 16,
   },
   expandHintText: {
-    fontFamily: StoryFonts.bodyMedium,
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#FFFFFF',
+    fontFamily: GardenFonts.bodyExtra,
+    fontSize: 14,
+    color: Garden.white,
   },
 });

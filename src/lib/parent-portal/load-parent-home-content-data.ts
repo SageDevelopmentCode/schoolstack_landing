@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import * as Sentry from "@sentry/nextjs";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  createEnrollmentChecklistSnapshotLoader,
   listEnrollmentAgreementAmendmentsForApplications,
   listIncompleteEnrollmentAgreementsForApplications,
 } from "@/lib/admissions/enrollment-checklist-materialization";
@@ -146,6 +147,8 @@ export async function loadParentHomeContentDataForAuthUser(input: {
   fridayBranchSettings?: import("@/lib/school-admin/friday-branch/friday-branch-org-settings").OrganizationFridayBranchSettings | null;
   /** When true, skips re-querying program enrollment (caller already verified). */
   programAccessVerified?: boolean;
+  /** The user's family ids when the caller already has them (skips the family lookup). */
+  familyIds?: string[];
 }): Promise<ParentHomeContentData> {
   const programAccessPromise = input.programId
     ? input.programAccessVerified === true
@@ -158,6 +161,13 @@ export async function loadParentHomeContentDataForAuthUser(input: {
         )
     : Promise.resolve(false);
 
+  // The children's checklist progress and both enrollment banners read the same
+  // checklists, items and templates; load them once per request.
+  const checklistSnapshotLoader = createEnrollmentChecklistSnapshotLoader(
+    input.supabase,
+    input.organizationId,
+  );
+
   const familyChildrenPromise = Sentry.startSpan(
     { name: "parent_home.content.children", op: "parent_home.content.children" },
     async () => {
@@ -165,6 +175,8 @@ export async function loadParentHomeContentDataForAuthUser(input: {
         input.supabase,
         input.organizationId,
         input.userId,
+        input.familyIds,
+        { checklistSnapshotLoader },
       );
       return input.programId
         ? filterFamilyChildrenForProgramPortal(children, input.programId)
@@ -187,16 +199,11 @@ export async function loadParentHomeContentDataForAuthUser(input: {
       }),
   );
 
-  const [hasProgramAccess, familyChildren, onboardingItems] = await Promise.all([
-    programAccessPromise,
-    familyChildrenPromise,
-    onboardingItemsPromise,
-  ]);
-
-  const applicationIds = familyChildren.map((child) => child.applicationId);
   const admin = createAdminClient();
   const formsFeatureEnabled = isParentFeatureEnabled(input.features, "forms_documents");
 
+  // Forms only need the family, and the banners only need the children list, so neither waits
+  // for the onboarding checks.
   const formsBundlePromise = formsFeatureEnabled
     ? Sentry.startSpan(
         { name: "parent_home.content.forms", op: "parent_home.content.forms" },
@@ -204,42 +211,48 @@ export async function loadParentHomeContentDataForAuthUser(input: {
       )
     : Promise.resolve(null);
 
-  const enrollmentBannersPromise = Sentry.startSpan(
-    { name: "parent_home.content.enrollment_banners", op: "parent_home.content.enrollment_banners" },
-    () =>
-      Promise.all([
-        listEnrollmentAgreementAmendmentsForApplications(
-          input.supabase,
-          input.organizationId,
-          applicationIds,
-        ),
-        listIncompleteEnrollmentAgreementsForApplications(
-          input.supabase,
-          input.organizationId,
-          applicationIds,
-        ),
-      ]),
+  const enrollmentBannersPromise = familyChildrenPromise.then((familyChildren) => {
+    const applicationIds = familyChildren.map((child) => child.applicationId);
+    return Sentry.startSpan(
+      {
+        name: "parent_home.content.enrollment_banners",
+        op: "parent_home.content.enrollment_banners",
+      },
+      async () => {
+        const [amendments, incomplete] = await Promise.all([
+          listEnrollmentAgreementAmendmentsForApplications(
+            input.supabase,
+            input.organizationId,
+            applicationIds,
+            { snapshotLoader: checklistSnapshotLoader },
+          ),
+          listIncompleteEnrollmentAgreementsForApplications(
+            input.supabase,
+            input.organizationId,
+            applicationIds,
+            { snapshotLoader: checklistSnapshotLoader },
+          ),
+        ]);
+        return { amendments, incomplete };
+      },
+    );
+  });
+
+  const fridayBranchPromise = familyChildrenPromise.then((familyChildren) =>
+    Sentry.startSpan(
+      { name: "parent_home.content.friday_branch", op: "parent_home.content.friday_branch" },
+      () =>
+        loadFridayBranchHomeBundle({
+          organizationId: input.organizationId,
+          familyId: input.familyId,
+          features: input.features,
+          familyChildren,
+          fridayBranchSettings: input.fridayBranchSettings,
+        }),
+    ),
   );
 
-  const fridayBranchPromise = Sentry.startSpan(
-    { name: "parent_home.content.friday_branch", op: "parent_home.content.friday_branch" },
-    () =>
-      loadFridayBranchHomeBundle({
-        organizationId: input.organizationId,
-        familyId: input.familyId,
-        features: input.features,
-        familyChildren,
-        fridayBranchSettings: input.fridayBranchSettings,
-      }),
-  );
-
-  const [
-    [amendmentsByApplicationId, incompleteByApplicationId],
-    coopFamilies,
-    formsBundle,
-    fridayBranchHome,
-  ] = await Promise.all([
-    enrollmentBannersPromise,
+  const coopFamiliesPromise = programAccessPromise.then((hasProgramAccess) =>
     loadCoopFamiliesForHome({
       organizationId: input.organizationId,
       familyId: input.familyId,
@@ -247,6 +260,20 @@ export async function loadParentHomeContentDataForAuthUser(input: {
       coopModeEnabled: input.coopModeEnabled,
       hasProgramAccess,
     }),
+  );
+
+  const [
+    familyChildren,
+    onboardingItems,
+    { amendments: amendmentsByApplicationId, incomplete: incompleteByApplicationId },
+    coopFamilies,
+    formsBundle,
+    fridayBranchHome,
+  ] = await Promise.all([
+    familyChildrenPromise,
+    onboardingItemsPromise,
+    enrollmentBannersPromise,
+    coopFamiliesPromise,
     formsBundlePromise,
     fridayBranchPromise,
   ]);
@@ -311,12 +338,17 @@ export async function loadParentHomePreviewContentData(input: {
       )
     : false;
 
+  const checklistSnapshotLoader = createEnrollmentChecklistSnapshotLoader(
+    input.supabase,
+    input.organizationId,
+  );
   const familyChildren = input.programId
     ? filterFamilyChildrenForProgramPortal(
         await listFamilyChildrenForHomeByFamilyId(
           input.supabase,
           input.organizationId,
           input.familyId,
+          { checklistSnapshotLoader },
         ),
         input.programId,
       )
@@ -324,6 +356,7 @@ export async function loadParentHomePreviewContentData(input: {
         input.supabase,
         input.organizationId,
         input.familyId,
+        { checklistSnapshotLoader },
       );
 
   const previewGuardianUserId = await getFamilyPreviewGuardianUserId(
@@ -362,11 +395,13 @@ export async function loadParentHomePreviewContentData(input: {
       input.supabase,
       input.organizationId,
       applicationIds,
+      { snapshotLoader: checklistSnapshotLoader },
     ),
     listIncompleteEnrollmentAgreementsForApplications(
       input.supabase,
       input.organizationId,
       applicationIds,
+      { snapshotLoader: checklistSnapshotLoader },
     ),
     loadCoopFamiliesForHome({
       organizationId: input.organizationId,

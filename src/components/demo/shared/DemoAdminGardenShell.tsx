@@ -57,6 +57,8 @@ type DemoAdminGardenShellProps = {
    * scroll the page and drawers. Used by the walkthrough, where a long page must scroll.
    */
   scrollable?: boolean;
+  /** Start with the admin sidebar expanded (default) or collapsed to icons. */
+  sidebarExpanded?: boolean;
   "data-testid"?: string;
   children: (ctx: DemoAdminGardenShellContext) => ReactNode;
 };
@@ -112,6 +114,7 @@ export default function DemoAdminGardenShell({
   features = DEMO_ADMIN_FEATURES,
   inert = false,
   scrollable = false,
+  sidebarExpanded = true,
   "data-testid": testId,
   children,
 }: DemoAdminGardenShellProps) {
@@ -208,7 +211,7 @@ export default function DemoAdminGardenShell({
             userProfile={DEMO_ADMIN_USER}
             previewMode
             previewPathname={previewPathname}
-            initialSidebarExpanded
+            initialSidebarExpanded={sidebarExpanded}
             fillParentHeight
             portalOptions={[]}
             initialMessagesUnreadCount={0}

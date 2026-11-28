@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import {
   DEFAULT_DESCRIPTION,
   DEFAULT_KEYWORDS,
+  BING_SITE_VERIFICATION,
   GOOGLE_SITE_VERIFICATION,
   SITE_NAME,
   SITE_URL,
@@ -38,6 +39,17 @@ function defaultOgImages(alt: string, imagePath = HOME_PREVIEW_IMAGE) {
   ];
 }
 
+/** Search console ownership tags (Google, Bing), only for the codes that are configured. */
+function siteVerification(): Pick<Metadata, "verification"> {
+  if (!GOOGLE_SITE_VERIFICATION && !BING_SITE_VERIFICATION) return {};
+  return {
+    verification: {
+      ...(GOOGLE_SITE_VERIFICATION ? { google: GOOGLE_SITE_VERIFICATION } : {}),
+      ...(BING_SITE_VERIFICATION ? { other: { "msvalidate.01": BING_SITE_VERIFICATION } } : {}),
+    },
+  };
+}
+
 function siteIcons() {
   return {
     icon: [
@@ -58,9 +70,7 @@ function sharedMetadataFields(
     applicationName: SITE_NAME,
     category: "Education",
     icons: siteIcons(),
-    ...(GOOGLE_SITE_VERIFICATION
-      ? { verification: { google: GOOGLE_SITE_VERIFICATION } }
-      : {}),
+    ...siteVerification(),
     openGraph: {
       title,
       description,
@@ -135,13 +145,10 @@ export function rootMetadata(): Metadata {
     applicationName: SITE_NAME,
     category: "Education",
     robots: { index: true, follow: true },
-    alternates: {
-      canonical: "/",
-    },
+    // No root canonical: child pages inherit it, so every page without its own `path` would
+    // point at the home page. Each indexable page sets its canonical via pageMetadata({ path }).
     icons: siteIcons(),
-    ...(GOOGLE_SITE_VERIFICATION
-      ? { verification: { google: GOOGLE_SITE_VERIFICATION } }
-      : {}),
+    ...siteVerification(),
     openGraph: shared.openGraph,
     twitter: shared.twitter,
   };

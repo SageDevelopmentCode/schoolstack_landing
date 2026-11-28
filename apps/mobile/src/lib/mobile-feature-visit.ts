@@ -27,6 +27,7 @@ function postFeatureVisit(body: Record<string, unknown>): void {
     body: JSON.stringify(body),
     includeJson: true,
     signOutOnFailure: false,
+    background: true,
   }).catch((error) => {
     if (isBenignClientNetworkError(error)) {
       return;

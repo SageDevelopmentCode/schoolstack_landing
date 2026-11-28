@@ -307,6 +307,25 @@ const DEMO_STUDENT_KEY_BY_CHILD: Record<DemoParentChildId, string> = {
   liam: DEMO_STUDENT_LIAM,
 };
 
+function isoDateUtc(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Demo billing dates, counted from today so the demo never shows a payment as overdue
+ * (it used to hard-code May 2026). The next tuition installment is due in 18 days and the
+ * activity fee in 35; the installment was sent 10 days ago.
+ */
+export function buildDemoParentBillingDates(today: Date = new Date()) {
+  const base = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 12);
+  const day = 24 * 60 * 60 * 1000;
+  return {
+    sentAt: new Date(base - 10 * day).toISOString(),
+    tuitionDueDate: isoDateUtc(new Date(base + 18 * day)),
+    feeDueDate: isoDateUtc(new Date(base + 35 * day)),
+  };
+}
+
 function resolveDemoBillingOptions(
   input: string | DemoParentBillingOptions | undefined,
 ): Required<Pick<DemoParentBillingOptions, "organizationId">> & DemoParentBillingOptions {
@@ -321,7 +340,7 @@ export function buildDemoParentBillingPageMeta(
     return {
       balanceDueCents: 125000,
       totalRemainingCents: 450000,
-      nextDueDate: "2026-05-15",
+      nextDueDate: buildDemoParentBillingDates().tuitionDueDate,
       nextDueAmountCents: 125000,
       openChargeCount: 2,
       paymentCount: 3,
@@ -350,9 +369,8 @@ export function buildDemoParentBillingInitialData(
   input?: string | DemoParentBillingOptions,
 ): ParentBillingInitialData {
   const { organizationId, childIds } = resolveDemoBillingOptions(input);
-  const now = "2026-04-18T12:00:00.000Z";
+  const { sentAt: now, tuitionDueDate: dueDate, feeDueDate } = buildDemoParentBillingDates();
   const familyId = DEMO_PARENT_FAMILY_ID;
-  const dueDate = "2026-05-15";
 
   const charges: ParentBillingInitialData["charges"] = [
     {
@@ -387,7 +405,7 @@ export function buildDemoParentBillingInitialData(
       amountCents: 7500,
       paidCents: 0,
       currency: "usd",
-      dueDate: "2026-06-01",
+      dueDate: feeDueDate,
       status: "scheduled",
       chargeType: "fee",
       installmentNumber: null,

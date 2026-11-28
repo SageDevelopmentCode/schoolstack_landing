@@ -181,6 +181,7 @@ export default function NewsletterWorkspace(props: NewsletterWorkspaceProps) {
         slug={model.slug}
         edition={activeEdition}
         mode="photos"
+        previewPhotos={model.preview?.galleryPhotos}
         onClose={() => model.setGalleryPickerOpen(false)}
         onAddPhotos={(newPhotos) => {
           const merged = [...activeEdition.photos, ...newPhotos].slice(0, MAX_NEWSLETTER_PHOTOS);
@@ -192,6 +193,7 @@ export default function NewsletterWorkspace(props: NewsletterWorkspaceProps) {
         slug={model.slug}
         edition={activeEdition}
         mode="cover"
+        previewPhotos={model.preview?.galleryPhotos}
         onClose={() => model.setCoverGalleryPickerOpen(false)}
         onPickCover={({ galleryPhotoId, src }) => {
           model.updateActiveEdition({ ...activeEdition, coverGalleryPhotoId: galleryPhotoId, coverImage: src });
@@ -205,6 +207,7 @@ export default function NewsletterWorkspace(props: NewsletterWorkspaceProps) {
         template={model.template}
         branding={model.branding}
         staffMembers={model.staffMembers}
+        previewMode={Boolean(model.preview)}
         onClose={() => model.setVersionHistoryOpen(false)}
         onRestored={(edition) => model.onEditionSaved(edition)}
         onToast={model.showToast}

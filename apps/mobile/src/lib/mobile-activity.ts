@@ -66,6 +66,7 @@ async function postMobileApi(path: string, body: Record<string, unknown>): Promi
       body: JSON.stringify(body),
       includeJson: true,
       signOutOnFailure: false,
+      background: true,
     });
   } catch (reportError) {
     console.error(`[mobile-activity] ${path} report failed:`, reportError);

@@ -20,6 +20,7 @@ import {
   type SavedPaymentMethodSummary,
 } from "@/lib/tuition/payment-methods";
 import { getRecentAutopayFailureForFamily } from "@/lib/tuition/autopay-failure-queries";
+import { loadFamilyBillingRows } from "@/lib/tuition/family-billing-rows";
 import { rowToBillingAccount } from "@/lib/tuition/row-mappers";
 import { fetchFamilyBillingReadiness } from "@/lib/tuition/tuition-readiness";
 import { shouldShowTaxCreditPaymentBanner } from "@/lib/tuition/family-checklist-responses";
@@ -59,83 +60,137 @@ export async function loadParentBillingInitialDataWithClient(
     slug: string;
     userId: string;
   },
+  options?: {
+    /** Defaults to the service role. Tests pass a fake. */
+    catalogClient?: SupabaseClient;
+  },
 ): Promise<ParentBillingInitialData> {
   // Catalog tables are staff-only. Callers check family access before this runs.
-  const catalogClient = createAdminClient();
-  const guardianId = await resolveGuardianIdForUser(supabase, {
-    familyId: input.familyId,
+  const catalogClient = options?.catalogClient ?? createAdminClient();
+  const { organizationId, familyId } = input;
+
+  // Everything below starts as soon as its own inputs are ready, so the page
+  // costs a few round trips instead of one per sub-loader. The family's
+  // students, enrollments and assignments are read once and shared.
+  const familyRowsPromise = loadFamilyBillingRows(supabase, { organizationId, familyId });
+  const guardianIdPromise = resolveGuardianIdForUser(supabase, {
+    familyId,
     userId: input.userId,
   });
-  const billingSplits = await listBillingSplits(supabase, input.familyId);
-  const hasBillingSplit = billingSplits.length > 0;
+  const billingSplitsPromise = listBillingSplits(supabase, familyId);
+  const allFamilyChargesPromise = listChargesForFamily(supabase, familyId);
+  const paymentPlanRowsPromise = (async () => {
+    const { data, error } = await catalogClient
+      .from("tuition_payment_plans")
+      .select("id, name, installment_count")
+      .eq("organization_id", organizationId);
+    if (error) throw error;
+    return data ?? [];
+  })();
 
-  const [allFamilyCharges, paymentRows, adjustmentRows, readinessState, tuitionAgreements] =
-    await Promise.all([
-      listChargesForFamily(supabase, input.familyId),
-      listParentTuitionPaymentHistory(supabase, input.familyId),
-      listAdjustmentsForFamily(supabase, input.familyId),
-      fetchFamilyBillingReadiness(
-        supabase,
-        {
-          organizationId: input.organizationId,
-          familyId: input.familyId,
-          slug: input.slug,
-        },
-        { catalogClient },
-      ),
-      loadParentTuitionAgreements(supabase, input.organizationId, input.familyId),
-    ]);
-
-  const chargeRows = filterChargesForFamilyGuardian(
-    allFamilyCharges,
-    guardianId,
-    { hasBillingSplit },
+  const hasBillingSplitPromise = billingSplitsPromise.then((splits) => splits.length > 0);
+  const chargeRowsPromise = Promise.all([
+    allFamilyChargesPromise,
+    guardianIdPromise,
+    hasBillingSplitPromise,
+  ]).then(([allFamilyCharges, guardianId, hasBillingSplit]) =>
+    filterChargesForFamilyGuardian(allFamilyCharges, guardianId, { hasBillingSplit }),
   );
 
-  const familySummary = await fetchParentBillingFamilySummary(
-    supabase,
-    {
-      organizationId: input.organizationId,
-      familyId: input.familyId,
-      charges: chargeRows,
-      allFamilyCharges,
-    },
-    { catalogClient },
-  );
+  const billingAccountPromise = (async () => {
+    const { data: account } = await supabase
+      .from("tuition_billing_accounts")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .eq("family_id", familyId)
+      .maybeSingle();
+    return account ? rowToBillingAccount(account) : null;
+  })();
 
-  const { data: account } = await supabase
-    .from("tuition_billing_accounts")
-    .select("*")
-    .eq("organization_id", input.organizationId)
-    .eq("family_id", input.familyId)
-    .maybeSingle();
-
-  const billingAccount = account ? rowToBillingAccount(account) : null;
-  const autopayEnabled = billingAccount
-    ? getAutopayEnabledForGuardian(billingAccount, guardianId)
-    : false;
-
-  const savedPaymentMethod =
+  const savedPaymentMethodPromise = Promise.all([
+    billingAccountPromise,
+    guardianIdPromise,
+  ]).then(([billingAccount, guardianId]) =>
     billingAccount && guardianId !== undefined
-      ? await getDefaultPaymentMethodForGuardian(supabase, {
+      ? getDefaultPaymentMethodForGuardian(supabase, {
           billingAccountId: billingAccount.id,
           guardianId,
           defaultPaymentMethodId: billingAccount.defaultPaymentMethodId,
         })
-      : null;
-
-  const recentAutopayFailure = await getRecentAutopayFailureForFamily(supabase, {
-    organizationId: input.organizationId,
-    familyId: input.familyId,
-  });
-
-  const showTaxCreditPaymentBanner = await shouldShowTaxCreditPaymentBanner(
-    supabase,
-    {
-      familyId: input.familyId,
-      charges: chargeRows,
-    },
+      : null,
   );
+
+  const familySummaryPromise = Promise.all([
+    chargeRowsPromise,
+    allFamilyChargesPromise,
+  ]).then(([charges, allFamilyCharges]) =>
+    fetchParentBillingFamilySummary(
+      supabase,
+      { organizationId, familyId, charges, allFamilyCharges },
+      {
+        catalogClient,
+        preloaded: {
+          familyRows: familyRowsPromise,
+          paymentPlanRows: paymentPlanRowsPromise,
+        },
+      },
+    ),
+  );
+
+  const showTaxCreditPaymentBannerPromise = chargeRowsPromise.then((charges) =>
+    shouldShowTaxCreditPaymentBanner(
+      supabase,
+      { familyId, charges },
+      { familyRows: familyRowsPromise },
+    ),
+  );
+
+  const [
+    guardianId,
+    hasBillingSplit,
+    allFamilyCharges,
+    chargeRows,
+    paymentRows,
+    adjustmentRows,
+    readinessState,
+    tuitionAgreements,
+    familySummary,
+    billingAccount,
+    savedPaymentMethod,
+    recentAutopayFailure,
+    showTaxCreditPaymentBanner,
+  ] = await Promise.all([
+    guardianIdPromise,
+    hasBillingSplitPromise,
+    allFamilyChargesPromise,
+    chargeRowsPromise,
+    listParentTuitionPaymentHistory(supabase, familyId),
+    listAdjustmentsForFamily(supabase, familyId),
+    fetchFamilyBillingReadiness(
+      supabase,
+      { organizationId, familyId, slug: input.slug },
+      {
+        catalogClient,
+        preloaded: {
+          familyRows: familyRowsPromise,
+          charges: allFamilyChargesPromise,
+          paymentPlanRows: paymentPlanRowsPromise,
+        },
+      },
+    ),
+    loadParentTuitionAgreements(supabase, organizationId, familyId),
+    familySummaryPromise,
+    billingAccountPromise,
+    savedPaymentMethodPromise,
+    getRecentAutopayFailureForFamily(supabase, { organizationId, familyId }),
+    showTaxCreditPaymentBannerPromise,
+    familyRowsPromise,
+    paymentPlanRowsPromise,
+  ]);
+
+  const autopayEnabled = billingAccount
+    ? getAutopayEnabledForGuardian(billingAccount, guardianId)
+    : false;
 
   return {
     charges: chargeRows,

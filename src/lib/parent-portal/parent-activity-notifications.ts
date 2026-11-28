@@ -140,8 +140,17 @@ const DEFAULT_NOTIFICATION_DAYS = 30;
 const DEFAULT_NOTIFICATION_PAGE_SIZE = 15;
 const MAX_NOTIFICATION_PAGE_SIZE = 30;
 export const MAX_UNREAD_BADGE_COUNT = 99;
-const ACTIVITY_NOTIFICATION_BATCH_SIZE = 50;
-const MAX_ACTIVITY_NOTIFICATION_BATCHES = 5;
+/**
+ * Rows fetched per `activity_events` round trip. Each batch costs one query
+ * plus the family filter chain, so bigger batches mean fewer sequential trips.
+ */
+const ACTIVITY_NOTIFICATION_BATCH_SIZE = 200;
+/**
+ * Most `activity_events` rows scanned per call. Kept at the old budget
+ * (5 batches × 50 rows) so counts and pages match what they were before the
+ * batch size grew: a call now usually needs one batch, at most two.
+ */
+const MAX_ACTIVITY_NOTIFICATION_SCAN_ROWS = 250;
 
 type NotificationPageCursor = {
   createdAt: string;
@@ -674,6 +683,20 @@ async function fetchFamilyGuardianUserIds(
   );
 }
 
+/** Lazily fetches a family's guardian user ids once and shares the result. */
+type FamilyGuardianUserIdsLoader = () => Promise<Set<string>>;
+
+function createFamilyGuardianUserIdsLoader(
+  supabase: SupabaseClient,
+  familyId: string,
+): FamilyGuardianUserIdsLoader {
+  let pending: Promise<Set<string>> | null = null;
+  return () => {
+    pending ??= fetchFamilyGuardianUserIds(supabase, familyId);
+    return pending;
+  };
+}
+
 type FamilyCommitteeMembershipLookup = {
   committeeIds: Set<string>;
   memberIds: Set<string>;
@@ -820,12 +843,20 @@ async function resolveApplicationIdsForEvents(
   return eventResults;
 }
 
-async function resolveFamilyIdsForEvents(
+type FamilyResolutionForEvents = {
+  familyByEventId: Map<string, string | null>;
+  /** Per-event application id; reusable for any subset of the events. */
+  applicationIdByEventId: Map<string, string | null>;
+};
+
+async function resolveApplicationFamiliesForEvents(
   supabase: SupabaseClient,
   organizationId: string,
   events: ActivityEventForNotification[],
-): Promise<Map<string, string | null>> {
-  const familyByEventId = new Map<string, string | null>();
+): Promise<{
+  applicationIdByEventId: Map<string, string | null>;
+  applicationFamilyById: Map<string, string | null>;
+}> {
   const applicationIdByEventId = await resolveApplicationIdsForEvents(
     supabase,
     events,
@@ -854,24 +885,37 @@ async function resolveFamilyIdsForEvents(
     }
   }
 
+  return { applicationIdByEventId, applicationFamilyById };
+}
+
+async function resolveChargeFamilies(
+  supabase: SupabaseClient,
+  events: ActivityEventForNotification[],
+): Promise<Map<string, string | null>> {
   const chargeIds = events
     .filter((event) => event.entity_type === "tuition_charge" && event.entity_id)
     .map((event) => String(event.entity_id));
   const chargeFamilyById = new Map<string, string | null>();
-  if (chargeIds.length > 0) {
-    const { data, error } = await supabase
-      .from("tuition_charges")
-      .select("id, family_id")
-      .in("id", chargeIds);
-    if (error) throw error;
-    for (const row of data ?? []) {
-      chargeFamilyById.set(
-        String(row.id),
-        row.family_id ? String(row.family_id) : null,
-      );
-    }
-  }
+  if (chargeIds.length === 0) return chargeFamilyById;
 
+  const { data, error } = await supabase
+    .from("tuition_charges")
+    .select("id, family_id")
+    .in("id", chargeIds);
+  if (error) throw error;
+  for (const row of data ?? []) {
+    chargeFamilyById.set(
+      String(row.id),
+      row.family_id ? String(row.family_id) : null,
+    );
+  }
+  return chargeFamilyById;
+}
+
+async function resolveCommitteeJoinRequestFamilies(
+  supabase: SupabaseClient,
+  events: ActivityEventForNotification[],
+): Promise<Map<string, string | null>> {
   const committeeRequestIds = events
     .filter(
       (event) =>
@@ -879,21 +923,28 @@ async function resolveFamilyIdsForEvents(
     )
     .map((event) => String(event.entity_id));
   const committeeFamilyById = new Map<string, string | null>();
-  if (committeeRequestIds.length > 0) {
-    const { data, error } = await supabase
-      .from("committee_join_requests")
-      .select("id, guardians(family_id)")
-      .in("id", committeeRequestIds);
-    if (error) throw error;
-    for (const row of data ?? []) {
-      const guardian = row.guardians as { family_id?: string | null } | null;
-      committeeFamilyById.set(
-        String(row.id),
-        guardian?.family_id ? String(guardian.family_id) : null,
-      );
-    }
-  }
+  if (committeeRequestIds.length === 0) return committeeFamilyById;
 
+  const { data, error } = await supabase
+    .from("committee_join_requests")
+    .select("id, guardians(family_id)")
+    .in("id", committeeRequestIds);
+  if (error) throw error;
+  for (const row of data ?? []) {
+    const guardian = row.guardians as { family_id?: string | null } | null;
+    committeeFamilyById.set(
+      String(row.id),
+      guardian?.family_id ? String(guardian.family_id) : null,
+    );
+  }
+  return committeeFamilyById;
+}
+
+async function resolveTaskAssigneeFamilies(
+  supabase: SupabaseClient,
+  organizationId: string,
+  events: ActivityEventForNotification[],
+): Promise<Map<string, string | null>> {
   const assigneeUserIds = [
     ...new Set(
       events
@@ -903,61 +954,94 @@ async function resolveFamilyIdsForEvents(
     ),
   ];
   const assigneeFamilyByUserId = new Map<string, string | null>();
-  if (assigneeUserIds.length > 0) {
-    const { data, error } = await supabase
-      .from("guardians")
-      .select("user_id, family_id")
-      .eq("organization_id", organizationId)
-      .in("user_id", assigneeUserIds);
-    if (error) throw error;
-    for (const row of data ?? []) {
-      if (!row.user_id) continue;
-      assigneeFamilyByUserId.set(
-        String(row.user_id),
-        row.family_id ? String(row.family_id) : null,
-      );
-    }
-  }
+  if (assigneeUserIds.length === 0) return assigneeFamilyByUserId;
 
+  const { data, error } = await supabase
+    .from("guardians")
+    .select("user_id, family_id")
+    .eq("organization_id", organizationId)
+    .in("user_id", assigneeUserIds);
+  if (error) throw error;
+  for (const row of data ?? []) {
+    if (!row.user_id) continue;
+    assigneeFamilyByUserId.set(
+      String(row.user_id),
+      row.family_id ? String(row.family_id) : null,
+    );
+  }
+  return assigneeFamilyByUserId;
+}
+
+async function resolveMessageThreadFamilies(
+  supabase: SupabaseClient,
+  organizationId: string,
+  events: ActivityEventForNotification[],
+): Promise<Map<string, string | null>> {
   const threadIds = events
     .filter((event) => event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED)
     .map((event) => metadataString(event.metadata, "threadId"))
     .filter((value): value is string => Boolean(value));
   const threadFamilyById = new Map<string, string | null>();
-  if (threadIds.length > 0) {
-    const { data, error } = await supabase
-      .from("message_thread_participants")
-      .select("thread_id, family_id, guardian_id")
-      .eq("organization_id", organizationId)
-      .in("thread_id", [...new Set(threadIds)]);
-    if (error) throw error;
+  if (threadIds.length === 0) return threadFamilyById;
 
-    const guardianIds = (data ?? [])
-      .map((row) => (row.guardian_id ? String(row.guardian_id) : null))
-      .filter((value): value is string => Boolean(value));
-    const guardianFamilyById = new Map<string, string>();
-    if (guardianIds.length > 0) {
-      const { data: guardians, error: guardianError } = await supabase
-        .from("guardians")
-        .select("id, family_id")
-        .in("id", guardianIds);
-      if (guardianError) throw guardianError;
-      for (const guardian of guardians ?? []) {
-        guardianFamilyById.set(String(guardian.id), String(guardian.family_id));
-      }
-    }
+  const { data, error } = await supabase
+    .from("message_thread_participants")
+    .select("thread_id, family_id, guardian_id")
+    .eq("organization_id", organizationId)
+    .in("thread_id", [...new Set(threadIds)]);
+  if (error) throw error;
 
-    for (const row of data ?? []) {
-      const threadId = String(row.thread_id);
-      if (threadFamilyById.has(threadId)) continue;
-      const familyId =
-        (row.family_id ? String(row.family_id) : null) ??
-        (row.guardian_id
-          ? guardianFamilyById.get(String(row.guardian_id)) ?? null
-          : null);
-      threadFamilyById.set(threadId, familyId);
+  const guardianIds = (data ?? [])
+    .map((row) => (row.guardian_id ? String(row.guardian_id) : null))
+    .filter((value): value is string => Boolean(value));
+  const guardianFamilyById = new Map<string, string>();
+  if (guardianIds.length > 0) {
+    const { data: guardians, error: guardianError } = await supabase
+      .from("guardians")
+      .select("id, family_id")
+      .in("id", guardianIds);
+    if (guardianError) throw guardianError;
+    for (const guardian of guardians ?? []) {
+      guardianFamilyById.set(String(guardian.id), String(guardian.family_id));
     }
   }
+
+  for (const row of data ?? []) {
+    const threadId = String(row.thread_id);
+    if (threadFamilyById.has(threadId)) continue;
+    const familyId =
+      (row.family_id ? String(row.family_id) : null) ??
+      (row.guardian_id
+        ? guardianFamilyById.get(String(row.guardian_id)) ?? null
+        : null);
+    threadFamilyById.set(threadId, familyId);
+  }
+  return threadFamilyById;
+}
+
+async function resolveFamilyIdsForEvents(
+  supabase: SupabaseClient,
+  organizationId: string,
+  events: ActivityEventForNotification[],
+): Promise<FamilyResolutionForEvents> {
+  // The lookups are independent, so they share one round-trip window: the
+  // longest chain is two queries (application ids → applications, or thread
+  // participants → guardians).
+  const [
+    { applicationIdByEventId, applicationFamilyById },
+    chargeFamilyById,
+    committeeFamilyById,
+    assigneeFamilyByUserId,
+    threadFamilyById,
+  ] = await Promise.all([
+    resolveApplicationFamiliesForEvents(supabase, organizationId, events),
+    resolveChargeFamilies(supabase, events),
+    resolveCommitteeJoinRequestFamilies(supabase, events),
+    resolveTaskAssigneeFamilies(supabase, organizationId, events),
+    resolveMessageThreadFamilies(supabase, organizationId, events),
+  ]);
+
+  const familyByEventId = new Map<string, string | null>();
 
   for (const event of events) {
     const metadataFamilyId = metadataString(event.metadata, "familyId");
@@ -1019,7 +1103,7 @@ async function resolveFamilyIdsForEvents(
     familyByEventId.set(event.id, null);
   }
 
-  return familyByEventId;
+  return { familyByEventId, applicationIdByEventId };
 }
 
 async function fetchApplicationStudentLabels(
@@ -1406,19 +1490,22 @@ function mapActivityEventToParentNotification(
   };
 }
 
-async function filterRawActivityEventsForFamily(
+type FilteredFamilyActivityEvents = {
+  events: ActivityEventForNotification[];
+  /** Application id per raw event (covers every kept event). */
+  applicationIdByEventId: Map<string, string | null>;
+};
+
+async function filterRawActivityEventsForFamilyWithApplications(
   supabase: SupabaseClient,
   organizationId: string,
   familyId: string,
   rawEvents: ActivityEventForNotification[],
-): Promise<ActivityEventForNotification[]> {
-  const familyByEventId = await resolveFamilyIdsForEvents(
+  loadGuardianUserIds: FamilyGuardianUserIdsLoader = createFamilyGuardianUserIdsLoader(
     supabase,
-    organizationId,
-    rawEvents,
-  );
-  const guardianUserIds = await fetchFamilyGuardianUserIds(supabase, familyId);
-
+    familyId,
+  ),
+): Promise<FilteredFamilyActivityEvents> {
   const broadcastCommitteeIds = [
     ...new Set(
       rawEvents
@@ -1430,31 +1517,45 @@ async function filterRawActivityEventsForFamily(
     ),
   ];
 
-  const familyCommitteeMembership =
-    broadcastCommitteeIds.length > 0
-      ? await fetchFamilyCommitteeMembershipForCommittees(
-          supabase,
-          organizationId,
-          guardianUserIds,
-          broadcastCommitteeIds,
-        )
-      : { committeeIds: new Set<string>(), memberIds: new Set<string>() };
-
   const signupIds = rawEvents
     .filter((event) => isClassroomSignupParentNotificationAction(event.action))
     .map(classroomSignupIdForEvent)
     .filter((value): value is string => Boolean(value));
-  const visibleSignupIds =
+
+  // None of these lookups depends on another (committee membership only needs
+  // the guardian ids, which are fetched once per request), so run them together.
+  const [
+    { familyByEventId, applicationIdByEventId },
+    guardianUserIds,
+    familyCommitteeMembership,
+    visibleSignupIds,
+  ] = await Promise.all([
+    resolveFamilyIdsForEvents(supabase, organizationId, rawEvents),
+    loadGuardianUserIds(),
+    broadcastCommitteeIds.length > 0
+      ? loadGuardianUserIds().then((ids) =>
+          fetchFamilyCommitteeMembershipForCommittees(
+            supabase,
+            organizationId,
+            ids,
+            broadcastCommitteeIds,
+          ),
+        )
+      : Promise.resolve<FamilyCommitteeMembershipLookup>({
+          committeeIds: new Set<string>(),
+          memberIds: new Set<string>(),
+        }),
     signupIds.length > 0
-      ? await listParentVisibleSignupIds(
+      ? listParentVisibleSignupIds(
           supabase,
           organizationId,
           familyId,
           signupIds,
         )
-      : new Set<string>();
+      : Promise.resolve(new Set<string>()),
+  ]);
 
-  return rawEvents.filter((event) => {
+  const events = rawEvents.filter((event) => {
     if (shouldExcludeParentActorEvent(event)) return false;
 
     if (isClassroomSignupParentNotificationAction(event.action)) {
@@ -1503,6 +1604,25 @@ async function filterRawActivityEventsForFamily(
 
     return true;
   });
+
+  return { events, applicationIdByEventId };
+}
+
+async function filterRawActivityEventsForFamily(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+  rawEvents: ActivityEventForNotification[],
+  loadGuardianUserIds?: FamilyGuardianUserIdsLoader,
+): Promise<ActivityEventForNotification[]> {
+  const { events } = await filterRawActivityEventsForFamilyWithApplications(
+    supabase,
+    organizationId,
+    familyId,
+    rawEvents,
+    loadGuardianUserIds,
+  );
+  return events;
 }
 
 function applyActivityEventSinceBound<
@@ -1526,16 +1646,23 @@ async function countActivityNotificationsForFamily(
   lastReadAt: string | null,
   rangeStart: Date,
   remainingCap: number,
-  seenIds?: Set<string>,
+  seenIds: Set<string> | undefined,
+  loadGuardianUserIds: FamilyGuardianUserIdsLoader,
 ): Promise<number> {
   if (remainingCap <= 0) return 0;
 
   let count = 0;
   let batchCursor: NotificationPageCursor | null = null;
-  let batches = 0;
+  let scannedRows = 0;
 
-  while (count < remainingCap && batches < MAX_ACTIVITY_NOTIFICATION_BATCHES) {
-    batches += 1;
+  while (
+    count < remainingCap &&
+    scannedRows < MAX_ACTIVITY_NOTIFICATION_SCAN_ROWS
+  ) {
+    const batchLimit = Math.min(
+      ACTIVITY_NOTIFICATION_BATCH_SIZE,
+      MAX_ACTIVITY_NOTIFICATION_SCAN_ROWS - scannedRows,
+    );
 
     let query = applyActivityEventSinceBound(
       supabase
@@ -1549,7 +1676,7 @@ async function countActivityNotificationsForFamily(
     )
       .order("created_at", { ascending: false })
       .order("id", { ascending: false })
-      .limit(ACTIVITY_NOTIFICATION_BATCH_SIZE);
+      .limit(batchLimit);
 
     if (batchCursor) {
       query = query.or(
@@ -1560,6 +1687,7 @@ async function countActivityNotificationsForFamily(
     const { data, error } = await query;
     if (error) throw error;
     if (!data?.length) break;
+    scannedRows += data.length;
 
     const rawEvents = data.map((row) =>
       mapActivityEventRow(row as Record<string, unknown>),
@@ -1569,6 +1697,7 @@ async function countActivityNotificationsForFamily(
       organizationId,
       familyId,
       rawEvents,
+      loadGuardianUserIds,
     );
 
     for (const event of filteredEvents) {
@@ -1596,7 +1725,7 @@ async function countActivityNotificationsForFamily(
       id: String(lastRow.id),
     };
 
-    if (data.length < ACTIVITY_NOTIFICATION_BATCH_SIZE) break;
+    if (data.length < batchLimit) break;
   }
 
   return count;
@@ -1613,14 +1742,23 @@ async function fetchActivityNotificationsForPage(
     "parentNavBasePath" | "applyBasePath"
   >,
   pageFetch: PageFetchOptions,
+  loadGuardianUserIds: FamilyGuardianUserIdsLoader,
 ): Promise<ParentActivityNotification[]> {
   const targetCount = pageFetch.limit + 1;
   const collected: ParentActivityNotification[] = [];
   let batchCursor = pageFetch.cursor;
   let batches = 0;
+  let scannedRows = 0;
 
-  while (collected.length < targetCount && batches < MAX_ACTIVITY_NOTIFICATION_BATCHES) {
+  while (
+    collected.length < targetCount &&
+    scannedRows < MAX_ACTIVITY_NOTIFICATION_SCAN_ROWS
+  ) {
     batches += 1;
+    const batchLimit = Math.min(
+      ACTIVITY_NOTIFICATION_BATCH_SIZE,
+      MAX_ACTIVITY_NOTIFICATION_SCAN_ROWS - scannedRows,
+    );
 
     let query = supabase
       .from("activity_events")
@@ -1632,7 +1770,7 @@ async function fetchActivityNotificationsForPage(
       .gte("created_at", rangeStart.toISOString())
       .order("created_at", { ascending: false })
       .order("id", { ascending: false })
-      .limit(ACTIVITY_NOTIFICATION_BATCH_SIZE);
+      .limit(batchLimit);
 
     if (batchCursor) {
       if (batches === 1 && pageFetch.cursor) {
@@ -1651,27 +1789,28 @@ async function fetchActivityNotificationsForPage(
     const { data, error } = await query;
     if (error) throw error;
     if (!data?.length) break;
+    scannedRows += data.length;
 
     const rawEvents = data.map((row) =>
       mapActivityEventRow(row as Record<string, unknown>),
     );
 
-    const filteredEvents = await filterRawActivityEventsForFamily(
-      supabase,
-      organizationId,
-      familyId,
-      rawEvents,
-    );
+    // The filter already resolved each raw event's application id; an event's
+    // id never depends on the other events, so reuse it for the kept ones.
+    const { events: filteredEvents, applicationIdByEventId } =
+      await filterRawActivityEventsForFamilyWithApplications(
+        supabase,
+        organizationId,
+        familyId,
+        rawEvents,
+        loadGuardianUserIds,
+      );
 
-    const applicationIdByEventId = await resolveApplicationIdsForEvents(
-      supabase,
-      filteredEvents,
-    );
     const applicationIds = [
       ...new Set(
-        [...applicationIdByEventId.values()].filter(
-          (value): value is string => Boolean(value),
-        ),
+        filteredEvents
+          .map((event) => applicationIdByEventId.get(event.id) ?? null)
+          .filter((value): value is string => Boolean(value)),
       ),
     ];
     const studentLabels = await fetchApplicationStudentLabels(
@@ -1701,7 +1840,7 @@ async function fetchActivityNotificationsForPage(
       id: String(lastRow.id),
     };
 
-    if (data.length < ACTIVITY_NOTIFICATION_BATCH_SIZE) break;
+    if (data.length < batchLimit) break;
   }
 
   return capNotificationsForPage(collected, pageFetch);
@@ -1714,6 +1853,10 @@ async function buildParentActivityNotificationsPageForContext(
   context: ParentNotificationContext,
   pageFetch: PageFetchOptions,
   options?: ParentNotificationFetchOptions,
+  loadGuardianUserIds: FamilyGuardianUserIdsLoader = createFamilyGuardianUserIdsLoader(
+    supabase,
+    familyId,
+  ),
 ): Promise<ParentActivityNotificationsPage> {
   const days = options?.days ?? DEFAULT_NOTIFICATION_DAYS;
   const rangeStart = getActivityNotificationRangeStart(days);
@@ -1734,6 +1877,7 @@ async function buildParentActivityNotificationsPageForContext(
     rangeStart,
     fetchOptions,
     pageFetch,
+    loadGuardianUserIds,
   );
 
   if (context.mode === "program") {
@@ -1853,51 +1997,28 @@ async function buildParentActivityNotificationsPageForContext(
   );
 }
 
-async function countUnreadParentActivityNotificationsForContext(
+/** State shared by every context counted in one unread-badge request. */
+type ParentUnreadCountShared = {
+  seenIds?: Set<string>;
+  loadGuardianUserIds?: FamilyGuardianUserIdsLoader;
+  /**
+   * Skip the `activity_events` scan. Safe after an earlier context in the same
+   * request already scanned it: the query and family filter do not depend on
+   * the context, so every unread event is already in `seenIds`.
+   */
+  skipActivityEvents?: boolean;
+};
+
+async function fetchUnreadCountNotificationListsForContext(
   supabase: SupabaseClient,
   organizationId: string,
   familyId: string,
   context: ParentNotificationContext,
-  lastReadAt: string | null,
-  rangeStart: Date,
+  since: Date,
+  pageFetch: PageFetchOptions,
   options?: ParentNotificationCountOptions,
-  remainingCap: number = MAX_UNREAD_BADGE_COUNT,
-  seenIds?: Set<string>,
-): Promise<number> {
-  if (remainingCap <= 0) return 0;
-
-  const sinceBound = resolveNotificationSince(lastReadAt, rangeStart);
+): Promise<ParentActivityNotification[][]> {
   const slug = context.slug;
-  const pageFetch: PageFetchOptions = {
-    limit: remainingCap,
-    cursor: null,
-  };
-
-  let total = await countActivityNotificationsForFamily(
-    supabase,
-    organizationId,
-    familyId,
-    sinceBound,
-    lastReadAt,
-    rangeStart,
-    remainingCap,
-    seenIds,
-  );
-  if (total >= remainingCap) return total;
-
-  const countFetchedNotifications = (
-    notifications: ParentActivityNotification[],
-  ): number => {
-    const added = countUnreadFromNotifications(
-      notifications,
-      lastReadAt,
-      rangeStart,
-      remainingCap - total,
-      seenIds,
-    );
-    total += added;
-    return added;
-  };
 
   if (context.mode === "program") {
     const [bulletinNotifications, calendarNotifications, coopNotifications] =
@@ -1906,7 +2027,7 @@ async function countUnreadParentActivityNotificationsForContext(
           supabase,
           organizationId,
           slug,
-          sinceBound.since,
+          since,
           parentProgramPortalBulletinScope(context.programId),
           context.parentNavBasePath,
           pageFetch,
@@ -1915,7 +2036,7 @@ async function countUnreadParentActivityNotificationsForContext(
           supabase,
           organizationId,
           slug,
-          sinceBound.since,
+          since,
           programPortalAudienceScope(context.programId),
           context.parentNavBasePath,
           pageFetch,
@@ -1925,17 +2046,12 @@ async function countUnreadParentActivityNotificationsForContext(
           organizationId,
           context,
           familyId,
-          sinceBound.since,
+          since,
           pageFetch,
         ),
       ]);
 
-    countFetchedNotifications(bulletinNotifications);
-    if (total >= remainingCap) return remainingCap;
-    countFetchedNotifications(calendarNotifications);
-    if (total >= remainingCap) return remainingCap;
-    countFetchedNotifications(coopNotifications);
-    return Math.min(total, remainingCap);
+    return [bulletinNotifications, calendarNotifications, coopNotifications];
   }
 
   const coopProgramContexts = await listCoopProgramContextsForMainPortal(
@@ -1954,7 +2070,7 @@ async function countUnreadParentActivityNotificationsForContext(
       supabase,
       organizationId,
       slug,
-      sinceBound.since,
+      since,
       mainPortalAudienceScope(),
       context.parentNavBasePath,
       pageFetch,
@@ -1964,7 +2080,7 @@ async function countUnreadParentActivityNotificationsForContext(
         supabase,
         organizationId,
         slug,
-        sinceBound.since,
+        since,
         programPortalAudienceScope(programContext.programId),
         programContext.parentNavBasePath,
         pageFetch,
@@ -1979,7 +2095,7 @@ async function countUnreadParentActivityNotificationsForContext(
         organizationId,
         programContext,
         familyId,
-        sinceBound.since,
+        since,
         pageFetch,
       ),
     ),
@@ -1991,7 +2107,7 @@ async function countUnreadParentActivityNotificationsForContext(
         supabase,
         organizationId,
         slug,
-        sinceBound.since,
+        since,
         options?.bulletinScope ?? parentMainPortalBulletinScope(),
         context.parentNavBasePath,
         pageFetch,
@@ -2000,16 +2116,81 @@ async function countUnreadParentActivityNotificationsForContext(
       ...calendarPromises,
     ]);
 
-  countFetchedNotifications(bulletinNotifications);
-  if (total >= remainingCap) return remainingCap;
+  // Counting order: bulletins, each calendar scope, then each co-op program.
+  return [bulletinNotifications, ...calendarResults, ...coopNotifications];
+}
 
-  for (const calendarNotifications of calendarResults) {
-    countFetchedNotifications(calendarNotifications);
-    if (total >= remainingCap) return remainingCap;
+async function countUnreadParentActivityNotificationsForContext(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+  context: ParentNotificationContext,
+  lastReadAt: string | null,
+  rangeStart: Date,
+  options?: ParentNotificationCountOptions,
+  remainingCap: number = MAX_UNREAD_BADGE_COUNT,
+  shared: ParentUnreadCountShared = {},
+): Promise<number> {
+  if (remainingCap <= 0) return 0;
+
+  const { seenIds } = shared;
+  const loadGuardianUserIds =
+    shared.loadGuardianUserIds ??
+    createFamilyGuardianUserIdsLoader(supabase, familyId);
+  const sinceBound = resolveNotificationSince(lastReadAt, rangeStart);
+  const pageFetch: PageFetchOptions = {
+    limit: remainingCap,
+    cursor: null,
+  };
+
+  // The bulletin / calendar / co-op fetches never depended on the activity
+  // count (only on remainingCap), so start them alongside the activity scan
+  // instead of after it. Counting still happens in the original order.
+  const notificationListsPromise = fetchUnreadCountNotificationListsForContext(
+    supabase,
+    organizationId,
+    familyId,
+    context,
+    sinceBound.since,
+    pageFetch,
+    options,
+  );
+
+  let total: number;
+  try {
+    total = shared.skipActivityEvents
+      ? 0
+      : await countActivityNotificationsForFamily(
+          supabase,
+          organizationId,
+          familyId,
+          sinceBound,
+          lastReadAt,
+          rangeStart,
+          remainingCap,
+          seenIds,
+          loadGuardianUserIds,
+        );
+  } catch (error) {
+    notificationListsPromise.catch(() => undefined);
+    throw error;
+  }
+  if (total >= remainingCap) {
+    // Same early return as before; the side fetches' outcome is not needed.
+    notificationListsPromise.catch(() => undefined);
+    return total;
   }
 
-  for (const coopNotificationsForProgram of coopNotifications) {
-    countFetchedNotifications(coopNotificationsForProgram);
+  const notificationLists = await notificationListsPromise;
+
+  for (const notifications of notificationLists) {
+    total += countUnreadFromNotifications(
+      notifications,
+      lastReadAt,
+      rangeStart,
+      remainingCap - total,
+      seenIds,
+    );
     if (total >= remainingCap) return remainingCap;
   }
 
@@ -2104,6 +2285,10 @@ async function fetchAggregatedParentActivityNotifications(
       ? contexts
       : [resolveNotificationContext(slug, options)];
 
+  const loadGuardianUserIds = createFamilyGuardianUserIdsLoader(
+    supabase,
+    familyId,
+  );
   const pages = await Promise.all(
     contextList.map((context) =>
       buildParentActivityNotificationsPageForContext(
@@ -2113,6 +2298,7 @@ async function fetchAggregatedParentActivityNotifications(
         context,
         pageFetch,
         options,
+        loadGuardianUserIds,
       ),
     ),
   );
@@ -2241,9 +2427,13 @@ export async function countUnreadParentActivityNotifications(
         : [resolveNotificationContext(slug, options)];
 
     const seenIds = new Set<string>();
+    const loadGuardianUserIds = createFamilyGuardianUserIdsLoader(
+      supabase,
+      familyId,
+    );
     let total = 0;
 
-    for (const context of contextList) {
+    for (const [index, context] of contextList.entries()) {
       const added = await countUnreadParentActivityNotificationsForContext(
         supabase,
         organizationId,
@@ -2253,7 +2443,13 @@ export async function countUnreadParentActivityNotifications(
         rangeStart,
         options,
         MAX_UNREAD_BADGE_COUNT - total,
-        seenIds,
+        {
+          seenIds,
+          loadGuardianUserIds,
+          // activity_events is the same org-wide scan for every context; the
+          // first context already counted (and marked seen) all of it.
+          skipActivityEvents: index > 0,
+        },
       );
       total += added;
       if (total >= MAX_UNREAD_BADGE_COUNT) {

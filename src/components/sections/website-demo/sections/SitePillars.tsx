@@ -27,7 +27,7 @@ export default function SitePillars({ pillars }: { pillars: SchoolWebsiteDemoCon
   if (count === 0) return null;
 
   return (
-    <section className={`bg-[var(--sf-butter)]/35 ${SITE_SECTION}`}>
+    <section className={`bg-[var(--sf-butter)]/55 ${SITE_SECTION}`}>
       <div className={SITE_CONTAINER}>
         <SiteSectionIntro align="split" eyebrow={pillars.eyebrow} heading={pillars.heading} subtitle={pillars.subtitle} />
         <ul className={`mt-14 grid grid-cols-1 gap-5 ${GRID_COLS[count] ?? "@3xl/site:grid-cols-2 @6xl/site:grid-cols-4"}`}>

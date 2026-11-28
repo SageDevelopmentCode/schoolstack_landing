@@ -17,6 +17,12 @@
         "EXPO_PUBLIC_SITE_URL": "https://trymudkitchen.com"
       },
       "channel": "production"
+    },
+    "production-android": {
+      "extends": "production",
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      }
     }
   }
 }

@@ -34,6 +34,9 @@ const nextConfig: NextConfig = {
     unoptimized: true,
     remotePatterns: supabaseStorageRemotePatterns(),
   },
+  // jsdom (via isomorphic-dompurify) breaks when bundled into a serverless function; load it
+  // from node_modules at runtime instead.
+  serverExternalPackages: ["isomorphic-dompurify", "jsdom"],
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion"],
   },

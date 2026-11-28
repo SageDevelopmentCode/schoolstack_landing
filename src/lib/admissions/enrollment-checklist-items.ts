@@ -627,20 +627,22 @@ export async function getEnrollmentChecklistWithItems(
   supabase: SupabaseClient,
   templateId: string,
 ): Promise<EnrollmentChecklistWithItems | null> {
-  const template = await getEnrollmentChecklistTemplate(supabase, templateId);
-  if (!template) return null;
-
-  const { data, error } = await supabase
-    .from("enrollment_checklist_template_items")
-    .select(
-      `
+  // The items query only needs the template id, so both reads go out together.
+  const [template, { data, error }] = await Promise.all([
+    getEnrollmentChecklistTemplate(supabase, templateId),
+    supabase
+      .from("enrollment_checklist_template_items")
+      .select(
+        `
       *,
       document_templates ( id, kind, content ),
       fee_definitions ( id, label, amount_cents, code )
     `,
-    )
-    .eq("template_id", templateId)
-    .order("sort_order", { ascending: true });
+      )
+      .eq("template_id", templateId)
+      .order("sort_order", { ascending: true }),
+  ]);
+  if (!template) return null;
 
   if (error) throw error;
 

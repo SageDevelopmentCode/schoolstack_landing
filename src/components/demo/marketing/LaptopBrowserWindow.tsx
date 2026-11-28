@@ -39,6 +39,12 @@ export type LaptopBrowserWindowProps = {
   defaultBodyHeight?: number;
   /** Drop shadow on the browser chrome (off for flat blog embeds). */
   chromeShadow?: boolean;
+  /**
+   * Shrink the content box to the visible height when the window is wide
+   * enough, so nothing at the bottom is cropped (children should be `h-full`).
+   * `contentHeight` stays the maximum; narrow windows crop as before.
+   */
+  fitHeight?: boolean;
 };
 
 export function LaptopBrowserWindow({
@@ -49,6 +55,7 @@ export function LaptopBrowserWindow({
   defaultBodyWidth,
   defaultBodyHeight = DEFAULT_FALLBACK_BODY_HEIGHT,
   chromeShadow = true,
+  fitHeight = false,
 }: LaptopBrowserWindowProps) {
   const bodyRef = useRef<HTMLDivElement>(null);
   const [bodySize, setBodySize] = useState({
@@ -79,9 +86,12 @@ export function LaptopBrowserWindow({
   }, [defaultBodyWidth, defaultBodyHeight]);
 
   const zoom = crop?.zoom ?? 1;
+  const widthScale = bodySize.width / MARKETING_LAPTOP_DEMO_WIDTH;
+  const visibleHeight = Math.floor(bodySize.height / widthScale);
+  const boxHeight = fitHeight && visibleHeight < contentHeight ? visibleHeight : contentHeight;
   const fitScale = Math.max(
     bodySize.width / (MARKETING_LAPTOP_DEMO_WIDTH * zoom),
-    bodySize.height / (contentHeight * zoom),
+    bodySize.height / (boxHeight * zoom),
   );
   const scale = fitScale * zoom;
   const cropOriginX = crop?.originX ?? 0;
@@ -93,7 +103,7 @@ export function LaptopBrowserWindow({
     ? {
         transform: `scale(${scale})`,
         transformOrigin: "top left",
-        top: -(cropOriginY * contentHeight * scale),
+        top: -(cropOriginY * boxHeight * scale),
         left: -(cropOriginX * MARKETING_LAPTOP_DEMO_WIDTH * scale),
         marginTop: 0,
       }
@@ -102,7 +112,7 @@ export function LaptopBrowserWindow({
         transformOrigin: cropFocus === "center" ? `left ${originY}` : "top left",
         top: scaledOriginY,
         left: 0,
-        marginTop: cropFocus === "center" ? -(contentHeight * scale) / 2 : 0,
+        marginTop: cropFocus === "center" ? -(boxHeight * scale) / 2 : 0,
       };
 
   return (
@@ -146,7 +156,7 @@ export function LaptopBrowserWindow({
         <div
           style={{
             width: MARKETING_LAPTOP_DEMO_WIDTH,
-            height: contentHeight,
+            height: boxHeight,
             position: "absolute",
             ...croppedFrame,
           }}

@@ -7,7 +7,7 @@ export const HERO_COPY = {
   badge: "Built for Microschools",
   headlineLead: "Everything your microschool needs,",
   headlineAccent: "all in one place.",
-  body: "MudKitchen keeps parents, teachers, and administrators aligned with enrollment, communication, billing, and more\u2014so you can focus on what matters most: your students.",
+  body: "MudKitchen is microschool software that keeps parents, teachers, and administrators aligned on enrollment, tuition billing, communication, and daily operations\u2014so you can focus on what matters most: your students.",
   primaryCta: "Book a Demo",
   secondaryCta: "Try the product",
 } as const;

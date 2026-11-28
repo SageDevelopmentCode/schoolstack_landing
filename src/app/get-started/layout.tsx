@@ -4,7 +4,7 @@ import { pageMetadata } from "@/lib/metadata";
 import { buildBreadcrumbs } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Book a Demo",
+  title: "Book a microschool software demo",
   description:
     "Schedule a personalized demo of MudKitchen — the all-in-one platform for microschool enrollment, billing, parent communication, and school operations.",
   path: "/get-started",

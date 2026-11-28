@@ -1,474 +1,122 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, Download, Loader2 } from "lucide-react";
-import JSZip from "jszip";
-import { downloadUrl, nodeToPng } from "@/components/admin/marketing/export-png";
-import { MarketingCarouselSidebar } from "@/components/admin/marketing/MarketingCarouselSidebar";
+import { ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { gBtnOutlineSm, gBtnPopSm } from "@/components/school-parent/garden/ui";
 import {
-  DEFAULT_CAROUSEL_ID,
-  getMarketingCarousel,
-  MARKETING_CAROUSELS,
-  resolveMarketingCarouselId,
-} from "@/components/admin/marketing/carousels/registry";
+  BusyLabel,
+  GardenEmptyState,
+  GardenNotice,
+  GardenSwitch,
+  gIconBtn,
+} from "@/components/school-admin/garden/kit";
 import type { MarketingSlide } from "@/components/admin/marketing/carousels/types";
-import { resolveMarketingAdCopyVersions } from "@/lib/marketing/marketing-ad-copy";
 import { AdCopyPanel } from "@/components/admin/marketing/AdCopyPanel";
 import {
   AdOfferProvider,
-  DEFAULT_CAROUSEL_AUDIENCE_BANNER,
   MarketingSlideShell,
   SLIDE_SIZES,
   SlideSizeProvider,
-  type SlideSize,
 } from "@/components/admin/marketing/slide-frame";
-import { AdminSwitch } from "@/components/admin/ui/AdminSwitch";
+import { isSlidePosted } from "@/lib/marketing/carousel-post-status";
 import {
-  countPostedSlides,
-  emptyCarouselPostStatus,
-  isSlidePosted,
-  type MarketingCarouselPostStatus,
-  type MarketingPostedFlag,
-} from "@/lib/marketing/carousel-post-status";
+  AccentLast,
+  MarketingGardenHeader,
+} from "@/components/admin/marketing/garden/MarketingGardenHeader";
 import {
-  isMarketingCarouselId,
-  MARKETING_CAROUSEL_IDS,
-  type MarketingCarouselId,
-} from "@/lib/marketing/marketing-carousel-ids";
+  MarketingStudioFrame,
+  STUDIO_STAGE_CLASS,
+} from "@/components/admin/marketing/garden/MarketingStudioFrame";
+import { MarketingCarouselRail } from "@/components/admin/marketing/garden/MarketingCarouselRail";
+import {
+  GardenSegmented,
+  MarketingCanvas,
+} from "@/components/admin/marketing/garden/marketing-ui";
+import {
+  exportKey,
+  useMarketingStudioModel,
+} from "@/components/admin/marketing/useMarketingStudioModel";
 
-function emptyPostedByCarouselId(): Record<MarketingCarouselId, MarketingCarouselPostStatus> {
-  return MARKETING_CAROUSEL_IDS.reduce(
-    (acc, id) => {
-      acc[id] = emptyCarouselPostStatus();
-      return acc;
-    },
-    {} as Record<MarketingCarouselId, MarketingCarouselPostStatus>,
-  );
-}
+const KIND_LABEL = {
+  ad: "Ad set",
+  post: "Post set",
+  store: "App store screens",
+} as const;
 
-function slideToPng(node: HTMLElement, size: SlideSize): Promise<string> {
-  const { width, height } = SLIDE_SIZES[size];
-  return nodeToPng(node, width, height);
-}
-
-/** `01-gift.png` → `01-gift-story-no-offer.png` (size suffix only when an entry has several sizes). */
-function exportFileName(fileName: string, size: SlideSize, multiSize: boolean, offerOff: boolean): string {
-  const suffix = `${multiSize ? `-${size}` : ""}${offerOff ? "-no-offer" : ""}`;
-  return suffix ? fileName.replace(/\.png$/, `${suffix}.png`) : fileName;
-}
-
-const exportKey = (size: SlideSize, index: number) => `${size}:${index}`;
-
+/** /admin/marketing: the Carousels studio (list rail, live slide, export, posted status, ad copy). */
 export default function MarketingStudio() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const stageRef = useRef<HTMLDivElement>(null);
-  const exportRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const { stageRef, exportRefs, ...model } = useMarketingStudioModel();
+  const {
+    carousel,
+    slides,
+    slide,
+    index,
+    activeSize,
+    activeDims,
+    scale,
+    offerOff,
+    isSet,
+    currentStatus,
+  } = model;
 
-  const carouselParam = searchParams.get("carousel");
-  const selectedCarouselId = resolveMarketingCarouselId(carouselParam);
-  const [index, setIndex] = useState(0);
-  const [scale, setScale] = useState(0.42);
-  const [preferredSize, setPreferredSize] = useState<SlideSize>("feed");
-  const [showOffer, setShowOffer] = useState(true);
-  const [exporting, setExporting] = useState<"slide" | "all" | null>(null);
-  const [exportError, setExportError] = useState<string | null>(null);
-  const [postedByCarouselId, setPostedByCarouselId] = useState(() => emptyPostedByCarouselId());
-  const [postStatusLoading, setPostStatusLoading] = useState(true);
-  const [postStatusSaving, setPostStatusSaving] = useState(false);
-  const [postStatusError, setPostStatusError] = useState<string | null>(null);
-
-  const carousel = getMarketingCarousel(selectedCarouselId) ?? MARKETING_CAROUSELS[0];
-  const carouselId = carousel?.id ?? "";
-  const slides = carousel?.slides ?? [];
-  const slide = slides[index] ?? slides[0];
-  const isAd = carousel?.kind === "ad";
-  const sizes: SlideSize[] = carousel?.sizes?.length ? carousel.sizes : ["feed"];
-  const multiSize = sizes.length > 1;
-  const activeSize: SlideSize = sizes.includes(preferredSize) ? preferredSize : sizes[0];
-  const activeDims = SLIDE_SIZES[activeSize];
-  const hasOfferToggle = isAd && Boolean(carousel?.offerToggle);
-  const offerOff = hasOfferToggle && !showOffer;
-  const panelVersions = slide ? resolveMarketingAdCopyVersions(slide, offerOff) : [];
-  const firstSlideAudienceBanner =
-    slides.length > 1 && !carousel?.kind ? (carousel?.audienceBanner ?? DEFAULT_CAROUSEL_AUDIENCE_BANNER) : undefined;
-
-  useEffect(() => {
-    exportRefs.current = {};
-  }, [carouselId]);
-
-  // Deep link from the Schedule tab: ?carousel=<id>&slide=<slide id> opens that slide (once per link).
-  const slideParam = searchParams.get("slide");
-  const deepLinkKey = slideParam ? `${carouselId}:${slideParam}` : null;
-  const [appliedDeepLink, setAppliedDeepLink] = useState<string | null>(null);
-  if (deepLinkKey && appliedDeepLink !== deepLinkKey) {
-    setAppliedDeepLink(deepLinkKey);
-    const target = slides.findIndex((item) => item.id === slideParam);
-    if (target >= 0) setIndex(target);
-  }
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadPostStatuses() {
-      setPostStatusLoading(true);
-      setPostStatusError(null);
-      try {
-        const response = await fetch("/api/admin/marketing-carousels/post-status");
-        if (!response.ok) {
-          const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-          throw new Error(payload?.error ?? "Could not load posted status.");
-        }
-        const payload = (await response.json()) as {
-          statuses: Record<MarketingCarouselId, MarketingCarouselPostStatus>;
-        };
-        if (!cancelled) {
-          setPostedByCarouselId({ ...emptyPostedByCarouselId(), ...payload.statuses });
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setPostStatusError(
-            error instanceof Error ? error.message : "Could not load posted status.",
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setPostStatusLoading(false);
-        }
-      }
-    }
-
-    void loadPostStatuses();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  /** Marks a whole entry, or one slide of an ad set / post set when `slideId` is given. */
-  const setCarouselPosted = useCallback(async (id: MarketingCarouselId, posted: boolean, slideId?: string) => {
-    let previous: MarketingCarouselPostStatus = emptyCarouselPostStatus();
-    const withFlag = (status: MarketingCarouselPostStatus, flag: MarketingPostedFlag): MarketingCarouselPostStatus =>
-      slideId ? { ...status, slides: { ...status.slides, [slideId]: flag } } : { ...status, ...flag };
-    setPostStatusSaving(true);
-    setPostStatusError(null);
-    setPostedByCarouselId((current) => {
-      previous = current[id] ?? emptyCarouselPostStatus();
-      return {
-        ...current,
-        [id]: withFlag(previous, { posted, postedAt: posted ? new Date().toISOString() : null }),
-      };
-    });
-
-    try {
-      const response = await fetch(`/api/admin/marketing-carousels/${id}/post-status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(slideId ? { posted, slideId } : { posted }),
-      });
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error ?? "Could not update posted status.");
-      }
-      const payload = (await response.json()) as MarketingPostedFlag & {
-        carouselId: MarketingCarouselId;
-      };
-      setPostedByCarouselId((current) => ({
-        ...current,
-        [id]: withFlag(current[id] ?? emptyCarouselPostStatus(), { posted: payload.posted, postedAt: payload.postedAt }),
-      }));
-    } catch (error) {
-      setPostedByCarouselId((current) => ({
-        ...current,
-        [id]: previous,
-      }));
-      setPostStatusError(
-        error instanceof Error ? error.message : "Could not update posted status.",
-      );
-    } finally {
-      setPostStatusSaving(false);
-    }
-  }, []);
-
-  const selectCarousel = useCallback(
-    (id: string) => {
-      const nextId = resolveMarketingCarouselId(id);
-      setIndex(0);
-      setExportError(null);
-
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete("slide");
-      if (nextId === DEFAULT_CAROUSEL_ID) {
-        params.delete("carousel");
-      } else {
-        params.set("carousel", nextId);
-      }
-      const query = params.toString();
-      router.replace(query ? `/admin/marketing?${query}` : "/admin/marketing", { scroll: false });
-    },
-    [router, searchParams, setIndex, setExportError],
-  );
-
-  useEffect(() => {
-    const stage = stageRef.current;
-    if (!stage) return;
-
-    const measure = () => {
-      const rect = stage.getBoundingClientRect();
-      const next = Math.min((rect.width - 120) / activeDims.width, (rect.height - 24) / activeDims.height);
-      setScale(Math.max(0.15, next));
-    };
-
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(stage);
-    return () => observer.disconnect();
-  }, [carouselId, activeDims.width, activeDims.height]);
-
-  const slideCount = slides.length;
-  const go = useCallback(
-    (delta: number) => {
-      setIndex((current) => {
-        if (slideCount === 0) return 0;
-        return (current + delta + slideCount) % slideCount;
-      });
-    },
-    [slideCount, setIndex],
-  );
-
-  useEffect(() => {
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "ArrowRight") go(1);
-      if (event.key === "ArrowLeft") go(-1);
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [go]);
-
-  async function downloadCurrent() {
-    const node = exportRefs.current[exportKey(activeSize, index)];
-    if (!node || !slide) return;
-    setExporting("slide");
-    setExportError(null);
-    try {
-      const dataUrl = await slideToPng(node, activeSize);
-      downloadUrl(dataUrl, exportFileName(slide.fileName, activeSize, multiSize, offerOff));
-    } catch (error) {
-      setExportError(error instanceof Error ? error.message : "Could not export this slide.");
-    } finally {
-      setExporting(null);
-    }
-  }
-
-  async function downloadAll() {
-    setExporting("all");
-    setExportError(null);
-    try {
-      const zip = new JSZip();
-      for (const size of sizes) {
-        for (let i = 0; i < slides.length; i += 1) {
-          const node = exportRefs.current[exportKey(size, i)];
-          const item = slides[i];
-          if (!node || !item) continue;
-          const dataUrl = await slideToPng(node, size);
-          const base64 = dataUrl.split(",")[1];
-          if (!base64) throw new Error("Export returned an empty image.");
-          const name = exportFileName(item.fileName, size, multiSize, offerOff);
-          zip.file(multiSize ? `${size}/${name}` : name, base64, { base64: true });
-        }
-      }
-      const blob = await zip.generateAsync({ type: "blob" });
-      const url = URL.createObjectURL(blob);
-      downloadUrl(url, `${carousel.fileSlug}${offerOff ? "-no-offer" : ""}.zip`);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      setExportError(error instanceof Error ? error.message : "Could not export the carousel.");
-    } finally {
-      setExporting(null);
-    }
-  }
-
-  // Ad sets and post sets are separate posts, so "Posted" is per slide; a swipe carousel goes out as one post.
-  const isSet = carousel?.kind === "ad" || carousel?.kind === "post";
-  const currentStatus = isMarketingCarouselId(carouselId) ? postedByCarouselId[carouselId] : undefined;
-  const postedSlideCount = countPostedSlides(currentStatus, slides.map((item) => item.id));
-  const currentCarouselPosted = isSet && slide ? isSlidePosted(currentStatus, slide.id) : (currentStatus?.posted ?? false);
-
-  if (!carousel) {
+  if (!carousel || !slide) {
     return (
-      <div className="flex h-[calc(100vh-3rem)] items-center justify-center text-sm text-admin-muted">
-        No marketing carousels configured.
-      </div>
+      <MarketingStudioFrame
+        header={
+          <MarketingGardenHeader
+            compact
+            title={<AccentLast text="Social carousels" />}
+          />
+        }
+        rail={null}
+      >
+        <GardenEmptyState title="No marketing carousels configured." />
+      </MarketingStudioFrame>
     );
   }
 
+  const kindLabel = carousel.kind
+    ? KIND_LABEL[carousel.kind]
+    : "Swipe carousel";
+  const slideCount =
+    slides.length === 1 ? "1 slide" : `${slides.length} slides`;
+  const postedLine = model.postStatusLoading
+    ? null
+    : isSet
+      ? `${model.postedSlideCount} of ${slides.length} posted`
+      : currentStatus?.posted
+        ? "Posted"
+        : "Not posted yet";
+  const subtitle = [kindLabel, slideCount, postedLine]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
-    <div className="flex h-[calc(100vh-3rem)] min-h-0 overflow-hidden">
-      <MarketingCarouselSidebar
-        carousels={MARKETING_CAROUSELS}
-        selectedId={carousel.id}
-        postedByCarouselId={postedByCarouselId}
-        onSelect={selectCarousel}
-      />
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-admin-border px-6 py-3">
-          <div>
-            <h1 className="text-lg font-semibold text-admin-text">Marketing</h1>
-            <p className="text-sm text-admin-muted">{carousel.title}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            {multiSize ? (
-              <div
-                role="radiogroup"
-                aria-label="Export size"
-                className="flex items-center rounded-admin-md border border-admin-border bg-admin-canvas p-0.5"
-              >
-                {sizes.map((size) => (
-                  <button
-                    key={size}
-                    type="button"
-                    role="radio"
-                    aria-checked={size === activeSize}
-                    onClick={() => setPreferredSize(size)}
-                    className={`rounded-admin-md px-2.5 py-1 text-xs font-medium ${
-                      size === activeSize ? "bg-admin-surface text-admin-text shadow-sm" : "text-admin-muted"
-                    }`}
-                  >
-                    {SLIDE_SIZES[size].label}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-            {hasOfferToggle ? (
-              <div className="flex items-center gap-2 border-r border-admin-border pr-3">
-                <AdminSwitch checked={showOffer} label="Show the gift-card offer" onChange={setShowOffer} />
-                <div>
-                  <p className="text-sm font-medium text-admin-text">Offer</p>
-                  <p className="text-[11px] text-admin-muted">Off = no-incentive control</p>
-                </div>
-              </div>
-            ) : null}
-            <div className="flex items-center gap-2 border-r border-admin-border pr-3">
-              <AdminSwitch
-                checked={currentCarouselPosted}
-                disabled={postStatusLoading || postStatusSaving || !isMarketingCarouselId(carouselId)}
-                label={isSet ? "Mark this slide as posted" : "Mark carousel as posted"}
-                onChange={(posted) => {
-                  if (!isMarketingCarouselId(carouselId)) return;
-                  void setCarouselPosted(carouselId, posted, isSet ? slide?.id : undefined);
-                }}
-              />
-              <div>
-                <p className="text-sm font-medium text-admin-text">Posted</p>
-                <p className="text-[11px] text-admin-muted">
-                  {isSet ? `This slide · ${postedSlideCount} of ${slides.length} posted` : "Mark when this is live on social"}
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => void downloadCurrent()}
-              disabled={exporting != null}
-              className="inline-flex items-center gap-1.5 rounded-admin-md border border-admin-border bg-admin-surface px-3 py-1.5 text-sm font-medium text-admin-text disabled:opacity-60"
-            >
-              {exporting === "slide" ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Download className="h-3.5 w-3.5" />
-              )}
-              Download this slide
-            </button>
-            <button
-              type="button"
-              onClick={() => void downloadAll()}
-              disabled={exporting != null}
-              className="inline-flex items-center gap-1.5 rounded-admin-md bg-admin-accent px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
-            >
-              {exporting === "all" ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Download className="h-3.5 w-3.5" />
-              )}
-              Download all
-            </button>
-          </div>
-        </header>
-
-        {exportError ? (
-          <p className="border-b border-admin-border px-6 py-2 text-sm text-red-700">{exportError}</p>
-        ) : null}
-        {postStatusError ? (
-          <p className="border-b border-admin-border px-6 py-2 text-sm text-red-700">{postStatusError}</p>
-        ) : null}
-
-        <div ref={stageRef} className="relative flex min-h-0 flex-1 items-center justify-center">
-          <button
-            type="button"
-            aria-label="Previous slide"
-            onClick={() => go(-1)}
-            className="absolute left-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-admin-border bg-admin-surface text-admin-text shadow-sm"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-
-          <div style={{ width: activeDims.width * scale, height: activeDims.height * scale }}>
-            <div
-              style={{
-                width: activeDims.width,
-                height: activeDims.height,
-                transform: `scale(${scale})`,
-                transformOrigin: "top left",
-              }}
-            >
-              <SlideSizeProvider size={activeSize}>
-                <AdOfferProvider show={!offerOff}>
-                  <MarketingSlideShell
-                    audienceBanner={index === 0 ? firstSlideAudienceBanner : undefined}
-                  >
-                    <SlideView slide={slide} />
-                  </MarketingSlideShell>
-                </AdOfferProvider>
-              </SlideSizeProvider>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            aria-label="Next slide"
-            onClick={() => go(1)}
-            className="absolute right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-admin-border bg-admin-surface text-admin-text shadow-sm"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="flex items-center justify-center gap-2 pb-4">
-          {slides.map((item, itemIndex) => (
-            <button
-              key={item.id}
-              type="button"
-              aria-label={`Slide ${itemIndex + 1}${isSet && isSlidePosted(currentStatus, item.id) ? " (posted)" : ""}`}
-              aria-current={itemIndex === index}
-              onClick={() => setIndex(itemIndex)}
-              className={`h-2 rounded-full transition-all ${
-                itemIndex === index
-                  ? "w-6 bg-admin-accent"
-                  : isSet && isSlidePosted(currentStatus, item.id)
-                    ? "w-2 bg-emerald-500"
-                    : "w-2 bg-admin-border-strong"
-              }`}
-            />
-          ))}
-          <span className="ml-2 text-xs text-admin-muted">
-            {index + 1} / {slides.length}
-          </span>
-        </div>
-
-        {panelVersions.length ? <AdCopyPanel key={`${carousel.id}:${slide?.id}`} versions={panelVersions} /> : null}
-
-        <div key={carousel.id} aria-hidden className="pointer-events-none fixed top-0 -left-[4000px]">
-          {sizes.map((size) =>
+    <MarketingStudioFrame
+      data-testid="marketing-studio"
+      header={
+        <MarketingGardenHeader
+          compact
+          title={<AccentLast text={carousel.title} />}
+          subtitle={subtitle}
+        />
+      }
+      rail={
+        <MarketingCarouselRail
+          carousels={model.carousels}
+          selectedId={carousel.id}
+          postedByCarouselId={model.postedByCarouselId}
+          statusesLoading={model.postStatusLoading}
+          flashId={model.flashId}
+          onSelect={model.selectCarousel}
+        />
+      }
+      overlays={
+        <div
+          key={carousel.id}
+          aria-hidden
+          className="pointer-events-none fixed top-0 -left-[4000px]"
+        >
+          {model.sizes.map((size) =>
             slides.map((item, itemIndex) => (
               <div
                 key={exportKey(size, itemIndex)}
@@ -485,7 +133,11 @@ export default function MarketingStudio() {
                 <SlideSizeProvider size={size}>
                   <AdOfferProvider show={!offerOff}>
                     <MarketingSlideShell
-                      audienceBanner={itemIndex === 0 ? firstSlideAudienceBanner : undefined}
+                      audienceBanner={
+                        itemIndex === 0
+                          ? model.firstSlideAudienceBanner
+                          : undefined
+                      }
                     >
                       <SlideView slide={item} />
                     </MarketingSlideShell>
@@ -495,8 +147,207 @@ export default function MarketingStudio() {
             )),
           )}
         </div>
+      }
+    >
+      <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-3 rounded-[20px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white px-4 py-3 shadow-[0_3px_0_0_rgba(43,36,29,0.08)]">
+        {model.multiSize ? (
+          <GardenSegmented
+            label="Export size"
+            size="sm"
+            value={activeSize}
+            onChange={model.setPreferredSize}
+            options={model.sizes.map((size) => ({
+              value: size,
+              label: SLIDE_SIZES[size].label,
+            }))}
+          />
+        ) : null}
+        {model.hasOfferToggle ? (
+          <div className="min-w-[200px]">
+            <GardenSwitch
+              checked={model.showOffer}
+              onChange={model.setShowOffer}
+              label="Offer"
+              description="Off = no-incentive control"
+              data-testid="marketing-offer-switch"
+            />
+          </div>
+        ) : null}
+        <div className="min-w-[220px]">
+          <GardenSwitch
+            checked={model.currentPosted}
+            onChange={model.togglePosted}
+            disabled={model.postStatusLoading || !model.canMarkPosted}
+            busy={model.postStatusSaving}
+            label={model.postStatusSaving ? "Posted · Saving…" : "Posted"}
+            description={
+              isSet
+                ? `This slide · ${model.postStatusLoading ? "–" : model.postedSlideCount} of ${slides.length} posted`
+                : "Mark when this is live on social"
+            }
+            data-testid="marketing-posted-switch"
+          />
+        </div>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void model.downloadCurrent()}
+            disabled={model.exporting != null}
+            aria-busy={model.exporting === "slide" || undefined}
+            className={gBtnOutlineSm}
+          >
+            <BusyLabel
+              busy={model.exporting === "slide"}
+              busyLabel="Exporting…"
+              icon={<Download className="h-4 w-4" aria-hidden />}
+            >
+              Download this slide
+            </BusyLabel>
+          </button>
+          <button
+            type="button"
+            onClick={() => void model.downloadAll()}
+            disabled={model.exporting != null}
+            aria-busy={model.exporting === "all" || undefined}
+            className={gBtnPopSm}
+          >
+            <BusyLabel
+              busy={model.exporting === "all"}
+              busyLabel="Exporting…"
+              icon={<Download className="h-4 w-4" aria-hidden />}
+            >
+              Download all
+            </BusyLabel>
+          </button>
+        </div>
       </div>
-    </div>
+
+      {model.postStatusLoadError ? (
+        <GardenNotice
+          tone="warning"
+          role="alert"
+          title="Couldn't load posted status."
+          action={
+            <button
+              type="button"
+              className={gBtnOutlineSm}
+              onClick={model.reloadPostStatuses}
+              disabled={model.postStatusLoading}
+            >
+              {model.postStatusLoading ? "Trying again…" : "Try again"}
+            </button>
+          }
+        >
+          {model.postStatusLoadError} Slides still preview and export; Posted
+          switches unlock once this loads.
+        </GardenNotice>
+      ) : null}
+
+      <div
+        className={`flex min-h-0 flex-1 flex-col gap-3 ${
+          model.panelVersions.length
+            ? "xl:grid xl:grid-cols-[minmax(0,1fr)_320px] xl:grid-rows-[minmax(0,1fr)]"
+            : ""
+        }`}
+      >
+        <div className={STUDIO_STAGE_CLASS}>
+          <div
+            ref={stageRef}
+            className="relative flex min-h-0 flex-1 items-center justify-center"
+          >
+            <button
+              type="button"
+              aria-label="Previous slide"
+              onClick={() => model.go(-1)}
+              className={`${gIconBtn} absolute left-3 z-10 !h-10 !w-10`}
+            >
+              <ChevronLeft className="h-5 w-5" aria-hidden />
+            </button>
+
+            <div
+              className="overflow-hidden rounded-[6px] shadow-[0_8px_0_0_rgba(43,36,29,0.16),0_24px_50px_-28px_rgba(43,36,29,0.55)] ring-[1.5px] ring-[var(--sf-ink)]/15"
+              style={{
+                width: activeDims.width * scale,
+                height: activeDims.height * scale,
+              }}
+            >
+              <MarketingCanvas
+                style={{
+                  width: activeDims.width,
+                  height: activeDims.height,
+                  transform: `scale(${scale})`,
+                  transformOrigin: "top left",
+                }}
+              >
+                <SlideSizeProvider size={activeSize}>
+                  <AdOfferProvider show={!offerOff}>
+                    <MarketingSlideShell
+                      audienceBanner={
+                        index === 0 ? model.firstSlideAudienceBanner : undefined
+                      }
+                    >
+                      <SlideView slide={slide} />
+                    </MarketingSlideShell>
+                  </AdOfferProvider>
+                </SlideSizeProvider>
+              </MarketingCanvas>
+            </div>
+
+            <button
+              type="button"
+              aria-label="Next slide"
+              onClick={() => model.go(1)}
+              className={`${gIconBtn} absolute right-3 z-10 !h-10 !w-10`}
+            >
+              <ChevronRight className="h-5 w-5" aria-hidden />
+            </button>
+          </div>
+
+          <div className="flex shrink-0 flex-wrap items-center justify-center gap-1.5 px-4 pb-3">
+            {slides.map((item, itemIndex) => {
+              const posted = isSet && isSlidePosted(currentStatus, item.id);
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-label={`Slide ${itemIndex + 1}${posted ? " (posted)" : ""}`}
+                  aria-current={itemIndex === index}
+                  onClick={() => model.setIndex(itemIndex)}
+                  className={`h-2.5 rounded-full border-[1.5px] transition-all duration-300 ${
+                    itemIndex === index
+                      ? "w-7 border-[var(--sf-ink)] bg-[var(--sf-clay)]"
+                      : posted
+                        ? "w-2.5 border-[var(--sf-forest)] bg-[var(--sf-forest)]"
+                        : "w-2.5 border-[var(--sf-ink)]/25 bg-white hover:border-[var(--sf-ink)]/50"
+                  }`}
+                />
+              );
+            })}
+            <span className="ml-2 text-[12.5px] font-extrabold tabular-nums text-[var(--sf-soft)]">
+              {index + 1} / {slides.length}
+            </span>
+          </div>
+        </div>
+
+        {model.panelVersions.length ? (
+          <>
+            <div className="hidden min-h-0 xl:flex">
+              <AdCopyPanel
+                key={`${carousel.id}:${slide.id}:col`}
+                versions={model.panelVersions}
+                layout="column"
+              />
+            </div>
+            <div className="xl:hidden">
+              <AdCopyPanel
+                key={`${carousel.id}:${slide.id}`}
+                versions={model.panelVersions}
+              />
+            </div>
+          </>
+        ) : null}
+      </div>
+    </MarketingStudioFrame>
   );
 }
 

@@ -135,6 +135,7 @@ export async function saveExpoPushToken(pushToken: string): Promise<void> {
     }),
     includeJson: true,
     signOutOnFailure: false,
+    background: true,
   });
 
   if (!response.ok) {
@@ -157,6 +158,7 @@ export async function clearExpoPushToken(): Promise<void> {
       body: JSON.stringify({ pushToken }),
       includeJson: true,
       signOutOnFailure: false,
+      background: true,
     });
   } catch {
     // Best-effort cleanup during sign-out.

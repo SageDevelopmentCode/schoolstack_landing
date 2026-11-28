@@ -10,6 +10,7 @@ import DemoWebsiteButton from "@/components/sections/website-demo/DemoWebsiteBut
 import {
   SITE_CONTAINER,
   SITE_SCOPE_CLASS,
+  resolveSiteMood,
   siteGardenScopeStyle,
 } from "@/components/sections/website-demo/site-garden-theme";
 import SiteNavBar from "@/components/sections/website-demo/sections/SiteNavBar";
@@ -171,13 +172,15 @@ export default function WebsiteDashboardDemo({
     return () => container.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const themeStyle: CSSProperties = siteGardenScopeStyle(config.theme);
+  const mood = resolveSiteMood(config);
+  const themeStyle: CSSProperties = siteGardenScopeStyle(config.theme, mood);
 
   return (
     <div
       ref={scrollContainerRef}
       className={`${SITE_SCOPE_CLASS} ${standalone ? "min-h-screen w-full" : externalScroll ? "w-full" : "h-full overflow-y-auto overflow-x-hidden"}`}
       style={themeStyle}
+      data-site-mood={mood}
     >
       <div className="@container/site relative overflow-x-clip">
         <div className="sticky top-0 z-40 h-0">

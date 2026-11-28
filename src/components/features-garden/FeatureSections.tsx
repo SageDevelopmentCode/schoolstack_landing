@@ -5,9 +5,10 @@ import { ArrowLeft, ArrowUpRight, Minus } from "lucide-react";
 import type { CompareCell, Feature, Source } from "@/lib/marketing/features/types";
 import { FEATURE_PAGE_LABELS as L } from "@/lib/marketing/features/features-copy";
 import { FEATURES_PATH } from "@/lib/marketing/features/paths";
-import { COMPARISONS_CHECKED, RIVALS } from "@/lib/marketing/features/rivals";
+import { COMPARISONS_CHECKED, FEATURES_CONTENT_UPDATED, RIVALS, formatContentDate } from "@/lib/marketing/features/rivals";
 import { getFeature } from "@/lib/marketing/features";
 import { BOOK_DEMO_HASH_HREF } from "@/lib/marketing/book-demo";
+import { comparePath } from "@/lib/marketing/compare";
 import { Reveal, WordsReveal } from "@/components/garden/motion";
 import { Draw, Leaf, Squiggle, Sun, Tape, Tick, btnOutline, btnPop } from "@/components/garden/ui";
 import SectionIntro from "@/components/home-garden/SectionIntro";
@@ -54,7 +55,10 @@ export function FeatureHero({ feature }: { feature: Feature }) {
           </h1>
           <p className="mt-7 max-w-xl text-lg font-semibold leading-relaxed text-[var(--sf-soft)]">{feature.hero.body}</p>
           <PlatformChips platforms={feature.platforms} className="mt-6" />
-          <div className="mt-9 flex flex-wrap gap-4">
+          <p className="mt-5 text-sm font-semibold text-[var(--sf-soft)]">
+            {L.updated} <time dateTime={FEATURES_CONTENT_UPDATED}>{formatContentDate(FEATURES_CONTENT_UPDATED)}</time>
+          </p>
+          <div className="mt-8 flex flex-wrap gap-4">
             <a href={BOOK_DEMO_HASH_HREF} className={btnPop}>
               {L.bookDemo}
             </a>
@@ -129,7 +133,7 @@ const STAT_SIZE = {
   long: "break-words text-[clamp(2.4rem,3.4vw,3.1rem)]",
 } as const;
 
-function SourceLink({ source, className = "" }: { source: Source; className?: string }) {
+export function SourceLink({ source, className = "" }: { source: Source; className?: string }) {
   return (
     <a
       href={source.url}
@@ -192,7 +196,7 @@ function Mark({ mark }: { mark?: CompareCell["mark"] }) {
   return null;
 }
 
-function Cell({ cell, footnote }: { cell: CompareCell; footnote?: number }) {
+export function CompareCellView({ cell, footnote }: { cell: CompareCell; footnote?: number }) {
   return (
     <span className="flex items-start gap-2.5">
       <Mark mark={cell.mark} />
@@ -280,14 +284,14 @@ export function FeatureCompare({ feature }: { feature: Feature }) {
                     {row.label}
                   </th>
                   <td className="bg-[var(--sf-mint)]/60 px-5 py-5 align-top">
-                    <Cell cell={row.mudkitchen} footnote={notes.mudkitchen} />
+                    <CompareCellView cell={row.mudkitchen} footnote={notes.mudkitchen} />
                   </td>
                   <td className="px-5 py-5 align-top">
-                    <Cell cell={row.toolStack} footnote={notes.toolStack} />
+                    <CompareCellView cell={row.toolStack} footnote={notes.toolStack} />
                   </td>
                   {RIVALS.map((r) => (
                     <td key={r.id} className="px-5 py-5 align-top">
-                      <Cell cell={row.rivals[r.id]} footnote={notes.rivals[r.id]} />
+                      <CompareCellView cell={row.rivals[r.id]} footnote={notes.rivals[r.id]} />
                     </td>
                   ))}
                 </tr>
@@ -305,20 +309,20 @@ export function FeatureCompare({ feature }: { feature: Feature }) {
                 <div className="rounded-2xl bg-[var(--sf-mint)] p-3">
                   <dt className="text-xs font-extrabold uppercase tracking-[0.14em] text-[var(--sf-forest)]">MudKitchen</dt>
                   <dd className="mt-1.5">
-                    <Cell cell={row.mudkitchen} footnote={notes.mudkitchen} />
+                    <CompareCellView cell={row.mudkitchen} footnote={notes.mudkitchen} />
                   </dd>
                 </div>
                 <div className="px-3">
                   <dt className="text-xs font-extrabold uppercase tracking-[0.14em] text-[var(--sf-soft)]">{L.compareToolStack}</dt>
                   <dd className="mt-1.5">
-                    <Cell cell={row.toolStack} footnote={notes.toolStack} />
+                    <CompareCellView cell={row.toolStack} footnote={notes.toolStack} />
                   </dd>
                 </div>
                 {RIVALS.map((r) => (
                   <div key={r.id} className="px-3">
                     <dt className="text-xs font-extrabold uppercase tracking-[0.14em] text-[var(--sf-soft)]">{r.name}</dt>
                     <dd className="mt-1.5">
-                      <Cell cell={row.rivals[r.id]} footnote={notes.rivals[r.id]} />
+                      <CompareCellView cell={row.rivals[r.id]} footnote={notes.rivals[r.id]} />
                     </dd>
                   </div>
                 ))}
@@ -329,6 +333,18 @@ export function FeatureCompare({ feature }: { feature: Feature }) {
 
         <div className="mt-10 max-w-4xl text-sm leading-relaxed text-[var(--sf-soft)]">
           <p>{L.compareChecked.replace("{date}", COMPARISONS_CHECKED)}</p>
+          <p className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5">
+            <span className="font-extrabold text-[var(--sf-ink)]">{L.compareFull}</span>
+            {RIVALS.map((r) => (
+              <Link
+                key={r.id}
+                href={comparePath(r.id)}
+                className="rounded-sm font-bold text-[var(--sf-forest)] underline decoration-[var(--sf-moss)] decoration-2 underline-offset-4 hover:decoration-[var(--sf-forest)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--sf-clay)]/30"
+              >
+                MudKitchen vs {r.name}
+              </Link>
+            ))}
+          </p>
           {sources.length ? (
             <>
               <h3 className="mt-5 text-sm font-extrabold uppercase tracking-[0.16em] text-[var(--sf-ink)]">{L.compareSources}</h3>

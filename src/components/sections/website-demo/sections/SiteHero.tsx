@@ -7,7 +7,13 @@ import { ArrowRight } from "lucide-react";
 import { Star, Tape, Tick } from "@/components/garden/ui";
 import type { SchoolWebsiteDemoConfig } from "@/data/school-demos/types";
 import DemoWebsiteButton from "../DemoWebsiteButton";
-import { SITE_CONTAINER, SITE_EASE, SITE_H1, SITE_LEAD } from "../site-garden-theme";
+import {
+  SITE_CONTAINER,
+  SITE_EASE,
+  SITE_LEAD,
+  SITE_SQUIGGLE_MAX_CHARS,
+  siteHeroH1Class,
+} from "../site-garden-theme";
 import { keepHyphenated, SitePill, SitePolaroid, SiteSquiggleAccent, SiteStickyNote } from "../garden/SiteKit";
 import SiteNavBar from "./SiteNavBar";
 
@@ -23,7 +29,11 @@ type Props = {
   onScrollToTop: () => void;
 };
 
-/** Hero: copy on dot-grid paper beside a taped photo collage with sticky-note stats. */
+/**
+ * Hero: copy on dot-grid paper beside a taped photo collage with sticky-note stats.
+ * Colours come from the site mood (`--sf-hero-*`, see `siteGardenScopeStyle`):
+ * tinted cream, the school's dark colour, or a wash of its primary colour.
+ */
 export default function SiteHero({
   config,
   heroRef,
@@ -37,6 +47,7 @@ export default function SiteHero({
   const reduce = useReducedMotion();
   const showAnnouncementBar = hero.eyebrowPlacement === "announcementBar" && Boolean(hero.eyebrow);
   const accentLine = hero.headlineAccentLine ?? hero.headline.length - 1;
+  const h1Class = hero.headlineClassName || siteHeroH1Class(hero.headline);
   const [stickerA, stickerB] = stats;
 
   // The frame lands first, then the copy follows (Garden hero timing).
@@ -59,7 +70,14 @@ export default function SiteHero({
         </div>
       ) : null}
 
-      <section ref={heroRef} className="sf-grid relative overflow-hidden pb-28 pt-4 @3xl/site:pb-36 @3xl/site:pt-5">
+      <section
+        ref={heroRef}
+        className="sf-grid relative overflow-hidden bg-[var(--sf-hero-bg)] pb-28 pt-4 [--sf-dot:var(--sf-hero-dot)] @3xl/site:pb-36 @3xl/site:pt-5"
+      >
+        <div
+          className="pointer-events-none absolute -right-[12%] top-[14%] hidden aspect-square w-[58%] max-w-[760px] rounded-full bg-[var(--sf-hero-blob)] @5xl/site:block"
+          aria-hidden
+        />
         <div className={`relative ${SITE_CONTAINER}`}>
           <SiteNavBar
             config={config}
@@ -85,27 +103,45 @@ export default function SiteHero({
                 </motion.div>
               ) : null}
 
-              <motion.h1 className={`${SITE_H1} mt-6 text-balance`} {...rise(0.35)}>
+              <motion.h1 className={`${h1Class} mt-6 text-balance text-[var(--sf-hero-ink)]`} {...rise(0.35)}>
                 {hero.headline.map((line, i) => (
                   <span key={line}>
-                    {i === accentLine ? <SiteSquiggleAccent>{line}</SiteSquiggleAccent> : keepHyphenated(line)}
+                    {i !== accentLine ? (
+                      keepHyphenated(line)
+                    ) : line.length <= SITE_SQUIGGLE_MAX_CHARS ? (
+                      <SiteSquiggleAccent
+                        className="text-[var(--sf-hero-accent)]"
+                        squiggleColor="var(--sf-hero-squiggle)"
+                      >
+                        {line}
+                      </SiteSquiggleAccent>
+                    ) : (
+                      // Long accent lines wrap, so a marker swipe instead of a one-piece squiggle.
+                      <span className="text-[var(--sf-hero-accent)] [box-decoration-break:clone] bg-[linear-gradient(transparent_66%,var(--sf-hero-marker)_66%)]">
+                        {keepHyphenated(line)}
+                      </span>
+                    )}
                     {i < hero.headline.length - 1 ? " " : null}
                   </span>
                 ))}
               </motion.h1>
 
               {hero.tagline && !showAnnouncementBar && hero.eyebrow ? (
-                <motion.p className="mt-6 text-[16px] font-extrabold text-[var(--sf-clay-deep)]" {...rise(0.45)}>
+                <motion.p className="mt-6 text-[16px] font-extrabold text-[var(--sf-hero-accent)]" {...rise(0.45)}>
                   {hero.tagline}
                 </motion.p>
               ) : null}
 
-              <motion.p className={`${SITE_LEAD} mt-5 max-w-[560px] @3xl/site:!text-[19px]`} {...rise(0.5)}>
+              <motion.p className={`${SITE_LEAD} mt-5 max-w-[560px] !text-[var(--sf-hero-soft)] @3xl/site:!text-[19px]`} {...rise(0.5)}>
                 {hero.subheadline}
               </motion.p>
 
               <motion.div className="mt-9 flex flex-wrap items-center gap-4" {...rise(0.6)}>
-                <DemoWebsiteButton variant="primary" className="!h-14 !px-7 !text-[16px]" onClick={onCtaClick}>
+                <DemoWebsiteButton
+                  variant="primary"
+                  className="!h-14 !bg-[var(--sf-hero-btn)] !px-7 !text-[16px] !text-[var(--sf-hero-on-btn)]"
+                  onClick={onCtaClick}
+                >
                   {hero.primaryCta}
                   <ArrowRight className="h-4 w-4" strokeWidth={2.6} aria-hidden />
                 </DemoWebsiteButton>
@@ -117,8 +153,8 @@ export default function SiteHero({
               {hero.trustBadges && hero.trustBadges.length > 0 ? (
                 <motion.ul className="mt-9 flex flex-wrap gap-x-5 gap-y-2.5" {...rise(0.7)}>
                   {hero.trustBadges.map((badge) => (
-                    <li key={badge} className="flex items-center gap-2 text-[14px] font-extrabold text-[var(--sf-ink)]">
-                      <Tick className="h-5 w-5" color="var(--sf-clay)" fill="var(--sf-butter)" />
+                    <li key={badge} className="flex items-center gap-2 text-[14px] font-extrabold text-[var(--sf-hero-ink)]">
+                      <Tick className="h-5 w-5" color="var(--sf-hero-accent)" fill="var(--sf-butter)" />
                       {badge}
                     </li>
                   ))}

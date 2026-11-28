@@ -9,22 +9,22 @@ import {
 } from 'react-native';
 import { WebView, type WebViewProps } from 'react-native-webview';
 
+import { Garden, GardenFonts } from '@/components/parent/garden/tokens';
+import { GOutlineButton, GToyButton } from '@/components/parent/garden/ui';
 import { ParentEmbeddedPdfLoadingPlaceholder } from '@/components/parent/shared/parent-embedded-pdf-loading-placeholder';
-import { StoryButton } from '@/components/story/story-button';
-import { StoryFonts } from '@/constants/story-theme';
-import { Spacing } from '@/constants/theme';
 import { openExternalUrlSafely } from '@/lib/open-external-url';
-import { isAllowedAndroidPdfWebViewNavigation } from '@/lib/pdf/mobile-pdf-webview-navigation';
+import { isAllowedPdfJsWebViewNavigation } from '@/lib/pdf/mobile-pdf-webview-navigation';
 import {
-  buildAndroidPdfViewerLoadMessage,
-  getAndroidPdfWebViewSource,
+  buildPdfViewerLoadMessage,
   getMobilePdfExternalOpenUrl,
   getMobilePdfWebViewSource,
-  parseAndroidPdfViewerMessage,
+  getPdfJsWebViewSource,
+  parsePdfViewerMessage,
+  shouldFallBackToNativePdfViewer,
   stripViewerFragment,
-  usesAndroidPdfJsHtml,
+  usesPdfJsViewer,
 } from '@/lib/pdf/mobile-pdf-webview-source';
-import { useAndroidPdfViewerAssets } from '@/lib/pdf/use-android-pdf-viewer-assets';
+import { usePdfViewerAssets } from '@/lib/pdf/use-pdf-viewer-assets';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 /** Time allowed for the viewer to show the first page (pdf.js renders later pages on demand). */
@@ -38,8 +38,10 @@ type ParentEmbeddedPdfWebViewProps = {
   scrollEnabled?: boolean;
   pointerEvents?: WebViewProps['pointerEvents'];
   startInLoadingState?: boolean;
-  /** Android only: render just page 1 (non-interactive inline preview). */
+  /** pdf.js only: render just page 1 (non-interactive inline preview). Ignored by the native fallback. */
   firstPageOnly?: boolean;
+  /** Document title for the loading caption ("Opening {title}…"). */
+  title?: string;
   /** Included in operational error reports (for example `curriculum` + its id). */
   reportEntityType?: string;
   reportEntityId?: string;
@@ -62,14 +64,27 @@ export function ParentEmbeddedPdfWebView({
   pointerEvents,
   startInLoadingState = false,
   firstPageOnly = false,
+  title,
   reportEntityType,
   reportEntityId,
 }: ParentEmbeddedPdfWebViewProps) {
-  const androidPdfJs = usesAndroidPdfJsHtml(url);
+  /**
+   * iOS only: pdf.js could not run in this WebKit (old iOS), so this document uses the native
+   * WKWebView viewer instead. Switched at most once per URL.
+   */
+  const [nativeFallback, setNativeFallback] = useState(false);
+  const [fallbackUrl, setFallbackUrl] = useState(url);
+  if (fallbackUrl !== url) {
+    setFallbackUrl(url);
+    setNativeFallback(false);
+  }
+  const pdfJs = usesPdfJsViewer(url) && !nativeFallback;
+  const viewerKind = pdfJs ? `${Platform.OS}_pdfjs` : 'native_webview';
+  const canFallBackToNative = Platform.OS === 'ios' && pdfJs;
   const documentUrl = useMemo(() => stripViewerFragment(url), [url]);
   const [reloadKey, setReloadKey] = useState(0);
-  const { sources, assetsError, assetsFailed, assetsReady } = useAndroidPdfViewerAssets(
-    androidPdfJs,
+  const { sources, assetsError, assetsFailed, assetsReady } = usePdfViewerAssets(
+    pdfJs,
     reloadKey,
   );
   const { reportError } = useMobileErrorReporter();
@@ -77,14 +92,14 @@ export function ParentEmbeddedPdfWebView({
   const [viewerReady, setViewerReady] = useState(false);
 
   const source = useMemo(() => {
-    if (!androidPdfJs) {
+    if (!pdfJs) {
       return getMobilePdfWebViewSource(url);
     }
     if (!sources) {
       return null;
     }
-    return getAndroidPdfWebViewSource(sources);
-  }, [androidPdfJs, sources, url]);
+    return getPdfJsWebViewSource(sources);
+  }, [pdfJs, sources, url]);
 
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading');
 
@@ -107,7 +122,7 @@ export function ParentEmbeddedPdfWebView({
     viewerReadyRef.current = false;
     firstPageShownRef.current = false;
     reportedKeysRef.current = new Set();
-  }, [url, reloadKey]);
+  }, [url, reloadKey, nativeFallback]);
 
   /** Reports each distinct failure once per document load so a bad file cannot flood Discord. */
   const reportViewerFailure = useCallback(
@@ -120,7 +135,7 @@ export function ParentEmbeddedPdfWebView({
         entityType: reportEntityType,
         entityId: reportEntityId,
         metadata: {
-          viewer: androidPdfJs ? 'android_pdfjs' : 'native_webview',
+          viewer: viewerKind,
           platform: Platform.OS,
           osVersion: String(Platform.Version),
           urlTarget: describeUrlTarget(url),
@@ -132,7 +147,7 @@ export function ParentEmbeddedPdfWebView({
         },
       });
     },
-    [androidPdfJs, firstPageOnly, reportEntityId, reportEntityType, reportError, url],
+    [firstPageOnly, reportEntityId, reportEntityType, reportError, url, viewerKind],
   );
 
   useEffect(() => {
@@ -148,33 +163,76 @@ export function ParentEmbeddedPdfWebView({
       setPhase('error');
     }, LOAD_TIMEOUT_MS);
     return () => clearTimeout(timer);
-    // `assetsReady` is diagnostic only; do not restart the timer when it flips.
+    // `assetsReady` is diagnostic only; do not restart the timer when it flips. A native
+    // fallback restarts it so the native viewer gets the full window too.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, url, reloadKey, reportViewerFailure]);
+  }, [phase, url, reloadKey, nativeFallback, reportViewerFailure]);
+
+  /** iOS: switch this document to the native WKWebView viewer (once) and report why. */
+  const fallBackToNative = useCallback(
+    (stage: string, err: unknown, extra?: Record<string, unknown>) => {
+      reportViewerFailure(
+        'parent_pdf_viewer_pdfjs_fallback',
+        err instanceof Error ? err : new Error('pdf.js could not run; using the native viewer.'),
+        { stage, fallback: 'native_webview', ...(extra ?? {}) },
+      );
+      setNativeFallback(true);
+    },
+    [reportViewerFailure],
+  );
 
   useEffect(() => {
-    if (!androidPdfJs || !assetsFailed) return;
+    if (!pdfJs || !assetsFailed) return;
+    if (canFallBackToNative) {
+      fallBackToNative(
+        'assets',
+        assetsError instanceof Error ? assetsError : new Error('Bundled pdf.js assets failed to load.'),
+      );
+      return;
+    }
     reportViewerFailure(
       'parent_pdf_viewer_assets_failed',
       assetsError instanceof Error ? assetsError : new Error('Bundled pdf.js assets failed to load.'),
     );
-  }, [androidPdfJs, assetsError, assetsFailed, reportViewerFailure]);
+  }, [
+    assetsError,
+    assetsFailed,
+    canFallBackToNative,
+    fallBackToNative,
+    pdfJs,
+    reportViewerFailure,
+  ]);
+
+  // pdf.js still renders without an image decoder, but JPEG 2000 / JBIG2 images come out blank.
+  const imageDecodersError = pdfJs ? (sources?.imageDecodersError ?? null) : null;
+  useEffect(() => {
+    if (!imageDecodersError) return;
+    reportViewerFailure(
+      'parent_pdf_viewer_image_decoder_missing',
+      imageDecodersError instanceof Error
+        ? imageDecodersError
+        : new Error('A bundled pdf.js image decoder failed to load.'),
+      { stage: 'assets_image_decoders', fatal: false },
+    );
+  }, [imageDecodersError, reportViewerFailure]);
 
   const postLoadDocument = useCallback(() => {
-    if (!androidPdfJs || !documentUrl) return;
-    webViewRef.current?.postMessage(
-      buildAndroidPdfViewerLoadMessage(documentUrl, { firstPageOnly }),
-    );
-  }, [androidPdfJs, documentUrl, firstPageOnly]);
+    if (!pdfJs || !documentUrl) return;
+    webViewRef.current?.postMessage(buildPdfViewerLoadMessage(documentUrl, { firstPageOnly }));
+  }, [documentUrl, firstPageOnly, pdfJs]);
 
   useEffect(() => {
-    if (!androidPdfJs || !viewerReady) return;
+    if (!pdfJs || !viewerReady) return;
     postLoadDocument();
-  }, [androidPdfJs, documentUrl, postLoadDocument, viewerReady, reloadKey]);
+  }, [documentUrl, pdfJs, postLoadDocument, viewerReady, reloadKey]);
 
+  /** Never downgrades an error: a failed native load fires `onError` and then `onLoadEnd`. */
   const markReady = useCallback(() => {
-    firstPageShownRef.current = true;
-    setPhase('ready');
+    setPhase((current) => {
+      if (current === 'error') return current;
+      firstPageShownRef.current = true;
+      return 'ready';
+    });
   }, []);
 
   const markError = useCallback(() => {
@@ -183,7 +241,7 @@ export function ParentEmbeddedPdfWebView({
 
   const handleMessage = useCallback(
     (event: { nativeEvent: { data: string } }) => {
-      const message = parseAndroidPdfViewerMessage(event.nativeEvent.data);
+      const message = parsePdfViewerMessage(event.nativeEvent.data);
       switch (message.type) {
         case 'ready':
           viewerReadyRef.current = true;
@@ -194,6 +252,16 @@ export function ParentEmbeddedPdfWebView({
           return;
         case 'error': {
           const error = new Error(`${message.name}: ${message.message}`);
+          if (
+            canFallBackToNative &&
+            shouldFallBackToNativePdfViewer(message, {
+              platform: Platform.OS,
+              viewerReady: viewerReadyRef.current,
+            })
+          ) {
+            fallBackToNative(message.stage, error, { fatal: message.fatal });
+            return;
+          }
           reportViewerFailure(
             message.fatal ? 'parent_pdf_viewer_error' : 'parent_pdf_viewer_non_fatal_error',
             error,
@@ -208,7 +276,7 @@ export function ParentEmbeddedPdfWebView({
           return;
       }
     },
-    [markError, markReady, reportViewerFailure],
+    [canFallBackToNative, fallBackToNative, markError, markReady, reportViewerFailure],
   );
 
   const handleWebViewError = useCallback(
@@ -280,20 +348,29 @@ export function ParentEmbeddedPdfWebView({
 
   const handleShouldStartLoadWithRequest = useCallback(
     (request: { url: string }) => {
-      if (Platform.OS !== 'android' || !androidPdfJs) {
+      if (!pdfJs) {
         return true;
       }
-      return isAllowedAndroidPdfWebViewNavigation(request.url);
+      return isAllowedPdfJsWebViewNavigation(request.url);
     },
-    [androidPdfJs],
+    [pdfJs],
   );
 
-  if (phase === 'error' || (androidPdfJs && assetsFailed)) {
+  // On iOS an asset failure switches to the native viewer (effect above) instead of erroring.
+  if (phase === 'error' || (pdfJs && assetsFailed && !canFallBackToNative)) {
     return (
       <View style={[styles.fallback, style]}>
-        <Text style={styles.fallbackText}>This document could not be shown in the app.</Text>
-        <StoryButton label="Open document" previewSafe onPress={() => void openExternally()} />
-        <StoryButton label="Try again" variant="outline" previewSafe onPress={retry} />
+        <Text style={styles.fallbackTitle}>This document could not be shown in the app.</Text>
+        <Text style={styles.fallbackText}>You can open it in your browser, or try again.</Text>
+        <View style={styles.fallbackActions}>
+          <GToyButton
+            label="Open document"
+            icon="open-outline"
+            accessibilityLabel={title ? `Open ${title}` : 'Open document'}
+            onPress={() => void openExternally()}
+          />
+          <GOutlineButton label="Try again" icon="refresh" onPress={retry} />
+        </View>
       </View>
     );
   }
@@ -301,7 +378,7 @@ export function ParentEmbeddedPdfWebView({
   if (!source) {
     return (
       <View style={[styles.wrap, style]}>
-        <ParentEmbeddedPdfLoadingPlaceholder />
+        <ParentEmbeddedPdfLoadingPlaceholder title={title} />
       </View>
     );
   }
@@ -309,7 +386,7 @@ export function ParentEmbeddedPdfWebView({
   return (
     <View style={[styles.wrap, style]}>
       <WebView
-        key={reloadKey}
+        key={`${reloadKey}:${viewerKind}`}
         ref={webViewRef}
         source={source}
         style={styles.webView}
@@ -320,17 +397,18 @@ export function ParentEmbeddedPdfWebView({
         setSupportMultipleWindows={false}
         allowsInlineMediaPlayback
         startInLoadingState={startInLoadingState}
-        onMessage={androidPdfJs ? handleMessage : undefined}
-        onLoadEnd={androidPdfJs ? undefined : markReady}
+        onMessage={pdfJs ? handleMessage : undefined}
+        // `onLoad` fires only on success (`onLoadEnd` also fires after `onError`).
+        onLoad={pdfJs ? undefined : markReady}
         onError={handleWebViewError}
         onHttpError={handleHttpError}
         onRenderProcessGone={handleRenderProcessGone}
         onContentProcessDidTerminate={handleRenderProcessGone}
         onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
       />
-      {phase === 'loading' || (androidPdfJs && !assetsReady) ? (
+      {phase === 'loading' || (pdfJs && !assetsReady) ? (
         <View style={styles.loadingOverlay} pointerEvents="none">
-          <ParentEmbeddedPdfLoadingPlaceholder style={StyleSheet.absoluteFill} />
+          <ParentEmbeddedPdfLoadingPlaceholder title={title} />
         </View>
       ) : null}
     </View>
@@ -341,31 +419,43 @@ const styles = StyleSheet.create({
   wrap: {
     flex: 1,
     overflow: 'hidden',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: Garden.cream,
   },
   webView: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: Garden.cream,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(248, 250, 252, 0.85)',
   },
   fallback: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.three,
-    padding: Spacing.four,
-    backgroundColor: '#F8FAFC',
+    gap: 8,
+    padding: 24,
+    backgroundColor: Garden.cream,
+  },
+  fallbackTitle: {
+    fontFamily: GardenFonts.bodyExtra,
+    fontSize: 16,
+    lineHeight: 22,
+    color: Garden.ink,
+    textAlign: 'center',
   },
   fallbackText: {
-    fontFamily: StoryFonts.body,
+    fontFamily: GardenFonts.bodySemi,
     fontSize: 14,
     lineHeight: 20,
-    color: '#64748B',
+    color: Garden.soft,
     textAlign: 'center',
+  },
+  fallbackActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 10,
   },
 });

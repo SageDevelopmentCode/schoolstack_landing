@@ -66,6 +66,7 @@ export function ParentEmbeddedPdfViewerModal({
               url={url}
               style={styles.webView}
               startInLoadingState
+              title={title}
               reportEntityType={reportEntityType}
               reportEntityId={reportEntityId}
             />

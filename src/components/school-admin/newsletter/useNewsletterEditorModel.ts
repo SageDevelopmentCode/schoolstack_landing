@@ -37,6 +37,7 @@ import {
   type NewsletterWorkspaceState,
 } from "@/lib/school-admin/newsletter/newsletter-types";
 import { refreshNewsletterEditionGalleryUrls } from "@/lib/school-admin/newsletter/refresh-newsletter-gallery-photo-urls";
+import type { GalleryPhoto } from "@/lib/school-gallery/types";
 import type { StaffMemberRecord } from "@/lib/staff/staff-members";
 import type { NewsletterSaveState } from "./NewsletterSection";
 import type { PreviewDevice } from "./NewsletterPreviewPanel";
@@ -63,6 +64,25 @@ export type NewsletterEditorModelProps = {
   isDirty: boolean;
   /** Resolves true when the edition reached MudKitchen. */
   onSaveNow: () => Promise<boolean>;
+  /** Marketing demos only: fixtures instead of the network (see `NewsletterEditorPreview`). */
+  preview?: NewsletterEditorPreview;
+};
+
+/**
+ * Fixture mode for marketing demos (blog embeds): the real builder with no
+ * network. Staff and gallery photos come from here, publish only changes the
+ * edition in memory, and version history shows its empty state. Wrap the
+ * builder in `GardenOverlayHostProvider` so drawers stay in the demo canvas.
+ * Undefined in the admin portal.
+ */
+export type NewsletterEditorPreview = {
+  staffMembers: StaffMemberRecord[];
+  galleryPhotos: GalleryPhoto[];
+  initialFocus?: NewsletterBuilderFocus;
+  /** Open the side panel for `initialFocus` on mount. */
+  initialPanelOpen?: boolean;
+  /** Open the "Add from gallery" picker on mount. */
+  initialGalleryPickerOpen?: boolean;
 };
 
 /** Where the builder canvas is: one newsletter part, or Review & publish. */
@@ -87,21 +107,26 @@ export function useNewsletterEditorModel(props: NewsletterEditorModelProps) {
     saveState,
     isDirty,
     onSaveNow,
+    preview,
   } = props;
   const { theme, C } = useSchoolAdminStoryTheme();
 
   const [device, setDevice] = useState<PreviewDevice>("desktop");
-  const [viewMode, setViewMode] = useBuilderViewMode("newsletter-builder-view");
-  const [focus, setFocus] = useState<NewsletterBuilderFocus>("cover");
+  const [storedViewMode, setStoredViewMode] = useBuilderViewMode("newsletter-builder-view");
+  // Demos always open on Family view and don't touch the admin's saved choice.
+  const [previewViewMode, setPreviewViewMode] = useState<typeof storedViewMode>("family");
+  const viewMode = preview ? previewViewMode : storedViewMode;
+  const setViewMode = preview ? setPreviewViewMode : setStoredViewMode;
+  const [focus, setFocus] = useState<NewsletterBuilderFocus>(preview?.initialFocus ?? "cover");
   /** Family view: the side panel editing `focus` is open. */
-  const [panelOpen, setPanelOpen] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(preview?.initialPanelOpen ?? false);
   const [modal, setModal] = useState<NewsletterModal | null>(null);
-  const [galleryPickerOpen, setGalleryPickerOpen] = useState(false);
+  const [galleryPickerOpen, setGalleryPickerOpen] = useState(preview?.initialGalleryPickerOpen ?? false);
   const [coverGalleryPickerOpen, setCoverGalleryPickerOpen] = useState(false);
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
   const [galleryUrlsRefreshing, setGalleryUrlsRefreshing] = useState(false);
-  const [staffMembers, setStaffMembers] = useState<StaffMemberRecord[]>([]);
-  const [staffLoading, setStaffLoading] = useState(true);
+  const [staffMembers, setStaffMembers] = useState<StaffMemberRecord[]>(preview?.staffMembers ?? []);
+  const [staffLoading, setStaffLoading] = useState(!preview);
   const [staffError, setStaffError] = useState<string | null>(null);
   const [notifyFamilies, setNotifyFamilies] = useState(true);
   const [publishing, setPublishing] = useState(false);
@@ -122,10 +147,13 @@ export function useNewsletterEditorModel(props: NewsletterEditorModelProps) {
 
   /* ---------------- Gallery URL refresh (signed URLs expire) ---------------- */
 
-  const galleryRefreshKey = [
+  const isPreview = Boolean(preview);
+  const galleryRefreshKey = isPreview
+    ? ""
+    : [
     activeEdition?.coverGalleryPhotoId ?? "",
-    ...(activeEdition?.photos.filter((p) => p.galleryPhotoId).map((p) => p.galleryPhotoId) ?? []),
-  ].join(",");
+        ...(activeEdition?.photos.filter((p) => p.galleryPhotoId).map((p) => p.galleryPhotoId) ?? []),
+      ].join(",");
 
   useEffect(() => {
     if (!galleryRefreshKey) return;
@@ -161,6 +189,7 @@ export function useNewsletterEditorModel(props: NewsletterEditorModelProps) {
 
   const staffRequestRef = useRef(0);
   const loadStaff = useCallback(() => {
+    if (isPreview) return;
     const request = ++staffRequestRef.current;
     setStaffLoading(true);
     setStaffError(null);
@@ -180,7 +209,7 @@ export function useNewsletterEditorModel(props: NewsletterEditorModelProps) {
       .finally(() => {
         if (request === staffRequestRef.current) setStaffLoading(false);
       });
-  }, [slug]);
+  }, [isPreview, slug]);
 
   useEffect(() => {
     queueMicrotask(loadStaff);
@@ -417,7 +446,9 @@ export function useNewsletterEditorModel(props: NewsletterEditorModelProps) {
         const saved = await onSaveNow();
         if (!saved) return;
       }
-      const published = await publishNewsletterEditionApi(slug, activeEdition.id, notifyFamilies);
+      const published = preview
+        ? await previewPublish(workspaceRef.current.editions.find((e) => e.id === activeEdition.id) ?? activeEdition)
+        : await publishNewsletterEditionApi(slug, activeEdition.id, notifyFamilies);
       onEditionSaved(published);
       adminToast.dismiss(PUBLISH_ERROR_ID);
       adminToast.success("Published.", {
@@ -436,7 +467,7 @@ export function useNewsletterEditorModel(props: NewsletterEditorModelProps) {
     } finally {
       setPublishing(false);
     }
-  }, [activeEdition.id, isDirty, locked, notifyFamilies, onEditionSaved, onSaveNow, publishing, readiness.ready, slug]);
+  }, [activeEdition, isDirty, locked, notifyFamilies, onEditionSaved, onSaveNow, preview, publishing, readiness.ready, slug]);
   useEffect(() => {
     publishRef.current = publish;
   }, [publish]);
@@ -500,6 +531,12 @@ export function useNewsletterEditorModel(props: NewsletterEditorModelProps) {
     returnToDraft,
     saving: saveState === "saving",
   };
+}
+
+/** Demo publish: same busy time as a real request, nothing leaves the page. */
+async function previewPublish(edition: NewsletterEdition): Promise<NewsletterEdition> {
+  await new Promise((resolve) => window.setTimeout(resolve, 450));
+  return { ...edition, status: "published", publishedAt: new Date().toISOString() };
 }
 
 export type NewsletterEditorModel = ReturnType<typeof useNewsletterEditorModel>;

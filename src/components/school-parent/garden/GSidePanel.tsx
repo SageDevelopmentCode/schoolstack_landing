@@ -4,6 +4,7 @@ import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
 import ParentGardenFrame from "./ParentGardenFrame";
+import { useGardenOverlayHost } from "./overlay-host";
 import { GKicker, G_FOCUS } from "./ui";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
@@ -56,6 +57,8 @@ export default function GSidePanel({
 }: GSidePanelProps) {
   const reduce = useReducedMotion() === true;
   const closeRef = useRef<HTMLButtonElement>(null);
+  // In a demo canvas, focus moves without scrolling the host page.
+  const inHost = useGardenOverlayHost() !== null;
   const onCloseRef = useRef(onClose);
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -68,13 +71,16 @@ export default function GSidePanel({
       if (event.key === "Escape") onCloseRef.current();
     };
     window.addEventListener("keydown", onKey);
-    const focusTimer = window.setTimeout(() => closeRef.current?.focus(), 60);
+    const focusTimer = window.setTimeout(
+      () => closeRef.current?.focus(inHost ? { preventScroll: true } : undefined),
+      60,
+    );
     return () => {
       window.removeEventListener("keydown", onKey);
       window.clearTimeout(focusTimer);
-      if (opener && document.contains(opener)) opener.focus();
+      if (opener && document.contains(opener)) opener.focus(inHost ? { preventScroll: true } : undefined);
     };
-  }, [open]);
+  }, [open, inHost]);
 
   return (
     <AnimatePresence>

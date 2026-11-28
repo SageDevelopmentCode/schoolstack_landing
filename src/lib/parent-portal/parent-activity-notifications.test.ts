@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import {
   countUnreadParentActivityNotifications,
+  fetchParentActivityNotifications,
   filterParentActivityEventsForFamily,
   getParentActivityNotificationCategory,
   formatRelativeTime,
@@ -234,17 +235,17 @@ const programNotificationContext = {
 
 describe("countUnreadParentActivityNotifications", () => {
   it("uses gt(lastReadAt) for activity event queries when watermark is recent", async () => {
-    const rangeStart = getActivityNotificationRangeStart(
-      30,
-      new Date("2026-09-10T12:00:00.000Z"),
-    );
-    const lastReadAt = "2026-09-09T12:00:00.000Z";
+    // The count uses the real clock for its 30-day window, so keep the
+    // fixture dates relative to now.
+    const now = Date.now();
+    const rangeStart = getActivityNotificationRangeStart(30, new Date(now));
+    const lastReadAt = new Date(now - 24 * 60 * 60_000).toISOString();
     const { supabase, createdAtFilters } = createUnreadCountSupabase({
       activityEvents: [
         {
           id: "event-1",
           action: ACTIVITY_ACTIONS.APPLICATION_ACCEPTED,
-          created_at: "2026-09-09T18:00:00.000Z",
+          created_at: new Date(now - 6 * 60 * 60_000).toISOString(),
           entity_type: "application",
           entity_id: "app-1",
           summary: "Accepted",
@@ -764,5 +765,174 @@ describe("filterParentActivityEventsForFamily committee broadcasts", () => {
     );
 
     assert.equal(filtered.length, 0);
+  });
+});
+
+type BatchingActivityEvent = {
+  id: string;
+  action: string;
+  created_at: string;
+  entity_type?: string | null;
+  entity_id?: string | null;
+  summary?: string;
+  metadata?: Record<string, unknown>;
+};
+
+/**
+ * Serves `activity_events` in consecutive pages that honour `.limit()`, and
+ * counts how often the family guardian user ids are fetched.
+ */
+function createBatchingSupabase(options: {
+  activityEvents: BatchingActivityEvent[];
+  familyGuardians: Array<{ user_id: string }>;
+}): {
+  supabase: SupabaseClient;
+  calls: { activityLimits: number[]; guardianUserIdFetches: number };
+} {
+  const calls = { activityLimits: [] as number[], guardianUserIdFetches: 0 };
+  let activityOffset = 0;
+
+  const supabase = {
+    from(table: string) {
+      let columns = "";
+      let limitValue: number | null = null;
+
+      const resolveData = (): unknown[] => {
+        if (table === "activity_events") {
+          const rows = options.activityEvents.slice(
+            activityOffset,
+            activityOffset + (limitValue ?? options.activityEvents.length),
+          );
+          activityOffset += rows.length;
+          return rows;
+        }
+        if (table === "guardians" && columns === "user_id") {
+          calls.guardianUserIdFetches += 1;
+          return options.familyGuardians;
+        }
+        return [];
+      };
+
+      const chain: unknown = new Proxy(
+        {},
+        {
+          get(_target, prop) {
+            if (prop === "then") {
+              return (
+                onFulfilled: (value: { data: unknown[]; error: null }) => unknown,
+                onRejected?: (reason: unknown) => unknown,
+              ) =>
+                Promise.resolve({ data: resolveData(), error: null }).then(
+                  onFulfilled,
+                  onRejected,
+                );
+            }
+            if (prop === "select") {
+              return (selectColumns: string) => {
+                columns = selectColumns;
+                return chain;
+              };
+            }
+            if (prop === "limit") {
+              return (value: number) => {
+                limitValue = value;
+                if (table === "activity_events") calls.activityLimits.push(value);
+                return chain;
+              };
+            }
+            if (prop === "maybeSingle" || prop === "single") {
+              return () => Promise.resolve({ data: null, error: null });
+            }
+            return () => chain;
+          },
+        },
+      );
+      return chain;
+    },
+  } as unknown as SupabaseClient;
+
+  return { supabase, calls };
+}
+
+describe("parent activity notification round trips", () => {
+  const guardianUserId = "guardian-user-1";
+
+  it("fetches family guardian ids once across multiple activity batches", async () => {
+    const now = Date.now();
+    // 250 message events for the family: every 10th is from staff (counted),
+    // the rest were sent by the family's own guardian (excluded).
+    const activityEvents = Array.from({ length: 250 }, (_, index) => ({
+      id: `event-${String(index).padStart(3, "0")}`,
+      action: ACTIVITY_ACTIONS.MESSAGES_RECEIVED,
+      created_at: new Date(now - (index + 1) * 60_000).toISOString(),
+      entity_type: "message",
+      entity_id: `message-${index}`,
+      summary: "New message",
+      metadata: {
+        familyId: "family-1",
+        senderUserId: index % 10 === 0 ? "staff-user" : guardianUserId,
+      },
+    }));
+
+    const { supabase, calls } = createBatchingSupabase({
+      activityEvents,
+      familyGuardians: [{ user_id: guardianUserId }],
+    });
+
+    const unreadCount = await countUnreadParentActivityNotifications(
+      supabase,
+      "org-1",
+      "school",
+      "family-1",
+      null,
+      { notificationContext: programNotificationContext },
+    );
+
+    assert.equal(unreadCount, 25);
+    assert.deepEqual(
+      calls.activityLimits,
+      [200, 50],
+      "scans the same 250 rows as before, in two batches",
+    );
+    assert.equal(calls.guardianUserIdFetches, 1);
+  });
+
+  it("builds a notifications page with one guardian lookup", async () => {
+    const now = Date.now();
+    const accepted = (index: number, familyId: string) => ({
+      id: `event-${index}`,
+      action: ACTIVITY_ACTIONS.APPLICATION_ACCEPTED,
+      created_at: new Date(now - (index + 1) * 60_000).toISOString(),
+      entity_type: "application",
+      entity_id: `app-${index}`,
+      summary: "Accepted",
+      metadata: { applicationId: `app-${index}`, familyId },
+    });
+
+    const { supabase, calls } = createBatchingSupabase({
+      activityEvents: [
+        accepted(0, "family-1"),
+        accepted(1, "family-2"),
+        accepted(2, "family-1"),
+        accepted(3, "family-1"),
+      ],
+      familyGuardians: [{ user_id: guardianUserId }],
+    });
+
+    const page = await fetchParentActivityNotifications(
+      supabase,
+      "org-1",
+      "school",
+      "family-1",
+      { limit: 2, notificationContext: programNotificationContext },
+    );
+
+    assert.deepEqual(
+      page.notifications.map((notification) => notification.id),
+      ["event-0", "event-2"],
+    );
+    assert.equal(page.hasMore, true);
+    assert.deepEqual(calls.activityLimits, [200]);
+    assert.equal(calls.guardianUserIdFetches, 1);
   });
 });

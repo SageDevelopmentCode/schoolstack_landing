@@ -160,6 +160,7 @@ Before each store release:
 |---------|---------|-----|
 | `development` | `development` | Dev client, internal distribution |
 | `production` | `production` | Store / TestFlight builds; `environment: production` + EAS `production` env vars |
+| `production-android` | `production` | Android store builds: `production` plus `SENTRY_DISABLE_AUTO_UPLOAD=true` (see below) |
 
 From `apps/mobile`:
 
@@ -169,7 +170,9 @@ npm run build:production:ios
 npm run build:production:android
 ```
 
-Scripts run [`scripts/assert-production-mobile-env.sh`](scripts/assert-production-mobile-env.sh) with production `EXPO_PUBLIC_SITE_URL`, then `eas build --profile production`.
+Scripts run [`scripts/assert-production-mobile-env.sh`](scripts/assert-production-mobile-env.sh) with production `EXPO_PUBLIC_SITE_URL`, then `eas build --profile production` (iOS) or `--profile production-android` (Android).
+
+**Android Sentry workaround (temporary):** `@sentry/react-native` 6.22's `sentry.gradle` calls `exec {}` inside its source map upload task, and Gradle 9 removed that, so Android builds fail with `Could not find method exec()`. The `production-android` profile skips that upload, so Android crash stacks in Sentry stay minified. Once you upgrade to `@sentry/react-native` ~7.11 (the version Expo SDK 57 expects; ship it as a new `expo.version` on both platforms), delete the profile and point `build:production:android` back at `production`.
 
 Monitor: [expo.dev](https://expo.dev) → project → Builds.
 

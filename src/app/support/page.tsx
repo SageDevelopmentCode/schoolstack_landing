@@ -6,7 +6,7 @@ import { pageMetadata } from "@/lib/metadata";
 import { buildBreadcrumbs } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Support",
+  title: "Help & support",
   description:
     "Contact the MudKitchen team for product help, billing questions, or general support.",
   path: "/support",

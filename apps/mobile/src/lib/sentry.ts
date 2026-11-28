@@ -62,25 +62,47 @@ export function mobileApiSpanName(url: string, method: string): string {
   }
 }
 
+export type MobileApiSpanOptions = {
+  /**
+   * Fire-and-forget work (push registration, telemetry posts). The span becomes its own root
+   * instead of a child of the active span, so it can't keep a screen's navigation idle span open.
+   */
+  background?: boolean;
+};
+
 export async function withMobileApiSpan<T>(
   url: string,
   method: string,
   run: () => Promise<T>,
+  options: MobileApiSpanOptions = {},
 ): Promise<T> {
   if (!sentryInitialized) {
     return run();
   }
 
-  return Sentry.startSpan(
-    {
-      name: mobileApiSpanName(url, method),
-      op: 'http.client',
-      attributes: {
-        'http.request.method': method.toUpperCase(),
+  const startApiSpan = () =>
+    Sentry.startSpan(
+      {
+        name: mobileApiSpanName(url, method),
+        op: 'http.client',
+        attributes: {
+          'http.request.method': method.toUpperCase(),
+          ...(options.background ? { 'mobile.api.background': true } : {}),
+        },
       },
-    },
-    run,
-  );
+      run,
+    );
+
+  if (options.background) {
+    return Sentry.withActiveSpan(null, startApiSpan);
+  }
+
+  return startApiSpan();
+}
+
+/** Test-only: flip the init flag without calling Sentry.init. */
+export function setMobileSentryInitializedForTests(initialized: boolean): void {
+  sentryInitialized = initialized;
 }
 
 export { Sentry };

@@ -12,13 +12,13 @@ export const GET = withParentPortalRoute(
     forbiddenMessage: "You do not have access to this program.",
     fallbackErrorMessage: "Failed to load curriculum.",
   },
-  async ({ request, supabase, user, organizationId, programId }) => {
+  async ({ request, supabase, organizationId, programId, access }) => {
     try {
       const payload = await loadParentCoopCurriculumPageDataForUser({
         supabase,
-        userId: user.id,
         organizationId,
         programId: programId!,
+        access,
       });
       return NextResponse.json(payload);
     } catch (err) {

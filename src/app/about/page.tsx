@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 import BreadcrumbJsonLd from "@/components/seo/BreadcrumbJsonLd";
+import StructuredData from "@/components/seo/StructuredData";
 import GardenRoot from "@/components/garden/GardenRoot";
 import AboutGardenPage from "@/components/about-garden/AboutGardenPage";
 import { pageMetadata } from "@/lib/metadata";
-import { buildBreadcrumbs } from "@/lib/seo";
-import { DEFAULT_DESCRIPTION } from "@/lib/site";
+import { aboutPageJsonLd, buildBreadcrumbs } from "@/lib/seo";
+
+const DESCRIPTION =
+  "Meet MudKitchen founders Julius Cecilia and Sabrina Obnamia, who built microschool software while opening Sage Field in Round Rock, Texas.";
 
 export const metadata: Metadata = pageMetadata({
-  title: "About",
-  description:
-    "Meet MudKitchen founders Julius Cecilia and Sabrina Obnamia — microschool operators who built the platform while opening Sage Field in Round Rock, Texas. " +
-    DEFAULT_DESCRIPTION,
+  title: "About us: built by microschool founders",
+  description: DESCRIPTION,
   path: "/about",
 });
 
@@ -20,6 +21,7 @@ export default function AboutRoute() {
   return (
     <GardenRoot>
       <BreadcrumbJsonLd items={BREADCRUMBS} />
+      <StructuredData data={aboutPageJsonLd({ path: "/about", description: DESCRIPTION })} />
       <AboutGardenPage />
     </GardenRoot>
   );

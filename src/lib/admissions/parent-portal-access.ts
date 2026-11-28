@@ -25,6 +25,7 @@ import {
 import { parseApplicationFormStepIndex } from "./application-form-steps";
 import {
   listEnrollmentProgressForApplications,
+  type EnrollmentChecklistSnapshotLoader,
   type EnrollmentProgressSummary,
   type LoadedEnrollmentChecklist,
 } from "./enrollment-checklist-materialization";
@@ -492,8 +493,11 @@ export async function listFamilyApplications(
   supabase: SupabaseClient,
   organizationId: string,
   userId: string,
+  /** The user's family ids when the caller already has them (for example from parent_portal_access). */
+  knownFamilyIds?: string[],
 ): Promise<FamilyApplication[]> {
-  const familyIds = await getFamilyIdsForUser(supabase, userId, organizationId);
+  const familyIds =
+    knownFamilyIds ?? (await getFamilyIdsForUser(supabase, userId, organizationId));
 
   const { data, error } = await supabase
     .from("applications")
@@ -720,8 +724,19 @@ export async function listFamilyChildrenForHome(
   supabase: SupabaseClient,
   organizationId: string,
   userId: string,
+  /** Skips the family lookup when the caller already has the user's family ids. */
+  knownFamilyIds?: string[],
+  options?: {
+    /** Shares one checklist read with the enrollment banners on the same request. */
+    checklistSnapshotLoader?: EnrollmentChecklistSnapshotLoader;
+  },
 ): Promise<FamilyChildOverview[]> {
-  const applications = await listFamilyApplications(supabase, organizationId, userId);
+  const applications = await listFamilyApplications(
+    supabase,
+    organizationId,
+    userId,
+    knownFamilyIds,
+  );
   const eligible = applications.filter(
     (application) =>
       application.status !== "draft" && Boolean(application.studentName?.trim()),
@@ -735,6 +750,7 @@ export async function listFamilyChildrenForHome(
       supabase,
       organizationId,
       eligible.map((application) => application.id),
+      { snapshotLoader: options?.checklistSnapshotLoader },
     ),
     loadStudentProfilePhotoUrls(
       supabase,

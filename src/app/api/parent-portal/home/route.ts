@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
-import { fetchOrganizationWithSettingsUncached } from "@/lib/organization-settings/fetch";
+import { fetchOrganizationWithSettingsForClient } from "@/lib/organization-settings/fetch";
 import { loadParentPortalHomeApiPayload } from "@/lib/parent-portal/load-parent-portal-home-api-payload";
 import { withParentPortalRoute } from "@/lib/parent-portal/with-parent-portal-route";
 
@@ -14,7 +14,7 @@ export const GET = withParentPortalRoute(
     missingOrganizationMessage: "organizationId and slug are required.",
     fallbackErrorMessage: "Failed to load home data.",
   },
-  async ({ request, supabase, user, organizationId }) => {
+  async ({ request, supabase, user, organizationId, access }) => {
     const url = new URL(request.url);
     const slug = url.searchParams.get("slug")?.trim() ?? "";
     if (!slug) {
@@ -30,7 +30,7 @@ export const GET = withParentPortalRoute(
       url.searchParams.get("programSlug")?.trim() || undefined;
 
     try {
-      const org = await fetchOrganizationWithSettingsUncached(supabase, slug);
+      const org = await fetchOrganizationWithSettingsForClient(supabase, slug);
       if (!org || org.id !== organizationId) {
         return apiError(ROUTE, {
           request,
@@ -46,6 +46,7 @@ export const GET = withParentPortalRoute(
         org,
         slug,
         programSlug,
+        access,
       });
 
       return NextResponse.json(payload);

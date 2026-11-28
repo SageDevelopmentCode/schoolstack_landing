@@ -1,0 +1,168 @@
+{
+  "auth_main": {
+    "familyChildren": [
+      {
+        "applicationId": "app-1",
+        "studentId": "stu-1",
+        "studentName": "Ada Lovelace",
+        "profilePhotoUrl": "https://example.test/ada.jpg",
+        "grade": null,
+        "status": "accepted",
+        "statusLabel": "Accepted",
+        "isEnrolled": false,
+        "checklistProgress": {
+          "completed": 2,
+          "total": 3
+        },
+        "enrolledPrograms": [
+          {
+            "programId": "prog-1",
+            "programName": "Main",
+            "portalSlug": null,
+            "isIsolatedPortal": false,
+            "portalLabel": "Main"
+          }
+        ]
+      },
+      {
+        "applicationId": "app-2",
+        "studentId": "stu-2",
+        "studentName": "Ben Lovelace",
+        "profilePhotoUrl": null,
+        "grade": null,
+        "status": "submitted",
+        "statusLabel": "Submitted",
+        "isEnrolled": false,
+        "checklistProgress": {
+          "completed": 0,
+          "total": 1
+        },
+        "enrolledPrograms": []
+      }
+    ],
+    "onboardingItems": [],
+    "enrollmentAmendmentBannerItems": [
+      {
+        "applicationId": "app-2",
+        "studentName": "Ben Lovelace",
+        "checklistItemLabel": "Spring agreement",
+        "amendmentNotice": "We updated photo consent.",
+        "enrollmentHref": "/school/school/apply/app-2/enrollment?item=ti-4&section=sec-c"
+      }
+    ],
+    "enrollmentIncompleteBannerItems": [
+      {
+        "applicationId": "app-1",
+        "studentName": "Ada Lovelace",
+        "checklistItemLabel": "Enrollment agreement",
+        "enrollmentHref": "/school/school/apply/app-1/enrollment?item=ti-1&section=sec-b"
+      }
+    ],
+    "formAttentionItems": [],
+    "formSnapshot": null,
+    "fridayBranchHome": null
+  },
+  "auth_prog-1": {
+    "familyChildren": [
+      {
+        "applicationId": "app-1",
+        "studentId": "stu-1",
+        "studentName": "Ada Lovelace",
+        "profilePhotoUrl": "https://example.test/ada.jpg",
+        "grade": null,
+        "status": "accepted",
+        "statusLabel": "Accepted",
+        "isEnrolled": false,
+        "checklistProgress": {
+          "completed": 2,
+          "total": 3
+        },
+        "enrolledPrograms": [
+          {
+            "programId": "prog-1",
+            "programName": "Main",
+            "portalSlug": null,
+            "isIsolatedPortal": false,
+            "portalLabel": "Main"
+          }
+        ]
+      }
+    ],
+    "onboardingItems": [],
+    "enrollmentAmendmentBannerItems": [],
+    "enrollmentIncompleteBannerItems": [
+      {
+        "applicationId": "app-1",
+        "studentName": "Ada Lovelace",
+        "checklistItemLabel": "Enrollment agreement",
+        "enrollmentHref": "/school/school/apply/app-1/enrollment?item=ti-1&section=sec-b"
+      }
+    ],
+    "formAttentionItems": [],
+    "formSnapshot": null,
+    "fridayBranchHome": null
+  },
+  "preview": {
+    "familyChildren": [
+      {
+        "applicationId": "app-1",
+        "studentId": "stu-1",
+        "studentName": "Ada Lovelace",
+        "profilePhotoUrl": "https://example.test/ada.jpg",
+        "grade": null,
+        "status": "accepted",
+        "statusLabel": "Accepted",
+        "isEnrolled": false,
+        "checklistProgress": {
+          "completed": 2,
+          "total": 3
+        },
+        "enrolledPrograms": [
+          {
+            "programId": "prog-1",
+            "programName": "Main",
+            "portalSlug": null,
+            "isIsolatedPortal": false,
+            "portalLabel": "Main"
+          }
+        ]
+      },
+      {
+        "applicationId": "app-2",
+        "studentId": "stu-2",
+        "studentName": "Ben Lovelace",
+        "profilePhotoUrl": null,
+        "grade": null,
+        "status": "submitted",
+        "statusLabel": "Submitted",
+        "isEnrolled": false,
+        "checklistProgress": {
+          "completed": 0,
+          "total": 1
+        },
+        "enrolledPrograms": []
+      }
+    ],
+    "onboardingItems": [],
+    "enrollmentAmendmentBannerItems": [
+      {
+        "applicationId": "app-2",
+        "studentName": "Ben Lovelace",
+        "checklistItemLabel": "Spring agreement",
+        "amendmentNotice": "We updated photo consent.",
+        "enrollmentHref": "/admin/preview/school/family/fam-1/apply/app-2/enrollment?item=ti-4&section=sec-c"
+      }
+    ],
+    "enrollmentIncompleteBannerItems": [
+      {
+        "applicationId": "app-1",
+        "studentName": "Ada Lovelace",
+        "checklistItemLabel": "Enrollment agreement",
+        "enrollmentHref": "/admin/preview/school/family/fam-1/apply/app-1/enrollment?item=ti-1&section=sec-b"
+      }
+    ],
+    "formAttentionItems": [],
+    "formSnapshot": null,
+    "fridayBranchHome": null
+  }
+}

@@ -134,3 +134,23 @@ export const MOBILE_TEACHING_SCHEDULE_FILTER_PILLS: ReadonlyArray<{
   { key: 'mine', label: 'My weeks' },
   { key: 'open_spots', label: 'Open slots' },
 ];
+
+/** The first week that hasn't ended yet (the "Next up" week), or null when the year is done. */
+export function findNextTeachingWeek(
+  weeks: ParentCoopTeachingScheduleWeek[],
+  referenceDate: Date = new Date(),
+): ParentCoopTeachingScheduleWeek | null {
+  return sortTeachingScheduleWeeks(weeks).find((week) => !isTeachingWeekPast(week, referenceDate)) ?? null;
+}
+
+/** Weeks where the current family holds the instructor or assistant role. */
+export function countMyTeachingWeeks(
+  weeks: ParentCoopTeachingScheduleWeek[],
+  currentFamilyId: string,
+): number {
+  return weeks.filter(
+    (week) =>
+      isTeachingParentAssigned(week.instructorFamilyIds, currentFamilyId) ||
+      isTeachingParentAssigned(week.assistantFamilyIds, currentFamilyId),
+  ).length;
+}

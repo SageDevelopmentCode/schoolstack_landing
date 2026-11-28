@@ -12,8 +12,8 @@ const DemoAdminNewsletterEditorPage = dynamic(
 export default function NewsletterEditorBlogEmbed() {
   return (
     <BlogPostWideDemo caption="MudKitchen school admin — weekly newsletter editor">
-      <BlogProductDemoFrame contentHeight={920} cropZoom={0.92}>
-        <DemoAdminNewsletterEditorPage />
+      <BlogProductDemoFrame contentHeight={920} cropZoom={0.92} mobileCropOriginX={0} fitHeight>
+        <DemoAdminNewsletterEditorPage variant="editor" />
       </BlogProductDemoFrame>
     </BlogPostWideDemo>
   );

@@ -4,10 +4,16 @@ import {
   buildRateCatalogDetailLabel,
   formatRateCatalogPeriodLabel,
 } from "./rate-catalog-display";
+import {
+  enrolledFamilyEnrollments,
+  type FamilyBillingRows,
+  type MaybePromise,
+} from "./family-billing-rows";
 import type {
   BillingBasis,
   FamilyAssignmentSummary,
   FamilyBillingReadinessState,
+  TuitionCharge,
   UnassignedEnrollmentSummary,
 } from "./types";
 
@@ -359,6 +365,77 @@ export async function listUnassignedEnrollmentsForOrganization(
     .filter((record) => record.familyId.length > 0);
 }
 
+/** Rows the parent billing page has already loaded; each one skips a query here. */
+export type FamilyBillingReadinessPreload = {
+  familyRows?: MaybePromise<FamilyBillingRows>;
+  /** The family's non-void charges, due date ascending (`listChargesForFamily`). */
+  charges?: MaybePromise<TuitionCharge[]>;
+  /** The org's `tuition_payment_plans` rows (id, name, installment_count). */
+  paymentPlanRows?: MaybePromise<Array<{ id: unknown; name: unknown }>>;
+};
+
+type ReadinessChargeRow = {
+  due_date: unknown;
+  amount_cents: unknown;
+  label: unknown;
+  status: unknown;
+};
+
+async function loadReadinessFamilyRows(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+): Promise<{
+  students: Array<{ id: unknown; first_name: unknown; last_name: unknown }>;
+  enrollments: Array<{
+    id: unknown;
+    student_id: unknown;
+    program_id: unknown;
+    enrolled_at: unknown;
+  }>;
+  assignments: Record<string, unknown>[];
+}> {
+  const studentsAndEnrollments = (async () => {
+    const { data: students, error: studentsError } = await supabase
+      .from("students")
+      .select("id, first_name, last_name")
+      .eq("family_id", familyId);
+
+    if (studentsError) throw studentsError;
+
+    const familyStudentIds = (students ?? []).map((row) => String(row.id));
+    if (familyStudentIds.length === 0) {
+      return { students: students ?? [], enrollments: [] };
+    }
+
+    const { data: enrollments, error: enrollmentsError } = await supabase
+      .from("enrollments")
+      .select("id, student_id, program_id, status, enrolled_at")
+      .eq("organization_id", organizationId)
+      .eq("status", "enrolled")
+      .in("student_id", familyStudentIds);
+
+    if (enrollmentsError) throw enrollmentsError;
+    return { students: students ?? [], enrollments: enrollments ?? [] };
+  })();
+
+  const [{ students, enrollments }, { data: assignments, error: assignmentsError }] =
+    await Promise.all([
+      studentsAndEnrollments,
+      supabase
+        .from("tuition_enrollment_assignments")
+        .select(
+          "id, enrollment_id, rate_plan_id, rate_tier_id, payment_plan_id, metadata",
+        )
+        .eq("organization_id", organizationId)
+        .eq("family_id", familyId)
+        .eq("status", "active"),
+    ]);
+
+  if (assignmentsError) throw assignmentsError;
+  return { students, enrollments, assignments: assignments ?? [] };
+}
+
 export async function fetchFamilyBillingReadiness(
   supabase: SupabaseClient,
   input: {
@@ -372,57 +449,63 @@ export async function fetchFamilyBillingReadiness(
      * after the access check, because those tables are staff-only.
      */
     catalogClient?: SupabaseClient;
+    preloaded?: FamilyBillingReadinessPreload;
   },
 ): Promise<FamilyBillingReadiness> {
   const { organizationId, familyId, slug } = input;
   const catalog = options?.catalogClient ?? supabase;
+  const preloaded = options?.preloaded;
 
-  const { data: students, error: studentsError } = await supabase
-    .from("students")
-    .select("id, first_name, last_name")
-    .eq("family_id", familyId);
+  const familyRowsPromise = preloaded?.familyRows
+    ? Promise.resolve(preloaded.familyRows).then((rows) => ({
+        students: rows.familyStudents,
+        enrollments: enrolledFamilyEnrollments(rows, organizationId),
+        assignments: rows.activeAssignmentRows,
+      }))
+    : loadReadinessFamilyRows(supabase, organizationId, familyId);
 
-  if (studentsError) throw studentsError;
+  const chargesPromise: Promise<ReadinessChargeRow[]> = preloaded?.charges
+    ? Promise.resolve(preloaded.charges).then((charges) =>
+        charges.map((charge) => ({
+          due_date: charge.dueDate,
+          amount_cents: charge.amountCents,
+          label: charge.label,
+          status: charge.status,
+        })),
+      )
+    : (async () => {
+        const { data, error } = await supabase
+          .from("tuition_charges")
+          .select("id, due_date, amount_cents, label, status")
+          .eq("family_id", familyId)
+          .not("status", "eq", "void")
+          .order("due_date", { ascending: true });
+        if (error) throw error;
+        return data ?? [];
+      })();
 
-  const familyStudentIds = (students ?? []).map((row) => String(row.id));
+  const paymentPlansPromise = preloaded?.paymentPlanRows
+    ? Promise.resolve(preloaded.paymentPlanRows)
+    : (async () => {
+        const { data, error } = await catalog
+          .from("tuition_payment_plans")
+          .select("id, name, installment_count")
+          .eq("organization_id", organizationId);
+        if (error) throw error;
+        return data ?? [];
+      })();
 
   const [
-    { data: enrollments, error: enrollmentsError },
-    { data: assignments, error: assignmentsError },
-    { data: charges, error: chargesError },
+    { students, enrollments, assignments },
+    charges,
+    paymentPlans,
     { data: programs, error: programsError },
     { data: ratePlans, error: ratePlansError },
     { data: tiers, error: tiersError },
-    { data: paymentPlans, error: paymentPlansError },
   ] = await Promise.all([
-    familyStudentIds.length > 0
-      ? supabase
-          .from("enrollments")
-          .select("id, student_id, program_id, status, enrolled_at")
-          .eq("organization_id", organizationId)
-          .eq("status", "enrolled")
-          .in("student_id", familyStudentIds)
-      : Promise.resolve({ data: [] as Array<{
-          id: string;
-          student_id: string;
-          program_id: string;
-          status: string;
-          enrolled_at: string | null;
-        }>, error: null }),
-    supabase
-      .from("tuition_enrollment_assignments")
-      .select(
-        "id, enrollment_id, rate_plan_id, rate_tier_id, payment_plan_id, metadata",
-      )
-      .eq("organization_id", organizationId)
-      .eq("family_id", familyId)
-      .eq("status", "active"),
-    supabase
-      .from("tuition_charges")
-      .select("id, due_date, amount_cents, label, status")
-      .eq("family_id", familyId)
-      .not("status", "eq", "void")
-      .order("due_date", { ascending: true }),
+    familyRowsPromise,
+    chargesPromise,
+    paymentPlansPromise,
     supabase.from("programs").select("id, name").eq("organization_id", organizationId),
     catalog
       .from("tuition_rate_plans")
@@ -432,19 +515,11 @@ export async function fetchFamilyBillingReadiness(
       .from("tuition_rate_tiers")
       .select("id, rate_plan_id, label, amount_cents")
       .eq("organization_id", organizationId),
-    catalog
-      .from("tuition_payment_plans")
-      .select("id, name, installment_count")
-      .eq("organization_id", organizationId),
   ]);
 
-  if (enrollmentsError) throw enrollmentsError;
-  if (assignmentsError) throw assignmentsError;
-  if (chargesError) throw chargesError;
   if (programsError) throw programsError;
   if (ratePlansError) throw ratePlansError;
   if (tiersError) throw tiersError;
-  if (paymentPlansError) throw paymentPlansError;
 
   const studentMap = new Map(
     (students ?? []).map((student) => [

@@ -46,6 +46,8 @@ type NewsletterVersionHistorySheetProps = {
   template: NewsletterSchoolTemplate;
   branding: OrganizationBranding;
   staffMembers: StaffMemberRecord[];
+  /** Marketing demos: no saved versions, nothing fetched (shows the empty state). */
+  previewMode?: boolean;
   onClose: () => void;
   onRestored: (edition: NewsletterEdition) => void;
   onToast: (message: string, tone?: "success" | "error" | "info") => void;
@@ -59,6 +61,7 @@ export default function NewsletterVersionHistorySheet({
   template,
   branding,
   staffMembers,
+  previewMode = false,
   onClose,
   onRestored,
   onToast,
@@ -86,6 +89,7 @@ export default function NewsletterVersionHistorySheet({
   );
 
   const reloadVersions = useCallback(() => {
+    if (previewMode) return;
     setLoading(true);
     setLoadError(null);
     void listNewsletterEditionVersionsApi(slug, edition.id)
@@ -94,10 +98,10 @@ export default function NewsletterVersionHistorySheet({
         setLoadError(err instanceof Error ? err.message : "Could not load versions.");
       })
       .finally(() => setLoading(false));
-  }, [edition.id, slug]);
+  }, [edition.id, previewMode, slug]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || previewMode) return;
     queueMicrotask(() => {
       setLoading(true);
       setLoadError(null);
@@ -108,7 +112,7 @@ export default function NewsletterVersionHistorySheet({
         })
         .finally(() => setLoading(false));
     });
-  }, [edition.id, open, slug]);
+  }, [edition.id, open, previewMode, slug]);
 
   useEffect(() => {
     if (!previewVersionId) return;

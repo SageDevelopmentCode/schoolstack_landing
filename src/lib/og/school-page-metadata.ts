@@ -51,6 +51,7 @@ export async function schoolPageMetadata(org: SchoolOrg, options: SchoolPageMeta
   return {
     title: options.title,
     ...(description ? { description } : {}),
+    ...(options.path !== undefined ? { alternates: { canonical: url } } : {}),
     openGraph: {
       title: options.title,
       ...(description ? { description } : {}),

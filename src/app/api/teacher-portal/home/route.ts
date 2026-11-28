@@ -4,10 +4,8 @@ import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch
 import { fetchTeacherDashboardSummary } from "@/lib/school-teacher/teacher-dashboard-summary";
 import { buildTeacherDocumentationGuides } from "@/lib/school-teacher/teacher-documentation";
 import {
-  getTeacherPortalStaffMemberIdForUser,
-  getStaffPortalRoleForUser,
   getStaffUserProfile,
-  userHasTeacherPortalAccess,
+  loadTeacherPortalContext,
 } from "@/lib/staff/teacher-portal-access";
 import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -54,12 +52,14 @@ export async function GET(request: Request) {
       });
     }
 
-    const hasAccess = await userHasTeacherPortalAccess(
+    // One link-group read + one parallel memberships/staff read; the helpers below and the
+    // dashboard summary reuse it through the request-scoped teacher context.
+    const teacherContext = await loadTeacherPortalContext(
       supabase,
       user.id,
       organizationId,
     );
-    if (!hasAccess) {
+    if (!teacherContext.hasAccess) {
       return apiError(ROUTE, {
         request,
         status: 403,
@@ -70,42 +70,27 @@ export async function GET(request: Request) {
 
     const admin = createAdminClient();
 
-    const staffMemberId = await getTeacherPortalStaffMemberIdForUser(
-      supabase,
-      user.id,
-      organizationId,
-    );
-
-    const [userProfile, summary, staffMemberResult, portalRole] =
-      await Promise.all([
-        getStaffUserProfile(supabase, user.id, organizationId, user),
-        fetchTeacherDashboardSummary(
-          supabase,
-          admin,
-          organizationId,
-          slug,
-          org.features,
-          {
-            schoolName: org.name,
-            userId: user.id,
-          },
-        ),
-        staffMemberId
-          ? supabase
-              .from("staff_members")
-              .select("role_title")
-              .eq("id", staffMemberId)
-              .maybeSingle()
-          : Promise.resolve({ data: null, error: null }),
-        getStaffPortalRoleForUser(supabase, user.id, organizationId),
-      ]);
-
-    if (staffMemberResult.error) throw staffMemberResult.error;
+    const [userProfile, summary] = await Promise.all([
+      getStaffUserProfile(supabase, user.id, organizationId, user),
+      fetchTeacherDashboardSummary(
+        supabase,
+        admin,
+        organizationId,
+        slug,
+        org.features,
+        {
+          schoolName: org.name,
+          userId: user.id,
+          staffMemberId: teacherContext.staffMember?.id ?? null,
+        },
+      ),
+    ]);
 
     const roleTitle =
-      typeof staffMemberResult.data?.role_title === "string"
-        ? staffMemberResult.data.role_title
+      typeof teacherContext.staffMember?.role_title === "string"
+        ? teacherContext.staffMember.role_title
         : null;
+    const portalRole = teacherContext.portalRole;
 
     const documentationGuides = buildTeacherDocumentationGuides({
       slug,

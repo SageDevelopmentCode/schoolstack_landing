@@ -12,7 +12,10 @@ import {
   resolvedPostSubmitDurationMinutes,
   resolvedPostSubmitMaxVisitDays,
 } from "./post-submit-templates";
-import { listEnrollmentProgressForApplications } from "./enrollment-checklist-materialization";
+import {
+  listEnrollmentProgressForApplications,
+  type EnrollmentChecklistSnapshotLoader,
+} from "./enrollment-checklist-materialization";
 import {
   buildFamilyChildOverviews,
   loadApplicationDetail,
@@ -550,6 +553,10 @@ export async function listFamilyChildrenForHomeByFamilyId(
   supabase: SupabaseClient,
   organizationId: string,
   familyId: string,
+  options?: {
+    /** Shares one checklist read with the enrollment banners on the same request. */
+    checklistSnapshotLoader?: EnrollmentChecklistSnapshotLoader;
+  },
 ): Promise<FamilyChildOverview[]> {
   const applications = await listFamilyApplicationsForFamilyId(
     supabase,
@@ -573,6 +580,7 @@ export async function listFamilyChildrenForHomeByFamilyId(
       supabase,
       organizationId,
       eligible.map((application) => application.id),
+      { snapshotLoader: options?.checklistSnapshotLoader },
     ),
     studentIds.length > 0
       ? supabase

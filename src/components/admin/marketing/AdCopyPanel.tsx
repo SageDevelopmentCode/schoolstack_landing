@@ -1,82 +1,69 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Check, Copy } from "lucide-react";
+import { useState } from "react";
 import type { MarketingAdCopy } from "@/components/admin/marketing/carousels/types";
+import { CopyChip, GardenSegmented } from "@/components/admin/marketing/garden/marketing-ui";
 
 /** Text to paste into the ad manager next to this image, with a switch when the slide has several versions. */
-export function AdCopyPanel({ versions }: { versions: MarketingAdCopy[] }) {
+export function AdCopyPanel({
+  versions,
+  layout = "row",
+}: {
+  versions: MarketingAdCopy[];
+  /** "column" stacks the fields (side panel next to the stage on wide screens). */
+  layout?: "row" | "column";
+}) {
   const [selected, setSelected] = useState(0);
   const copy = versions[selected] ?? versions[0];
   if (!copy) return null;
-  const fields: Array<{ key: string; label: string; value: string }> = [
-    { key: "primary", label: "Primary text", value: copy.primaryText },
-    { key: "headline", label: "Headline", value: copy.headline },
-    ...(copy.description ? [{ key: "description", label: "Description", value: copy.description }] : []),
+  const fields: Array<{ key: string; label: string; value: string; what: string }> = [
+    { key: "primary", label: "Primary text", value: copy.primaryText, what: "Primary text" },
+    { key: "headline", label: "Headline", value: copy.headline, what: "Headline" },
+    ...(copy.description ? [{ key: "description", label: "Description", value: copy.description, what: "Description" }] : []),
   ];
   return (
-    <section aria-label="Ad copy" className="shrink-0 border-t border-admin-border px-6 py-3">
-      {versions.length > 1 ? (
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-admin-faint">Caption</span>
-          <div
-            role="radiogroup"
-            aria-label="Caption version"
-            className="flex flex-wrap items-center rounded-admin-md border border-admin-border bg-admin-canvas p-0.5"
-          >
-            {versions.map((version, versionIndex) => (
-              <button
-                key={versionIndex}
-                type="button"
-                role="radio"
-                aria-checked={versionIndex === selected}
-                onClick={() => setSelected(versionIndex)}
-                className={`rounded-admin-md px-2.5 py-1 text-xs font-medium ${
-                  versionIndex === selected ? "bg-admin-surface text-admin-text shadow-sm" : "text-admin-muted"
-                }`}
-              >
-                {versionIndex + 1}
-                {version.label ? <span className="font-normal"> · {version.label}</span> : null}
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
-      <div className="grid gap-2 md:grid-cols-[2fr_1fr_1fr]">
+    <section
+      aria-label="Ad copy"
+      className={`rounded-[20px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white px-4 py-3 shadow-[0_3px_0_0_rgba(43,36,29,0.08)] ${
+        layout === "column" ? "flex min-h-0 flex-col overflow-y-auto" : "shrink-0"
+      }`}
+    >
+      <div className="mb-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <p className="m-0 text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--sf-soft)]">Ad copy</p>
+        {versions.length > 1 ? (
+          <GardenSegmented
+            label="Caption version"
+            size="sm"
+            value={String(selected)}
+            onChange={(value) => setSelected(Number(value))}
+            options={versions.map((version, versionIndex) => ({
+              value: String(versionIndex),
+              label: (
+                <>
+                  {versionIndex + 1}
+                  {version.label ? <span className="font-bold opacity-80">&nbsp;· {version.label}</span> : null}
+                </>
+              ),
+            }))}
+          />
+        ) : null}
+      </div>
+      <div className={layout === "column" ? "flex flex-col gap-2.5" : "grid gap-2.5 md:grid-cols-[2fr_1fr_1fr]"}>
         {fields.map((field) => (
-          <AdCopyField key={field.key} label={field.label} value={field.value} />
+          <div key={field.key} className="min-w-0 rounded-[14px] bg-[var(--sf-paper)] px-3 py-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <p className="m-0 text-[12px] font-extrabold text-[var(--sf-ink)]">
+                {field.label}{" "}
+                <span className="font-bold tabular-nums text-[var(--sf-soft)]">· {field.value.length} chars</span>
+              </p>
+              <CopyChip text={field.value} what={field.what} ariaLabel={`Copy ${field.label.toLowerCase()}`} />
+            </div>
+            <p className={`m-0 mt-1.5 ${layout === "column" ? "" : "max-h-28 overflow-y-auto"} whitespace-pre-line text-[13px] font-semibold leading-snug text-[var(--sf-ink)]/85`}>
+              {field.value}
+            </p>
+          </div>
         ))}
       </div>
     </section>
-  );
-}
-
-function AdCopyField({ label, value }: { label: string; value: string }) {
-  const [copied, setCopied] = useState(false);
-  useEffect(() => {
-    if (!copied) return;
-    const timer = window.setTimeout(() => setCopied(false), 1600);
-    return () => window.clearTimeout(timer);
-  }, [copied]);
-
-  return (
-    <div className="min-w-0 rounded-admin-md border border-admin-border bg-admin-surface px-3 py-2">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-admin-faint">
-          {label} <span className="font-normal normal-case">· {value.length} chars</span>
-        </p>
-        <button
-          type="button"
-          onClick={() => {
-            void navigator.clipboard?.writeText(value).then(() => setCopied(true));
-          }}
-          className="inline-flex items-center gap-1 text-[11px] font-medium text-admin-accent"
-        >
-          {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-          {copied ? "Copied" : "Copy"}
-        </button>
-      </div>
-      <p className="mt-1 max-h-32 overflow-y-auto whitespace-pre-line text-xs leading-snug text-admin-text">{value}</p>
-    </div>
   );
 }

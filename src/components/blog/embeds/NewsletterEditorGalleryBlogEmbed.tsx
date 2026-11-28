@@ -11,9 +11,9 @@ const DemoAdminNewsletterEditorPage = dynamic(
 
 export default function NewsletterEditorGalleryBlogEmbed() {
   return (
-    <BlogPostWideDemo caption="Import school photos into your newsletter gallery">
-      <BlogProductDemoFrame contentHeight={920} cropZoom={0.92}>
-        <DemoAdminNewsletterEditorPage variant="photoGallery" persistImportModal />
+    <BlogPostWideDemo caption="Add photos from your school gallery">
+      <BlogProductDemoFrame contentHeight={920} cropZoom={0.92} mobileCropOriginX={0} fitHeight>
+        <DemoAdminNewsletterEditorPage variant="photoGallery" />
       </BlogProductDemoFrame>
     </BlogPostWideDemo>
   );

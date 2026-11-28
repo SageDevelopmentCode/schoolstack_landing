@@ -1,5 +1,8 @@
-/** Base URL for the Android inline pdf.js viewer HTML document. */
-export const ANDROID_PDF_VIEWER_BASE_URL = 'https://localhost';
+/** Base URL (page origin) for the inline pdf.js viewer HTML document on iOS and Android. */
+export const PDF_VIEWER_BASE_URL = 'https://localhost';
+
+/** @deprecated Use {@link PDF_VIEWER_BASE_URL} (the shell runs on iOS too). */
+export const ANDROID_PDF_VIEWER_BASE_URL = PDF_VIEWER_BASE_URL;
 
 const LOCAL_DEV_PDF_HOSTS = ['127.0.0.1', '10.0.2.2', 'localhost'];
 
@@ -18,16 +21,16 @@ export function getMobilePdfDocumentFetchHosts(): string[] {
 }
 
 /**
- * Navigation / subresource policy for the Android pdf.js WebView.
+ * Navigation policy for the pdf.js viewer WebView (iOS and Android).
  * Uses exact hostname matching for remote PDFs — no substring CDN allowlists. `file://` is never
  * allowed: pdf.js is inlined into the viewer HTML.
  */
-export function isAllowedAndroidPdfWebViewNavigation(requestUrl: string): boolean {
+export function isAllowedPdfJsWebViewNavigation(requestUrl: string): boolean {
   if (requestUrl === 'about:blank') {
     return true;
   }
 
-  if (requestUrl.startsWith(`${ANDROID_PDF_VIEWER_BASE_URL}/`) || requestUrl === ANDROID_PDF_VIEWER_BASE_URL) {
+  if (requestUrl.startsWith(`${PDF_VIEWER_BASE_URL}/`) || requestUrl === PDF_VIEWER_BASE_URL) {
     return true;
   }
 

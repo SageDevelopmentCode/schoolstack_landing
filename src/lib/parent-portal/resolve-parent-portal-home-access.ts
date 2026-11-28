@@ -10,6 +10,7 @@ import {
   getFamilyUserProfile,
   type FamilyUserProfile,
 } from "@/lib/admissions/parent-portal-access";
+import type { ParentPortalAccess } from "@/lib/parent-portal/parent-portal-access-rpc";
 
 async function userHasAnyEnrolledEnrollment(
   supabase: SupabaseClient,
@@ -87,5 +88,23 @@ export async function resolveParentPortalHomeAccess(input: {
     hasMainPortalEnrollment: familyHasMainPortalEnrollment(enrolledPrograms),
     enrolledPrograms,
     userProfile,
+  };
+}
+
+/**
+ * Home access from the `parent_portal_access` snapshot the route wrapper already loaded. Same
+ * fields as `resolveParentPortalHomeAccess` minus the profile, with no extra queries: the RPC
+ * orders families like `getFamilyIdsForUser`, so `familyId` is the same family.
+ */
+export function parentPortalHomeAccessFromSnapshot(
+  access: ParentPortalAccess,
+): Omit<ResolvedParentPortalHomeAccess, "userProfile"> {
+  return {
+    familyIds: access.familyIds,
+    familyId: access.familyIds[0],
+    studentIds: access.studentIds,
+    hasEnrolledAccess: access.hasEnrolledAccess,
+    hasMainPortalEnrollment: familyHasMainPortalEnrollment(access.enrolledPrograms),
+    enrolledPrograms: access.enrolledPrograms,
   };
 }

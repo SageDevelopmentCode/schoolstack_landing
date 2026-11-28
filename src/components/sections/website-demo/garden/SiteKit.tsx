@@ -112,13 +112,21 @@ export function SiteAccent({ children, onDark = false }: { children: ReactNode; 
 }
 
 /** Accent line with a drawn squiggle underneath (short phrases only, e.g. the hero). */
-export function SiteSquiggleAccent({ children }: { children: ReactNode }) {
+export function SiteSquiggleAccent({
+  children,
+  className = "text-[var(--sf-accent-ink)]",
+  squiggleColor = "var(--sf-butter)",
+}: {
+  children: ReactNode;
+  className?: string;
+  squiggleColor?: string;
+}) {
   return (
-    <span className="relative inline-block text-[var(--sf-accent-ink)]">
+    <span className={`relative inline-block ${className}`}>
       {children}
       <Squiggle
         className="pointer-events-none absolute -bottom-[0.12em] left-0 h-[0.22em] w-full"
-        color="var(--sf-butter)"
+        color={squiggleColor}
       />
     </span>
   );

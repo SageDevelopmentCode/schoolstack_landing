@@ -6,6 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { AlertTriangle, Loader2, X } from "lucide-react";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import ParentGardenFrame from "./ParentGardenFrame";
+import { useGardenOverlayHost } from "./overlay-host";
 import { PORTAL_EASE } from "./motion";
 import { GIcon, G_FOCUS, gBtnOutlineSm, gBtnPopSm } from "./ui";
 
@@ -79,6 +80,8 @@ export function GDialog({
 }) {
   const reduce = useReducedMotion() === true;
   const isClient = useIsClient();
+  const overlayHost = useGardenOverlayHost();
+  const inHost = Boolean(portalContainer ?? overlayHost);
   const generatedTitleId = useId();
   const titleId = titleIdProp ?? generatedTitleId;
   const descriptionId = useId();
@@ -98,7 +101,8 @@ export function GDialog({
         initialFocusRef?.current ??
         panelRef.current?.querySelector<HTMLElement>("[data-autofocus]") ??
         panelRef.current;
-      target?.focus();
+      // In a demo canvas, don't scroll the host page to the dialog.
+      target?.focus(inHost ? { preventScroll: true } : undefined);
     }, 60);
 
     const onKey = (event: KeyboardEvent) => {
@@ -129,7 +133,7 @@ export function GDialog({
       window.clearTimeout(focusTimer);
       if (opener && document.contains(opener)) opener.focus();
     };
-  }, [open, initialFocusRef]);
+  }, [open, initialFocusRef, inHost]);
 
   if (!isClient) return null;
 
@@ -236,7 +240,7 @@ export function GDialog({
         </motion.div>
       ) : null}
     </AnimatePresence>,
-    portalContainer ?? document.body,
+    portalContainer ?? overlayHost ?? document.body,
   );
 }
 

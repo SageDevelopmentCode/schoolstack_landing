@@ -1215,24 +1215,59 @@ function filterVisibleChecklistItemsAndInstances(
   return { items: visibleItems, instances: visibleInstances };
 }
 
-export async function listEnrollmentProgressForApplications(
+/**
+ * Everything the parent-facing checklist summaries read (progress, amendment
+ * banners, incomplete-agreement banners) for a set of applications, fetched once:
+ * the org's checklists for those applications, then their item instances and
+ * templates in parallel.
+ */
+export type EnrollmentChecklistSnapshot = {
+  organizationId: string;
+  applicationIds: string[];
+  checklists: Array<{
+    checklistId: string;
+    applicationId: string;
+    templateId: string;
+    status: string;
+    metadata: EnrollmentChecklistMetadata;
+  }>;
+  /** `enrollment_checklist_items` rows (all columns) for those checklists, any org. */
+  instanceRows: Record<string, unknown>[];
+  templatesById: Map<
+    string,
+    Awaited<ReturnType<typeof getEnrollmentChecklistWithItems>>
+  >;
+};
+
+function uniqueApplicationIds(applicationIds: string[]): string[] {
+  return [...new Set(applicationIds.filter(Boolean))];
+}
+
+export async function loadEnrollmentChecklistSnapshot(
   supabase: SupabaseClient,
   organizationId: string,
   applicationIds: string[],
-): Promise<Map<string, EnrollmentProgressSummary>> {
-  const result = new Map<string, EnrollmentProgressSummary>();
-  if (applicationIds.length === 0) return result;
+): Promise<EnrollmentChecklistSnapshot> {
+  const uniqueIds = uniqueApplicationIds(applicationIds);
+  const snapshot: EnrollmentChecklistSnapshot = {
+    organizationId,
+    applicationIds: uniqueIds,
+    checklists: [],
+    instanceRows: [],
+    templatesById: new Map(),
+  };
+  if (uniqueIds.length === 0) return snapshot;
 
   const { data: checklistRows, error: checklistError } = await supabase
     .from("enrollment_checklists")
     .select("id, application_id, template_id, status, metadata")
     .eq("organization_id", organizationId)
-    .in("application_id", applicationIds);
+    .in("application_id", uniqueIds);
 
   if (checklistError) throw checklistError;
-  if (!checklistRows || checklistRows.length === 0) return result;
+  if (!checklistRows?.length) return snapshot;
 
-  const checklists = checklistRows.map((row) => ({
+  snapshot.checklists = checklistRows.map((row) => ({
     checklistId: String(row.id),
     applicationId: String(row.application_id),
     templateId: String(row.template_id),
@@ -1240,43 +1275,118 @@ export async function listEnrollmentProgressForApplications(
     metadata: parseChecklistMetadata(row.metadata),
   }));
 
-  const checklistIds = checklists.map((checklist) => checklist.checklistId);
-  const { data: instanceRows, error: instanceError } = await supabase
-    .from("enrollment_checklist_items")
-    .select("*")
-    .in("checklist_id", checklistIds);
+  const checklistIds = snapshot.checklists.map((checklist) => checklist.checklistId);
+  const templateIds = [
+    ...new Set(snapshot.checklists.map((checklist) => checklist.templateId)),
+  ];
 
-  if (instanceError) throw instanceError;
+  const [instanceResult, loadedTemplates] = await Promise.all([
+    supabase
+      .from("enrollment_checklist_items")
+      .select("*")
+      .in("checklist_id", checklistIds),
+    Promise.all(
+      templateIds.map(async (templateId) => {
+        const loaded = await getEnrollmentChecklistWithItems(supabase, templateId);
+        return [templateId, loaded] as const;
+      }),
+    ),
+  ]);
+
+  if (instanceResult.error) throw instanceResult.error;
+
+  snapshot.instanceRows = (instanceResult.data ?? []) as Record<string, unknown>[];
+  snapshot.templatesById = new Map(loadedTemplates);
+  return snapshot;
+}
+
+export type EnrollmentChecklistSnapshotLoader = (
+  applicationIds: string[],
+) => Promise<EnrollmentChecklistSnapshot>;
+
+/**
+ * Per-request memo: a call whose applications are all covered by an earlier
+ * call reuses that call's snapshot instead of querying again.
+ */
+export function createEnrollmentChecklistSnapshotLoader(
+  supabase: SupabaseClient,
+  organizationId: string,
+): EnrollmentChecklistSnapshotLoader {
+  const loads: Array<{
+    applicationIds: Set<string>;
+    promise: Promise<EnrollmentChecklistSnapshot>;
+  }> = [];
+
+  return (applicationIds) => {
+    const uniqueIds = uniqueApplicationIds(applicationIds);
+    const covering = loads.find((load) =>
+      uniqueIds.every((id) => load.applicationIds.has(id)),
+    );
+    if (covering) return covering.promise;
+
+    const promise = loadEnrollmentChecklistSnapshot(supabase, organizationId, uniqueIds);
+    loads.push({ applicationIds: new Set(uniqueIds), promise });
+    return promise;
+  };
+}
+
+function snapshotChecklistsForApplications(
+  snapshot: EnrollmentChecklistSnapshot,
+  applicationIds: string[],
+) {
+  const wanted = new Set(applicationIds);
+  return snapshot.checklists.filter((checklist) => wanted.has(checklist.applicationId));
+}
+
+function loadSnapshot(
+  supabase: SupabaseClient,
+  organizationId: string,
+  applicationIds: string[],
+  snapshotLoader: EnrollmentChecklistSnapshotLoader | undefined,
+): Promise<EnrollmentChecklistSnapshot> {
+  return snapshotLoader
+    ? snapshotLoader(applicationIds)
+    : loadEnrollmentChecklistSnapshot(supabase, organizationId, applicationIds);
+}
+
+export async function listEnrollmentProgressForApplications(
+  supabase: SupabaseClient,
+  organizationId: string,
+  applicationIds: string[],
+  options?: { snapshotLoader?: EnrollmentChecklistSnapshotLoader },
+): Promise<Map<string, EnrollmentProgressSummary>> {
+  if (applicationIds.length === 0) return new Map();
+
+  const snapshot = await loadSnapshot(
+    supabase,
+    organizationId,
+    applicationIds,
+    options?.snapshotLoader,
+  );
+  return buildEnrollmentProgressFromSnapshot(snapshot, applicationIds);
+}
+
+export function buildEnrollmentProgressFromSnapshot(
+  snapshot: EnrollmentChecklistSnapshot,
+  applicationIds: string[],
+): Map<string, EnrollmentProgressSummary> {
+  const result = new Map<string, EnrollmentProgressSummary>();
+  const checklists = snapshotChecklistsForApplications(snapshot, applicationIds);
+  if (checklists.length === 0) return result;
 
   const instancesByChecklistId = new Map<
     string,
     EnrollmentChecklistItemInstance[]
   >();
-  for (const row of instanceRows ?? []) {
+  for (const row of snapshot.instanceRows) {
     const checklistId = String(row.checklist_id);
     const existing = instancesByChecklistId.get(checklistId) ?? [];
-    existing.push(instanceFromRow(row as Record<string, unknown>));
+    existing.push(instanceFromRow(row));
     instancesByChecklistId.set(checklistId, existing);
   }
 
-  const templateCache = new Map<
-    string,
-    Awaited<ReturnType<typeof getEnrollmentChecklistWithItems>>
-  >();
-  const uniqueTemplateIds = [...new Set(checklists.map((checklist) => checklist.templateId))];
-
-  const loadedTemplates = await Promise.all(
-    uniqueTemplateIds.map(async (templateId) => {
-      const loaded = await getEnrollmentChecklistWithItems(supabase, templateId);
-      return [templateId, loaded] as const;
-    }),
-  );
-  for (const [templateId, loaded] of loadedTemplates) {
-    templateCache.set(templateId, loaded);
-  }
-
   for (const checklist of checklists) {
-    const loaded = templateCache.get(checklist.templateId);
+    const loaded = snapshot.templatesById.get(checklist.templateId);
     if (!loaded) {
       result.set(
         checklist.applicationId,
@@ -1395,14 +1505,14 @@ type EnrollmentChecklistTemplateItemDetails = {
   sections: EnrollmentContractSection[];
 };
 
-async function loadEnrollmentChecklistTemplateItemDetails(
-  supabase: SupabaseClient,
+function templateItemDetailsFromSnapshot(
+  snapshot: EnrollmentChecklistSnapshot,
   templateIds: string[],
-): Promise<Map<string, EnrollmentChecklistTemplateItemDetails>> {
+): Map<string, EnrollmentChecklistTemplateItemDetails> {
   const result = new Map<string, EnrollmentChecklistTemplateItemDetails>();
 
   for (const templateId of templateIds) {
-    const loaded = await getEnrollmentChecklistWithItems(supabase, templateId);
+    const loaded = snapshot.templatesById.get(templateId);
     if (!loaded) continue;
 
     for (const item of loaded.items) {
@@ -1429,55 +1539,71 @@ function resolveAgreementResumeSectionId(
   return sections[resumeIndex]?.id ?? null;
 }
 
+function responsesRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+/**
+ * The snapshot's checklists for these applications, plus their item rows that
+ * belong to the snapshot's organisation (the banner queries filtered both by org).
+ */
+function snapshotBannerRows(
+  snapshot: EnrollmentChecklistSnapshot,
+  applicationIds: string[],
+) {
+  const checklists = snapshotChecklistsForApplications(snapshot, applicationIds);
+  const checklistIdToApplicationId = new Map(
+    checklists.map((checklist) => [checklist.checklistId, checklist.applicationId]),
+  );
+  const instanceRows = snapshot.instanceRows.filter(
+    (row) =>
+      String(row.organization_id) === snapshot.organizationId &&
+      checklistIdToApplicationId.has(String(row.checklist_id)),
+  );
+  const templateItemDetails = templateItemDetailsFromSnapshot(snapshot, [
+    ...new Set(checklists.map((checklist) => checklist.templateId)),
+  ]);
+
+  return { checklists, checklistIdToApplicationId, instanceRows, templateItemDetails };
+}
+
 export async function listEnrollmentAgreementAmendmentsForApplications(
   supabase: SupabaseClient,
   organizationId: string,
   applicationIds: string[],
+  options?: { snapshotLoader?: EnrollmentChecklistSnapshotLoader },
 ): Promise<Map<string, EnrollmentAgreementAmendment[]>> {
+  if (uniqueApplicationIds(applicationIds).length === 0) return new Map();
+
+  const snapshot = await loadSnapshot(
+    supabase,
+    organizationId,
+    applicationIds,
+    options?.snapshotLoader,
+  );
+  return buildEnrollmentAgreementAmendmentsFromSnapshot(snapshot, applicationIds);
+}
+
+export function buildEnrollmentAgreementAmendmentsFromSnapshot(
+  snapshot: EnrollmentChecklistSnapshot,
+  applicationIds: string[],
+): Map<string, EnrollmentAgreementAmendment[]> {
   const result = new Map<string, EnrollmentAgreementAmendment[]>();
-  const uniqueIds = [...new Set(applicationIds.filter(Boolean))];
+  const uniqueIds = uniqueApplicationIds(applicationIds);
   if (uniqueIds.length === 0) return result;
 
   for (const applicationId of uniqueIds) {
     result.set(applicationId, []);
   }
 
-  const { data: checklistRows, error: checklistError } = await supabase
-    .from("enrollment_checklists")
-    .select("id, application_id, template_id")
-    .eq("organization_id", organizationId)
-    .in("application_id", uniqueIds);
+  const { checklists, checklistIdToApplicationId, instanceRows, templateItemDetails } =
+    snapshotBannerRows(snapshot, uniqueIds);
+  if (checklists.length === 0) return result;
 
-  if (checklistError) throw checklistError;
-  if (!checklistRows?.length) return result;
-
-  const checklistIds = checklistRows.map((row) => String(row.id));
-  const templateIds = [...new Set(checklistRows.map((row) => String(row.template_id)))];
-
-  const templateItemDetails = await loadEnrollmentChecklistTemplateItemDetails(
-    supabase,
-    templateIds,
-  );
-
-  const { data: instanceRows, error: instanceError } = await supabase
-    .from("enrollment_checklist_items")
-    .select("id, checklist_id, template_item_id, responses")
-    .eq("organization_id", organizationId)
-    .in("checklist_id", checklistIds);
-
-  if (instanceError) throw instanceError;
-
-  const checklistIdToApplicationId = new Map(
-    checklistRows.map((row) => [String(row.id), String(row.application_id)]),
-  );
-
-  for (const row of instanceRows ?? []) {
-    const responses =
-      row.responses &&
-      typeof row.responses === "object" &&
-      !Array.isArray(row.responses)
-        ? (row.responses as Record<string, unknown>)
-        : {};
+  for (const row of instanceRows) {
+    const responses = responsesRecord(row.responses);
 
     const pendingResignSectionIds = parsePendingResignSectionIds(responses);
     const amendmentNotice = parseAmendmentNotice(responses);
@@ -1513,57 +1639,44 @@ export async function listIncompleteEnrollmentAgreementsForApplications(
   supabase: SupabaseClient,
   organizationId: string,
   applicationIds: string[],
+  options?: { snapshotLoader?: EnrollmentChecklistSnapshotLoader },
 ): Promise<Map<string, EnrollmentAgreementIncomplete[]>> {
+  if (uniqueApplicationIds(applicationIds).length === 0) return new Map();
+
+  const snapshot = await loadSnapshot(
+    supabase,
+    organizationId,
+    applicationIds,
+    options?.snapshotLoader,
+  );
+  return buildIncompleteEnrollmentAgreementsFromSnapshot(snapshot, applicationIds);
+}
+
+export function buildIncompleteEnrollmentAgreementsFromSnapshot(
+  snapshot: EnrollmentChecklistSnapshot,
+  applicationIds: string[],
+): Map<string, EnrollmentAgreementIncomplete[]> {
   const result = new Map<string, EnrollmentAgreementIncomplete[]>();
-  const uniqueIds = [...new Set(applicationIds.filter(Boolean))];
+  const uniqueIds = uniqueApplicationIds(applicationIds);
   if (uniqueIds.length === 0) return result;
 
   for (const applicationId of uniqueIds) {
     result.set(applicationId, []);
   }
 
-  const { data: checklistRows, error: checklistError } = await supabase
-    .from("enrollment_checklists")
-    .select("id, application_id, template_id")
-    .eq("organization_id", organizationId)
-    .in("application_id", uniqueIds);
+  const { checklists, checklistIdToApplicationId, instanceRows, templateItemDetails } =
+    snapshotBannerRows(snapshot, uniqueIds);
+  if (checklists.length === 0) return result;
 
-  if (checklistError) throw checklistError;
-  if (!checklistRows?.length) return result;
+  for (const row of instanceRows) {
+    if (row.status !== "in_progress") continue;
 
-  const checklistIds = checklistRows.map((row) => String(row.id));
-  const templateIds = [...new Set(checklistRows.map((row) => String(row.template_id)))];
-
-  const templateItemDetails = await loadEnrollmentChecklistTemplateItemDetails(
-    supabase,
-    templateIds,
-  );
-
-  const { data: instanceRows, error: instanceError } = await supabase
-    .from("enrollment_checklist_items")
-    .select("id, checklist_id, template_item_id, status, responses")
-    .eq("organization_id", organizationId)
-    .in("checklist_id", checklistIds)
-    .eq("status", "in_progress");
-
-  if (instanceError) throw instanceError;
-
-  const checklistIdToApplicationId = new Map(
-    checklistRows.map((row) => [String(row.id), String(row.application_id)]),
-  );
-
-  for (const row of instanceRows ?? []) {
     const templateItemId = String(row.template_item_id);
     const itemDetails = templateItemDetails.get(templateItemId);
     if (!itemDetails || itemDetails.type !== "document_sign") continue;
     if (itemDetails.sections.length === 0) continue;
 
-    const responses =
-      row.responses &&
-      typeof row.responses === "object" &&
-      !Array.isArray(row.responses)
-        ? (row.responses as Record<string, unknown>)
-        : {};
+    const responses = responsesRecord(row.responses);
 
     const pendingResignSectionIds = parsePendingResignSectionIds(responses);
     if (pendingResignSectionIds.length > 0) continue;

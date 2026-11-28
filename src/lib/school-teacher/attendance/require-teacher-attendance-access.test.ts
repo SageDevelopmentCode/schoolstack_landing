@@ -37,6 +37,17 @@ function createMockSupabase(options: {
         in() {
           return this;
         },
+        // List reads (teacher access loads memberships and staff rows for all linked logins).
+        then(
+          resolve: (value: unknown) => unknown,
+          reject?: (reason?: unknown) => unknown,
+        ) {
+          const data =
+            table === "organization_memberships" && hasMembership
+              ? [{ user_id: USER.id, role: "teacher" }]
+              : [];
+          return Promise.resolve({ data, error: null }).then(resolve, reject);
+        },
         maybeSingle: async () => {
           if (table === "organization_portal_account_link_members") {
             return { data: null, error: null };

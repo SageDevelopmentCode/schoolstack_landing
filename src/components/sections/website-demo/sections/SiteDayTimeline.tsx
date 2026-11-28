@@ -20,7 +20,7 @@ export default function SiteDayTimeline({ timeline }: Props) {
   if (!step) return null;
 
   return (
-    <section id="timeline" className={`scroll-mt-[88px] bg-[var(--sf-sky)]/50 ${SITE_SECTION}`}>
+    <section id="timeline" className={`scroll-mt-[88px] bg-[var(--sf-sky)] ${SITE_SECTION}`}>
       <div
         className={`${SITE_CONTAINER} grid items-start gap-12 @5xl/site:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] @5xl/site:gap-16`}
       >

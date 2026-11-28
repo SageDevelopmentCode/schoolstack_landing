@@ -327,11 +327,9 @@ function GardenMoreTile<Id extends string>({
           )}
         </View>
         <View style={styles.tileCopy}>
-          <Text
-            style={styles.tileLabel}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.8}>
+          {/* No adjustsFontSizeToFit: on iOS it also shrinks to fit the HEIGHT, so a
+              tile with a 2-line subtitle rendered a tiny label. Tiles grow instead. */}
+          <Text style={styles.tileLabel} numberOfLines={1}>
             {item.label}
           </Text>
           <Text style={styles.tileSubtitle} numberOfLines={2}>
@@ -593,7 +591,10 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   tile: {
-    height: TILE_HEIGHT,
+    // minHeight, not height: a fixed height clipped labels when the subtitle wrapped.
+    // `flex: 1` keeps both tiles in a row the same height (the row stretches them).
+    flex: 1,
+    minHeight: TILE_HEIGHT,
     padding: 13,
     gap: 10,
     borderRadius: 20,

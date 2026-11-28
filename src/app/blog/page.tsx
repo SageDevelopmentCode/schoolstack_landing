@@ -9,7 +9,7 @@ import { listPublishedWebsiteBlogPosts } from "@/lib/website-blog/storage";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Blog",
+  title: "Microschool blog for founders",
   description:
     "Stories, ideas, and product updates for microschool founders and operators from the MudKitchen team.",
   path: "/blog",

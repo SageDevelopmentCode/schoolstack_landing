@@ -1,452 +1,321 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import { ExternalLink, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { ExternalLink, FileText, Plus, Trash2 } from "lucide-react";
+import { GConfirmDialog } from "@/components/school-parent/garden/GDialog";
+import { GChip, gBtnOutlineSm, gLinkSm } from "@/components/school-parent/garden/ui";
+import {
+  AdminGardenPage,
+  AdminGardenPageSkeleton,
+  BusyLabel,
+  GardenEmptyState,
+  GardenField,
+  GardenLoadError,
+  GardenNotice,
+  GardenSaveBar,
+  GardenSection,
+  GardenSwitch,
+  gBtnDangerSm,
+  gInputClass,
+  useGardenFieldId,
+} from "@/components/school-admin/garden/kit";
+import { GARDEN_LIST_DETAIL_GRID, GardenRecordList } from "@/components/school-admin/garden/blocks";
 import BlogHtmlEditor from "@/components/admin/marketing/BlogHtmlEditor";
-import { AdminMasterDetail } from "@/components/admin/ui/AdminMasterDetail";
-import { AdminListItem } from "@/components/admin/ui/AdminListItem";
-import { AdminListPanelHeader } from "@/components/admin/ui/AdminListPanelHeader";
-import { AdminDetailHeader } from "@/components/admin/ui/AdminDetailHeader";
-import { AdminDetailSection } from "@/components/admin/ui/AdminDetailSection";
-import { AdminDetailLayout } from "@/components/admin/ui/AdminDetailLayout";
-import { AdminDetailEmpty } from "@/components/admin/ui/AdminDetailEmpty";
-import { AdminEmptyState } from "@/components/admin/ui/AdminEmptyState";
-import { AdminPageState } from "@/components/admin/ui/AdminPageState";
-import { AdminStatusBadge } from "@/components/admin/ui/AdminStatusBadge";
 import { repoBlogPostSourcePath } from "@/content/blog/registry";
-import type {
-  WebsiteBlogContentSource,
-  WebsiteBlogPostListItem,
-  WebsiteBlogPostRecord,
-} from "@/lib/website-blog/types";
+import { MUDKITCHEN_ADMIN_GARDEN_THEME as THEME } from "@/components/admin/garden/theme";
+import { MarketingGardenHeader } from "@/components/admin/marketing/garden/MarketingGardenHeader";
+import { useWebsiteBlogModel, type BlogStatusFilter, type PostForm } from "@/components/admin/marketing/useWebsiteBlogModel";
 
-type PostForm = {
-  slug: string;
-  title: string;
-  seoTitle: string;
-  metaDescription: string;
-  primaryKeyword: string;
-  secondaryKeywordsText: string;
-  excerpt: string;
-  bodyHtml: string;
-  contentSource: WebsiteBlogContentSource;
-  published: boolean;
-  publishedAt: string;
-};
+const DETAIL_ID = "marketing-blog-detail";
 
-const EMPTY_FORM: PostForm = {
-  slug: "",
-  title: "",
-  seoTitle: "",
-  metaDescription: "",
-  primaryKeyword: "",
-  secondaryKeywordsText: "",
-  excerpt: "",
-  bodyHtml: "<p></p>",
-  contentSource: "html",
-  published: false,
-  publishedAt: "",
-};
-
-function recordToForm(post: WebsiteBlogPostRecord): PostForm {
-  return {
-    slug: post.slug,
-    title: post.title,
-    seoTitle: post.seoTitle,
-    metaDescription: post.metaDescription,
-    primaryKeyword: post.primaryKeyword,
-    secondaryKeywordsText: post.secondaryKeywords.join("\n"),
-    excerpt: post.excerpt,
-    bodyHtml: post.bodyHtml,
-    contentSource: post.contentSource,
-    published: post.published,
-    publishedAt: post.publishedAt ?? "",
-  };
-}
-
-function formToPayload(form: PostForm) {
-  return {
-    slug: form.slug,
-    title: form.title,
-    seoTitle: form.seoTitle,
-    metaDescription: form.metaDescription,
-    primaryKeyword: form.primaryKeyword,
-    secondaryKeywords: form.secondaryKeywordsText
-      .split(/[\n,]/)
-      .map((item) => item.trim())
-      .filter(Boolean),
-    excerpt: form.excerpt,
-    bodyHtml: form.bodyHtml,
-    published: form.published,
-    publishedAt: form.publishedAt ? new Date(form.publishedAt).toISOString() : null,
-  };
-}
-
+/** /admin/marketing/blog: website blog posts, list + editor. */
 export default function WebsiteBlogAdminPanel() {
-  const [posts, setPosts] = useState<WebsiteBlogPostListItem[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [form, setForm] = useState<PostForm>(EMPTY_FORM);
-  const [isNew, setIsNew] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const model = useWebsiteBlogModel();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [pendingSwitch, setPendingSwitch] = useState<string | "new" | null>(null);
 
-  const loadList = useCallback(async () => {
-    const response = await fetch("/api/admin/website-blog-posts");
-    if (!response.ok) {
-      const body = (await response.json().catch(() => null)) as { error?: string } | null;
-      throw new Error(body?.error ?? "Failed to load blog posts.");
+  const requestSelect = (id: string | "new") => {
+    if (model.dirty) {
+      setPendingSwitch(id);
+      return;
     }
-    const data = (await response.json()) as { posts: WebsiteBlogPostListItem[] };
-    setPosts(data.posts);
-    return data.posts;
-  }, []);
+    if (id === "new") model.startNew();
+    else model.select(id);
+  };
 
-  const loadPost = useCallback(async (id: string) => {
-    const response = await fetch(`/api/admin/website-blog-posts/${id}`);
-    if (!response.ok) {
-      const body = (await response.json().catch(() => null)) as { error?: string } | null;
-      throw new Error(body?.error ?? "Failed to load blog post.");
-    }
-    const data = (await response.json()) as { post: WebsiteBlogPostRecord };
-    setForm(recordToForm(data.post));
-    setIsNew(false);
-  }, []);
-
-  useEffect(() => {
-    async function init() {
-      try {
-        const list = await loadList();
-        if (list.length > 0) {
-          setSelectedId(list[0].id);
-          await loadPost(list[0].id);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load blog posts.");
-      } finally {
-        setLoading(false);
-      }
-    }
-    void init();
-  }, [loadList, loadPost]);
-
-  async function handleSelect(id: string) {
-    setSelectedId(id);
-    setSaveMessage(null);
-    setError(null);
-    try {
-      await loadPost(id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load blog post.");
-    }
-  }
-
-  function handleNew() {
-    setSelectedId(null);
-    setIsNew(true);
-    setForm(EMPTY_FORM);
-    setSaveMessage(null);
-    setError(null);
-  }
-
-  async function handleSave() {
-    setSaving(true);
-    setSaveMessage(null);
-    setError(null);
-    try {
-      const payload = formToPayload(form);
-      const response = isNew
-        ? await fetch("/api/admin/website-blog-posts", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          })
-        : await fetch(`/api/admin/website-blog-posts/${selectedId}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-
-      if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(body?.error ?? "Failed to save blog post.");
-      }
-
-      const data = (await response.json()) as { post: WebsiteBlogPostRecord };
-      const list = await loadList();
-      setSelectedId(data.post.id);
-      setIsNew(false);
-      setForm(recordToForm(data.post));
-      setSaveMessage("Saved.");
-      if (!list.some((item) => item.id === data.post.id)) {
-        setPosts(list);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save blog post.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleDelete() {
-    if (!selectedId || isNew) return;
-    if (!window.confirm("Delete this blog post? This cannot be undone.")) return;
-
-    setSaving(true);
-    setError(null);
-    try {
-      const response = await fetch(`/api/admin/website-blog-posts/${selectedId}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(body?.error ?? "Failed to delete blog post.");
-      }
-      const list = await loadList();
-      if (list.length > 0) {
-        setSelectedId(list[0].id);
-        await loadPost(list[0].id);
-      } else {
-        handleNew();
-      }
-      setSaveMessage("Deleted.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete blog post.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  if (loading) return <AdminPageState variant="loading" />;
-  if (error && posts.length === 0 && !isNew) {
-    return <AdminPageState variant="error" message={error} />;
-  }
-
-  const publicHref = form.slug ? `/blog/${form.slug}` : null;
+  const subtitle = model.listLoading
+    ? "Loading posts…"
+    : `${model.counts.published} published · ${model.counts.draft} ${model.counts.draft === 1 ? "draft" : "drafts"}`;
 
   return (
-    <AdminMasterDetail
-      list={
+    <AdminGardenPage
+      theme={THEME}
+      data-testid="marketing-blog"
+      overlays={
         <>
-          <AdminListPanelHeader>
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-xs text-admin-muted">
-                {posts.length} post{posts.length === 1 ? "" : "s"}
-              </p>
-              <button
-                type="button"
-                onClick={handleNew}
-                className="inline-flex items-center gap-1 rounded-admin-md border border-admin-border px-2 py-1 text-xs font-medium text-admin-text hover:bg-admin-neutral-bg"
-              >
-                <Plus className="h-3.5 w-3.5" aria-hidden />
-                New
-              </button>
-            </div>
-          </AdminListPanelHeader>
-          <div className="flex-1 overflow-y-auto">
-            {posts.length === 0 ? (
-              <AdminEmptyState message="No blog posts yet" />
-            ) : (
-              posts.map((post) => (
-                <AdminListItem
-                  key={post.id}
-                  selected={selectedId === post.id && !isNew}
-                  onClick={() => handleSelect(post.id)}
-                  title={post.title}
-                  subtitle={post.slug}
-                  footer={new Date(post.updatedAt).toLocaleDateString()}
-                  badge={
-                    <AdminStatusBadge
-                      variant={post.published ? "success" : "neutral"}
-                      label={post.published ? "Published" : "Draft"}
-                    />
-                  }
-                />
-              ))
-            )}
-          </div>
+          <GConfirmDialog
+            theme={THEME}
+            open={confirmDelete}
+            destructive
+            title="Delete this blog post?"
+            description={`${model.form.title || "This post"} ${model.form.published ? "comes off /blog and " : ""}is deleted for good. This cannot be undone.`}
+            confirmLabel="Delete post"
+            loadingLabel="Deleting…"
+            loading={model.deleting}
+            icon={<Trash2 className="h-5 w-5" aria-hidden />}
+            onClose={() => setConfirmDelete(false)}
+            onConfirm={() => {
+              void model.remove().then((result) => {
+                if (result.ok) setConfirmDelete(false);
+              });
+            }}
+            confirmTestId="marketing-blog-delete-confirm"
+          />
+          <GConfirmDialog
+            theme={THEME}
+            open={pendingSwitch != null}
+            title="Discard unsaved changes?"
+            description={`Your edits to ${model.form.title || "this post"} haven't been saved.`}
+            confirmLabel="Discard changes"
+            cancelLabel="Keep editing"
+            onClose={() => setPendingSwitch(null)}
+            onConfirm={() => {
+              const target = pendingSwitch;
+              setPendingSwitch(null);
+              model.discard();
+              if (target === "new") model.startNew();
+              else if (target) model.select(target);
+            }}
+          />
         </>
       }
-      detail={
-        isNew || selectedId ? (
-          <AdminDetailLayout>
-            <AdminDetailHeader
-              title={isNew ? "New blog post" : form.title || "Blog post"}
-              actions={
-                <div className="flex flex-wrap items-center gap-2">
-                  {form.published && publicHref ? (
-                    <Link
-                      href={publicHref}
-                      target="_blank"
-                      className="inline-flex items-center gap-1 text-xs font-medium text-admin-accent hover:underline"
-                    >
-                      View live
-                      <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-                    </Link>
-                  ) : null}
-                  {!isNew ? (
-                    <button
-                      type="button"
-                      onClick={() => void handleDelete()}
-                      disabled={saving}
-                      className="inline-flex items-center gap-1 rounded-admin-md border border-admin-border px-2 py-1 text-xs text-admin-muted hover:text-red-600"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                      Delete
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => void handleSave()}
-                    disabled={saving}
-                    className="rounded-admin-md bg-admin-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-60"
-                  >
-                    {saving ? "Saving…" : "Save"}
+    >
+      <MarketingGardenHeader
+        title={
+          <>
+            Website <span className="text-[var(--sf-clay)]">blog</span>
+          </>
+        }
+        subtitle={subtitle}
+        actions={
+          <button type="button" className={gBtnOutlineSm} onClick={() => requestSelect("new")} data-testid="marketing-blog-new">
+            <Plus className="h-4 w-4" aria-hidden />
+            New post
+          </button>
+        }
+      />
+
+      {model.listLoading ? (
+        <AdminGardenPageSkeleton label="Loading blog posts" layout="split" />
+      ) : model.listError && model.posts.length === 0 ? (
+        <GardenLoadError title="Couldn't load blog posts." description={model.listError} onRetry={model.retryList} />
+      ) : (
+        <div className={GARDEN_LIST_DETAIL_GRID}>
+          <GardenRecordList
+            title="Posts"
+            kicker="Website"
+            items={model.visiblePosts.map((post) => ({
+              id: post.id,
+              title: post.title || "Untitled post",
+              meta: `/blog/${post.slug} · ${new Date(post.updatedAt).toLocaleDateString()}`,
+              chip: post.published ? { tone: "success", label: "Published" } : { tone: "neutral", label: "Draft" },
+              searchText: post.slug,
+              leading: (
+                <span
+                  aria-hidden
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] border-[1.5px] border-[var(--sf-ink)]/15 ${
+                    post.published ? "bg-[var(--sf-mint)]" : "bg-[var(--sf-butter)]"
+                  }`}
+                >
+                  <FileText className="h-4 w-4 text-[var(--sf-ink)]/75" strokeWidth={2.4} />
+                </span>
+              ),
+            }))}
+            selectedId={model.isNew ? null : model.selectedId}
+            onSelect={(id) => requestSelect(id)}
+            flashId={model.flashId}
+            searchPlaceholder="Search titles and slugs"
+            searchLabel="Search blog posts"
+            filters={{
+              options: [
+                { key: "all", label: "All", count: model.counts.all },
+                ...(model.counts.published ? [{ key: "published", label: "Published", count: model.counts.published }] : []),
+                ...(model.counts.draft ? [{ key: "draft", label: "Drafts", count: model.counts.draft }] : []),
+              ],
+              value: model.filter,
+              onChange: (key) => model.setFilter(key as BlogStatusFilter),
+              ariaLabel: "Show posts",
+            }}
+            noun={{ one: "post", many: "posts" }}
+            emptyState={
+              <GardenEmptyState
+                icon={FileText}
+                title="No blog posts yet"
+                action={
+                  <button type="button" className={gBtnOutlineSm} onClick={() => requestSelect("new")}>
+                    <Plus className="h-4 w-4" aria-hidden />
+                    New post
                   </button>
-                </div>
-              }
-            />
-            {error ? (
-              <p className="px-4 text-sm text-red-600" role="alert">{error}</p>
+                }
+              />
+            }
+            detailAnchorId={DETAIL_ID}
+            data-testid="marketing-blog-list"
+          />
+
+          <div id={DETAIL_ID} className="flex min-w-0 scroll-mt-6 flex-col gap-4">
+            {model.isNew || model.selectedId ? (
+              model.postError ? (
+                <GardenLoadError title="Couldn't load this post." description={model.postError} onRetry={model.retryPost} retrying={model.postLoading} />
+              ) : model.postLoading ? (
+                <AdminGardenPageSkeleton label="Loading the post" layout="main-rail" />
+              ) : (
+                <PostEditor model={model} onDelete={() => setConfirmDelete(true)} />
+              )
+            ) : (
+              <GardenEmptyState title="Select a post or create a new one" />
+            )}
+          </div>
+        </div>
+      )}
+    </AdminGardenPage>
+  );
+}
+
+type Model = ReturnType<typeof useWebsiteBlogModel>;
+
+function PostEditor({ model, onDelete }: { model: Model; onDelete: () => void }) {
+  const { form, update } = model;
+  const publicHref = form.slug ? `/blog/${form.slug}` : null;
+  const ids = {
+    slug: useGardenFieldId("blog-slug"),
+    publishedAt: useGardenFieldId("blog-published-at"),
+    title: useGardenFieldId("blog-title"),
+    excerpt: useGardenFieldId("blog-excerpt"),
+    seoTitle: useGardenFieldId("blog-seo-title"),
+    meta: useGardenFieldId("blog-meta"),
+    keyword: useGardenFieldId("blog-keyword"),
+    secondary: useGardenFieldId("blog-secondary"),
+  };
+  const text = (key: keyof PostForm) => (event: { target: { value: string } }) => update(key, event.target.value as never);
+
+  return (
+    <>
+      <section className="flex min-w-0 flex-col gap-6 rounded-[24px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white p-5 shadow-[0_3px_0_0_rgba(43,36,29,0.08)] sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="m-0 text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--sf-soft)]">
+              {model.isNew ? "New post" : form.published ? "Published post" : "Draft"}
+            </p>
+            <h2 className="sf-display m-0 mt-1 text-[1.5rem] leading-[1.1] text-[var(--sf-ink)]">
+              {model.isNew ? "New blog post" : form.title || "Blog post"}
+            </h2>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {form.published && publicHref && !model.isNew ? (
+              <a href={publicHref} target="_blank" rel="noreferrer" className={gLinkSm}>
+                View live <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+              </a>
             ) : null}
-            {saveMessage ? (
-              <p className="px-4 text-sm text-admin-muted">{saveMessage}</p>
+            {!model.isNew ? (
+              <button type="button" onClick={onDelete} disabled={model.saving || model.deleting} className={gBtnDangerSm}>
+                <BusyLabel busy={model.deleting} busyLabel="Deleting…" icon={<Trash2 className="h-4 w-4" aria-hidden />}>
+                  Delete
+                </BusyLabel>
+              </button>
             ) : null}
-            <AdminDetailSection title="URL & visibility">
-              <div className="grid gap-3">
-                <label className="block text-xs text-admin-muted">
-                  Slug
-                  <input
-                    value={form.slug}
-                    onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
-                    className="mt-1 w-full rounded-admin-md border border-admin-border bg-admin-surface px-3 py-2 text-sm text-admin-text"
-                    placeholder="simplify-microschool-newsletters"
-                  />
-                </label>
-                <label className="flex items-center gap-2 text-sm text-admin-text">
-                  <input
-                    type="checkbox"
-                    checked={form.published}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, published: e.target.checked }))
-                    }
-                  />
-                  Published (visible on /blog)
-                </label>
-                <label className="block text-xs text-admin-muted">
-                  Published at (optional)
-                  <input
-                    type="datetime-local"
-                    value={
-                      form.publishedAt
-                        ? new Date(form.publishedAt).toISOString().slice(0, 16)
-                        : ""
-                    }
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        publishedAt: e.target.value
-                          ? new Date(e.target.value).toISOString()
-                          : "",
-                      }))
-                    }
-                    className="mt-1 w-full rounded-admin-md border border-admin-border bg-admin-surface px-3 py-2 text-sm text-admin-text"
-                  />
-                </label>
+          </div>
+        </div>
+
+        <GardenSection title="URL & visibility" id="blog-url">
+          <div className="grid gap-4">
+            <GardenField id={ids.slug} label="Slug" hint={form.slug ? `trymudkitchen.com/blog/${form.slug}` : undefined}>
+              <input id={ids.slug} value={form.slug} onChange={text("slug")} className={gInputClass()} placeholder="simplify-microschool-newsletters" data-garden-skip />
+            </GardenField>
+            <div className="rounded-[16px] bg-[var(--sf-paper)] px-4 py-3">
+              <GardenSwitch
+                checked={form.published}
+                onChange={(next) => update("published", next)}
+                label="Published"
+                description="Visible on /blog"
+              />
+            </div>
+            <GardenField id={ids.publishedAt} label="Published at" optional>
+              <input
+                id={ids.publishedAt}
+                type="datetime-local"
+                value={form.publishedAt ? new Date(form.publishedAt).toISOString().slice(0, 16) : ""}
+                onChange={(event) => update("publishedAt", event.target.value ? new Date(event.target.value).toISOString() : "")}
+                className={gInputClass()}
+                data-garden-skip
+              />
+            </GardenField>
+          </div>
+        </GardenSection>
+
+        <GardenSection title="Content" id="blog-content">
+          <div className="grid gap-4">
+            <GardenField id={ids.title} label="Title" hint="The public H1.">
+              <input id={ids.title} value={form.title} onChange={text("title")} className={gInputClass()} data-garden-skip />
+            </GardenField>
+            <GardenField id={ids.excerpt} label="Excerpt" hint="Shown on the /blog index card.">
+              <textarea id={ids.excerpt} value={form.excerpt} onChange={text("excerpt")} rows={2} className={gInputClass()} data-garden-skip />
+            </GardenField>
+            {form.contentSource === "repo" ? (
+              <GardenNotice tone="info" title="Body lives in the repo">
+                Edit this post&apos;s article in{" "}
+                <code className="rounded-[6px] bg-white px-1.5 py-0.5 text-[12px] font-bold">{repoBlogPostSourcePath(form.slug)}</code>. You can
+                embed live product demos there as React components.
+              </GardenNotice>
+            ) : (
+              <div>
+                <p className="m-0 mb-1.5 text-[13px] font-extrabold text-[var(--sf-ink)]">Body</p>
+                <BlogHtmlEditor value={form.bodyHtml} onChange={(html) => update("bodyHtml", html)} />
               </div>
-            </AdminDetailSection>
-            <AdminDetailSection title="Content">
-              <div className="grid gap-3">
-                <label className="block text-xs text-admin-muted">
-                  Title (public H1)
-                  <input
-                    value={form.title}
-                    onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                    className="mt-1 w-full rounded-admin-md border border-admin-border bg-admin-surface px-3 py-2 text-sm text-admin-text"
-                  />
-                </label>
-                <label className="block text-xs text-admin-muted">
-                  Excerpt (index card)
-                  <textarea
-                    value={form.excerpt}
-                    onChange={(e) => setForm((f) => ({ ...f, excerpt: e.target.value }))}
-                    rows={2}
-                    className="mt-1 w-full rounded-admin-md border border-admin-border bg-admin-surface px-3 py-2 text-sm text-admin-text"
-                  />
-                </label>
-                {form.contentSource === "repo" ? (
-                  <div className="rounded-admin-md border border-admin-border bg-admin-neutral-bg px-4 py-3 text-sm text-admin-muted">
-                    <p className="font-medium text-admin-text">Body lives in the repo</p>
-                    <p className="mt-1">
-                      Edit this post&apos;s article in{" "}
-                      <code className="text-xs bg-admin-surface px-1 py-0.5 rounded">
-                        {repoBlogPostSourcePath(form.slug)}
-                      </code>
-                      . You can embed live product demos there as React components.
-                    </p>
-                  </div>
-                ) : (
-                  <div>
-                    <p className="text-xs text-admin-muted mb-1">Body</p>
-                    <BlogHtmlEditor
-                      value={form.bodyHtml}
-                      onChange={(html) => setForm((f) => ({ ...f, bodyHtml: html }))}
-                    />
-                  </div>
-                )}
-              </div>
-            </AdminDetailSection>
-            <AdminDetailSection title="SEO">
-              <div className="grid gap-3">
-                <label className="block text-xs text-admin-muted">
-                  SEO title
-                  <input
-                    value={form.seoTitle}
-                    onChange={(e) => setForm((f) => ({ ...f, seoTitle: e.target.value }))}
-                    className="mt-1 w-full rounded-admin-md border border-admin-border bg-admin-surface px-3 py-2 text-sm text-admin-text"
-                  />
-                </label>
-                <label className="block text-xs text-admin-muted">
-                  Meta description
-                  <textarea
-                    value={form.metaDescription}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, metaDescription: e.target.value }))
-                    }
-                    rows={3}
-                    className="mt-1 w-full rounded-admin-md border border-admin-border bg-admin-surface px-3 py-2 text-sm text-admin-text"
-                  />
-                </label>
-                <label className="block text-xs text-admin-muted">
-                  Primary keyword
-                  <input
-                    value={form.primaryKeyword}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, primaryKeyword: e.target.value }))
-                    }
-                    className="mt-1 w-full rounded-admin-md border border-admin-border bg-admin-surface px-3 py-2 text-sm text-admin-text"
-                  />
-                </label>
-                <label className="block text-xs text-admin-muted">
-                  Secondary keywords (one per line)
-                  <textarea
-                    value={form.secondaryKeywordsText}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, secondaryKeywordsText: e.target.value }))
-                    }
-                    rows={4}
-                    className="mt-1 w-full rounded-admin-md border border-admin-border bg-admin-surface px-3 py-2 text-sm text-admin-text"
-                  />
-                </label>
-              </div>
-            </AdminDetailSection>
-          </AdminDetailLayout>
-        ) : (
-          <AdminDetailEmpty message="Select a post or create a new one" />
-        )
-      }
-    />
+            )}
+          </div>
+        </GardenSection>
+
+        <GardenSection title="SEO" id="blog-seo">
+          <div className="grid gap-4">
+            <GardenField id={ids.seoTitle} label="SEO title" counter={{ value: form.seoTitle.length, max: 60 }}>
+              <input id={ids.seoTitle} value={form.seoTitle} onChange={text("seoTitle")} className={gInputClass()} data-garden-skip />
+            </GardenField>
+            <GardenField id={ids.meta} label="Meta description" counter={{ value: form.metaDescription.length, max: 160 }}>
+              <textarea id={ids.meta} value={form.metaDescription} onChange={text("metaDescription")} rows={3} className={gInputClass()} data-garden-skip />
+            </GardenField>
+            <GardenField id={ids.keyword} label="Primary keyword">
+              <input id={ids.keyword} value={form.primaryKeyword} onChange={text("primaryKeyword")} className={gInputClass()} data-garden-skip />
+            </GardenField>
+            <GardenField id={ids.secondary} label="Secondary keywords" hint="One per line.">
+              <textarea
+                id={ids.secondary}
+                value={form.secondaryKeywordsText}
+                onChange={text("secondaryKeywordsText")}
+                rows={4}
+                className={gInputClass()}
+                data-garden-skip
+              />
+            </GardenField>
+          </div>
+        </GardenSection>
+        {model.isNew ? null : (
+          <p className="m-0 flex items-center gap-2 text-[12.5px] font-semibold text-[var(--sf-soft)]">
+            {form.published ? <GChip tone="success">Published</GChip> : <GChip tone="neutral">Draft</GChip>}
+            Changes go live when you save.
+          </p>
+        )}
+      </section>
+
+      <GardenSaveBar
+        dirty={model.dirty}
+        saving={model.saving}
+        savedAt={model.savedAt}
+        onSave={() => void model.save()}
+        onDiscard={model.discard}
+        saveLabel={model.isNew ? "Create post" : "Save post"}
+        data-testid="marketing-blog-save-bar"
+      />
+    </>
   );
 }

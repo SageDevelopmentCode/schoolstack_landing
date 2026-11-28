@@ -3,14 +3,17 @@ import { cookies } from "next/headers";
 import type { Metadata } from "next";
 import LoginExperience from "@/components/login/LoginExperience";
 import { listLiveOrganizationsBySlugs } from "@/lib/organization-settings/list-live-organizations";
+import { pageMetadata } from "@/lib/metadata";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Sign in",
   description: "Sign in to your school portal or admin dashboard.",
-};
+  path: "/login",
+  noIndex: true,
+});
 
 function LoginFallback() {
   return (

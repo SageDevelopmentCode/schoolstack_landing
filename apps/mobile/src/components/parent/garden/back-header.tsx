@@ -7,6 +7,8 @@ import { GLink } from '@/components/parent/garden/ui';
 /**
  * Header for screens pushed inside the More stack: a back link, a display
  * title with one accent word, and a muted subtitle. No eyebrow above the title.
+ * Leave out `onBack` on flat routes (e.g. co-op program screens) for the same
+ * header without a back link.
  */
 export function GBackHeader({
   backLabel,
@@ -20,9 +22,9 @@ export function GBackHeader({
   children,
   testID,
 }: {
-  backLabel: string;
+  backLabel?: string;
   backAccessibilityLabel?: string;
-  onBack: () => void;
+  onBack?: () => void;
   backTestID?: string;
   title: string;
   /** A word inside `title` to colour with the school accent. */
@@ -37,15 +39,17 @@ export function GBackHeader({
 
   return (
     <View style={styles.root} testID={testID}>
-      <GLink
-        label={backLabel}
-        icon="chevron-back"
-        accessibilityLabel={backAccessibilityLabel ?? `Back to ${backLabel}`}
-        onPress={onBack}
-        testID={backTestID}
-        style={styles.back}
-        reverse
-      />
+      {onBack && backLabel ? (
+        <GLink
+          label={backLabel}
+          icon="chevron-back"
+          accessibilityLabel={backAccessibilityLabel ?? `Back to ${backLabel}`}
+          onPress={onBack}
+          testID={backTestID}
+          style={styles.back}
+          reverse
+        />
+      ) : null}
       <View style={styles.titleRow}>
         <View style={styles.copy}>
           <Text accessibilityRole="header" style={styles.title}>

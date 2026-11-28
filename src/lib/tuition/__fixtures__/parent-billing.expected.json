@@ -1,0 +1,1642 @@
+{
+  "full": {
+    "charges": [
+      {
+        "id": "ch-1",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": null,
+        "label": "Tuition 2026-09-01",
+        "baseAmountCents": 50000,
+        "amountCents": 50000,
+        "paidCents": 50000,
+        "currency": "USD",
+        "dueDate": "2026-09-01",
+        "status": "paid",
+        "chargeType": "tuition",
+        "installmentNumber": 1,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-2",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": "g-1",
+        "label": "Tuition 2026-10-01",
+        "baseAmountCents": 50000,
+        "amountCents": 50000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-10-01",
+        "status": "scheduled",
+        "chargeType": "tuition",
+        "installmentNumber": 2,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-4",
+        "organizationId": "org-1",
+        "assignmentId": "asg-9",
+        "familyId": "fam-1",
+        "guardianId": null,
+        "label": "Tuition 2026-11-01",
+        "baseAmountCents": 20000,
+        "amountCents": 20000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-11-01",
+        "status": "sent",
+        "chargeType": "tuition",
+        "installmentNumber": 1,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      }
+    ],
+    "allFamilyCharges": [
+      {
+        "id": "ch-1",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": null,
+        "label": "Tuition 2026-09-01",
+        "baseAmountCents": 50000,
+        "amountCents": 50000,
+        "paidCents": 50000,
+        "currency": "USD",
+        "dueDate": "2026-09-01",
+        "status": "paid",
+        "chargeType": "tuition",
+        "installmentNumber": 1,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-2",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": "g-1",
+        "label": "Tuition 2026-10-01",
+        "baseAmountCents": 50000,
+        "amountCents": 50000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-10-01",
+        "status": "scheduled",
+        "chargeType": "tuition",
+        "installmentNumber": 2,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-3",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": "g-2",
+        "label": "Tuition 2026-10-01",
+        "baseAmountCents": 30000,
+        "amountCents": 30000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-10-01",
+        "status": "scheduled",
+        "chargeType": "tuition",
+        "installmentNumber": 2,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-4",
+        "organizationId": "org-1",
+        "assignmentId": "asg-9",
+        "familyId": "fam-1",
+        "guardianId": null,
+        "label": "Tuition 2026-11-01",
+        "baseAmountCents": 20000,
+        "amountCents": 20000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-11-01",
+        "status": "sent",
+        "chargeType": "tuition",
+        "installmentNumber": 1,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      }
+    ],
+    "payments": [],
+    "adjustments": [],
+    "readiness": {
+      "state": "needs_assignment",
+      "unassignedEnrollments": [
+        {
+          "enrollmentId": "enr-4",
+          "studentName": "Ada Lovelace",
+          "programId": "prog-2",
+          "programName": "Enrichment",
+          "status": "enrolled"
+        }
+      ],
+      "pendingPaymentPlanAssignments": [
+        {
+          "assignmentId": "asg-2",
+          "enrollmentId": "enr-2",
+          "studentName": "Ben null",
+          "enrollmentStatus": "enrolled",
+          "enrolledAt": null,
+          "ratePlanId": "rp-2",
+          "ratePlanName": "Flexible",
+          "programName": "Main",
+          "rateCatalogDetailLabel": "$6,000/yr",
+          "rateCatalogPeriodLabel": null,
+          "tierLabel": null,
+          "paymentPlanLabel": "",
+          "pendingPaymentPlanSelection": true,
+          "activeAdjustmentCount": 0,
+          "adjustmentSummaryLabel": null,
+          "adjustmentSummaryFull": null
+        }
+      ],
+      "enrollmentChecklistHref": "/school/school/apply/app-2/enrollment",
+      "firstChargeDue": {
+        "date": "2026-10-01",
+        "amountCents": 50000,
+        "label": "Tuition 2026-10-01"
+      },
+      "childrenNames": [
+        "Ada Lovelace",
+        "Ben null"
+      ]
+    },
+    "familySummary": {
+      "balanceDueCents": 50000,
+      "totalRemainingCents": 70000,
+      "familyTotalRemainingCents": 100000,
+      "annualTuitionCents": 720000,
+      "hasPendingSchedule": true,
+      "nextCharge": {
+        "label": "Tuition 2026-10-01",
+        "dueDate": "2026-10-01",
+        "amountCents": 50000
+      },
+      "children": [
+        {
+          "childKey": "enr-1",
+          "studentName": "Ada Lovelace",
+          "assignmentId": "asg-1",
+          "annualTuitionCents": 100000,
+          "balanceDueCents": 50000,
+          "totalRemainingCents": 50000,
+          "nextCharge": {
+            "label": "Tuition 2026-10-01",
+            "dueDate": "2026-10-01",
+            "amountCents": 50000
+          },
+          "nextChargeId": "ch-2",
+          "status": "ready",
+          "selectionItem": null,
+          "paymentPlanLabel": "Monthly"
+        },
+        {
+          "childKey": "enr-2",
+          "studentName": "Ben",
+          "assignmentId": "asg-2",
+          "annualTuitionCents": 600000,
+          "balanceDueCents": 0,
+          "totalRemainingCents": 0,
+          "nextCharge": null,
+          "nextChargeId": null,
+          "status": "needs_schedule",
+          "selectionItem": {
+            "studentName": "Ben",
+            "context": {
+              "assignment": {
+                "id": "asg-2",
+                "organizationId": "org-1",
+                "enrollmentId": "enr-2",
+                "familyId": "fam-1",
+                "ratePlanId": "rp-2",
+                "rateTierId": null,
+                "paymentPlanId": "pp-2",
+                "assignmentSource": "rules",
+                "assignedByUserId": null,
+                "effectiveStart": "2026-08-01",
+                "effectiveEnd": null,
+                "status": "active",
+                "metadata": {
+                  "pendingPaymentPlanSelection": true,
+                  "billingStartLocked": false
+                },
+                "createdAt": "2026-01-01T00:00:00Z",
+                "updatedAt": "2026-01-02T00:00:00Z"
+              },
+              "ratePlan": {
+                "id": "rp-2",
+                "organizationId": "org-1",
+                "programId": "prog-1",
+                "name": "Flexible",
+                "billingBasis": "annual",
+                "amountCents": 800000,
+                "currency": "USD",
+                "effectiveStart": null,
+                "effectiveEnd": null,
+                "status": "active",
+                "metadata": {},
+                "createdAt": "2026-01-01T00:00:00Z",
+                "updatedAt": "2026-01-02T00:00:00Z",
+                "programName": "Main",
+                "paymentPlans": [
+                  {
+                    "id": "pp-2",
+                    "organizationId": "org-1",
+                    "ratePlanId": "rp-2",
+                    "name": "",
+                    "installmentCount": 1,
+                    "installmentAmountCents": 600000,
+                    "billingDayOfMonth": null,
+                    "isDefault": true,
+                    "createdAt": "2026-01-01T00:00:00Z",
+                    "updatedAt": "2026-01-02T00:00:00Z"
+                  },
+                  {
+                    "id": "pp-3",
+                    "organizationId": "org-1",
+                    "ratePlanId": "rp-2",
+                    "name": "Quarterly",
+                    "installmentCount": 4,
+                    "installmentAmountCents": 150000,
+                    "billingDayOfMonth": 1,
+                    "isDefault": false,
+                    "createdAt": "2026-01-01T00:00:00Z",
+                    "updatedAt": "2026-01-02T00:00:00Z"
+                  }
+                ],
+                "feeComponents": [],
+                "tiers": [
+                  {
+                    "id": "tier-2",
+                    "organizationId": "org-1",
+                    "ratePlanId": "rp-2",
+                    "code": "part",
+                    "label": "Part time",
+                    "amountCents": 600000,
+                    "sortOrder": 1,
+                    "isDefault": true,
+                    "metadata": {},
+                    "createdAt": "2026-01-01T00:00:00Z",
+                    "updatedAt": "2026-01-02T00:00:00Z"
+                  }
+                ]
+              }
+            }
+          },
+          "paymentPlanLabel": "Pay in full"
+        },
+        {
+          "childKey": "enr-9",
+          "studentName": "Zed Other",
+          "assignmentId": "asg-9",
+          "annualTuitionCents": 20000,
+          "balanceDueCents": 20000,
+          "totalRemainingCents": 20000,
+          "nextCharge": {
+            "label": "Tuition 2026-11-01",
+            "dueDate": "2026-11-01",
+            "amountCents": 20000
+          },
+          "nextChargeId": "ch-4",
+          "status": "ready",
+          "selectionItem": null,
+          "paymentPlanLabel": "Monthly"
+        }
+      ]
+    },
+    "autopayEnabled": true,
+    "savedPaymentMethod": {
+      "brand": "visa",
+      "last4": "4242",
+      "expMonth": 12,
+      "expYear": 2030
+    },
+    "recentAutopayFailure": {
+      "createdAt": "2026-10-01T12:00:00Z",
+      "summary": "Autopay failed for October tuition"
+    },
+    "guardianId": "g-1",
+    "hasBillingSplit": true,
+    "initialChildKey": "enr-2",
+    "showTaxCreditPaymentBanner": true,
+    "tuitionAgreements": []
+  },
+  "no_assignments": {
+    "charges": [
+      {
+        "id": "ch-1",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": null,
+        "label": "Tuition 2026-09-01",
+        "baseAmountCents": 50000,
+        "amountCents": 50000,
+        "paidCents": 50000,
+        "currency": "USD",
+        "dueDate": "2026-09-01",
+        "status": "paid",
+        "chargeType": "tuition",
+        "installmentNumber": 1,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-2",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": "g-1",
+        "label": "Tuition 2026-10-01",
+        "baseAmountCents": 50000,
+        "amountCents": 50000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-10-01",
+        "status": "scheduled",
+        "chargeType": "tuition",
+        "installmentNumber": 2,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-4",
+        "organizationId": "org-1",
+        "assignmentId": "asg-9",
+        "familyId": "fam-1",
+        "guardianId": null,
+        "label": "Tuition 2026-11-01",
+        "baseAmountCents": 20000,
+        "amountCents": 20000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-11-01",
+        "status": "sent",
+        "chargeType": "tuition",
+        "installmentNumber": 1,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      }
+    ],
+    "allFamilyCharges": [
+      {
+        "id": "ch-1",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": null,
+        "label": "Tuition 2026-09-01",
+        "baseAmountCents": 50000,
+        "amountCents": 50000,
+        "paidCents": 50000,
+        "currency": "USD",
+        "dueDate": "2026-09-01",
+        "status": "paid",
+        "chargeType": "tuition",
+        "installmentNumber": 1,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-2",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": "g-1",
+        "label": "Tuition 2026-10-01",
+        "baseAmountCents": 50000,
+        "amountCents": 50000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-10-01",
+        "status": "scheduled",
+        "chargeType": "tuition",
+        "installmentNumber": 2,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-3",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": "g-2",
+        "label": "Tuition 2026-10-01",
+        "baseAmountCents": 30000,
+        "amountCents": 30000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-10-01",
+        "status": "scheduled",
+        "chargeType": "tuition",
+        "installmentNumber": 2,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-4",
+        "organizationId": "org-1",
+        "assignmentId": "asg-9",
+        "familyId": "fam-1",
+        "guardianId": null,
+        "label": "Tuition 2026-11-01",
+        "baseAmountCents": 20000,
+        "amountCents": 20000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-11-01",
+        "status": "sent",
+        "chargeType": "tuition",
+        "installmentNumber": 1,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      }
+    ],
+    "payments": [],
+    "adjustments": [],
+    "readiness": {
+      "state": "needs_assignment",
+      "unassignedEnrollments": [
+        {
+          "enrollmentId": "enr-1",
+          "studentName": "Ada Lovelace",
+          "programId": "prog-1",
+          "programName": "Main",
+          "status": "enrolled"
+        },
+        {
+          "enrollmentId": "enr-2",
+          "studentName": "Ben null",
+          "programId": "prog-1",
+          "programName": "Main",
+          "status": "enrolled"
+        },
+        {
+          "enrollmentId": "enr-4",
+          "studentName": "Ada Lovelace",
+          "programId": "prog-2",
+          "programName": "Enrichment",
+          "status": "enrolled"
+        }
+      ],
+      "pendingPaymentPlanAssignments": [],
+      "enrollmentChecklistHref": "/school/school/apply/app-1/enrollment",
+      "firstChargeDue": {
+        "date": "2026-10-01",
+        "amountCents": 50000,
+        "label": "Tuition 2026-10-01"
+      },
+      "childrenNames": [
+        "Ada Lovelace",
+        "Ben null"
+      ]
+    },
+    "familySummary": {
+      "balanceDueCents": 50000,
+      "totalRemainingCents": 70000,
+      "familyTotalRemainingCents": null,
+      "annualTuitionCents": 0,
+      "hasPendingSchedule": false,
+      "nextCharge": {
+        "label": "Tuition 2026-10-01",
+        "dueDate": "2026-10-01",
+        "amountCents": 50000
+      },
+      "children": []
+    },
+    "autopayEnabled": true,
+    "savedPaymentMethod": {
+      "brand": "visa",
+      "last4": "4242",
+      "expMonth": 12,
+      "expYear": 2030
+    },
+    "recentAutopayFailure": {
+      "createdAt": "2026-10-01T12:00:00Z",
+      "summary": "Autopay failed for October tuition"
+    },
+    "guardianId": "g-1",
+    "hasBillingSplit": true,
+    "initialChildKey": null,
+    "showTaxCreditPaymentBanner": true,
+    "tuitionAgreements": []
+  },
+  "no_students": {
+    "charges": [
+      {
+        "id": "ch-1",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": null,
+        "label": "Tuition 2026-09-01",
+        "baseAmountCents": 50000,
+        "amountCents": 50000,
+        "paidCents": 50000,
+        "currency": "USD",
+        "dueDate": "2026-09-01",
+        "status": "paid",
+        "chargeType": "tuition",
+        "installmentNumber": 1,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-2",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": "g-1",
+        "label": "Tuition 2026-10-01",
+        "baseAmountCents": 50000,
+        "amountCents": 50000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-10-01",
+        "status": "scheduled",
+        "chargeType": "tuition",
+        "installmentNumber": 2,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-4",
+        "organizationId": "org-1",
+        "assignmentId": "asg-9",
+        "familyId": "fam-1",
+        "guardianId": null,
+        "label": "Tuition 2026-11-01",
+        "baseAmountCents": 20000,
+        "amountCents": 20000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-11-01",
+        "status": "sent",
+        "chargeType": "tuition",
+        "installmentNumber": 1,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      }
+    ],
+    "allFamilyCharges": [
+      {
+        "id": "ch-1",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": null,
+        "label": "Tuition 2026-09-01",
+        "baseAmountCents": 50000,
+        "amountCents": 50000,
+        "paidCents": 50000,
+        "currency": "USD",
+        "dueDate": "2026-09-01",
+        "status": "paid",
+        "chargeType": "tuition",
+        "installmentNumber": 1,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-2",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": "g-1",
+        "label": "Tuition 2026-10-01",
+        "baseAmountCents": 50000,
+        "amountCents": 50000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-10-01",
+        "status": "scheduled",
+        "chargeType": "tuition",
+        "installmentNumber": 2,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-3",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": "g-2",
+        "label": "Tuition 2026-10-01",
+        "baseAmountCents": 30000,
+        "amountCents": 30000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-10-01",
+        "status": "scheduled",
+        "chargeType": "tuition",
+        "installmentNumber": 2,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-4",
+        "organizationId": "org-1",
+        "assignmentId": "asg-9",
+        "familyId": "fam-1",
+        "guardianId": null,
+        "label": "Tuition 2026-11-01",
+        "baseAmountCents": 20000,
+        "amountCents": 20000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-11-01",
+        "status": "sent",
+        "chargeType": "tuition",
+        "installmentNumber": 1,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      }
+    ],
+    "payments": [],
+    "adjustments": [],
+    "readiness": {
+      "state": "needs_payment_plan",
+      "unassignedEnrollments": [],
+      "pendingPaymentPlanAssignments": [
+        {
+          "assignmentId": "asg-2",
+          "enrollmentId": "enr-2",
+          "studentName": null,
+          "enrollmentStatus": "enrolled",
+          "enrolledAt": null,
+          "ratePlanId": "rp-2",
+          "ratePlanName": "Flexible",
+          "programName": null,
+          "rateCatalogDetailLabel": "$6,000/yr",
+          "rateCatalogPeriodLabel": null,
+          "tierLabel": null,
+          "paymentPlanLabel": "",
+          "pendingPaymentPlanSelection": true,
+          "activeAdjustmentCount": 0,
+          "adjustmentSummaryLabel": null,
+          "adjustmentSummaryFull": null
+        }
+      ],
+      "enrollmentChecklistHref": null,
+      "firstChargeDue": {
+        "date": "2026-10-01",
+        "amountCents": 50000,
+        "label": "Tuition 2026-10-01"
+      },
+      "childrenNames": []
+    },
+    "familySummary": {
+      "balanceDueCents": 50000,
+      "totalRemainingCents": 70000,
+      "familyTotalRemainingCents": 100000,
+      "annualTuitionCents": 720000,
+      "hasPendingSchedule": true,
+      "nextCharge": {
+        "label": "Tuition 2026-10-01",
+        "dueDate": "2026-10-01",
+        "amountCents": 50000
+      },
+      "children": [
+        {
+          "childKey": "enr-1",
+          "studentName": "Student",
+          "assignmentId": "asg-1",
+          "annualTuitionCents": 100000,
+          "balanceDueCents": 50000,
+          "totalRemainingCents": 50000,
+          "nextCharge": {
+            "label": "Tuition 2026-10-01",
+            "dueDate": "2026-10-01",
+            "amountCents": 50000
+          },
+          "nextChargeId": "ch-2",
+          "status": "ready",
+          "selectionItem": null,
+          "paymentPlanLabel": "Monthly"
+        },
+        {
+          "childKey": "enr-2",
+          "studentName": "Student",
+          "assignmentId": "asg-2",
+          "annualTuitionCents": 600000,
+          "balanceDueCents": 0,
+          "totalRemainingCents": 0,
+          "nextCharge": null,
+          "nextChargeId": null,
+          "status": "needs_schedule",
+          "selectionItem": {
+            "studentName": "Student",
+            "context": {
+              "assignment": {
+                "id": "asg-2",
+                "organizationId": "org-1",
+                "enrollmentId": "enr-2",
+                "familyId": "fam-1",
+                "ratePlanId": "rp-2",
+                "rateTierId": null,
+                "paymentPlanId": "pp-2",
+                "assignmentSource": "rules",
+                "assignedByUserId": null,
+                "effectiveStart": "2026-08-01",
+                "effectiveEnd": null,
+                "status": "active",
+                "metadata": {
+                  "pendingPaymentPlanSelection": true,
+                  "billingStartLocked": false
+                },
+                "createdAt": "2026-01-01T00:00:00Z",
+                "updatedAt": "2026-01-02T00:00:00Z"
+              },
+              "ratePlan": {
+                "id": "rp-2",
+                "organizationId": "org-1",
+                "programId": "prog-1",
+                "name": "Flexible",
+                "billingBasis": "annual",
+                "amountCents": 800000,
+                "currency": "USD",
+                "effectiveStart": null,
+                "effectiveEnd": null,
+                "status": "active",
+                "metadata": {},
+                "createdAt": "2026-01-01T00:00:00Z",
+                "updatedAt": "2026-01-02T00:00:00Z",
+                "programName": "Main",
+                "paymentPlans": [
+                  {
+                    "id": "pp-2",
+                    "organizationId": "org-1",
+                    "ratePlanId": "rp-2",
+                    "name": "",
+                    "installmentCount": 1,
+                    "installmentAmountCents": 600000,
+                    "billingDayOfMonth": null,
+                    "isDefault": true,
+                    "createdAt": "2026-01-01T00:00:00Z",
+                    "updatedAt": "2026-01-02T00:00:00Z"
+                  },
+                  {
+                    "id": "pp-3",
+                    "organizationId": "org-1",
+                    "ratePlanId": "rp-2",
+                    "name": "Quarterly",
+                    "installmentCount": 4,
+                    "installmentAmountCents": 150000,
+                    "billingDayOfMonth": 1,
+                    "isDefault": false,
+                    "createdAt": "2026-01-01T00:00:00Z",
+                    "updatedAt": "2026-01-02T00:00:00Z"
+                  }
+                ],
+                "feeComponents": [],
+                "tiers": [
+                  {
+                    "id": "tier-2",
+                    "organizationId": "org-1",
+                    "ratePlanId": "rp-2",
+                    "code": "part",
+                    "label": "Part time",
+                    "amountCents": 600000,
+                    "sortOrder": 1,
+                    "isDefault": true,
+                    "metadata": {},
+                    "createdAt": "2026-01-01T00:00:00Z",
+                    "updatedAt": "2026-01-02T00:00:00Z"
+                  }
+                ]
+              }
+            }
+          },
+          "paymentPlanLabel": "Pay in full"
+        },
+        {
+          "childKey": "enr-9",
+          "studentName": "Zed Other",
+          "assignmentId": "asg-9",
+          "annualTuitionCents": 20000,
+          "balanceDueCents": 20000,
+          "totalRemainingCents": 20000,
+          "nextCharge": {
+            "label": "Tuition 2026-11-01",
+            "dueDate": "2026-11-01",
+            "amountCents": 20000
+          },
+          "nextChargeId": "ch-4",
+          "status": "ready",
+          "selectionItem": null,
+          "paymentPlanLabel": "Monthly"
+        }
+      ]
+    },
+    "autopayEnabled": true,
+    "savedPaymentMethod": {
+      "brand": "visa",
+      "last4": "4242",
+      "expMonth": 12,
+      "expYear": 2030
+    },
+    "recentAutopayFailure": {
+      "createdAt": "2026-10-01T12:00:00Z",
+      "summary": "Autopay failed for October tuition"
+    },
+    "guardianId": "g-1",
+    "hasBillingSplit": true,
+    "initialChildKey": "enr-2",
+    "showTaxCreditPaymentBanner": false,
+    "tuitionAgreements": []
+  },
+  "no_guardian_no_account": {
+    "charges": [
+      {
+        "id": "ch-1",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": null,
+        "label": "Tuition 2026-09-01",
+        "baseAmountCents": 50000,
+        "amountCents": 50000,
+        "paidCents": 50000,
+        "currency": "USD",
+        "dueDate": "2026-09-01",
+        "status": "paid",
+        "chargeType": "tuition",
+        "installmentNumber": 1,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-2",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": "g-1",
+        "label": "Tuition 2026-10-01",
+        "baseAmountCents": 50000,
+        "amountCents": 50000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-10-01",
+        "status": "scheduled",
+        "chargeType": "tuition",
+        "installmentNumber": 2,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-3",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": "g-2",
+        "label": "Tuition 2026-10-01",
+        "baseAmountCents": 30000,
+        "amountCents": 30000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-10-01",
+        "status": "scheduled",
+        "chargeType": "tuition",
+        "installmentNumber": 2,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-4",
+        "organizationId": "org-1",
+        "assignmentId": "asg-9",
+        "familyId": "fam-1",
+        "guardianId": null,
+        "label": "Tuition 2026-11-01",
+        "baseAmountCents": 20000,
+        "amountCents": 20000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-11-01",
+        "status": "sent",
+        "chargeType": "tuition",
+        "installmentNumber": 1,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      }
+    ],
+    "allFamilyCharges": [
+      {
+        "id": "ch-1",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": null,
+        "label": "Tuition 2026-09-01",
+        "baseAmountCents": 50000,
+        "amountCents": 50000,
+        "paidCents": 50000,
+        "currency": "USD",
+        "dueDate": "2026-09-01",
+        "status": "paid",
+        "chargeType": "tuition",
+        "installmentNumber": 1,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-2",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": "g-1",
+        "label": "Tuition 2026-10-01",
+        "baseAmountCents": 50000,
+        "amountCents": 50000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-10-01",
+        "status": "scheduled",
+        "chargeType": "tuition",
+        "installmentNumber": 2,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-3",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": "g-2",
+        "label": "Tuition 2026-10-01",
+        "baseAmountCents": 30000,
+        "amountCents": 30000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-10-01",
+        "status": "scheduled",
+        "chargeType": "tuition",
+        "installmentNumber": 2,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-4",
+        "organizationId": "org-1",
+        "assignmentId": "asg-9",
+        "familyId": "fam-1",
+        "guardianId": null,
+        "label": "Tuition 2026-11-01",
+        "baseAmountCents": 20000,
+        "amountCents": 20000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-11-01",
+        "status": "sent",
+        "chargeType": "tuition",
+        "installmentNumber": 1,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      }
+    ],
+    "payments": [],
+    "adjustments": [],
+    "readiness": {
+      "state": "needs_assignment",
+      "unassignedEnrollments": [
+        {
+          "enrollmentId": "enr-4",
+          "studentName": "Ada Lovelace",
+          "programId": "prog-2",
+          "programName": "Enrichment",
+          "status": "enrolled"
+        }
+      ],
+      "pendingPaymentPlanAssignments": [
+        {
+          "assignmentId": "asg-2",
+          "enrollmentId": "enr-2",
+          "studentName": "Ben null",
+          "enrollmentStatus": "enrolled",
+          "enrolledAt": null,
+          "ratePlanId": "rp-2",
+          "ratePlanName": "Flexible",
+          "programName": "Main",
+          "rateCatalogDetailLabel": "$6,000/yr",
+          "rateCatalogPeriodLabel": null,
+          "tierLabel": null,
+          "paymentPlanLabel": "",
+          "pendingPaymentPlanSelection": true,
+          "activeAdjustmentCount": 0,
+          "adjustmentSummaryLabel": null,
+          "adjustmentSummaryFull": null
+        }
+      ],
+      "enrollmentChecklistHref": "/school/school/apply/app-2/enrollment",
+      "firstChargeDue": {
+        "date": "2026-10-01",
+        "amountCents": 50000,
+        "label": "Tuition 2026-10-01"
+      },
+      "childrenNames": [
+        "Ada Lovelace",
+        "Ben null"
+      ]
+    },
+    "familySummary": {
+      "balanceDueCents": 80000,
+      "totalRemainingCents": 100000,
+      "familyTotalRemainingCents": null,
+      "annualTuitionCents": 750000,
+      "hasPendingSchedule": true,
+      "nextCharge": {
+        "label": "Tuition 2026-10-01",
+        "dueDate": "2026-10-01",
+        "amountCents": 80000
+      },
+      "children": [
+        {
+          "childKey": "enr-1",
+          "studentName": "Ada Lovelace",
+          "assignmentId": "asg-1",
+          "annualTuitionCents": 130000,
+          "balanceDueCents": 80000,
+          "totalRemainingCents": 80000,
+          "nextCharge": {
+            "label": "Tuition 2026-10-01",
+            "dueDate": "2026-10-01",
+            "amountCents": 80000
+          },
+          "nextChargeId": "ch-2",
+          "status": "ready",
+          "selectionItem": null,
+          "paymentPlanLabel": "Monthly"
+        },
+        {
+          "childKey": "enr-2",
+          "studentName": "Ben",
+          "assignmentId": "asg-2",
+          "annualTuitionCents": 600000,
+          "balanceDueCents": 0,
+          "totalRemainingCents": 0,
+          "nextCharge": null,
+          "nextChargeId": null,
+          "status": "needs_schedule",
+          "selectionItem": {
+            "studentName": "Ben",
+            "context": {
+              "assignment": {
+                "id": "asg-2",
+                "organizationId": "org-1",
+                "enrollmentId": "enr-2",
+                "familyId": "fam-1",
+                "ratePlanId": "rp-2",
+                "rateTierId": null,
+                "paymentPlanId": "pp-2",
+                "assignmentSource": "rules",
+                "assignedByUserId": null,
+                "effectiveStart": "2026-08-01",
+                "effectiveEnd": null,
+                "status": "active",
+                "metadata": {
+                  "pendingPaymentPlanSelection": true,
+                  "billingStartLocked": false
+                },
+                "createdAt": "2026-01-01T00:00:00Z",
+                "updatedAt": "2026-01-02T00:00:00Z"
+              },
+              "ratePlan": {
+                "id": "rp-2",
+                "organizationId": "org-1",
+                "programId": "prog-1",
+                "name": "Flexible",
+                "billingBasis": "annual",
+                "amountCents": 800000,
+                "currency": "USD",
+                "effectiveStart": null,
+                "effectiveEnd": null,
+                "status": "active",
+                "metadata": {},
+                "createdAt": "2026-01-01T00:00:00Z",
+                "updatedAt": "2026-01-02T00:00:00Z",
+                "programName": "Main",
+                "paymentPlans": [
+                  {
+                    "id": "pp-2",
+                    "organizationId": "org-1",
+                    "ratePlanId": "rp-2",
+                    "name": "",
+                    "installmentCount": 1,
+                    "installmentAmountCents": 600000,
+                    "billingDayOfMonth": null,
+                    "isDefault": true,
+                    "createdAt": "2026-01-01T00:00:00Z",
+                    "updatedAt": "2026-01-02T00:00:00Z"
+                  },
+                  {
+                    "id": "pp-3",
+                    "organizationId": "org-1",
+                    "ratePlanId": "rp-2",
+                    "name": "Quarterly",
+                    "installmentCount": 4,
+                    "installmentAmountCents": 150000,
+                    "billingDayOfMonth": 1,
+                    "isDefault": false,
+                    "createdAt": "2026-01-01T00:00:00Z",
+                    "updatedAt": "2026-01-02T00:00:00Z"
+                  }
+                ],
+                "feeComponents": [],
+                "tiers": [
+                  {
+                    "id": "tier-2",
+                    "organizationId": "org-1",
+                    "ratePlanId": "rp-2",
+                    "code": "part",
+                    "label": "Part time",
+                    "amountCents": 600000,
+                    "sortOrder": 1,
+                    "isDefault": true,
+                    "metadata": {},
+                    "createdAt": "2026-01-01T00:00:00Z",
+                    "updatedAt": "2026-01-02T00:00:00Z"
+                  }
+                ]
+              }
+            }
+          },
+          "paymentPlanLabel": "Pay in full"
+        },
+        {
+          "childKey": "enr-9",
+          "studentName": "Zed Other",
+          "assignmentId": "asg-9",
+          "annualTuitionCents": 20000,
+          "balanceDueCents": 20000,
+          "totalRemainingCents": 20000,
+          "nextCharge": {
+            "label": "Tuition 2026-11-01",
+            "dueDate": "2026-11-01",
+            "amountCents": 20000
+          },
+          "nextChargeId": "ch-4",
+          "status": "ready",
+          "selectionItem": null,
+          "paymentPlanLabel": "Monthly"
+        }
+      ]
+    },
+    "autopayEnabled": false,
+    "savedPaymentMethod": null,
+    "recentAutopayFailure": {
+      "createdAt": "2026-10-01T12:00:00Z",
+      "summary": "Autopay failed for October tuition"
+    },
+    "guardianId": null,
+    "hasBillingSplit": false,
+    "initialChildKey": "enr-2",
+    "showTaxCreditPaymentBanner": true,
+    "tuitionAgreements": []
+  },
+  "pending_unassigned": {
+    "charges": [
+      {
+        "id": "ch-1",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": null,
+        "label": "Tuition 2026-09-01",
+        "baseAmountCents": 50000,
+        "amountCents": 50000,
+        "paidCents": 50000,
+        "currency": "USD",
+        "dueDate": "2026-09-01",
+        "status": "paid",
+        "chargeType": "tuition",
+        "installmentNumber": 1,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-2",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": "g-1",
+        "label": "Tuition 2026-10-01",
+        "baseAmountCents": 50000,
+        "amountCents": 50000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-10-01",
+        "status": "scheduled",
+        "chargeType": "tuition",
+        "installmentNumber": 2,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-4",
+        "organizationId": "org-1",
+        "assignmentId": "asg-9",
+        "familyId": "fam-1",
+        "guardianId": null,
+        "label": "Tuition 2026-11-01",
+        "baseAmountCents": 20000,
+        "amountCents": 20000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-11-01",
+        "status": "sent",
+        "chargeType": "tuition",
+        "installmentNumber": 1,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      }
+    ],
+    "allFamilyCharges": [
+      {
+        "id": "ch-1",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": null,
+        "label": "Tuition 2026-09-01",
+        "baseAmountCents": 50000,
+        "amountCents": 50000,
+        "paidCents": 50000,
+        "currency": "USD",
+        "dueDate": "2026-09-01",
+        "status": "paid",
+        "chargeType": "tuition",
+        "installmentNumber": 1,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-2",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": "g-1",
+        "label": "Tuition 2026-10-01",
+        "baseAmountCents": 50000,
+        "amountCents": 50000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-10-01",
+        "status": "scheduled",
+        "chargeType": "tuition",
+        "installmentNumber": 2,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-3",
+        "organizationId": "org-1",
+        "assignmentId": "asg-1",
+        "familyId": "fam-1",
+        "guardianId": "g-2",
+        "label": "Tuition 2026-10-01",
+        "baseAmountCents": 30000,
+        "amountCents": 30000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-10-01",
+        "status": "scheduled",
+        "chargeType": "tuition",
+        "installmentNumber": 2,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      },
+      {
+        "id": "ch-4",
+        "organizationId": "org-1",
+        "assignmentId": "asg-9",
+        "familyId": "fam-1",
+        "guardianId": null,
+        "label": "Tuition 2026-11-01",
+        "baseAmountCents": 20000,
+        "amountCents": 20000,
+        "paidCents": 0,
+        "currency": "USD",
+        "dueDate": "2026-11-01",
+        "status": "sent",
+        "chargeType": "tuition",
+        "installmentNumber": 1,
+        "metadata": {},
+        "sentAt": null,
+        "paidAt": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-02T00:00:00Z"
+      }
+    ],
+    "payments": [],
+    "adjustments": [],
+    "readiness": {
+      "state": "needs_assignment",
+      "unassignedEnrollments": [
+        {
+          "enrollmentId": "enr-1",
+          "studentName": "Ada Lovelace",
+          "programId": "prog-1",
+          "programName": "Main",
+          "status": "enrolled"
+        },
+        {
+          "enrollmentId": "enr-4",
+          "studentName": "Ada Lovelace",
+          "programId": "prog-2",
+          "programName": "Enrichment",
+          "status": "enrolled"
+        }
+      ],
+      "pendingPaymentPlanAssignments": [
+        {
+          "assignmentId": "asg-2",
+          "enrollmentId": "enr-2",
+          "studentName": "Ben null",
+          "enrollmentStatus": "enrolled",
+          "enrolledAt": null,
+          "ratePlanId": "rp-2",
+          "ratePlanName": "Flexible",
+          "programName": "Main",
+          "rateCatalogDetailLabel": "$6,000/yr",
+          "rateCatalogPeriodLabel": null,
+          "tierLabel": null,
+          "paymentPlanLabel": "",
+          "pendingPaymentPlanSelection": true,
+          "activeAdjustmentCount": 0,
+          "adjustmentSummaryLabel": null,
+          "adjustmentSummaryFull": null
+        }
+      ],
+      "enrollmentChecklistHref": "/school/school/apply/app-2/enrollment",
+      "firstChargeDue": {
+        "date": "2026-10-01",
+        "amountCents": 50000,
+        "label": "Tuition 2026-10-01"
+      },
+      "childrenNames": [
+        "Ada Lovelace",
+        "Ben null"
+      ]
+    },
+    "familySummary": {
+      "balanceDueCents": 50000,
+      "totalRemainingCents": 70000,
+      "familyTotalRemainingCents": 100000,
+      "annualTuitionCents": 620000,
+      "hasPendingSchedule": true,
+      "nextCharge": {
+        "label": "Tuition 2026-10-01",
+        "dueDate": "2026-10-01",
+        "amountCents": 50000
+      },
+      "children": [
+        {
+          "childKey": "enr-2",
+          "studentName": "Ben",
+          "assignmentId": "asg-2",
+          "annualTuitionCents": 600000,
+          "balanceDueCents": 0,
+          "totalRemainingCents": 0,
+          "nextCharge": null,
+          "nextChargeId": null,
+          "status": "needs_schedule",
+          "selectionItem": {
+            "studentName": "Ben",
+            "context": {
+              "assignment": {
+                "id": "asg-2",
+                "organizationId": "org-1",
+                "enrollmentId": "enr-2",
+                "familyId": "fam-1",
+                "ratePlanId": "rp-2",
+                "rateTierId": null,
+                "paymentPlanId": "pp-2",
+                "assignmentSource": "rules",
+                "assignedByUserId": null,
+                "effectiveStart": "2026-08-01",
+                "effectiveEnd": null,
+                "status": "active",
+                "metadata": {
+                  "pendingPaymentPlanSelection": true,
+                  "billingStartLocked": false
+                },
+                "createdAt": "2026-01-01T00:00:00Z",
+                "updatedAt": "2026-01-02T00:00:00Z"
+              },
+              "ratePlan": {
+                "id": "rp-2",
+                "organizationId": "org-1",
+                "programId": "prog-1",
+                "name": "Flexible",
+                "billingBasis": "annual",
+                "amountCents": 800000,
+                "currency": "USD",
+                "effectiveStart": null,
+                "effectiveEnd": null,
+                "status": "active",
+                "metadata": {},
+                "createdAt": "2026-01-01T00:00:00Z",
+                "updatedAt": "2026-01-02T00:00:00Z",
+                "programName": "Main",
+                "paymentPlans": [
+                  {
+                    "id": "pp-2",
+                    "organizationId": "org-1",
+                    "ratePlanId": "rp-2",
+                    "name": "",
+                    "installmentCount": 1,
+                    "installmentAmountCents": 600000,
+                    "billingDayOfMonth": null,
+                    "isDefault": true,
+                    "createdAt": "2026-01-01T00:00:00Z",
+                    "updatedAt": "2026-01-02T00:00:00Z"
+                  },
+                  {
+                    "id": "pp-3",
+                    "organizationId": "org-1",
+                    "ratePlanId": "rp-2",
+                    "name": "Quarterly",
+                    "installmentCount": 4,
+                    "installmentAmountCents": 150000,
+                    "billingDayOfMonth": 1,
+                    "isDefault": false,
+                    "createdAt": "2026-01-01T00:00:00Z",
+                    "updatedAt": "2026-01-02T00:00:00Z"
+                  }
+                ],
+                "feeComponents": [],
+                "tiers": [
+                  {
+                    "id": "tier-2",
+                    "organizationId": "org-1",
+                    "ratePlanId": "rp-2",
+                    "code": "part",
+                    "label": "Part time",
+                    "amountCents": 600000,
+                    "sortOrder": 1,
+                    "isDefault": true,
+                    "metadata": {},
+                    "createdAt": "2026-01-01T00:00:00Z",
+                    "updatedAt": "2026-01-02T00:00:00Z"
+                  }
+                ]
+              }
+            }
+          },
+          "paymentPlanLabel": "Pay in full"
+        },
+        {
+          "childKey": "enr-9",
+          "studentName": "Zed Other",
+          "assignmentId": "asg-9",
+          "annualTuitionCents": 20000,
+          "balanceDueCents": 20000,
+          "totalRemainingCents": 20000,
+          "nextCharge": {
+            "label": "Tuition 2026-11-01",
+            "dueDate": "2026-11-01",
+            "amountCents": 20000
+          },
+          "nextChargeId": "ch-4",
+          "status": "ready",
+          "selectionItem": null,
+          "paymentPlanLabel": "Monthly"
+        }
+      ]
+    },
+    "autopayEnabled": true,
+    "savedPaymentMethod": {
+      "brand": "visa",
+      "last4": "4242",
+      "expMonth": 12,
+      "expYear": 2030
+    },
+    "recentAutopayFailure": {
+      "createdAt": "2026-10-01T12:00:00Z",
+      "summary": "Autopay failed for October tuition"
+    },
+    "guardianId": "g-1",
+    "hasBillingSplit": true,
+    "initialChildKey": "enr-2",
+    "showTaxCreditPaymentBanner": true,
+    "tuitionAgreements": []
+  }
+}

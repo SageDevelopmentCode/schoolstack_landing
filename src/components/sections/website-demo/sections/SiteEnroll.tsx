@@ -77,7 +77,7 @@ export default function SiteEnroll({ form, formRef, onExplorePrograms }: Props) 
   };
 
   return (
-    <section id="form" ref={formRef} className={`scroll-mt-[88px] bg-[var(--sf-peach)]/55 ${SITE_SECTION}`}>
+    <section id="form" ref={formRef} className={`scroll-mt-[88px] bg-[var(--sf-peach)] ${SITE_SECTION}`}>
       <div className={`${SITE_CONTAINER} grid gap-10 @5xl/site:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] @5xl/site:gap-12`}>
         <SiteReveal className="flex flex-col gap-8">
           <div className="sf-polaroid relative mx-auto w-full max-w-[420px]" style={{ rotate: "-2deg" }}>

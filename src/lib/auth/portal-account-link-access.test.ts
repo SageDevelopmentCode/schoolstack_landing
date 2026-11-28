@@ -5,7 +5,10 @@ import { userIsOrgAdmin } from "@/lib/admissions/application-auth";
 import {
   getStaffMemberIdForUser,
   getStaffUserProfile,
+  getStaffPortalRoleForUser,
   getTeacherPortalStaffMemberIdForUser,
+  loadTeacherPortalContext,
+  userHasTeacherPortalAccess,
 } from "@/lib/staff/teacher-portal-access";
 import { userCanAccessSchoolAdmin } from "@/lib/school-admin/access";
 
@@ -96,6 +99,10 @@ function createLinkedParentStaffSupabase(): SupabaseClient {
       return { data: null, error: null };
     },
     organization_memberships: async (filters) => {
+      // Teacher access: one list read for every linked login. The staff login is an admin.
+      if (Array.isArray(filters.user_id)) {
+        return { data: [], error: null };
+      }
       if (
         filters.organization_id === ORG_ID &&
         filters.user_id === STAFF_USER_ID
@@ -105,6 +112,26 @@ function createLinkedParentStaffSupabase(): SupabaseClient {
       return { data: null, error: null };
     },
     staff_members: async (filters) => {
+      if (Array.isArray(filters.user_id)) {
+        const ids = filters.user_id as string[];
+        return {
+          data:
+            filters.organization_id === ORG_ID && ids.includes(STAFF_USER_ID)
+              ? [
+                  {
+                    id: "staff-admin-record",
+                    user_id: STAFF_USER_ID,
+                    first_name: "Staff",
+                    last_name: "Admin",
+                    email: "staff@school.test",
+                    profile_photo_url: null,
+                    role_title: "Director",
+                  },
+                ]
+              : [],
+          error: null,
+        };
+      }
       if (
         filters.organization_id === ORG_ID &&
         filters.user_id === PARENT_USER_ID
@@ -245,7 +272,9 @@ function createAdminPrimaryLinkedTeacherSupabase(
       if (Array.isArray(filters.user_id)) {
         const ids = filters.user_id as string[];
         return {
-          data: ids.includes(TEACHER_USER_ID) ? [{ user_id: TEACHER_USER_ID }] : [],
+          data: ids.includes(TEACHER_USER_ID)
+            ? [{ user_id: TEACHER_USER_ID, role: "teacher" }]
+            : [],
           error: null,
         };
       }
@@ -254,6 +283,14 @@ function createAdminPrimaryLinkedTeacherSupabase(
     staff_members: async (filters) => {
       if (filters.organization_id !== ORG_ID) {
         return { data: null, error: null };
+      }
+      if (Array.isArray(filters.user_id)) {
+        return {
+          data: (filters.user_id as string[])
+            .filter((id) => staffRows[id])
+            .map((id) => ({ ...staffRows[id], user_id: id })),
+          error: null,
+        };
       }
       return { data: staffRows[String(filters.user_id)] ?? null, error: null };
     },
@@ -311,5 +348,98 @@ describe("teacher portal staff record for a school admin linked to a teacher log
 
     assert.equal(teacherPortalId, "staff-admin");
     assert.equal(primaryFirstId, "staff-admin");
+  });
+});
+
+describe("loadTeacherPortalContext", () => {
+  function countTableReads(supabase: SupabaseClient) {
+    const reads: string[] = [];
+    const from = (supabase as unknown as { from: (table: string) => unknown }).from;
+    const counted = {
+      from(table: string) {
+        reads.push(table);
+        return from(table);
+      },
+    } as unknown as SupabaseClient;
+    return { counted, reads };
+  }
+
+  it("answers every teacher helper from one set of reads per client", async () => {
+    const { counted, reads } = countTableReads(createAdminPrimaryLinkedTeacherSupabase());
+    const user = { id: ADMIN_USER_ID, email: "admin@school.test", user_metadata: {} } as User;
+
+    const [hasAccess, staffMemberId, role, profile] = await Promise.all([
+      userHasTeacherPortalAccess(counted, ADMIN_USER_ID, ORG_ID),
+      getTeacherPortalStaffMemberIdForUser(counted, ADMIN_USER_ID, ORG_ID),
+      getStaffPortalRoleForUser(counted, ADMIN_USER_ID, ORG_ID),
+      getStaffUserProfile(counted, ADMIN_USER_ID, ORG_ID, user),
+    ]);
+
+    assert.equal(hasAccess, true);
+    assert.equal(staffMemberId, "staff-teacher");
+    assert.equal(role, "teacher");
+    assert.equal(profile.displayName, "Rachael Sparhawk");
+    // Link member row + group + group members, then memberships and staff in parallel.
+    assert.deepEqual([...reads].sort(), [
+      "organization_memberships",
+      "organization_portal_account_link_groups",
+      "organization_portal_account_link_members",
+      "organization_portal_account_link_members",
+      "staff_members",
+    ]);
+  });
+
+  it("orders the linked teacher login first and keeps the primary first in orderedUserIds", async () => {
+    const context = await loadTeacherPortalContext(
+      createAdminPrimaryLinkedTeacherSupabase(),
+      ADMIN_USER_ID,
+      ORG_ID,
+    );
+
+    assert.deepEqual(context.orderedUserIds, [ADMIN_USER_ID, TEACHER_USER_ID]);
+    assert.deepEqual(context.teacherOrderedUserIds, [TEACHER_USER_ID, ADMIN_USER_ID]);
+    assert.equal(context.staffMember?.role_title, "Main Lesson Teacher");
+  });
+
+  it("denies access when no linked login has an active teacher/staff membership", async () => {
+    const context = await loadTeacherPortalContext(
+      createAdminPrimaryLinkedTeacherSupabase({ linked: false }),
+      ADMIN_USER_ID,
+      ORG_ID,
+    );
+
+    assert.equal(context.hasAccess, false);
+    assert.equal(context.portalRole, null);
+    // Staff record lookup still works (admin-side previews rely on it).
+    assert.equal(context.staffMember?.id, "staff-admin");
+  });
+
+  it("does not cache a failed read", async () => {
+    let fail = true;
+    const base = createAdminPrimaryLinkedTeacherSupabase();
+    const baseFrom = (base as unknown as { from: (table: string) => unknown }).from;
+    const flaky = {
+      from(table: string) {
+        if (fail && table === "staff_members") {
+          const failing = {
+            select: () => failing,
+            eq: () => failing,
+            in: () => failing,
+            then: (
+              resolve: (value: unknown) => unknown,
+              reject?: (reason?: unknown) => unknown,
+            ) =>
+              Promise.resolve({ data: null, error: new Error("boom") }).then(resolve, reject),
+          };
+          return failing;
+        }
+        return baseFrom(table);
+      },
+    } as unknown as SupabaseClient;
+
+    await assert.rejects(() => loadTeacherPortalContext(flaky, ADMIN_USER_ID, ORG_ID));
+    fail = false;
+    const context = await loadTeacherPortalContext(flaky, ADMIN_USER_ID, ORG_ID);
+    assert.equal(context.staffMember?.id, "staff-teacher");
   });
 });

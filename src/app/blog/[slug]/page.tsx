@@ -11,7 +11,6 @@ import { linkPreviewCard, linkPreviewImageUrl } from "@/lib/marketing/link-previ
 import { pageMetadata } from "@/lib/metadata";
 import { buildBreadcrumbs } from "@/lib/seo";
 import { WEBSITE_BLOG_AUTHOR } from "@/lib/website-blog/author";
-import { sanitizeBlogHtml } from "@/lib/website-blog/sanitize-html";
 import { getPublishedWebsiteBlogPostBySlug } from "@/lib/website-blog/storage";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -65,6 +64,11 @@ export default async function BlogPostPage({ params }: PageProps) {
   }
 
   const RepoContent = repoPost?.Content;
+  // Only HTML posts need the sanitizer. It pulls in jsdom, so repo posts never load it.
+  const sanitizedHtml =
+    post.contentSource === "repo" && RepoContent
+      ? null
+      : (await import("@/lib/website-blog/sanitize-html")).sanitizeBlogHtml(post.bodyHtml);
   const featureTags = getRepoBlogFeatureTags(slug);
 
   const breadcrumbs = buildBreadcrumbs(
@@ -84,6 +88,7 @@ export default async function BlogPostPage({ params }: PageProps) {
           name: WEBSITE_BLOG_AUTHOR.name,
           url: WEBSITE_BLOG_AUTHOR.profileUrl,
         }}
+        datePublished={post.publishedAt}
       />
       <BlogGardenArticle title={post.title} publishedAt={post.publishedAt} tags={featureTags}>
         {post.contentSource === "repo" && RepoContent ? (
@@ -91,7 +96,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             <RepoContent />
           </BlogPostProse>
         ) : (
-          <BlogPostHtml html={sanitizeBlogHtml(post.bodyHtml)} />
+          <BlogPostHtml html={sanitizedHtml ?? ""} />
         )}
       </BlogGardenArticle>
     </GardenRoot>

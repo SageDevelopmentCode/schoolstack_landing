@@ -2,11 +2,12 @@ import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
 import { FEATURE_SLUGS } from "@/lib/marketing/features";
 import { FEATURES_PATH, featurePath } from "@/lib/marketing/features/paths";
+import { FEATURES_CONTENT_UPDATED } from "@/lib/marketing/features/rivals";
+import { COMPARE_PATH, COMPARE_RIVAL_IDS, comparePath } from "@/lib/marketing/compare";
 import { listPublishedWebsiteBlogPostSlugs } from "@/lib/website-blog/storage";
 import { createAdminClient } from "@/utils/supabase/admin";
 
-const LAST_MODIFIED = new Date("2026-09-26");
-const FEATURES_LAST_MODIFIED = new Date("2026-11-22");
+const FEATURES_LAST_MODIFIED = new Date(FEATURES_CONTENT_UPDATED);
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const admin = createAdminClient();
@@ -15,7 +16,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticEntries: MetadataRoute.Sitemap = [
     {
       url: SITE_URL,
-      lastModified: LAST_MODIFIED,
       changeFrequency: "weekly",
       priority: 1,
     },
@@ -32,14 +32,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.75,
     })),
     {
+      url: `${SITE_URL}${COMPARE_PATH}`,
+      lastModified: FEATURES_LAST_MODIFIED,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    ...COMPARE_RIVAL_IDS.map((id) => ({
+      url: `${SITE_URL}${comparePath(id)}`,
+      lastModified: FEATURES_LAST_MODIFIED,
+      changeFrequency: "monthly" as const,
+      priority: 0.75,
+    })),
+    {
       url: `${SITE_URL}/get-started`,
-      lastModified: LAST_MODIFIED,
       changeFrequency: "monthly",
       priority: 0.9,
     },
     {
       url: `${SITE_URL}/microschool-ops-check`,
-      lastModified: LAST_MODIFIED,
       changeFrequency: "monthly",
       priority: 0.85,
     },
@@ -62,38 +72,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.85,
     },
     {
-      url: `${SITE_URL}/website-demo`,
-      lastModified: LAST_MODIFIED,
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
-    {
       url: `${SITE_URL}/about`,
-      lastModified: LAST_MODIFIED,
       changeFrequency: "monthly",
       priority: 0.75,
     },
     {
       url: `${SITE_URL}/customers`,
-      lastModified: LAST_MODIFIED,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/blog`,
-      lastModified: LAST_MODIFIED,
       changeFrequency: "weekly",
       priority: 0.7,
     },
     {
       url: `${SITE_URL}/customers/sagefield`,
-      lastModified: LAST_MODIFIED,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
       url: `${SITE_URL}/demo-school`,
-      lastModified: LAST_MODIFIED,
       changeFrequency: "monthly",
       priority: 0.5,
     },
@@ -105,37 +104,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${SITE_URL}/support`,
-      lastModified: LAST_MODIFIED,
       changeFrequency: "monthly",
       priority: 0.5,
     },
     {
       url: `${SITE_URL}/account-deletion`,
-      lastModified: LAST_MODIFIED,
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
       url: `${SITE_URL}/privacy`,
-      lastModified: LAST_MODIFIED,
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
       url: `${SITE_URL}/terms`,
-      lastModified: LAST_MODIFIED,
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
       url: `${SITE_URL}/dpa`,
-      lastModified: LAST_MODIFIED,
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
       url: `${SITE_URL}/subprocessors`,
-      lastModified: LAST_MODIFIED,
       changeFrequency: "yearly",
       priority: 0.3,
     },

@@ -12,6 +12,8 @@ type BlogProductDemoFrameProps = {
   cropZoom?: number;
   /** Horizontal pan (0–1) on viewports below `sm` so center demo content is visible. */
   mobileCropOriginX?: number;
+  /** Fit the demo to the visible height on wide screens (see `LaptopBrowserWindow`). */
+  fitHeight?: boolean;
 };
 
 const DEMO_WIDTH = 1100;
@@ -22,6 +24,7 @@ export default function BlogProductDemoFrame({
   contentHeight = 920,
   cropZoom = 0.92,
   mobileCropOriginX = 0.18,
+  fitHeight = false,
 }: BlogProductDemoFrameProps) {
   const isMobile = useMediaQuery("(max-width: 639px)");
   const crop = isMobile
@@ -42,6 +45,7 @@ export default function BlogProductDemoFrame({
             defaultBodyHeight={731}
             crop={crop}
             chromeShadow={false}
+            fitHeight={fitHeight}
           >
             {children}
           </LaptopBrowserWindow>

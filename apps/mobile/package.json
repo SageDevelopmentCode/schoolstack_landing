@@ -93,7 +93,7 @@
     "eas:env:list": "bash scripts/with-mobile-node-path.sh eas env:list",
     "eas:env:set": "bash scripts/with-mobile-node-path.sh eas env:set",
     "build:production:ios": "EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com bash scripts/assert-production-mobile-env.sh && bash scripts/with-mobile-node-path.sh eas build --profile production --platform ios",
-    "build:production:android": "EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com bash scripts/assert-production-mobile-env.sh && bash scripts/with-mobile-node-path.sh eas build --profile production --platform android",
+    "build:production:android": "EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com bash scripts/assert-production-mobile-env.sh && bash scripts/with-mobile-node-path.sh eas build --profile production-android --platform android",
     "update:production": "bash scripts/with-mobile-node-path.sh bash scripts/assert-production-eas-env.sh && bash scripts/with-mobile-node-path.sh eas update --channel production --environment production --platform ios",
     "update:production:android": "bash scripts/with-mobile-node-path.sh bash scripts/assert-production-eas-env.sh && bash scripts/with-mobile-node-path.sh eas update --channel production --environment production --platform android"
   },

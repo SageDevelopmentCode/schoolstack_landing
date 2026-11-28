@@ -4,7 +4,6 @@ import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
 import HomePageMain from "@/components/sections/HomePageMain";
 import SectionFallback from "@/components/ui/SectionFallback";
-import { InViewSectionGate } from "@/components/ui/InViewSectionGate";
 import { useCaptureFirstTouch } from "@/hooks/useCaptureFirstTouch";
 import GardenNavbar from "./GardenNavbar";
 import SmoothScroll from "./SmoothScroll";
@@ -46,9 +45,8 @@ export default function HomeGardenShell({
       <div className="overflow-x-clip">
         <GardenNavbar bookDemoHref={bookDemoHref} />
         <HomePageMain>{children}</HomePageMain>
-        <InViewSectionGate minHeight="12rem">
-          <Footer />
-        </InViewSectionGate>
+        {/* Server-rendered (no in-view gate) so crawlers see the footer links. */}
+        <Footer />
         {mobileBottomBar ? <div className="h-24 md:hidden" aria-hidden="true" /> : null}
       </div>
       {mobileBottomBar ? (

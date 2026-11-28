@@ -1,24 +1,19 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { flushSync } from "react-dom";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Download, Loader2 } from "lucide-react";
-import JSZip from "jszip";
-import { AdminSwitch } from "@/components/admin/ui/AdminSwitch";
-import { dataUrlBase64, downloadUrl, nodeToPng } from "@/components/admin/marketing/export-png";
+import type { CSSProperties, ReactNode } from "react";
+import { ChevronRight, Download } from "lucide-react";
+import { GChip, G_FOCUS, G_TOGGLE, G_TOGGLE_OFF, G_TOGGLE_ON, gBtnOutlineSm, gBtnPopSm } from "@/components/school-parent/garden/ui";
+import { BusyLabel, GardenSwitch } from "@/components/school-admin/garden/kit";
+import { GardenGroupHeading } from "@/components/school-admin/garden/blocks";
 import { MarkStage, svgSrc } from "@/components/admin/marketing/brand-marks/mark-kit";
 import { BOWL_VECTOR } from "@/components/admin/marketing/brand-marks/bowl-vector";
 import {
-  BRAND_MARKS,
-  brandMarksOfKind,
   coverInFormat,
   DEFAULT_BRAND_MARK_ID,
   designCount,
   formatMonthDay,
   getBrandMark,
   iosHeaderSibling,
-  seasonTiming,
   type SeasonTiming,
 } from "@/components/admin/marketing/brand-marks/registry";
 import {
@@ -27,29 +22,21 @@ import {
   IOS_HEADER_FORMAT_ORDER,
   IOS_HEADER_FORMATS,
   type BrandMark,
-  type BrandMarkKind,
-  type LogoSection,
 } from "@/components/admin/marketing/brand-marks/types";
+import {
+  isWide,
+  KIND_LABEL,
+  KIND_ORDER,
+  useBrandMarkStudioModel,
+  type Backdrop,
+} from "@/components/admin/marketing/brand-marks/useBrandMarkStudioModel";
+import { AccentLast, MarketingGardenHeader } from "@/components/admin/marketing/garden/MarketingGardenHeader";
+import { MarketingStudioFrame, STUDIO_STAGE_CLASS } from "@/components/admin/marketing/garden/MarketingStudioFrame";
+import { GardenSegmented, MarketingCanvas } from "@/components/admin/marketing/garden/marketing-ui";
 
-const KIND_ORDER: BrandMarkKind[] = ["avatar", "app-icon", "cover", "ios-header", "link-preview", "logo"];
-const KIND_LABEL: Record<BrandMarkKind, string> = { avatar: "Avatars", "app-icon": "App icons", cover: "Covers", "ios-header": "App Store", "link-preview": "Link previews", logo: "Logos" };
-const ZIP_NAME: Record<BrandMarkKind, string> = {
-  avatar: "mudkitchen-profile-pictures.zip",
-  "app-icon": "mudkitchen-app-icons.zip",
-  cover: "mudkitchen-covers.zip",
-  "ios-header": "mudkitchen-app-store-artwork.zip",
-  "link-preview": "mudkitchen-link-previews.zip",
-  logo: "mudkitchen-logo-stickers.zip",
-};
-const LOGO_SECTIONS: Array<{ section: LogoSection; label: string }> = [
-  { section: "bowl", label: "Bowl only" },
-  { section: "wordmark", label: "Bowl + MudKitchen" },
-  { section: "badge", label: "Badges & seals" },
-];
 /** Print resolution the Logos tab quotes sizes against. */
 const PRINT_DPI = 300;
 
-type Backdrop = "checker" | "white" | "kraft" | "dark";
 const BACKDROPS: Array<{ value: Backdrop; label: string }> = [
   { value: "checker", label: "Transparent" },
   { value: "white", label: "White" },
@@ -62,17 +49,20 @@ function backdropStyle(backdrop: Backdrop, cell = 16): CSSProperties {
   if (backdrop === "dark") return { background: "#2B2F33" };
   return { background: `repeating-conic-gradient(#E6E2DC 0% 25%, #FFFFFF 0% 50%) 0 0 / ${cell}px ${cell}px` };
 }
-/** Wide banners (covers, App Store art) vs square marks. */
-const isWide = (kind: BrandMarkKind) => kind === "cover" || kind === "ios-header" || kind === "link-preview";
 /** iOS-style continuous-corner approximation. */
 const SQUIRCLE = "22.37%";
 
-function MarkView({ mark, size }: { mark: BrandMark; size: number }) {
-  return (
+/**
+ * One brand mark at `size` px wide. Shielded from the Garden type reset (it's
+ * export art); the export slot passes `shield={false}` so its DOM stays as before.
+ */
+function MarkView({ mark, size, shield = true }: { mark: BrandMark; size: number; shield?: boolean }) {
+  const stage = (
     <MarkStage width={size} height={Math.round((size * mark.height) / mark.width)} stageW={mark.stage.w} stageH={mark.stage.h} background={mark.background}>
       {mark.render()}
     </MarkStage>
   );
+  return shield ? <MarketingCanvas>{stage}</MarketingCanvas> : stage;
 }
 
 /** A mark clipped to how platforms show it: a circle for avatars, a rounded square for icons. */
@@ -114,417 +104,274 @@ function timingLabel(timing: SeasonTiming) {
   return `In ${timing.daysUntil} days`;
 }
 
-const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-
-async function imagesReady(node: HTMLElement) {
-  await Promise.all(
-    Array.from(node.querySelectorAll("img")).map((img) => img.decode().catch(() => undefined)),
-  );
-}
-
+/** /admin/marketing/avatars: profile pictures, app icons, covers, App Store art, link previews and logo stickers. */
 export default function BrandMarkStudio() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const selected = getBrandMark(searchParams.get("mark")) ?? getBrandMark(DEFAULT_BRAND_MARK_ID) ?? BRAND_MARKS[0];
-  const kind = selected.kind;
-  const allOfKind = useMemo(() => brandMarksOfKind(kind), [kind]);
-  /** Covers and App Store art list one row per concept, in the selected format (and text mode). */
-  const marks = useMemo(
-    () =>
-      kind === "cover"
-        ? allOfKind.filter((m) => m.format === selected.format)
-        : kind === "ios-header"
-          ? allOfKind.filter((m) => m.iosFormat === selected.iosFormat && !!m.textless === !!selected.textless)
-          : allOfKind,
-    [allOfKind, kind, selected.format, selected.iosFormat, selected.textless],
-  );
+  const { exportRef, ...model } = useBrandMarkStudioModel();
+  const { selected, kind, selectedTiming, showCrop, backdrop } = model;
 
-  const [showCrop, setShowCrop] = useState(true);
-  const [backdrop, setBackdrop] = useState<Backdrop>("checker");
-  const [exportMark, setExportMark] = useState<BrandMark>(selected);
-  const [exporting, setExporting] = useState<"one" | "all" | null>(null);
-  const [progress, setProgress] = useState<string | null>(null);
-  const [exportError, setExportError] = useState<string | null>(null);
-  const exportRef = useRef<HTMLDivElement>(null);
-  const [today] = useState(() => new Date());
-
-  const select = useCallback(
-    (id: string) => {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("mark", id);
-      router.replace(`?${params.toString()}`, { scroll: false });
-    },
-    [router, searchParams],
-  );
-
-  function switchKind(next: BrandMarkKind) {
-    if (next === kind) return;
-    if (next === "logo") {
-      select(brandMarksOfKind("logo")[0]?.id ?? DEFAULT_BRAND_MARK_ID);
-      return;
-    }
-    if (isWide(next) || isWide(kind) || kind === "logo") {
-      select(
-        isWide(next)
-          ? (brandMarksOfKind(next)[0]?.id ?? DEFAULT_BRAND_MARK_ID)
-          : next === "avatar"
-            ? DEFAULT_BRAND_MARK_ID
-            : `${DEFAULT_BRAND_MARK_ID}-icon`,
-      );
-      return;
-    }
-    const base = selected.id.replace(/-icon$/, "");
-    const counterpart = getBrandMark(next === "app-icon" ? `${base}-icon` : base);
-    select(counterpart?.kind === next ? counterpart.id : (brandMarksOfKind(next)[0]?.id ?? DEFAULT_BRAND_MARK_ID));
-  }
-
-  const groups = useMemo(() => {
-    if (kind === "logo") {
-      return LOGO_SECTIONS.map(({ section, label }) => ({
-        label,
-        items: marks.filter((m) => m.section === section).map((mark) => ({ mark, timing: null as SeasonTiming | null })),
-      }));
-    }
-    const timed = marks
-      .filter((mark) => mark.season)
-      .map((mark) => ({ mark, timing: seasonTiming(mark.season!, today) }))
-      .sort((a, b) => a.timing.daysUntil - b.timing.daysUntil);
-    return [
-      { label: "Coming up", items: timed.filter((t) => t.timing.state !== "later") },
-      { label: "Everyday", items: marks.filter((m) => m.group === "everyday").map((mark) => ({ mark, timing: null })) },
-      { label: "The crew", items: marks.filter((m) => m.group === "crew").map((mark) => ({ mark, timing: null })) },
-      { label: "Later this year", items: timed.filter((t) => t.timing.state === "later") },
-    ];
-  }, [kind, marks, today]);
-
-  const selectedTiming = selected.season ? seasonTiming(selected.season, today) : null;
-
-  /** Mounts `mark` in the off-screen export slot at full size and captures it. */
-  async function capture(mark: BrandMark) {
-    flushSync(() => setExportMark(mark));
-    await nextFrame();
-    const node = exportRef.current;
-    if (!node) throw new Error("Export area is not ready.");
-    await imagesReady(node);
-    return nodeToPng(node, mark.width, mark.height);
-  }
-
-  async function downloadOne() {
-    setExporting("one");
-    setExportError(null);
-    try {
-      downloadUrl(await capture(selected), `mudkitchen-${selected.fileName}`);
-    } catch (error) {
-      setExportError(error instanceof Error ? error.message : "Could not export this design.");
-    } finally {
-      setExporting(null);
-    }
-  }
-
-  async function downloadAll() {
-    setExporting("all");
-    setExportError(null);
-    try {
-      const zip = new JSZip();
-      for (let i = 0; i < allOfKind.length; i += 1) {
-        const mark = allOfKind[i];
-        setProgress(`${i + 1} / ${allOfKind.length}`);
-        // Link previews unzip flat, straight into public/og/.
-        const folder =
-          mark.kind === "cover"
-            ? `${mark.format}/`
-            : mark.kind === "ios-header"
-              ? `${mark.iosFormat}/${mark.textless ? "art-only" : "text"}/`
-              : mark.kind === "link-preview"
-                ? ""
-                : mark.kind === "logo"
-                  ? `${mark.section ?? "other"}/`
-                  : `${mark.group}/`;
-        zip.file(`${folder}${mark.fileName}`, dataUrlBase64(await capture(mark)), { base64: true });
-      }
-      const blob = await zip.generateAsync({ type: "blob" });
-      const url = URL.createObjectURL(blob);
-      downloadUrl(url, ZIP_NAME[kind]);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      setExportError(error instanceof Error ? error.message : "Could not export the set.");
-    } finally {
-      setProgress(null);
-      setExporting(null);
-      setExportMark(selected);
-    }
-  }
-
-  const exportSize = exportMark.width;
+  const specLine = [
+    selected.description || null,
+    `${selected.width}×${selected.height} PNG`,
+    kind === "app-icon"
+      ? "square, no transparency (the phone rounds the corners)"
+      : kind === "cover" && selected.format
+        ? COVER_FORMATS[selected.format].label
+        : kind === "ios-header" && selected.iosFormat
+          ? `${IOS_HEADER_FORMATS[selected.iosFormat].label}${selected.textless ? " · art only" : ""}`
+          : kind === "link-preview"
+            ? `link preview for ${selected.pages?.join(", ") ?? ""} · save into public/og/`
+            : kind === "logo"
+              ? `transparent · prints sharp up to ${(selected.width / PRINT_DPI).toFixed(1)}×${(selected.height / PRINT_DPI).toFixed(1)} in at ${PRINT_DPI} dpi`
+              : "shown as a circle on most platforms",
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <div className="flex h-[calc(100vh-3rem)] min-h-0 overflow-hidden">
-      <aside className="flex w-80 shrink-0 flex-col overflow-hidden border-r border-admin-border bg-admin-surface">
-        <div className="shrink-0 border-b border-admin-border px-4 py-3">
-          <div role="tablist" aria-label="Design type" className="grid grid-cols-2 gap-1 rounded-admin-md bg-admin-canvas p-1">
-            {KIND_ORDER.map((option) => (
-              <button
-                key={option}
-                type="button"
-                role="tab"
-                aria-selected={kind === option}
-                onClick={() => switchKind(option)}
-                className={`rounded-admin-md px-2 py-1.5 text-xs font-medium transition-colors ${
-                  kind === option ? "bg-admin-surface text-admin-text shadow-sm" : "text-admin-muted hover:text-admin-text"
-                }`}
-              >
-                {KIND_LABEL[option]} · {designCount(option)}
-              </button>
-            ))}
-          </div>
-        </div>
-        <nav className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-3" aria-label={KIND_LABEL[kind]}>
-          {groups.map((group) =>
-            group.items.length ? (
-              <section key={group.label} className="flex flex-col gap-1.5">
-                <p className="px-1 text-[10px] font-semibold uppercase tracking-wide text-admin-faint">
-                  {group.label} · {group.items.length}
-                </p>
-                {group.items.map(({ mark, timing }) => {
-                  const isSelected = mark.id === selected.id;
-                  return (
-                    <button
-                      key={mark.id}
-                      type="button"
-                      aria-current={isSelected ? "true" : undefined}
-                      onClick={() => select(mark.id)}
-                      className={`flex w-full items-center gap-3 rounded-admin-md border px-2 py-2 text-left transition-colors ${
-                        isSelected
-                          ? "border-admin-accent/30 bg-admin-accent/10"
-                          : "border-transparent hover:border-admin-border hover:bg-admin-canvas/50"
-                      }`}
-                    >
-                      <Masked mark={mark} size={isWide(kind) ? 92 : 44} ring />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium text-admin-text">{mark.title}</span>
-                        <span className="block truncate text-[11px] text-admin-muted">
-                          {mark.season ? `${formatMonthDay(mark.season.from)} – ${formatMonthDay(mark.season.to)}` : mark.description}
-                        </span>
-                      </span>
-                      {timing && timing.state !== "later" ? (
-                        <span
-                          className={`shrink-0 rounded-admin-sm px-1.5 py-0.5 text-[10px] font-medium ${
-                            timing.state === "now" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
-                          }`}
-                        >
-                          {timingLabel(timing)}
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </section>
-            ) : null,
-          )}
-        </nav>
-      </aside>
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-admin-border bg-admin-surface px-6 py-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="truncate text-base font-semibold text-admin-text">{selected.title}</h1>
+    <MarketingStudioFrame
+      data-testid="brand-mark-studio"
+      header={
+        <MarketingGardenHeader
+          compact
+          title={<AccentLast text={selected.title} />}
+          subtitle={
+            <>
               {selected.season ? (
-                <span className="rounded-admin-sm border border-admin-border px-1.5 py-0.5 text-[11px] text-admin-muted">
+                <GChip tone={selectedTiming && selectedTiming.state === "now" ? "success" : selectedTiming && selectedTiming.state !== "later" ? "warning" : "neutral"} className="mr-2 align-[1px]">
                   {selected.season.label} · {formatMonthDay(selected.season.from)} – {formatMonthDay(selected.season.to)}
                   {selectedTiming && selectedTiming.state !== "later" ? ` · ${timingLabel(selectedTiming)}` : ""}
-                </span>
+                </GChip>
               ) : null}
+              {specLine}
+            </>
+          }
+        />
+      }
+      rail={
+        <>
+          <div className="shrink-0 border-b-[1.5px] border-dashed border-[var(--sf-ink)]/12 px-4 pb-3 pt-4">
+            <p className="m-0 text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--sf-soft)]">Brand marks</p>
+            <h2 className="m-0 text-[17px] font-extrabold text-[var(--sf-ink)]">{KIND_LABEL[kind]}</h2>
+            <div role="tablist" aria-label="Design type" className="mt-3 grid grid-cols-2 gap-1.5">
+              {KIND_ORDER.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  role="tab"
+                  aria-selected={kind === option}
+                  onClick={() => model.switchKind(option)}
+                  className={`${G_TOGGLE} !min-h-[32px] !px-2.5 !text-[12.5px] ${kind === option ? G_TOGGLE_ON : G_TOGGLE_OFF}`}
+                >
+                  {KIND_LABEL[option]}
+                  <span className={`ml-1 tabular-nums ${kind === option ? "text-white/80" : "text-[var(--sf-soft)]"}`}>{designCount(option)}</span>
+                </button>
+              ))}
             </div>
-            <p className="mt-0.5 truncate text-xs text-admin-muted">
-              {selected.description ? `${selected.description} · ` : ""}
-              {selected.width}×{selected.height} PNG
-              {kind === "app-icon"
-                ? " · square, no transparency (the phone rounds the corners)"
-                : kind === "cover" && selected.format
-                  ? ` · ${COVER_FORMATS[selected.format].label}`
-                  : kind === "ios-header" && selected.iosFormat
-                    ? ` · ${IOS_HEADER_FORMATS[selected.iosFormat].label}${selected.textless ? " · art only" : ""}`
-                    : kind === "link-preview"
-                      ? ` · link preview for ${selected.pages?.join(", ") ?? ""} · save into public/og/`
-                      : kind === "logo"
-                        ? ` · transparent · prints sharp up to ${(selected.width / PRINT_DPI).toFixed(1)}×${(selected.height / PRINT_DPI).toFixed(1)} in at ${PRINT_DPI} dpi`
-                        : " · shown as a circle on most platforms"}
-            </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            {kind === "cover" ? (
-              <div role="tablist" aria-label="Cover size" className="flex gap-1 rounded-admin-md bg-admin-canvas p-1">
-                {COVER_FORMAT_ORDER.map((format) => (
-                  <button
-                    key={format}
-                    type="button"
-                    role="tab"
-                    aria-selected={selected.format === format}
-                    onClick={() => {
-                      const sibling = coverInFormat(selected, format);
-                      if (sibling) select(sibling.id);
-                    }}
-                    className={`rounded-admin-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                      selected.format === format ? "bg-admin-surface text-admin-text shadow-sm" : "text-admin-muted hover:text-admin-text"
-                    }`}
-                  >
-                    {COVER_FORMATS[format].short}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-            {kind === "ios-header" ? (
-              <>
-                <Segmented
-                  label="Artwork size"
-                  options={IOS_HEADER_FORMAT_ORDER.map((format) => ({ value: format, label: IOS_HEADER_FORMATS[format].short }))}
-                  value={selected.iosFormat}
-                  onChange={(format) => {
-                    const sibling = iosHeaderSibling(selected, { format });
-                    if (sibling) select(sibling.id);
-                  }}
-                />
-                <Segmented
-                  label="Text"
-                  options={[
-                    { value: "text", label: "With text" },
-                    { value: "art", label: "Art only" },
-                  ]}
-                  value={selected.textless ? "art" : "text"}
-                  onChange={(mode) => {
-                    const sibling = iosHeaderSibling(selected, { textless: mode === "art" });
-                    if (sibling) select(sibling.id);
-                  }}
-                />
-              </>
-            ) : null}
-            {kind === "logo" ? (
-              <Segmented label="Preview on" options={BACKDROPS} value={backdrop} onChange={setBackdrop} />
-            ) : (
-              <label className="flex items-center gap-2">
-                <AdminSwitch checked={showCrop} onChange={setShowCrop} label="Show crop" />
-                <span className="text-sm text-admin-text">Show crop</span>
-              </label>
+          <nav className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-2.5 py-3" aria-label={KIND_LABEL[kind]}>
+            {model.groups.map((group) =>
+              group.items.length ? (
+                <section key={group.label} aria-label={group.label}>
+                  <div className="px-1.5">
+                    <GardenGroupHeading count={group.items.length}>{group.label}</GardenGroupHeading>
+                  </div>
+                  <ul className="m-0 flex list-none flex-col gap-1 p-0">
+                    {group.items.map(({ mark, timing }) => {
+                      const isSelected = mark.id === selected.id;
+                      return (
+                        <li key={mark.id}>
+                          <button
+                            type="button"
+                            aria-current={isSelected ? "true" : undefined}
+                            onClick={() => model.select(mark.id)}
+                            className={`flex w-full items-center gap-3 rounded-[14px] border-[1.5px] px-2 py-2 text-left transition-colors duration-200 ${
+                              isSelected
+                                ? "border-[var(--sf-clay)]/40 bg-[var(--sf-accent-wash)]"
+                                : "border-transparent hover:bg-[var(--sf-accent-wash)]"
+                            } ${G_FOCUS} focus-visible:ring-inset focus-visible:ring-offset-0`}
+                          >
+                            <Masked mark={mark} size={isWide(kind) ? 92 : 44} ring />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-[14px] font-extrabold text-[var(--sf-ink)]">{mark.title}</span>
+                              <span className="block truncate text-[12.5px] font-semibold text-[var(--sf-soft)]">
+                                {mark.season ? `${formatMonthDay(mark.season.from)} – ${formatMonthDay(mark.season.to)}` : mark.description}
+                              </span>
+                            </span>
+                            {timing && timing.state !== "later" ? (
+                              <GChip tone={timing.state === "now" ? "success" : "warning"}>{timingLabel(timing)}</GChip>
+                            ) : (
+                              <ChevronRight
+                                className={`h-4 w-4 shrink-0 ${isSelected ? "text-[var(--sf-clay-deep)]" : "text-[var(--sf-ink)]/25"}`}
+                                aria-hidden
+                              />
+                            )}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              ) : null,
             )}
-            <button
-              type="button"
-              onClick={() => void downloadOne()}
-              disabled={exporting != null}
-              className="inline-flex items-center gap-1.5 rounded-admin-md border border-admin-border bg-admin-surface px-3 py-1.5 text-sm font-medium text-admin-text disabled:opacity-60"
-            >
-              {exporting === "one" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-              Download PNG
-            </button>
-            <button
-              id="brand-mark-download-all"
-              type="button"
-              onClick={() => void downloadAll()}
-              disabled={exporting != null}
-              className="inline-flex items-center gap-1.5 rounded-admin-md bg-admin-accent px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
-            >
-              {exporting === "all" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-              {progress ? `Exporting ${progress}` : `Download all ${allOfKind.length}`}
-            </button>
-          </div>
-        </header>
-
-        {exportError ? <p className="border-b border-admin-border px-6 py-2 text-sm text-red-700">{exportError}</p> : null}
-
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-start justify-center gap-8 px-6 py-8">
-            {kind === "cover" ? (
-              <CoverPreview mark={selected} showCrop={showCrop} />
-            ) : kind === "ios-header" ? (
-              <IosHeaderPreview mark={selected} showCrop={showCrop} />
-            ) : kind === "link-preview" ? (
-              <LinkPreviewPreview mark={selected} showCrop={showCrop} />
-            ) : kind === "logo" ? (
-              <figure className="flex flex-col items-center gap-3">
-                <div className="rounded-admin-md shadow-sm ring-1 ring-black/5">
-                  <LogoFit mark={selected} size={460} backdrop={backdrop} rounded={8} />
-                </div>
-                <figcaption className="text-xs text-admin-muted">
-                  {backdrop === "checker" ? "Checks = transparent. The printer cuts along the outer border." : "Full image, as downloaded"}
-                </figcaption>
-              </figure>
-            ) : (
-              <figure className="flex flex-col items-center gap-3">
-                <div className="relative overflow-hidden rounded-admin-md shadow-sm ring-1 ring-black/5" style={{ width: 460, height: 460 }}>
-                  <MarkView mark={selected} size={460} />
-                  {showCrop ? (
-                    <span
-                      aria-hidden
-                      className="pointer-events-none absolute inset-0"
-                      style={{
-                        borderRadius: kind === "avatar" ? "50%" : SQUIRCLE,
-                        boxShadow: "0 0 0 400px rgba(20,16,12,.62)",
-                        outline: "2px dashed rgba(255,255,255,.8)",
-                        outlineOffset: -2,
-                      }}
-                    />
-                  ) : null}
-                </div>
-                <figcaption className="text-xs text-admin-muted">
-                  {showCrop ? "Shaded area is cropped away when shown" : "Full image, as downloaded"}
-                </figcaption>
-              </figure>
-            )}
-
-            <div className={`flex flex-col gap-6 ${isWide(kind) ? "w-[820px]" : "w-[360px]"}`}>
-              {kind === "avatar" ? (
-                <AvatarMocks mark={selected} />
-              ) : kind === "app-icon" ? (
-                <IconMocks mark={selected} />
-              ) : kind === "ios-header" ? (
-                <IosHeaderMocks mark={selected} />
-              ) : kind === "link-preview" ? (
-                <LinkPreviewMocks mark={selected} />
-              ) : kind === "logo" ? (
-                <LogoMocks mark={selected} />
-              ) : (
-                <CoverMocks mark={selected} />
-              )}
-            </div>
+          </nav>
+        </>
+      }
+      overlays={
+        /* Parked fully off-screen to the left, however wide the design (App Store art is 5244px). */
+        <div aria-hidden className="pointer-events-none fixed top-0" style={{ left: -(model.exportMark.width + 200) }}>
+          <div ref={exportRef} style={{ width: model.exportMark.width, height: model.exportMark.height, overflow: "hidden", position: "relative" }}>
+            <MarkView mark={model.exportMark} size={model.exportMark.width} shield={false} />
           </div>
         </div>
+      }
+    >
+      <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-3 rounded-[20px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white px-4 py-3 shadow-[0_3px_0_0_rgba(43,36,29,0.08)]">
+        {kind === "cover" ? (
+          <GardenSegmented
+            label="Cover size"
+            size="sm"
+            value={selected.format}
+            onChange={(format) => {
+              const sibling = coverInFormat(selected, format);
+              if (sibling) model.select(sibling.id);
+            }}
+            options={COVER_FORMAT_ORDER.map((format) => ({ value: format, label: COVER_FORMATS[format].short }))}
+          />
+        ) : null}
+        {kind === "ios-header" ? (
+          <>
+            <GardenSegmented
+              label="Artwork size"
+              size="sm"
+              value={selected.iosFormat}
+              onChange={(format) => {
+                const sibling = iosHeaderSibling(selected, { format });
+                if (sibling) model.select(sibling.id);
+              }}
+              options={IOS_HEADER_FORMAT_ORDER.map((format) => ({ value: format, label: IOS_HEADER_FORMATS[format].short }))}
+            />
+            <GardenSegmented
+              label="Text"
+              size="sm"
+              value={selected.textless ? "art" : "text"}
+              onChange={(mode) => {
+                const sibling = iosHeaderSibling(selected, { textless: mode === "art" });
+                if (sibling) model.select(sibling.id);
+              }}
+              options={[
+                { value: "text", label: "With text" },
+                { value: "art", label: "Art only" },
+              ]}
+            />
+          </>
+        ) : null}
+        {kind === "logo" ? (
+          <GardenSegmented label="Preview on" size="sm" value={backdrop} onChange={model.setBackdrop} options={BACKDROPS} />
+        ) : (
+          <div className="min-w-[170px]">
+            <GardenSwitch checked={showCrop} onChange={model.setShowCrop} label="Show crop" description="Shade what platforms cut" />
+          </div>
+        )}
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void model.downloadOne()}
+            disabled={model.exporting != null}
+            aria-busy={model.exporting === "one" || undefined}
+            className={gBtnOutlineSm}
+          >
+            <BusyLabel busy={model.exporting === "one"} busyLabel="Exporting…" icon={<Download className="h-4 w-4" aria-hidden />}>
+              Download PNG
+            </BusyLabel>
+          </button>
+          <button
+            id="brand-mark-download-all"
+            type="button"
+            onClick={() => void model.downloadAll()}
+            disabled={model.exporting != null}
+            aria-busy={model.exporting === "all" || undefined}
+            className={gBtnPopSm}
+          >
+            <BusyLabel
+              busy={model.exporting === "all"}
+              busyLabel={model.progress ? `Exporting ${model.progress}` : "Exporting…"}
+              icon={<Download className="h-4 w-4" aria-hidden />}
+            >
+              {`Download all ${model.allOfKind.length}`}
+            </BusyLabel>
+          </button>
+        </div>
+      </div>
 
-        {/* Parked fully off-screen to the left, however wide the design (App Store art is 5244px). */}
-        <div aria-hidden className="pointer-events-none fixed top-0" style={{ left: -(exportMark.width + 200) }}>
-          <div ref={exportRef} style={{ width: exportMark.width, height: exportMark.height, overflow: "hidden", position: "relative" }}>
-            <MarkView mark={exportMark} size={exportSize} />
+      <div className={`${STUDIO_STAGE_CLASS} overflow-y-auto max-lg:!min-h-0 max-lg:flex-none max-lg:!overflow-x-auto`}>
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-start justify-center gap-8 px-6 py-8">
+          {kind === "cover" ? (
+            <CoverPreview mark={selected} showCrop={showCrop} />
+          ) : kind === "ios-header" ? (
+            <IosHeaderPreview mark={selected} showCrop={showCrop} />
+          ) : kind === "link-preview" ? (
+            <LinkPreviewPreview mark={selected} showCrop={showCrop} />
+          ) : kind === "logo" ? (
+            <figure className="m-0 flex flex-col items-center gap-3">
+              <div className="rounded-[10px] shadow-[0_8px_0_0_rgba(43,36,29,0.14)] ring-[1.5px] ring-[var(--sf-ink)]/12">
+                <LogoFit mark={selected} size={460} backdrop={backdrop} rounded={8} />
+              </div>
+              <figcaption className="text-[12.5px] font-semibold text-[var(--sf-soft)]">
+                {backdrop === "checker" ? "Checks = transparent. The printer cuts along the outer border." : "Full image, as downloaded"}
+              </figcaption>
+            </figure>
+          ) : (
+            <figure className="m-0 flex flex-col items-center gap-3">
+              <div
+                className="relative overflow-hidden rounded-[10px] shadow-[0_8px_0_0_rgba(43,36,29,0.14)] ring-[1.5px] ring-[var(--sf-ink)]/12"
+                style={{ width: 460, height: 460 }}
+              >
+                <MarkView mark={selected} size={460} />
+                {showCrop ? (
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0"
+                    style={{
+                      borderRadius: kind === "avatar" ? "50%" : SQUIRCLE,
+                      boxShadow: "0 0 0 400px rgba(20,16,12,.62)",
+                      outline: "2px dashed rgba(255,255,255,.8)",
+                      outlineOffset: -2,
+                    }}
+                  />
+                ) : null}
+              </div>
+              <figcaption className="text-[12.5px] font-semibold text-[var(--sf-soft)]">
+                {showCrop ? "Shaded area is cropped away when shown" : "Full image, as downloaded"}
+              </figcaption>
+            </figure>
+          )}
+
+          <div className={`flex flex-col gap-5 ${isWide(kind) ? "w-[820px] max-w-full" : "w-[360px] max-w-full"}`}>
+            {kind === "avatar" ? (
+              <AvatarMocks mark={selected} />
+            ) : kind === "app-icon" ? (
+              <IconMocks mark={selected} />
+            ) : kind === "ios-header" ? (
+              <IosHeaderMocks mark={selected} />
+            ) : kind === "link-preview" ? (
+              <LinkPreviewMocks mark={selected} />
+            ) : kind === "logo" ? (
+              <LogoMocks mark={selected} />
+            ) : (
+              <CoverMocks mark={selected} />
+            )}
           </div>
         </div>
       </div>
-    </div>
+    </MarketingStudioFrame>
   );
 }
 
-function Segmented<T extends string>({ label, options, value, onChange }: { label: string; options: Array<{ value: T; label: string }>; value: T | undefined; onChange: (value: T) => void }) {
-  return (
-    <div role="tablist" aria-label={label} className="flex gap-1 rounded-admin-md bg-admin-canvas p-1">
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          role="tab"
-          aria-selected={value === option.value}
-          onClick={() => onChange(option.value)}
-          className={`rounded-admin-md px-2.5 py-1 text-xs font-medium transition-colors ${
-            value === option.value ? "bg-admin-surface text-admin-text shadow-sm" : "text-admin-muted hover:text-admin-text"
-          }`}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
+/** A platform mock-up as a Garden card (kicker = what it shows). */
 function MockCard({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-admin-md border border-admin-border bg-admin-surface p-4">
-      <p className="mb-3 text-[10px] font-semibold uppercase tracking-wide text-admin-faint">{title}</p>
+    <section className="rounded-[20px] border-[1.5px] border-[var(--sf-ink)]/12 bg-white p-4 shadow-[0_3px_0_0_rgba(43,36,29,0.08)]">
+      <p className="m-0 mb-3 text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--sf-soft)]">{title}</p>
       {children}
     </section>
   );
@@ -534,14 +381,14 @@ function AvatarMocks({ mark }: { mark: BrandMark }) {
   return (
     <>
       <MockCard title="Profile header">
-        <div className="overflow-hidden rounded-admin-md border border-admin-border">
+        <div className="overflow-hidden rounded-[12px] border border-[var(--sf-ink)]/12">
           <div className="h-20" style={{ background: "linear-gradient(120deg, #2E4A3C, #A6B89A)" }} />
           <div className="px-4 pb-4">
             <div className="-mt-10 inline-block rounded-full border-4 border-white bg-white">
               <Masked mark={mark} size={88} />
             </div>
-            <p className="mt-1 text-sm font-semibold text-admin-text">MudKitchen</p>
-            <p className="text-xs text-admin-muted">trymudkitchen.com</p>
+            <p className="mt-1 text-sm font-semibold text-[var(--sf-ink)]">MudKitchen</p>
+            <p className="text-xs text-[var(--sf-soft)]">trymudkitchen.com</p>
           </div>
         </div>
       </MockCard>
@@ -554,8 +401,8 @@ function AvatarMocks({ mark }: { mark: BrandMark }) {
             <div key={row.size} className="flex items-center gap-3">
               <Masked mark={mark} size={row.size} />
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-admin-text">MudKitchen</p>
-                <p className="text-xs text-admin-muted">{row.line}</p>
+                <p className="text-sm font-semibold text-[var(--sf-ink)]">MudKitchen</p>
+                <p className="text-xs text-[var(--sf-soft)]">{row.line}</p>
               </div>
             </div>
           ))}
@@ -566,7 +413,7 @@ function AvatarMocks({ mark }: { mark: BrandMark }) {
           {[110, 64, 40, 24].map((size) => (
             <div key={size} className="flex flex-col items-center gap-1">
               <Masked mark={mark} size={size} ring />
-              <span className="text-[10px] text-admin-faint">{size}px</span>
+              <span className="text-[10px] text-[var(--sf-soft)]">{size}px</span>
             </div>
           ))}
         </div>
@@ -607,13 +454,13 @@ function IconMocks({ mark }: { mark: BrandMark }) {
           {[120, 60, 40, 29].map((size) => (
             <div key={size} className="flex flex-col items-center gap-1">
               <Masked mark={mark} size={size} ring />
-              <span className="text-[10px] text-admin-faint">{size}pt</span>
+              <span className="text-[10px] text-[var(--sf-soft)]">{size}pt</span>
             </div>
           ))}
         </div>
       </MockCard>
       <MockCard title="Using it">
-        <p className="text-xs leading-relaxed text-admin-muted">
+        <p className="text-xs leading-relaxed text-[var(--sf-soft)]">
           The download is the 1024×1024 master for the App Store. To ship one, replace <code>apps/mobile/assets/images/icon.png</code> and
           make a new build. Android draws its icon from the separate adaptive-icon layers, so it keeps the classic bowl.
         </p>
@@ -630,8 +477,8 @@ function CoverPreview({ mark, showCrop }: { mark: BrandMark; showCrop: boolean }
   const k = PREVIEW_W / mark.width;
   const shade = "rgba(20,16,12,.55)";
   return (
-    <figure className="flex flex-col items-center gap-3">
-      <div className="relative overflow-hidden rounded-admin-md shadow-sm ring-1 ring-black/5" style={{ width: PREVIEW_W, height: Math.round(mark.height * k) }}>
+    <figure className="m-0 flex flex-col items-center gap-3">
+      <div className="relative overflow-hidden rounded-[12px] shadow-sm ring-1 ring-black/5" style={{ width: PREVIEW_W, height: Math.round(mark.height * k) }}>
         <MarkView mark={mark} size={PREVIEW_W} />
         {showCrop && spec ? (
           <>
@@ -657,7 +504,7 @@ function CoverPreview({ mark, showCrop }: { mark: BrandMark; showCrop: boolean }
           </>
         ) : null}
       </div>
-      <figcaption className="text-xs text-admin-muted">
+      <figcaption className="text-[12.5px] font-semibold text-[var(--sf-soft)]">
         {showCrop
           ? spec?.mobile
             ? "Shaded: covered by the profile photo, and cut off on phones"
@@ -679,7 +526,7 @@ function CoverMocks({ mark }: { mark: BrandMark }) {
   const square = spec.photo.shape === "square";
   return (
     <MockCard title={`${spec.label} — how it sits`}>
-      <div className="overflow-hidden rounded-admin-md border border-admin-border bg-white" style={{ width: w }}>
+      <div className="overflow-hidden rounded-[12px] border border-[var(--sf-ink)]/12 bg-white" style={{ width: w }}>
         <MarkView mark={mark} size={w} />
         <div className="relative px-4 pb-4" style={{ paddingTop: Math.round(photo * 0.5) + 6 }}>
           {avatar ? (
@@ -692,11 +539,11 @@ function CoverMocks({ mark }: { mark: BrandMark }) {
               </div>
             </div>
           ) : null}
-          <p className="text-sm font-semibold text-admin-text">MudKitchen</p>
-          <p className="text-xs text-admin-muted">trymudkitchen.com</p>
+          <p className="text-sm font-semibold text-[var(--sf-ink)]">MudKitchen</p>
+          <p className="text-xs text-[var(--sf-soft)]">trymudkitchen.com</p>
         </div>
       </div>
-      <p className="mt-3 text-xs text-admin-muted">
+      <p className="mt-3 text-xs text-[var(--sf-soft)]">
         Platforms move the photo around between layouts, so keep words and faces out of the shaded areas in the preview.
       </p>
     </MockCard>
@@ -708,8 +555,8 @@ function IosHeaderPreview({ mark, showCrop }: { mark: BrandMark; showCrop: boole
   const spec = mark.iosFormat ? IOS_HEADER_FORMATS[mark.iosFormat] : null;
   const k = PREVIEW_W / (spec?.stage.w ?? mark.width);
   return (
-    <figure className="flex flex-col items-center gap-3">
-      <div className="relative overflow-hidden rounded-admin-md shadow-sm ring-1 ring-black/5" style={{ width: PREVIEW_W, height: Math.round((mark.height * PREVIEW_W) / mark.width) }}>
+    <figure className="m-0 flex flex-col items-center gap-3">
+      <div className="relative overflow-hidden rounded-[12px] shadow-sm ring-1 ring-black/5" style={{ width: PREVIEW_W, height: Math.round((mark.height * PREVIEW_W) / mark.width) }}>
         <MarkView mark={mark} size={PREVIEW_W} />
         {showCrop && spec ? (
           <>
@@ -733,7 +580,7 @@ function IosHeaderPreview({ mark, showCrop }: { mark: BrandMark; showCrop: boole
           </>
         ) : null}
       </div>
-      <figcaption className="text-xs text-admin-muted">
+      <figcaption className="text-[12.5px] font-semibold text-[var(--sf-soft)]">
         {showCrop ? "Keep faces and words inside the dashed box. Apple may crop the edges and put the title in the bottom band." : "Full image, as downloaded"}
       </figcaption>
     </figure>
@@ -773,7 +620,7 @@ function IosHeaderMocks({ mark }: { mark: BrandMark }) {
             <MarkView mark={mark} size={fullW} />
           </div>
         </div>
-        <p className="mt-3 text-xs text-admin-muted">
+        <p className="mt-3 text-xs text-[var(--sf-soft)]">
           The safe zone is our own conservative guess, not Apple&apos;s template. If Apple sends a template, update <code>IOS_HEADER_FORMATS</code> in{" "}
           <code>brand-marks/types.ts</code>.
         </p>
@@ -787,8 +634,8 @@ function LinkPreviewPreview({ mark, showCrop }: { mark: BrandMark; showCrop: boo
   const h = Math.round((mark.height * PREVIEW_W) / mark.width);
   const k = PREVIEW_W / mark.width;
   return (
-    <figure className="flex flex-col items-center gap-3">
-      <div className="relative overflow-hidden rounded-admin-md shadow-sm ring-1 ring-black/5" style={{ width: PREVIEW_W, height: h }}>
+    <figure className="m-0 flex flex-col items-center gap-3">
+      <div className="relative overflow-hidden rounded-[12px] shadow-sm ring-1 ring-black/5" style={{ width: PREVIEW_W, height: h }}>
         <MarkView mark={mark} size={PREVIEW_W} />
         {showCrop ? (
           <>
@@ -805,7 +652,7 @@ function LinkPreviewPreview({ mark, showCrop }: { mark: BrandMark; showCrop: boo
           </>
         ) : null}
       </div>
-      <figcaption className="text-xs text-admin-muted">
+      <figcaption className="text-[12.5px] font-semibold text-[var(--sf-soft)]">
         {showCrop ? "Keep words inside the dashed box. The dotted square is the thumbnail some apps (WhatsApp, SMS) cut from the middle." : "Full image, as downloaded"}
       </figcaption>
     </figure>
@@ -819,7 +666,7 @@ function LinkPreviewMocks({ mark }: { mark: BrandMark }) {
   return (
     <>
       <MockCard title="iMessage">
-        <div className="flex justify-end rounded-admin-md bg-[#1c1c1e] p-4">
+        <div className="flex justify-end rounded-[12px] bg-[#1c1c1e] p-4">
           <div className="overflow-hidden rounded-[18px] bg-[#2c2c2e]" style={{ width: w }}>
             <MarkView mark={mark} size={w} />
             <div className="px-3 py-2">
@@ -831,19 +678,19 @@ function LinkPreviewMocks({ mark }: { mark: BrandMark }) {
       </MockCard>
       <MockCard title="Slack / LinkedIn feed">
         <div className="flex gap-3">
-          <span className="w-1 shrink-0 rounded-full bg-admin-border" />
+          <span className="w-1 shrink-0 rounded-full bg-[var(--sf-ink)]/15" />
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-admin-text">MudKitchen</p>
-            <p className="mb-2 text-xs text-admin-muted">{mark.pages?.join(", ")}</p>
-            <div className="overflow-hidden rounded-admin-md ring-1 ring-black/10" style={{ width: 420, height: Math.round((mark.height * 420) / mark.width) }}>
+            <p className="text-xs font-semibold text-[var(--sf-ink)]">MudKitchen</p>
+            <p className="mb-2 text-xs text-[var(--sf-soft)]">{mark.pages?.join(", ")}</p>
+            <div className="overflow-hidden rounded-[12px] ring-1 ring-black/10" style={{ width: 420, height: Math.round((mark.height * 420) / mark.width) }}>
               <MarkView mark={mark} size={420} />
             </div>
           </div>
         </div>
       </MockCard>
       <MockCard title="Square thumbnail (WhatsApp, SMS)">
-        <div className="flex items-center gap-3 rounded-admin-md bg-[#dcf8c6] p-2">
-          <div className="relative shrink-0 overflow-hidden rounded-admin-sm" style={{ width: 72, height: 72 }}>
+        <div className="flex items-center gap-3 rounded-[12px] bg-[#dcf8c6] p-2">
+          <div className="relative shrink-0 overflow-hidden rounded-[8px]" style={{ width: 72, height: 72 }}>
             <div className="absolute top-0" style={{ left: -Math.round((((72 * mark.width) / mark.height) - 72) / 2) }}>
               <MarkView mark={mark} size={Math.round((72 * mark.width) / mark.height)} />
             </div>
@@ -853,7 +700,7 @@ function LinkPreviewMocks({ mark }: { mark: BrandMark }) {
             <p className="text-[12px] text-black/55">trymudkitchen.com</p>
           </div>
         </div>
-        <p className="mt-2 text-[11px] text-admin-muted">{h}px tall in a 300px chat bubble.</p>
+        <p className="mt-2 text-[11px] text-[var(--sf-soft)]">{h}px tall in a 300px chat bubble.</p>
       </MockCard>
     </>
   );
@@ -877,7 +724,7 @@ function LogoMocks({ mark }: { mark: BrandMark }) {
         </div>
       </MockCard>
       <MockCard title="Real size">
-        <div className="flex items-end gap-5 rounded-admin-md p-3" style={backdropStyle("kraft")}>
+        <div className="flex items-end gap-5 rounded-[12px] p-3" style={backdropStyle("kraft")}>
           {(wide ? [3, 4.5] : [2, 3, 4]).map((inches) => (
             <div key={inches} className="flex flex-col items-center gap-1">
               <MarkView mark={mark} size={Math.round(inches * inch)} />
@@ -885,27 +732,27 @@ function LogoMocks({ mark }: { mark: BrandMark }) {
             </div>
           ))}
         </div>
-        <p className="mt-3 text-xs leading-relaxed text-admin-muted">
+        <p className="mt-3 text-xs leading-relaxed text-[var(--sf-soft)]">
           Shown roughly to scale. A 4&quot; sticker needs {4 * PRINT_DPI}px at {PRINT_DPI} dpi; this file is {mark.width}px wide, so it stays sharp up to{" "}
           {(mark.width / PRINT_DPI).toFixed(1)}&quot; wide.
         </p>
       </MockCard>
       <MockCard title="Redraw vs original">
         <div className="flex items-center justify-around gap-4">
-          <figure className="flex flex-col items-center gap-1">
+          <figure className="m-0 flex flex-col items-center gap-1">
             {/* eslint-disable-next-line @next/next/no-img-element -- comparing the raw source files */}
             <img src="/images/Logo.png" alt="Original bowl logo" width={130} height={130} style={{ width: 130, height: 130, objectFit: "cover", objectPosition: "50% 50%" }} />
-            <figcaption className="text-[10px] text-admin-faint">Original (Logo.png, 308px art)</figcaption>
+            <figcaption className="text-[10px] text-[var(--sf-soft)]">Original (Logo.png, 308px art)</figcaption>
           </figure>
-          <figure className="flex flex-col items-center gap-1">
+          <figure className="m-0 flex flex-col items-center gap-1">
             {/* eslint-disable-next-line @next/next/no-img-element -- comparing the raw source files */}
             <img src={svgSrc(BOWL_VECTOR)} alt="Vector redraw of the bowl" width={100} height={101} style={{ width: 100, height: 101, margin: "15px" }} />
-            <figcaption className="text-[10px] text-admin-faint">Vector redraw (any size)</figcaption>
+            <figcaption className="text-[10px] text-[var(--sf-soft)]">Vector redraw (any size)</figcaption>
           </figure>
         </div>
       </MockCard>
       <MockCard title="Printing">
-        <ul className="list-disc space-y-1 pl-4 text-xs leading-relaxed text-admin-muted">
+        <ul className="list-disc space-y-1 pl-4 text-xs leading-relaxed text-[var(--sf-soft)]">
           <li>Upload the PNG as-is. The background is transparent and the sticker printer draws its die-cut line around the outer border.</li>
           <li>Pick &ldquo;die cut&rdquo; (or &ldquo;contour cut&rdquo;). Badges and circles also work as plain circle stickers.</li>
           <li>The white border is part of the art, so ask for no extra border or bleed.</li>

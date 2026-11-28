@@ -3,8 +3,10 @@ import { chargeRemainingCents } from "./billing-splits";
 import { rowToAssignment } from "./row-mappers";
 import {
   getFamilyTuitionSelectionContexts,
+  loadAssignmentStudentLookup,
   type FamilyTuitionSelectionItem,
 } from "./enrollment-selection";
+import type { FamilyBillingRows, MaybePromise } from "./family-billing-rows";
 import { paymentScheduleLabel } from "./setup-wizard";
 import type { TuitionCharge, TuitionEnrollmentAssignment } from "./types";
 
@@ -297,35 +299,66 @@ export async function fetchParentBillingFamilySummary(
   options?: {
     /** Service-role client for payment-plan labels. Catalog tables are staff-only. */
     catalogClient?: SupabaseClient;
+    /** Rows the parent billing page has already loaded; each one skips queries here. */
+    preloaded?: {
+      familyRows?: MaybePromise<FamilyBillingRows>;
+      /** The org's `tuition_payment_plans` rows (id, name, installment_count). */
+      paymentPlanRows?: MaybePromise<
+        Array<{ id: unknown; name: unknown; installment_count: unknown }>
+      >;
+    };
   },
 ): Promise<ParentBillingFamilySummary> {
   const catalog = options?.catalogClient ?? supabase;
-  const [selectionItems, assignmentRows, paymentPlansResult] = await Promise.all([
+  const preloaded = options?.preloaded;
+  const familyRows = preloaded?.familyRows ? await preloaded.familyRows : undefined;
+
+  const assignmentRowsPromise: Promise<Array<Record<string, unknown>>> = familyRows
+    ? Promise.resolve(familyRows.activeAssignmentRows)
+    : (async () => {
+        const { data, error } = await supabase
+          .from("tuition_enrollment_assignments")
+          .select("*")
+          .eq("organization_id", input.organizationId)
+          .eq("family_id", input.familyId)
+          .eq("status", "active");
+        if (error) throw error;
+        return data ?? [];
+      })();
+
+  const paymentPlanRowsPromise = preloaded?.paymentPlanRows
+    ? Promise.resolve(preloaded.paymentPlanRows)
+    : (async () => {
+        const { data, error } = await catalog
+          .from("tuition_payment_plans")
+          .select("id, name, installment_count")
+          .eq("organization_id", input.organizationId);
+        if (error) throw error;
+        return data ?? [];
+      })();
+
+  // The name lookups only need the assignment rows, so they start as soon as
+  // those arrive instead of after the selection contexts.
+  const studentLookupPromise = assignmentRowsPromise.then((rows) =>
+    rows.length > 0 ? loadAssignmentStudentLookup(supabase, rows, familyRows) : null,
+  );
+
+  const [selectionItems, rows, paymentPlanRows, studentLookup] = await Promise.all([
     getFamilyTuitionSelectionContexts(
       supabase,
       {
         organizationId: input.organizationId,
         familyId: input.familyId,
       },
-      { catalogClient: catalog },
+      { catalogClient: catalog, familyRows },
     ),
-    supabase
-      .from("tuition_enrollment_assignments")
-      .select("*")
-      .eq("organization_id", input.organizationId)
-      .eq("family_id", input.familyId)
-      .eq("status", "active"),
-    catalog
-      .from("tuition_payment_plans")
-      .select("id, name, installment_count")
-      .eq("organization_id", input.organizationId),
+    assignmentRowsPromise,
+    paymentPlanRowsPromise,
+    studentLookupPromise,
   ]);
 
-  if (assignmentRows.error) throw assignmentRows.error;
-  if (paymentPlansResult.error) throw paymentPlansResult.error;
-
   const paymentPlansById = new Map(
-    (paymentPlansResult.data ?? []).map((plan) => [
+    paymentPlanRows.map((plan) => [
       String(plan.id),
       {
         name: String(plan.name),
@@ -334,8 +367,7 @@ export async function fetchParentBillingFamilySummary(
     ]),
   );
 
-  const rows = assignmentRows.data ?? [];
-  if (rows.length === 0) {
+  if (rows.length === 0 || !studentLookup) {
     const upcomingDue = resolveUpcomingDue(input.charges);
     return {
       balanceDueCents: upcomingDue.upcomingDueCents,
@@ -367,44 +399,7 @@ export async function fetchParentBillingFamilySummary(
     };
   }
 
-  const enrollmentIds = rows.map((row) => String(row.enrollment_id));
-  const { data: enrollments, error: enrollmentsError } = await supabase
-    .from("enrollments")
-    .select("id, student_id")
-    .in("id", enrollmentIds);
-
-  if (enrollmentsError) throw enrollmentsError;
-
-  const studentIds = [
-    ...new Set(
-      (enrollments ?? [])
-        .map((enrollment) =>
-          enrollment.student_id ? String(enrollment.student_id) : null,
-        )
-        .filter((id): id is string => Boolean(id)),
-    ),
-  ];
-
-  const { data: students, error: studentsError } = await supabase
-    .from("students")
-    .select("id, first_name, last_name")
-    .in("id", studentIds);
-
-  if (studentsError) throw studentsError;
-
-  const enrollmentStudentId = new Map(
-    (enrollments ?? []).map((enrollment) => [
-      String(enrollment.id),
-      enrollment.student_id ? String(enrollment.student_id) : null,
-    ]),
-  );
-  const studentNameById = new Map(
-    (students ?? []).map((student) => [
-      String(student.id),
-      [student.first_name, student.last_name].filter(Boolean).join(" ").trim() ||
-        "Student",
-    ]),
-  );
+  const { enrollmentStudentId, studentNameById } = studentLookup;
 
   const assignments: AssignmentRow[] = rows.map((row) => {
     const assignment = rowToAssignment(row);

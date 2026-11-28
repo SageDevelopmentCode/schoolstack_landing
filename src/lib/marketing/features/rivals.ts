@@ -19,3 +19,13 @@ export const RIVALS: Rival[] = [
 ];
 
 export const COMPARISONS_CHECKED = "November 2026";
+
+/**
+ * When the feature and comparison content last changed (ISO date). Shown on the pages, used for
+ * the sitemap and schema dateModified. Bump it whenever you edit a feature content file.
+ */
+export const FEATURES_CONTENT_UPDATED = "2026-11-22";
+
+export function formatContentDate(iso: string) {
+  return new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
+}

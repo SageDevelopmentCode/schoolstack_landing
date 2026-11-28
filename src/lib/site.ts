@@ -35,7 +35,7 @@ export function publicSiteDisplayUrl(path: string): string {
 export const SITE_NAME = "MudKitchen";
 
 export const DEFAULT_DESCRIPTION =
-  "MudKitchen was built inside a real microschool to replace the 7 tools founders are stitching together. One system for enrollment, billing, parent communication, and daily operations.";
+  "MudKitchen is microschool software for enrollment, tuition billing, parent communication, and daily operations, built inside a real microschool to replace the 7 tools founders stitch together.";
 
 export const DEFAULT_KEYWORDS = [
   "microschool software",
@@ -73,15 +73,62 @@ export const MUDKITCHEN_CONTACT = {
   facebook: "https://www.facebook.com/profile.php?id=61594823257049",
 } as const;
 
+/**
+ * Profiles of MudKitchen on other sites. AI assistants and search engines use these to tie
+ * the brand to one entity, so add each new profile (LinkedIn, Crunchbase, G2, Capterra) here.
+ */
 export const SAME_AS = [
   MUDKITCHEN_CONTACT.instagram,
   MUDKITCHEN_CONTACT.facebook,
   process.env.NEXT_PUBLIC_LINKEDIN_URL,
   process.env.NEXT_PUBLIC_TWITTER_URL,
+  process.env.NEXT_PUBLIC_CRUNCHBASE_URL,
+  process.env.NEXT_PUBLIC_G2_URL,
+  process.env.NEXT_PUBLIC_CAPTERRA_URL,
 ].filter((url): url is string => Boolean(url));
+
+/**
+ * One plain sentence saying what MudKitchen is. Keep the wording the same everywhere
+ * (hero, schema, llms.txt) so AI assistants learn one consistent definition.
+ */
+export const ENTITY_SUMMARY =
+  "MudKitchen is microschool software for enrollment, tuition billing, parent communication, and daily school operations.";
+
+/** "Mud kitchen" is also a children's outdoor play toy; this keeps the two apart in schema. */
+export const ENTITY_DISAMBIGUATION =
+  "MudKitchen (trymudkitchen.com) is school management software for microschools and small private schools, not the children's outdoor play kitchen.";
+
+export const ENTITY_TOPICS = [
+  "Microschools",
+  "Microschool management software",
+  "Private school enrollment and admissions",
+  "Tuition billing and autopay",
+  "Parent communication",
+  "Student records",
+  "School attendance",
+] as const;
+
+export const FOUNDERS = [
+  {
+    name: "Julius Cecilia",
+    jobTitle: "Co-founder",
+    sameAs: ["https://www.linkedin.com/in/julius-cecilia/"],
+  },
+  { name: "Sabrina Obnamia", jobTitle: "Co-founder", sameAs: [] as string[] },
+] as const;
+
+export const COMPANY_LOCATION = {
+  addressLocality: "Round Rock",
+  addressRegion: "TX",
+  addressCountry: "US",
+} as const;
 
 export const GOOGLE_SITE_VERIFICATION =
   process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
+
+/** Bing Webmaster Tools "msvalidate.01" code. Bing's index feeds ChatGPT search and Copilot. */
+export const BING_SITE_VERIFICATION =
+  process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION;
 
 export const AUTH_GATE_SLIDE_INTERVAL_MS = 6000;
 

@@ -184,7 +184,7 @@ export default function SiteStory({
   socialProof: DemoTestimonialsSection | DemoTrustSection;
 }) {
   return (
-    <section id="stories" className={`scroll-mt-[88px] bg-[var(--sf-lav)]/45 ${SITE_SECTION}`}>
+    <section id="stories" className={`scroll-mt-[88px] bg-[var(--sf-lav)] ${SITE_SECTION}`}>
       {socialProof.type === "testimonials" ? <Testimonials section={socialProof} /> : <Trust section={socialProof} />}
     </section>
   );

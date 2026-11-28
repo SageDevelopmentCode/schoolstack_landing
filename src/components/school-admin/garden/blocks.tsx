@@ -8,6 +8,7 @@ import { ArrowRight, Check, ChevronRight, Copy, Loader2, type LucideIcon } from 
 import { adminToast } from "@/lib/school-admin/admin-toast";
 import GSidePanel from "@/components/school-parent/garden/GSidePanel";
 import { ParentGardenScope } from "@/components/school-parent/garden/ParentGardenFrame";
+import { useGardenOverlayHost } from "@/components/school-parent/garden/overlay-host";
 import {
   GChip,
   GSkeleton,
@@ -49,12 +50,13 @@ export function GardenOverlayScope({
   children: ReactNode;
 }) {
   const hydrated = useHydrated();
+  const overlayHost = useGardenOverlayHost();
   if (!hydrated) return null;
   return createPortal(
     <ParentGardenScope theme={theme} className="contents sf-admin-garden-skin">
       {children}
     </ParentGardenScope>,
-    document.body,
+    overlayHost ?? document.body,
   );
 }
 

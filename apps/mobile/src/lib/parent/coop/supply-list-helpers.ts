@@ -74,3 +74,55 @@ export function isSupplyFamilyAssigned(
 ): boolean {
   return familyId.length > 0 && assignedFamilyIds.includes(familyId);
 }
+
+export type MobileSupplyFilterKey = 'all' | 'available' | 'mine' | 'full';
+
+/** Same choices (and labels) as the web parent filter, minus "Has sign-ups". */
+export const MOBILE_SUPPLY_FILTER_PILLS: readonly { key: MobileSupplyFilterKey; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'available', label: 'Available' },
+  { key: 'mine', label: 'My sign-ups' },
+  { key: 'full', label: 'Full' },
+];
+
+export function isSupplyItemFull(item: ParentCoopSupplyListItem): boolean {
+  return item.assignedFamilyIds.length >= COOP_SUPPLY_MAX_ASSIGNED_FAMILIES;
+}
+
+/** Search (name, where to buy, quantity) then the sign-up filter. */
+export function filterMobileSupplyItems(
+  items: ParentCoopSupplyListItem[],
+  {
+    search,
+    filterKey,
+    currentFamilyId,
+  }: { search: string; filterKey: MobileSupplyFilterKey; currentFamilyId: string },
+): ParentCoopSupplyListItem[] {
+  const query = search.trim().toLowerCase();
+  return items.filter((item) => {
+    if (
+      query &&
+      ![item.name, item.whereToBuy, item.quantityLabel].join(' ').toLowerCase().includes(query)
+    ) {
+      return false;
+    }
+    const mine = isSupplyFamilyAssigned(item.assignedFamilyIds, currentFamilyId);
+    switch (filterKey) {
+      case 'available':
+        return !mine && !isSupplyItemFull(item);
+      case 'mine':
+        return mine;
+      case 'full':
+        return isSupplyItemFull(item);
+      default:
+        return true;
+    }
+  });
+}
+
+export function countMySupplySignups(
+  items: ParentCoopSupplyListItem[],
+  currentFamilyId: string,
+): number {
+  return items.filter((item) => isSupplyFamilyAssigned(item.assignedFamilyIds, currentFamilyId)).length;
+}

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import { HOME_FAQ } from "@/lib/faq";
 import { Draw, Squiggle } from "@/components/garden/ui";
 import { Reveal, WordsReveal } from "@/components/garden/motion";
@@ -77,20 +76,19 @@ export default function GardenFaq({
                     </span>
                   </button>
                 </h3>
-                <AnimatePresence initial={false}>
-                  {isOpen && (
-                    <motion.div
-                      id={panelId}
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                      className="overflow-hidden"
-                    >
-                      <p className="px-6 pb-6 pr-14 leading-relaxed text-[var(--sf-ink)]/80">{f.answer}</p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {/* Every answer stays in the DOM (collapsed with CSS, not unmounted) so crawlers,
+                    including AI ones that don't run JS, read all of them. */}
+                <div
+                  id={panelId}
+                  inert={!isOpen}
+                  className={`grid transition-[grid-template-rows,opacity] duration-[450ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
+                    isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                  }`}
+                >
+                  <div className="min-h-0 overflow-hidden">
+                    <p className="px-6 pb-6 pr-14 leading-relaxed text-[var(--sf-ink)]/80">{f.answer}</p>
+                  </div>
+                </div>
               </div>
             );
           })}

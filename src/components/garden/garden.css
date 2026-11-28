@@ -109,6 +109,11 @@
     background-size: 22px 22px;
   }
 
+  /* School website demos tint the dots with the school's colour. */
+  .sf-site-garden .sf-grid {
+    background-image: radial-gradient(var(--sf-dot, rgba(43, 36, 29, 0.13)) 1.2px, transparent 1.2px);
+  }
+
   /* Ticket notches */
   .sf-ticket {
     -webkit-mask:
@@ -399,6 +404,13 @@ html:has(.lenis) {
 }
 .sf-admin-garden-skin [data-flows-outline-row="idle"]:hover {
   background-color: var(--sf-accent-wash) !important;
+}
+
+/* Marketing Studio canvases (MarketingCanvas): demo screens inside slides
+   mount their own toasters, which would redraw every admin toast tiny inside
+   the preview. The PNG export already skips fixed nodes. */
+[data-marketing-canvas] [data-sonner-toaster] {
+  display: none !important;
 }
 
 /* Admin sidebar (src/components/school-admin/sidebar): collapsed flyouts and

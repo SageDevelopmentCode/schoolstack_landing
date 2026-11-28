@@ -56,23 +56,210 @@ function passesLargeOnCream(color: string) {
   return (CREAM_LUMINANCE + 0.05) / (luminance(rgb) + 0.05) >= 3;
 }
 
-export function siteGardenScopeStyle(theme: DemoTheme): CSSProperties {
+type Rgb = [number, number, number];
+
+function toHex([r, g, b]: Rgb) {
+  return `#${[r, g, b].map((c) => Math.round(Math.min(255, Math.max(0, c))).toString(16).padStart(2, "0")).join("")}`;
+}
+
+function rgbToHsl([r, g, b]: Rgb): [number, number, number] {
+  const [rn, gn, bn] = [r / 255, g / 255, b / 255];
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, l];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h: number;
+  if (max === rn) h = (gn - bn) / d + (gn < bn ? 6 : 0);
+  else if (max === gn) h = (bn - rn) / d + 2;
+  else h = (rn - gn) / d + 4;
+  return [h * 60, s, l];
+}
+
+function hslToRgb(h: number, s: number, l: number): Rgb {
+  const k = (n: number) => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  return [f(0) * 255, f(8) * 255, f(4) * 255];
+}
+
+/** Garden cream's hue, used when a school colour is grey/black and has no hue to borrow. */
+const NEUTRAL_HUE: [number, number] = [38, 0.45];
+
+function hueOf(color: string): [number, number] {
+  const rgb = hexToRgb(color);
+  if (!rgb) return NEUTRAL_HUE;
+  const [h, s, l] = rgbToHsl(rgb);
+  // Near-greys and near-blacks have no reliable hue.
+  if (s < 0.1 || l < 0.06 || l > 0.97) return NEUTRAL_HUE;
+  return [h, s];
+}
+
+/**
+ * A light pastel in the colour's hue. Saturation is clamped so navy turns into
+ * a clear sky blue (not grey) and neon green into a soft mint (not highlighter).
+ */
+export function pastel(color: string, lightness: number, maxSat = 0.72) {
+  const [h, s] = hueOf(color);
+  return toHex(hslToRgb(h, Math.min(maxSat, Math.max(0.3, s)), lightness));
+}
+
+/** Pastel at the midpoint hue of two colours (shortest way round the wheel). */
+function blendPastel(a: string, b: string, lightness: number) {
+  const [ha, sa] = hueOf(a);
+  const [hb, sb] = hueOf(b);
+  let diff = hb - ha;
+  if (diff > 180) diff -= 360;
+  if (diff < -180) diff += 360;
+  const h = (ha + diff / 2 + 360) % 360;
+  return toHex(hslToRgb(h, Math.min(0.72, Math.max(0.3, (sa + sb) / 2)), lightness));
+}
+
+function rotatedPastel(color: string, degrees: number, lightness: number) {
+  const [h, s] = hueOf(color);
+  return toHex(hslToRgb((h + degrees + 360) % 360, Math.min(0.72, Math.max(0.3, s)), lightness));
+}
+
+export function contrast(a: string, b: string) {
+  const ra = hexToRgb(a);
+  const rb = hexToRgb(b);
+  if (!ra || !rb) return 21;
+  const [hi, lo] = [luminance(ra), luminance(rb)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+function sameColor(a: string, b: string) {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+/**
+ * Site "moods" give the shared website different personalities per school
+ * without per-school layouts:
+ * - `paper`: school-tinted cream hero (the classic Garden look)
+ * - `bold`:  hero on the school's dark colour, accent line in its bright colour
+ * - `sunny`: hero on a strong wash of the school's primary colour
+ */
+export type SiteMood = "paper" | "bold" | "sunny";
+const MOODS: SiteMood[] = ["paper", "bold", "sunny"];
+
+function hashString(value: string) {
+  let h = 5381;
+  for (let i = 0; i < value.length; i++) h = ((h << 5) + h + value.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+/** The school's mood: `theme.siteMood` when set, else a stable pick from the slug. */
+export function resolveSiteMood(config: { slug?: string; schoolName: string; theme: DemoTheme }): SiteMood {
+  const { theme } = config;
+  if (theme.siteMood) return theme.siteMood;
+  const pick = MOODS[hashString(config.slug || config.schoolName) % MOODS.length];
+  // A dark hero needs white text to read on the school's dark colour.
+  if (pick === "bold" && readableOn(theme.dark) !== "#ffffff") return "sunny";
+  return pick;
+}
+
+const INK = "#2b241d";
+
+export function siteGardenScopeStyle(theme: DemoTheme, mood: SiteMood = "paper"): CSSProperties {
   const action = theme.dark;
   const deep = `color-mix(in srgb, ${action} 60%, black)`;
+  const onAction = readableOn(action);
+  const actionIsDark = onAction === "#ffffff";
+
+  // School-derived papers and pastels (replace Garden's fixed mint/sky/lavender).
+  const butter = pastel(theme.primary, 0.8, 0.8);
+  const accentSource =
+    !sameColor(theme.accentText, theme.dark) && !sameColor(theme.accentText, theme.primary)
+      ? pastel(theme.accentText, 0.87)
+      : rotatedPastel(theme.primary, -35, 0.87);
+  const sky = pastel(theme.dark, 0.89);
+  const lav = blendPastel(theme.primary, theme.dark, 0.89);
+  const peach = pastel(theme.primary, 0.92);
+  const [ch, cs] = hueOf(theme.primary);
+  const cream = toHex(hslToRgb(ch, Math.min(0.5, Math.max(0.25, cs * 0.6)), 0.945));
+  const paper = toHex(hslToRgb(ch, Math.min(0.6, Math.max(0.3, cs * 0.6)), 0.983));
+  // Outlines and toy shadows lean toward the school's dark colour but stay near-black.
+  const ink = actionIsDark ? `color-mix(in srgb, ${action} 24%, ${INK})` : INK;
+  const accentInk = passesLargeOnCream(action) ? action : deep;
+
+  // Hero palette per mood.
+  let hero: Record<string, string>;
+  if (mood === "bold") {
+    const brightOnDark = contrast(theme.primary, action) >= 3 ? theme.primary : butter;
+    hero = {
+      "--sf-hero-bg": action,
+      "--sf-hero-ink": "#ffffff",
+      "--sf-hero-soft": "rgba(255,255,255,0.82)",
+      "--sf-hero-accent": brightOnDark,
+      // The school's dark colour is the hero here, so the CTA takes the bright colour.
+      "--sf-hero-btn": brightOnDark,
+      "--sf-hero-on-btn": readableOn(brightOnDark),
+      "--sf-hero-marker": "transparent",
+      "--sf-hero-squiggle": butter,
+      "--sf-hero-dot": "rgba(255,255,255,0.16)",
+      "--sf-hero-blob": "rgba(255,255,255,0.07)",
+      "--sf-marquee-bg": butter,
+      "--sf-marquee-ink": INK,
+      "--sf-marquee-mark": action,
+    };
+  } else if (mood === "sunny") {
+    const sunny = pastel(theme.primary, 0.8, 0.6);
+    hero = {
+      "--sf-hero-bg": sunny,
+      "--sf-hero-ink": INK,
+      "--sf-hero-soft": "#4d443b",
+      "--sf-hero-accent": contrast(action, sunny) >= 3 ? action : deep,
+      "--sf-hero-btn": action,
+      "--sf-hero-on-btn": onAction,
+      "--sf-hero-marker": "rgba(255,255,255,0.7)",
+      "--sf-hero-squiggle": "#ffffff",
+      "--sf-hero-dot": `color-mix(in srgb, ${action} 22%, transparent)`,
+      "--sf-hero-blob": sky,
+      "--sf-marquee-bg": actionIsDark ? action : sky,
+      "--sf-marquee-ink": actionIsDark ? "#ffffff" : INK,
+      "--sf-marquee-mark": butter,
+    };
+  } else {
+    hero = {
+      "--sf-hero-bg": cream,
+      "--sf-hero-ink": INK,
+      "--sf-hero-soft": "#6d6257",
+      "--sf-hero-accent": accentInk,
+      "--sf-hero-btn": action,
+      "--sf-hero-on-btn": onAction,
+      "--sf-hero-marker": butter,
+      "--sf-hero-squiggle": butter,
+      "--sf-hero-dot": `color-mix(in srgb, ${action} 20%, transparent)`,
+      "--sf-hero-blob": peach,
+      "--sf-marquee-bg": butter,
+      "--sf-marquee-ink": INK,
+      "--sf-marquee-mark": action,
+    };
+  }
+
   return {
     "--sf-clay": action,
     "--sf-clay-deep": deep,
     // Accent words in headings: the school colour unless it's too light on cream.
-    "--sf-accent-ink": passesLargeOnCream(action) ? action : deep,
-    "--sf-on-clay": readableOn(action),
+    "--sf-accent-ink": accentInk,
+    "--sf-on-clay": onAction,
     "--sf-forest": action,
-    "--sf-forest-deep": `color-mix(in srgb, ${action} 60%, black)`,
-    "--sf-on-forest": readableOn(action),
-    "--sf-butter": `color-mix(in srgb, ${theme.primary} 30%, #fff8e6)`,
+    "--sf-forest-deep": deep,
+    "--sf-on-forest": onAction,
+    "--sf-ink": ink,
+    "--sf-cream": cream,
+    "--sf-paper": paper,
+    "--sf-butter": butter,
     "--sf-butter-deep": `color-mix(in srgb, ${theme.primary} 55%, #8a6a1f)`,
-    "--sf-peach": `color-mix(in srgb, ${theme.primary} 16%, #fffaf4)`,
-    "--sf-accent-wash": `color-mix(in srgb, ${theme.primary} 8%, #fffaf4)`,
+    "--sf-mint": accentSource,
+    "--sf-sky": sky,
+    "--sf-lav": lav,
+    "--sf-peach": peach,
+    "--sf-accent-wash": pastel(theme.primary, 0.96),
+    "--sf-dot": `color-mix(in srgb, ${action} 18%, transparent)`,
     "--sf-school-primary": theme.primary,
+    ...hero,
     // SchoolDemoWordmark text logos read this.
     "--demo-dark": theme.dark,
   } as CSSProperties;
@@ -108,6 +295,21 @@ export const SITE_BLOCK =
 /** Type. `.sf-display` is Bricolage 800. */
 export const SITE_H1 =
   "sf-display text-[clamp(2.6rem,6.4cqw,5.6rem)] leading-[0.92] text-[var(--sf-ink)]";
+
+/** Hero h1 sizes by headline length, so long headlines don't become 7-line walls. */
+const SITE_HERO_H1_SHORT = "sf-display text-[clamp(2.6rem,6.4cqw,5.6rem)] leading-[0.92]";
+const SITE_HERO_H1_MEDIUM = "sf-display text-[clamp(2.4rem,5.1cqw,4.4rem)] leading-[0.95]";
+const SITE_HERO_H1_LONG = "sf-display text-[clamp(2.1rem,4.1cqw,3.5rem)] leading-[1]";
+
+export function siteHeroH1Class(headline: string[]) {
+  const length = headline.join(" ").length;
+  if (length <= 32) return SITE_HERO_H1_SHORT;
+  if (length <= 50) return SITE_HERO_H1_MEDIUM;
+  return SITE_HERO_H1_LONG;
+}
+
+/** Accent lines longer than this get a wrapping marker instead of the squiggle. */
+export const SITE_SQUIGGLE_MAX_CHARS = 24;
 export const SITE_H2 =
   "sf-display text-[clamp(2.1rem,4.3cqw,3.9rem)] leading-[0.98] text-[var(--sf-ink)]";
 export const SITE_H3 = "sf-display text-[1.5rem] leading-[1.05] text-[var(--sf-ink)]";

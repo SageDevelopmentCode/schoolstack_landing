@@ -1,6 +1,6 @@
 import {
   getMobilePdfDocumentFetchHosts,
-  isAllowedAndroidPdfWebViewNavigation,
+  isAllowedPdfJsWebViewNavigation,
 } from '@/lib/pdf/mobile-pdf-webview-navigation';
 
 describe('getMobilePdfDocumentFetchHosts', () => {
@@ -22,16 +22,16 @@ describe('getMobilePdfDocumentFetchHosts', () => {
   });
 });
 
-describe('isAllowedAndroidPdfWebViewNavigation', () => {
+describe('isAllowedPdfJsWebViewNavigation', () => {
   it('allows viewer base url and about:blank', () => {
-    expect(isAllowedAndroidPdfWebViewNavigation('about:blank')).toBe(true);
-    expect(isAllowedAndroidPdfWebViewNavigation('https://localhost/')).toBe(true);
+    expect(isAllowedPdfJsWebViewNavigation('about:blank')).toBe(true);
+    expect(isAllowedPdfJsWebViewNavigation('https://localhost/')).toBe(true);
   });
 
   it('allows exact supabase storage host', () => {
     process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://project.supabase.co';
     expect(
-      isAllowedAndroidPdfWebViewNavigation(
+      isAllowedPdfJsWebViewNavigation(
         'https://project.supabase.co/storage/v1/object/sign/doc.pdf?token=secret',
       ),
     ).toBe(true);
@@ -40,16 +40,16 @@ describe('isAllowedAndroidPdfWebViewNavigation', () => {
   it('rejects substring cdn bypass hosts', () => {
     process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://project.supabase.co';
     expect(
-      isAllowedAndroidPdfWebViewNavigation(
+      isAllowedPdfJsWebViewNavigation(
         'https://evil.example/cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
       ),
     ).toBe(false);
   });
 
   it('rejects file:// urls (pdf.js is inlined, nothing loads from disk)', () => {
-    expect(isAllowedAndroidPdfWebViewNavigation('file:///etc/passwd')).toBe(false);
+    expect(isAllowedPdfJsWebViewNavigation('file:///etc/passwd')).toBe(false);
     expect(
-      isAllowedAndroidPdfWebViewNavigation('file:///data/user/0/app/files/pdf.min.mjs'),
+      isAllowedPdfJsWebViewNavigation('file:///data/user/0/app/files/pdf.min.mjs'),
     ).toBe(false);
   });
 });

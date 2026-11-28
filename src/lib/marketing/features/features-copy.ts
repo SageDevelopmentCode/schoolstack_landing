@@ -60,6 +60,8 @@ export const FEATURE_PAGE_LABELS = {
   compareToolStack: "Patched-together tools",
   compareChecked: "Other products checked {date} from their public websites. Details can change; follow the links to confirm.",
   compareSources: "Comparison sources",
+  compareFull: "Full comparisons:",
+  updated: "Updated",
   faqEyebrow: "FAQ",
   relatedEyebrow: "Works with",
   relatedLead: "Connected to",
